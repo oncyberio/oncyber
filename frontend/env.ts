@@ -69,8 +69,14 @@ export const nodeEnv = {
             ? // ? "0xc778417e063141139fce010982780140aa0cd5ab"  <- weth on rinkeby
               "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             : "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    // The API routes ship with this app, so the browser calls its own origin.
+    // A fixed host breaks previews, localhost on another port and any domain
+    // that isn't the hardcoded one: the cross-origin request fails CORS (for
+    // example, opening a template could not fetch the room's parameters).
     PUBLIC_API:
-        process.env.NODE_ENV === "development"
+        typeof window !== "undefined" && window.location?.origin
+            ? window.location.origin
+            : process.env.NODE_ENV === "development"
             ? process.env.NEXT_PUBLIC_API || "http://localhost:3000"
             : process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
             ? "https://oncyber.io"
