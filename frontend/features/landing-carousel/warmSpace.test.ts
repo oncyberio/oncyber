@@ -1,6 +1,9 @@
 /** @jest-environment jsdom */
 import { directEntry, opensSpace } from "./warmSpace";
-import { GPU_TIER_STORAGE_KEY } from "@components/_3DExhibit-v2/three/utils/gpuTierMemory";
+import {
+    GPU_TIER_STORAGE_KEY,
+    rememberGpuTierPath,
+} from "@components/_3DExhibit-v2/three/utils/gpuTierMemory";
 
 const card = (extra: any = {}) =>
     ({ id: "space-1", href: "/void", title: "Void", ...extra } as any);
@@ -19,8 +22,13 @@ describe("opensSpace", () => {
 describe("directEntry", () => {
     afterEach(() => localStorage.clear());
 
-    it("has no tier before the GPU was ever looked up", () => {
-        expect(directEntry()).toMatchObject({ kind: "direct", gpuTier: null });
+    it("guesses what an unknown GPU gets before any space was opened", () => {
+        expect(directEntry()).toMatchObject({ kind: "direct", gpuTier: "mid" });
+    });
+
+    it("prefers the path the last space used", () => {
+        rememberGpuTierPath("low");
+        expect(directEntry()).toMatchObject({ gpuTier: "low" });
     });
 
     it("uses the tier remembered from an earlier space", () => {

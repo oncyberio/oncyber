@@ -8,6 +8,7 @@ import {
     gpuTierPath,
     readRememberedGpuTier,
     rememberGpuTier,
+    rememberGpuTierPath,
 } from "./gpuTierMemory";
 
 export {
@@ -47,6 +48,8 @@ export async function getGPU() {
 
     // Unknown GPUs (not in the benchmark tables) count as mid.
     const gpuTier = { ...result, path: gpuTierPath(result) };
+    // The landing page reads it to warm the room file a space will pick.
+    rememberGpuTierPath(gpuTier.path);
 
     return gpuTier;
 }

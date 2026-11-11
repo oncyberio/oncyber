@@ -86,3 +86,40 @@ export function gpuTierPath(result) {
         return GPU_TIER_PATHS[result.tier - 1] || "mid";
     return "mid";
 }
+
+/**
+ * The room quality path the last space on this browser used, whatever
+ * detect-gpu answered (GPUs newer than its tables, like recent Apple chips,
+ * are never remembered above but still get a path).
+ */
+export const GPU_TIER_PATH_STORAGE_KEY = "oncyber.gpuTierPath";
+
+export function rememberGpuTierPath(
+    path,
+    storage = safeLocalStorage(),
+    userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent
+) {
+    if (!GPU_TIER_PATHS.includes(path)) return;
+    try {
+        storage?.setItem(
+            GPU_TIER_PATH_STORAGE_KEY,
+            JSON.stringify({ path, userAgent })
+        );
+    } catch {}
+}
+
+/** @returns {"low" | "mid" | "high" | null} */
+export function readGpuTierPath(
+    storage = safeLocalStorage(),
+    userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent
+) {
+    try {
+        const saved = JSON.parse(storage?.getItem(GPU_TIER_PATH_STORAGE_KEY));
+        return saved?.userAgent === userAgent &&
+            GPU_TIER_PATHS.includes(saved.path)
+            ? saved.path
+            : null;
+    } catch {
+        return null;
+    }
+}

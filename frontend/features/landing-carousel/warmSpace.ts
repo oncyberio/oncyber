@@ -8,6 +8,7 @@ import { warmDestination } from "@features/lobby/destinationWarmup";
 import type { WarmEntry } from "@features/lobby/destinationWarmupSource";
 import {
     gpuTierPath,
+    readGpuTierPath,
     readRememberedGpuTier,
 } from "@components/_3DExhibit-v2/three/utils/gpuTierMemory";
 import { IS_MOBILE } from "@components/_3DExhibit-v2/three/device";
@@ -19,7 +20,11 @@ export function directEntry(): WarmEntry {
     const remembered = readRememberedGpuTier();
     return {
         kind: "direct",
-        gpuTier: remembered ? gpuTierPath(remembered) : null,
+        gpuTier:
+            readGpuTierPath() ??
+            (remembered ? gpuTierPath(remembered) : null) ??
+            // Never been in a space here: what an unknown GPU gets.
+            (IS_MOBILE ? "low" : "mid"),
         isMobile: !!IS_MOBILE,
     };
 }
