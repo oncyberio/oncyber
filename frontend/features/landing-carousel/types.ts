@@ -21,6 +21,8 @@ export interface LandingCard {
     actionLabel?: string;
     destinationStatus?: string;
     templateStatus?: "free" | "owned" | "uncollected" | "checking" | "scan";
+    /** This template is being turned into a space; the card shows its progress. */
+    opening?: boolean;
 }
 
 export interface DiscoveryFilters {

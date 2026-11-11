@@ -438,25 +438,25 @@ function LandingContent(props: LandingPageProps) {
                 />
             )}
             <DiscoveryHeader
-                    immersive={inLobby}
-                    onHome={inLobby ? leaveLobby : undefined}
-                    key={templateContext ? "templates" : "worlds"}
-                    filters={filters}
-                    update={searchWorlds}
-                    createControl={createControl}
-                    templates={
-                        templateContext
-                            ? {
-                                  category: templateCategory,
-                                  update: (category) =>
-                                      updateTemplates({
-                                          templateCategory: category,
-                                          create: "gallery",
-                                      }),
-                              }
-                            : undefined
-                    }
-                />
+                immersive={inLobby}
+                onHome={inLobby ? leaveLobby : undefined}
+                key={templateContext ? "templates" : "worlds"}
+                filters={filters}
+                update={searchWorlds}
+                createControl={createControl}
+                templates={
+                    templateContext
+                        ? {
+                              category: templateCategory,
+                              update: (category) =>
+                                  updateTemplates({
+                                      templateCategory: category,
+                                      create: "gallery",
+                                  }),
+                          }
+                        : undefined
+                }
+            />
             <main
                 ref={mainRef}
                 aria-hidden={inLobby || undefined}
@@ -466,14 +466,12 @@ function LandingContent(props: LandingPageProps) {
                 }
             >
                 <BrowseSurface>
-                    {step === "gallery" &&
-                        (templates?.error || templates?.opening) && (
-                            <TemplateStatus
-                                role={templates?.error ? "alert" : "status"}
-                            >
-                                {templates?.error || "Opening Studio…"}
-                            </TemplateStatus>
-                        )}
+                    {/* Opening shows on the picked card itself. */}
+                    {step === "gallery" && templates?.error && (
+                        <TemplateStatus role="alert">
+                            {templates.error}
+                        </TemplateStatus>
+                    )}
                     <div className="results" aria-busy={!creating && loading}>
                         {retainedGridCards.current.length > 0 && (
                             <Scene
@@ -659,8 +657,8 @@ const EnterPortalIcon = styled.span`
     height: 10px;
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses (red and blue lenses) on transparency. */
-    background: url("/icons/generated-v3/jump-in-3d-glasses.svg")
-        center / contain no-repeat;
+    background: url("/icons/generated-v3/jump-in-3d-glasses.svg") center /
+        contain no-repeat;
 `;
 
 const CreateControl = styled.button`

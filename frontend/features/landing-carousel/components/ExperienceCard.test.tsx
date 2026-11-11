@@ -9,7 +9,8 @@ const act = (React as any).act;
 (global as any).IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("@components/InAppLink", () => ({
     __esModule: true,
-    default: ({ children, href }) => require("react").cloneElement(children, { href }),
+    default: ({ children, href }) =>
+        require("react").cloneElement(children, { href }),
 }));
 jest.mock("../activity", () => {
     const signal = jest.fn();
@@ -108,3 +109,21 @@ it.each([false, true])(
         expect(element.textContent).not.toContain("visits");
     }
 );
+
+it("shows a loading state on the template being opened", () => {
+    const card = {
+        ...BUILD_CARDS[0],
+        id: "template-room",
+        templateStatus: "free" as const,
+    };
+    act(() => root.render(<ExperienceCard card={card} />));
+    expect(container.querySelector(".card-loading")).toBeNull();
+    act(() =>
+        root.render(<ExperienceCard card={{ ...card, opening: true }} />)
+    );
+    const element = container.querySelector("[data-opening]");
+    expect(element.getAttribute("aria-busy")).toBe("true");
+    expect(element.querySelector('[role="status"]').textContent).toBe(
+        "Creating your space…"
+    );
+});
