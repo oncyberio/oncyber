@@ -34,7 +34,7 @@ describe("route data seeds", () => {
     const fetchMock = jest.fn();
 
     beforeEach(() => {
-        jest.useFakeTimers({ doNotFake: ["performance"] });
+        jest.useFakeTimers();
         sdc = {};
         (Router as any).router = { sdc };
         fetchMock.mockReset();
