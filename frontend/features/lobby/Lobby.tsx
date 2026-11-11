@@ -1,3 +1,4 @@
+import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import { flashWallets } from "./useFlashNfts";
@@ -54,7 +55,6 @@ import { lobbyGroupPresence } from "./lobbyGroupPresence";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
-import { lobbyPortraitUrl } from "./lobbyIdentity";
 import VRMS from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { EMOTES } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -65,8 +65,7 @@ const SpaceInfoSidebar = dynamic(
 
 /** Shown as a toast, and said once to screen readers, when the visitor's own
  * avatar file fails and the scene shows the default avatar instead. */
-const AVATAR_FALLBACK_NOTICE =
-    "Couldn’t load your avatar. Using the default.";
+const AVATAR_FALLBACK_NOTICE = "Couldn’t load your avatar. Using the default.";
 
 function NativeIcon({ name, size = 20 }: { name: string; size?: number }) {
     return (
@@ -95,7 +94,8 @@ export default function Lobby({
 }) {
     const account = useContext(UserContext);
     const { user, userData, token, authenticated, isAnonymous } = account;
-    const profilePhoto = lobbyPortraitUrl(userData?.avatar);
+    // Falls back to the NFT's current image, then the guest portrait.
+    const profilePhoto = useProfilePhoto(userData);
     const journey = useLobbyJourney(initialReturn);
     const [lobbyInfoOpen, setLobbyInfoOpen] = useState(false);
     const journeyView = lobbyJourneyView(journey);
