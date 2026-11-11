@@ -23,6 +23,7 @@ import { Client, Room } from "colyseus.js";
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "@utils/arena/constants";
 import { selectLobbyEndpoint, invalidateLobbyEndpoint } from "./lobbyEndpoints";
 import { LobbyMotionStore } from "./LobbyMotionStore";
+import { PatchClock } from "./patchClock";
 import { WorldLobbyTransport, WorldLobbyTicket } from "./WorldLobbyTransport";
 import { LobbyPrediction } from "./LobbyPrediction";
 import {
@@ -302,6 +303,10 @@ export class LobbyConnection {
     private motion = new LobbyMotionStore();
     private prediction = new LobbyPrediction();
     private legacyTick = 0;
+    /** Legacy schema patches carry no time; snap their arrivals to the room's tick grid. */
+    private legacyClock = new PatchClock();
+    private legacyQuietTimer: ReturnType<typeof setTimeout> | null = null;
+    private legacyMoveKey = "";
     private population = 0;
     private voicePeers: string[] = [];
     /** Peers we hear but never send our mic to (stage speakers, or everyone while muted). */
@@ -453,16 +458,19 @@ export class LobbyConnection {
                     });
                     const proofTimeout = setTimeout(cancelProof, 2000);
                     try {
-                        const proof = await fetch("/api/social/lobby-identity", {
-                            method: "POST",
-                            credentials: "same-origin",
-                            signal: proofController.signal,
-                            headers: {
-                                "content-type": "application/json",
-                                authorization: `Bearer ${this.identity.token}`,
-                            },
-                            body: "{}",
-                        });
+                        const proof = await fetch(
+                            "/api/social/lobby-identity",
+                            {
+                                method: "POST",
+                                credentials: "same-origin",
+                                signal: proofController.signal,
+                                headers: {
+                                    "content-type": "application/json",
+                                    authorization: `Bearer ${this.identity.token}`,
+                                },
+                                body: "{}",
+                            }
+                        );
                         const value = proof.ok ? await proof.json() : null;
                         if (
                             typeof value?.token === "string" &&
@@ -935,11 +943,52 @@ export class LobbyConnection {
                 changed = true;
             }
         this.population = this.players.size;
-        this.motion.pushFrame(++this.legacyTick, performance.now(), poses);
+        const arrival = performance.now();
+        const stamp = this.legacyClock.stamp(arrival);
+        this.motion.pushFrame(++this.legacyTick, stamp, poses, arrival, true);
+        this.scheduleLegacyQuietFrame(stamp, arrival);
         if (changed) this.publishRoster();
         this.selectLegacyVoice();
         this.updateAudioVolume();
     };
+    /**
+     * The room only sends a patch when something changed, so when the last
+     * mover stops, the patch holding their resting position is the last one.
+     * Without a following sample the avatar walks on past that point for a
+     * moment and keeps its walk until the buffer runs dry. A quiet tick means
+     * nothing moved: record it as a resting sample one interval later.
+     */
+    private scheduleLegacyQuietFrame(stamp: number, arrival: number) {
+        if (this.legacyQuietTimer) clearTimeout(this.legacyQuietTimer);
+        const interval = this.legacyClock.intervalMs;
+        this.legacyQuietTimer = setTimeout(() => {
+            this.legacyQuietTimer = null;
+            if (this.closed || this.protocol !== "legacy") return;
+            if (this.legacyClock.lastStamp !== stamp) return;
+            const poses: Array<[string, LobbyPose]> = [];
+            for (const [id, player] of this.players)
+                if (!player.isLocal)
+                    poses.push([
+                        id,
+                        {
+                            x: player.x,
+                            y: player.y,
+                            z: player.z,
+                            rotation: player.rotation,
+                            animation: player.animation,
+                            floor: player.floor,
+                        },
+                    ]);
+            if (!poses.length) return;
+            this.motion.pushFrame(
+                ++this.legacyTick,
+                stamp + interval,
+                poses,
+                arrival + interval,
+                true
+            );
+        }, interval * 1.25);
+    }
     private receiveRoster = (message: any) => {
         if (!Array.isArray(message?.enter) || !Array.isArray(message?.leave))
             return;
@@ -1627,11 +1676,7 @@ export class LobbyConnection {
             (this.protocol !== "legacy" && !this.welcomed)
         )
             return;
-        const delay = Math.max(
-            0,
-            (this.protocol !== "legacy" ? 50 : 100) -
-                (Date.now() - this.lastMove)
-        );
+        const delay = Math.max(0, 33 - (Date.now() - this.lastMove));
         this.moveTimer = setTimeout(this.sendPosition, delay);
     };
     private sendPosition = () => {
@@ -1652,12 +1697,22 @@ export class LobbyConnection {
             return;
         }
         const { x, y, z, rotation, animation, floor } = this.pose;
-        this.room.send(
-            this.protocol !== "legacy" ? "lobby-move" : "move",
-            this.protocol !== "legacy"
-                ? this.prediction.packet()
-                : [x, y, z, rotation, animationCode(animation), floor !== false]
-        );
+        if (this.protocol === "legacy") {
+            const move = [
+                x,
+                y,
+                z,
+                rotation,
+                animationCode(animation),
+                floor !== false,
+            ];
+            // Standing still sends nothing new; refresh it once a second.
+            const key = move.join();
+            if (key === this.legacyMoveKey && Date.now() - this.lastMove < 1000)
+                return;
+            this.legacyMoveKey = key;
+            this.room.send("move", move);
+        } else this.room.send("lobby-move", this.prediction.packet());
         this.lastMove = Date.now();
     };
     updateAvatar = ({ vrmUrl, scale = this.identity.scale }: LobbyAvatar) => {
@@ -1934,6 +1989,10 @@ export class LobbyConnection {
         this.update({ stage: null });
         this.players.clear();
         this.motion.clear();
+        this.legacyClock.reset();
+        this.legacyMoveKey = "";
+        if (this.legacyQuietTimer) clearTimeout(this.legacyQuietTimer);
+        this.legacyQuietTimer = null;
         this.population = 0;
         this.prediction.resetSession();
         const room = this.room;

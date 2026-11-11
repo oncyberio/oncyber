@@ -30,6 +30,8 @@ import {
 
 import shortid from "shortid";
 
+import { PatchClock } from "@features/lobby/patchClock";
+
 import { disposeObject3D } from "@3utils/three";
 
 import { IS_MOBILE,
@@ -135,9 +137,16 @@ class Multiplayer extends Group {
 
         this.packets = [];
 
+        // Room patches carry no time; stamp them on the room's tick grid.
+        this.patchClock = new PatchClock();
+
         this.delta = 0;
 
-        this.interval = 1 / 5;
+        // The room relays positions on its own 5Hz tick. Sending on a 5Hz
+        // timer too meant some ticks carried no new position and the next
+        // carried two steps' worth, so other players' walks pulsed. 30Hz
+        // keeps every tick's position fresh.
+        this.interval = 1 / 30;
 
         this.prevTimestamp = 0;
 
@@ -1087,10 +1096,22 @@ class Multiplayer extends Group {
 
             const pl = Players.main.getPacketPayload()
 
-            Socket.emit(Events.SEND_PACKET, {
-                code: "move",
-                payload: pl
-            })
+            // Standing still sends nothing new; refresh it once a second.
+            const key = pl.join()
+
+            const now = performance.now()
+
+            if (key !== this.lastSentKey || now - this.lastSentAt > 1000) {
+
+                Socket.emit(Events.SEND_PACKET, {
+                    code: "move",
+                    payload: pl
+                })
+
+                this.lastSentKey = key
+
+                this.lastSentAt = now
+            }
 
             this.delta = this.delta % this.interval;
 
@@ -1101,7 +1122,11 @@ class Multiplayer extends Group {
 
         // if (INTERPOLATE) {
 
-            this.interpolate6(Date.now() - 500);
+            // One patch interval plus room for late patches. With patches
+            // stamped on the tick grid, 500ms was mostly added lag.
+            this.interpolate6(
+                performance.now() - this.patchClock.intervalMs - 120
+            );
         // }
 
         if (this.interDelta > this.fixedInterval) {
@@ -1808,14 +1833,32 @@ class Multiplayer extends Group {
 
         // if (INTERPOLATE) {
             // Packets accumulate even tho window is out of focus.
+            const timestamp = this.patchClock.stamp(performance.now());
+
+            const previous = this.packets[this.packets.length - 1];
+
+            const interval = this.patchClock.intervalMs;
+
+            // The room only sends a patch when something changed. After a
+            // quiet spell, everyone was still where the last patch put them
+            // one tick ago; without that sample a restart would be spread
+            // over the whole pause and then jump.
+            if (previous && timestamp - previous.timestamp > interval * 1.5) {
+                this.packets.push({
+                    packets: previous.packets,
+                    id: previous.id + "-rest",
+                    timestamp: timestamp - interval
+                });
+            }
+
             this.packets.push({
                 packets: p,
                 id: shortAidi,
-                timestamp: Date.now()
+                timestamp
             });
 
-            if (this.packets.length >= 10) {
-                this.packets.splice(this.packets.length - 10, this.packets.length - 1);
+            if (this.packets.length > 12) {
+                this.packets.splice(0, this.packets.length - 4);
             }
         // }
 
