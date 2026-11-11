@@ -218,6 +218,12 @@ export const conversationStyles = css`
         scrollbar-color: #ffffff24 transparent;
         overflow-anchor: none;
     }
+    /* The closed chat keeps its latest lines in view; a click opens it. */
+    .chat-feed {
+        overflow: hidden;
+        cursor: pointer;
+        padding-bottom: 2px;
+    }
     .chat-message {
         display: flex;
         align-items: flex-start;
