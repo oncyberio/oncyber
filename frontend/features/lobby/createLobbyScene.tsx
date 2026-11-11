@@ -1412,7 +1412,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             participant.avatar,
                             (allowed?.has(participant.id) ||
                                 latest.current.travelPartyIds
-                                    ?.slice(0, 8)
+                                    // Parties hold 8; staged recording crowds bring up to 16.
+                                    ?.slice(0, 16)
                                     .includes(participant.id)) &&
                                 travel?.phase !== "return",
                             flashing

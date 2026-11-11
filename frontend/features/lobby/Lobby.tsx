@@ -1,5 +1,6 @@
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
+import useRecordingCrowd from "./useRecordingCrowd";
 import { flashWallets } from "./useFlashNfts";
 import React, {
     useCallback,
@@ -94,6 +95,10 @@ export default function Lobby({
     initialReturn?: LobbyReturnTransition | null;
 }) {
     const account = useContext(UserContext);
+    const [recordingRequested, setRecordingRequested] = useState(false);
+    useEffect(() => {
+        setRecordingRequested(/[?&]crowd=[1-9]/.test(window.location.search));
+    }, []);
     const { user, userData, token, authenticated, isAnonymous } = account;
     const profilePhoto = lobbyPortraitUrl(userData?.avatar);
     const journey = useLobbyJourney(initialReturn);
@@ -229,8 +234,10 @@ export default function Lobby({
             ? user?.id || userData?.walletId || ""
             : "",
         flashWallets(account),
-        avatarOpen
+        avatarOpen || recordingRequested
     );
+    // ?crowd=N stages people for recording a video (see recordingCrowd.ts).
+    const recording = useRecordingCrowd(ownedAvatars.items);
     const avatarChoices = useMemo(
         () =>
             ownedFirst(
@@ -578,10 +585,47 @@ export default function Lobby({
         if (!socialElement.current?.contains(document.activeElement))
             travelControls.current?.focus({ preventScroll: true });
     }, [travelling]);
-    const population = social.population ?? social.players.length;
+    const population =
+        (social.population ?? social.players.length) +
+        (recording?.crowd.participants.length || 0);
     const participants = useMemo(
-        () => social.players.filter((player) => !player.isLocal),
-        [social.players]
+        () => [
+            ...social.players.filter((player) => !player.isLocal),
+            ...(recording?.crowd.participants || []),
+        ],
+        [social.players, recording]
+    );
+    const sampleParticipants = useMemo(
+        () =>
+            recording
+                ? (now?: number) => {
+                      const time = now ?? performance.now();
+                      return [
+                          ...social.sampleParticipants(time),
+                          ...recording.crowd.sample(time),
+                      ];
+                  }
+                : social.sampleParticipants,
+        [recording, social.sampleParticipants]
+    );
+    const travelPartyIds = useMemo(
+        () =>
+            recording
+                ? [...party.partyIds, ...recording.crowd.travelIds]
+                : party.partyIds,
+        [party.partyIds, recording]
+    );
+    const recordingBudget = useMemo(
+        () =>
+            recording
+                ? {
+                      maxModels: 24,
+                      maxNativeAvatars: 40,
+                      maxLabels: recording.options.names ? 64 : 0,
+                      loadConcurrency: 4,
+                  }
+                : undefined,
+        [recording]
     );
     const sceneReady = useCallback(() => {
         setReady(true);
@@ -805,7 +849,7 @@ export default function Lobby({
                             journey.travel
                                 ? {
                                       ...journey.travel,
-                                      partyIds: party.partyIds,
+                                      partyIds: travelPartyIds,
                                       // Progress for the halo's band only;
                                       // the scene draws no name or status.
                                       viaPortal: portalTrip,
@@ -825,9 +869,10 @@ export default function Lobby({
                         crowdEnabled={true}
                         proceduralMotion={true}
                         participants={participants}
+                        renderBudget={recordingBudget}
                         initializePose={social.initializePose}
                         advanceMovement={social.advanceMovement}
-                        sampleParticipants={social.sampleParticipants}
+                        sampleParticipants={sampleParticipants}
                         consumeCorrection={social.consumeCorrection}
                         avatarPreview={avatarOpen}
                         onAvatarStatus={avatarStatus}
@@ -843,7 +888,7 @@ export default function Lobby({
                         destinations={[]}
                         onMove={social.updatePosition}
                         onSelectDestination={() => {}}
-                        travelPartyIds={party.partyIds}
+                        travelPartyIds={travelPartyIds}
                         onReady={sceneReady}
                         onError={sceneFailed}
                     />

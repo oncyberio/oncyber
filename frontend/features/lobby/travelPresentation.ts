@@ -151,9 +151,13 @@ export function travelParticipants(
     return source.map((person) => {
         const place = index.get(person.id);
         if (place === undefined) return person;
-        const column = place - (allowed.length - 1) / 2;
+        // One row of up to 8 (a full party); larger staged groups add rows
+        // behind, offset by half a place so faces show between shoulders.
+        const row = Math.floor(place / 8);
+        const inRow = Math.min(8, allowed.length - row * 8);
+        const column = place - row * 8 - (inRow - 1) / 2 + (row % 2 ? 0.5 : 0);
         const side = column * 1.15;
-        const depth = -0.9 - Math.abs(column) * 0.18;
+        const depth = -0.9 - Math.abs(column) * 0.18 - row * 1.1;
         return {
             ...person,
             x:
