@@ -97,6 +97,8 @@ export type LobbyPose = {
     vx?: number;
     vy?: number;
     vz?: number;
+    /** Presentation-only: 1 or 2 while airborne, inferred from velocity. */
+    jumpCount?: number;
 };
 export type LobbyPlayer = LobbyPose & {
     id: string;
