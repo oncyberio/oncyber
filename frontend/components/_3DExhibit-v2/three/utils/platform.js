@@ -1,75 +1,22 @@
 import { getGPUTier } from "detect-gpu";
 import { LANDSCAPE, PORTRAIT } from "@3constants";
 
-const paths = ["low", "mid", "high"];
+import {
+    DETECT_GPU_VERSION,
+    GPU_BENCHMARKS_URL,
+    GPU_TIER_STORAGE_KEY,
+    gpuTierPath,
+    readRememberedGpuTier,
+    rememberGpuTier,
+} from "./gpuTierMemory";
 
-/**
- * detect-gpu's benchmark tables, copied from
- * node_modules/detect-gpu/dist/benchmarks into public/ so the tier lookup
- * does not depend on unpkg.com. The folder is named after the installed
- * version; platform.test.js fails when the package and the copy differ.
- */
-export const DETECT_GPU_VERSION = "3.1.30";
-export const GPU_BENCHMARKS_URL = `/detect-gpu/${DETECT_GPU_VERSION}`;
-
-/** A remembered tier is reused for a week on the same browser. */
-export const GPU_TIER_STORAGE_KEY = "oncyber.gpuTier";
-const GPU_TIER_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-/** Only answers from the benchmark tables are worth remembering. */
-const rememberable = (result) =>
-    result?.type === "BENCHMARK" || result?.type === "BLOCKLISTED";
-
-export function readRememberedGpuTier(
-    storage = safeLocalStorage(),
-    now = Date.now(),
-    userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent
-) {
-    try {
-        const saved = JSON.parse(storage?.getItem(GPU_TIER_STORAGE_KEY));
-        if (
-            !saved ||
-            saved.version !== DETECT_GPU_VERSION ||
-            saved.userAgent !== userAgent ||
-            !(now - saved.savedAt < GPU_TIER_MAX_AGE_MS) ||
-            !rememberable(saved.result)
-        )
-            return null;
-        return saved.result;
-    } catch {
-        return null;
-    }
-}
-
-export function rememberGpuTier(
-    result,
-    storage = safeLocalStorage(),
-    now = Date.now(),
-    userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent
-) {
-    if (!rememberable(result)) return;
-    try {
-        storage?.setItem(
-            GPU_TIER_STORAGE_KEY,
-            JSON.stringify({
-                version: DETECT_GPU_VERSION,
-                userAgent,
-                savedAt: now,
-                result,
-            })
-        );
-    } catch {
-        // Private windows and full storage only lose the shortcut.
-    }
-}
-
-function safeLocalStorage() {
-    try {
-        return typeof window === "undefined" ? null : window.localStorage;
-    } catch {
-        return null;
-    }
-}
+export {
+    DETECT_GPU_VERSION,
+    GPU_BENCHMARKS_URL,
+    GPU_TIER_STORAGE_KEY,
+    readRememberedGpuTier,
+    rememberGpuTier,
+};
 
 let gpuTierResult;
 let gpuTierPending;
@@ -98,19 +45,9 @@ function lookupGpuTier() {
 export async function getGPU() {
     const result = await lookupGpuTier();
 
-    const gpuTier = { ...result, path: "mid" };
+    // Unknown GPUs (not in the benchmark tables) count as mid.
+    const gpuTier = { ...result, path: gpuTierPath(result) };
 
-    // We only set the path if the GPU model is known in the benchmark
-    if (gpuTier.isMobile) {
-        gpuTier.path = "low";
-    } else if (gpuTier.type === "BENCHMARK") {
-        gpuTier.path = paths[gpuTier.tier - 1];
-    }
-
-    // Otherwise we just ignore the returned result
-    gpuTier.path = gpuTier.path || "mid";
-
-    //console.log("gpuTier", gpuTier);
     return gpuTier;
 }
 
