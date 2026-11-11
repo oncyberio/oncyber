@@ -21,6 +21,9 @@ type Track = {
     timeline?: number;
     playbackRate?: number;
     revision?: number;
+    /** Velocities are estimated from positions (full-state legacy patches). */
+    derived?: boolean;
+    gaitSpeed?: number;
     renderVx?: number;
     renderVz?: number;
 };
@@ -107,11 +110,17 @@ export class LobbyMotionStore {
                 : this.clockOffset * 0.85 + offset * 0.15;
         this.clockKnown = true;
     }
+    /**
+     * `derive` marks a reliable full-state stream (the legacy CyberRoom
+     * schema): every frame holds every player, so an unchanged position is a
+     * real rest, and velocities can be estimated from consecutive positions.
+     */
     pushFrame(
         sequence: number,
         serverTime: number,
         poses: Array<[string, LobbyPose]>,
-        received = now()
+        received = now(),
+        derive = false
     ) {
         if (
             !Number.isSafeInteger(sequence) ||
@@ -149,7 +158,7 @@ export class LobbyMotionStore {
                 100000
             )
                 continue;
-            this.append(track, { ...pose, time: serverTime });
+            this.append(track, { ...pose, time: serverTime }, derive);
         }
         return true;
     }
@@ -223,7 +232,9 @@ export class LobbyMotionStore {
         this.accepted++;
         return accepted;
     }
-    private append(track: Track, point: Point) {
+    private append(track: Track, point: Point, derive = false) {
+        if (derive && ![point.vx, point.vz].every(Number.isFinite))
+            this.deriveVelocity(track, point);
         if ([point.vx, point.vy, point.vz].every(Number.isFinite))
             this.hasVelocity = true;
         const previous = track.points.at(-1);
@@ -253,6 +264,77 @@ export class LobbyMotionStore {
         )
             track.points.shift();
     }
+    /**
+     * Position-only streams give the presentation filter nothing to follow
+     * but the gaps between samples, so speed jumps at every packet and the
+     * gait flickers between walk and idle. Estimate each sample's velocity
+     * from its neighbours (a centred difference once the next sample exists),
+     * which feeds the same curve, braking and rest detection as streams that
+     * send real velocities.
+     */
+    private deriveVelocity(track: Track, point: Point) {
+        track.derived = true;
+        const points = track.points;
+        // A late patch can land on the tick of a synthesized resting sample;
+        // it replaces that sample, so derive from the one before it.
+        let last = points.length - 1;
+        if (points[last]?.time === point.time) last--;
+        let previous = points[last];
+        point.vx = point.vy = point.vz = 0;
+        if (!previous || point.time <= previous.time) return;
+        const moved = (a: LobbyPose, b: LobbyPose) =>
+            Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) >
+            0.0005;
+        const cadence = track.cadenceMs;
+        // A reliable stream only goes quiet while nothing changes. After a
+        // pause, the player was still at rest one interval before this
+        // sample; without that point the first step of a restart would be
+        // spread over the whole pause, and then jump.
+        if (
+            cadence &&
+            moved(previous, point) &&
+            point.time - previous.time > cadence * 1.5
+        ) {
+            const rest: Point = {
+                ...previous,
+                vx: 0,
+                vy: 0,
+                vz: 0,
+                time: point.time - cadence,
+            };
+            points.splice(last + 1, 0, rest);
+            previous = rest;
+            last++;
+        }
+        const seconds = (point.time - previous.time) / 1000;
+        const vx = (point.x - previous.x) / seconds,
+            vy = (point.y - previous.y) / seconds,
+            vz = (point.z - previous.z) / seconds;
+        // Teleports, respawns and travel are not motion to blend through.
+        if (Math.hypot(vx, vz) > 12 || Math.abs(vy) > 20) {
+            previous.vx = previous.vy = previous.vz = 0;
+            return;
+        }
+        if (!moved(previous, point)) return;
+        // Each estimate is fixed when its sample arrives. A centred difference
+        // would revise the newest sample's velocity once the next one lands,
+        // bending the segment being drawn mid-way. Spanning two intervals
+        // instead keeps the estimate stable and filters the irregular sample
+        // timing that position-only senders produce.
+        const before = points[last - 1];
+        const span = before ? (point.time - before.time) / 1000 : 0;
+        const wide =
+            before && span > seconds && span < seconds * 3
+                ? [
+                      (point.x - before.x) / span,
+                      (point.y - before.y) / span,
+                      (point.z - before.z) / span,
+                  ]
+                : [vx, vy, vz];
+        point.vx = wide[0];
+        point.vy = wide[1];
+        point.vz = wide[2];
+    }
     sample = (at = now()): readonly LobbyPlayer[] => {
         // Metrics and rendering can read the same frame. A second pass must
         // not snap to the target or clear the velocity used by the next frame.
@@ -279,17 +361,28 @@ export class LobbyMotionStore {
             // Sparse crowd actors receive updates at 2–5Hz. A fixed 150ms
             // horizon expires between their packets (especially after one loss).
             // Cover one ordinary update interval, bounded to half a second.
-            const extrapolationMs = this.hasVelocity
+            // Estimated velocities describe the past interval, not the next
+            // one: carry them only briefly when a patch is late.
+            const extrapolationMs = track.derived
+                ? 120
+                : this.hasVelocity
                 ? clamp(track.cadenceMs ?? 50, 150, 500)
                 : 150;
-            const cadenceDelay =
-                track.cadenceMs > 250
-                    ? Math.min(650, track.cadenceMs + 50)
-                    : track.cadenceMs > 125
-                    ? Math.min(220, track.cadenceMs + 20)
-                    : this.hasVelocity
-                    ? 60
-                    : 100;
+            // A full-state stream has one sample per patch, so the buffer must
+            // hold one whole interval plus the arrival jitter; otherwise each
+            // slightly late patch freezes the avatar for a frame or two.
+            const cadenceDelay = track.derived
+                ? Math.min(
+                      450,
+                      (track.cadenceMs ?? 100) + Math.max(60, 3 * this.jitter)
+                  )
+                : track.cadenceMs > 250
+                ? Math.min(650, track.cadenceMs + 50)
+                : track.cadenceMs > 125
+                ? Math.min(220, track.cadenceMs + 20)
+                : this.hasVelocity
+                ? 60
+                : 100;
             const delay = Math.max(this.interpolationDelay, cadenceDelay);
             this.effectiveDelay = Math.max(this.effectiveDelay, delay);
             const desiredTime = at + this.clockOffset - delay;
@@ -361,8 +454,14 @@ export class LobbyMotionStore {
                             (t * t * t - t * t) * tangent(v1)
                         );
                     };
-                    x = curve(a.x, b.x, a.vx, b.vx);
-                    z = curve(a.z, b.z, a.vz, b.vz);
+                    // Estimated tangents carry the senders' irregular sample
+                    // timing; a curve through them surges and sags. Travel in
+                    // straight segments and ease only into or out of a rest.
+                    const resting = (p: Point) => Math.hypot(p.vx, p.vz) < 0.01;
+                    if (!track.derived || resting(a) || resting(b)) {
+                        x = curve(a.x, b.x, a.vx, b.vx);
+                        z = curve(a.z, b.z, a.vz, b.vz);
+                    }
                     // Authored vertical velocities reproduce jump arcs, bounded by the void controller.
                     y = clamp(
                         (2 * t * t * t - 3 * t * t + 1) * a.y +
@@ -416,8 +515,13 @@ export class LobbyMotionStore {
                 targetZ = z;
             const renderDt = (at - track.sampledAt) / 1000;
             if (renderDt > 0 && renderDt < 0.25) {
+                // Estimated velocities already make the curve smooth through
+                // every sample (a Catmull-Rom spline). Following them with the
+                // momentum filter below, tuned for bursty authority batches,
+                // would only add lag: it carries the avatar past a stop.
                 if (
                     this.hasVelocity &&
+                    !track.derived &&
                     this.options.smoothPresentation !== false
                 ) {
                     const dx = targetX - track.sampled.x,
@@ -586,15 +690,31 @@ export class LobbyMotionStore {
                                 )
                               : (Math.hypot(b.x - a.x, b.z - a.z) * 1000) / span
                       );
+            let gaitSpeed =
+                this.hasVelocity && Number.isFinite(presentedSpeed)
+                    ? Math.min(8, presentedSpeed)
+                    : speed;
+            if (track.derived && renderDt > 0 && renderDt < 0.25) {
+                // Straight segments change speed at every sample. Smooth the
+                // speed the gait follows over ~0.1s, but follow a real stop
+                // (a resting sample ahead) at once, so idle is never late.
+                const previous = track.gaitSpeed ?? gaitSpeed;
+                const stopping = Math.hypot(b.vx, b.vz) < 0.01;
+                gaitSpeed =
+                    stopping && gaitSpeed < previous
+                        ? gaitSpeed
+                        : previous +
+                          (gaitSpeed - previous) *
+                              (1 - Math.exp(-7 * renderDt));
+                if (gaitSpeed < 0.02 && presentedSpeed < 0.02) gaitSpeed = 0;
+            }
+            track.gaitSpeed = gaitSpeed;
             Object.assign(track.sampled, {
                 x,
                 y,
                 z,
                 rotation,
-                speed:
-                    this.hasVelocity && Number.isFinite(presentedSpeed)
-                        ? Math.min(8, presentedSpeed)
-                        : speed,
+                speed: gaitSpeed,
                 animation: state.animation ?? -1,
                 restConfirmed: this.hasVelocity
                     ? Math.hypot(latest.vx, latest.vz) < 0.01 &&

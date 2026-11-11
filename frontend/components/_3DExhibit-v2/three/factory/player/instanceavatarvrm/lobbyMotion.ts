@@ -109,17 +109,18 @@ export function createNativeLobbyMotion(
             // thresholds. Remote updates arrive unevenly, so average over
             // roughly a tenth of a second; speeding up stays a little quicker
             // than slowing down so starts never lag behind travel.
-            const smoothing = rawSpeed > speed ? 12 : 8;
+            // A held position is a real stop (interpolation moves every frame
+            // otherwise): settle to idle in ~0.2s instead of easing out of the
+            // walk for over half a second.
+            const smoothing = rawSpeed > speed ? 12 : rawSpeed < 0.01 ? 20 : 8;
             speed = discontinuity
                 ? 0
                 : native
                 ? rawSpeed
-                : speed + (rawSpeed - speed) * (1 - Math.exp(-smoothing * step));
+                : speed +
+                  (rawSpeed - speed) * (1 - Math.exp(-smoothing * step));
             if (speed < 0.015) speed = 0;
-            input.speed = nativeLocomotionSpeed(
-                speed,
-                wrapper.headPosition?.y
-            );
+            input.speed = nativeLocomotionSpeed(speed, wrapper.headPosition?.y);
             const verticalVelocity =
                 native?.verticalVelocity ??
                 (!discontinuity && step > 0 ? dy / step : 0);
@@ -128,8 +129,7 @@ export function createNativeLobbyMotion(
             const launched =
                 (native?.jumpCount ?? 0) > 0 ||
                 verticalVelocity > LAUNCH_VELOCITY;
-            input.grounded =
-                contact || (!launched && airTime < AIRBORNE_GRACE);
+            input.grounded = contact || (!launched && airTime < AIRBORNE_GRACE);
             input.verticalVelocity = contact
                 ? verticalVelocity
                 : input.grounded
