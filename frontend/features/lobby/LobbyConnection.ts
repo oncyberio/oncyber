@@ -95,6 +95,8 @@ export type LobbyPose = {
     vx?: number;
     vy?: number;
     vz?: number;
+    /** Presentation-only: 1 or 2 while airborne, inferred from velocity. */
+    jumpCount?: number;
 };
 export type LobbyPlayer = LobbyPose & {
     id: string;
@@ -453,16 +455,19 @@ export class LobbyConnection {
                     });
                     const proofTimeout = setTimeout(cancelProof, 2000);
                     try {
-                        const proof = await fetch("/api/social/lobby-identity", {
-                            method: "POST",
-                            credentials: "same-origin",
-                            signal: proofController.signal,
-                            headers: {
-                                "content-type": "application/json",
-                                authorization: `Bearer ${this.identity.token}`,
-                            },
-                            body: "{}",
-                        });
+                        const proof = await fetch(
+                            "/api/social/lobby-identity",
+                            {
+                                method: "POST",
+                                credentials: "same-origin",
+                                signal: proofController.signal,
+                                headers: {
+                                    "content-type": "application/json",
+                                    authorization: `Bearer ${this.identity.token}`,
+                                },
+                                body: "{}",
+                            }
+                        );
                         const value = proof.ok ? await proof.json() : null;
                         if (
                             typeof value?.token === "string" &&

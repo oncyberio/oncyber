@@ -171,6 +171,10 @@ export const DEFAULT_LOBBY_AVATAR_URL = catalogue.square.url;
 const LOCAL_FALLBACK_AVATAR_URL = "/models/pfp.vrm";
 // Seconds per breath, and how far (s) the hold sways back along the gesture.
 const FLASH_BREATH_PERIOD = 3.6;
+const EMOTE_RETURN = 0.18;
+/** Interrupted hold (walk or jump away) and the tail of a finished gesture. */
+const FLASH_INTERRUPT_RETURN = 0.32;
+const FLASH_END_RETURN = 0.45;
 const FLASH_BREATH_SWAY = 0.008;
 export const LOBBY_EMOTES = EMOTES.map((emote, index) => ({
     index,
@@ -413,6 +417,10 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         );
     let returningEmote: THREE.AnimationAction | undefined;
     let returnElapsed = 0;
+    // Leaving the raised Flash arm needs a longer, still-moving handoff than
+    // an emote; a frozen 0.18s fade reads as the arm snapping down.
+    let returnDuration = EMOTE_RETURN;
+    let returnAdvances = false;
     let current: THREE.AnimationAction | undefined;
     let requested = "IDLE";
     let disposed = false;
@@ -615,6 +623,10 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
                     ? current
                     : undefined;
             returnElapsed = 0;
+            if (returningEmote?.getClip().name !== FLASH_ANIMATION_NAME) {
+                returnDuration = EMOTE_RETURN;
+                returnAdvances = false;
+            }
         }
         locomotionMode = true;
         samplingTravel = false;
@@ -635,11 +647,21 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         };
         const dominant = pose.blend < 0.5 ? pose.primary : pose.secondary;
         if (returningEmote) {
-            returnElapsed = Math.min(0.18, returnElapsed + step);
-            const mix = returnElapsed / 0.18;
+            returnElapsed = Math.min(returnDuration, returnElapsed + step);
+            const linear = returnElapsed / returnDuration;
+            const mix = linear * linear * (3 - 2 * linear);
+            if (returnAdvances)
+                returningEmote.time = Math.min(
+                    returningEmote.getClip().duration,
+                    returningEmote.time + step
+                );
             sample(returningEmote.getClip().name, returningEmote.time, 1 - mix);
             sample(dominant.name, dominant.time, mix);
-            if (mix >= 1) returningEmote = undefined;
+            if (linear >= 1) {
+                returningEmote = undefined;
+                returnDuration = EMOTE_RETURN;
+                returnAdvances = false;
+            }
         } else {
             sample(pose.primary.name, pose.primary.time, 1 - pose.blend);
             sample(pose.secondary.name, pose.secondary.time, pose.blend);
@@ -708,6 +730,11 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
     }
 
     function stopFlash() {
+        if (flashActive) {
+            // Keep lowering the arm from the hold while locomotion fades in.
+            returnDuration = FLASH_INTERRUPT_RETURN;
+            returnAdvances = true;
+        }
         flashGeneration++;
         flashPending = flashActive = flashEnding = false;
         if (requested === FLASH_ANIMATION_NAME) requested = "IDLE";
@@ -1109,7 +1136,14 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
                 const breathing = breathe(breath);
                 vrm.update(step);
                 if (breathing) settleBreath();
-                if (flashEnding && flashTime >= duration) {
+                // The authored take settles into its own idle, not ours.
+                // Hand its tail to locomotion so the arms land in our idle.
+                if (
+                    flashEnding &&
+                    flashTime >= Math.max(hold, duration - FLASH_END_RETURN)
+                ) {
+                    returnDuration = FLASH_END_RETURN;
+                    returnAdvances = true;
                     flashActive = flashEnding = false;
                     flashGeneration++;
                     if (requested === FLASH_ANIMATION_NAME) requested = "IDLE";

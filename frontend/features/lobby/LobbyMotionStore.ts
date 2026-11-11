@@ -24,6 +24,18 @@ type Track = {
     renderVx?: number;
     renderVz?: number;
 };
+const GRAVITY = 18;
+/** Gravity only lowers vy in the air, so a rise above the ballistic
+ * prediction between two samples is another launch. */
+export function jumpCountAfter(previous: Point | undefined, point: Point) {
+    if (!Number.isFinite(point.vy)) return undefined;
+    if (point.y <= 0.001 && point.vy <= 0) return 0;
+    const before = previous?.jumpCount ?? 0;
+    if (!previous || !Number.isFinite(previous.vy) || before === 0) return 1;
+    const dt = Math.max(0, point.time - previous.time) / 1000;
+    const expected = previous.vy - GRAVITY * dt;
+    return point.vy - expected > 2 ? Math.min(2, before + 1) : before;
+}
 const clamp = (x: number, min: number, max: number) =>
     Math.min(max, Math.max(min, x));
 const angle = (x: number) => Math.atan2(Math.sin(x), Math.cos(x));
@@ -243,6 +255,10 @@ export class LobbyMotionStore {
                 ? track.cadenceMs * 0.75 + interval * 0.25
                 : interval;
         if (!track.points.length) this.dirty = true;
+        point.jumpCount = jumpCountAfter(
+            previous?.time === point.time ? track.points.at(-2) : previous,
+            point
+        );
         if (track.points.at(-1)?.time === point.time)
             track.points[track.points.length - 1] = point;
         else track.points.push(point);
@@ -610,6 +626,14 @@ export class LobbyMotionStore {
                     ? y <= 0.001
                     : state.floor !== false,
             });
+            // Snapshots carry no jump count; the store infers it from vy so
+            // a remote double jump plays its own clip instead of a plain arc.
+            track.sampled.jumpCount =
+                state.jumpCount === undefined
+                    ? undefined
+                    : track.sampled.floor
+                    ? 0
+                    : Math.max(1, state.jumpCount);
         }
         return this.sampled;
     };
