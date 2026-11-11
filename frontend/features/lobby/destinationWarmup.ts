@@ -22,7 +22,11 @@ import {
     type WarmResult,
 } from "./destinationWarmupSource";
 import { createDestinationWarmupWorker } from "./destinationWarmupWorkerFactory";
-import { resetRouteDataSeeds, seedRouteData } from "./routeDataSeed";
+import {
+    offerRouteData,
+    resetRouteDataSeeds,
+    seedRouteData,
+} from "./routeDataSeed";
 
 let worker: Worker | null | undefined;
 const warmed = new Map<string, number>();
@@ -35,8 +39,10 @@ function saveData() {
 function prefetchRoute(href: string) {
     // Next's link hints download the route's scripts without running them.
     try {
-        void Router.prefetch(href).catch(() => {});
-    } catch {}
+        return Router.prefetch(href).catch(() => {});
+    } catch {
+        return Promise.resolve();
+    }
 }
 
 /**
@@ -57,15 +63,19 @@ export function warmDestination(href: string, entry: WarmEntry = LOBBY_ENTRY) {
     );
     if (!dataUrl) return false;
     // A link opens the page in place: the router's own data request is the
-    // first thing it waits for, so start it now and hand it over on click.
-    const pageData =
-        entry.kind === "direct" ? seedRouteData(dataUrl) : undefined;
+    // first thing it waits for, so start it now and hand it to the router
+    // once its prefetch has run (see routeDataSeed).
+    let pageData: Promise<any> | undefined;
+    if (entry.kind === "direct") {
+        pageData = seedRouteData(dataUrl);
+        void prefetchRoute(href).then(() => offerRouteData(dataUrl));
+    }
     const now = performance.now();
     const key = `${entry.kind}:${dataUrl}`;
     const last = warmed.get(key);
     if (last != null && now - last < WARM_AGAIN_AFTER_MS) return true;
     warmed.set(key, now);
-    prefetchRoute(href);
+    if (!pageData) void prefetchRoute(href);
     if (worker === null) return true;
     const request: WarmRequest = {
         type: "warm",
