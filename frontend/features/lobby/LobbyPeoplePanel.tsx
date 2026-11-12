@@ -14,7 +14,13 @@ import type {
     LobbyVoiceState,
 } from "./LobbyConnection";
 
-type Person = { id: string; name: string; isLocal?: boolean; role?: LobbyRole };
+type Person = {
+    id: string;
+    name: string;
+    avatar?: string;
+    isLocal?: boolean;
+    role?: LobbyRole;
+};
 /** Lobby voice, modelled on worlds: admins put people on voice for everyone nearby. */
 export type LobbyVoiceControls = {
     stage: LobbyStage;
@@ -32,6 +38,11 @@ type Props = {
     onClose(): void;
     returnFocusRef?: { current: HTMLElement | null };
     voice?: LobbyVoiceControls | null;
+    /** Lets you add people to your party from the list. */
+    party?: {
+        memberIds: readonly string[];
+        onAdd(id: string): Promise<void>;
+    };
     children?: React.ReactNode;
 };
 
@@ -220,8 +231,21 @@ export default function LobbyPeoplePanel({
     onClose,
     returnFocusRef,
     voice,
+    party,
     children,
 }: Props) {
+    const [adding, setAdding] = useState<string[]>([]);
+    const addToParty = (id: string) => {
+        if (!party || adding.includes(id)) return;
+        setError("");
+        setAdding((ids) => [...ids, id]);
+        party
+            .onAdd(id)
+            .catch((failure) =>
+                setError(failure?.message || "Couldn’t add them to the party.")
+            )
+            .finally(() => setAdding((ids) => ids.filter((x) => x !== id)));
+    };
     const panel = useRef<HTMLElement>(null);
     const [open, setOpen] = useState<string | null>(null);
     const [error, setError] = useState("");
@@ -314,10 +338,19 @@ export default function LobbyPeoplePanel({
                         {players.map((player) => (
                             <li key={player.id}>
                                 <div className="person-row">
-                                    <span
-                                        className="person-dot"
-                                        aria-hidden="true"
-                                    />
+                                    {player.avatar ? (
+                                        <img
+                                            className="person-photo"
+                                            src={player.avatar}
+                                            alt=""
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <span
+                                            className="person-dot"
+                                            aria-hidden="true"
+                                        />
+                                    )}
                                     <span className="person-name">
                                         {player.name}
                                     </span>
@@ -325,6 +358,30 @@ export default function LobbyPeoplePanel({
                                         <em>{roleLabel(player.role)}</em>
                                     )}
                                     {player.isLocal && <small>You</small>}
+                                    {party &&
+                                        !player.isLocal &&
+                                        (party.memberIds.includes(player.id) ? (
+                                            <small className="person-party">
+                                                In party
+                                            </small>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="person-add"
+                                                disabled={adding.includes(
+                                                    player.id
+                                                )}
+                                                aria-label={`Add ${player.name} to your party`}
+                                                title="Add to party"
+                                                onClick={() =>
+                                                    addToParty(player.id)
+                                                }
+                                            >
+                                                {adding.includes(player.id)
+                                                    ? "…"
+                                                    : "+"}
+                                            </button>
+                                        ))}
                                     {admin && (
                                         <button
                                             type="button"
@@ -475,6 +532,28 @@ const Panel = styled.section`
         border-color: transparent;
         color: #c2c2bd;
         letter-spacing: 1px;
+    }
+    .person-photo {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex: none;
+    }
+    .people-content .person-add {
+        min-width: 28px;
+        margin-left: auto;
+        padding: 0 8px;
+        font-size: 16px;
+        line-height: 1;
+    }
+    .person-row .person-party {
+        margin-left: auto;
+        color: #2cf8d5;
+    }
+    .person-add + .person-more,
+    .person-party + .person-more {
+        margin-left: 0;
     }
     .person-row small + .person-more {
         margin-left: 0;
