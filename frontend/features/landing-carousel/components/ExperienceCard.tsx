@@ -153,12 +153,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 </div>
                 <div className="card-caption">
                     <div className="caption-title">
-                        <h2>
-                            {card.title}
-                            {creator && (
-                                <span className="by"> by {creator}</span>
-                            )}
-                        </h2>
+                        <h2>{card.title}</h2>
                         {featured && card.buildStatus && (
                             <span>{card.buildStatus}</span>
                         )}
@@ -169,6 +164,8 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                                 ? featured
                                     ? card.description
                                     : card.buildStatus
+                                : creator
+                                ? `${roomLabel(card.room)} by ${creator}`
                                 : featured
                                 ? card.description || roomLabel(card.room)
                                 : roomLabel(card.room)}
@@ -398,10 +395,6 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    }
-    h2 .by {
-        color: var(--oc-paper-muted);
-        font-weight: 400;
     }
     .card-meta {
         display: flex;
