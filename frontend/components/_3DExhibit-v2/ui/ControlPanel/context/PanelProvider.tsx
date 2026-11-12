@@ -1,5 +1,9 @@
 import { Mode } from "./Mode";
-import { readNativeCameraPreference, rememberNativeCameraPreference } from "@utils/nativeCameraPreference";
+import { releaseArtworkFocus } from "../ArtworkInfoBulle/focusArtwork";
+import {
+    readNativeCameraPreference,
+    rememberNativeCameraPreference,
+} from "@utils/nativeCameraPreference";
 import { isLobbyDestinationPreparing } from "@utils/lobbyDestinationBridge";
 import { getDefaultRepo } from "@components/context/AssetsContext";
 import { UPDATE_USER_DATA, UserContext } from "@components/context/UserContext";
@@ -8,7 +12,10 @@ import { useOnClickOutside } from "@components/hooks/useClickOutside";
 import useModal from "@components/modals/useModal";
 import { useMultiplayer } from "@components/_3DExhibit-v2/context/MultiplayerProvider";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
-import { IS_MOBILE, IS_FIRST_PERSON } from "@components/_3DExhibit-v2/three/constants";
+import {
+    IS_MOBILE,
+    IS_FIRST_PERSON,
+} from "@components/_3DExhibit-v2/three/constants";
 import { Experience } from "@uitypes/experience";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { updateUser } from "@utils/saveToDb";
@@ -276,8 +283,8 @@ export default function PanelProvider({
     async function onConnect(userData) {
         if (!userData?.settings) {
             const camera = readNativeCameraPreference(settings?.camera);
-            setSettings((state) => ({...state,camera}));
-            await applySetting("camera",camera,userData);
+            setSettings((state) => ({ ...state, camera }));
+            await applySetting("camera", camera, userData);
             return;
         }
         if (userData?.settings) {
@@ -326,7 +333,11 @@ export default function PanelProvider({
     }
 
     async function applySettings(userData) {
-        applySetting("camera", readNativeCameraPreference(userData?.settings?.camera), userData);
+        applySetting(
+            "camera",
+            readNativeCameraPreference(userData?.settings?.camera),
+            userData
+        );
 
         // applySetting("avatar", userData?.settings?.avatar, userData);
 
@@ -336,7 +347,11 @@ export default function PanelProvider({
     }
 
     async function applySetting(key, value, userData) {
-        if (key === "camera" && !isLobbyDestinationPreparing() && (value === "first_person") !== IS_FIRST_PERSON) {
+        if (
+            key === "camera" &&
+            !isLobbyDestinationPreparing() &&
+            (value === "first_person") !== IS_FIRST_PERSON
+        ) {
             await world.current.setThirdPerson({
                 enabled: value !== "first_person",
             });
@@ -362,7 +377,12 @@ export default function PanelProvider({
     }
 
     async function handleSettings(key, value, force = false) {
-        if (!force && (key === "camera" ? settings?.camera : userData?.settings?.[key]) === value) {
+        if (
+            !force &&
+            (key === "camera"
+                ? settings?.camera
+                : userData?.settings?.[key]) === value
+        ) {
             return;
         }
 
@@ -425,7 +445,6 @@ export default function PanelProvider({
 
         setModeMenuOpen((state) => {
             if (!isVRSelect) {
-
                 if (state && isFirstTimeOpenModeMenu) {
                     setIsFirstTimeOpenModeMenu(false); // Close Alternate menu if the mode menu gets closed the first time
                 }
@@ -476,6 +495,12 @@ export default function PanelProvider({
         }
         lastArtworkIdRef.current = artwork.id;
     }, [artwork?.id]);
+
+    // The small-screen details keep first person; closing them, however
+    // it happens, gives the camera back.
+    useEffect(() => {
+        if (!isMobileArtworkInfoOpened) releaseArtworkFocus(world.current);
+    }, [isMobileArtworkInfoOpened]);
 
     useEffect(() => {
         if (selectedMode === Mode.VIRTUAL_TOUR && artwork) {

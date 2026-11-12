@@ -7,7 +7,10 @@ import { promptGlass } from "@ui/components/PromptGlass";
 import IconImg from "@ui/components/IconImg";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { usePanel } from "../../context/PanelProvider";
-import { focusArtwork } from "../../ArtworkInfoBulle/focusArtwork";
+import {
+    focusArtwork,
+    releaseArtworkFocus,
+} from "../../ArtworkInfoBulle/focusArtwork";
 
 /**
  * The small-screen artwork bubble: title and creator of the artwork in
@@ -60,7 +63,11 @@ export default function SeeArtwork({ artwork, assetType }) {
         // Walk up to the artwork first, then open its details on top of it.
         setIsOpening(true);
         await focusArtwork(world.current, art);
-        if (!mounted.current) return;
+        if (!mounted.current) {
+            // Looked away during the move: nothing opens, give the camera back.
+            releaseArtworkFocus(world.current);
+            return;
+        }
         setIsOpening(false);
         setIsMobileArtworkInfoOpened(true);
     };

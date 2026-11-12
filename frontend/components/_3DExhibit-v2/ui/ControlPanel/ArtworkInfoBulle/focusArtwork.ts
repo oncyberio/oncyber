@@ -13,7 +13,13 @@ import {
  * Mirrors DisplayScene's handleMobileTransition: it aims at the artwork's
  * raycast mesh (the framed surface, not the group origin), keeps the eye
  * height through `checkCollitions`, and drops to first person for the move.
+ *
+ * It stays in first person while the details are open, so the avatar never
+ * stands between the visitor and the frame. `releaseArtworkFocus` returns
+ * to third person once the details close.
  */
+let restoreThirdPerson = false;
+
 export async function focusArtwork(world: any, artwork: any) {
     const target = artwork?.raycastMesh;
     if (!world || !target || !artwork.maxLookatDistance) return;
@@ -26,7 +32,10 @@ export async function focusArtwork(world: any, artwork: any) {
         // current one; the same flag guards a phone tap transition.
         if (container) container.isTransitionning = true;
 
-        if (thirdPerson) await world.setThirdPerson({ enabled: false });
+        if (thirdPerson) {
+            await world.setThirdPerson({ enabled: false });
+            restoreThirdPerson = true;
+        }
 
         await world.setState(APP_STATES.TRANSITION, {
             target,
@@ -39,6 +48,12 @@ export async function focusArtwork(world: any, artwork: any) {
         console.error(e);
     } finally {
         if (container) container.isTransitionning = false;
-        if (thirdPerson) world.setThirdPerson({ enabled: true });
     }
+}
+
+/** Back to third person, if `focusArtwork` left it for the details. */
+export function releaseArtworkFocus(world: any) {
+    if (!restoreThirdPerson) return;
+    restoreThirdPerson = false;
+    world?.setThirdPerson?.({ enabled: true });
 }
