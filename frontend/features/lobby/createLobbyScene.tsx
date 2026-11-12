@@ -365,10 +365,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         visitor.group.scale.x === 0
                     )
                         return undefined;
-                    const position =
-                        visitor === self
-                            ? presentation.getWorldPosition(speechPoint)
-                            : visitor.group.position;
+                    const position = visitor.group.position;
                     return {
                         x: position.x,
                         // Where the name tag sits; the line opens there.
@@ -1714,6 +1711,34 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 avatar.group.position.z
                             );
                     }
+                    // Your own tag, like everyone else's.
+                    if (
+                        self.model &&
+                        budget.maxLabels > 0 &&
+                        latest.current.selfName &&
+                        !travel &&
+                        !group &&
+                        !preview &&
+                        !latest.current.avatarPreview &&
+                        self.group.visible
+                    )
+                        nameTags?.show(
+                            "self",
+                            latest.current.selfName,
+                            latest.current.profilePhoto || "",
+                            self.group.position.x,
+                            self.group.position.y +
+                                (self.model.height || 1.8) +
+                                0.12 +
+                                speechBubbles.liftOf("self") *
+                                    worldPerPixel(
+                                        self.group.position.distanceTo(
+                                            camera.position
+                                        )
+                                    ),
+                            self.group.position.z,
+                            true
+                        );
                     nameTags?.end(camera);
                     crowdShadows.count = shadowCount;
                     crowdShadows.instanceMatrix.needsUpdate = shadowCount > 0;

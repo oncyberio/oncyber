@@ -70,6 +70,7 @@ type Shown = {
     y: number;
     z: number;
     distance: number;
+    pinned?: boolean;
 };
 
 /** UsernameGenerator.get, drawn into an atlas tile instead of its own canvas. */
@@ -201,9 +202,10 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
     );
     material.colorNode = Fn(() => {
         const sample = texel.toVar();
+        // opacity 2 marks a tag that stays up close (your own).
         const alpha = sample.a
-            .mul(opacity)
-            .mul(varyingProperty("float", "vClose"));
+            .mul(opacity.min(1))
+            .mul(varyingProperty("float", "vClose").max(opacity.sub(1)));
         If(alpha.lessThan(0.5), () => {
             Discard();
         });
@@ -296,7 +298,9 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
             photo: string,
             x: number,
             y: number,
-            z: number
+            z: number,
+            /** Keep it visible next to the camera (your own tag). */
+            pinned = false
         ) {
             if (shown.length >= capacity) return;
             const tile = acquire(
@@ -304,7 +308,7 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
                 photo || "",
                 performance.now()
             );
-            if (tile) shown.push({ id, tile, x, y, z, distance: 0 });
+            if (tile) shown.push({ id, tile, x, y, z, distance: 0, pinned });
         },
         end(camera: THREE.Camera) {
             const now = performance.now();
@@ -326,7 +330,7 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
                     x / ATLAS,
                     y / ATLAS
                 );
-                opacities.setX(i, 1);
+                opacities.setX(i, tag.pinned ? 2 : 1);
             });
             geometry.instanceCount = shown.length;
             if (shown.length) {

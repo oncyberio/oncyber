@@ -104,7 +104,11 @@ jest.mock("./useLobbyTravelParty", () => ({
         prepareTravel: async (destination) => destination,
     })),
 }));
-jest.mock("./useLobbySocial", () => ({ __esModule: true, default: jest.fn() }));
+jest.mock("./useLobbySocial", () => ({
+    __esModule: true,
+    default: jest.fn(),
+    lobbyDisplayName: (_id?: string, username?: string) => username || "Guest",
+}));
 jest.mock("./useLobbyJourney", () => ({
     __esModule: true,
     default: jest.fn(),
@@ -738,9 +742,7 @@ test("loading with an immediate departure keeps the renderer active, locks input
     expect(surface.hasAttribute("data-travelling")).toBe(true);
     expect(surface.hasAttribute("inert")).toBe(true);
     expect(container.querySelector("iframe")).toBeNull();
-    expect(
-        container.querySelector('[aria-label="Selected world"]')
-    ).toBeNull();
+    expect(container.querySelector('[aria-label="Selected world"]')).toBeNull();
     expect(container.querySelector("button.enter")).toBeNull();
     const controls = container.querySelector(
         '[aria-label="Travelling to your world"]'

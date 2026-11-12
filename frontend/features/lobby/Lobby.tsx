@@ -32,7 +32,7 @@ import LobbyScene from "./LobbyRenderer";
 import type { LobbyDestination, LobbySceneProps } from "./sceneTypes";
 import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
-import useLobbySocial from "./useLobbySocial";
+import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
 import LobbyChat from "./LobbyChat";
 import LobbyPlace from "./LobbyPlace";
 import LobbyArrivalStatus from "./LobbyArrivalStatus";
@@ -964,6 +964,14 @@ export default function Lobby({
                         avatarUrl={avatar?.url}
                         avatarScale={avatar?.scale}
                         profilePhoto={profilePhoto}
+                        selfName={lobbyDisplayName(
+                            authenticated && !isAnonymous
+                                ? user?.id
+                                : undefined,
+                            authenticated && !isAnonymous
+                                ? userData?.username
+                                : undefined
+                        )}
                         emote={emote}
                         flash={flash}
                         flashPreviewOpen={flashOpen}

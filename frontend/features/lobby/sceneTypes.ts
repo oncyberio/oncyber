@@ -211,6 +211,8 @@ export interface LobbySceneProps {
     avatarUrl?: string;
     avatarScale?: number;
     profilePhoto?: string;
+    /** Your own name, shown on the tag over your avatar. */
+    selfName?: string;
     emote?: { index: number; nonce: number };
     flash?: LobbyFlash | null;
     flashPreviewOpen?: boolean;

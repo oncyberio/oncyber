@@ -128,11 +128,13 @@ export class SpeechBubbles {
             entry.root.style.opacity = String(presence);
             // Bottom-centre sits where the name tag was; the line grows up
             // out of it while the tag rises.
-            entry.root.style.transform = `translate(${Math.round(
-                screen.x
-            )}px, ${Math.round(
-                screen.y + (1 - presence) * 10
-            )}px) translate(-50%, -100%) scale(${(
+            // Sub-pixel positions: rounding made the line step a pixel at a
+            // time against the smoothly moving avatar, which read as shaking.
+            entry.root.style.transform = `translate3d(${screen.x.toFixed(
+                2
+            )}px, ${(screen.y + (1 - presence) * 10).toFixed(
+                2
+            )}px, 0) translate(-50%, -100%) scale(${(
                 0.86 +
                 0.14 * presence
             ).toFixed(3)})`;
