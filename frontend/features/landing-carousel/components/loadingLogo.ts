@@ -1,33 +1,38 @@
 import { scrollLogoPose } from "./cyberloopMorph";
 
 // The header's scroll morph, played on its own while a space loads: the new
-// logo spins, turns into the old one, holds, and turns back.
+// logo spins, turns into the old one as the spin eases out, holds, and turns
+// back.
 export const SPIN_MS = 2000;
 export const SPIN_TURNS = 2;
-export const MORPH_MS = 700;
+export const MORPH_MS = 1200;
+// The morph to the old logo starts this long before the spin ends, so the
+// logo changes while it slows down rather than after it stops.
+export const MORPH_OVERLAP_MS = 700;
 export const HOLD_MS = 1500;
-export const CYCLE_MS = SPIN_MS + MORPH_MS + HOLD_MS + MORPH_MS;
+const MORPH_START = SPIN_MS - MORPH_OVERLAP_MS;
+const HOLD_START = MORPH_START + MORPH_MS;
+const BACK_START = HOLD_START + HOLD_MS;
+export const CYCLE_MS = BACK_START + MORPH_MS;
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
+const clamp = (x: number) => Math.max(0, Math.min(1, x));
 
 /** Logo shape (morph 1 is the new logo) and rotation `ms` into the loop. */
 export function loadingLogoPose(ms: number, reducedMotion = false) {
     if (reducedMotion) return { morph: 1, angle: 0 };
-    let t = ((ms % CYCLE_MS) + CYCLE_MS) % CYCLE_MS;
+    const t = ((ms % CYCLE_MS) + CYCLE_MS) % CYCLE_MS;
     // Whole eased turns, so every cycle starts and ends at the same angle.
-    if (t < SPIN_MS)
-        return { morph: 1, angle: -360 * SPIN_TURNS * smooth(t / SPIN_MS) };
-    t -= SPIN_MS;
+    const spin = -360 * SPIN_TURNS * smooth(clamp(t / SPIN_MS));
+    if (t < MORPH_START) return { morph: 1, angle: spin };
     // The morph itself turns the mark half way (0 to 180). Mirrored on the
     // way to the old logo, it keeps turning the same way as the spin.
-    if (t < MORPH_MS) {
-        const morph = 1 - t / MORPH_MS;
-        return { morph, angle: -scrollLogoPose(morph).angle };
+    if (t < HOLD_START) {
+        const morph = 1 - (t - MORPH_START) / MORPH_MS;
+        return { morph, angle: spin - scrollLogoPose(morph).angle };
     }
-    t -= MORPH_MS;
-    if (t < HOLD_MS) return { morph: 0, angle: -180 };
-    t -= HOLD_MS;
-    const morph = t / MORPH_MS;
+    if (t < BACK_START) return { morph: 0, angle: -180 };
+    const morph = (t - BACK_START) / MORPH_MS;
     return { morph, angle: scrollLogoPose(morph).angle };
 }
 
@@ -64,9 +69,9 @@ export function startLoadingLogo(parent: HTMLElement): LoadingLogo {
         position: "absolute",
         left: "50%",
         top: "50%",
-        width: "72px",
-        height: "72px",
-        margin: "-36px 0 0 -36px",
+        width: "50px",
+        height: "50px",
+        margin: "-25px 0 0 -25px",
         color: "#fff",
         pointerEvents: "none",
         zIndex: "1",
