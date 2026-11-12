@@ -17,7 +17,7 @@ test("copies the prompt and says so", async () => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     act(() => root.render(<CopyPromptButton />));
     const button = container.querySelector("button")!;
-    expect(button.textContent).toBe("Copy prompt");
+    expect(button.textContent).toBe("Copy for AI");
     await act(async () => button.click());
     expect(writeText).toHaveBeenCalledWith(agentPrompt(window.location.origin));
     expect(button.textContent).toBe("Copied");
