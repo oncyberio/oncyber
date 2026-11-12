@@ -23,12 +23,9 @@ pinned third-party package tarballs that the frontend installs from.
 
 ## Local development
 
-Use Node.js 22, matching `.nvmrc`, and pnpm 9.12.2, matching `package.json`.
-With Corepack available:
+You need Node.js 22 and pnpm. Then:
 
 ```sh
-corepack enable
-corepack prepare pnpm@9.12.2 --activate
 pnpm install --frozen-lockfile
 pnpm dev:local
 ```
