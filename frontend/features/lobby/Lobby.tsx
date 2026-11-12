@@ -1,6 +1,7 @@
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import useRecordingCrowd from "./useRecordingCrowd";
+import useRecordingGroups from "./useRecordingGroups";
 import { planCrowdReplies } from "./recordingCrowd";
 import { activeSpeech } from "./speechBubbles";
 import type { LobbyMessage } from "./LobbyConnection";
@@ -337,7 +338,7 @@ export default function Lobby({
         travelling
     );
     const away = entered || travelling;
-    const social = useLobbySocial({
+    const liveSocial = useLobbySocial({
         enabled: true,
         ...groupPresence,
         identity: {
@@ -350,6 +351,22 @@ export default function Lobby({
             scale: (loadedAvatar || avatar)?.scale,
         },
     });
+    // Recording only: without a party server, the staged crowd can still be
+    // invited to parties and travel with you (see useRecordingGroups).
+    const social = useRecordingGroups(
+        liveSocial,
+        recording?.crowd,
+        {
+            name: lobbyDisplayName(
+                authenticated && !isAnonymous ? user?.id : undefined,
+                authenticated && !isAnonymous ? userData?.username : undefined
+            ),
+            avatar: profilePhoto,
+            vrmUrl: (loadedAvatar || avatar)?.url,
+            scale: (loadedAvatar || avatar)?.scale,
+        },
+        away
+    );
     const stopFlash = useCallback(
         (nonce?: string) => {
             if (nonce && flashRef.current?.nonce !== nonce) return;
@@ -556,6 +573,7 @@ export default function Lobby({
                     )
                 );
         } else {
+            setGroupTravellers(null);
             void party.refresh().catch(() => {});
             journey.go(destination, options);
         }
@@ -609,12 +627,29 @@ export default function Lobby({
                 : social.sampleParticipants,
         [staged, social.sampleParticipants]
     );
+    // Who from the staged crowd travels with you: the party you just took a
+    // trip with, otherwise the friends standing next to you.
+    const [groupTravellers, setGroupTravellers] = useState<string[] | null>(
+        null
+    );
+    const tripStatus = groupJourney.activeTravel?.status;
+    const tripIds = groupJourney.activeTravel?.acceptedIds.join(",");
+    useEffect(() => {
+        if (!recording || !tripStatus || !tripIds) return;
+        const ids = tripIds.split(",");
+        if (!ids.includes(social.sessionId)) return;
+        if (tripStatus === "cancelled") setGroupTravellers(null);
+        else if (tripStatus !== "inviting")
+            setGroupTravellers(ids.filter((id) => id !== social.sessionId));
+    }, [recording, tripStatus, tripIds, social.sessionId]);
+    const stagedTravelIds = useMemo(
+        () => (staged ? groupTravellers ?? staged.crowd.travelIds : []),
+        [staged, groupTravellers]
+    );
     const travelPartyIds = useMemo(
         () =>
-            staged
-                ? [...party.partyIds, ...staged.crowd.travelIds]
-                : party.partyIds,
-        [party.partyIds, staged]
+            staged ? [...party.partyIds, ...stagedTravelIds] : party.partyIds,
+        [party.partyIds, staged, stagedTravelIds]
     );
     // The space this group travels to shows the same friends beside you
     // (read by the space's multiplayer, see recordingParty.js).
@@ -623,7 +658,7 @@ export default function Lobby({
             __oncyberRecordingParty?: unknown;
         };
         if (!staged) return;
-        const ids = new Set(staged.crowd.travelIds);
+        const ids = new Set(stagedTravelIds);
         win.__oncyberRecordingParty = staged.crowd.participants
             .filter((person) => ids.has(person.id))
             .map(({ id, name, vrmUrl, avatar }) => ({
@@ -635,7 +670,7 @@ export default function Lobby({
         return () => {
             delete win.__oncyberRecordingParty;
         };
-    }, [staged]);
+    }, [staged, stagedTravelIds]);
     // The staged crowd answers what you say in the global chat.
     const [crowdReplies, setCrowdReplies] = useState<LobbyMessage[]>([]);
     const answered = useRef(new Set<string>());
@@ -1663,7 +1698,7 @@ export default function Lobby({
                         (group) => group.id === groupModal.groupId
                     )}
                     joinCode={groupModal.joinCode}
-                    players={social.players}
+                    players={social.groupPlayers || social.players}
                     sessionId={social.sessionId}
                     action={social.groupAction}
                     onClose={closeGroupModal}
