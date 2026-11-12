@@ -64,7 +64,6 @@ export function beginSpaceEntrance(
     let slowTimer: ReturnType<typeof setTimeout>;
     let draw: (() => void) | undefined;
     let tunnel: HTMLCanvasElement | undefined;
-    let logo: { remove: () => void } | undefined;
     const paint = () => {
         frame = 0;
         if (ended || document.hidden || reduced || !draw) return;
@@ -99,7 +98,6 @@ export function beginSpaceEntrance(
                 opacity: "1",
             });
             overlay.append(tunnel);
-            logo = module.startLoadingLogo?.(overlay);
             animate(tunnel, [{ opacity: 0 }, { opacity: 1 }], {
                 duration: 160,
             });
@@ -123,8 +121,6 @@ export function beginSpaceEntrance(
         if (active === handle) active = null;
         draw = undefined;
         tunnel = undefined;
-        logo?.remove();
-        logo = undefined;
     };
     const reveal = () => {
         if (!black || !ready || ended) return;

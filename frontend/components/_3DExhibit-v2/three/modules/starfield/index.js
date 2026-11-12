@@ -56,8 +56,6 @@ import Renderer 	from '@3renderer'
 
 import gsap from 'gsap'
 
-import { startLoadingLogo } from '@features/landing-carousel/components/loadingLogo'
-
 // Warp-speed star field shown while a space loads. It renders straight to the
 // screen during the intro (and on top while it fades out), or into
 // `renderTarget` for portal previews, where this object is the preview mesh's
@@ -66,17 +64,17 @@ import { startLoadingLogo } from '@features/landing-carousel/components/loadingL
 // when the page hands over to the engine. It used to be a lit, wobbling
 // tunnel, which made people dizzy.
 
-const STAR_COUNT = 250
+const STAR_COUNT = 400
 
 // Stars start this far away (in the canvas version's units) and fly at the
 // canvas version's 0.055 per 30 fps frame.
 const WARP_Z = 24
 
-const SPEED = 1.65
+const SPEED = 2.4
 
 // Seconds of travel each streak's tail trails behind its head; the canvas
 // version gets its trails from fading the previous frames.
-const TRAIL = 0.2
+const TRAIL = 0.28
 
 const MIN_Z = 0.05
 
@@ -218,8 +216,6 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 			case APP_STATES.INTRO:
 
-				this.showLogo()
-
 				this.activate()
 
 				this.addEvents()
@@ -304,30 +300,7 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 		this.camera.updateProjectionMatrix()
 	}
 
-	// The logo sits in the middle of the canvas for as long as the intro
-	// shows, and fades out with the stars.
-	showLogo(){
-
-		if ( this.logo ) return
-
-		const parent = Renderer.domElement?.parentElement
-
-		if ( parent ) {
-
-			this.logo = startLoadingLogo( parent )
-		}
-	}
-
-	hideLogo(){
-
-		this.logo?.fadeOut( 300 )
-
-		this.logo = null
-	}
-
 	desactivate(){
-
-		this.hideLogo()
 
 		this.fadingOut = true
 
@@ -491,12 +464,15 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 			p[ o + 10 ] = hy - ny * head
 			p[ o + 11 ] = 0
 
+			// Nearer stars burn brighter; far ones start faint.
+			const glow = brightness * Math.min( 1, 0.25 + 2.5 / star.z )
+
 			// Additive, so a black tail is see-through.
-			const r = star.color.r * brightness
+			const r = star.color.r * glow
 
-			const g = star.color.g * brightness
+			const g = star.color.g * glow
 
-			const b = star.color.b * brightness
+			const b = star.color.b * glow
 
 			c.fill( 0, o, o + 6 )
 
