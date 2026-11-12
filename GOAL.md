@@ -13,13 +13,11 @@ you as you travel.
    space together without a loading screen breaking the moment.
 2. **Spaces on WebGPU.** The lobby and gallery spaces render with a WebGPU
    engine (three.js and TSL), with a WebGL2 fallback.
-3. **Any engine, one host.** The direction: outside experiences, such as plain
-   three.js or WebGPU pages, run inside a sandboxed frame, keep their own
-   engine, and get identity, party travel, chat and voice from Oncyber through
-   a small message bridge (see `docs/content-host.md`). Today only the sandbox
-   and an early bridge exist: a space owner attaches a self-hosted page with an
-   API call, and identity, avatars and multiplayer aren't wired in yet. The host also has code, not live yet, that can serve
-   awe.box experiences.
+3. **Any engine, one host.** The aim: any 3D world, made with any engine, can
+   become a space in Oncyber. It keeps its own engine and runs in a sandbox,
+   and Oncyber brings the visitor's identity, avatar, friends, chat and voice
+   (see `docs/content-host.md`). The host also has code, not live yet, that
+   can serve awe.box experiences.
 4. **Creation in the browser.** An editable Studio and Gaussian-splat galleries,
    so people can make and curate spaces without leaving the site.
 5. **Discovery.** A landing page and explore experience to find spaces, worlds

@@ -17,8 +17,8 @@ All of it is open source. You can run it, read it and make it better.
 -   [Run Oncyber locally](/docs/run-locally): get the app running on your
     machine.
 -   [Contribute](/docs/contributing): how to send a good change.
--   [Build a three.js experience](/docs/three-experiences): bringing your own
-    3D page into Oncyber. Early, and where we're heading.
+-   [Bring your own world](/docs/three-experiences): the idea of any 3D world,
+    made with any engine, becoming a space in Oncyber.
 -   [Multiplayer](/docs/multiplayer): seeing, chatting and talking with other
     people.
 -   [Avatars](/docs/avatars): the 3D character you take everywhere.
