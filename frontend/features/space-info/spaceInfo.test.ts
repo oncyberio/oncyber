@@ -1,4 +1,4 @@
-import { buildSpaceInfo } from "./spaceInfo";
+import { buildSpaceInfo, buildSpaceLocation } from "./spaceInfo";
 import {
     defaultCategoryFor,
     DEFAULT_FILTERS,
@@ -104,4 +104,33 @@ test("profile NFTs use small CDN thumbnails before any original", () => {
         "https://example.com/original-8k.png"
     );
     expect(nft.href).toBe("https://opensea.io/assets/ethereum/0xabc/7");
+});
+
+test("location view gets the destination's name, cover, description and maker", () => {
+    const location = buildSpaceLocation(
+        {
+            slug: "falcon_v2",
+            name: " Falcon ",
+            description: "A hangar",
+            thumbnail: "ipfs://thumb",
+            image: "https://x.test/full.png",
+            author: { id: wallet, username: "maker" },
+        },
+        "falcon_v2"
+    );
+    expect(location).toMatchObject({
+        name: "Falcon",
+        href: "/destinations/falcon_v2",
+        description: "A hangar",
+        author: { name: "maker", address: wallet, href: "/maker" },
+    });
+    expect(location.imageUrls[0]).toContain("cyber.mypinata.cloud/ipfs/thumb");
+    expect(location.imageUrls).toHaveLength(2);
+});
+
+test("location view falls back to the room slug and a short wallet", () => {
+    expect(buildSpaceLocation(null, "room")).toBeUndefined();
+    const location = buildSpaceLocation({ author: { id: wallet } }, "room");
+    expect(location.name).toBe("room");
+    expect(location.author).toMatchObject({ name: "0x1234…5678", href: "" });
 });

@@ -225,9 +225,8 @@ export default async function handler(
             username: typeof data.username === "string" ? data.username : "",
             wallet,
             avatar: typeof data.avatar === "string" ? data.avatar : "",
-            href: data.username
-                ? `/${encodeURIComponent(data.username)}`
-                : `/${encodeURIComponent(wallet)}`,
+            // Only usernames have a page; /<wallet> is a 404.
+            href: data.username ? `/${encodeURIComponent(data.username)}` : "",
             hasNfts: !!evm,
             spaces,
             featured,
