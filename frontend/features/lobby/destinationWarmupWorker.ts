@@ -58,6 +58,7 @@ async function readJson(url: string) {
 }
 
 async function readPageProps(request: WarmRequest) {
+    if (request.pageProps) return request.pageProps;
     const { dataUrl, origin, buildId, locale } = request;
     let data = await readJson(dataUrl);
     // /spaces/<id> redirects to the space's custom link; follow it once.
@@ -87,7 +88,10 @@ async function warm(request: WarmRequest): Promise<WarmResult> {
     const started = performance.now();
     let room: WarmResult["room"] = "none";
     try {
-        const models = warmRoomModels(await readPageProps(request));
+        const models = warmRoomModels(
+            await readPageProps(request),
+            request.entry
+        );
         if (models) {
             let url = models.plain;
             if (models.compressed !== models.plain) {

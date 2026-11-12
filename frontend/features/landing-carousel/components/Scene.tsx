@@ -7,6 +7,7 @@ import {
     useRef,
     useState,
 } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import Link from "@components/InAppLink";
 import styled from "styled-components";
 import * as THREE from "three";
@@ -25,6 +26,7 @@ import {
     moveGridSelection,
 } from "../three/layout";
 import ExperienceCard from "./ExperienceCard";
+import { CARD_WARM_DWELL_MS, warmSpace } from "../warmSpace";
 import Icon from "./Icon";
 import useCardTransition from "../hooks/useCardTransition";
 import { cardOpacity } from "../transitions";
@@ -829,6 +831,26 @@ export default function Scene({
         refreshScene.current();
     }, [cards, layout, range.renderFrom, range.renderTo]);
 
+    // Resting on a space's card starts its downloads before the click; a
+    // press starts them at once (the click lands ~100ms later).
+    const warmTimer = useRef(0);
+    const restOnCard = (card: LandingCard) => {
+        window.clearTimeout(warmTimer.current);
+        if (creating) return;
+        warmTimer.current = window.setTimeout(
+            () => warmSpace(card),
+            CARD_WARM_DWELL_MS
+        );
+    };
+    const leaveCard = () => window.clearTimeout(warmTimer.current);
+    const pressCard = (
+        card: LandingCard,
+        event: ReactPointerEvent<HTMLElement>
+    ) => {
+        if (event.button === 0 && !creating) warmSpace(card);
+    };
+    useEffect(() => () => window.clearTimeout(warmTimer.current), []);
+
     function recordLaunch(card: LandingCard) {
         amplitude_logAnalyticsEvent("click_exibition_thumbnail", {
             item_id: card.id,
@@ -915,6 +937,13 @@ export default function Scene({
                                         }}
                                         onDragStart={(event) =>
                                             event.preventDefault()
+                                        }
+                                        onPointerEnter={() => restOnCard(card)}
+                                        onPointerLeave={leaveCard}
+                                        onFocus={() => restOnCard(card)}
+                                        onBlur={leaveCard}
+                                        onPointerDown={(event) =>
+                                            pressCard(card, event)
                                         }
                                         onClick={(event) => {
                                             if (
@@ -1007,6 +1036,13 @@ export default function Scene({
                                     : undefined
                             }
                             prefetch={false}
+                            onPointerEnter={() => restOnCard(featured)}
+                            onPointerLeave={leaveCard}
+                            onFocus={() => restOnCard(featured)}
+                            onBlur={leaveCard}
+                            onPointerDown={(event) =>
+                                pressCard(featured, event)
+                            }
                             onClick={(event) => {
                                 if (
                                     event.button !== 0 ||
