@@ -10,6 +10,8 @@ import useChatViewTransition from "./useChatViewTransition";
 import { LOBBY_GUEST_PORTRAIT } from "./lobbyIdentity";
 
 const GLOBAL = "global";
+/** How many messages stay visible above the closed chat bar. */
+export const FEED_LENGTH = 5;
 type Contact = Pick<LobbyPlayer, "id" | "name" | "avatar"> & {
     groupId?: string;
 };
@@ -271,6 +273,21 @@ export default function LobbyChat({
             .includes(search.trim().toLocaleLowerCase())
     );
     const lastMessageId = messages[messages.length - 1]?.id;
+    // While the chat is closed, the latest messages stay readable above the
+    // bar, so following the room never needs a click.
+    const feedVisible = !open && !pickerOpen && !hidden && !switching;
+    const feedMessages = useMemo(
+        () =>
+            feedVisible
+                ? allMessages
+                      .filter(
+                          (item) =>
+                              conversationFor(item, social.sessionId) === GLOBAL
+                      )
+                      .slice(-FEED_LENGTH)
+                : [],
+        [feedVisible, allMessages, social.sessionId]
+    );
     const previewId =
         highlightedContact === GLOBAL ||
         matches.some((person) => person.id === highlightedContact)
@@ -344,6 +361,7 @@ export default function LobbyChat({
                 pageVisible
             )
                 next.delete(current);
+            else if (feedVisible && pageVisible) next.delete(GLOBAL);
             return next.size === previous.size &&
                 [...next].every((key) => previous.has(key))
                 ? previous
@@ -359,6 +377,7 @@ export default function LobbyChat({
         atBottom,
         hidden,
         pageVisible,
+        feedVisible,
     ]);
     useEffect(() => {
         setActivity((previous) => {
@@ -891,6 +910,35 @@ export default function LobbyChat({
         </div>
     );
 
+    const renderMessage = (item: LobbyMessage | LobbyGroupMessage) => {
+        const player = social.players.find(
+            (entry) => entry.id === item.sessionId
+        );
+        const own = item.sessionId === social.sessionId;
+        return (
+            <div
+                className="chat-message"
+                key={item.id}
+                title={new Date(item.sentAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })}
+            >
+                <Portrait
+                    name={item.name}
+                    avatar={player?.avatar || item.avatar}
+                />
+                <p className="chat-line">
+                    <span className="chat-name" data-own={own || undefined}>
+                        {own ? "You" : item.name}
+                    </span>
+                    <span className="chat-separator">: </span>
+                    <span className="chat-text">{item.text}</span>
+                </p>
+            </div>
+        );
+    };
+
     const backToRoom = (
         <button
             type="button"
@@ -1026,45 +1074,20 @@ export default function LobbyChat({
                                         : `Say hello to everyone in this ${spaceLabel}.`}
                                 </p>
                             )}
-                            {messages.map((item) => {
-                                const player = social.players.find(
-                                    (entry) => entry.id === item.sessionId
-                                );
-                                const own = item.sessionId === social.sessionId;
-                                return (
-                                    <div
-                                        className="chat-message"
-                                        key={item.id}
-                                        title={new Date(
-                                            item.sentAt
-                                        ).toLocaleTimeString([], {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })}
-                                    >
-                                        <Portrait
-                                            name={item.name}
-                                            avatar={
-                                                player?.avatar || item.avatar
-                                            }
-                                        />
-                                        <p className="chat-line">
-                                            <span
-                                                className="chat-name"
-                                                data-own={own || undefined}
-                                            >
-                                                {own ? "You" : item.name}
-                                            </span>
-                                            <span className="chat-separator">
-                                                :{" "}
-                                            </span>
-                                            <span className="chat-text">
-                                                {item.text}
-                                            </span>
-                                        </p>
-                                    </div>
-                                );
-                            })}
+                            {messages.map(renderMessage)}
+                        </div>
+                    )}
+                    {feedMessages.length > 0 && (
+                        <div
+                            className="chat-log chat-feed"
+                            role="log"
+                            aria-live="polite"
+                            aria-relevant="additions"
+                            aria-label={`Latest ${roomLabel} messages`}
+                            title="Open chat (Enter)"
+                            onClick={() => onOpenChange(true)}
+                        >
+                            {feedMessages.map(renderMessage)}
                         </div>
                     )}
                     {pickerOpen && (
