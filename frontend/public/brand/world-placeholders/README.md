@@ -12,3 +12,7 @@ The complete generation prompts are in `prompts.json`.
 keeps its symbol across searches. Both the DOM image and WebGL card paths use
 these files after ordinary preview sources are absent or fail. The legacy SVGs
 are retained as original reference assets.
+
+Pages load `mark-N-gpt-1280.webp`: 1280-wide copies (WebP quality 80, about
+5 to 9 KB each) made from the masters above, since cards never show them
+wider than about 1000 device pixels. The full-size files stay as the masters.
