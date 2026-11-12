@@ -290,6 +290,34 @@ const Page = styled.div`
         color: var(--oc-ink);
         font-weight: 500;
     }
+    .docs-body details {
+        margin: 0 0 20px;
+        border: 1px solid var(--oc-line);
+        border-radius: var(--oc-radius-control, 12px);
+    }
+    .docs-body summary {
+        padding: 10px 16px;
+        cursor: pointer;
+        color: var(--oc-ink);
+        font-size: 14px;
+        list-style-position: inside;
+    }
+    .docs-body summary:hover {
+        background: var(--oc-hover);
+        border-radius: var(--oc-radius-control, 12px);
+    }
+    .docs-body details[open] summary {
+        border-bottom: 1px solid var(--oc-line);
+        border-radius: var(--oc-radius-control, 12px)
+            var(--oc-radius-control, 12px) 0 0;
+    }
+    .docs-body details > :not(summary) {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+    .docs-body details > summary + * {
+        margin-top: 16px;
+    }
     .docs-pager {
         display: flex;
         justify-content: space-between;

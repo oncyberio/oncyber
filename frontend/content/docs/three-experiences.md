@@ -1,44 +1,49 @@
 ---
 title: Build a three.js experience
-description: Where outside WebGPU and three.js pages in Oncyber are heading, and what works today.
+description: Bringing your own 3D page into Oncyber. Early, and where we're heading.
 order: 3
 ---
 
 # Build a three.js experience
 
-Where this is going: any web page can become an Oncyber space. You keep your
-own engine, whether that's plain three.js, WebGPU or something else, and Oncyber
-puts its header, back button, chat and controls around it, with the visitor's
-identity, avatar and friends coming along.
+Where we're heading: any 3D web page, built with three.js, WebGPU or any
+engine, can become a space in Oncyber. Visitors walk in from the lobby, and
+Oncyber brings their identity, avatar, friends and chat along.
 
-That's the direction, not a finished path. Today there's no publishing screen:
-you host the page yourself, attach it to a space you own with one API call,
-and the page doesn't get the visitor's identity, avatar or the lobby's
-multiplayer room yet (see [What isn't there yet](#what-isn-t-there-yet)). This
-page describes the pieces that exist, so you can try them and help build the
-rest.
+**That isn't ready yet.** Today Oncyber can show your page inside a space, in
+a safe sandbox, with Oncyber's header and controls around it. There's no
+publishing screen, and your page doesn't get the visitor's identity, avatar or
+multiplayer yet. If you want to help build those, this is the place to start.
 
-## How it runs
+## What works today
+
+-   You host your page yourself, over HTTPS.
+-   The owner of a space can attach your page to it (see below).
+-   A small optional script lets your page tell Oncyber it's ready, open
+    Oncyber's menu, and ask the visitor to share their wallet address.
+
+:::details How the sandbox works
 
 Oncyber loads your page in a sandboxed frame with only `allow-scripts` and
-`allow-pointer-lock`. The frame has an opaque origin, so it can't read Oncyber's
-cookies, storage or account, and it can't navigate the top page or open popups.
-The page fills the viewport underneath Oncyber's transparent header and controls.
-
-That boundary has a few consequences for how you build:
+`allow-pointer-lock`. The frame has an opaque origin, so it can't read
+Oncyber's cookies, storage or account, and it can't navigate the top page or
+open popups. The page fills the viewport underneath Oncyber's transparent
+header and controls.
 
 -   Serve your page over HTTPS. During development, a separate loopback origin
     such as `http://127.0.0.1:5173` is accepted too.
 -   ES modules, `fetch` and WASM requests come from origin `null`. Serve public
-    assets with `Access-Control-Allow-Origin: *`. Never enable credentialed CORS for
-    `null` on authenticated endpoints.
--   `localStorage` and cookies aren't available. Keep state in memory or on your
-    own server.
+    assets with `Access-Control-Allow-Origin: *`. Never enable credentialed CORS
+    for `null` on authenticated endpoints.
+-   `localStorage` and cookies aren't available. Keep state in memory or on
+    your own server.
 -   Create workers from Blob URLs.
 -   The page must allow being framed: no `X-Frame-Options: DENY` and no CSP
     `frame-ancestors` that excludes Oncyber.
 
-## A minimal page
+:::
+
+:::details A minimal page
 
 ```html
 <!DOCTYPE html>
@@ -93,12 +98,13 @@ That boundary has a few consequences for how you build:
 WebGPU works the same way: create a `WebGPURenderer` and keep a fallback for
 browsers without WebGPU.
 
-## The bridge
+:::
 
-`oncyber-content.js` is optional but recommended. Copy it from
-`frontend/public/oncyber-content.js` into your own static assets. Set
-`data-host-origin` when the host isn't `https://oncyber.io`, for example `http://localhost:13000` while you
-develop. It adds `window.oncyberContent` with three calls:
+:::details The bridge script
+
+Copy `frontend/public/oncyber-content.js` into your own static assets. Set
+`data-host-origin` when the host isn't `https://oncyber.io`, for example
+`http://localhost:13000` while you develop. It adds `window.oncyberContent`:
 
 | Call                     | What it does                                                             |
 | ------------------------ | ------------------------------------------------------------------------ |
@@ -109,17 +115,16 @@ develop. It adds `window.oncyberContent` with three calls:
 `requestWalletAddress()` only works when the space grants the
 `wallet.connect` capability. Oncyber shows its own confirmation every time, and
 the result is `{ address, chain }`. It never gives your page a wallet provider,
-signing or transactions.
+signing or transactions. Without the bridge, Oncyber can only tell that your
+frame loaded, not that it rendered.
 
-Without the bridge, Oncyber can only tell that your frame loaded, not that it
-rendered.
+:::
 
-## Attach it to a space (experimental)
+:::details Attach a page to a space (developer hook)
 
-This is a developer hook, not the way publishing will work. An experience is
-attached to an existing space that you own or edit. While
-signed in to Oncyber, call this from a page on the same Oncyber origin (for
-example the browser console):
+This is a stopgap for developers, not how publishing will work. While signed
+in as the owner or an editor of a space, run this in the browser console on
+Oncyber:
 
 ```js
 await fetch("/api/content/register", {
@@ -137,25 +142,26 @@ await fetch("/api/content/register", {
 }).then((response) => response.json());
 ```
 
-The space's normal URL now opens your page in the Oncyber player. Registering
-`{ "kind": "cyber" }` puts the original gallery back; gallery data is never
-deleted. `engine` is only a label: Oncyber never imports your engine.
+The space's normal URL now opens your page. Registering `{ "kind": "cyber" }`
+puts the original gallery back; gallery data is never deleted. `engine` is only
+a label: Oncyber never imports your engine.
 
-## Controls
+:::
 
-Worlds that render inside Oncyber should move and look like the lobby: WASD
-and the arrow keys walk (left and right arrows turn the camera), Shift runs,
-Space jumps twice, dragging looks around, the wheel tilts the camera, and on
-touch screens a thumb pad walks. In this repository that controller is
+:::details Controls to match the lobby
+
+WASD and the arrow keys walk (left and right arrows turn the camera), Shift
+runs, Space jumps twice, dragging looks around, the wheel tilts the camera, and
+on touch screens a thumb pad walks. Use E for "interact", with an on-screen
+button for touch. The lobby's controller is
 `frontend/features/worldControls/followControls.ts`; its README shows how to
-plug in your own ground, walls and keys. Use E for "interact" (sit, open,
-read), with an on-screen button for touch.
+plug in your own ground, walls and keys.
 
-## What isn't there yet
+:::
 
-There's no publishing flow yet: no Studio screen, no review, and the attach call
-above is the only way in. Hosted pages don't yet get the visitor's identity,
-avatar or the lobby's multiplayer room. Bring your own networking if your experience needs it, and
-see [Multiplayer](/docs/multiplayer) and [Avatars](/docs/avatars) for how
-Oncyber's own systems work today. Wiring those into the bridge is open work, and
-contributions are welcome.
+## What's next
+
+A real way to publish, and passing the visitor's identity, avatar and
+multiplayer room through to your page. See [Multiplayer](/docs/multiplayer)
+and [Avatars](/docs/avatars) for how those work in Oncyber today.
+Contributions are welcome.
