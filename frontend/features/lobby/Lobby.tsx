@@ -584,32 +584,35 @@ export default function Lobby({
     const population =
         (social.population ?? social.players.length) +
         (recording?.crowd.participants.length || 0);
+    // Hand the crowd to the scene only once your own avatar is in, so its
+    // dozens of models don't queue ahead of yours.
+    const staged = ready ? recording : null;
     const participants = useMemo(
         () => [
             ...social.players.filter((player) => !player.isLocal),
-            ...(recording?.crowd.participants || []),
+            ...(staged?.crowd.participants || []),
         ],
-        [social.players, recording]
+        [social.players, staged]
     );
     const sampleParticipants = useMemo(
         () =>
-            recording
+            staged
                 ? (now?: number) => {
                       const time = now ?? performance.now();
                       return [
                           ...social.sampleParticipants(time),
-                          ...recording.crowd.sample(time),
+                          ...staged.crowd.sample(time),
                       ];
                   }
                 : social.sampleParticipants,
-        [recording, social.sampleParticipants]
+        [staged, social.sampleParticipants]
     );
     const travelPartyIds = useMemo(
         () =>
-            recording
-                ? [...party.partyIds, ...recording.crowd.travelIds]
+            staged
+                ? [...party.partyIds, ...staged.crowd.travelIds]
                 : party.partyIds,
-        [party.partyIds, recording]
+        [party.partyIds, staged]
     );
     const recordingBudget = useMemo(
         () =>
