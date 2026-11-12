@@ -104,7 +104,11 @@ jest.mock("./useLobbyTravelParty", () => ({
         prepareTravel: async (destination) => destination,
     })),
 }));
-jest.mock("./useLobbySocial", () => ({ __esModule: true, default: jest.fn() }));
+jest.mock("./useLobbySocial", () => ({
+    __esModule: true,
+    default: jest.fn(),
+    lobbyDisplayName: (_id?: string, username?: string) => username || "Guest",
+}));
 jest.mock("./useLobbyJourney", () => ({
     __esModule: true,
     default: jest.fn(),

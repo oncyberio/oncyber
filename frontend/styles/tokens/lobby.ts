@@ -38,6 +38,15 @@ export const lobbyTokens = {
         scrimMask:
             "linear-gradient(to right, transparent, #000 16%, #000 84%, transparent)",
     },
+    /** Chat lines shown above the speaker's head in the 3D scene. Stronger
+     * than the chat list's shadow: these sit over bright avatars and sky. */
+    speech: {
+        textShadow: "0 1px 2px #000000d9, 0 0 10px #000000a6",
+        backdrop:
+            "radial-gradient(closest-side, #000000b3, #00000073 55%, transparent)",
+        ink: "#f4f5f8",
+        photoShadow: "0 1px 4px #000000a6",
+    },
     control: {
         size: 40,
         touchSize: 44,
