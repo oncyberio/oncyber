@@ -12,11 +12,12 @@ identity, avatar, friends and voice coming with you as you travel.
    space together without a loading screen breaking the moment.
 2. **Spaces on WebGPU.** The lobby and gallery spaces render with a WebGPU
    engine (three.js and TSL), with a WebGL2 fallback.
-3. **Any engine, one host.** The content host runs outside experiences, such as
-   plain three.js or WebGPU pages, inside a sandboxed frame. A world keeps its
-   own engine and talks to Oncyber through a small message bridge (see
-   `docs/content-host.md`), which is where identity, party travel, chat and
-   voice come from. The host also has code, not live yet, that can serve
+3. **Any engine, one host.** The direction: outside experiences, such as plain
+   three.js or WebGPU pages, run inside a sandboxed frame, keep their own
+   engine, and get identity, party travel, chat and voice from Oncyber through
+   a small message bridge (see `docs/content-host.md`). Today only the sandbox
+   and an early bridge exist: a space owner attaches a self-hosted page with an
+   API call, and identity, avatars and multiplayer aren't wired in yet. The host also has code, not live yet, that can serve
    awe.box experiences.
 4. **Creation in the browser.** An editable Studio and Gaussian-splat galleries,
    so people can make and curate spaces without leaving the site.
@@ -137,10 +138,19 @@ The product is Oncyber. Don't add other product or SDK names to code, docs or
 the interface. The one exception is the content-host code that can serve
 awe.box experiences, which names that domain.
 
-## Before the repository goes public
+## Keys and the public repository
 
--   The repository started without history. Rotate every key that was
-    hardcoded in the original oncyber repository before going public.
+The repository is public. It started without history, and a secret scan
+(gitleaks and trufflehog, every branch, tag and pull request, 2026-11-12)
+found no live credentials in it. What it found are public by design: the
+browser search key for Algolia, OneSignal app ids, Firebase Storage download
+links for public avatars, contract addresses and test placeholders.
+
+Still to do: rotating the keys that were hardcoded in the original, private
+oncyber repository. None of them are in this repository, and the list is
+tracked privately with the maintainers, not here. Until that's done, don't
+copy configuration or code from the old repository.
+
 -   Keep environment files out of commits; start from the `.env.example` files.
 -   Brand fonts are licensed and fetched at build time (see `docs/fonts.md`).
 -   Known dependency work left: Colyseus 0.14 to 0.18 in `multiplayer/`, and

@@ -8,10 +8,11 @@ Generic content exposes only capabilities it actually implements.
 
 ## Open or attach content
 
-There is no public launcher page for now (the old `/play` page was removed).
-Content is attached to a space through `POST /api/content/register`, described
-below. Public URL previews have no wallet capability, even if their query or
-supplied descriptor requests one.
+This is early, experimental plumbing, not a publishing flow yet. There is no
+launcher page and no Studio screen for it. The only way in today is attaching a
+page to a space you own or edit with `POST /api/content/register`, described
+below, and the attached page doesn't get the visitor's identity, avatar or
+multiplayer room yet.
 
 Attaching persists the descriptor on an
 existing experience, so `/spaces/:id` and its custom slug use the same player:
@@ -60,8 +61,10 @@ resources. This is not a network-isolated runtime.
 The versioned bridge validates source WindowProxy, opaque origin, fresh session
 nonce, request shape/size, rate, and duplicate IDs. New loads rotate the nonce.
 Pending requests are cancelled on reload, account changes, and disposal. Wallet
-requests are rejected if any host ancestor has a different origin; `/play` also
-sets `frame-ancestors 'self'` to prevent cross-origin framing.
+requests are rejected if any host ancestor has a different origin. Pages that
+grant access or edit a space (`/studio`, `/create`, `/cli-auth`) also send
+`frame-ancestors 'self'` so other sites can't frame them
+(`frontend/next.config.js`).
 Only `ready`, `menu`, and optional `wallet.connect` are supported; all other
 methods (including raw JSON-RPC, signing, approvals, and transactions) fail
 closed. No token, canonical account ID, provider, or signing function is in init.
@@ -154,18 +157,38 @@ pnpm -C frontend exec jest --watchman=false --runInBand features/content-host \
 node scripts/content-host-preview.mjs
 ```
 
-With Oncyber running on `localhost:13000`, open `/play`, use
-`http://127.0.0.1:13001/`, and enable the public-address request capability.
-The standalone Three.js fixture verifies module CORS, rendering, ready/menu
-protocol, separate wallet review, cancellation, and reload without credentials.
-Its server exposes only five public fixture/dependency files on loopback.
-For the benign attack probe, open
-`/play?url=http%3A%2F%2F127.0.0.1%3A13001%2Fsecurity.html&wallet=connect`.
-It exercises the browser sandbox and rejected bridge methods without signing
-or transferring anything. The wallet query is effective only on local
-development hosts.
+For the browser check you need a local Firebase project (see `AGENTS.md`) and
+a space you own on it. With Oncyber running on `localhost:13000` and the
+fixture server above on `127.0.0.1:13001`, sign in and attach the fixture to
+that space from the browser console:
 
-Latest local verification (October 9, 2026): 185 focused Oncyber tests across
+```js
+await fetch("/api/content/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        experienceId: "YOUR_SPACE_ID",
+        runtime: {
+            kind: "web",
+            url: "http://127.0.0.1:13001/",
+            engine: "Three.js",
+            capabilities: ["wallet.connect"],
+        },
+    }),
+}).then((response) => response.json());
+```
+
+Then open `/spaces/YOUR_SPACE_ID`. Loopback HTTP URLs are accepted only in
+development. The standalone Three.js fixture verifies module CORS, rendering,
+ready/menu protocol, separate wallet review, cancellation, and reload without
+credentials. Its server exposes only five public fixture/dependency files on
+loopback. For the benign attack probe, register
+`http://127.0.0.1:13001/security.html` the same way. It exercises the browser
+sandbox and rejected bridge methods without signing or transferring anything.
+Register `{ "kind": "cyber" }` afterwards to put the gallery back.
+
+Latest local verification (October 9, 2026, before the `/play` launcher page
+was removed, so it ran there): 185 focused Oncyber tests across
 13 suites and 20 browser isolation checks passed. This includes the content
 permission/admission and cookie-auth changes, plus lobby/gallery UI regressions.
 Real cross-origin Three.js rendering,
@@ -176,7 +199,6 @@ its existing Fly Mode, Guided Tour, Settings and gallery inspector remained
 available. Full repository type checks still contain existing errors; none
 were reported in the new content-host/runtime routes.
 No deployment or production registration was performed.
-
 
 The shared cookie-authentication boundary rejects `Origin: null` and requests
 marked `Sec-Fetch-Site: same-site` or `cross-site`, including images and iframe
