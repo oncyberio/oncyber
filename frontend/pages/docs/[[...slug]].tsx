@@ -353,6 +353,34 @@ const Page = styled.div`
         background: none;
         color: var(--oc-secondary);
     }
+    .docs-body .code-block {
+        position: relative;
+        margin: 0 0 20px;
+    }
+    .docs-body .code-block pre {
+        margin: 0;
+        padding-right: 52px;
+    }
+    .docs-body .copy-code {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: ${radius.inset}px;
+        background: none;
+        color: var(--oc-secondary);
+        cursor: pointer;
+    }
+    .docs-body .copy-code:hover,
+    .docs-body .copy-code:focus-visible {
+        background: var(--oc-surface);
+        color: var(--oc-ink);
+    }
     .docs-body .table {
         margin: 0 0 20px;
         overflow-x: auto;
