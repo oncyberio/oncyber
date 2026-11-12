@@ -7,7 +7,7 @@ import {
     SphereGeometry,
 } from "three/webgpu";
 import { RenderDemand } from "@components/_3DExhibit-v2/three/utils/renderDemand";
-import { loadStrokeSet, paintSkyBackground, paintedSkyFor } from "./paintedSky";
+import { loadStrokeSet, paintSkyBackground } from "./paintedSky";
 import { encodeStrokes, type StrokeSet } from "./strokeFormat";
 
 /** The background BackgroundFactory.get makes from a sky image. */
@@ -37,7 +37,7 @@ function tinySet(): StrokeSet {
     };
 }
 
-const SLUG = "TheStarryNight_Skydome";
+const FILE = "/world-mods/test/sky.bin";
 
 // what the browser has and this test environment lacks
 const { DecompressionStream, ReadableStream } = require("stream/web");
@@ -62,23 +62,10 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
-describe("paintedSkyFor", () => {
-    test("knows the Starry Night dome, whatever the case", () => {
-        expect(paintedSkyFor(SLUG)?.url).toMatch(
-            /^\/textures\/painted-sky\/starry-night-sky\.[0-9a-f]{12}\.bin$/
-        );
-        expect(paintedSkyFor("thestarrynight_skydome")).toBe(
-            paintedSkyFor(SLUG)
-        );
-        expect(paintedSkyFor("another-space")).toBeNull();
-        expect(paintedSkyFor(undefined)).toBeNull();
-    });
-});
-
 describe("paintSkyBackground", () => {
     test("keeps the sky image when the stroke file fails to load", async () => {
         const sphere = sharpSphere();
-        const painted = await paintSkyBackground(sphere, SLUG, {
+        const painted = await paintSkyBackground(sphere, FILE, {
             load: () => Promise.reject(new Error("offline")),
         });
         expect(painted).toBe(false);
@@ -90,10 +77,10 @@ describe("paintSkyBackground", () => {
     test("keeps the sky image when the file is not found", async () => {
         const sphere = sharpSphere();
         const fetcher = serve(404);
-        const painted = await paintSkyBackground(sphere, SLUG, {
+        const painted = await paintSkyBackground(sphere, FILE, {
             load: (url) => loadStrokeSet(url, fetcher),
         });
-        expect(fetcher).toHaveBeenCalledWith(paintedSkyFor(SLUG).url);
+        expect(fetcher).toHaveBeenCalledWith(FILE);
         expect(painted).toBe(false);
         expect(String((console.warn as jest.Mock).mock.calls[0][1])).toMatch(
             /HTTP 404/
@@ -106,7 +93,7 @@ describe("paintSkyBackground", () => {
         const sphere = sharpSphere();
         const broken = encodeStrokes(tinySet()).slice(0, 20);
         const fetcher = serve(new Uint8Array(gzipSync(broken)));
-        const painted = await paintSkyBackground(sphere, SLUG, {
+        const painted = await paintSkyBackground(sphere, FILE, {
             load: (url) => loadStrokeSet(url, fetcher),
         });
         expect(painted).toBe(false);
@@ -117,14 +104,11 @@ describe("paintSkyBackground", () => {
         );
     });
 
-    test("leaves other spaces and other backgrounds alone", async () => {
+    test("leaves other backgrounds alone", async () => {
         const load = jest.fn(async () => tinySet());
-        expect(
-            await paintSkyBackground(sharpSphere(), "elsewhere", { load })
-        ).toBe(false);
         const cube = new Mesh(new SphereGeometry(), new NodeMaterial());
-        expect(await paintSkyBackground(cube, SLUG, { load })).toBe(false);
-        expect(await paintSkyBackground(null, SLUG, { load })).toBe(false);
+        expect(await paintSkyBackground(cube, FILE, { load })).toBe(false);
+        expect(await paintSkyBackground(null, FILE, { load })).toBe(false);
         expect(load).not.toHaveBeenCalled();
     });
 
@@ -134,7 +118,7 @@ describe("paintSkyBackground", () => {
         const fetcher = serve(
             new Uint8Array(gzipSync(encodeStrokes(tinySet())))
         );
-        const painted = await paintSkyBackground(sphere, SLUG, {
+        const painted = await paintSkyBackground(sphere, FILE, {
             load: (url) => loadStrokeSet(url, fetcher),
         });
         expect(painted).toBe(true);
@@ -152,7 +136,7 @@ describe("paintSkyBackground", () => {
 
     test("draws fewer layers on phones", async () => {
         const sphere = sharpSphere();
-        await paintSkyBackground(sphere, SLUG, {
+        await paintSkyBackground(sphere, FILE, {
             mobile: true,
             load: async () => tinySet(),
         });
@@ -165,7 +149,7 @@ describe("paintSkyBackground", () => {
     test("does nothing when the space is gone before the file arrives", async () => {
         const sphere = sharpSphere();
         let arrive: (set: StrokeSet) => void;
-        const pending = paintSkyBackground(sphere, SLUG, {
+        const pending = paintSkyBackground(sphere, FILE, {
             load: () => new Promise((resolve) => (arrive = resolve)),
         });
         (sphere.material as NodeMaterial).dispose();

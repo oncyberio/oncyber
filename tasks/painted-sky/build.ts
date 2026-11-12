@@ -13,8 +13,8 @@
  * runtime derives from the same cell indices, so the file stores only which
  * cells hold a stroke plus three bytes per stroke (strokeFormat.ts).
  *
- * Writes frontend/public/textures/painted-sky/starry-night-sky.<hash>.bin
- * (gzipped) and frontend/features/paintedSky/strokeFile.ts, which names it.
+ * Writes frontend/public/world-mods/thestarrynight_skydome/starry-night-sky.<hash>.bin
+ * (gzipped) and frontend/features/worldMods/worlds/thestarrynight_skydome/strokeFile.ts, which names it.
  * The output depends only on the inputs: run it twice, get the same file.
  */
 import sharp from "sharp";
@@ -34,14 +34,20 @@ import {
     hashCell,
     strokesPerLayer,
     type StrokeLayer,
-} from "../../frontend/features/paintedSky/strokeFormat.ts";
+} from "../../frontend/features/worldMods/paintedSky/strokeFormat.ts";
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const ROOT = path.resolve(HERE, "../..");
 const SOURCE = path.join(HERE, "inputs/sky-envmap-2048x1024.jpg");
-const OUT_DIR = path.join(ROOT, "frontend/public/textures/painted-sky");
+const OUT_DIR = path.join(
+    ROOT,
+    "frontend/public/world-mods/thestarrynight_skydome"
+);
 const OUT_NAME = "starry-night-sky";
-const MODULE = path.join(ROOT, "frontend/features/paintedSky/strokeFile.ts");
+const MODULE = path.join(
+    ROOT,
+    "frontend/features/worldMods/worlds/thestarrynight_skydome/strokeFile.ts"
+);
 
 const DEG = Math.PI / 180;
 /** Colours the strokes share (k-means over all of them). */
@@ -645,7 +651,7 @@ writeFileSync(
     MODULE,
     `// Written by tasks/painted-sky/build.ts. Do not edit; run the builder.
 export const STARRY_NIGHT_STROKES = {
-    url: "/textures/painted-sky/${name}",
+    url: "/world-mods/thestarrynight_skydome/${name}",
     /** Bytes over the wire (the file is gzipped already). */
     bytes: ${file.length},
     strokes: ${strokes.length},

@@ -22,28 +22,11 @@ import {
     type StrokeSet,
 } from "./strokeFormat";
 import { createStrokeMaterial } from "./strokeMaterial";
-import { STARRY_NIGHT_STROKES } from "./strokeFile";
-
-/**
- * Painted skies: destinations whose 360° sky image has been repainted
- * offline as brush strokes (tasks/painted-sky). The strokes replace what the
- * background sphere draws; the image itself still lights the world (PMREM)
- * and colours its fog.
- */
-const PAINTED_SKIES: Record<string, { url: string }> = {
-    thestarrynight_skydome: STARRY_NIGHT_STROKES,
-};
-
 /**
  * Phones and tablets skip the last layer (the small accents in the halos
  * and swirls): the most strokes for the least change at a phone's size.
  */
 const MOBILE_LAYERS = 5;
-
-export function paintedSkyFor(slug: string | null | undefined) {
-    if (typeof slug !== "string") return null;
-    return PAINTED_SKIES[slug.toLowerCase()] ?? null;
-}
 
 /** Gunzips in the browser (DecompressionStream). */
 export async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
@@ -165,8 +148,11 @@ type PaintOptions = {
 };
 
 /**
- * Repaints a destination's sky as brush strokes, if it has a stroke file.
- * `background` is what BackgroundFactory.get returned. Only the sharp sky
+ * Repaints a sky as brush strokes from a stroke file (built offline from the
+ * world's 360° sky image, see tasks/painted-sky). The strokes replace what
+ * the background sphere draws; the image itself still lights the world
+ * (PMREM) and colours its fog. `background` is what BackgroundFactory.get
+ * returned. Only the sharp sky
  * sphere is replaced; it keeps drawing until the strokes are ready, and for
  * good if the file fails to load or decode. The strokes become the sphere's
  * child, so they follow it into mirrors, out of the occlusion pass and into
@@ -174,19 +160,17 @@ type PaintOptions = {
  */
 export async function paintSkyBackground(
     background: Object3D | null,
-    slug: string | null | undefined,
+    url: string,
     { mobile = false, load = (url) => loadStrokeSet(url) }: PaintOptions = {}
 ): Promise<boolean> {
-    const sky = paintedSkyFor(slug);
     const sphere = background as Mesh | null;
     const material = sphere?.material as Material | undefined;
-    if (!sky || !sphere || material?.name !== "BackgroundSharpMaterial")
-        return false;
+    if (!sphere || material?.name !== "BackgroundSharpMaterial") return false;
     let disposed = false;
     const onDispose = () => (disposed = true);
     material.addEventListener("dispose", onDispose);
     try {
-        const set = await load(sky.url);
+        const set = await load(url);
         if (disposed) return false;
         const layers = mobile
             ? Math.min(MOBILE_LAYERS, set.layers.length)

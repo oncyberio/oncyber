@@ -73,7 +73,7 @@ https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Pro
 4. `frontend/components/_3DExhibit-v2/three/factory/space/space.js`:
    `Space.background` setter adds the mesh to the scene.
 
-Hook idea: a feature folder (e.g. `frontend/features/paintedSky/`) with a
+Hook idea: a feature folder (e.g. `frontend/features/worldMods/` (now built: see its README)) with a
 function the kitbash kit calls after `BackgroundFactory.get` when the slug
 is the Starry Night one. It loads the stroke file, builds the instanced
 strokes as a camera-centred group (same trick as the sharp sphere: copy the
