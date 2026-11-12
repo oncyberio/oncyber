@@ -3,26 +3,6 @@ import { ARENA_HTTP_URL } from "@utils/arena/constants";
 import { CATEGORIES } from "@utils/feed/category";
 import AlgoliaProvider, { SearchReturn } from "../algolia/AlgoliaProvider";
 
-const CMS_BASE_URL = "https://cyber-cms-ef9hl.ondigitalocean.app";
-
-async function getCMS() {
-    // needs to be called from the backend later
-    const resp = await fetch(`${CMS_BASE_URL}/api/playlists?populate=*`, {
-        headers: {
-            Authorization:
-                "bearer 597f725cdf56921388e6e188673a80f3bfcc5f4f94ea1612d1f1a2dce797d48735637190691aa76020d3e43a8b062123aae464b610bc99d232da92bc770bf7b23aae915b4e4013b4e06071734cf4dcc61b6dbbd19428469c57b06a9dd67edb7a34c61bbbc376b15a71c36c994761d79f00979b7eba7ef304cc7f9d8a26c6f29d",
-        },
-    });
-
-    const data = await resp.json();
-
-    if (data?.data) {
-        return data.data;
-    }
-
-    return [];
-}
-
 async function getRooms() {
     const resp = await fetch(`${ARENA_HTTP_URL}/getRooms`);
 
@@ -180,24 +160,6 @@ export class FeedProvider {
 
         // sources.push(...(recommendations || []).filter((s) => s));
 
-        // try {
-        //     // source 5. cms
-        //     const cmsHits = (isAnon ? [] : await this.getCMSObjects()).sort(
-        //         (a, b) => {
-        //             let r = 0.5;
-
-        //             if (a.tags.length > 2 || b.tags.length > 2) {
-        //                 r = 0.8;
-        //             }
-        //             return r - Math.random();
-        //         }
-        //     );
-
-        //     sources.push({ category: "cms", source: cmsHits });
-        // } catch (err) {
-        //     console.log("Failed to fetch cms", err);
-        // }
-
         try {
             // source 6. multiplayer
             const multiplayerHits = isAnon
@@ -295,57 +257,6 @@ export class FeedProvider {
         }
     }
 
-    private async getCMSObjects() {
-        try {
-            const cms = await getCMS();
-
-            const ids = {};
-
-            const spaceIds = cms.flatMap((doc) => {
-                const { attributes } = doc;
-
-                const _ids = attributes.Exhibit.map(
-                    ({ ExhibitID }) => ExhibitID
-                );
-
-                ids[attributes.Name] = _ids;
-
-                return _ids;
-            });
-
-            return this.algolia.exhibitsIndex
-                .getObjects(spaceIds)
-                .then(({ results }) => {
-                    return results
-                        .filter((hit) => hit)
-                        .map((hit) => {
-                            const _hit = this.algolia.formatSpaceHit(hit);
-
-                            Object.keys(ids).forEach((key) => {
-                                if (ids[key].includes(_hit.objectID)) {
-                                    let category = {};
-
-                                    if (key === "Community") {
-                                        category = CATEGORIES["community"];
-                                    }
-
-                                    if (key === "Staff Picks") {
-                                        category = CATEGORIES["staffpicks"];
-                                    }
-
-                                    _hit.tags.push(category);
-                                }
-                            });
-
-                            return _hit;
-                        });
-                });
-        } catch (err) {
-            console.log("err", err);
-            return [];
-        }
-    }
-
     private mergeAndSortFeed(arrays) {
         const indices = [];
 
@@ -398,7 +309,7 @@ export class FeedProvider {
                         merged[index].tags.push(CATEGORIES[category]);
                     }
 
-                    if (category === "cms" || category === "multiplayer") {
+                    if (category === "multiplayer") {
                         merged[index].tags.push(...item.tags);
                     }
 

@@ -77,7 +77,7 @@ it("serves restored previews for missing-cover galleries, including legacy room 
     );
     for (const slug of slugs) {
         expect(previewForRoom(previews, slug)).toEqual([
-            `/landing-build/gallery-previews/${slug}-gpt.webp`,
+            `/landing-build/gallery-previews/${slug}-gpt-1280.webp`,
         ]);
         expect(previewForRoom(previews, `${slug}_v2`)).toEqual(
             previewForRoom(previews, slug)
@@ -86,7 +86,7 @@ it("serves restored previews for missing-cover galleries, including legacy room 
 });
 
 it("prefers the restored gallery fallback over a stale catalog thumbnail", () => {
-    const expected = ["/landing-build/gallery-previews/altitude-gpt.webp"];
+    const expected = ["/landing-build/gallery-previews/altitude-gpt-1280.webp"];
     expect(previewForRoom({}, "altitude_v2")).toEqual(expected);
     expect(
         previewForRoom({ altitude: ["/old-low-res.png"] }, "altitude_v2")

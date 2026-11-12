@@ -35,15 +35,27 @@ test("an already sized Cloudinary URL keeps its transform", () => {
     );
 });
 
-test("Pinata and seadn are asked for size only", () => {
+test("Pinata converts to WebP when asked; seadn is asked for size only", () => {
     const p = new URL(resize(pinata, 512, undefined, "webp"));
     expect(p.searchParams.get("img-width")).toBe("512");
+    expect(p.searchParams.get("img-format")).toBe("webp");
     expect([...p.searchParams.keys()].sort()).toEqual([
         "filename",
         "img-fit",
+        "img-format",
         "img-height",
         "img-width",
     ]);
+    // Without a format the URL is what it always was.
+    expect(new URL(resize(pinata, 512)).searchParams.has("img-format")).toBe(
+        false
+    );
+    const gif = pinata.replace("art.png", "art.gif");
+    expect(
+        new URL(resize(gif, 512, undefined, "webp")).searchParams.has(
+            "img-format"
+        )
+    ).toBe(false);
     const s = new URL(resize(seadn, 512, undefined, "webp"));
     expect([...s.searchParams.keys()]).toEqual(["w"]);
 });

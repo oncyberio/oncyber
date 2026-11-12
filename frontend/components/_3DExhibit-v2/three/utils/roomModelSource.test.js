@@ -5,6 +5,7 @@ import {
     selectRoomTextureUpgradeSource,
     classicRoomModelOptions,
     roomModelFallbacks,
+    isSameRoomFile,
 } from "./roomModelSource";
 import { loadRoomModel } from "./loadRoomModel";
 
@@ -357,4 +358,66 @@ test("a room that cannot read its chosen file falls back through its other files
     ).rejects.toThrow("ABORT_IF_SPACE_WAS_DISPOSED");
     expect(aborted).toHaveBeenCalledTimes(1);
     warn.mockRestore();
+});
+
+describe("a room that lists one file under every tier", () => {
+    // thestarrynight_skydome: low, mid and high are the same 22.9 MB file,
+    // labelled differently. Sharpening used to download it a second time.
+    const cid = "QmdFuPhYCwk4TrL7aGsw76c9sAYSqk8ZKP99w5hpEzQnUy";
+    const same = {
+        paths: {
+            low: `https://cyber.mypinata.cloud/ipfs/${cid}?filename=1-room-low-.glb`,
+            mid: `https://cyber.mypinata.cloud/ipfs/${cid}?filename=2-room-mid.glb`,
+            high: `https://cyber.mypinata.cloud/ipfs/${cid}?filename=3-room-high.glb`,
+        },
+    };
+
+    test("is never upgraded: there is nothing new to download", () => {
+        const fromMid = selectRoomModelSource(same, {
+            ...classicRoomModelOptions({ gpuTier: "high" }),
+        });
+        expect(fromMid.quality).toBe("mid");
+        expect(selectRoomTextureUpgradeSource(same, fromMid)).toBeNull();
+        const fromLow = selectRoomModelSource(same, {
+            preferLowResolution: true,
+        });
+        expect(selectRoomTextureUpgradeSource(same, fromLow)).toBeNull();
+    });
+
+    test("a real high file is still used", () => {
+        const distinct = {
+            paths: {
+                ...same.paths,
+                high: "https://cyber.mypinata.cloud/ipfs/QmOtherHighFile0000000000000000000000000000?filename=h.glb",
+            },
+        };
+        const fromMid = selectRoomModelSource(distinct, {
+            ...classicRoomModelOptions({ gpuTier: "high" }),
+        });
+        expect(selectRoomTextureUpgradeSource(distinct, fromMid)).toMatchObject(
+            { quality: "high", url: distinct.paths.high }
+        );
+    });
+
+    test.each([
+        [
+            "/ipfs/QmAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAb?filename=a",
+            "/ipfs/QmAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAbcAb?filename=b",
+            true,
+        ],
+        [
+            "https://cdn.example/room.glb?filename=a",
+            "https://cdn.example/room.glb?filename=b",
+            true,
+        ],
+        [
+            "https://cdn.example/room.glb?v=1",
+            "https://cdn.example/room.glb?v=2",
+            false,
+        ],
+        ["mid.glb", "high.glb", false],
+        ["mid.glb", undefined, false],
+    ])("%s and %s are the same file: %p", (a, b, expected) => {
+        expect(isSameRoomFile(a, b)).toBe(expected);
+    });
 });

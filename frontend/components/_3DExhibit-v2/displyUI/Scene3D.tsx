@@ -521,6 +521,7 @@ export function Scene3D_Child({
 
                     return atStage("avatar", async () => {
                         const loadedPlayer = await world.current.loadMainPlayer({
+                            userId,
                             userData: {
                                 ...userData,
                                 ...options,

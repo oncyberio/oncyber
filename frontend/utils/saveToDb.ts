@@ -1,4 +1,5 @@
 import { User } from "@uitypes/user";
+import { PROFANITY } from "@utils/chat/profanity";
 import { UserContextState } from "@context/UserContext";
 import { RoomParameters } from "@uitypes/roomParameters";
 import { WalletConnection } from "@dapp/connect";
@@ -1576,19 +1577,7 @@ export async function handleUploadVideoPreview({
     return result;
 }
 
-export function getProfanity({ abortController }) {
-    return fetch(
-        "https://cyber-cms-ef9hl.ondigitalocean.app/api/profanities",
-        {
-            signal: abortController?.signal,
-        }
-    )
-        .then((resp) => resp.json())
-        .then((data) => {
-            return data?.data?.[0]?.attributes?.words;
-        })
-        .catch((err) => {
-            console.log(err);
-            return null;
-        });
+// Chat's word filter ships with the app; nothing is fetched.
+export function getProfanity(_opts?: { abortController?: AbortController }) {
+    return Promise.resolve([...PROFANITY]);
 }

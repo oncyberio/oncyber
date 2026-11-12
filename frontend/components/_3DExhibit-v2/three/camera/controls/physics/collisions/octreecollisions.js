@@ -19,6 +19,12 @@ const cache = {};
 const TRESHOLD_OCTREE_BUILD_TIME = 100
 
 
+// A contact whose push-out leans less than about 66 degrees is floor.
+const FLOOR_NORMAL_Y = 0.4
+
+// Halvings when settling onto a floor below: snap distance / 2^8 (about 1 mm).
+const SNAP_STEPS = 8
+
 export class OctreeCollisions extends AbstractCollisions {
 
     constructor(opts) {
@@ -376,7 +382,7 @@ export class OctreeCollisions extends AbstractCollisions {
 
 
 
-            onFloor = result.normal.y > 0.4;
+            onFloor = result.normal.y > FLOOR_NORMAL_Y;
 
 
             //this.playerOnFloor = onFloor
@@ -420,11 +426,22 @@ export class OctreeCollisions extends AbstractCollisions {
             this.tmpNormal.set(0, -snapDistance, 0)
             this.capsule.translate(this.tmpNormal)
             const below = this.worldOctree.capsuleIntersect(this.capsule)
-            // Settle vertically only: a sideways push from an edge or lip
-            // would stall the player mid-stride.
-            const lift = below && below.normal.y > 0.7 ? below.depth / below.normal.y : 0
-            if (below && below.normal.y > 0.7 && lift <= snapDistance) {
-                this.capsule.translate(this.tmpNormal.set(0, lift, 0))
+            if (below && below.normal.y > FLOOR_NORMAL_Y) {
+                // Settle vertically only: a sideways push from an edge or lip
+                // would stall the player mid-stride. The push out of a slope
+                // (or a seam between two triangles) leans back up the slope,
+                // so it can't give the height directly: search for the lowest
+                // free height between the probe and where the player was.
+                let low = 0, high = snapDistance
+                for (let i = 0; i < SNAP_STEPS; i++) {
+                    const mid = (low + high) / 2
+                    this.capsule.translate(this.tmpNormal.set(0, mid - low, 0))
+                    const hit = this.worldOctree.capsuleIntersect(this.capsule)
+                    this.capsule.translate(this.tmpNormal.set(0, low - mid, 0))
+                    if (hit) low = mid
+                    else high = mid
+                }
+                this.capsule.translate(this.tmpNormal.set(0, high, 0))
                 onFloor = true
             }
             else {

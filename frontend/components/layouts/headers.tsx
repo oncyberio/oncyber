@@ -72,7 +72,17 @@ export function fontPreloadsFor(
     );
 }
 
+export const SITE_TITLE = "oncyber: forever";
+
+// Link previews (X, iMessage, Slack, ...) need an absolute image URL. The
+// image ships in public/, so it is served from the deployment that rendered
+// the page (NEXT_PUBLIC_SITE_ORIGIN, set in next.config.js).
+export const SHARE_IMAGE_PATH = "/brand/share-card.png";
+
 export default function Headers() {
+    const shareImage = `${
+        process.env.NEXT_PUBLIC_SITE_ORIGIN || "http://localhost:13000"
+    }${SHARE_IMAGE_PATH}`;
     const router = useRouter();
     return (
         <Head>
@@ -93,33 +103,34 @@ export default function Headers() {
                     />
                 )
             )}
-            <title>
-                {` oncyber - build your own world, experience with others. `}
-            </title>
+            <title key="title">{SITE_TITLE}</title>
             <meta
                 key="description"
                 name="description"
                 content="A multiverse for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free."
             />
-            <meta
-                key="ogTitle"
-                property="og:title"
-                content="Fully immersive experiences for your digital assets (NFTs)"
-            />
+            <meta key="ogTitle" property="og:title" content={SITE_TITLE} />
             <meta
                 key="ogDescription"
                 property="og:description"
                 content="A digital world for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free."
             />
+            <meta key="ogImage" property="og:image" content={shareImage} />
+            <meta key="ogImageWidth" property="og:image:width" content="1200" />
             <meta
-                key="ogImage"
-                property="og:image"
-                content="https://cyber.mypinata.cloud/ipfs/QmVDt3ZNfkqZGduEW69eQvSsTBC331zh6aydg7NPpePxXr?filename=thumbnail_yvbk53_auozqa.png"
+                key="ogImageHeight"
+                property="og:image:height"
+                content="630"
+            />
+            <meta
+                key="ogImageType"
+                property="og:image:type"
+                content="image/png"
             />
             <meta
                 key="twitterImage"
-                property="twitter:image"
-                content="https://cyber.mypinata.cloud/ipfs/QmVDt3ZNfkqZGduEW69eQvSsTBC331zh6aydg7NPpePxXr?filename=thumbnail_yvbk53_auozqa.png"
+                name="twitter:image"
+                content={shareImage}
             />
             <meta
                 key="twitterCard"
@@ -129,7 +140,7 @@ export default function Headers() {
             <meta
                 key="twitterTitle"
                 name="twitter:title"
-                content="Fully immersive experiences for your digital assets (NFTs)"
+                content={SITE_TITLE}
             />
             <meta
                 key="twitterDescription"

@@ -88,6 +88,34 @@ describe("warmRoomModels", () => {
         expect(warmRoomModels(null)).toBe(null);
     });
 
+    it("picks the file a direct visit loads, by GPU tier", () => {
+        const direct = (gpuTier: any, isMobile = false) =>
+            ({ kind: "direct", gpuTier, isMobile } as const);
+        // Desktop, not low: mid first, sharpening to high after arrival.
+        expect(warmRoomModels(props(VOID), direct("high"))?.plain).toBe(
+            VOID.paths.mid
+        );
+        expect(warmRoomModels(props(VOID), direct("low"))?.plain).toBe(
+            VOID.paths.low
+        );
+        // Phones take the compressed file when the GPU can read it.
+        const dest = {
+            ...VOID,
+            paths: { ...VOID.paths, low_compressed: "https://x.test/c.glb" },
+        };
+        expect(warmRoomModels(props(dest), direct("low", true))).toEqual({
+            plain: VOID.paths.low,
+            compressed: "https://x.test/c.glb",
+        });
+        // Desktops never take it.
+        expect(warmRoomModels(props(dest), direct("mid"))).toEqual({
+            plain: VOID.paths.mid,
+            compressed: VOID.paths.mid,
+        });
+        // No remembered tier: the page looks it up first, so don't guess.
+        expect(warmRoomModels(props(VOID), direct(null))).toBe(null);
+    });
+
     it("uses the loader's cache key", () => {
         expect(roomCacheKey(" http://a.test/r.glb ")).toBe(
             "https://a.test/r.glb"

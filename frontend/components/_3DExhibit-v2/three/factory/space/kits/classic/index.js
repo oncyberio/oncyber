@@ -36,6 +36,7 @@ import WaterFactory from '@3factory/water'
 
 
 import BackgroundFactory from '@3factory/background'
+import { applyWorldMod } from '@features/worldMods'
 
 
 import {
@@ -140,6 +141,9 @@ class ClassicSpaceFactory extends SpaceFactoryAbstract {
                 let background = await backgroundReady
 
                 let backgroundMesh = BackgroundFactory.get( background )
+
+                // This world's own code, if it has any (features/worldMods)
+                applyWorldMod( opts.roomParameters?.slug, { background: backgroundMesh, mobile: IS_MOBILE } )
 
 
 

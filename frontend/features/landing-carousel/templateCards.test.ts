@@ -125,3 +125,21 @@ it("uses restored room artwork consistently in template cards and details", () =
     )[0];
     expect(original.imageUrls).toEqual([owned.image, owned.thumbnail]);
 });
+
+it("asks Pinata for card-sized WebP covers", () => {
+    const pinned = {
+        ...room("pinned"),
+        image: "https://cyber.mypinata.cloud/ipfs/QmCover?filename=cover.png",
+        thumbnail: "",
+    } as Destination;
+    const [card] = createTemplateCards(
+        { owned: [pinned], uploaded: [], purchase: [] },
+        { pinned: true },
+        "pinned",
+        "all"
+    );
+    const url = new URL(card.imageUrls[0]);
+    expect(url.searchParams.get("img-width")).toBe("1024");
+    expect(url.searchParams.get("img-format")).toBe("webp");
+    expect(templateCover(pinned)).toBe(card.imageUrls[0]);
+});

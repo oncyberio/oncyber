@@ -38,6 +38,7 @@ import { PortalPlaceholderFactory } from '@3portal/index'
 import SpaceFactoryAbstract from '@3factory/abstract/spacefactory.js'
 
 import BackgroundFactory from '@3factory/background'
+import { applyWorldMod } from '@features/worldMods'
 
 import Reflector from '@3factory/reflector'
 
@@ -174,6 +175,9 @@ class FutureSpaceFactory extends SpaceFactoryAbstract {
 				}
 
 		        let backgroundMesh = BackgroundFactory.get( background )
+
+		        // This world's own code, if it has any (features/worldMods)
+		        applyWorldMod( opts.roomParameters?.slug, { background: backgroundMesh, mobile: IS_MOBILE } )
 
 		        const scene = new Space({ scene: kitbash.scene, background: backgroundMesh })
 

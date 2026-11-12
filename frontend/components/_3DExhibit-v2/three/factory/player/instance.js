@@ -142,7 +142,9 @@ export default class InstancePlayer extends Group {
 
         this.deactivated = false;
 
-        if( this.userId == undefined ) {
+        // The visitor's own player gets its multiplayer identity when the
+        // room connects (initializeMultiplayer); everyone else needs one now.
+        if( this.userId == undefined && !opts.main ) {
 
             console.error("Instance Player: userId is undefined")
         }

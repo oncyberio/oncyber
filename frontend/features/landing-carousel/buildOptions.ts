@@ -3,7 +3,7 @@ import { LandingCard } from "./types";
 const OPTIONS = [
     {
         id: "gallery",
-        cover: "/landing-build/cyber-warehouse.jpg",
+        cover: "/landing-build/cyber-warehouse-1280.webp",
         title: "Gallery",
         description: "A space for your art, collections, and exhibitions.",
         status: "Create gallery",

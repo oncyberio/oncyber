@@ -21,9 +21,11 @@ export const actionTokens = {
         font: `${base.font.weight.medium} ${base.font.size.md}px/1.35`,
         /**
          * Also resolves outside a `brandFoundation` root: "Aeonik" is the
-         * app-wide registration of the same font files.
+         * app-wide registration of the same font files. Space Grotesk is
+         * the fallback when the licensed Aeonik files aren't deployed, as on
+         * the landing (see base.font.sans).
          */
-        family: '"Oncyber Sans", "Aeonik", "Helvetica Neue", Arial, sans-serif',
+        family: '"Oncyber Sans", "Aeonik", "SpaceGrotesk", "SpaceGrotesk Fallback", "Helvetica Neue", Arial, sans-serif',
     },
     /** Important actions only: sign in and publish. */
     blue: {
