@@ -29,6 +29,10 @@ import {
     validState,
 } from "../../../multiplayer/protocol/movement";
 
+// These tests bake and simulate whole locomotion courses; on a shared CI
+// runner one can take longer than Jest's 5 s default.
+jest.setTimeout(30_000);
+
 const directory = path.join(process.cwd(), "public/lobby/locomotion");
 const manifest = JSON.parse(
     fs.readFileSync(path.join(directory, "manifest.json"), "utf8")
