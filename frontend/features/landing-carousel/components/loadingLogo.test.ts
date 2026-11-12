@@ -4,6 +4,7 @@ import {
     HOLD_MS,
     MORPH_MS,
     SPIN_MS,
+    SPIN_TURNS,
     loadingLogoPose,
     startLoadingLogo,
 } from "./loadingLogo";
@@ -14,11 +15,13 @@ describe("loadingLogoPose", () => {
     it("spins the new logo, morphs to the old one, holds, and comes back", () => {
         expect(loadingLogoPose(0)).toEqual({ morph: 1, angle: -0 });
         expect(loadingLogoPose(SPIN_MS / 2).morph).toBe(1);
-        expect(loadingLogoPose(SPIN_MS / 2).angle).toBeCloseTo(-180);
+        expect(loadingLogoPose(SPIN_MS / 2).angle).toBeCloseTo(
+            -180 * SPIN_TURNS
+        );
         expect(loadingLogoPose(SPIN_MS + MORPH_MS + 1).morph).toBe(0);
         expect(loadingLogoPose(SPIN_MS + MORPH_MS + HOLD_MS - 1).morph).toBe(0);
         expect(loadingLogoPose(CYCLE_MS - 1).morph).toBeCloseTo(1, 2);
-        expect(CYCLE_MS).toBe(2000 + 700 + 750 + 700);
+        expect(CYCLE_MS).toBe(2000 + 700 + 1500 + 700);
     });
 
     it("never jumps in shape or angle", () => {
@@ -27,7 +30,7 @@ describe("loadingLogoPose", () => {
             const pose = loadingLogoPose(ms);
             expect(Math.abs(pose.morph - previous.morph)).toBeLessThan(0.01);
             const step = turn(pose.angle - previous.angle);
-            expect(Math.min(step, 360 - step)).toBeLessThan(2);
+            expect(Math.min(step, 360 - step)).toBeLessThan(4);
             previous = pose;
         }
     });

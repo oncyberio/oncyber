@@ -3,8 +3,9 @@ import { scrollLogoPose } from "./cyberloopMorph";
 // The header's scroll morph, played on its own while a space loads: the new
 // logo spins, turns into the old one, holds, and turns back.
 export const SPIN_MS = 2000;
+export const SPIN_TURNS = 3;
 export const MORPH_MS = 700;
-export const HOLD_MS = 750;
+export const HOLD_MS = 1500;
 export const CYCLE_MS = SPIN_MS + MORPH_MS + HOLD_MS + MORPH_MS;
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
@@ -13,8 +14,9 @@ const smooth = (x: number) => x * x * (3 - 2 * x);
 export function loadingLogoPose(ms: number, reducedMotion = false) {
     if (reducedMotion) return { morph: 1, angle: 0 };
     let t = ((ms % CYCLE_MS) + CYCLE_MS) % CYCLE_MS;
-    // One full eased turn, so every cycle starts and ends at the same angle.
-    if (t < SPIN_MS) return { morph: 1, angle: -360 * smooth(t / SPIN_MS) };
+    // Whole eased turns, so every cycle starts and ends at the same angle.
+    if (t < SPIN_MS)
+        return { morph: 1, angle: -360 * SPIN_TURNS * smooth(t / SPIN_MS) };
     t -= SPIN_MS;
     // The morph itself turns the mark half way (0 to 180). Mirrored on the
     // way to the old logo, it keeps turning the same way as the spin.
