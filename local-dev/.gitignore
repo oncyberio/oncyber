@@ -1,0 +1,3 @@
+# Emulator state saved between `pnpm dev:local` runs.
+.emulator-data/
+*-debug.log

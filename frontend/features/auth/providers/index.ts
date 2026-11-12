@@ -2,10 +2,10 @@ import { WalletConnection } from "@dapp/connect";
 
 import AccountsApi from "@api/accounts/_api";
 
-import { getAuth, unlink } from "firebase/auth";
+import { connectAuthEmulator, getAuth, unlink } from "firebase/auth";
 
 // The app alone: @utils/firebase also starts Firestore and the Database.
-import { firebaseApp } from "@utils/firebaseApp";
+import { firebaseApp, connectEmulator } from "@utils/firebaseApp";
 
 import {
     password_link,
@@ -25,6 +25,11 @@ import { Account, AuthenticationHandlerParams } from "../@types";
 import { describeSignInError, signInError } from "../signInErrors";
 
 export const auth = getAuth(firebaseApp);
+connectEmulator("auth", (host, port) =>
+    connectAuthEmulator(auth, `http://${host}:${port}`, {
+        disableWarnings: true,
+    })
+);
 // auth.setPersistence({ type: "LOCAL" });
 
 export const authServices = {
