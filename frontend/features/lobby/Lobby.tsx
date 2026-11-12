@@ -28,7 +28,8 @@ import LobbyScene from "./LobbyRenderer";
 import type { LobbyDestination, LobbySceneProps } from "./sceneTypes";
 import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
-import useLobbySocial from "./useLobbySocial";
+import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
+import { activeSpeech } from "./speechBubbles";
 import LobbyChat from "./LobbyChat";
 import LobbyPlace from "./LobbyPlace";
 import LobbyArrivalStatus from "./LobbyArrivalStatus";
@@ -451,6 +452,16 @@ export default function Lobby({
         )
             setDestinationGroupsOpen(true);
     }, [entered, invitations.length, groups, social.sessionId]);
+    // What people just said, shown over their heads in place of their name
+    // tags. The scene fades each line out on its own.
+    const speech = useMemo(() => {
+        const lines = activeSpeech(social.messages);
+        if (social.sessionId && lines[social.sessionId]) {
+            lines.self = lines[social.sessionId];
+            delete lines[social.sessionId];
+        }
+        return lines;
+    }, [social.messages, social.sessionId]);
     const party = useLobbyTravelParty({
         enabled: authenticated && !isAnonymous,
         players: social.players,
@@ -834,6 +845,15 @@ export default function Lobby({
                         avatarUrl={avatar?.url}
                         avatarScale={avatar?.scale}
                         profilePhoto={profilePhoto}
+                        selfName={lobbyDisplayName(
+                            authenticated && !isAnonymous
+                                ? user?.id
+                                : undefined,
+                            authenticated && !isAnonymous
+                                ? userData?.username
+                                : undefined
+                        )}
+                        speech={speech}
                         emote={emote}
                         flash={flash}
                         flashPreviewOpen={flashOpen}

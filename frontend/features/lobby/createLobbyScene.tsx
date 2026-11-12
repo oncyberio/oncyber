@@ -45,6 +45,7 @@ import { orientTravelViewToHeading } from "./worldTravelCamera";
 import type { LobbyTravelView } from "./lobbyJourneyProtocol";
 import { createTravelPreviewWorld } from "./testing/createTravelPreviewWorld";
 import type { LobbyMotionInput } from "./locomotion";
+import { SpeechBubbles } from "./speechBubbles";
 import {
     WORLD_TRAVEL_HANDOFF_MS,
     easeWorldTravelHandoff,
@@ -112,6 +113,9 @@ export interface LobbySceneBackend {
 const LOOK_HEIGHT = 1.2;
 /** Matches the local arrival (avatarRevealSeconds when landing in the lobby). */
 const REMOTE_ARRIVAL_REVEAL_SECONDS = 0.47;
+// Travellers walk back from the return line at this pace (m/s), at most this long.
+const SETTLE_SPEED = 1.7;
+const SETTLE_MAX_MS = 9000;
 function isEditing(target: EventTarget | null) {
     return (
         target instanceof Element &&
@@ -351,6 +355,44 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 );
                 edgeLight.position.set(-8, 6, -10);
                 scene.add(edgeLight);
+                const speechBubbles = new SpeechBubbles(labels);
+                const speechPoint = new THREE.Vector3();
+                const headOf = (id: string) => {
+                    const visitor = id === "self" ? self : avatars.get(id);
+                    if (
+                        !visitor?.model ||
+                        !visitor.group.visible ||
+                        visitor.group.scale.x === 0
+                    )
+                        return undefined;
+                    const position = visitor.group.position;
+                    return {
+                        x: position.x,
+                        // The foot of the name tag; the line takes its place.
+                        y: position.y + (visitor.model.height || 1.8) + 0.02,
+                        z: position.z,
+                        photo:
+                            visitor === self
+                                ? latest.current.profilePhoto
+                                : visitor.speechPhoto,
+                    };
+                };
+                const projectSpeech = (point: {
+                    x: number;
+                    y: number;
+                    z: number;
+                }) => {
+                    speechPoint.set(point.x, point.y, point.z).project(camera);
+                    return {
+                        x: (speechPoint.x * 0.5 + 0.5) * width,
+                        y: (-speechPoint.y * 0.5 + 0.5) * height,
+                        visible:
+                            speechPoint.z > -1 &&
+                            speechPoint.z < 1 &&
+                            Math.abs(speechPoint.x) < 1.2 &&
+                            Math.abs(speechPoint.y) < 1.2,
+                    };
+                };
                 const nameTags = backend.createNameTags?.(
                     scene as unknown as Parameters<
                         NonNullable<LobbySceneBackend["createNameTags"]>
@@ -449,6 +491,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 type Avatar = Awaited<ReturnType<typeof createAvatar>>;
                 type Visitor = {
                     group: THREE.Group;
+                    /** Profile picture, shown beside what they say. */
+                    speechPhoto?: string;
                     model?: Avatar;
                     /** Arrival build-up for other people, 0..1 while it plays. */
                     reveal?: number;
@@ -885,6 +929,10 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 let admitted: ReturnType<typeof admitCrowd> = [];
                 let previousSource: readonly unknown[];
                 let lastAdmission = -Infinity;
+                // After a trip, the travellers walk from their line back to their
+                // own spots instead of jumping there.
+                let lastFormationIds: Set<string> | null = null;
+                const settling = new Map<string, number>();
                 function drainLoads() {
                     if (
                         disposed ||
@@ -1198,6 +1246,14 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                               travel ? travelYaw : previewWorldYaw
                           )
                         : rawSource;
+                    if (!formation && !group && lastFormationIds)
+                        for (const id of lastFormationIds)
+                            settling.set(id, time + SETTLE_MAX_MS);
+                    lastFormationIds =
+                        formation && !group
+                            ? new Set(formation.partyIds)
+                            : null;
+                    if (formation || group) settling.clear();
                     population = rawSource.length;
                     // Keep cached non-party assets ready for cancellation, including GPU
                     // instances whose batching ignores the parent's visible flag.
@@ -1292,6 +1348,29 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         }
                     }
                     nameTags?.begin();
+                    // Your own tag first, so a full crowd never crowds it out.
+                    if (
+                        self.model &&
+                        budget.maxLabels > 0 &&
+                        latest.current.selfName &&
+                        !travel &&
+                        !group &&
+                        !preview &&
+                        !latest.current.avatarPreview &&
+                        self.group.visible &&
+                        !speechBubbles.speaking("self")
+                    )
+                        nameTags?.show(
+                            "self",
+                            latest.current.selfName,
+                            latest.current.profilePhoto || "",
+                            self.group.position.x,
+                            self.group.position.y +
+                                (self.model.height || 1.8) +
+                                0.12,
+                            self.group.position.z,
+                            true
+                        );
                     let shadowCount = 0;
                     let fullMotionCount = 0;
                     nativeVisible = nativeReady = surrogateAvatars = 0;
@@ -1426,7 +1505,29 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         const previousZ = avatar.group.position.z;
                         const previousHeading = avatar.group.rotation.y;
                         // Network samples are already interpolated at the presentation time.
-                        const blend = sampled ? 1 : 1 - Math.exp(-12 * delta);
+                        let blend = sampled ? 1 : 1 - Math.exp(-12 * delta);
+                        let rotationTarget = Number.isFinite(
+                            participant.rotation
+                        )
+                            ? participant.rotation
+                            : 0;
+                        const settleUntil = settling.get(participant.id);
+                        if (settleUntil !== undefined) {
+                            const dx = participant.x - avatar.group.position.x;
+                            const dz = participant.z - avatar.group.position.z;
+                            const gap = Math.hypot(dx, dz);
+                            if (gap < 0.05 || time > settleUntil)
+                                settling.delete(participant.id);
+                            else {
+                                // Walk there at an easy pace, facing the way.
+                                blend = Math.min(
+                                    1,
+                                    (SETTLE_SPEED * delta) / gap
+                                );
+                                if (gap > 0.3)
+                                    rotationTarget = Math.atan2(-dx, -dz);
+                            }
+                        }
                         avatar.group.position.x +=
                             (participant.x - avatar.group.position.x) * blend;
                         avatar.group.position.y +=
@@ -1441,14 +1542,15 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             blend;
                         avatar.group.position.z +=
                             (participant.z - avatar.group.position.z) * blend;
-                        const rotation = Number.isFinite(participant.rotation)
-                            ? participant.rotation
-                            : 0;
+                        const rotation = rotationTarget;
+                        const turn = settling.has(participant.id)
+                            ? 1 - Math.exp(-8 * delta)
+                            : blend;
                         avatar.group.rotation.y +=
                             Math.atan2(
                                 Math.sin(rotation - avatar.group.rotation.y),
                                 Math.cos(rotation - avatar.group.rotation.y)
-                            ) * blend;
+                            ) * turn;
                         if (
                             avatar.model &&
                             (latest.current.crowdEnabled === false ||
@@ -1487,7 +1589,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 avatar.group.position.z - previousZ
                             ) / Math.max(delta, 0.001);
                         motion.speed =
-                            (Number.isFinite(participant.speed)
+                            (Number.isFinite(participant.speed) &&
+                            !settling.has(participant.id)
                                 ? Math.max(0, participant.speed)
                                 : observedSpeed) / displayScale;
                         motion.restConfirmed = participant.restConfirmed;
@@ -1605,7 +1708,16 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 )
                             );
                         }
-                        if (index < budget.maxLabels && distanceSq < 900)
+                        // A tag waits for its avatar, so names don't float
+                        // over empty floor while a model loads.
+                        avatar.speechPhoto = participant.avatar;
+                        // What they just said stands in for the tag.
+                        if (
+                            avatar.model &&
+                            index < budget.maxLabels &&
+                            distanceSq < 900 &&
+                            !speechBubbles.speaking(participant.id)
+                        )
                             nameTags?.show(
                                 participant.id,
                                 participant.name || "Guest",
@@ -2996,6 +3108,15 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         stencilPortal.setLive(live);
                     }
                     if (!compiling) {
+                        camera.updateMatrixWorld();
+                        speechBubbles.update(
+                            latest.current.travel ||
+                                latest.current.groupFormation
+                                ? undefined
+                                : latest.current.speech,
+                            headOf,
+                            projectSpeech
+                        );
                         try {
                             backend.render(renderer, scene, camera);
                         } catch {
@@ -3236,6 +3357,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     departureFloor.dispose();
                     crowd.dispose();
                     crowdShadows.dispose();
+                    speechBubbles.dispose();
                     labels.replaceChildren();
                     scene.clear();
                     nameTags?.dispose();
