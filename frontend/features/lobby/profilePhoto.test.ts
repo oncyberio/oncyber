@@ -24,7 +24,7 @@ describe("lobby profile photo", () => {
             resolveProfilePhoto(
                 { avatar: "https://a.example/dead.png", ...nft },
                 async (url) => !url.includes("dead"),
-                fetchMedia
+                fetchMedia as any
             )
         ).resolves.toBe("https://b.example/nft.png");
         expect(fetchMedia.mock.calls[0][0]).toContain(
