@@ -1,0 +1,154 @@
+[
+    {
+        "id": "welcome",
+        "doc": {
+            "info": {
+                "room": "@@empty",
+                "headline": "Welcome to Oncyber",
+                "curator": "Demo Curator",
+                "customLink": "welcome"
+            },
+            "artworks": {},
+            "portals": {},
+            "kitbash": {
+                "terrain-1": {
+                    "id": "terrain-1",
+                    "kit": "cyber",
+                    "type": "terrain",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "rotation": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "scale": {
+                        "x": 1000,
+                        "y": 150,
+                        "z": 1000
+                    },
+                    "color": "#bbbbbb",
+                    "noiseEnabled": true,
+                    "definition": 100,
+                    "seed": 4321,
+                    "noiseDomain": 5,
+                    "smoothCenter": 0.5,
+                    "textureOpts": {
+                        "id": "wooden",
+                        "name": "Wooden",
+                        "image": "/textures/hardwood2_diffuse 2.jpeg",
+                        "path": "/textures/hardwood2_diffuse 2.jpeg",
+                        "format": ".jpg"
+                    },
+                    "tiles": 20,
+                    "collision": true,
+                    "mode": "shader",
+                    "shader": "grid",
+                    "griddiv": 180,
+                    "edgeTransition": 5,
+                    "noTileDisplacement": 1,
+                    "smoothAngle": 0.7,
+                    "textureSideOpts": {
+                        "id": "grass",
+                        "name": "Grass",
+                        "image": "https://cyber.mypinata.cloud/ipfs/QmfURY8crGAHcyWh5fi3iZ3QojqL5zHdKa2NbyBf6X18c2?filename=ground_grass_gen_01_mrbton.jpg",
+                        "path": "https://cyber.mypinata.cloud/ipfs/QmfURY8crGAHcyWh5fi3iZ3QojqL5zHdKa2NbyBf6X18c2?filename=ground_grass_gen_01_mrbton.jpg",
+                        "format": ".jpg"
+                    }
+                },
+                "background": {
+                    "id": "background",
+                    "kit": "cyber",
+                    "type": "background",
+                    "backgroundType": "Color",
+                    "colorOpts": {
+                        "color": "#000000"
+                    },
+                    "textureOpts": {
+                        "textureType": "Image",
+                        "skyOpts": {
+                            "turbidity": 10,
+                            "rayleigh": 3,
+                            "mieCoefficient": 0.005,
+                            "mieDirectionalG": 0.7,
+                            "azimuth": 180,
+                            "elevation": 2
+                        },
+                        "imageOpts": {
+                            "image": {
+                                "id": "day2",
+                                "name": "Day2",
+                                "image": "https://cyber.mypinata.cloud/ipfs/QmTFbaXfVrYmT9EsePMAgtq5yadNWJSax8tFQGfeeLfVfq?filename=day2_q7id12.jpg",
+                                "path": "https://cyber.mypinata.cloud/ipfs/QmTFbaXfVrYmT9EsePMAgtq5yadNWJSax8tFQGfeeLfVfq?filename=day2_q7id12.jpg",
+                                "format": ".jpg"
+                            }
+                        }
+                    }
+                },
+                "spawn": {
+                    "id": "spawn",
+                    "kit": "cyber",
+                    "type": "spawn",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "rotation": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                "physics": {
+                    "id": "physics",
+                    "kit": "cyber",
+                    "type": "physics",
+                    "gravity": 15,
+                    "playerSpeed": 70,
+                    "jump": 8,
+                    "quidditch": false
+                },
+                "envmap": {
+                    "id": "envmap",
+                    "kit": "cyber",
+                    "type": "envmap",
+                    "envmapType": "scene",
+                    "sceneOpts": {
+                        "position": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0
+                        }
+                    },
+                    "imageOpts": {
+                        "image": {
+                            "id": "studio",
+                            "name": "Studio",
+                            "image": "https://cyber.mypinata.cloud/ipfs/QmdsiCH8sZqaMhqVCwPWNGn22adEwKMVXGFxFo4panQQoa?filename=studio_nrfv4q.png",
+                            "path": "https://cyber.mypinata.cloud/ipfs/Qmf36ZrHWzbgjvBM1MpvueR6sLaJb1zDTy7tHCjQD1RfKS?filename=studio_lvbl2a.hdr",
+                            "format": ".hdr"
+                        }
+                    }
+                },
+                "camera": {
+                    "id": "camera",
+                    "kit": "cyber",
+                    "type": "camera",
+                    "far": 800
+                }
+            },
+            "owner": "demo-user-1",
+            "editors": ["demo-user-1"],
+            "likes": 0,
+            "number_of_visits": 0,
+            "createdAt": {
+                "_seconds": 1794000000,
+                "_nanoseconds": 0
+            }
+        }
+    }
+]

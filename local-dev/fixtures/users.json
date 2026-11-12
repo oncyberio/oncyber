@@ -1,0 +1,15 @@
+[
+    {
+        "id": "demo-user-1",
+        "doc": {
+            "walletId": "demo-user-1",
+            "username": "demo_curator",
+            "walletCustomName": "Demo Curator",
+            "description": "The demo account from local-dev/fixtures.",
+            "type": "web2",
+            "providerId": "password",
+            "currentExhibitId": "welcome"
+        },
+        "exhibits": ["welcome"]
+    }
+]

@@ -30,11 +30,20 @@ With Corepack available:
 corepack enable
 corepack prepare pnpm@9.12.2 --activate
 pnpm install --frozen-lockfile
-pnpm dev:frontend
+pnpm dev:local
 ```
 
-The frontend runs at [localhost:13000](http://localhost:13000).
-With no keys the landing page and docs run. Everything else uses services you
+`pnpm dev:local` runs the whole site at [localhost:13000](http://localhost:13000)
+with no Firebase account and no keys: the Firebase emulators on your machine,
+a sample space at [/welcome](http://localhost:13000/welcome), and the
+multiplayer lobby (press **Jump In**). It needs Java 21 or newer for the
+emulators (`brew install openjdk@21` on macOS). Sign in with Email and
+`demo@example.com`; the sign-in link prints in the terminal. What you change
+is kept between runs; `pnpm dev:local --reset` starts again from the samples.
+Details: [local-dev/README.md](local-dev/README.md).
+
+To work against real services instead, run `pnpm dev:frontend`. With no keys
+the landing page and docs run. Everything else uses services you
 set up yourself: copy [frontend/.env.example](frontend/.env.example) to
 `frontend/.env.local` and fill in what your work needs. [AGENTS.md](AGENTS.md)
 has a table of which feature needs which service, and

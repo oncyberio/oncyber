@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 
-import { nodeEnv } from "@env";
+import { firebaseEmulators, nodeEnv } from "@env";
 
 // The Firebase app alone. Sign-in (features/auth/providers) needs only this
 // and firebase/auth; utils/firebase.js adds Firestore and the Realtime
@@ -17,3 +17,27 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
+
+/** `host:port` as an emulator connect call wants it. */
+export function splitEmulatorHost(value: string): [string, number] {
+    const at = value.lastIndexOf(":");
+    return [value.slice(0, at), Number(value.slice(at + 1))];
+}
+
+// Each service may be started from more than one module; connect it once.
+const connected = new Set<string>();
+
+/**
+ * Points a Firebase service at its local emulator when `pnpm dev:local` set
+ * one up. Call right after getAuth/getFirestore/getDatabase, before any read.
+ */
+export function connectEmulator(
+    service: keyof typeof firebaseEmulators,
+    connect: (host: string, port: number) => void
+) {
+    const value = firebaseEmulators[service];
+    if (!value || connected.has(service)) return;
+    connected.add(service);
+    const [host, port] = splitEmulatorHost(value);
+    connect(host, port);
+}

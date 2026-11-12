@@ -47,6 +47,13 @@ for `pages/api/_v2/*`, `@3/*` for the engine, ...) are in
 `frontend/tsconfig.json`; Jest mirrors them in `frontend/jest.config.js`.
 Add an alias to both.
 
+## Run it with no services
+
+`pnpm dev:local` starts everything on your machine: Firebase emulators seeded
+with a sample space (`local-dev/fixtures/`), the lobby server and the app. It
+needs Java 21 for the emulators. See [local-dev/README.md](local-dev/README.md).
+Use it for anything that doesn't need real uploads, wallets or NFT lookups.
+
 ## Set up with your own services
 
 You need Node 22 and pnpm 9.12.2 (`corepack enable` picks it up from

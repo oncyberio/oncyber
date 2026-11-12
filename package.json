@@ -7,6 +7,7 @@
     "scripts": {
         "dev:frontend": "pnpm -C frontend dev",
         "dev": "pnpm dev:frontend",
+        "dev:local": "node local-dev/start.mjs",
         "dev:https": "pnpm -C frontend dev:https",
         "format": "pretty-quick --staged",
         "test:hooks": "node --test .husky/format-staged.test.mjs",
