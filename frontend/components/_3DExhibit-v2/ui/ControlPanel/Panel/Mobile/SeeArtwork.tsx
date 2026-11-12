@@ -30,7 +30,7 @@ export default function SeeArtwork({ artwork, assetType }) {
         "Artwork";
 
     const author = formatUser(artwork?.creator);
-    const createdBy = author.username ?? author.id;
+    const createdBy = author.username ?? shortAddress(author.id);
 
     const art = world.current
         ?.getArtworks?.()
@@ -116,6 +116,14 @@ export default function SeeArtwork({ artwork, assetType }) {
     );
 }
 
+/** 0xb734…ca97: an address is a label here, not something to copy. */
+function shortAddress(address?: string) {
+    if (!address) return address;
+    return address.length > 14
+        ? `${address.slice(0, 6)}…${address.slice(-4)}`
+        : address;
+}
+
 /** Header row is 44px tall at a 22px inset (ExperienceShell); sit under it. */
 const HEADER_ROW = 44;
 const HEADER_INSET = 22;
@@ -143,7 +151,8 @@ const Bubble = styled(motion.div)`
         align-items: center;
         gap: 10px;
         min-height: ${lobby.control.touchSize}px;
-        max-width: 100%;
+        /* A label, not a banner: it never spans the screen. */
+        max-width: min(100%, 62vw, 280px);
         margin: 0;
         padding: 6px 14px;
         pointer-events: auto;
