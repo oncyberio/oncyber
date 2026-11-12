@@ -19,11 +19,10 @@ const Bars = styled.span`
     width: 0.6em;
     height: 0.6em;
     margin-left: var(--create-icon-gap, 0.85em);
-    /* Center 0.22em above the baseline: the middle of a 0.5em x-height, less
-       about half a pixel the bars read high by. */
-    vertical-align: -0.08em;
+    /* Center 0.34em above the baseline: a little above the middle of the
+       0.5em x-height, which reads as centered next to the label. */
+    vertical-align: 0.04em;
     color: var(--create-icon-color, var(--oc-accent-create));
-    transition: transform var(--oc-fast);
     &::before,
     &::after {
         content: "";
@@ -35,12 +34,20 @@ const Bars = styled.span`
         margin-top: -0.6px;
         border-radius: 1px;
         background: currentColor;
+        transition: transform var(--oc-standard, 240ms) ease;
+    }
+    &::before {
+        transform: rotate(0deg);
     }
     &::after {
         transform: rotate(90deg);
     }
-    &[data-open="true"] {
-        /* Diagonal bars read smaller than straight ones. */
+    /* Each bar turns on its own into the ×. Diagonal bars read smaller than
+       straight ones, hence the scale. */
+    &[data-open="true"]::before {
         transform: rotate(45deg) scale(1.2);
+    }
+    &[data-open="true"]::after {
+        transform: rotate(135deg) scale(1.2);
     }
 `;
