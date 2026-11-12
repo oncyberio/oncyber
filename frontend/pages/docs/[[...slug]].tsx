@@ -4,6 +4,7 @@ import Link from "next/link";
 import styled from "styled-components";
 import { brandFoundation } from "@styles/brand";
 import Markdown, { headingsOf } from "@features/docs/markdown";
+import CopyPromptButton from "@features/docs/CopyPromptButton";
 import type { DocPage } from "@features/docs/content";
 
 interface Props {
@@ -39,6 +40,7 @@ export default function DocsPage({ doc, nav }: Props) {
                 <Link href="/docs" className="section">
                     Docs
                 </Link>
+                <CopyPromptButton />
                 <a
                     className="source"
                     href="https://github.com/oncyberio/oncyber"
@@ -154,8 +156,37 @@ const Page = styled.div`
         font-size: 14px;
         text-decoration: none;
     }
-    .source {
+    .copy-prompt {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
         margin-left: auto;
+        height: 36px;
+        padding: 0 14px 0 10px;
+        border: 1px solid var(--oc-line);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--oc-ink);
+        font: 500 13px/1 var(--oc-font);
+        cursor: pointer;
+    }
+    .copy-prompt:hover {
+        background: var(--oc-hover);
+    }
+    .copy-prompt:focus-visible {
+        outline: 2px solid var(--oc-ink);
+        outline-offset: 2px;
+    }
+    .copy-prompt .agents {
+        display: flex;
+        gap: 4px;
+    }
+    .copy-prompt img {
+        display: block;
+        width: 18px;
+        height: 18px;
+    }
+    .source {
         font-size: 13px;
         text-decoration: none;
     }
@@ -342,7 +373,11 @@ const Page = styled.div`
     }
     @media (max-width: 760px) {
         .docs-top {
+            gap: 12px;
             padding: 0 16px;
+        }
+        .copy-prompt .agents {
+            display: none;
         }
         .docs-layout {
             display: block;
