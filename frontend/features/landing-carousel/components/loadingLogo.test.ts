@@ -1,8 +1,7 @@
 /** @jest-environment jsdom */
 import {
     CYCLE_MS,
-    FRAME_COUNT,
-    FRAME_MS,
+    LOOP_FRAMES,
     HOLD_MS,
     LOOP_MS,
     MORPH_MS,
@@ -12,19 +11,14 @@ import {
 } from "./loadingLogo";
 
 describe("loadingLogoPose", () => {
-    it("plays the sequence from the rest frame, morphs to the old logo, holds, and comes back", () => {
+    it("plays up to the rest frame, morphs to the old logo, holds, comes back, and rewinds", () => {
         expect(loadingLogoPose(0)).toEqual({
             phase: "loop",
-            frame: REST_FRAME,
+            frame: REST_FRAME - LOOP_FRAMES + 1,
         });
-        expect(loadingLogoPose(FRAME_MS * 10 + 1)).toEqual({
-            phase: "loop",
-            frame: REST_FRAME + 10,
-        });
-        // One whole loop ends back on the rest frame.
         expect(loadingLogoPose(LOOP_MS - 1)).toEqual({
             phase: "loop",
-            frame: (REST_FRAME + FRAME_COUNT - 1) % FRAME_COUNT,
+            frame: REST_FRAME,
         });
         const atMorphStart = loadingLogoPose(LOOP_MS + 0.01);
         expect(atMorphStart.phase).toBe("morph");
@@ -38,21 +32,40 @@ describe("loadingLogoPose", () => {
         expect(loadingLogoPose(LOOP_MS + MORPH_MS + HOLD_MS - 1)).toMatchObject(
             { morph: 0 }
         );
-        const back = loadingLogoPose(CYCLE_MS - 1);
-        expect(back.phase).toBe("morph");
-        if (back.phase === "morph") expect(back.morph).toBeCloseTo(1, 2);
-        expect(CYCLE_MS).toBe(LOOP_MS + MORPH_MS + HOLD_MS + MORPH_MS);
+        const rewindStart = LOOP_MS + MORPH_MS + HOLD_MS + MORPH_MS;
+        const backDone = loadingLogoPose(rewindStart - 1);
+        expect(backDone.phase).toBe("morph");
+        if (backDone.phase === "morph")
+            expect(backDone.morph).toBeCloseTo(1, 2);
+        expect(loadingLogoPose(rewindStart + 0.01)).toEqual({
+            phase: "loop",
+            frame: REST_FRAME,
+        });
+        expect(loadingLogoPose(CYCLE_MS - 1)).toEqual({
+            phase: "loop",
+            frame: REST_FRAME - LOOP_FRAMES + 1,
+        });
+        expect(CYCLE_MS).toBe(LOOP_MS * 2 + MORPH_MS * 2 + HOLD_MS);
     });
 
-    it("never jumps in shape or angle during the morphs", () => {
-        let previous = loadingLogoPose(LOOP_MS);
-        for (let ms = LOOP_MS + 1; ms <= CYCLE_MS; ms += 1) {
+    it("never jumps by more than one frame or a few degrees", () => {
+        let previous = loadingLogoPose(0);
+        for (let ms = 1; ms <= CYCLE_MS * 2; ms += 1) {
             const pose = loadingLogoPose(ms);
-            if (pose.phase === "morph" && previous.phase === "morph") {
+            if (pose.phase === "loop" && previous.phase === "loop") {
+                expect(
+                    Math.abs(pose.frame - previous.frame)
+                ).toBeLessThanOrEqual(1);
+            } else if (pose.phase === "morph" && previous.phase === "morph") {
                 expect(Math.abs(pose.morph - previous.morph)).toBeLessThan(
                     0.01
                 );
                 expect(Math.abs(pose.angle - previous.angle)).toBeLessThan(2);
+            } else if (pose.phase === "loop") {
+                expect(pose.frame).toBe(REST_FRAME);
+            } else {
+                expect(previous).toEqual({ phase: "loop", frame: REST_FRAME });
+                expect(pose.morph).toBeCloseTo(1, 2);
             }
             previous = pose;
         }
