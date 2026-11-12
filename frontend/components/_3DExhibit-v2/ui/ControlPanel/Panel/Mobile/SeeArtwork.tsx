@@ -1,10 +1,11 @@
 import { formatUser } from "@components/modals/ArtworkInfo/D/utils";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import styled, { css } from "styled-components";
 import { usePanel } from "../../context/PanelProvider";
 import { getMime } from "@utils/formatAssets";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { motion } from "framer-motion";
+import { focusArtwork } from "../../ArtworkInfoBulle/focusArtwork";
 
 export default function SeeArtwork({ artwork, assetType }) {
     const { setIsMobileArtworkInfoOpened } = usePanel();
@@ -24,8 +25,12 @@ export default function SeeArtwork({ artwork, assetType }) {
 
     const shouldShowAction = art?.infoAction || assetType === "Nft";
 
+    const [isOpening, setIsOpening] = useState(false);
+
     const toggleArtwork = async () => {
-        if (art.infoAction) {
+        if (isOpening) return;
+
+        if (art?.infoAction) {
             //
             const cont = await Promise.resolve(art.infoAction()).catch((e) => {
                 //
@@ -38,12 +43,13 @@ export default function SeeArtwork({ artwork, assetType }) {
         }
 
         if (assetType !== "Nft") return;
+
+        // Move to the artwork first, then open its details on top of it.
+        setIsOpening(true);
+        await focusArtwork(world.current, art);
+        setIsOpening(false);
         setIsMobileArtworkInfoOpened(true);
     };
-
-    useEffect(() => {
-        if (assetType !== "Nft") return;
-    }, [assetType]);
 
     const assetMimeType = getMime(artwork);
 
@@ -73,6 +79,10 @@ export default function SeeArtwork({ artwork, assetType }) {
                 animate={{ opacity: 1 }}
                 onClick={toggleArtwork}
                 className="see-artwork-container"
+                role={shouldShowAction ? "button" : undefined}
+                aria-label={
+                    shouldShowAction ? `Artwork details: ${title}` : undefined
+                }
             >
                 <span className="title ellipsis">{title}</span>
                 {createdBy && (

@@ -462,6 +462,21 @@ export default function PanelProvider({
         };
     }, []);
 
+    // Small-screen artwork details open only for the artwork whose bubble
+    // was tapped. Looking at another artwork closes them, so they never
+    // open by themselves for the next one.
+    const lastArtworkIdRef = useRef(null);
+    useEffect(() => {
+        if (artwork?.id == null) return;
+        if (
+            lastArtworkIdRef.current != null &&
+            lastArtworkIdRef.current !== artwork.id
+        ) {
+            setIsMobileArtworkInfoOpened(false);
+        }
+        lastArtworkIdRef.current = artwork.id;
+    }, [artwork?.id]);
+
     useEffect(() => {
         if (selectedMode === Mode.VIRTUAL_TOUR && artwork) {
             handleToggleTip({ type: "artwork" });
