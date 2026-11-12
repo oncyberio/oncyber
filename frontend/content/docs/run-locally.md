@@ -11,13 +11,42 @@ You need Node.js 22 and pnpm. Then:
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
+pnpm dev:local
+```
+
+Open [localhost:13000](http://localhost:13000). This starts everything on your
+machine with sample data and no accounts or keys: a welcome space at
+[/welcome](http://localhost:13000/welcome), the shared lobby, and every
+template in Create. The first run takes a few minutes while it downloads what
+it needs.
+
+To sign in, pick Email and enter `demo@example.com`. The sign-in link appears
+in your terminal.
+
+:::details What `pnpm dev:local` runs
+
+-   Local copies of the Firebase services (sign-in, database), seeded from
+    `local-dev/fixtures/`. They need Java 21; if you don't have it, the first
+    run downloads a private copy into `local-dev/.java/`.
+-   The lobby server from `multiplayer/`, installed on first run.
+-   The app, pointed at both.
+
+Your changes are kept between runs. `pnpm dev:local --reset` starts again from
+the sample data, and `--no-lobby` skips the lobby. The data browser is at
+[127.0.0.1:4000](http://127.0.0.1:4000). More in `local-dev/README.md`.
+
+:::
+
+:::details Use your own services instead
+
+```sh
 cp frontend/.env.example frontend/.env.local
 pnpm dev:frontend
 ```
 
-Open [localhost:13000](http://localhost:13000). The landing page and these
-docs work straight away. Sign-in, spaces and uploads need services of your own,
-listed below.
+Uploads, wallets and NFT lookups need real services, listed below.
+
+:::
 
 :::details Which services each part needs
 
