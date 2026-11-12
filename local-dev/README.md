@@ -23,7 +23,7 @@ there (an RPC URL, Pinata, ...) still apply.
 -   Node 22 and pnpm, as for the rest of the repository.
 -   Java 21 or newer, which the Firestore and Database emulators run on. If
     none is installed (or only an older one), the first run downloads a
-    private copy of Eclipse Temurin 21 (about 50 MB) into `local-dev/.java/`
+    private copy of Eclipse Temurin 21 (a 50 MB download, 150 MB unpacked) into `local-dev/.java/`
     and uses it from there; nothing is installed system-wide.
 -   The first run downloads the Firebase CLI (pinned in `start.mjs`) and the
     emulators, about 150 MB.
