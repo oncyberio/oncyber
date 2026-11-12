@@ -1,6 +1,7 @@
 import VrmApi from "@api/vrm/_api";
 
 import VRMS from "./vrms.json"
+import { defaultAvatarId } from "@utils/defaultAvatar";
 
 /*
 * Get avatar metadata
@@ -17,7 +18,7 @@ export async function getAvatarMetadata({
 
     // default vrms
     if (!vrmId) {
-        return VRMS[userData?.avatarContractAddress ? "check" : "square"];
+        return VRMS[defaultAvatarId(userData)];
     }
 
     switch (vrmId) {
@@ -53,7 +54,7 @@ export async function getAvatarMetadata({
 
         }
 
-        avatar = VRMS[userData?.avatarContractAddress ? "check" : "square"];
+        avatar = VRMS[defaultAvatarId(userData)];
     }
 
     return avatar;
