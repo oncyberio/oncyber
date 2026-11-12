@@ -1,4 +1,8 @@
-const KEY = "oncyber:public-destination-catalog:v1";
+// Per Firebase project, so a local emulator run (`pnpm dev:local`) never shows
+// a catalog cached from another project on the same localhost origin.
+const KEY = `oncyber:public-destination-catalog:v1:${
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ""
+}`;
 const FRESH_FOR = 24 * 60 * 60 * 1000;
 const KEEP_FOR = 7 * FRESH_FOR;
 const RETRY_AFTER = 30 * 1000;
