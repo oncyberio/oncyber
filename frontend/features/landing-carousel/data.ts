@@ -155,11 +155,11 @@ export function toLandingCards(exhibits: any[]): LandingCard[] {
     });
 }
 
-export async function fetchLandingFeed(
+async function fetchFeedPage(
     category: FeedCategory,
-    cursor = "",
-    signal?: AbortSignal,
-    origin = ""
+    cursor: string,
+    signal: AbortSignal | undefined,
+    origin: string
 ): Promise<LandingFeed> {
     const params = new URLSearchParams({
         type: "FETCH_ALL_EXHIBITS",
@@ -169,6 +169,41 @@ export async function fetchLandingFeed(
     const response = await fetch(`${origin}/api/exhibit?${params}`, { signal });
     if (!response.ok) throw new Error("The world feed is unavailable.");
     return landingFeedFromResponse(await response.json(), category, cursor);
+}
+
+/**
+ * The staff feed's cursor once its picks are all loaded: the feed carries on
+ * with the most popular worlds, whose own cursor follows the prefix.
+ */
+export const POPULAR_AFTER_STAFF = "popular:";
+
+/** Label shown above the first popular world after the staff picks. */
+export const POPULAR_SECTION_LABEL = "Most popular";
+
+/**
+ * One page of the landing feed. Staff picks are a single page; after them
+ * the staff feed continues with the most popular worlds, marked with
+ * `section: "popular"` (staff picks among them are left to the caller).
+ */
+export async function fetchLandingFeed(
+    category: FeedCategory,
+    cursor = "",
+    signal?: AbortSignal,
+    origin = ""
+): Promise<LandingFeed> {
+    if (category !== "staff" || !cursor.startsWith(POPULAR_AFTER_STAFF))
+        return fetchFeedPage(category, cursor, signal, origin);
+    const feed = await fetchFeedPage(
+        "most-visited",
+        cursor.slice(POPULAR_AFTER_STAFF.length),
+        signal,
+        origin
+    );
+    return {
+        cards: feed.cards.map((card) => ({ ...card, section: "popular" })),
+        cursor: feed.cursor && `${POPULAR_AFTER_STAFF}${feed.cursor}`,
+        hasMore: feed.hasMore,
+    };
 }
 
 /**
@@ -193,8 +228,12 @@ export function landingFeedFromResponse(
     return {
         // Missing previews use a local reference-mark cover in both renderers.
         cards: toLandingCards(exhibits),
-        cursor: exhibits[exhibits.length - 1]?.id || "",
-        hasMore: category !== "staff" && exhibits.length >= pageSize,
+        // The staff picks are followed by the most popular worlds.
+        cursor:
+            category === "staff"
+                ? POPULAR_AFTER_STAFF
+                : exhibits[exhibits.length - 1]?.id || "",
+        hasMore: category === "staff" || exhibits.length >= pageSize,
     };
 }
 

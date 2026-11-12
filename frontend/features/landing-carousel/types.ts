@@ -23,6 +23,11 @@ export interface LandingCard {
     templateStatus?: "free" | "owned" | "uncollected" | "checking" | "scan";
     /** This template is being turned into a space; the card shows its progress. */
     opening?: boolean;
+    /**
+     * Set on the popular worlds that follow the staff picks in the staff
+     * feed; the first one carries the section's label.
+     */
+    section?: "popular";
 }
 
 export interface DiscoveryFilters {
