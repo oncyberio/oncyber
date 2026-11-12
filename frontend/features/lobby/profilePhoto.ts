@@ -31,7 +31,7 @@ const cache = new Map<string, Promise<string>>();
 export function resolveProfilePhoto(
     profile: ProfileFields | undefined,
     check = loads,
-    fetchMedia: typeof fetch = (...args) => fetch(...args)
+    fetchMedia: typeof fetch = (input, init) => fetch(input, init)
 ): Promise<string> {
     const saved =
         typeof profile?.avatar === "string" &&
