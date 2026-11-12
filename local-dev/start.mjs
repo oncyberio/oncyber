@@ -226,6 +226,10 @@ async function main() {
         SECRET_JWT_KEY:
             process.env.SECRET_JWT_KEY ||
             "local-dev-session-signing-key-not-for-production",
+        // Signs signed-out drafts (Create a template without an account).
+        ANON_EDIT_SECRET:
+            process.env.ANON_EDIT_SECRET ||
+            "local-dev-anon-draft-signing-key-not-for-production",
         LOBBY_IDENTITY_SECRET: lobbySecret,
         NEXT_PUBLIC_LOBBY_REGIONS: JSON.stringify([
             {
