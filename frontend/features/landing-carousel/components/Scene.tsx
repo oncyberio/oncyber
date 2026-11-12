@@ -17,6 +17,7 @@ import { LandingCard } from "../types";
 import { CardPool } from "../three/pool";
 import {
     createGridLayout,
+    cellsInColumns,
     cylinderMetrics,
     cellDimensions,
     projectPoint,
@@ -32,6 +33,7 @@ import useCardTransition from "../hooks/useCardTransition";
 import { cardOpacity } from "../transitions";
 import { createColumnScroller } from "../columnScroller";
 import { isSetupCard } from "../creationSteps";
+import { POPULAR_SECTION_LABEL } from "../data";
 import { CreateIcon } from "./CreateIcon";
 import {
     useActivitySignal,
@@ -110,6 +112,7 @@ export default function Scene({
     const stageRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
+    const sectionLabelRef = useRef<HTMLDivElement>(null);
     const controlsRef = useRef({
         next: () => {},
         previous: () => {},
@@ -338,7 +341,12 @@ export default function Scene({
                     now,
                     Math.min(
                         columns * visibleRows - 1,
-                        Math.max(0, index - firstColumn.current * visibleRows)
+                        Math.max(
+                            0,
+                            (layout.cells[index].column - firstColumn.current) *
+                                visibleRows +
+                                layout.cells[index].row
+                        )
                     )
                 );
             const centerColumn = progress + (columns - 1) / 2;
@@ -350,10 +358,7 @@ export default function Scene({
                 layout.columnCount,
                 Math.ceil(centerColumn + overscan) + 1
             );
-            const nearbyCells = layout.cells.slice(
-                renderFrom * visibleRows,
-                renderTo * visibleRows
-            );
+            const nearbyCells = cellsInColumns(layout, renderFrom, renderTo);
             pool?.update(
                 cards,
                 nearbyCells,
@@ -440,13 +445,16 @@ export default function Scene({
                     .get(selectedId.current)
                     ?.focus({ preventScroll: true });
             }
+            placeSectionLabel(progress);
             renderer?.render(scene, camera);
             if (transition.motion.current.phase !== "idle") invalidate();
-            const first = firstColumn.current * visibleRows + 1;
-            const last = Math.min(
-                first + columns * visibleRows - 1,
-                cards.length
+            const shown = cellsInColumns(
+                layout,
+                firstColumn.current,
+                firstColumn.current + columns
             );
+            const first = (shown[0]?.index ?? 0) + 1;
+            const last = (shown[shown.length - 1]?.index ?? -1) + 1;
             const atStart = progress < 0.01;
             const atEnd = progress >= layout.maxScrollColumn - 0.01;
             const rangeKey = `${first}:${last}:${atStart}:${atEnd}:${renderFrom}:${renderTo}`;
@@ -463,6 +471,38 @@ export default function Scene({
                 });
             }
         }
+        function placeSectionLabel(progress: number) {
+            // The label rides above the first popular card's top-left corner.
+            const label = sectionLabelRef.current;
+            if (!label) return;
+            if (layout.sectionColumn < 0) {
+                label.style.visibility = "hidden";
+                return;
+            }
+            const dims = cellDimensions(
+                { index: -1, row: 0, column: layout.sectionColumn },
+                metrics,
+                progress
+            );
+            const corner = projectPoint(
+                dims.x - dims.width / 2,
+                dims.y + dims.height / 2,
+                metrics
+            );
+            // Stay inside the frame: the label is not clipped by the viewport.
+            const visible =
+                corner.x >= 0 && corner.x + label.offsetWidth <= metrics.width;
+            label.style.visibility = visible ? "visible" : "hidden";
+            if (!visible) return;
+            const dpr = window.devicePixelRatio || 1;
+            const snap = (value: number) => Math.round(value * dpr) / dpr;
+            label.style.transform = `translate3d(${snap(corner.x)}px,${snap(
+                corner.y
+            )}px,0) translateY(-100%)`;
+            label.style.opacity = String(
+                columnOpacity(layout.sectionColumn, progress, columns)
+            );
+        }
         function updateSelection(followFocus = true) {
             // Hold the keyboard target while its column smoothly comes into view.
             const index =
@@ -472,7 +512,8 @@ export default function Scene({
                     columns,
                     visibleRows,
                     cards.length,
-                    selectionSlots.current[mode]
+                    selectionSlots.current[mode],
+                    layout.slots
                 );
             if (keyboardSelection !== null) {
                 const cell = layout.cells[index];
@@ -682,7 +723,8 @@ export default function Scene({
                     requestedColumn ?? firstColumn.current,
                     columns,
                     visibleRows,
-                    cards.length
+                    cards.length,
+                    layout.slots
                 );
                 keyboardSelection = next.index;
                 updateSelection();
@@ -887,9 +929,10 @@ export default function Scene({
                             )}
                             {(creating || formGrid
                                 ? layout.cells
-                                : layout.cells.slice(
-                                      range.renderFrom * visibleRows,
-                                      range.renderTo * visibleRows
+                                : cellsInColumns(
+                                      layout,
+                                      range.renderFrom,
+                                      range.renderTo
                                   )
                             ).map((cell) => {
                                 const card = cards[cell.index];
@@ -1018,6 +1061,11 @@ export default function Scene({
                         </Stage>
                     </ScrollContent>
                 </Viewport>
+                {!creating && !formGrid && layout.sectionColumn >= 0 && (
+                    <SectionLabel ref={sectionLabelRef} aria-hidden="true">
+                        {POPULAR_SECTION_LABEL}
+                    </SectionLabel>
+                )}
                 <EdgeFade aria-hidden="true" />
                 <EdgeFade $right aria-hidden="true" />
             </ViewportFrame>
@@ -1224,6 +1272,20 @@ const Stage = styled.div`
         height: 100%;
         display: block;
     }
+`;
+const SectionLabel = styled.div`
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    visibility: hidden;
+    pointer-events: none;
+    padding-bottom: 8px;
+    white-space: nowrap;
+    font-family: var(--oc-mono);
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--oc-secondary);
 `;
 const EdgeFade = styled.div<{ $right?: boolean }>`
     position: absolute;
