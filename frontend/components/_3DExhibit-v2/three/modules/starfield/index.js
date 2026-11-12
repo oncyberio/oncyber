@@ -320,7 +320,7 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 	hideLogo(){
 
-		this.logo?.fadeOut( 600 )
+		this.logo?.fadeOut( 300 )
 
 		this.logo = null
 	}
@@ -344,7 +344,7 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 				transitionValue : 0,
 
-				duration : 1.9,
+				duration : 0.8,
 
 				ease: 'power1.easeOut',
 
@@ -417,7 +417,7 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 		// gone well before the space has finished appearing.
 		const t = this.transitionValue
 
-		const brightness = this.fadingOut ? t * t : Math.min( 1, t * 2.5 )
+		const brightness = this.fadingOut ? t * t * t : Math.min( 1, t * 2.5 )
 
 		const positions = this.starMesh.geometry.attributes.position
 
