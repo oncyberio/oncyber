@@ -1,4 +1,5 @@
 import { readTravelAvatar, rememberTravelAvatar } from "@utils/travelAvatar";
+import { defaultAvatarId } from "@utils/defaultAvatar";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import VrmApi from "@api/vrm/_api";
 import { NOTNYC_getUser } from "@utils/partnerships/notnyc";
@@ -509,12 +510,11 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
                         return item.id === "paladinpunks";
                     }
 
+                    // Nothing picked: Summer when signed out, the pfp
+                    // avatar when signed in (see utils/defaultAvatar).
                     return (
                         item?.id ==
-                        (!userData?.avatarContractAddress ||
-                        userData?.avatarContractAddress === "0xnotanaddress"
-                            ? "square"
-                            : "check")
+                        (isAnon ? "sunshine" : defaultAvatarId(userData))
                     );
                 });
             }
