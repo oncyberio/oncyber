@@ -40,6 +40,7 @@ import {
     EMOTES,
     POSSIBLE_ACTIONS,
 } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
+import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import {
     applyNativeAvatarMaterials,
@@ -202,14 +203,9 @@ export async function resolveLobbyAvatar(
         return { id: directUrl, name: "Avatar", url: directUrl, scale };
 
     let id = identity?.settings?.vrm;
-    if (!id || id === "square" || id === "check") {
-        id =
-            identity?.avatarContractAddress &&
-            identity.avatarContractAddress !== "0xnotanaddress"
-                ? "check"
-                : "square";
-        if (id === "square") return { ...fallback, scale };
-    }
+    if (!id) id = defaultAvatarId(identity);
+    else if (id === "square" || id === "check") id = pfpAvatarId(identity);
+    if (id === "square") return { ...fallback, scale };
     const builtin = Object.values(catalogue).find((avatar) => avatar.id === id);
     if (builtin)
         return { id: builtin.id, name: builtin.name, url: builtin.url, scale };
@@ -275,7 +271,9 @@ function getEmoteClips() {
 // Legacy emote timeScale controls blend duration, not clip playback speed.
 function playbackSpeed(name: string) {
     if (EMOTES.some((emote) => emote.name === name)) return 1;
-    return POSSIBLE_ACTIONS.find((action) => action.name === name)?.timeScale || 1;
+    return (
+        POSSIBLE_ACTIONS.find((action) => action.name === name)?.timeScale || 1
+    );
 }
 
 function animationName(value: string | number) {
@@ -595,9 +593,7 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
             returningEmote = undefined;
             for (const [key, other] of actions) {
                 other.stopFading().stopWarping();
-                other.setEffectiveTimeScale(
-                    playbackSpeed(key)
-                );
+                other.setEffectiveTimeScale(playbackSpeed(key));
                 if (other !== current) other.stop();
             }
             current?.setEffectiveWeight(1);

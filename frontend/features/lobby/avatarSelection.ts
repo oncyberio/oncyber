@@ -1,5 +1,6 @@
 import { readTravelAvatar } from "@utils/travelAvatar";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
+import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
 
 export interface LobbyAvatarIdentity {
     settings?: { vrm?: string; default_vrm_scale?: number };
@@ -41,14 +42,9 @@ export async function resolveLobbyAvatar(
         return { id: directUrl, name: "Avatar", url: directUrl, scale };
 
     let id = identity?.settings?.vrm;
-    if (!id || id === "square" || id === "check") {
-        id =
-            identity?.avatarContractAddress &&
-            identity.avatarContractAddress !== "0xnotanaddress"
-                ? "check"
-                : "square";
-        if (id === "square") return { ...fallback, scale };
-    }
+    if (!id) id = defaultAvatarId(identity);
+    else if (id === "square" || id === "check") id = pfpAvatarId(identity);
+    if (id === "square") return { ...fallback, scale };
     const builtin = Object.values(catalogue).find((avatar) => avatar.id === id);
     if (builtin)
         return { id: builtin.id, name: builtin.name, url: builtin.url, scale };
