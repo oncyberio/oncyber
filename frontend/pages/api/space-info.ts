@@ -2,7 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getExhibitById } from "./exhibit";
 import { getUserProfilesByWalletIds } from "@utils/firestore/userProfiles";
 import { readStaffPickIds, staffPickCurator } from "@utils/staffPicks";
-import { buildSpaceInfo } from "@features/space-info/spaceInfo";
+import {
+    buildSpaceInfo,
+    buildSpaceLocation,
+} from "@features/space-info/spaceInfo";
 import { getDestinationBySlug } from "@utils/firestore/destinations";
 
 /** Public facts about one space for the title sidebar, plus staff pick state. */
@@ -62,6 +65,15 @@ export default async function handler(
                     : "",
             };
         };
+        const location = buildSpaceLocation(destination, info.room);
+        if (location?.author?.address)
+            location.author = {
+                ...location.author,
+                ...named(location.author.address, location.author.name),
+                href:
+                    named(location.author.address, "").href ||
+                    location.author.href,
+            };
         return res.json({
             ...info,
             deployer: {
@@ -86,18 +98,7 @@ export default async function handler(
                 ...person,
                 ...named(person.address, person.name),
             })),
-            location: destination
-                ? {
-                      name: String(
-                          (destination as any).name ||
-                              (destination as any).slug ||
-                              info.room
-                      ),
-                      href: `/destinations/${encodeURIComponent(
-                          (destination as any).slug || info.room
-                      )}`,
-                  }
-                : undefined,
+            location,
             staffPick: picks.includes(id),
             staffPickCount: picks.length,
             canCurate: !!curator,

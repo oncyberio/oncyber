@@ -14,6 +14,7 @@ import ProfileView from "./ProfileView";
 
 type View =
     | { kind: "guestbook" }
+    | { kind: "location" }
     | { kind: "profile"; id: string; name: string; avatar?: string };
 
 const Guestbook = dynamic(
@@ -199,6 +200,8 @@ export default function SpaceInfoSidebar({
                     <h2 id={`${id}-title`}>
                         {view?.kind === "profile"
                             ? view.name
+                            : view?.kind === "location"
+                            ? info.location?.name
                             : guestbook
                             ? "Guestbook"
                             : info.title}
@@ -226,6 +229,39 @@ export default function SpaceInfoSidebar({
                                 />
                             )}
                         />
+                    </div>
+                ) : view?.kind === "location" && info.location ? (
+                    <div className="info-scroll">
+                        {!!info.location.imageUrls?.length && (
+                            <FallbackImage
+                                className="info-cover"
+                                urls={info.location.imageUrls}
+                            />
+                        )}
+                        {info.location.description && (
+                            <p className="info-description">
+                                {info.location.description}
+                            </p>
+                        )}
+                        {info.location.author && (
+                            <section className="info-section">
+                                <h3>Made by</h3>
+                                <Person
+                                    name={info.location.author.name}
+                                    avatar={info.location.author.avatar}
+                                    href={info.location.author.href}
+                                    onOpen={
+                                        info.location.author.address ||
+                                        info.location.author.href
+                                            ? () =>
+                                                  openProfile(
+                                                      info.location.author
+                                                  )
+                                            : undefined
+                                    }
+                                />
+                            </section>
+                        )}
                     </div>
                 ) : guestbook && spaceId ? (
                     <div className="info-guestbook">
@@ -273,13 +309,16 @@ export default function SpaceInfoSidebar({
                         {info.location && (
                             <section className="info-section">
                                 <h3>Location</h3>
-                                <Link
+                                <button
+                                    type="button"
                                     className="info-link"
-                                    href={info.location.href}
+                                    onClick={() =>
+                                        openView({ kind: "location" })
+                                    }
                                 >
                                     {info.location.name}
                                     <Icon name="forward" size={14} />
-                                </Link>
+                                </button>
                             </section>
                         )}
                         {!!info.collaborators?.length && (
@@ -864,8 +903,13 @@ const Surface = styled.dialog`
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        padding: 0;
+        border: 0;
+        background: none;
+        font: inherit;
         font-size: 14px;
         color: var(--oc-ink);
+        cursor: pointer;
     }
     .info-link:hover {
         text-decoration: underline;
