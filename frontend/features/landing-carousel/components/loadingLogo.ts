@@ -3,7 +3,7 @@ import { scrollLogoPose } from "./cyberloopMorph";
 // The header's scroll morph, played on its own while a space loads: the new
 // logo spins, turns into the old one, holds, and turns back.
 export const SPIN_MS = 2000;
-export const SPIN_TURNS = 3;
+export const SPIN_TURNS = 2;
 export const MORPH_MS = 700;
 export const HOLD_MS = 1500;
 export const CYCLE_MS = SPIN_MS + MORPH_MS + HOLD_MS + MORPH_MS;
