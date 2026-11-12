@@ -477,7 +477,8 @@ export default function Lobby({
     // so rows don't shuffle under the pointer as people walk.
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
-        const me = social.getPredictedPose();
+        const me = social.getPredictedPose?.() ||
+            social.players.find((player) => player.isLocal) || { x: 0, z: 0 };
         const spots = new Map<string, { x: number; z: number }>();
         for (const player of social.players) spots.set(player.id, player);
         for (const person of recording?.crowd.sample(performance.now()) || [])
