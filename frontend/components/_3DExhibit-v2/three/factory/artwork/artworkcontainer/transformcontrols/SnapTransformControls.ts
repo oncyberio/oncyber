@@ -1306,7 +1306,6 @@ const lineMaterial = new LineMaterial({
     opacity: handleStyle.normal.border,
     fog: false,
     toneMapped: false,
-    lineWidth: lineWidth
 });
 
 const HANDLE_RENDER_ORDER = 999999;
