@@ -50,8 +50,9 @@ Add an alias to both.
 ## Run it with no services
 
 `pnpm dev:local` starts everything on your machine: Firebase emulators seeded
-with a sample space (`local-dev/fixtures/`), the lobby server and the app. It
-needs Java 21 for the emulators. See [local-dev/README.md](local-dev/README.md).
+with a sample space (`local-dev/fixtures/`), the lobby server and the app. The
+emulators run on Java 21; when it's missing, the first run downloads a
+private copy into `local-dev/.java/`. See [local-dev/README.md](local-dev/README.md).
 Use it for anything that doesn't need real uploads, wallets or NFT lookups.
 
 ## Set up with your own services

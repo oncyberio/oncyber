@@ -21,9 +21,10 @@ there (an RPC URL, Pinata, ...) still apply.
 ## Requirements
 
 -   Node 22 and pnpm, as for the rest of the repository.
--   Java 21 or newer, which the Firestore and Database emulators run on:
-    `brew install openjdk@21` (macOS), `sudo apt install openjdk-21-jre-headless`
-    (Debian, Ubuntu) or https://adoptium.net.
+-   Java 21 or newer, which the Firestore and Database emulators run on. If
+    none is installed (or only an older one), the first run downloads a
+    private copy of Eclipse Temurin 21 (about 50 MB) into `local-dev/.java/`
+    and uses it from there; nothing is installed system-wide.
 -   The first run downloads the Firebase CLI (pinned in `start.mjs`) and the
     emulators, about 150 MB.
 
