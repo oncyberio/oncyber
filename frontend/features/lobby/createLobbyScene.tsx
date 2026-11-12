@@ -1348,6 +1348,29 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         }
                     }
                     nameTags?.begin();
+                    // Your own tag first, so a full crowd never crowds it out.
+                    if (
+                        self.model &&
+                        budget.maxLabels > 0 &&
+                        latest.current.selfName &&
+                        !travel &&
+                        !group &&
+                        !preview &&
+                        !latest.current.avatarPreview &&
+                        self.group.visible &&
+                        !speechBubbles.speaking("self")
+                    )
+                        nameTags?.show(
+                            "self",
+                            latest.current.selfName,
+                            latest.current.profilePhoto || "",
+                            self.group.position.x,
+                            self.group.position.y +
+                                (self.model.height || 1.8) +
+                                0.12,
+                            self.group.position.z,
+                            true
+                        );
                     let shadowCount = 0;
                     let fullMotionCount = 0;
                     nativeVisible = nativeReady = surrogateAvatars = 0;
@@ -1707,29 +1730,6 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 avatar.group.position.z
                             );
                     }
-                    // Your own tag, like everyone else's.
-                    if (
-                        self.model &&
-                        budget.maxLabels > 0 &&
-                        latest.current.selfName &&
-                        !travel &&
-                        !group &&
-                        !preview &&
-                        !latest.current.avatarPreview &&
-                        self.group.visible &&
-                        !speechBubbles.speaking("self")
-                    )
-                        nameTags?.show(
-                            "self",
-                            latest.current.selfName,
-                            latest.current.profilePhoto || "",
-                            self.group.position.x,
-                            self.group.position.y +
-                                (self.model.height || 1.8) +
-                                0.12,
-                            self.group.position.z,
-                            true
-                        );
                     nameTags?.end(camera);
                     crowdShadows.count = shadowCount;
                     crowdShadows.instanceMatrix.needsUpdate = shadowCount > 0;
