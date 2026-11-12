@@ -34,6 +34,7 @@ import useDiscovery from "./hooks/useDiscovery";
 import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
 import { pendingLobbyReturn } from "@utils/lobbyReturnTransition";
 import useDestinationPreviews from "./hooks/useDestinationPreviews";
+import { CreateIcon } from "./components/CreateIcon";
 import {
     LandingActivityProvider,
     useActivitySignal,
@@ -360,7 +361,10 @@ function LandingContent(props: LandingPageProps) {
             aria-pressed={creating}
             title={creating ? "Back to exploring worlds" : "Create a gallery"}
         >
-            create <span>{creating ? "×" : "+"}</span>
+            <span>
+                create
+                <CreateIcon open={creating} />
+            </span>
         </CreateControl>
     );
     const gridControls = (
@@ -679,13 +683,9 @@ const CreateControl = styled.button`
     &[aria-pressed="true"] {
         color: var(--oc-ink);
     }
-    span {
-        color: var(--oc-accent-create);
-        font-size: 19px;
-    }
     @media (max-width: 700px) {
-        gap: 6px;
         font-size: 12px;
+        --create-icon-gap: 6px;
     }
 `;
 

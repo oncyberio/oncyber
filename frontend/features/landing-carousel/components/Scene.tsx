@@ -32,6 +32,7 @@ import useCardTransition from "../hooks/useCardTransition";
 import { cardOpacity } from "../transitions";
 import { createColumnScroller } from "../columnScroller";
 import { isSetupCard } from "../creationSteps";
+import { CreateIcon } from "./CreateIcon";
 import {
     useActivitySignal,
     useLandingActivity,
@@ -1107,7 +1108,10 @@ export default function Scene({
                         }
                         className="create-link"
                     >
-                        {createLabel} <span>{creating ? "×" : "+"}</span>
+                        <span>
+                            {createLabel}
+                            <CreateIcon open={creating} />
+                        </span>
                     </button>
                 )}
                 <div className="browse-controls">
@@ -1314,9 +1318,8 @@ const GalleryFooter = styled.div`
     .create-link[aria-pressed="true"] {
         color: var(--oc-accent);
     }
-    .create-link span {
-        color: var(--oc-accent);
-        font-size: 19px;
+    .create-link {
+        --create-icon-color: var(--oc-accent);
     }
     .browse-controls,
     .arrows,
@@ -1403,7 +1406,7 @@ const GalleryFooter = styled.div`
         gap: 12px;
         .create-link {
             font-size: 12px;
-            gap: 5px;
+            --create-icon-gap: 5px;
         }
         .browse-controls {
             gap: 2px;
