@@ -38,7 +38,7 @@ import { PortalPlaceholderFactory } from '@3portal/index'
 import SpaceFactoryAbstract from '@3factory/abstract/spacefactory.js'
 
 import BackgroundFactory from '@3factory/background'
-import { paintSkyBackground } from '@features/paintedSky/paintedSky'
+import { applyWorldMod } from '@features/worldMods'
 
 import Reflector from '@3factory/reflector'
 
@@ -176,9 +176,8 @@ class FutureSpaceFactory extends SpaceFactoryAbstract {
 
 		        let backgroundMesh = BackgroundFactory.get( background )
 
-		        // A sky repainted as brush strokes replaces the sphere once
-		        // ready; until then, or if it fails, the image stays.
-		        paintSkyBackground( backgroundMesh, opts.roomParameters?.slug, { mobile: IS_MOBILE } )
+		        // This world's own code, if it has any (features/worldMods)
+		        applyWorldMod( opts.roomParameters?.slug, { background: backgroundMesh, mobile: IS_MOBILE } )
 
 		        const scene = new Space({ scene: kitbash.scene, background: backgroundMesh })
 

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 
 /**
- * Local check for the painted sky (features/paintedSky): the Starry Night
- * dome as the engine draws it today (the sharp image sphere) and repainted
- * as brush strokes, through the same hook the kitbash kit calls, with the
- * same camera as a visit (fov 65 at the spawn point).
+ * Local check for the painted sky (features/worldMods/paintedSky): the
+ * Starry Night dome as the engine draws it today (the sharp image sphere)
+ * and repainted as brush strokes, through the same function its world mod
+ * calls, with the same camera as a visit (fov 65 at the spawn point).
  *
  * ?view=after | before                 strokes (default) or the image
  * ?yaw=0&pitch=0.25&fov=65            where the camera looks (rotation YXZ)
@@ -53,12 +53,12 @@ export default function PaintedSkyCheck() {
                 "@components/_3DExhibit-v2/three/factory/background"
             );
             const { paintSkyBackground, loadStrokeSet, createStrokeMesh } =
-                await import("@features/paintedSky/paintedSky");
+                await import("@features/worldMods/paintedSky/paintedSky");
             const { STARRY_NIGHT_STROKES } = await import(
-                "@features/paintedSky/strokeFile"
+                "@features/worldMods/worlds/thestarrynight_skydome/strokeFile"
             );
             const { strokeInstances, strokesPerLayer } = await import(
-                "@features/paintedSky/strokeFormat"
+                "@features/worldMods/paintedSky/strokeFormat"
             );
             if (disposed) return;
             const renderer = new THREE.WebGPURenderer({
@@ -150,7 +150,7 @@ export default function PaintedSkyCheck() {
                 const started = performance.now();
                 painted = await paintSkyBackground(
                     background,
-                    "TheStarryNight_Skydome",
+                    STARRY_NIGHT_STROKES.url,
                     { mobile: query.mobile === "1" }
                 );
                 paintMs = performance.now() - started;
