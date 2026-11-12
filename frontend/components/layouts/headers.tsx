@@ -75,24 +75,14 @@ export function fontPreloadsFor(
 export const SITE_TITLE = "oncyber: forever";
 
 // Link previews (X, iMessage, Slack, ...) need an absolute image URL. The
-// image ships in public/, so it is served from whichever deployment rendered
-// the page: the production domain, or the branch's own preview.
-export function siteOrigin(
-    env: Record<string, string | undefined> = process.env
-): string {
-    if (env.NEXT_PUBLIC_VERCEL_ENV === "production")
-        return `https://${
-            env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || "oncyber.io"
-        }`;
-    const host =
-        env.NEXT_PUBLIC_VERCEL_BRANCH_URL || env.NEXT_PUBLIC_VERCEL_URL;
-    return host ? `https://${host}` : "http://localhost:13000";
-}
-
+// image ships in public/, so it is served from the deployment that rendered
+// the page (NEXT_PUBLIC_SITE_ORIGIN, set in next.config.js).
 export const SHARE_IMAGE_PATH = "/brand/share-card.png";
 
 export default function Headers() {
-    const shareImage = `${siteOrigin()}${SHARE_IMAGE_PATH}`;
+    const shareImage = `${
+        process.env.NEXT_PUBLIC_SITE_ORIGIN || "http://localhost:13000"
+    }${SHARE_IMAGE_PATH}`;
     const router = useRouter();
     return (
         <Head>

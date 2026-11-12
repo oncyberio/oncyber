@@ -2,7 +2,8 @@
 import React from "react";
 import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
-import Headers, { fontPreloadsFor, siteOrigin, SITE_TITLE } from "./headers";
+import Headers, { fontPreloadsFor, SITE_TITLE } from "./headers";
+import { siteOrigin } from "@utils/siteOrigin";
 
 let mockRouter: { pathname: string; query: Record<string, string> };
 jest.mock("next/router", () => ({ useRouter: () => mockRouter }));
@@ -147,18 +148,16 @@ test("the site title and link preview use the oncyber: forever card", () => {
 test("the preview image URL is absolute for each deployment", () => {
     expect(
         siteOrigin({
-            NEXT_PUBLIC_VERCEL_ENV: "production",
-            NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: "oncyber.io",
+            VERCEL_ENV: "production",
+            VERCEL_PROJECT_PRODUCTION_URL: "oncyber.io",
         })
     ).toBe("https://oncyber.io");
-    expect(siteOrigin({ NEXT_PUBLIC_VERCEL_ENV: "production" })).toBe(
-        "https://oncyber.io"
-    );
+    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe("https://oncyber.io");
     expect(
         siteOrigin({
-            NEXT_PUBLIC_VERCEL_ENV: "preview",
-            NEXT_PUBLIC_VERCEL_BRANCH_URL: "oncyber-git-x-oncyber.vercel.app",
-            NEXT_PUBLIC_VERCEL_URL: "oncyber-abc123-oncyber.vercel.app",
+            VERCEL_ENV: "preview",
+            VERCEL_BRANCH_URL: "oncyber-git-x-oncyber.vercel.app",
+            VERCEL_URL: "oncyber-abc123-oncyber.vercel.app",
         })
     ).toBe("https://oncyber-git-x-oncyber.vercel.app");
     expect(siteOrigin({})).toBe("http://localhost:13000");
