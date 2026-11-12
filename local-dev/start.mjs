@@ -9,9 +9,9 @@
 //   pnpm dev:local --no-lobby skip the lobby server
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { connect } from "node:net";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -31,20 +31,50 @@ const LOBBY = "127.0.0.1:2568";
 
 const log = (msg) => console.log(`\x1b[36m[dev:local]\x1b[0m ${msg}`);
 
-function checkJava() {
-    const java = spawnSync("java", ["-version"], { encoding: "utf8" });
+function javaMajor(bin) {
+    const java = spawnSync(bin, ["-version"], { encoding: "utf8" });
+    if (java.error) return 0;
     const out = `${java.stderr || ""}${java.stdout || ""}`;
-    const major = Number(/version "(\d+)/.exec(out)?.[1] || 0);
-    if (java.error || major < 21) {
-        console.error(
-            "\nThe Firebase emulators need Java 21 or newer" +
-                (major ? ` (found ${major}).` : " (none found).") +
-                "\n  macOS:  brew install openjdk@21" +
-                "\n  Linux:  sudo apt install openjdk-21-jre-headless" +
-                "\n  Other:  https://adoptium.net\n"
-        );
-        process.exit(1);
+    return Number(/version "(\d+)/.exec(out)?.[1] || 0);
+}
+
+// The emulators need Java 21+. Machines often have an older default on PATH
+// and a newer one installed beside it (Homebrew keeps openjdk@N unlinked), so
+// look in the usual places before giving up, and use it for this run only.
+function checkJava() {
+    const found = javaMajor("java");
+    if (found >= 21) return;
+    const dirs = [
+        process.env.JAVA_HOME && join(process.env.JAVA_HOME, "bin"),
+        ...["/opt/homebrew/opt", "/usr/local/opt"].flatMap((root) =>
+            existsSync(root)
+                ? readdirSync(root)
+                      .filter((name) => /^openjdk(@\d+)?$/.test(name))
+                      .map((name) => join(root, name, "bin"))
+                : []
+        ),
+        ...(existsSync("/usr/lib/jvm")
+            ? readdirSync("/usr/lib/jvm").map((name) =>
+                  join("/usr/lib/jvm", name, "bin")
+              )
+            : []),
+    ].filter(Boolean);
+    for (const dir of dirs) {
+        const major = javaMajor(join(dir, "java"));
+        if (major >= 21) {
+            log(`using Java ${major} from ${dir}`);
+            process.env.PATH = `${dir}${delimiter}${process.env.PATH}`;
+            return;
+        }
     }
+    console.error(
+        "\nThe Firebase emulators need Java 21 or newer" +
+            (found ? ` (found ${found}).` : " (none found).") +
+            "\n  macOS:  brew install openjdk@21" +
+            "\n  Linux:  sudo apt install openjdk-21-jre-headless" +
+            "\n  Other:  https://adoptium.net\n"
+    );
+    process.exit(1);
 }
 
 function waitForPort(hostPort, timeoutMs = 120_000) {
