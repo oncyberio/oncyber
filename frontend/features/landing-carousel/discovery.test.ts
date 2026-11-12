@@ -557,7 +557,14 @@ it("filters displayed artists and gallery-maker aliases without conflating ACK w
 });
 
 describe("creatorLabel", () => {
-    const { creatorLabel } = require("./data");
+    const { creatorLabel, cardCreator } = require("./data");
+    it("credits the curator, then the owner's username, then the wallet", () => {
+        const wallet = "0x1234567890abcdef1234567890abcdef12345678";
+        expect(cardCreator("Mira", "mira_", wallet)).toBe("Mira");
+        expect(cardCreator("", "mira_", wallet)).toBe("mira_");
+        expect(cardCreator("", null, wallet)).toBe(wallet);
+        expect(cardCreator("", null, "firebaseUid123")).toBe("");
+    });
     it("keeps names and shortens wallet addresses", () => {
         expect(creatorLabel("@mira")).toBe("mira");
         expect(creatorLabel("")).toBe("");
