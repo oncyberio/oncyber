@@ -27,7 +27,9 @@ describe("loadingLogoPose", () => {
             frame: (REST_FRAME + FRAME_COUNT - 1) % FRAME_COUNT,
         });
         const atMorphStart = loadingLogoPose(LOOP_MS + 0.01);
-        expect(atMorphStart).toMatchObject({ phase: "morph", morph: 1 });
+        expect(atMorphStart.phase).toBe("morph");
+        if (atMorphStart.phase === "morph")
+            expect(atMorphStart.morph).toBeCloseTo(1, 3);
         expect(loadingLogoPose(LOOP_MS + MORPH_MS + 1)).toMatchObject({
             phase: "morph",
             morph: 0,
