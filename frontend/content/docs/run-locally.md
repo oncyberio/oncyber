@@ -1,25 +1,25 @@
 ---
 title: Run Oncyber locally
-description: Install dependencies, configure the frontend and open the app.
+description: Install, start and open the app on your machine.
 order: 1
 ---
 
 # Run Oncyber locally
 
-You need Node.js 22 (see `.nvmrc`) and pnpm 9.12.2.
+You need Node.js 22 and pnpm. Then:
 
 ```sh
 corepack enable
-corepack prepare pnpm@9.12.2 --activate
 pnpm install --frozen-lockfile
-cp frontend/.env.example frontend/.env.local   # only if you have no .env.local yet
+cp frontend/.env.example frontend/.env.local
 pnpm dev:frontend
 ```
 
-Open [localhost:13000](http://localhost:13000). With no keys the landing page
-and these docs run; the console names the settings that are missing.
+Open [localhost:13000](http://localhost:13000). The landing page and these
+docs work straight away. Sign-in, spaces and uploads need services of your own,
+listed below.
 
-## Use your own services
+:::details Which services each part needs
 
 Every key comes from `frontend/.env.local`, and nothing falls back to
 Oncyber's accounts. Set up only what your change needs:
@@ -35,9 +35,12 @@ Oncyber's accounts. Set up only what your change needs:
 projects and test data, and never commit keys. `NEXT_PUBLIC_*` values are
 visible to every visitor, so never put a secret in one.
 
-## Useful checks
+The exact pnpm version is 9.12.2 (`corepack prepare pnpm@9.12.2 --activate`),
+and `.nvmrc` pins Node.
 
-Run these from the repository root:
+:::
+
+:::details Checks and rendering options
 
 ```sh
 pnpm -C frontend test --runInBand path/to/changed.test.ts
@@ -47,3 +50,5 @@ npm --prefix multiplayer run build
 
 Rendering uses WebGPU where the browser supports it and falls back to WebGL2.
 Add `?renderer=webgl` to a URL to force the fallback.
+
+:::

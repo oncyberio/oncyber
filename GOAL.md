@@ -1,9 +1,10 @@
 # Oncyber: where we're going
 
 Oncyber started in 2021 as a place to build and visit 3D galleries for digital
-art. The goal now is a **shared 3D lobby that connects many spaces**:
-galleries and creator-built worlds, all reachable from one place, with your
-identity, avatar, friends and voice coming with you as you travel.
+art. The goal now is **a home for 3D spaces on the web**: galleries, worlds
+people build in the browser, and outside worlds made with any engine, joined
+by a shared lobby, with your identity, avatar, friends and voice coming with
+you as you travel.
 
 ## What we're building
 

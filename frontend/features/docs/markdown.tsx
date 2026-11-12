@@ -4,6 +4,9 @@ import Link from "next/link";
 /**
  * A small Markdown renderer for the docs pages: headings, paragraphs, lists,
  * tables, fenced code, inline code, bold and links. No raw HTML is rendered.
+ *
+ * A block between `:::details Summary` and `:::` renders as a closed
+ * dropdown, for technical detail most readers can skip.
  */
 
 type Block =
@@ -11,7 +14,11 @@ type Block =
     | { type: "paragraph"; text: string }
     | { type: "list"; ordered: boolean; items: string[] }
     | { type: "table"; head: string[]; rows: string[][] }
-    | { type: "code"; lang: string; code: string };
+    | { type: "code"; lang: string; code: string }
+    | { type: "details"; summary: string; blocks: Block[] };
+
+const DETAILS_OPEN = /^:::details\s+(.*)$/;
+const DETAILS_CLOSE = /^:::\s*$/;
 
 export function slugify(text: string) {
     return text
@@ -36,6 +43,26 @@ export function parseBlocks(source: string): Block[] {
         const line = lines[i];
         if (!line.trim()) {
             i++;
+            continue;
+        }
+        const details = line.match(DETAILS_OPEN);
+        if (details) {
+            const inner: string[] = [];
+            let inFence = false;
+            i++;
+            while (
+                i < lines.length &&
+                (inFence || !DETAILS_CLOSE.test(lines[i]))
+            ) {
+                if (lines[i].startsWith("```")) inFence = !inFence;
+                inner.push(lines[i++]);
+            }
+            i++;
+            blocks.push({
+                type: "details",
+                summary: details[1].trim(),
+                blocks: parseBlocks(inner.join("\n")),
+            });
             continue;
         }
         const fence = line.match(/^```(\w*)/);
@@ -78,7 +105,11 @@ export function parseBlocks(source: string): Block[] {
         if (item.test(line)) {
             const ordered = /^\s*\d+\./.test(line);
             const items: string[] = [];
-            while (i < lines.length && lines[i].trim()) {
+            while (
+                i < lines.length &&
+                lines[i].trim() &&
+                !lines[i].startsWith(":::")
+            ) {
                 if (item.test(lines[i])) items.push(lines[i].replace(item, ""));
                 else items[items.length - 1] += ` ${lines[i].trim()}`;
                 i++;
@@ -90,7 +121,7 @@ export function parseBlocks(source: string): Block[] {
         while (
             i < lines.length &&
             lines[i].trim() &&
-            !/^(#{1,4}\s|```|\s*([-*]|\d+\.)\s)/.test(lines[i]) &&
+            !/^(#{1,4}\s|```|:::|\s*([-*]|\d+\.)\s)/.test(lines[i]) &&
             !lines[i].trim().startsWith("|")
         )
             text.push(lines[i++].trim());
@@ -145,9 +176,13 @@ export function headingsOf(source: string) {
 }
 
 export default function Markdown({ source }: { source: string }) {
+    return <>{renderBlocks(parseBlocks(source))}</>;
+}
+
+function renderBlocks(blocks: Block[]): ReactNode {
     return (
         <>
-            {parseBlocks(source).map((block, index) => {
+            {blocks.map((block, index) => {
                 switch (block.type) {
                     case "heading": {
                         const Tag = `h${block.level}` as "h1";
@@ -202,6 +237,13 @@ export default function Markdown({ source }: { source: string }) {
                             >
                                 <code>{block.code}</code>
                             </pre>
+                        );
+                    case "details":
+                        return (
+                            <details key={index} className="details">
+                                <summary>{inline(block.summary)}</summary>
+                                {renderBlocks(block.blocks)}
+                            </details>
                         );
                     default:
                         return <Fragment key={index} />;
