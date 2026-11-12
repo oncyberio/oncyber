@@ -238,6 +238,8 @@ function SpaceSettings_Child() {
         <CustomDropdown
             caption={caption}
             placement="free"
+            // Above every other studio panel and modal while it is open.
+            zIndex="var(--zIndex_studio-settings)"
             onOpen={handleOpen}
             toggleAuth={isAnonymous && toggleAuth}
         >

@@ -911,12 +911,18 @@ const Container = styled.div`
 `;
 
 const WorldDock = styled.div<{ $collapsed: boolean }>`
+    /* The collapsed button and its dock are 70% of the left dock's buttons. */
+    --world-list-scale: 0.7;
+    --world-list-size: calc(
+        var(--asset-tool-size, 45.9px) * var(--world-list-scale)
+    );
+
     position: relative;
     flex-shrink: 0;
     max-width: calc(100vw - 12px);
     width: ${(p) =>
         p.$collapsed
-            ? "calc(var(--asset-tool-size, 45.9px) + 16px)"
+            ? "calc(var(--world-list-size) + 16px * var(--world-list-scale))"
             : "var(--right-panel-width)"};
     background: var(--studio-bg, #141416);
     color: var(--studio-bg, #141416);
@@ -929,7 +935,7 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         position: absolute;
         right: 0;
         width: 100%;
-        height: 28px;
+        height: calc(28px * var(--world-list-scale));
         pointer-events: none;
     }
     > .wing-top {
@@ -949,16 +955,30 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         box-shadow: var(--panel-shadow);
     }
     > .dock-content {
-        padding: ${(p) => (p.$collapsed ? "10px 8px" : "0")};
+        padding: ${(p) =>
+            p.$collapsed
+                ? "calc(10px * var(--world-list-scale)) calc(8px * var(--world-list-scale))"
+                : "0"};
         animation: world-contents-in 220ms ease both;
     }
     button[aria-label="World contents"] {
-        width: var(--asset-tool-size, 45.9px);
-        height: var(--asset-tool-size, 45.9px);
-        border-radius: var(--asset-tool-radius, 12px);
+        width: var(--world-list-size);
+        height: var(--world-list-size);
+        border-radius: calc(
+            var(--asset-tool-radius, 12px) * var(--world-list-scale)
+        );
         padding: 0;
         > .icon-img {
-            transform: scale(var(--asset-tool-icon-scale, 0.85));
+            transform: scale(
+                calc(
+                    var(--asset-tool-icon-scale, 0.85) * var(--world-list-scale)
+                )
+            );
+        }
+        /* The count keeps its size and moves into the smaller corner. */
+        > .badge {
+            bottom: 2px;
+            right: 2px;
         }
     }
     @keyframes world-contents-in {
