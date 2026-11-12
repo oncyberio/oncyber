@@ -134,7 +134,8 @@ test("the page reads sign-in and feed together and keeps its props", async () =>
         userId: "0xabc",
         initialError: false,
         initialFilters: { category: "staff" },
-        initialFeed: { cursor: "world-1", hasMore: false },
+        // Staff picks continue with the most popular worlds.
+        initialFeed: { cursor: "popular:", hasMore: true },
     });
     expect(result.props.initialFeed.cards).toHaveLength(2);
     expect(res.setHeader.mock.calls[0][1]).toMatch(
