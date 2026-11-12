@@ -114,18 +114,20 @@ const HEADER_ROW = 44;
 const HEADER_INSET = 22;
 
 const Bubble = styled(motion.div)`
+    /* A full-width row that centres the surface: framer-motion owns this
+       element's transform for the enter/exit slide, so no translateX here. */
     position: fixed;
-    left: 50%;
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
     top: calc(
         max(${HEADER_INSET}px, env(safe-area-inset-top)) + ${HEADER_ROW}px +
             ${lobby.panel.gap}px
     );
-    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
     /* Above the world chrome (10010) so the header never covers it. */
     z-index: 10011;
-    max-width: calc(100% - 32px);
-    width: max-content;
-    pointer-events: auto;
+    pointer-events: none;
     font-family: ${base.font.sans};
 
     .surface {
@@ -137,6 +139,7 @@ const Bubble = styled(motion.div)`
         max-width: 100%;
         margin: 0;
         padding: 6px 14px;
+        pointer-events: auto;
         border: 0;
         border-radius: ${base.radius.control}px;
         text-align: left;
