@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { selectLobbyEndpoint } from "./lobbyEndpoints";
+import { readRecordingCrowd } from "./recordingCrowdOptions";
 
 // Same key LobbyConnection joins with (LOBBY_ROOM); kept here so the landing
 // page doesn't pull the realtime client into its bundle.
@@ -23,7 +24,16 @@ export async function fetchLobbyPopulation(signal: AbortSignal): Promise<number 
         .reduce((sum, room) => sum + (Number(room.clients) || 0), 0);
 }
 
+/** People in the lobby, counting a staged recording crowd (?crowd=N) so the
+ * landing matches what the lobby shows. */
 export function useLobbyPopulation(enabled = true) {
+    const live = useLiveLobbyPopulation(enabled);
+    const [staged, setStaged] = useState(0);
+    useEffect(() => setStaged(readRecordingCrowd()?.count || 0), []);
+    return staged ? (live ?? 0) + staged : live;
+}
+
+function useLiveLobbyPopulation(enabled: boolean) {
     const [population, setPopulation] = useState<number | null>(null);
     useEffect(() => {
         if (!enabled) return;
