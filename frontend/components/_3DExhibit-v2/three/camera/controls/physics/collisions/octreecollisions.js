@@ -435,9 +435,10 @@ export class OctreeCollisions extends AbstractCollisions {
                 let low = 0, high = snapDistance
                 for (let i = 0; i < SNAP_STEPS; i++) {
                     const mid = (low + high) / 2
-                    this.capsule.translate(this.tmpNormal.set(0, mid - low, 0))
+                    // the capsule stays at the probe: test `mid` above it
+                    this.capsule.translate(this.tmpNormal.set(0, mid, 0))
                     const hit = this.worldOctree.capsuleIntersect(this.capsule)
-                    this.capsule.translate(this.tmpNormal.set(0, low - mid, 0))
+                    this.capsule.translate(this.tmpNormal.set(0, -mid, 0))
                     if (hit) low = mid
                     else high = mid
                 }
