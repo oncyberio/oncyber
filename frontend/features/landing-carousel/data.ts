@@ -198,6 +198,17 @@ export function landingFeedFromResponse(
     };
 }
 
+/**
+ * The creator name a card shows after "by". Wallet addresses are shortened so
+ * a card reads "World by 0x1234…cdef" rather than a 42-character string.
+ */
+export function creatorLabel(creator: string): string {
+    const name = (creator || "").trim().replace(/^@/, "");
+    if (/^(0x[0-9a-f]{20,}|tz[123][1-9a-z]{30,})$/i.test(name))
+        return `${name.slice(0, 6)}…${name.slice(-4)}`;
+    return name;
+}
+
 export function roomLabel(room: string): string {
     const names: Record<string, string> = {
         rtfktspacepod: "Space Pod",
