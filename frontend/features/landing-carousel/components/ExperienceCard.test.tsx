@@ -148,6 +148,6 @@ it('labels a world card with its title, then "{room} by {creator}"', () => {
     );
     expect(container.querySelector("h2").textContent).toBe("Night Garden");
     expect(container.querySelector(".card-meta span").textContent).toBe(
-        "Void by mira"
+        "Void by @mira"
     );
 });

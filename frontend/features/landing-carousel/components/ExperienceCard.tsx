@@ -165,7 +165,9 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                                     ? card.description
                                     : card.buildStatus
                                 : creator
-                                ? `${roomLabel(card.room)} by ${creator}`
+                                ? `${roomLabel(card.room)} by ${
+                                      /^(0x|tz[123])/.test(creator) ? "" : "@"
+                                  }${creator}`
                                 : featured
                                 ? card.description || roomLabel(card.room)
                                 : roomLabel(card.room)}
