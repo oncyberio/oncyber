@@ -40,7 +40,7 @@ export default function CopyPromptButton() {
             type="button"
             className="copy-prompt"
             onClick={copy}
-            title="Copy a prompt for your coding agent"
+            title="Copy a prompt for your AI coding agent"
         >
             <span className="agents" aria-hidden="true">
                 {AGENT_ICONS.map((name) => (
@@ -53,7 +53,7 @@ export default function CopyPromptButton() {
                     />
                 ))}
             </span>
-            <span aria-live="polite">{copied ? "Copied" : "Copy prompt"}</span>
+            <span aria-live="polite">{copied ? "Copied" : "Copy for AI"}</span>
         </button>
     );
 }
