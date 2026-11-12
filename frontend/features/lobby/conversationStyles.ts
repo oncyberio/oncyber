@@ -85,6 +85,8 @@ export const conversationStyles = css`
         overflow: hidden;
     }
     .chat-view {
+        position: relative;
+        isolation: isolate;
         min-height: 0;
         padding-bottom: 8px;
         display: flex;
@@ -97,6 +99,18 @@ export const conversationStyles = css`
     }
     .chat-view:empty {
         padding-bottom: 0;
+    }
+    /* A faint wash behind the lines above the input, so they read over
+       bright worlds. It fades with the view and has no visible edge. */
+    .chat-view:not(:empty)::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: ${lobby.chat.scrim};
+        -webkit-mask-image: ${lobby.chat.scrimMask};
+        mask-image: ${lobby.chat.scrimMask};
     }
     .chat-view > .group-notices:not(:empty),
     .chat-view > .native-chat-notice {
@@ -129,7 +143,7 @@ export const conversationStyles = css`
         gap: 8px;
         margin: 0;
         padding: 7px 6px 7px 10px;
-        text-shadow: 0 1px 0 #000b, 1px 0 0 #0008, -1px 0 0 #0008;
+        text-shadow: ${lobby.chat.textShadow};
         font-size: ${base.font.size.sm}px;
         color: ${lobby.color.chatInk};
     }
@@ -212,7 +226,7 @@ export const conversationStyles = css`
         margin: 0;
         max-height: calc(50vh - 56px);
         background: transparent;
-        text-shadow: 0 1px 0 #000b, 1px 0 0 #0008, -1px 0 0 #0008;
+        text-shadow: ${lobby.chat.textShadow};
         overscroll-behavior: contain;
         scrollbar-width: thin;
         scrollbar-color: #ffffff24 transparent;
