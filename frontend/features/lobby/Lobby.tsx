@@ -425,6 +425,48 @@ export default function Lobby({
         if (code && /^[A-Za-z0-9_-]{6,128}$/.test(code))
             setGroupModal({ joinCode: code });
     }, [social.groupsSupported]);
+    // The party the + in the people list adds to: the one you have open,
+    // else the first one you own. Adding the first person starts it.
+    const ownParty =
+        (selectedGroup?.ownerId === social.sessionId && selectedGroup) ||
+        groups.find((group) => group.ownerId === social.sessionId);
+    const partyMemberIds = useMemo(
+        () => ownParty?.members.map((member) => member.id) || [],
+        [ownParty]
+    );
+    const addToParty = async (id: string) => {
+        if (ownParty) {
+            await social.groupAction({
+                action: "invite",
+                groupId: ownParty.id,
+                inviteeId: id,
+            });
+            selectGroup(ownParty.id);
+        } else {
+            const result = await social.groupAction({
+                action: "create",
+                name: "Your party",
+                memberIds: [id],
+            });
+            if (result.groupId) selectGroup(result.groupId);
+        }
+    };
+    // The people list, closest first (you on top). Sorted when the list
+    // opens, so rows don't shuffle under the pointer as people walk.
+    const peoplePlayers = useMemo(() => {
+        if (!peopleOpen) return social.players;
+        const me = social.getPredictedPose?.() ||
+            social.players.find((player) => player.isLocal) || { x: 0, z: 0 };
+        return social.players
+            .map((player) => ({
+                player,
+                distance: player.isLocal
+                    ? -1
+                    : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
+            }))
+            .sort((a, b) => a.distance - b.distance)
+            .map(({ player }) => player);
+    }, [peopleOpen, social.players]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
             const url = new URL(window.location.href);
@@ -1278,7 +1320,15 @@ export default function Lobby({
                     )}
                 {peopleOpen && (
                     <LobbyPeoplePanel
-                        players={social.players}
+                        players={peoplePlayers}
+                        party={
+                            social.groupsSupported
+                                ? {
+                                      memberIds: partyMemberIds,
+                                      onAdd: addToParty,
+                                  }
+                                : undefined
+                        }
                         population={population}
                         status={social.status}
                         onClose={closePeople}
