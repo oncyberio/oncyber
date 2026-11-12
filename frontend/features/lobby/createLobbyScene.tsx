@@ -368,9 +368,13 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     const position = visitor.group.position;
                     return {
                         x: position.x,
-                        // Where the name tag sits; the line opens there.
-                        y: position.y + (visitor.model.height || 1.8) + 0.12,
+                        // The foot of the name tag; the line takes its place.
+                        y: position.y + (visitor.model.height || 1.8) + 0.02,
                         z: position.z,
+                        photo:
+                            visitor === self
+                                ? latest.current.profilePhoto
+                                : visitor.speechPhoto,
                     };
                 };
                 const projectSpeech = (point: {
@@ -389,12 +393,6 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             Math.abs(speechPoint.y) < 1.2,
                     };
                 };
-                // World metres per CSS pixel at a distance from the camera.
-                const worldPerPixel = (distance: number) =>
-                    (2 *
-                        Math.max(0.5, distance) *
-                        Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) /
-                    Math.max(1, height);
                 const nameTags = backend.createNameTags?.(
                     scene as unknown as Parameters<
                         NonNullable<LobbySceneBackend["createNameTags"]>
@@ -493,6 +491,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 type Avatar = Awaited<ReturnType<typeof createAvatar>>;
                 type Visitor = {
                     group: THREE.Group;
+                    /** Profile picture, shown beside what they say. */
+                    speechPhoto?: string;
                     model?: Avatar;
                     /** Arrival build-up for other people, 0..1 while it plays. */
                     reveal?: number;
@@ -1688,10 +1688,13 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         }
                         // A tag waits for its avatar, so names don't float
                         // over empty floor while a model loads.
+                        avatar.speechPhoto = participant.avatar;
+                        // What they just said stands in for the tag.
                         if (
                             avatar.model &&
                             index < budget.maxLabels &&
-                            distanceSq < 900
+                            distanceSq < 900 &&
+                            !speechBubbles.speaking(participant.id)
                         )
                             nameTags?.show(
                                 participant.id,
@@ -1700,14 +1703,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 avatar.group.position.x,
                                 avatar.group.position.y +
                                     (avatar.model?.height || 1.8) +
-                                    0.12 +
-                                    // Rides on top of what they just said.
-                                    speechBubbles.liftOf(participant.id) *
-                                        worldPerPixel(
-                                            avatar.group.position.distanceTo(
-                                                camera.position
-                                            )
-                                        ),
+                                    0.12,
                                 avatar.group.position.z
                             );
                     }
@@ -1720,7 +1716,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         !group &&
                         !preview &&
                         !latest.current.avatarPreview &&
-                        self.group.visible
+                        self.group.visible &&
+                        !speechBubbles.speaking("self")
                     )
                         nameTags?.show(
                             "self",
@@ -1729,13 +1726,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             self.group.position.x,
                             self.group.position.y +
                                 (self.model.height || 1.8) +
-                                0.12 +
-                                speechBubbles.liftOf("self") *
-                                    worldPerPixel(
-                                        self.group.position.distanceTo(
-                                            camera.position
-                                        )
-                                    ),
+                                0.12,
                             self.group.position.z,
                             true
                         );

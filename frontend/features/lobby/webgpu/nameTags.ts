@@ -189,7 +189,8 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
             .add(right.mul(positionLocal.x))
             .add(up.mul(positionLocal.y));
         varyingProperty("float", "vClose").assign(
-            smoothstep(2, 5.5, distance(cameraPosition, position))
+            // Only fades when it would fill the view; tags stay up close.
+            smoothstep(0.4, 1, distance(cameraPosition, position))
         );
         return position;
     })();

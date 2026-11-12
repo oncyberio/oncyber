@@ -45,6 +45,7 @@ export const lobbyTokens = {
         backdrop:
             "radial-gradient(closest-side, #000000b3, #00000073 55%, transparent)",
         ink: "#f4f5f8",
+        photoShadow: "0 1px 4px #000000a6",
     },
     control: {
         size: 40,
