@@ -128,7 +128,7 @@ it("shows a loading state on the template being opened", () => {
     );
 });
 
-it('labels a world card with its title, then "{room} by {creator}"', () => {
+it('labels a world card with its title, then "by @{creator}"', () => {
     act(() =>
         root.render(
             <ExperienceCard
@@ -148,6 +148,6 @@ it('labels a world card with its title, then "{room} by {creator}"', () => {
     );
     expect(container.querySelector("h2").textContent).toBe("Night Garden");
     expect(container.querySelector(".card-meta span").textContent).toBe(
-        "Void by @mira"
+        "by @mira"
     );
 });

@@ -159,13 +159,17 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                         )}
                     </div>
                     <div className="card-meta">
-                        <span>
+                        <span
+                            className={
+                                creator && !card.buildStatus ? "by" : undefined
+                            }
+                        >
                             {card.buildStatus
                                 ? featured
                                     ? card.description
                                     : card.buildStatus
                                 : creator
-                                ? `${roomLabel(card.room)} by ${
+                                ? `by ${
                                       /^(0x|tz[123])/.test(creator) ? "" : "@"
                                   }${creator}`
                                 : featured
@@ -411,6 +415,9 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    .card-meta span.by {
+        font-size: 0.9em;
     }
     .card-meta span:last-child {
         white-space: nowrap;
