@@ -668,12 +668,12 @@ export function WorldListView() {
                     <svg
                         key={side}
                         className={`wing wing-${side}`}
-                        viewBox="0 0 18 18"
+                        viewBox="0 0 58 28"
                         preserveAspectRatio="none"
                         aria-hidden="true"
                     >
                         <path
-                            d="M18 0A18 18 0 0 1 0 18H18Z"
+                            d="M0 0C0 7.73 12.98 14 29 14S58 20.27 58 28H0Z"
                             fill="currentColor"
                         />
                     </svg>
@@ -923,23 +923,25 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
     pointer-events: auto;
     transition: width 280ms cubic-bezier(0.22, 1, 0.36, 1);
 
+    /* Same tangent curves as the asset dock on the left, mirrored. */
     > .wing {
         display: ${(p) => (p.$collapsed ? "block" : "none")};
         position: absolute;
         right: 0;
-        width: 18px;
-        height: 18px;
+        width: 100%;
+        height: 28px;
         pointer-events: none;
     }
     > .wing-top {
         bottom: calc(100% - 1px);
+        transform: scaleX(-1);
     }
     > .wing-bottom {
         top: calc(100% - 1px);
-        transform: scaleY(-1);
+        transform: scale(-1, -1);
     }
     border-radius: ${(p) =>
-        p.$collapsed ? "20px 0 0 20px" : "var(--studio-radius-panel, 16px)"};
+        p.$collapsed ? "0" : "var(--studio-radius-panel, 16px)"};
     > .dock-content > [role="region"] {
         border-radius: var(--studio-radius-panel, 16px);
         border: 1px solid var(--studio-line, #303035);
@@ -947,13 +949,17 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         box-shadow: var(--panel-shadow);
     }
     > .dock-content {
-        padding: ${(p) => (p.$collapsed ? "8px" : "0")};
+        padding: ${(p) => (p.$collapsed ? "10px 8px" : "0")};
         animation: world-contents-in 220ms ease both;
     }
     button[aria-label="World contents"] {
         width: var(--asset-tool-size, 45.9px);
         height: var(--asset-tool-size, 45.9px);
         border-radius: var(--asset-tool-radius, 12px);
+        padding: 0;
+        > .icon-img {
+            transform: scale(var(--asset-tool-icon-scale, 0.85));
+        }
     }
     @keyframes world-contents-in {
         from {
