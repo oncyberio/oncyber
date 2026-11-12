@@ -1,22 +1,23 @@
 import { scrollLogoPose } from "./cyberloopMorph";
 
 // The loading logo: the Cyberloop frame sequence plays (the same sprite the
-// header plays, at its own 30 fps) up to its rest frame, where the mark
+// header plays) up to its rest frame, where the mark
 // morphs into the old oncyber logo as the header's scroll does, holds, and
 // morphs back. The sequence then plays backwards to where it started, so the
 // loop never cuts.
 const SPRITE = "/brand/cyberloop-sprite.webp";
 const GRID = 15;
 export const FRAME_COUNT = 225;
-export const FRAME_MS = 1000 / 30;
+// The sequence is authored at 30 fps; the loader plays it 30% quicker.
+export const FRAME_MS = 1000 / 43;
 // The frame the header rests on, and the one the SVG morph draws at morph 1.
 export const REST_FRAME = 90;
 // Frames of the sequence played before the morph (and again, reversed,
-// after it): 1.5 s each way.
+// after it): about 1 s each way.
 export const LOOP_FRAMES = 45;
 export const LOOP_MS = LOOP_FRAMES * FRAME_MS;
-export const MORPH_MS = 1200;
-export const HOLD_MS = 1500;
+export const MORPH_MS = 840;
+export const HOLD_MS = 1050;
 const HOLD_START = LOOP_MS + MORPH_MS;
 const BACK_START = HOLD_START + HOLD_MS;
 const REWIND_START = BACK_START + MORPH_MS;
