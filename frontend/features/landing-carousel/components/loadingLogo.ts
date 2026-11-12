@@ -1,28 +1,33 @@
 import { scrollLogoPose } from "./cyberloopMorph";
 
 // The loading logo: the Cyberloop frame sequence plays (the same sprite the
-// header plays, at its own 30 fps), then at its rest frame the mark morphs
-// into the old oncyber logo as the header's scroll does, holds, and morphs
-// back to the rest frame, where the sequence picks up again.
+// header plays, at its own 30 fps) up to its rest frame, where the mark
+// morphs into the old oncyber logo as the header's scroll does, holds, and
+// morphs back. The sequence then plays backwards to where it started, so the
+// loop never cuts.
 const SPRITE = "/brand/cyberloop-sprite.webp";
 const GRID = 15;
 export const FRAME_COUNT = 225;
 export const FRAME_MS = 1000 / 30;
 // The frame the header rests on, and the one the SVG morph draws at morph 1.
 export const REST_FRAME = 90;
-// Frames of the sequence to play before the morph. One whole loop brings the
-// sequence back to the rest frame, so there is no cut.
-export const LOOP_FRAMES = FRAME_COUNT;
+// Frames of the sequence played before the morph (and again, reversed,
+// after it): 1.5 s each way.
+export const LOOP_FRAMES = 45;
 export const LOOP_MS = LOOP_FRAMES * FRAME_MS;
 export const MORPH_MS = 1200;
 export const HOLD_MS = 1500;
 const HOLD_START = LOOP_MS + MORPH_MS;
 const BACK_START = HOLD_START + HOLD_MS;
-export const CYCLE_MS = BACK_START + MORPH_MS;
+const REWIND_START = BACK_START + MORPH_MS;
+export const CYCLE_MS = REWIND_START + LOOP_MS;
 
 export type LoadingLogoPose =
     | { phase: "loop"; frame: number }
     | { phase: "morph"; morph: number; angle: number };
+
+const frameAt = (offset: number) =>
+    (((REST_FRAME + offset) % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT;
 
 /** What to show `ms` into the loop: a sprite frame, or a morph pose. */
 export function loadingLogoPose(
@@ -32,8 +37,12 @@ export function loadingLogoPose(
     if (reducedMotion) return { phase: "loop", frame: REST_FRAME };
     const t = ((ms % CYCLE_MS) + CYCLE_MS) % CYCLE_MS;
     if (t < LOOP_MS) {
-        const frame = (REST_FRAME + Math.floor(t / FRAME_MS)) % FRAME_COUNT;
-        return { phase: "loop", frame };
+        const played = Math.min(LOOP_FRAMES, Math.floor(t / FRAME_MS) + 1);
+        return { phase: "loop", frame: frameAt(played - LOOP_FRAMES) };
+    }
+    if (t >= REWIND_START) {
+        const played = Math.floor((t - REWIND_START) / FRAME_MS);
+        return { phase: "loop", frame: frameAt(-played) };
     }
     // The scroll pose turns the mark from 0 (loop) to 180 (old logo).
     let morph: number;
