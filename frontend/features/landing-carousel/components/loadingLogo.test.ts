@@ -3,6 +3,7 @@ import {
     CYCLE_MS,
     HOLD_MS,
     MORPH_MS,
+    MORPH_OVERLAP_MS,
     SPIN_MS,
     SPIN_TURNS,
     loadingLogoPose,
@@ -18,10 +19,13 @@ describe("loadingLogoPose", () => {
         expect(loadingLogoPose(SPIN_MS / 2).angle).toBeCloseTo(
             -180 * SPIN_TURNS
         );
-        expect(loadingLogoPose(SPIN_MS + MORPH_MS + 1).morph).toBe(0);
-        expect(loadingLogoPose(SPIN_MS + MORPH_MS + HOLD_MS - 1).morph).toBe(0);
+        const holdStart = SPIN_MS - MORPH_OVERLAP_MS + MORPH_MS;
+        // The morph starts while the spin is still easing out.
+        expect(loadingLogoPose(SPIN_MS - 100).morph).toBeLessThan(1);
+        expect(loadingLogoPose(holdStart + 1).morph).toBe(0);
+        expect(loadingLogoPose(holdStart + HOLD_MS - 1).morph).toBe(0);
         expect(loadingLogoPose(CYCLE_MS - 1).morph).toBeCloseTo(1, 2);
-        expect(CYCLE_MS).toBe(2000 + 700 + 1500 + 700);
+        expect(CYCLE_MS).toBe(2000 - 700 + 1200 + 1500 + 1200);
     });
 
     it("never jumps in shape or angle", () => {
@@ -36,7 +40,7 @@ describe("loadingLogoPose", () => {
     });
 
     it("holds the new logo still for reduced motion", () => {
-        expect(loadingLogoPose(SPIN_MS + MORPH_MS + 10, true)).toEqual({
+        expect(loadingLogoPose(SPIN_MS + 10, true)).toEqual({
             morph: 1,
             angle: 0,
         });
