@@ -103,6 +103,9 @@ function run(name, cmd, cmdArgs, options = {}) {
     const child = spawn(cmd, cmdArgs, {
         stdio: "inherit",
         cwd: ROOT,
+        // Own process group, so stop() reaches everything it starts (npx ->
+        // firebase -> the Java emulators), not just the first process.
+        detached: process.platform !== "win32",
         ...options,
     });
     child.on("exit", (code, signal) => {
@@ -121,7 +124,12 @@ function stop(code = 0) {
     stopping = true;
     // SIGINT lets the emulators save their data before they exit.
     for (const { child } of children) {
-        if (child.exitCode == null) child.kill("SIGINT");
+        if (child.exitCode != null) continue;
+        try {
+            process.kill(-child.pid, "SIGINT");
+        } catch {
+            child.kill("SIGINT");
+        }
     }
     const exited = children.map(
         ({ child }) =>
@@ -170,6 +178,14 @@ async function main() {
     );
     if (listening.every(Boolean)) {
         log("Firebase emulators already running; using them");
+    } else if (listening.some(Boolean)) {
+        const taken = Object.values(HOSTS).filter((_, i) => listening[i]);
+        console.error(
+            `\nPorts ${taken.join(", ")} are in use, most likely by emulators` +
+                " left over from an earlier run. Stop them with:\n" +
+                "  lsof -ti tcp:8085,9099,9000,4000,4400,4500,9150 | xargs kill\n"
+        );
+        process.exit(1);
     } else {
         log("starting the Firebase emulators (the first run downloads them)");
         // cwd here so their debug logs land in local-dev/ (ignored by git).
