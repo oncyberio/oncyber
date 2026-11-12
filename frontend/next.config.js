@@ -3,6 +3,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { siteOrigin } = require("./utils/siteOrigin");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
 // rather than shipping a site that cannot sign anyone in.
@@ -94,7 +95,10 @@ const nextConfig = {
     // Lets a dev server run beside a production build (NEXT_DIST_DIR=.next-dev).
     distDir: process.env.NEXT_DIST_DIR || ".next",
     poweredByHeader: false,
-    env: { NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "" },
+    env: {
+        NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "",
+        NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
+    },
     experimental: {
         // The lobby imports shared TS from ../multiplayer (protocol, identity,
         // crowd room). Without this, Next only compiles TS inside frontend/.

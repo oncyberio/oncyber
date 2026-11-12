@@ -2,7 +2,8 @@
 import React from "react";
 import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
-import Headers, { fontPreloadsFor } from "./headers";
+import Headers, { fontPreloadsFor, SITE_TITLE } from "./headers";
+import { siteOrigin } from "@utils/siteOrigin";
 
 let mockRouter: { pathname: string; query: Record<string, string> };
 jest.mock("next/router", () => ({ useRouter: () => mockRouter }));
@@ -90,7 +91,9 @@ test("a build without the licensed fonts preloads only the open ones", () => {
     expect(preloads("/")).toEqual([]);
     const other = preloads("/studio").map((link) => link.href);
     expect(other).toHaveLength(5);
-    expect(other.every((href) => href.startsWith("/fonts/SpaceGrotesk/"))).toBe(true);
+    expect(other.every((href) => href.startsWith("/fonts/SpaceGrotesk/"))).toBe(
+        true
+    );
 });
 
 test("Space Grotesk preloads the WOFF2 files that globals.css uses", () => {
@@ -110,4 +113,52 @@ test("Space Grotesk preloads the WOFF2 files that globals.css uses", () => {
     );
     for (const { href } of links)
         expect(css).toContain(`url("${href}") format("woff2")`);
+});
+
+function renderedHead(pathname = "/") {
+    mockRouter = { pathname, query: {} };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<Headers />));
+    const meta = (selector: string) =>
+        container.querySelector(selector)?.getAttribute("content");
+    const result = {
+        title: container.querySelector("title")?.textContent,
+        ogTitle: meta('meta[property="og:title"]'),
+        twitterTitle: meta('meta[name="twitter:title"]'),
+        ogImage: meta('meta[property="og:image"]'),
+        twitterImage: meta('meta[name="twitter:image"]'),
+        twitterCard: meta('meta[name="twitter:card"]'),
+    };
+    act(() => root.unmount());
+    return result;
+}
+
+test("the site title and link preview use the oncyber: forever card", () => {
+    const head = renderedHead();
+    expect(SITE_TITLE).toBe("oncyber: forever");
+    expect(head.title).toBe(SITE_TITLE);
+    expect(head.ogTitle).toBe(SITE_TITLE);
+    expect(head.twitterTitle).toBe(SITE_TITLE);
+    expect(head.twitterCard).toBe("summary_large_image");
+    expect(head.ogImage).toMatch(/^https?:\/\/.+\/brand\/share-card\.png$/);
+    expect(head.twitterImage).toBe(head.ogImage);
+});
+
+test("the preview image URL is absolute for each deployment", () => {
+    expect(
+        siteOrigin({
+            VERCEL_ENV: "production",
+            VERCEL_PROJECT_PRODUCTION_URL: "oncyber.io",
+        })
+    ).toBe("https://oncyber.io");
+    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe("https://oncyber.io");
+    expect(
+        siteOrigin({
+            VERCEL_ENV: "preview",
+            VERCEL_BRANCH_URL: "oncyber-git-x-oncyber.vercel.app",
+            VERCEL_URL: "oncyber-abc123-oncyber.vercel.app",
+        })
+    ).toBe("https://oncyber-git-x-oncyber.vercel.app");
+    expect(siteOrigin({})).toBe("http://localhost:13000");
 });
