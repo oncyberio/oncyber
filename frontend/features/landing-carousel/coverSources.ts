@@ -6,7 +6,9 @@ export function fallbackCover(id: string): string {
     for (let index = 0; index < id.length; index++) {
         hash = Math.imul(hash ^ id.charCodeAt(index), 16777619);
     }
-    return `/brand/world-placeholders/mark-${((hash >>> 0) % 6) + 1}-gpt.webp`;
+    return `/brand/world-placeholders/mark-${
+        ((hash >>> 0) % 6) + 1
+    }-gpt-1280.webp`;
 }
 
 /** Real covers always win; the same local fallback serves DOM and WebGL cards. */
