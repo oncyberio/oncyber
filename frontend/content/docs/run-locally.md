@@ -9,7 +9,6 @@ order: 1
 You need Node.js 22 and pnpm. Then:
 
 ```sh
-corepack enable
 pnpm install --frozen-lockfile
 pnpm dev:local
 ```
@@ -64,7 +63,7 @@ Oncyber's accounts. Set up only what your change needs:
 projects and test data, and never commit keys. `NEXT_PUBLIC_*` values are
 visible to every visitor, so never put a secret in one.
 
-The exact pnpm version is 9.12.2 (`corepack prepare pnpm@9.12.2 --activate`),
+The exact pnpm version is 9.12.2 (`corepack enable` picks it up),
 and `.nvmrc` pins Node.
 
 :::
