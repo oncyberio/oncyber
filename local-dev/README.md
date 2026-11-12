@@ -29,15 +29,17 @@ there (an RPC URL, Pinata, ...) still apply.
 
 ## Sample data
 
-`fixtures/` is everything the emulators start with. It is made by hand, holds
-no data from oncyber.io and no one's account:
+`fixtures/` is everything the emulators start with. It holds no one's account
+and no private data:
 
 -   `exhibits.json`: the **Welcome to Oncyber** space (`/welcome`), an empty
     world on the built-in grid terrain, owned by the demo account. It is the
     staff pick, so it leads the landing page.
 -   `users.json`: the demo account `demo-user-1` (`@demo_curator`).
 -   `curation.json`: the staff-pick list.
--   `destinations.json`: templates (none yet; the welcome space needs none).
+-   `destinations.json`: the template catalog shown in Create, copied from
+    oncyber.io's public template list with author accounts replaced by
+    `oncyber` (only the author's display name is kept).
 
 To sign in, choose **Email** in the sign-in dialog and enter
 **demo@example.com**. The emulator doesn't send mail: it prints the sign-in
