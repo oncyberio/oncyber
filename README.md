@@ -36,8 +36,8 @@ pnpm dev:local
 `pnpm dev:local` runs the whole site at [localhost:13000](http://localhost:13000)
 with no Firebase account and no keys: the Firebase emulators on your machine,
 a sample space at [/welcome](http://localhost:13000/welcome), and the
-multiplayer lobby (press **Jump In**). It needs Java 21 or newer for the
-emulators (`brew install openjdk@21` on macOS). Sign in with Email and
+multiplayer lobby (press **Jump In**). If the emulators' Java 21 isn't
+installed, the first run downloads a private copy into the project. Sign in with Email and
 `demo@example.com`; the sign-in link prints in the terminal. What you change
 is kept between runs; `pnpm dev:local --reset` starts again from the samples.
 Details: [local-dev/README.md](local-dev/README.md).
