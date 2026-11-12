@@ -36,8 +36,13 @@ export const baseTokens = {
         accentStart: "#3975ff",
         accentEnd: "#1854e8",
         accentGlow: "#2567ff26",
-        /** Create accent; with the lobby green and action blue it reads as RGB. */
-        accentCreate: "#ff4b4b",
+        /**
+         * Create accent; with the lobby green and action blue it reads as RGB.
+         * Also the red lens of the "Jump in" 3D glasses, so the two always match.
+         */
+        accentCreate: "#ff3b3b",
+        /** Blue lens of the "Jump in" 3D glasses. */
+        anaglyphBlue: "#2f8bff",
         selectionStart: "#38efce",
         selectionEnd: "#ceef00",
         /** White hairlines on dark surfaces, by strength. */

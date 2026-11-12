@@ -288,7 +288,8 @@ export const pinata = {
         return url?.startsWith("https://cyber.mypinata.cloud/ipfs/");
     },
 
-    res(url: string, width: number, height = width) {
+    /** `format` adds Pinata's `img-format` conversion for still images. */
+    res(url: string, width: number, height = width, format?: ImageFormat) {
         if (!pinata.isPinataUrl(url)) return url;
 
         let urlObj = new URL(url);
@@ -310,6 +311,8 @@ export const pinata = {
         }
 
         params.set("img-fit", "scale-down");
+
+        if (format && canConvert(url)) params.set("img-format", format);
 
         return `${urlObj.origin}${path}?${params.toString()}`;
     },
@@ -372,8 +375,8 @@ export function isSeadnUrl(url: string) {
 
 /**
  * A bounded derivative of `url` on hosts that resize; other URLs come back
- * unchanged. With `format`, hosts whose resize API can convert (Cloudinary,
- * `f_webp`) also convert; Pinata and seadn are asked for size only.
+ * unchanged. With `format`, hosts whose resize API can convert (Cloudinary
+ * `f_webp`, Pinata `img-format`) also convert; seadn is asked for size only.
  */
 export function resize(
     url: string,
@@ -385,7 +388,7 @@ export function resize(
     if (cloudinary.isCloudinaryUrl(url)) {
         return cloudinary.res(url, width, height, format);
     } else if (pinata.isPinataUrl(url)) {
-        return pinata.res(url, width, height);
+        return pinata.res(url, width, height, format);
     } else if (iseadn.isIseadnUrl(url)) {
         return iseadn.res(url, width, height);
     } else {

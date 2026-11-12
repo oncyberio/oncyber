@@ -6,6 +6,8 @@ The prompts request approximately 4K; the tool returned the native dimensions be
 
 `frontend/utils/destinationCover.ts` shares these assets between the search fallback catalog and Studio. Custom exhibit covers keep priority. Original remote assets are unchanged.
 
+Pages load the `*-gpt-1280.webp` copies: 1280 wide, WebP quality 80, about 25 to 70 KB each instead of 130 to 290 KB. Cards and the details panel never show a cover wider than about 1000 device pixels. The full-size files below stay as the masters.
+
 | Room | Native output | File |
 | --- | --- | --- |
 | white-cube | 1684 × 934 | `white-cube-gpt.webp` |

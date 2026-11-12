@@ -78,6 +78,22 @@ class LineMaterial extends Line2NodeMaterial {
 
 	}
 
+	// three's NodeMaterial.copy() assigns every setter, including the
+	// deprecated lineColorNode alias, which warns on each clone. Keep the alias
+	// without the warning.
+
+	get lineColorNode() {
+
+		return this.colorNode
+
+	}
+
+	set lineColorNode( value ) {
+
+		this.colorNode = value
+
+	}
+
 	// raycasting (three/examples LineSegments2) compares linewidth against
 	// `material.resolution`, keep both in the same (physical) unit
 
