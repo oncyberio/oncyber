@@ -23,7 +23,7 @@ import { baseTokens, lobbyTokens } from "@styles/tokens";
 
 -   **Base** feeds every set: the Aeonik and Space Mono files, the type scale,
     the accent blue and its gradient stops, Create red (`accentCreate`,
-    `#ff4b4b`), the cyan-to-lime selection line,
+    `#ff3b3b`, shared with the red lens of the 3D glasses icon), the cyan-to-lime selection line,
     white hairline strengths (`line.faint` to `line.selected`), radii, motion
     durations and easing, focus rings and breakpoints.
 -   **Action** (`actionTokens`) is the one button spec for the whole app: 40 px

@@ -25,6 +25,7 @@ import DiscoveryHeader from "./components/DiscoveryHeader";
 import BottomSearch from "./components/BottomSearch";
 import { BUILD_CARDS } from "./buildOptions";
 import Icon from "./components/Icon";
+import { GLASSES_ICON_URL } from "./glassesIcon";
 import LoadingGrid from "./components/LoadingGrid";
 import { CoverImage } from "./components/ExperienceCard";
 import { LandingPageProps } from "./types";
@@ -658,9 +659,8 @@ const EnterPortalIcon = styled.span`
     width: 22.5px;
     height: 10px;
     margin: 0 1px 0 -2px;
-    /* Anaglyph 3D glasses (red and blue lenses) on transparency. */
-    background: url("/icons/generated-v3/jump-in-3d-glasses.svg")
-        center / contain no-repeat;
+    /* Anaglyph 3D glasses; the red lens is the Create accent token. */
+    background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
 `;
 
 const CreateControl = styled.button`
