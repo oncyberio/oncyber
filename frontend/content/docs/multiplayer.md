@@ -10,8 +10,9 @@ In the lobby you see everyone else move, jump and emote. You can chat with
 everyone or one person, join voice, and travel into a space together as a
 group.
 
-By default your local app joins the hosted lobby. To work on the server
-itself, run your own:
+`pnpm dev:local` starts a lobby server on your machine and joins it, so there
+is nothing to set up. With `pnpm dev:frontend` the app joins the hosted lobby
+instead; to work on the server itself there, run your own:
 
 ```sh
 npm --prefix multiplayer ci
