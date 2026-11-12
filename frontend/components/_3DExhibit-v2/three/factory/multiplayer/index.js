@@ -32,6 +32,8 @@ import shortid from "shortid";
 
 import { PatchClock } from "@features/lobby/patchClock";
 
+import { readRecordingParty, recordingPartyPlayers } from "./recordingParty";
+
 import { disposeObject3D } from "@3utils/three";
 
 import { IS_MOBILE,
@@ -234,6 +236,8 @@ class Multiplayer extends Group {
         this.players[Players.main.sessionId] = Players.main;
 
         this.gateStates = {};
+
+        this.recordingParty = readRecordingParty();
 
         this.addEvents();
 
@@ -1148,6 +1152,20 @@ class Multiplayer extends Group {
           this.handlePacket(this.fakePlayers)
         }
 
+        // Without a room (or between its patches) still place the
+        // recording friends; real patches carry them too.
+        if (this.recordingParty) {
+
+            const now = performance.now()
+
+            if (now - (this.lastRealPacketAt || 0) > 1000 && now - (this.lastRecordingTick || 0) > 200) {
+
+                this.lastRecordingTick = now
+
+                this.handlePacket({ packet: { players: [] }, recordingTick: true })
+            }
+        }
+
     }
 
 
@@ -1433,10 +1451,55 @@ class Multiplayer extends Group {
         }
     }
 
+    recordingPartyEntries() {
+
+        if (this.recordingPartyCache) return this.recordingPartyCache
+
+        const main = Players.main
+
+        if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
+
+        const payload = main.getPacketPayload(true)
+
+        const forward = Camera.current.getWorldDirection(new Vector3())
+
+        forward.y = 0
+
+        if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1)
+
+        forward.normalize()
+
+        this.recordingPartyCache = recordingPartyPlayers(this.recordingParty, {
+            x: payload[0],
+            y: payload[1],
+            z: payload[2],
+            scale: payload[4],
+            space: payload[5],
+            userHeight: payload[9],
+        }, forward)
+
+        return this.recordingPartyCache
+    }
+
     handlePacket = (opts) => {
 
         if (!this.inited) {
             this.inited = true;
+        }
+
+        if (this.recordingParty) {
+
+            if (!opts.recordingTick) this.lastRealPacketAt = performance.now()
+
+            const players = []
+
+            opts.packet?.players?.forEach?.((player) => players.push(player))
+
+            const friends = this.recordingPartyEntries()
+
+            if (friends) players.push(...friends)
+
+            opts = { packet: { players } }
         }
 
         const packet = opts.packet;

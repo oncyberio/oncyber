@@ -429,3 +429,70 @@ export function mixCrowdAvatars(
     }
     return result;
 }
+
+const REPLIES: { match: RegExp; lines: string[] }[] = [
+    {
+        match: /\b(ready|let'?s go|lets go|go time|shall we|leave|head out)\b/i,
+        lines: [
+            "Yea let's go!",
+            "Let's go!!",
+            "Ready!",
+            "Born ready 🚀",
+            "Lezgooo",
+            "Take us there!",
+            "Yesss",
+            "So ready",
+            "🙌🙌",
+            "Let's gooo",
+            "Lead the way!",
+            "Been waiting for this",
+        ],
+    },
+    {
+        match: /\b(gm|good morning)\b/i,
+        lines: ["gm!", "gm gm", "gm ☀️", "gm fren", "gmmm"],
+    },
+    {
+        match: /\b(hi|hey|hello|yo|sup|welcome)\b/i,
+        lines: ["hey!", "yo!", "hiii", "👋", "hey hey", "what's up!"],
+    },
+];
+const FALLBACK = ["yes!", "🔥", "love it", "haha", "100%", "agreed!"];
+
+export interface CrowdReply {
+    id: string;
+    text: string;
+    /** Milliseconds after the message that this person answers. */
+    delay: number;
+}
+
+/**
+ * Who in the staged crowd answers your line, what they say and when. Friends
+ * (the people who travel with you) answer first, then a few nearby voices.
+ */
+export function planCrowdReplies(
+    message: string,
+    crowd: Pick<RecordingCrowd, "participants" | "travelIds">,
+    seed = Date.now()
+): CrowdReply[] {
+    const rand = random(seed);
+    const rule = REPLIES.find(({ match }) => match.test(message));
+    const lines = [...(rule?.lines || FALLBACK)].sort(() => rand() - 0.5);
+    const friends = crowd.travelIds;
+    const others = crowd.participants
+        .map((person) => person.id)
+        .filter((id) => !friends.includes(id))
+        .sort(() => rand() - 0.5);
+    const count = rule
+        ? 6 + Math.floor(rand() * 4)
+        : 2 + Math.floor(rand() * 2);
+    const speakers = [
+        ...[...friends].sort(() => rand() - 0.5),
+        ...others.slice(0, 4),
+    ].slice(0, count);
+    let delay = 500;
+    return speakers.map((id, index) => {
+        delay += 180 + rand() * 520;
+        return { id, text: lines[index % lines.length], delay };
+    });
+}

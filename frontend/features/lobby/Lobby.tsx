@@ -1,6 +1,9 @@
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import useRecordingCrowd from "./useRecordingCrowd";
+import { planCrowdReplies } from "./recordingCrowd";
+import { activeSpeech } from "./speechBubbles";
+import type { LobbyMessage } from "./LobbyConnection";
 import { flashWallets } from "./useFlashNfts";
 import React, {
     useCallback,
@@ -66,8 +69,7 @@ const SpaceInfoSidebar = dynamic(
 
 /** Shown as a toast, and said once to screen readers, when the visitor's own
  * avatar file fails and the scene shows the default avatar instead. */
-const AVATAR_FALLBACK_NOTICE =
-    "Couldn’t load your avatar. Using the default.";
+const AVATAR_FALLBACK_NOTICE = "Couldn’t load your avatar. Using the default.";
 
 function NativeIcon({ name, size = 20 }: { name: string; size?: number }) {
     return (
@@ -614,6 +616,89 @@ export default function Lobby({
                 : party.partyIds,
         [party.partyIds, staged]
     );
+    // The space this group travels to shows the same friends beside you
+    // (read by the space's multiplayer, see recordingParty.js).
+    useEffect(() => {
+        const win = window as typeof window & {
+            __oncyberRecordingParty?: unknown;
+        };
+        if (!staged) return;
+        const ids = new Set(staged.crowd.travelIds);
+        win.__oncyberRecordingParty = staged.crowd.participants
+            .filter((person) => ids.has(person.id))
+            .map(({ id, name, vrmUrl, avatar }) => ({
+                id,
+                name,
+                vrmUrl,
+                avatar,
+            }));
+        return () => {
+            delete win.__oncyberRecordingParty;
+        };
+    }, [staged]);
+    // The staged crowd answers what you say in the global chat.
+    const [crowdReplies, setCrowdReplies] = useState<LobbyMessage[]>([]);
+    const answered = useRef(new Set<string>());
+    useEffect(() => {
+        if (!staged) return;
+        const timers: number[] = [];
+        for (const message of social.messages) {
+            if (
+                message.sessionId !== social.sessionId ||
+                message.recipientId ||
+                answered.current.has(message.id) ||
+                Date.now() - message.sentAt > 10_000
+            )
+                continue;
+            answered.current.add(message.id);
+            for (const reply of planCrowdReplies(message.text, staged.crowd)) {
+                const person = staged.crowd.participants.find(
+                    (candidate) => candidate.id === reply.id
+                );
+                if (!person) continue;
+                timers.push(
+                    window.setTimeout(() => {
+                        const sentAt = Date.now();
+                        setCrowdReplies((previous) =>
+                            [
+                                ...previous,
+                                {
+                                    id: `${reply.id}-${sentAt}`,
+                                    sessionId: reply.id,
+                                    name: person.name || "Guest",
+                                    avatar: person.avatar,
+                                    text: reply.text,
+                                    sentAt,
+                                },
+                            ].slice(-60)
+                        );
+                    }, reply.delay)
+                );
+            }
+        }
+        return () => timers.forEach((timer) => window.clearTimeout(timer));
+    }, [staged, social.messages, social.sessionId]);
+    const chatSocial = useMemo(
+        () =>
+            crowdReplies.length
+                ? {
+                      ...social,
+                      messages: [...social.messages, ...crowdReplies].sort(
+                          (a, b) => a.sentAt - b.sentAt
+                      ),
+                  }
+                : social,
+        [social, crowdReplies]
+    );
+    // Lines over speakers' heads. The scene fades each one out on its own.
+    const speech = useMemo(() => {
+        const lines = activeSpeech(chatSocial.messages);
+        if (social.sessionId && lines[social.sessionId]) {
+            lines.self = lines[social.sessionId];
+            delete lines[social.sessionId];
+        }
+        return lines;
+    }, [chatSocial.messages, social.sessionId]);
     const recordingBudget = useMemo(
         () =>
             recording
@@ -869,6 +954,7 @@ export default function Lobby({
                         proceduralMotion={true}
                         participants={participants}
                         renderBudget={recordingBudget}
+                        speech={speech}
                         initializePose={social.initializePose}
                         advanceMovement={social.advanceMovement}
                         sampleParticipants={sampleParticipants}
@@ -1498,7 +1584,7 @@ export default function Lobby({
                     </button>
                 )}
                 <LobbyChat
-                    social={social}
+                    social={chatSocial}
                     open={chatOpen}
                     onOpenChange={setChatOpen}
                     inputRef={chatInput}
