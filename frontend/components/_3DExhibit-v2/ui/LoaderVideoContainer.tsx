@@ -4,6 +4,8 @@ import { vec3 } from "gl-matrix";
 
 import styled from "styled-components";
 
+export { startLoadingLogo } from "@features/landing-carousel/components/loadingLogo";
+
 export function drawStarfield(
     canvas: HTMLCanvasElement,
     width = 0,

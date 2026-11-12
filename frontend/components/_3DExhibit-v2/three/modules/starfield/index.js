@@ -56,6 +56,8 @@ import Renderer 	from '@3renderer'
 
 import gsap from 'gsap'
 
+import { startLoadingLogo } from '@features/landing-carousel/components/loadingLogo'
+
 // Warp-speed star field shown while a space loads. It renders straight to the
 // screen during the intro (and on top while it fades out), or into
 // `renderTarget` for portal previews, where this object is the preview mesh's
@@ -216,6 +218,8 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 			case APP_STATES.INTRO:
 
+				this.showLogo()
+
 				this.activate()
 
 				this.addEvents()
@@ -300,7 +304,30 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 		this.camera.updateProjectionMatrix()
 	}
 
+	// The logo sits in the middle of the canvas for as long as the intro
+	// shows, and fades out with the stars.
+	showLogo(){
+
+		if ( this.logo ) return
+
+		const parent = Renderer.domElement?.parentElement
+
+		if ( parent ) {
+
+			this.logo = startLoadingLogo( parent )
+		}
+	}
+
+	hideLogo(){
+
+		this.logo?.fadeOut( 900 )
+
+		this.logo = null
+	}
+
 	desactivate(){
+
+		this.hideLogo()
 
 		return new Promise((resolve)=>{
 
