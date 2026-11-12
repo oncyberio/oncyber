@@ -91,7 +91,7 @@ it("renders the enhanced Altitude fallback on a published gallery with no upload
     try {
         act(() => root.render(<Harness />));
         expect(coverSources(output[0])[0]).toBe(
-            "/landing-build/gallery-previews/altitude-gpt.webp"
+            "/landing-build/gallery-previews/altitude-gpt-1280.webp"
         );
         expect(output[0].href).toBe("/spaces/no-upload");
         expect(output[1]).toBe(cards[1]);

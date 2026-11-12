@@ -825,7 +825,7 @@ const Shell = styled.div`
         right: -3px;
         width: 8px;
         height: 8px;
-        background: #ff3b3b;
+        background: var(--oc-accent-create);
         border: 2px solid #14161b;
         border-radius: 50%;
     }

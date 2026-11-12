@@ -91,6 +91,8 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 $flat={flat}
                 $featured={featured}
                 data-template-status={card.templateStatus}
+                data-opening={card.opening || undefined}
+                aria-busy={card.opening || undefined}
                 data-destination-status={card.destinationStatus}
                 aria-description={status}
                 aria-label={
@@ -109,6 +111,12 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
             >
                 {flat && <CoverImage card={card} />}
                 <div className="card-shade" />
+                {card.opening && (
+                    <div className="card-loading" role="status">
+                        <span className="card-spinner" aria-hidden="true" />
+                        <span>Creating your space…</span>
+                    </div>
+                )}
                 <div className="card-top">
                     {status ? (
                         <span className="template-pill">{status}</span>
@@ -252,6 +260,46 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
             transparent 55%,
             #00000030
         );
+    }
+    .card-loading {
+        position: absolute;
+        inset: 0 0 var(--caption-height, 54px);
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #0b0d0eb3;
+        backdrop-filter: blur(6px);
+        color: #f8f8f8;
+        font-size: 12px;
+        font-weight: 500;
+        animation: card-loading-in var(--oc-fast) ease-out both;
+    }
+    .card-spinner {
+        width: 22px;
+        height: 22px;
+        border: 2px solid #ffffff33;
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: card-spin 0.8s linear infinite;
+    }
+    @keyframes card-loading-in {
+        from {
+            opacity: 0;
+        }
+    }
+    @keyframes card-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    &[data-opening] {
+        cursor: progress;
+    }
+    &[data-opening] .card-top {
+        opacity: 0;
     }
     .card-top {
         position: absolute;
@@ -422,6 +470,9 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
         img,
         .enter-arrow {
             transition: none;
+        }
+        .card-spinner {
+            animation-duration: 2.4s;
         }
     }
 `;

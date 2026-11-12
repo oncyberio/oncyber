@@ -49,8 +49,12 @@ export default function TemplateCatalog(props: CatalogProps) {
     }, [props.active, router]);
 
     async function openStudio(exhibit) {
-        void preloadStudio().catch(() => {});
-        await prepareStudio(exhibit, !token || isAnonymous);
+        // The picked card keeps its loading state until Studio's code is in,
+        // so the editor mounts right away instead of a blank route.
+        await Promise.all([
+            preloadStudio().catch(() => {}),
+            prepareStudio(exhibit, !token || isAnonymous),
+        ]);
         if (!(await router.push("/studio")))
             throw new Error(
                 "Navigation was cancelled. Your space is saved; try opening it again."
@@ -84,6 +88,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
     const { authenticated, isAnonymous } = useContext(UserContext);
     const router = useRouter();
     const [opening, setOpening] = useState(false);
+    const [openingId, setOpeningId] = useState<string>(null);
     const openingRef = useRef(false);
     const [error, setError] = useState("");
     const [selected, setSelected] = useState<string>(null);
@@ -130,6 +135,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
         if (!room && card.id !== "template-blank") return;
         openingRef.current = true;
         setOpening(true);
+        setOpeningId(card.id);
         setError("");
         try {
             if (card.id === "template-blank") await onCreateEmptyStudioSpace();
@@ -140,6 +146,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
         } catch (failure) {
             openingRef.current = false;
             setOpening(false);
+            setOpeningId(null);
             setError(
                 failure.message || "Could not open Studio. Please try again."
             );
@@ -147,7 +154,11 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
     }
     useEffect(() => {
         onChange({
-            cards,
+            cards: openingId
+                ? cards.map((card) =>
+                      card.id === openingId ? { ...card, opening: true } : card
+                  )
+                : cards,
             checking: isCheckingBalances,
             loading: isLoadingRooms,
             opening: opening || !!roomsState.roomCreatingSpace,
@@ -161,6 +172,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
         loadingError,
         error,
         opening,
+        openingId,
         roomsState.roomCreatingSpace,
         refetchRooms,
         onChange,

@@ -171,6 +171,31 @@ export function publishRoomModelSource(source) {
 }
 
 /** Stay within the exact authored skin and day/night export chosen for arrival. */
+/**
+ * What a room file is, apart from how it is labelled: the IPFS content id
+ * when the URL has one, otherwise the URL without its `filename` label.
+ * Uploaded rooms often list the same file under every tier
+ * (`/ipfs/<cid>?filename=…-low.glb`, `…-mid.glb`, `…-high.glb`).
+ */
+export function roomFileIdentity(url) {
+    if (typeof url !== "string") return "";
+    const ipfs = url.match(/\/ipfs\/([A-Za-z0-9]{32,})/);
+    if (ipfs) return `ipfs:${ipfs[1]}`;
+    try {
+        const parsed = new URL(url.trim(), "https://local.invalid");
+        parsed.searchParams.delete("filename");
+        parsed.hash = "";
+        return parsed.toString().replace(/^https?:/, "");
+    } catch {
+        return url.trim();
+    }
+}
+
+/** True when two room URLs point at the same file. */
+export function isSameRoomFile(a, b) {
+    return !!a && !!b && roomFileIdentity(a) === roomFileIdentity(b);
+}
+
 export function selectRoomTextureUpgradeSource(
     room = {},
     initial,
@@ -195,7 +220,13 @@ export function selectRoomTextureUpgradeSource(
         if (!(rank[quality] > rank[initial.quality])) continue;
         const key = initial.cycle === "night" ? `night_${quality}` : quality;
         const url = paths[key];
-        if (typeof url === "string" && url.trim() && url !== initial.url) {
+        // A tier that is the same file as the one loaded has nothing to add:
+        // downloading it again would only repeat the whole room.
+        if (
+            typeof url === "string" &&
+            url.trim() &&
+            !isSameRoomFile(url, initial.url)
+        ) {
             return {
                 url,
                 quality,

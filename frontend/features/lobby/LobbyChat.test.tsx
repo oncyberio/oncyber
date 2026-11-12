@@ -2,7 +2,7 @@
 import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import LobbyChat from "./LobbyChat";
+import LobbyChat, { FEED_LENGTH } from "./LobbyChat";
 import { LOBBY_GUEST_PORTRAIT } from "./lobbyIdentity";
 
 let container: HTMLDivElement;
@@ -365,10 +365,36 @@ test("hidden and closed conversations keep incoming messages unread until visibl
     render();
     expect(container.querySelector(".chat-unread-dot")).toBeNull();
     act(() => setOpen(false));
+    // A closed chat shows Global above the bar, so it is read there.
     receive("while-closed", "alice");
-    expect(container.querySelector(".chat-unread-dot")).not.toBeNull();
-    act(() => setOpen(true));
     expect(container.querySelector(".chat-unread-dot")).toBeNull();
+    // A direct message is private and still waits behind the dot.
+    receive("dm-while-closed", "alice", "self");
+    expect(container.querySelector(".chat-unread-dot")).not.toBeNull();
+});
+
+test("a closed chat keeps the latest Global messages in view", () => {
+    render();
+    expect(container.querySelector(".chat-feed")).toBeNull();
+    for (let index = 1; index <= FEED_LENGTH + 2; index++)
+        receive(`global-${index}`, "alice", undefined, `hello ${index}`);
+    receive("private", "alice", "self", "just for you");
+    const feed = container.querySelector<HTMLElement>(".chat-feed");
+    expect(feed).not.toBeNull();
+    const lines = feed.querySelectorAll(".chat-message");
+    expect(lines).toHaveLength(FEED_LENGTH);
+    expect(lines[0].textContent).toContain("hello 3");
+    expect(lines[FEED_LENGTH - 1].textContent).toContain(
+        `hello ${FEED_LENGTH + 2}`
+    );
+    expect(feed.textContent).not.toContain("just for you");
+    act(() => feed.click());
+    expect(container.querySelector(".chat-feed")).toBeNull();
+    expect(container.querySelector("#lobby-chat-log")).not.toBeNull();
+    act(() => setOpen(false));
+    hidden = true;
+    render();
+    expect(container.querySelector(".chat-feed")).toBeNull();
 });
 
 test("messages received in a background tab stay unread until the tab is visible", () => {

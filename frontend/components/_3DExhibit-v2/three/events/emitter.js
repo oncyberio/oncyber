@@ -21,7 +21,9 @@ installStableEmit(emitter)
 
 emitter.on_prior = emitter.prependListener.bind(emitter)
 
-emitter.setMaxListeners(100)
+// Every artwork, light and mirror in a space subscribes to the frame events,
+// so large spaces pass 100 per event without leaking anything.
+emitter.setMaxListeners(1000)
 
 emitter.getEventCount = () => {
 

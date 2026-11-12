@@ -15,7 +15,13 @@ import Players from "@3factory/player"
 
 import { getUserInitialPositions } from "@components/_3DExhibit-v2/three/utils/camera";
 
+/** Seconds a player who lost the floor without jumping keeps probing for it. */
+const SNAP_GRACE = 0.1
+
 export class Physics {
+
+    /** Seconds since the floor was last under the player. */
+    offFloorTime = 0
 
     constructor(opts) {
 
@@ -238,12 +244,19 @@ export class Physics {
 
         this.collisions.isFlymode = this.flymode
         // Stay on the floor over seams, steps and down slopes: a grounded
-        // player that is not rising looks a little below for the floor.
-        const snap = wasOnFloor && !this.flymode && state.veclocity.y <= 0 && !state.isJumping
-            ? 0.35 : 0
+        // player that is not rising looks a little below for the floor. Reach
+        // grows with the stride so a fast run (or a slow frame) down a slope
+        // of up to about 55 degrees keeps its footing. A probe that misses on
+        // a seam keeps looking for a few frames instead of starting a fall.
+        const stride = Math.hypot(deltaPosition.x, deltaPosition.z)
+        const footing = wasOnFloor || this.offFloorTime < SNAP_GRACE
+        const snap = footing && !this.flymode && state.veclocity.y <= 0 && !state.isJumping
+            ? Math.max(0.35, stride * 1.5) : 0
         const collisionResult = this.collisions.playerCollitions(this.position, deltaPosition, !shouldUseFirsPerson, snap);
 
         const { playerOnFloor, endPosition, startPosition, result } = collisionResult
+
+        this.offFloorTime = playerOnFloor ? 0 : this.offFloorTime + deltaTime
 
         if (result && (!playerOnFloor && !this.flymode)) {
 

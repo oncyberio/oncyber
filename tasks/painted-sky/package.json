@@ -1,0 +1,16 @@
+{
+    "name": "painted-sky",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Builds the Starry Night skydome's brush-stroke file from the destination's 360 sky image",
+    "type": "module",
+    "scripts": {
+        "build": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON build.ts"
+    },
+    "engines": {
+        "node": ">=22.18"
+    },
+    "dependencies": {
+        "sharp": "0.35.5"
+    }
+}

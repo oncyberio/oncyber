@@ -1,0 +1,31 @@
+{
+    "keys": [
+        "Renderer",
+        "Scene",
+        "Camera",
+        "Root",
+        "PostProcessing",
+        "Dynamicportal",
+        "world"
+    ],
+    "camType": "PerspectiveCamera",
+    "fov": 65,
+    "far": 1400,
+    "pos": [0, 2.8477020412683482, 0],
+    "bg": {
+        "geo": "SphereGeometry",
+        "params": {
+            "radius": 2,
+            "widthSegments": 32,
+            "heightSegments": 32,
+            "phiStart": 0,
+            "phiLength": 6.283185307179586,
+            "thetaStart": 0,
+            "thetaLength": 3.141592653589793
+        },
+        "mat": "NodeMaterial:BackgroundSharpMaterial",
+        "map": [2048, 1024, null],
+        "scale": [1, 1, -1],
+        "rot": [0, 0, 0, "XYZ"]
+    }
+}

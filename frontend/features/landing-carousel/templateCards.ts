@@ -9,10 +9,23 @@ import {
 } from "./templateSearch";
 
 import { destinationCover } from "@utils/destinationCover";
-export {
-    CYBER_WAREHOUSE_COVER,
-    destinationCover as templateCover,
-} from "@utils/destinationCover";
+import { resize } from "@utils/urlUtils";
+export { CYBER_WAREHOUSE_COVER } from "@utils/destinationCover";
+
+// Cards and the details panel show covers about 500 CSS px wide, so 1024
+// device pixels covers 2x screens. Uploaded covers are often 2048 px PNGs;
+// hosts that resize (Pinata, Cloudinary) also convert them to WebP.
+const COVER_WIDTH = 1024;
+
+function cardImage(url: string) {
+    return resize(url, COVER_WIDTH, undefined, "webp");
+}
+
+/** Approved template artwork, sized for cards and the details panel. */
+export function templateCover(room?: Parameters<typeof destinationCover>[0]) {
+    const cover = destinationCover(room);
+    return cover && cardImage(cover);
+}
 
 /** One gallery catalog: usable rooms and a blank canvas, then collectibles. */
 export function createTemplateCards(
@@ -50,10 +63,12 @@ export function createTemplateCards(
             actionLabel: ready
                 ? `Use ${room.name} template`
                 : `View ${room.name} details`,
-            imageUrls:
-                cover && cover !== room.image && cover !== room.thumbnail
-                    ? [cover]
-                    : [room.image, room.thumbnail].filter(Boolean),
+            imageUrls: (cover &&
+            cover !== room.image &&
+            cover !== room.thumbnail
+                ? [cover]
+                : [room.image, room.thumbnail].filter(Boolean)
+            ).map(cardImage),
             creator: "",
             owner: "",
             visits: 0,

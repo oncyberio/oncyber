@@ -56,15 +56,36 @@ const fetchedAsBytes = (url: string) =>
     isGlbUrl(url) || isManagedModelUrl(url) || /\.vrm(?:[?#]|$)/i.test(url);
 
 /**
- * The room model a lobby-prepared frame of this page will download, for each
- * answer to "does the GPU take compressed textures". Null where Scene3D would
+ * How the destination will be opened. The lobby prepares a frame that always
+ * prefers the low file; a link from the landing page opens the page itself,
+ * which picks by the GPU tier remembered from an earlier visit.
+ */
+export type WarmEntry =
+    | { kind: "lobby" }
+    | {
+          kind: "direct";
+          gpuTier: "low" | "mid" | "high" | null;
+          isMobile: boolean;
+      };
+export const LOBBY_ENTRY: WarmEntry = { kind: "lobby" };
+
+/**
+ * The room model the destination will download (a lobby-prepared frame, or
+ * the page itself for a direct entry), for each answer to "does the GPU take
+ * compressed textures". Null where Scene3D would
  * not start from these props (it fetches the room itself, or the room is a
  * kitbash/upload model that does not go through the room cache).
  */
-export function warmRoomModels(pageProps: any): {
+export function warmRoomModels(
+    pageProps: any,
+    entry: WarmEntry = LOBBY_ENTRY
+): {
     plain: string | null;
     compressed: string | null;
 } | null {
+    // A direct visit picks by GPU tier; with no remembered tier the page
+    // looks it up first, so the file can't be known in advance.
+    if (entry.kind === "direct" && !entry.gpuTier) return null;
     const experience = pageProps?.experience;
     let room = pageProps?.dest;
     const roomId = experience?.info?.room;
@@ -79,11 +100,19 @@ export function warmRoomModels(pageProps: any): {
             // A frame prepared in the lobby always prefers low resolution
             // (Scene3D: preferLowResolution: isLobbyDestinationPreparing()),
             // which makes GPU tier and the mid-first order irrelevant.
-            classicRoomModelOptions({
-                preferLowResolution: true,
-                compressedSupport,
-                skin: experience.info?.currentSkin,
-            })
+            entry.kind === "direct"
+                ? // Scene3D on a page opened by a link (not the lobby).
+                  classicRoomModelOptions({
+                      gpuTier: entry.gpuTier,
+                      isMobile: entry.isMobile,
+                      compressedSupport,
+                      skin: experience.info?.currentSkin,
+                  })
+                : classicRoomModelOptions({
+                      preferLowResolution: true,
+                      compressedSupport,
+                      skin: experience.info?.currentSkin,
+                  })
         );
         if (!source?.url || source.source === "upload") return null;
         const url = roomCacheKey(source.url);
@@ -101,6 +130,9 @@ export type WarmRequest = {
     origin: string;
     buildId: string;
     locale?: string;
+    entry?: WarmEntry;
+    /** The page's server data when the page already read it. */
+    pageProps?: any;
 };
 export type WarmResult = {
     type: "warmed";
