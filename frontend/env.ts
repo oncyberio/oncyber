@@ -15,6 +15,15 @@ const firebaseConfig = {
     FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Local Firebase emulators (`pnpm dev:local`). Set, the browser talks to these
+// hosts instead of Firebase; the server reads the unprefixed variables that
+// firebase-admin already understands (FIRESTORE_EMULATOR_HOST, ...).
+export const firebaseEmulators = {
+    auth: process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST,
+    firestore: process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST,
+    database: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_EMULATOR_HOST,
+};
+
 export const nodeEnv = {
     POLAR_SAMA: "/api/proxyv2?url=",
     DEV_FORCED_OWNERSHIP_WALLET:
