@@ -1,5 +1,6 @@
 import { Fragment, ReactNode } from "react";
 import Link from "next/link";
+import CodeBlock from "./CodeBlock";
 
 /**
  * A small Markdown renderer for the docs pages: headings, paragraphs, lists,
@@ -231,12 +232,11 @@ function renderBlocks(blocks: Block[]): ReactNode {
                         );
                     case "code":
                         return (
-                            <pre
+                            <CodeBlock
                                 key={index}
-                                data-lang={block.lang || undefined}
-                            >
-                                <code>{block.code}</code>
-                            </pre>
+                                lang={block.lang}
+                                code={block.code}
+                            />
                         );
                     case "details":
                         return (
