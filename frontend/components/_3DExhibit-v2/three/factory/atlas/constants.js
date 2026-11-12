@@ -1,0 +1,21 @@
+const ATLAS_EVENTS = {
+
+	NEW_TEX: 'NEW_TEX',
+
+	REMOVE_BLOCK: 'REMOVE_BLOCK',
+
+	BLOCK_DATA: 'BLOCK_DATA'
+}
+
+const TEXTURE_SIZE = 1024
+
+const BLOCK_SIZE = 256
+
+export {
+
+	ATLAS_EVENTS,
+
+	TEXTURE_SIZE,
+
+	BLOCK_SIZE
+}

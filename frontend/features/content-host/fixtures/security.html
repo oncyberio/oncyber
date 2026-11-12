@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Oncyber isolation checks</title>
+    <style>
+        :root{color-scheme:dark;font:14px/1.5 system-ui,sans-serif;color:#f3f3f1;background:#101010}
+        *{box-sizing:border-box}body{margin:0;padding:110px 24px 120px}main{max-width:850px;margin:auto;padding:28px;background:#191919;border:1px solid #ffffff12;border-radius:24px}
+        h1{margin:0 0 8px;font-size:26px;font-weight:500}p{color:#c2c2bd}small{color:#93938e}button{margin:8px 0 16px;padding:12px 18px;border:0;border-radius:12px;background:#d3ec42;color:#20201e;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:default}button:focus-visible{outline:2px solid #f3f3f1;outline-offset:4px}
+        table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{text-align:left;vertical-align:top;padding:12px 8px;border-bottom:1px solid #ffffff12;overflow-wrap:anywhere}th{color:#93938e;font-weight:400}th:first-child{width:92px}th:nth-child(2){width:38%}td:last-child{color:#c2c2bd}.pass{color:#d3ec42}.fail{color:#ffaca6}.waiting{color:#93938e}#summary{min-height:24px;color:#f3f3f1}
+        @media(max-width:600px){body{padding:90px 12px 100px}main{padding:18px;border-radius:16px}th,td{padding:10px 4px}th:first-child{width:58px}h1{font-size:22px}}
+    </style>
+</head>
+<body>
+<main>
+    <h1>Oncyber isolation checks</h1>
+    <p>This local fixture checks the iframe boundary and sends deliberately unsupported bridge messages. It never requests an address, calls a wallet, signs, transfers, navigates the parent, or downloads a file.</p>
+    <button id="run" type="button" disabled>Run isolation checks</button>
+    <p id="summary" role="status" aria-live="polite">Waiting for the Oncyber host…</p>
+    <table aria-label="Isolation check results">
+        <thead><tr><th>Result</th><th>Check</th><th>Observed behavior</th></tr></thead>
+        <tbody id="results"></tbody>
+    </table>
+    <p><small>A pass verifies these browser and bridge checks in this session. Installed browser extensions have their own permissions; this fixture does not inspect or exercise them.</small></p>
+</main>
+<script>
+(function () {
+    "use strict";
+    const HOST_ORIGIN = "http://localhost:13000";
+    const TAG = "oncyber:content";
+    const run = document.getElementById("run");
+    const summary = document.getElementById("summary");
+    const results = document.getElementById("results");
+    const pending = new Map();
+    let session = null;
+    let counter = 0;
+    let running = false;
+    let passes = 0;
+    let failures = 0;
+    let cooldownUntil = 0;
+
+    function settle(id, response) {
+        const item = pending.get(id);
+        if (!item) return;
+        pending.delete(id);
+        clearTimeout(item.timer);
+        item.channel.port1.close();
+        item.channel.port2.close();
+        item.resolve(response);
+    }
+
+    window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (event.source !== window.parent || event.origin !== HOST_ORIGIN ||
+            !data || data.tag !== TAG || data.v !== 1) return;
+        if (data.kind === "init" && /^[a-f0-9]{48}$/.test(data.session)) {
+            if (session === data.session) return;
+            session = data.session;
+            for (const id of Array.from(pending.keys())) settle(id, { changed: true });
+            if (!running) {
+                run.disabled = Date.now() < cooldownUntil;
+                summary.textContent = "Host connected. Ready to check this sandbox.";
+            }
+            return;
+        }
+        if (data.kind === "result" || data.kind === "error") {
+            // Match by unique ID before inspecting the session. A reply to the
+            // forged nonce must count as a failure even if its nonce changes.
+            settle(data.id, { data, via: "window" });
+        }
+    });
+
+    function request(method, nonce, timeout = 2500, payload) {
+        return new Promise((resolve) => {
+            const id = "probe-" + (++counter);
+            const channel = new MessageChannel();
+            const timer = setTimeout(() => settle(id, { timeout: true }), timeout);
+            pending.set(id, { resolve, timer, channel });
+            channel.port1.onmessage = (event) => settle(id, { data: event.data, via: "port" });
+            try {
+                window.parent.postMessage({
+                    tag: TAG, v: 1, kind: "request", session: nonce, id, method,
+                    ...(payload === undefined ? {} : { payload }),
+                }, HOST_ORIGIN, [channel.port2]);
+            } catch (error) {
+                settle(id, { failed: error.name });
+            }
+        });
+    }
+
+    function row(label, passed, detail) {
+        const tr = document.createElement("tr");
+        const status = document.createElement("td");
+        status.textContent = passed ? "PASS" : "FAIL";
+        status.className = passed ? "pass" : "fail";
+        const name = document.createElement("td");
+        name.textContent = label;
+        const observed = document.createElement("td");
+        observed.textContent = detail;
+        tr.append(status, name, observed);
+        results.append(tr);
+        if (passed) passes++; else failures++;
+    }
+
+    function blocked(label, read) {
+        try {
+            read();
+            row(label, false, "Access succeeded; expected a SecurityError.");
+        } catch (error) {
+            row(label, error.name === "SecurityError", "Browser raised " + error.name + ".");
+        }
+    }
+
+    function describe(response) {
+        if (response.timeout) return "No reply before the bounded timeout.";
+        if (response.changed) return "Host session changed during the check; rerun.";
+        if (response.failed) return "Request could not be sent: " + response.failed + ".";
+        const data = response.data;
+        // Never print payloads: even an unexpectedly permissive host must not
+        // turn this diagnostic into a display of account data or credentials.
+        return data?.kind === "error"
+            ? "Host rejected with " + String(data.error).slice(0, 80) + "."
+            : "Received an unexpected reply (payload withheld).";
+    }
+
+    function isReply(response, nonce, method, kind) {
+        const data = response.data;
+        return data?.tag === TAG && data.v === 1 && data.session === nonce &&
+            data.method === method && data.kind === kind;
+    }
+
+    run.addEventListener("click", async () => {
+        if (running || !session || Date.now() < cooldownUntil) return;
+        running = true;
+        run.disabled = true;
+        results.replaceChildren();
+        passes = failures = 0;
+        summary.textContent = "Running checks…";
+        const nonce = session;
+        function current(response) {
+            if (session !== nonce || response.changed) {
+                const error = new Error("Host session changed");
+                error.name = "HostSessionChanged";
+                throw error;
+            }
+            return response;
+        }
+        try {
+            // Execute directly during the click, before awaits. A null result
+            // is consistent with the iframe's no-popup sandbox policy.
+            try {
+                const popup = window.open("about:blank", "_blank");
+                const denied = popup === null;
+                if (popup) popup.close();
+                row("Popup creation blocked", denied, denied
+                    ? "window.open returned null during a user click."
+                    : "A blank popup opened and was immediately closed.");
+            } catch (error) {
+                row("Popup creation blocked", error.name === "SecurityError", "Browser raised " + error.name + ".");
+            }
+            row("Opaque document origin", window.origin === "null", window.origin === "null"
+                ? "Document reports an opaque origin."
+                : "Document does not have an opaque origin.");
+            blocked("Parent DOM inaccessible", () => void window.parent.document);
+            blocked("Parent local storage inaccessible", () => void window.parent.localStorage);
+            blocked("Parent session storage inaccessible", () => void window.parent.sessionStorage);
+            blocked("Parent wallet provider inaccessible", () => void window.parent.ethereum);
+            blocked("Own local storage unavailable", () => void window.localStorage);
+            blocked("Own session storage unavailable", () => void window.sessionStorage);
+            blocked("Own cookies unavailable", () => void document.cookie);
+
+            const ready = current(await request("ready", nonce));
+            row("Valid session acknowledged", isReply(ready, nonce, "ready", "result"),
+                isReply(ready, nonce, "ready", "result") ? "Host accepted ready for the live session." : describe(ready));
+
+            const forbidden = [
+                ["wallet.signMessage"],
+                ["personal_sign"],
+                ["eth_signTypedData_v4"],
+                ["wallet.sendTransaction"],
+                ["eth_sendTransaction"],
+                ["eth_requestAccounts"],
+                ["provider.request", { method: "eth_requestAccounts" }],
+                ["wallet.request", { method: "eth_requestAccounts" }],
+            ];
+            for (const [method, payload] of forbidden) {
+                const response = current(await request(method, nonce, 2500, payload));
+                const rejected = isReply(response, nonce, method, "error") &&
+                    response.data.error === "UNSUPPORTED_METHOD";
+                row(method + " rejected", rejected, describe(response));
+            }
+
+            const foreignNonce = (nonce[0] === "0" ? "1" : "0") + nonce.slice(1);
+            const foreign = current(await request("ready", foreignNonce, 1500));
+            row("Foreign session nonce ignored", foreign.timeout === true && session === nonce,
+                foreign.timeout ? "No reply within 1.5 seconds; session stayed unchanged." : describe(foreign));
+            const after = current(await request("ready", nonce));
+            row("Live bridge remains responsive", isReply(after, nonce, "ready", "result"),
+                isReply(after, nonce, "ready", "result") ? "Live-session ready acknowledged after the forged request." : describe(after));
+        } catch (error) {
+            row("Probe completed", false, error.name === "HostSessionChanged"
+                ? "Host session changed during the run. Rerun against the new document."
+                : "Fixture error: " + error.name + ".");
+        } finally {
+            running = false;
+            // Keep repeat clicks outside the host's 30-requests/10-second gate.
+            cooldownUntil = Date.now() + 10000;
+            summary.textContent = passes + " passed · " + failures + " failed. No wallet address was requested. Rerun available in 10 seconds.";
+            setTimeout(() => {
+                run.disabled = !session;
+                run.textContent = "Run checks again";
+                summary.textContent = passes + " passed · " + failures + " failed. No wallet address was requested.";
+            }, 10000);
+        }
+    });
+    setTimeout(() => {
+        if (!session) summary.textContent = "Host init not received. Open http://127.0.0.1:13001/security.html through http://localhost:13000/play.";
+    }, 5000);
+})();
+</script>
+</body>
+</html>

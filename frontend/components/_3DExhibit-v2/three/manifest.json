@@ -1,0 +1,103 @@
+{	
+	"OLD": 
+		{
+			"name"  : "blue_noise",
+			"url"   : "/textures/bluenoise.png"
+		}
+	,
+
+	"FONTS": {
+
+		"aeonik-bold": {
+
+			"name" : "aeonik-bold",
+
+		    "tex":  "https://cyber.mypinata.cloud/ipfs/QmPb98HRyNzYYQgtSwt9johXa3bY2VUxaVNT8jvteNnrb7?filename=Aeonik-Bold_yhvk4g.png",
+
+		    "json": "https://cyber.mypinata.cloud/ipfs/Qmb9LMyt9kxTgBf265wnhiGE5qXktRz66Z8Qc3J174agh5?filename=Aeonik-Bold_qukwmh.json"
+		},
+
+		"aeonik-medium": {
+
+			"name" : "aeonik-medium",
+
+		    "tex":  "https://cyber.mypinata.cloud/ipfs/QmPyF34fxVn7LUYspL7UyrkAb83hrcxRMZmGZJouwTZ7ur?filename=Aeonik-Medium_uf6kbn.png",
+
+		    "json": "https://cyber.mypinata.cloud/ipfs/QmX2ucJFQwBWtFnvZfDnqsX2D5zRvSg3qnZhHzy6BH3MUF?filename=Aeonik-Medium_qeoypo.json"
+		},
+
+		"playfair-regular": {
+
+			"name" : "playfair-regular",
+
+		    "tex":  "https://cyber.mypinata.cloud/ipfs/QmX9JkiyuU6mxEyCXpTFH5Tsj6TFt5LvxciN5us1q1Qgp7?filename=PlayfairDisplay-Regular_vnj5hk.png",
+
+		    "json": "https://cyber.mypinata.cloud/ipfs/QmVfzQ2yoWeyzeR2jwxfbTCxJBXQWLVcLRMUKqt22p7uPu?filename=PlayfairDisplay-Regular_nk0iir.json"
+		},
+
+		"playfair-italic": {
+
+			"name" : "playfair-italic",
+
+		    "tex":  "https://cyber.mypinata.cloud/ipfs/QmXXiL2kw6oYdjp9QPDmPHS7snYV7NbAFQkwiGvbPi2Hyt?filename=PlayfairDisplay-Italic_e93d7o.png",
+
+		    "json": "https://cyber.mypinata.cloud/ipfs/QmQeRMHmbUVmbZKkpWQLv9xvzdwwK53Xn7Yz2wygzbLVYw?filename=PlayfairDisplay-Italic_hj1kgj.json"
+		}
+	},
+
+	"SPRITES" : [
+
+		{
+			"name"  : "label-sprite",
+
+			"urls": {
+
+			    "tex":  "/images/textures/labels/label.png",
+
+			    "json": "/images/textures/labels/label.json"
+			}
+		}
+	],
+
+	"INTRO": {
+
+		"assets": [
+			{
+				"name"  : "logo_loader",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/QmQ34hNF17EjwXKj3bvJ9CoyhqtivHXxHuUCv5pHCp6mFV?filename=loading_jilwwf.jpg"
+			},
+			{
+				"name"  : "logo_artwork_loader",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/QmUXG78d5MYXTWzchvQ9JXN18yVuNHBi5ofuj1e5Rhf3w5?filename=logoexport_jtemd1.jpg"
+			},
+			{
+				"name"  : "transition_map",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/QmZCwyDjbMtX6zfkwCV2eT5ibVrondmxP2KKgiapEbqMFv?filename=transitionmap2_zyex2x.jpg"
+			},
+            {
+				"name"  : "panorama_tile",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/Qme9NWAiJtekCSg29Ug2WcpTkPY8XS5SVXDs95vPZXQuBJ?filename=transition-tile_rms7io.jpg"
+			}
+        ]
+
+    },
+
+	"SPACE" : [
+
+	],
+
+	"CINEMATIC": {
+
+		"assets": [
+
+			{
+				"name"  : "logo_end",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/QmNVKCjyPhrU2aBuNFGpowtHu5b8fV9Jf6ZRp3mkSnGs3R?filename=endlogo_fhdd36.png"
+			},
+			{
+				"name"  : "logo_start",
+				"url"	: "https://cyber.mypinata.cloud/ipfs/QmSKB7dZFGzJF4vK3GBsUu3oWSyY7T3oK8KhBZLN8kxWmt?filename=logo_aspbhx.png"
+			}
+		]
+	}
+}

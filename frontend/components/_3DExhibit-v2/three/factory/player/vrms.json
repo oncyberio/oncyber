@@ -1,0 +1,1104 @@
+{
+    "sunshine": {
+        "id": "sunshine",
+        "name": "Summer",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQdEGgHE75rtiC3rppPnbmPauVG7qMiaB6wFdu9aobp9R?filename=sunshine.glb",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmdjrN7H1bxvc4pUZknYUQabg6MGP3M3cZskz91Gm9yCaZ?filename=summer_dck59g.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmdjrN7H1bxvc4pUZknYUQabg6MGP3M3cZskz91Gm9yCaZ?filename=summer_dck59g.png",
+        "description": "The first oncyber vrm avatar. Created by XCOPY, collected by 6529, made into a VRM by NeonGlitch.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPX6su2ExcPHiC1dKfpJk5aG94sZq7WogBd8Mp4LJ26Ck?filename=1684325990803.vrm"
+    },
+    "pepe": {
+        "id": "pepe",
+        "name": "Roller Pepe",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmf7RQDNPffqdiC47reQ3iZeAFqMmP8thwfBqyj4eyfsWr?filename=pepe.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmVqic3LemhMmftMRf8QqM6wiZYRdeB3LVXeYwC3VKi6SW?filename=pepe_lwmlvg.png",
+        "description": "Original concept by Matt Furie, the original creator of the Pepe character & collected by oncyber.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNdmWdeAKCNi7Fn37JGmctsNReTicKebr1hBo2RX8wj5d?filename=1684325992411.vrm"
+    },
+    "square": {
+        "id": "square",
+        "name": "Square",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmX7XfjWmKPXYe6eX9Kr719JtgiGMJe8iNt1YEJDdpTMhG?filename=square.glb",
+        "preview_image": "https://i.pcmag.com/imagery/articles/049t9YtkWr14Pwhz8gGNptI-1.fit_lim.size_1050x.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPp1fQYjxSekd1kuhxZ4TLaHi559dvq9eD3xZvyHFvMxA?filename=cryptopunksbg_by_0x76db02500f7631d57bc2dcdca9d4cf782b99e119_3_ofwiwb.png",
+        "hidden": false,
+        "description": "The check head version will default to a square if the profile picture isn't an NFT (eg. blockchain verified as owned by user).",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUqwn7P2KLw531Mr7ecBrRwyBRLhGxMiDZvomQh4TP2Vk?filename=1684325994863.vrm"
+    },
+    "check": {
+        "id": "check",
+        "name": "Check",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYrwgJc2iqZyJ76azoqSDt7t3V28FxyeoVKNihiTWB6NM?filename=check.glb",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmWmaTKUpwtXDrNLBWsv9WAq6JMiTyXEPrNacYAYPMoNsW?filename=check_grxx9j.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWmaTKUpwtXDrNLBWsv9WAq6JMiTyXEPrNacYAYPMoNsW?filename=check_grxx9j.png",
+        "description": "Embedded pfp avatar. Will default to a square head if using a non nft avatar and a check if nft avatar.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRTxg16a2WNWXNUTbuDu6bbfXhLVs521tuJ466JUyzSgz?filename=1684325996468.vrm"
+    },
+    "alienking": {
+        "id": "alienking",
+        "name": "Alien King",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmVqBA8QPRguanNBvQwUSngCuwxv9hjj4sEhW7LgyXVa8b?filename=alienking_qlvem7.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmVqBA8QPRguanNBvQwUSngCuwxv9hjj4sEhW7LgyXVa8b?filename=alienking_qlvem7.png",
+        "description": "Alien King, RTFKT x Takashi Murakami",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmRbQMQkC1xerFdLeT8vH3SLWdAjvj1T59VskdhFfTJFow?filename=1692887729-1692887728.052.vrm",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbLoVarJb1dNF1rgqUZ28YkgyWyPf79zSq8iJnzPrwQy7?filename=1692887740626.vrm"
+    },
+    "tottori": {
+        "id": "tottori",
+        "name": "Tottori",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmW9vHifS3jZzRb9mpHjfyiptEQzv6HDjWxV3YTXc2hGE5?filename=1692885790-1692885789.482.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmPnzxFpyiHcpUt9sXHea35wY3JRVQFJvvVKaG5S3ATHbq?filename=Tottori_eqqjb8.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPnzxFpyiHcpUt9sXHea35wY3JRVQFJvvVKaG5S3ATHbq?filename=Tottori_eqqjb8.png",
+        "description": "Vipe Hero #222.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRoxPxwiUc7Vra5NmCok8WPAy5125icYoWusxCpXZ9kSS?filename=1692885801027.vrm"
+    },
+    "chimpers": {
+        "id": "chimpers",
+        "name": "Chimpers",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmcdp2oGeD66QF9KSkAyUnVEfEaUG36RMABNFMCSKB4oA9?filename=1692886018-1692886017.557.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmdYYGW4DFYmzyEbDJADQ2G6pmxxi4bRRVknbHoSfj6B2N?filename=monkey_xfannq.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmdYYGW4DFYmzyEbDJADQ2G6pmxxi4bRRVknbHoSfj6B2N?filename=monkey_xfannq.png",
+        "description": "Chimpers x ArtUnchained",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmXJNAZTzG5DahN5JjWe6n6Jtf3aNe3AY61rHfx9W3cxvR?filename=1692886021612.vrm"
+    },
+    "ozohr": {
+        "id": "ozohr",
+        "name": "OZOHR",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZidf9GvizcnZXYohGyqRjNJM226fsf25fcnFk6vJWNHY?filename=1692636853-1692636853.039.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmWY6Pt3z3kmg9nwYgPPyMZ2wucbaSenpkoWpWts38eXdm?filename=OZOHR_cwfhlj.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWY6Pt3z3kmg9nwYgPPyMZ2wucbaSenpkoWpWts38eXdm?filename=OZOHR_cwfhlj.png",
+        "description": "ELECTROMANCER OZOHR OF THE LIGHT. Forgotten Runes Wizard 5728.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTGawkiKV8WUVrSUm9aYqKiACab1dTethZPqgTQnn4Uce?filename=1692636856652.vrm"
+    },
+    "smowl": {
+        "id": "smowl",
+        "name": "Smowl",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmT7pfxjZQmmoyiokAe2AB3VrWJKyZXvskKm4px96LyfHL?filename=1692636911-1692636910.82.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmcB3jeXcjFqFWNHBLdqQpLJBThcyhWYcKDapq1iriwzwY?filename=swol_moxy9o.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmcB3jeXcjFqFWNHBLdqQpLJBThcyhWYcKDapq1iriwzwY?filename=swol_moxy9o.png",
+        "description": "Darkfarms Smowl 18.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmQx68h91vpSYK3WqNH6p482Gwcbeu4d57raJtV9kP7RHF?filename=1692636916088.vrm"
+    },
+    "mfer": {
+        "id": "mfer",
+        "name": "mfer",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQY6a4vuNeikm4QB8QYvAeQ6NKnuRm91gyzQzZG9CCpgc?filename=1692636949-1692636948.38.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmP6ufHZyoZ6Y3jcNWQudcmkUg4cryKUY2Ea4A5LecBfxQ?filename=mfer_e0xgle.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmP6ufHZyoZ6Y3jcNWQudcmkUg4cryKUY2Ea4A5LecBfxQ?filename=mfer_e0xgle.png",
+        "description": "HeresMy mfer, just getting started.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmaVJPnomrfHsh5fudKw3VhAw8WdPGwy4Qa1udNmk43Jjh?filename=1692636956485.vrm"
+    },
+    "bunny": {
+        "id": "bunny",
+        "name": "Bunny",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdNmPt1UGcZwXVAjWGpxGverqWjZ3gPBbDNnQ5gBrXLaR?filename=1692637197-1692637196.574.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmS9wY4DwE9C7VL4cZnXJoKXX3xvWv4xR2r4FnpxwGkk6f?filename=Bunny_mqpo9j.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmS9wY4DwE9C7VL4cZnXJoKXX3xvWv4xR2r4FnpxwGkk6f?filename=Bunny_mqpo9j.png",
+        "description": "Cyber Brokers Genesis Mechs: Bunny Suave.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYF7MBeYxQD7Jxmr6L2YAjiPysKEsbvtujjciKXw3gWQ9?filename=1692637206950.vrm"
+    },
+
+    "fred": {
+        "id": "fred",
+        "name": "Fred",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmeyWHKrvBKYMuDtWBYjQgKXnvZFy3DGFkRWe53ExvRiSp?filename=1692637046-1692637044.848.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmPAoCu6GgxfTMG3idXrvBToA3uVx9WqXqtKXNHwRgj953?filename=fred_vndlga.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPAoCu6GgxfTMG3idXrvBToA3uVx9WqXqtKXNHwRgj953?filename=fred_vndlga.png",
+        "description": "Coldie DEyes Legends #586",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTgKtYtzY5vDUqXZdEKXjRNRi8sDreoGFfyzZtDpbtqGo?filename=1692637056221.vrm"
+    },
+    "void2045": {
+        "id": "void2045",
+        "name": "VOID 2045",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWBorKXQSn51F2MBxtCsntJotiXk6uVGrsxLxSUjjCL6u?filename=1693484976-1693484975.664.vrm",
+        "preview_image": "https://cyber.mypinata.cloud/ipfs/QmR1CaQ2bCVuQ7JeRL91MVvFiVCfJpeW81BuUL72uqky4c?filename=void_bwky0l.png",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmR1CaQ2bCVuQ7JeRL91MVvFiVCfJpeW81BuUL72uqky4c?filename=void_bwky0l.png",
+        "description": "The Visitors of Imma Degen have arrived.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZWxie3FEZz342FMKxTvZhHjupaCfLg8Wqv2fvZ7AAeT5?filename=1693484984934.vrm"
+    },
+    "cool-steak": {
+        "id": "cool-steak",
+        "name": "Cool Steak",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmVTCaEnnyvZ8HFKd6rqtbsSjCtoNtGdCdLAS2p5xLTQPm?filename=cool-steak.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPTUbNeZMwb55skuWBG1wiN65jiGEXXeD2HGME8Hh1SxK?filename=cool-steak.png-1680198304.113.png",
+        "description": "32 ETH",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVt9pfcGozNEboruvC12jdrFQpZddQT3CqbRsJ8MY1mUJ?filename=1684325997903.vrm"
+    },
+    "cool-cloud": {
+        "id": "cool-cloud",
+        "name": "Cool Cloud",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQmmS5NJ21yQo8DNaryxghuuhaL6BdMsBvnMUV9BPaTLL?filename=cool-cloud.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPSeBGxVAihrzragu5aJePui5npDvk8JbhsbXCxYLjEPs?filename=cool-cloud.png-1680198304.109.png",
+        "description": "I smell like dreams, ethereal dreams.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmQrgWfXSA5QyFVbdGZXXjm2bTxEweusJ6CZn1zvmE59Lh?filename=1684325999852.vrm"
+    },
+    "chilli": {
+        "id": "chilli",
+        "name": "Chilli",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZNB77Z7V41X1quvW7Ri9NMi6RYBywTnziXvaDTWPFNjL?filename=chilli.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQPfr8Gc3bFaMkTpSqDb5Xa3XgHd3wUr8m2ESJBNeJ75o?filename=chilli-1680286546.779.png",
+        "description": "When you need something to spice things up",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qme1K3EbHH6x6Cxi7A46YreVGLW2RD77qZ5LMEsK3K1eca?filename=1684326001395.vrm"
+    },
+    "retroman": {
+        "id": "retroman",
+        "name": "Retroman",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmc3TkmcnLyFTtfYwmzFdBP9bxTWtfZdgzxCLrnEJ6UaDF?filename=retroman.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmXPS2FBuPbHe6Zu3CR12ut6ByQtfWpwmETGQbVjeq4u1V?filename=retroman.png-1680198304.125.png",
+        "description": "A man from before colour.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmcbKhb1YNLufhSize7MNPdgPqoH6pQN9zENVtddbPd4nd?filename=1684326003066.vrm"
+    },
+    "froggy": {
+        "id": "froggy",
+        "name": "Froggy",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTUGp5hmqsm1ymCFYV9jmS7bStN47HXcLX8zFizLurWC9?filename=froggy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmZLt5f6UuXWZm3rhqiNXopXYG2UeyvP67JyW2HpVvZ6F6?filename=froggy.png-1680198304.117.png",
+        "description": "Chilling in the pond, jumping around and enjoying the trip.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYYg4LwE1oW1VPi2oicafMYDnYXShzLE5fhAzq6TfY9AH?filename=1684326004985.vrm"
+    },
+    "astrodisco": {
+        "id": "astrodisco",
+        "name": "Astrodisco",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmebsFg57VYWz2pbqz32E7FC7bkapvzre5xwEGPhZWZTmd?filename=astrodisco.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmdXBkGxjRf4eabi4p3esSJSu1Wfhiq3Y4mS1rbsYAT416?filename=astrodisco.png-1680198304.1.png",
+        "description": "In space, there is always a rave going on where I can dance for eons.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmecAmNG8b7ZSazJxmWKSmM1RsMob25PRaKjtBSoiKdJxz?filename=1684326006752.vrm"
+    },
+    "cool-asparagoose": {
+        "id": "cool-asparagoose",
+        "name": "Cool Asparagoose",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmW4ToEy3ZgRhNe9pYAxVWmdPZ8anDEdBwf2vr6W3MWRQH?filename=cool-asparagoose.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmUG3N3JHezaMgzBWmsuUNg7HehS2pxRoPfo3EmQgDohVf?filename=cool-asparagoose-1680286546.791.png",
+        "description": "I don't smell nice but can beat you in a fight!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qme6oTKy667DvrNMYMxN6grefMc15JQewo5TUgEdwD3DJP?filename=1684326008451.vrm"
+    },
+    "super-sup": {
+        "id": "super-sup",
+        "name": "SUPER SUP",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcuTLNh19EdYpZbWFaA5hdexwmw2AtvG9B3z5G4tzDXHn?filename=super-sup.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmRE75BX6e5TsNm7xUQaUQgYFMWqQx52BPcy58zvXDd2Fp?filename=super-sup.png-1680198304.129.png",
+        "description": "SUP BRO",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmWhoPn8hB4uwHCem6t4fneDHGUHpSx54eJUGxLGhXk8QG?filename=1684326010306.vrm"
+    },
+    "devil": {
+        "id": "devil",
+        "name": "Devil",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmaTwtSfBN55RgfohaXAi95iRHzGdBvYzgrmJzCHiQfqV3?filename=devil.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQ17s2sseXdgy4S1g7BToDAWn3dmmTDZv5PPPnCvZq5we?filename=devil.png-1680198304.114.png",
+        "description": "Want to make a deal?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRyJ1V5UxN9zxkT6t1xDho9Lwzd5ZL5pazY6eocsxjYXd?filename=1684326012315.vrm"
+    },
+    "cool-poo": {
+        "id": "cool-poo",
+        "name": "Cool Poo",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdL8LbcK8HPDJgKtBiZbYxzPBro3wC4rAzDAyhwWjQdR3?filename=cool-poo.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmP6rgTHyLgwRsPhTBKKxmmUBmF9p9EkoZ6wxiCYLERbuV?filename=cool-poo.png-1680198304.112.png",
+        "description": "MOOD\n💩💩💩💩💩💩",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTgPGwPJYKFopeuLPVJtg5Votn1N4anBDwBxhSnKYeDxV?filename=1684326013899.vrm"
+    },
+    "pumpkin": {
+        "id": "pumpkin",
+        "name": "Pumpkin",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTdK6Pu6WBQuDNYhhYF1Mjx3QPiXiLJhvqaAntYPyRhkr?filename=pumpkin.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmcio5nhAnEw3ZeGno2iCq6k2XmUNVVJHm2ECozxh8njHU?filename=pumpkin.png-1680198304.124.png",
+        "description": "Likes to eat kids and stuff, very friendly over a glass of wine.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbKN8jzYVt95hQoHXfNwRBT4uoFtzNMFFSZ8YGLomNAi9?filename=1684326015552.vrm"
+    },
+    "cool-drumstick": {
+        "id": "cool-drumstick",
+        "name": "Cool Drumstick",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWEWTehzhPkcq7LQwE2EEJH6oiCaQZir38AoiscA8dF2p?filename=cool-drumstick.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQs4F3roXVR4TmeVHRnTqjW7xyhpzQCdpiHgqjW2tGXoB?filename=cool-drumstick.png-1680198304.109.png",
+        "description": "Chicken leg. Super tasty.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYguCfiTV92KqKF2pVTC6kJTum8rL1U5JnYZpnV5AYFae?filename=1684326017254.vrm"
+    },
+    "cool-loops": {
+        "id": "cool-loops",
+        "name": "Cool Loops",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTYahw6VJw51j2bRGBMgKP2tdG3xC5DWNXQ6t3nZCfnNf?filename=cool-loops.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmYMYWAH57EW25h5F5HC7ggtEwgGCnPyhvLUucNw2FVURg?filename=cool-loops.png-1680198304.111.png",
+        "description": "Dope breakfast time with Cool Loops, take a spoon!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVKWyPeXQAgcJ54YjRVrziw3DsYAffBUAxUT1ZRojhVHb?filename=1684326018630.vrm"
+    },
+    "saint-claus": {
+        "id": "saint-claus",
+        "name": "Saint Claus",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQmtdSnmopUdDJCN5ygtUh7mkvN8cZsDZfnEvq44VzMWw?filename=saint-claus.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmZxjxsdRKVNEWY58CtefBVn9WNDMobLaTTjns6Em2i3py?filename=saint-claus.png-1680198304.125.png",
+        "description": "It's real, and it's here! ",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmfHVYW2h4FjvcYJuEBwN1phy5BxTdDQkmoLiZdL6rkSRB?filename=1684326020290.vrm"
+    },
+    "rabbit": {
+        "id": "rabbit",
+        "name": "Rabbit",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcoLDMXzR6DNoaR4JFiWAQiZrdi7SVgHwcnAf6iL6azyp?filename=rabbit.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmeekkAqtihqDav49P9umTxbKJ9nK7tienDcpn4ijGzWCF?filename=rabbit.png-1680198304.124.png",
+        "description": "What is under that mask?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZEzkjKvKgdUML9zjtUKTKM1Rj4Wh7ujLTJny7K7MMMvw?filename=1684326022068.vrm"
+    },
+    "cool-cola": {
+        "id": "cool-cola",
+        "name": "Cool Cola",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmVhgHMCVcVeBJJ5jQ3KYJbnkY5UG477zWrU1RR1AakaEH?filename=cool-cola.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmSL2fJC85dTq6SBBxojhpHpKJGZmwYHHR3rxUMbPFd6ru?filename=cool-cola.png-1680198304.109.png",
+        "description": "Splash of life.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmfZZCZaJvhKXf6cdG4HxJvVFCv5C5zZbYANzRsJ8CA14g?filename=1684326023806.vrm"
+    },
+    "cool-pan": {
+        "id": "cool-pan",
+        "name": "Cool Pan",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcC3dgqik2aQDu3UDSuf4CvCTGFU38hY2KHUqFvCzNAyp?filename=cool-pan.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWbZWNTmo9UUmu1CgNEz5m5BgrASBmL93daLK3gw4QNUp?filename=cool-pan.png-1680198304.111.png",
+        "description": "I cook. And protect.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZNa9GeuSnLaQUPGT8qPaBwLWXQamcFhsaRbXPgHdbBmr?filename=1684326025539.vrm"
+    },
+    "cool-egg": {
+        "id": "cool-egg",
+        "name": "Cool Egg",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmW9N8fdiUuBUfLMWfa3TjrkdWgd1sZEEVpp1346FtuD4x?filename=cool-egg.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmRr1CtC5yGiB2sUn8WKjqMnf4dzgMF56xttG7jGUPgnss?filename=cool-egg.png-1680198304.11.png",
+        "description": "Egg is egg. You know?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUH7JbAwQQZDxHxrWuthrr6jKEe3AsHoNxNHQmL5rqGCF?filename=1684326027760.vrm"
+    },
+    "fungus": {
+        "id": "fungus",
+        "name": "Fungus",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdRuggpi5nERib32dQF9y9PAnDuGrrtPpitQSRiC8hvC5?filename=fungus.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQYMhJiLtw9juvxEwrkHU7XhKTB8rRkkd7ijwzUrsUSzu?filename=fungus.png-1680198304.117.png",
+        "description": "Born from the depths of the forest, a living mushroom that you should not eat.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUSz8c7pgkkohjgnzFqjKotoG2xTyEqPgusopCgoWqvsD?filename=1684326029422.vrm"
+    },
+    "circle-boi": {
+        "id": "circle-boi",
+        "name": "Circle Boi",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmfNPmLf8whCLpFkCwcnNN2y1L8Lzc4ZStPFLD9bWAzeyf?filename=circle-boi.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmb4fmxaWC1NGeEPe4nYzTjvfEk6BZtPKjmeaVcNmaXC83?filename=circle-boi.png-1680198304.106.png",
+        "description": "loop loop loop loop loop loop",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmfT2qJmtV7CbFwNkz35rhGo4jycSUKNyRa5YqiFPLZkCu?filename=1684326030881.vrm"
+    },
+    "cool-ketchup": {
+        "id": "cool-ketchup",
+        "name": "Cool Ketchup",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmc4KknP6edHLNbunBS35R4wuLFUfHYTKhd6sNrkPAuxe9?filename=cool-ketchup.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmVwSB5uAtkQ8XKZZ2cAb7JZ3gVU9bgGc2xoWG7JptjaNY?filename=cool-ketchup.png-1680198304.111.png",
+        "description": "There is a great tomato inside all of us.\n",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmWe5QA5mc96bGooQyGZJfxL76Um7e77oc1oNb4VecXxDU?filename=1684326032927.vrm"
+    },
+    "ban-hammer-dude": {
+        "id": "ban-hammer-dude",
+        "name": "Ban Hammer Dude",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmfBSZh8B2B9tsmc8Qt4nEjBYbK92uHQQB7o8VYq2qNpcn?filename=ban-hammer-dude.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQydKpsdPPMfjzozdvSaQyy7JE37Hnj5fyiwqUXQESqrK?filename=ban-hammer-dude.png-1680198304.102.png",
+        "description": "Don't break MY rules or I BAN YOU!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmW9hHSaExbweVMrLGURebWpRhEaYq9gzKMtSU4CLnJ9sd?filename=1684326034353.vrm"
+    },
+    "baldman": {
+        "id": "baldman",
+        "name": "Baldman",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSF7KKULRtkWTMRJ2rqEXPwiRSAt2RY4HvEZ4RS3M6fPP?filename=baldman.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmS2BnsKfR2Mgsmox2FrQGvGtkYJZ672DFtqgKMKhazch6?filename=baldman.png-1680198304.102.png",
+        "description": "Shiny bald head. You can almost see your own reflection...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVysnbw7f6tpvuqZUDUAJq5tjtzPzgbEBGMXiyQDqU2ko?filename=1684326036332.vrm"
+    },
+    "cucumber": {
+        "id": "cucumber",
+        "name": "Cucumber",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmebA61MErdLqQXLsP34ekZtEVmmtDB9U9BYDtHq5VfH9G?filename=cucumber.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmYo3bJXTFBFjh2W5qpvo5c4mGTfMW7HSD3GBmGMnTq1K4?filename=cucumber.png-1680198304.114.png",
+        "description": "Question? Cucumber.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVTUaeijksCsuAt5gYyKXm3E5UEGWk1ZrNcPUUefm4WvZ?filename=1684326037925.vrm"
+    },
+    "sticker": {
+        "id": "sticker",
+        "name": "Sticker",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmc5uGrPg9Gx48xw3FeSf2mKMwuUqu1fYYPge7RTxbeKW4?filename=sticker.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNqmyYKqdLUfZySvmegYnLWYtNZ1mqicBRMHUX4WtsNit?filename=sticker.png-1680198304.128.png",
+        "description": "> o <",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRySmLnEdzA9aeYKd5k28xiFH5r6dCtaR1JvGCYLMTihJ?filename=1684326039629.vrm"
+    },
+    "mowchok": {
+        "id": "mowchok",
+        "name": "Mowchok",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmPakbDW6fBE7JF8Vm2zcoyKZyb9M6wzeYoEcRXgGAKNy8?filename=mowchok.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaSbJ21ta7RGAuLw7RpR1jdv7cwAwXP5twPu3ECxKW7Fd?filename=mowchok.png-1680198304.123.png",
+        "description": "Mow Mow Chok Chok!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmcNdizP9qUG9KtgNz6BRdVyk74MuDrzNL1fNGw4cg3w1d?filename=1684326041240.vrm"
+    },
+    "expol": {
+        "id": "expol",
+        "name": "Expol",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTmsJLWZibqWZHh7LEP5YntSfd8dTSGPEbjBtMGFTk3mY?filename=expol.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmXMVjosbGRa98W7KfDYHUVbG2fH5Dt9yJmVprrE45iqW9?filename=expol.png-1680198304.116.png",
+        "description": "This little creature likes to explore the world!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmQpQiv7PStKYbqvXKuot9FUBMzggeY5e6T5dZJBC4DR5L?filename=1684326042964.vrm"
+    },
+    "avocado": {
+        "id": "avocado",
+        "name": "Avocado",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmNhvLzeZAAWmA7bMs21ULTFNeSzRvsFyWYBh7ZJMaoRpc?filename=avocado.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmdPoC4eHA3zzsvFiALBpoQySMxkoYuAx3emPR149KVvVg?filename=avocado.png-1680198304.101.png",
+        "description": "Half an avocado keeps the doctor away",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPWJFz843Zdh8Q9ErEp76iuPWRhhP6h97ECKG3nyVD6nj?filename=1684326044538.vrm"
+    },
+    "skull": {
+        "id": "skull",
+        "name": "Skull",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXKSKS1Xqt4pftSDkj8Zvk7HWte1u8dYx1YAJpm2VywZo?filename=skull.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmdfxjy9zMxrPHNLizidLxFNCs9JCei3bAr3srKs6bB7qX?filename=skull.png-1680198304.126.png",
+        "description": ".................................................................................................................Doesn't talk much",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYMYCH7eEiaS7UAco3zdVf2t1yPNfxwEZ22SUmZDxeQKN?filename=1684326046348.vrm"
+    },
+    "mafiossini": {
+        "id": "mafiossini",
+        "name": "Mafiossini",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmNpBg9UdWWDxYL9iwsDKbQGPUzA71qKKycEk4C3jLhcx4?filename=mafiossini.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWfPNCoq55Yw2US5KvgtF8TENdJcyE8ThE46KtfdfmdjD?filename=mafiossini.png-1680198304.122.png",
+        "description": "You can't lie to the mafia...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmXbia9kBFQh45VpCFb2ERafJkeGDPFcWczynNM1TnHZYk?filename=1684326048093.vrm"
+    },
+    "slug-person": {
+        "id": "slug-person",
+        "name": "Slug Person",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSMNUVoveDaBeVLRLfUX89Vx72HU9FG8X1pG78kmoqNDH?filename=slug-person.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmU2GQ7DqvbojnshcqjBxXjAt2mn7qhBsxXEMYvr5rHkh9?filename=slug-person.png-1680198304.126.png",
+        "description": "Nomad snail.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRma6P1mfKnxNxBw84AvBbWGA2Yi1WXi9JsKWY2gXhxLL?filename=1684326049714.vrm"
+    },
+    "cool-mail": {
+        "id": "cool-mail",
+        "name": "Cool Mail",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qme5jesNWqhwBcfm7n9g9ZeZyAz8VP8FuQ4v9kj6d58mW1?filename=cool-mail.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmYdrv62EyfsZ8gotptD81mZNEcARPFQFAwHhAKFWHQfgQ?filename=cool-mail.png-1680198304.111.png",
+        "description": "Not Royal, but loyal. Or not",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmdDgeNVgqu5tMhpu4HbjFZDtZzUBfCPPHLhswNZshgGhp?filename=1684326051449.vrm"
+    },
+    "cappy": {
+        "id": "cappy",
+        "name": "Cappy",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSevaL83HGkDZutwW4YrreqLYVifFuk5VRiquAoAfb1hX?filename=cappy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWSyVRAtcitnUCHndUcyFYsmAn2SqeUPhj9xALHKRXmHS?filename=cappy.png-1680198304.104.png",
+        "description": "Don't get in my way!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZdLrtSh7JrEyW8bMVJBj4Cse14CpWLkS48nZcT4Vb5Aw?filename=1684326053233.vrm"
+    },
+    "cool-barrel": {
+        "id": "cool-barrel",
+        "name": "Cool Barrel",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYy1gza1kumRJ7XPWbTvNf1tL4qbbkgR1s12Zc3NotKoG?filename=cool-barrel.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPqbt82TMoK5rQ6HeZUT2Uc268A2kCkyhtdvzQTvmjxfA?filename=cool-barrel.png-1680198304.107.png",
+        "description": "Here I ROLL",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZGLKzyzXsn1FV6bvcnytjWVeK91gspLUneD64nG7DPUd?filename=1684326055062.vrm"
+    },
+    "ghost": {
+        "id": "ghost",
+        "name": "Ghost",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXxNmd24MVvJWYjEde6DXft2pjajCTS9Wdxn2bzRkLPEw?filename=ghost.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPecurYKhKuEk2hSbXwDPDyq2tBRi4uBG97PtTJtzD954?filename=ghost.png-1680198304.118.png",
+        "description": "Ready to give you a spook.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTnX3847iBLQ1RoQKhQ4XFfiyGpSWcExn8mdYyp6YUmcK?filename=1684326056677.vrm"
+    },
+    "cool-fridge": {
+        "id": "cool-fridge",
+        "name": "Cool Fridge",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmaHHXmena1Em7XpWTDoW7H4w5LeCgecwBRSDAeiwaZrZp?filename=cool-fridge.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmSed6gfHAcjDkJJ6F29QxjL121UFm774W7TupKonXbjy9?filename=cool-fridge.png-1680198304.11.png",
+        "description": "Storing your food, Mi pan sususu ñam ñam ñam.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZfHuvJF5gjoUSoaAuwEtVXZaWLyiGiXv9CV1yfNPx3Ce?filename=1684326058459.vrm"
+    },
+    "scarecrow": {
+        "id": "scarecrow",
+        "name": "Scarecrow",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdxFhRK8qJoy9Ziqnbc5XXTiPcZdEo1Fbp7vVLYTwNZgs?filename=scarecrow.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmbGh8eA9L84h4q7oBDgG7SW4j4aTwKLvfEuzB1nSKtan9?filename=scarecrow.png-1680198304.126.png",
+        "description": "There seems to be even more crows than before...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbpEw79uXNDBD419HCZF5GLiimxnafp1GszJ1f358GUjp?filename=1684326060184.vrm"
+    },
+    "amazonas": {
+        "id": "amazonas",
+        "name": "Amazonas",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWPR1cJRyafSWvnZvraJVycpCTABKSqzpCCztQHPum56Y?filename=amazonas.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNnvpYCeKnDpsgwK9EpCu6vrwKdJUcFGSTq5d2jeeKj9W?filename=amazonas.png-1680198304.098.png",
+        "description": "Welcome to the jungle!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTvo2Rx5pqwD6JhBeE7bVaTXEYQeH4UeA44z5WuFYwnYR?filename=1684326061744.vrm"
+    },
+    "cool-battery": {
+        "id": "cool-battery",
+        "name": "Cool Battery",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQ9bUA7HQqFmJTDKmGqELDXSHDmh2gXBkb3kM5G68hZo4?filename=cool-battery.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmanhevMwE29n4rHnjomHfPxsXSYSNHpwQPtf5MoBRifyE?filename=cool-battery.png-1680198304.108.png",
+        "description": "Life hacks are my jam.\nEnergetic vibe.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVczkHo3SVGH8DPSa7my6CZrmVVqhmRNGRQP5ubNY4iRH?filename=1684326063709.vrm"
+    },
+    "slim-ringo": {
+        "id": "slim-ringo",
+        "name": "Slim Ringo",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYzDMEWSfXdJ6jNJWuELTHKA3xiEtZ6XYmeFRcDPrCftD?filename=slim-ringo.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWbd8HdxKULCCAggfxuWg1FoykLszJjKHbCz64XDhQB92?filename=slim-ringo.png-1680198304.126.png",
+        "description": "This horns are my brains.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVhuW6P5RUbvxrL95TJDdrx4MhcBPe1w79zPmJBrX6e8W?filename=1684326065360.vrm"
+    },
+    "big-bro": {
+        "id": "big-bro",
+        "name": "Big Bro",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWx8rrYqKmLS5eND82e9rM8xs6bpMDTe3YWu7JffwmjVN?filename=big-bro.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmeoAfNqDwdmxdFjzQUZF72y8Sov9uYhLRES3NsmUDEtyd?filename=big-bro.png-1680198304.102.png",
+        "description": "LilBro's big brother. A bit bigger than his little brother.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmckwmJbUJokLewhHxXZwu4TfMMCgajDZSR9RgYU3K3vy8?filename=1684326067026.vrm"
+    },
+    "robothead": {
+        "id": "robothead",
+        "name": "Robothead",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXvcMdzqqpEj7D6V8a6tB1AgvPwfuhsNmW1UoWDSdLPqc?filename=robothead.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmc4md6o2T4pHvgGNoDZuub6tZbMBznZ53nxbDqmmd4xBE?filename=robot-head.png-1680198304.125.png",
+        "description": "Enhanced human person.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmb9uazJESTPvTHvF1AcRZGF426oXhuSGzTR19xNM1DQpL?filename=1684326068608.vrm"
+    },
+    "chad": {
+        "id": "chad",
+        "name": "Chad",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTA25SMZ2niQJq3J1mTR5ogs7ZYjhbAvzTRfra3oaVJSB?filename=chad.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWMMgfFRSQvJ2M9Q8SPeaDW846V7BkTy17oEVmSp896QZ?filename=chad.png-1680198304.105.png",
+        "description": "Friendliest Chad you've ever met. Both a brute and a sweethearth.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmSN41EaCL7i2Ua1YmJYx1n4tSr1kEULEtxRrdeZBsF1hm?filename=1684326070010.vrm"
+    },
+    "cool-plunger": {
+        "id": "cool-plunger",
+        "name": "Cool Plunger",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSvMFTY93mx6qTrJwzA11aZSmoZs7EAigDdYMDkawcm8Q?filename=cool-plunger.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWSiqhTwNP5BsX1jaVF5sYruUVZ3CedA2ToNyfQFEFxjC?filename=cool-plunger.png-1680198304.112.png",
+        "description": "Amazing sounds I make.\nI've seen the other side of your sink... spolier, it sucks.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmSfk8trN4p46TfEpE1ru9CEsDy9f3CtknV1oSZXbVaK8e?filename=1684326071596.vrm"
+    },
+    "toilet-paper": {
+        "id": "toilet-paper",
+        "name": "Toilet Paper",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWP3pUQYQYLjowtwCCCPzLfhbG2GoJgUpV4SUDYH9ey3S?filename=toilet-paper.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmXSwZ1nnkfbUGvpmaDn2QJsZpwYTaLJ7t3GiivZwJJdVx?filename=toilet-paper-1680286546.792.png",
+        "description": "Always disappears when you need it the most",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZS8w5bdoNmQpjb3zEPhoRPVgzfJZDt4wUmZHudSEzakC?filename=1684326073217.vrm"
+    },
+    "chaotic-ozul": {
+        "id": "chaotic-ozul",
+        "name": "Chaotic Ozul",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmbSkFVLL2eSjbgvHRxUEnFu4SpVZw1GoXixyLG4ZYRmup?filename=chaotic-ozul.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmfL5sNxN6iUQ57pKJUUj5Dzs6vxTHdJ6245o5aPkCo2xC?filename=chaotic-ozul.png-1680198304.106.png",
+        "description": "From the deep dark and bellow, its curiosity brought it forward to investigate and play, wants to have fun and discover new things.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmSuMgdC5WypJg6kTbb3DzRpronYKnH9A94miFiDYLBJqM?filename=1684326075026.vrm"
+    },
+    "unicorn-person": {
+        "id": "unicorn-person",
+        "name": "Unicorn Person",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmVtcNP9QYyoR78ZAH34YZL3gbQU9m9ipVzAnivigRa6Zb?filename=unicorn-person.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmY41ikD1KMMsVJePNmoWjTDXsrf3ogS1bsYqVkwPrkmh6?filename=unicorn-person.png-1680198304.129.png",
+        "description": "Rainbow mood. Fantastic!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPofGkkdaj5TB7N155ZUbhyeVzQctpTbaUvu495jWQSga?filename=1684326077011.vrm"
+    },
+    "cool-shield": {
+        "id": "cool-shield",
+        "name": "Cool Shield",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXHwzzgeJEbu1kXGhJiEe73ETJfcvTuFkcUcrSCoVdAR7?filename=cool-shield.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmcUF9WUTZUmR9UioPyojTMsUXMCXcfjp3Q94e3sRy291h?filename=cool-shield.png-1680198304.112.png",
+        "description": "Use me to block attacks.\nOr die.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTecBUfQHc3z8qxuRDKk2mEHJ3HnywUH51B3NL9yekcvB?filename=1684326078570.vrm"
+    },
+    "wizzir": {
+        "id": "wizzir",
+        "name": "Wizzir",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmX1Pukw9Vzbo9sFBLKudBQa2m2CU92N1cEMtQ2ERh3EmL?filename=wizzir.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQG3cBFz8NakmgA7NmkSQAynsfwVDZJG2KsbenhxMBSHc?filename=wizzir.png-1680198304.13.png",
+        "description": "BAHAHAHAHAHAHAHAHAHA let's some magic stuff!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNsrd9yfw7wHBEoK1JLuUP9HYK1s1n75t7KHScNxMA2uf?filename=1684326080376.vrm"
+    },
+    "real-cake": {
+        "id": "real-cake",
+        "name": "Real Cake",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdrkQLMMYDUfbU5MjsDYMJY9S59gWPXSgCvpi2zhbBstL?filename=real-cake.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPndfzLrWrguCyTLheP23My4yLqWinR3BjYuL38GPYwye?filename=real-cake.png-1680198304.125.png",
+        "description": "I'm a lie. Trust me.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNmoeYV8ZQAkeMBskSeYn2rMVyCKv8aQT9devNrrN8jgM?filename=1684326082206.vrm"
+    },
+    "david": {
+        "id": "david",
+        "name": "David",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZoD5mK8GHSnHcgYWoshMQre7U8peU63aNCpGqVxNMS2D?filename=david.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmcHXSVUXQYjF93XvGAvi87C98CesHYGinFoBF3z21DHEW?filename=david.png-1680198304.114.png",
+        "description": "Protects your garden against bigger threats.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUHyeo1JwBkteQyA3As8Hvuamjb3RE8r3ak3FezQQW6oK?filename=1684326083873.vrm"
+    },
+    "butter": {
+        "id": "butter",
+        "name": "Butter",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmctMtBrbuTm35ZvL7eJ1FskbqhKKiUpYMgv3oJdo415tg?filename=butter.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmc9BnZA3smdUgeBrzwaUmsGowxZ4S7cEoBmnVmn3QM4UD?filename=butter.png-1680198304.103.png",
+        "description": "Just don't eat it straight away. Please.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmatC7pr98B6FLeDPhfn3FAXsZwkzvN4WyTxPdNdhhg9g9?filename=1684326085438.vrm"
+    },
+    "clown": {
+        "id": "clown",
+        "name": "Clown",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcM7bRqZuTbXjzfsqm3n4vvGqwDQ6C7VUPWSEyqW6NGKr?filename=clown.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNPEqjb2TTzmwCTP8enTjdfojbPxiNEAutCvhJ6LDNPAG?filename=clown.png-1680198304.106.png",
+        "description": "Was never invited to any kid's party...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmQxdZ2LPGzC8zz1advg945rt1EXojXeXvS8qeEEzcEQSM?filename=1684326087130.vrm"
+    },
+    "cool-money-bag": {
+        "id": "cool-money-bag",
+        "name": "Cool Money Bag",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdcnJQmX5K6LGdpGQpT9ZN3GUkWdru3HmRPU7M3yQB3b2?filename=cool-money-bag.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNoUVcrSmgo427kCPD7EimNHCRr1b4MAFXzgujMv1mgmQ?filename=cool-money-bag.png-1680198304.111.png",
+        "description": "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRV57XkHxNu5fTkM2W8zJNrtMGV4kNA3qmWU1qYjTEW2M?filename=1684326089107.vrm"
+    },
+    "mummy": {
+        "id": "mummy",
+        "name": "Mummy",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmNNHn6JjWbnKzw1DJvvY28ri1nkLVK4ASHNGHeSaCkjeM?filename=mummy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmV8hFaacc8p8chjpmTRgLy94esdMSZH8GRn1BQWfA9eVi?filename=mummy.png-1680198304.123.png",
+        "description": "Wrapped in cloth he's ready to go.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRVJiuV24Lzqx7XGdN4eJMKPwsPHWuS9XZGjTwRpWLayX?filename=1684326090701.vrm"
+    },
+    "cool-stickman": {
+        "id": "cool-stickman",
+        "name": "Cool Stickman",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmdv4qEm9p4UdVjQHe2Dv7NPRan72y64QtYxgC8VrhiDnG?filename=cool-stickman.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmX97QPWwq25cgFzy11Kx7D3JY9WBi9BN7Di6MDWSH79vL?filename=cool-stickman.png-1680198304.113.png",
+        "description": " Most famous doodle in the virtual world!\nCan't beat me!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmdqvJR9NgnPijXRC6JCuuDcGLidnZtKdorvKoppuCcDkY?filename=1684326091996.vrm"
+    },
+    "wire-friend": {
+        "id": "wire-friend",
+        "name": "Wire Friend",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmY45D2vHopFyMtpinR8cTyiq27A6Tz1oD4BXim6EpR74k?filename=wire-friend.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPyiuLMqZKjS9ecas2kjgW7biBzMRUUU3uZCCifGP1HeH?filename=wire-friend.png-1680198304.129.png",
+        "description": "👁️👄👁️",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qme4Uk3fnn3mFYBN4qf2XQ3ZD97KeBSSJS6fMXXeN6iZZ6?filename=1684326093716.vrm"
+    },
+    "pipe": {
+        "id": "pipe",
+        "name": "Pipe",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmfKtrBc857kkHTXmgLD2AmZwBeM1ApdeLz7py8EEPM5CH?filename=pipe.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qme5ahaJmidURfiMc5BFtupS9D7q394RtKXBhrMmFio92L?filename=pipe.png-1680198304.124.png",
+        "description": "Everything is natural in that pipe.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmWHAHsvr8gdtMGajHY6R91X72CrP8CfJZM2vessvN1Kcz?filename=1684326095292.vrm"
+    },
+    "shark-person": {
+        "id": "shark-person",
+        "name": "Shark Person",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZYgzBs7FMsvBsn3o88D2BcwHdaAZvLGwefCMWC93S8SE?filename=shark-person.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmTScdv8ZHifjNAnEkjwoUCdrHuxiQ7M2PFHp6fadyyxRK?filename=shark-person.png-1680198304.126.png",
+        "description": "Hammertime. Do you even hammer?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUSwuMPaS9mw9hPdCtUo2rCRKUarv5RHqUjrpGUbc7bPb?filename=1684326096880.vrm"
+    },
+    "captain-lantern": {
+        "id": "captain-lantern",
+        "name": "Captain Lantern",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qme5URyK3ZB2CYk6SNPaXg6HWXvy1c6tyn9cxeF1Pq8yJu?filename=captain-lantern.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNxi9sksKCgKGzYTYq8QuE1SfaGkEsa8o3uyvddYtSpJc?filename=captain-lantern.png-1680198304.105.png",
+        "description": "Who is there?\nMike, is that you?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZZ8SnbKvhKgb18h5AS8r42TGdQUYjstB8gnWJ4YYYMPP?filename=1684326098642.vrm"
+    },
+    "always-watching": {
+        "id": "always-watching",
+        "name": "Always Watching",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXoayBPvXAbdE3icAPZ1hwLezRfqyvF2QHNmSnaAbmni9?filename=always-watching.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmbM3RsN2mYagZECKFiGEjrA9R1rhHT267jijxLhGR9PeS?filename=always-watching.png-1680198304.087.png",
+        "description": "Silently watching. Always. All day. Forever.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmd5qP6cRQUuFzGLFApWR9oLxPDrqh5nmhtGnADJg23xN4?filename=1684326100986.vrm"
+    },
+    "old-moustache": {
+        "id": "old-moustache",
+        "name": "Old Moustache",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmUezZ8eQb7dbU2FGjkzgqy6XrR7W32PYD9nnPVS5yJFoZ?filename=old-moustache.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQNWffxTSzhy6XCCzKSjZxdFEU4qc7VVffJwNtjMSQCnN?filename=old-moustache.png-1680198304.123.png",
+        "description": "Superhero from another age, brother of various business mans.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmb8dG5wFNXxwN2NXVZ4BhnbfphRyniKyCxDACRmT863kv?filename=1684326103113.vrm"
+    },
+    "conehead-being": {
+        "id": "conehead-being",
+        "name": "Conehead Being",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXBFHsbQCyqz9UZKYSaBYmiZCiVqQ4ex1Vtc5TTeprpSA?filename=conehead-being.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qma6Y5k4oc1c2S1kSupJzEQkFRnZqoNGj2LGiHj2kDj7bA?filename=conehead-being.png-1680198304.107.png",
+        "description": "Just chilling. Can I help you? ",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPFrZi4TgZGMY1zctBQCN2eWMs62Nc9uAfiop2vpeYDvW?filename=1684326104691.vrm"
+    },
+    "hotdog": {
+        "id": "hotdog",
+        "name": "Hotdog",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWxNSf5TkiU1SW5LR3UumKYg5vRTWt17cMYpHgHg2YmQC?filename=hotdog.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmVcasvoUWjMm2QERawDYo6mfTybAJDQyveWb214egnp5S?filename=hotdog.png-1680198304.12.png",
+        "description": "This hotdog is always ready to party.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmY2te1FQxhJhtqhAonKyqZqXSHzN2E9dYwrR9jdHeXSCe?filename=1684326106260.vrm"
+    },
+    "samuela": {
+        "id": "samuela",
+        "name": "Samuela",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcK8qfWxvZVn25bYRJamGHcwUBQvLWGNeqMKiZrpW4RSz?filename=samuela.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmeK6qJS8mbfhAMQLyhaBFkudfVTqruesF275opFPcWn3U?filename=samuela.png-1680198304.125.png",
+        "description": "Unknown origin, unknown destination.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYTtJ4wYfaeLRhdumhVajzjmVELda5dZv2HBXmSamWcnu?filename=1684326107966.vrm"
+    },
+    "cool-broom": {
+        "id": "cool-broom",
+        "name": "Cool Broom",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmebjmmdsHjN9zT8C6ZR78GFMQi6sDNUuDKTHtLx8HM2C4?filename=cool-broom.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmSPCKqrMihVoCVL4u13VM8tXBZGurEQ4bw2sA1umbTXAA?filename=cool-broom.png-1680198304.108.png",
+        "description": "Cleaning your wallet you got a lot of dirt in it.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmXHXvP3vMx6fz1MTCGg7bjZjgneX5qmgNrZF8pE1UuW4f?filename=1684326109516.vrm"
+    },
+    "wop-wop": {
+        "id": "wop-wop",
+        "name": "Wop Wop",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYPhd3tHikMFhH7fzT31Nhng7kfAjtB2FtYjr1AhH78ke?filename=wop-wop.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmX7ToLrr99bb9pDBRvPzHov5sEw3nBP4475EVyDXipFeG?filename=wop-wop.png-1680198304.13.png",
+        "description": "Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop Wop",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPXNbWfV1xy8Bro6cPQ7rwcFhe68599et95bvekGmHXJ8?filename=1684326111045.vrm"
+    },
+    "coffee-maker": {
+        "id": "coffee-maker",
+        "name": "Coffee Maker",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWVgJ8Xw2KhFXSyWvLkcxVYmZKxqhPTCPz1ykNHhDka4R?filename=coffee-maker.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmbMUQjVFMDmmpYs7UYYQiLNicNe1L2kUw9nnfHZqbjdcA?filename=coffee-maker.png-1680198304.107.png",
+        "description": "Wake up, time for coffee!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmeDpczj6zdTHzToPmDdDza35rnarAEdadnuUaHBLoCydJ?filename=1684326112771.vrm"
+    },
+    "tasty-sandwich": {
+        "id": "tasty-sandwich",
+        "name": "Tasty Sandwich",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdCCdz5MKN15upmerYRKRCit5BtQWUJv6zgS9hkbAuehu?filename=tasty-sandwich.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmR7YUzbMrsxQETfNDKkfMwBY9mFGvhcDKn4QNc3q3ojtG?filename=tasty-sandwich.png-1680198304.129.png",
+        "description": "I got the energy you need.\nFor a short period of time.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNcpYdrhNuVFYoG9HSDM1QFBZB2qWv8rkRwwxESFQrhL9?filename=1684326114232.vrm"
+    },
+    "hodler-king": {
+        "id": "hodler-king",
+        "name": "Hodler King",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQVJjw4VuPg2XxTkZBNqfhR3rhqLHCgBcLvGBmGiK2SMo?filename=hodler-king.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmVQPj3QrLbAbWd5WC7TxSgQcJVB7oyUSLLbugQ358e7B2?filename=hodler-king.png-1680198304.118.png",
+        "description": "I'm in it for the tech.\nAnd now also for the nfts.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbJvvuwrFZRtLLimCjdwDAjcg2pPHAnZJBE2ppysdGaPY?filename=1684326116001.vrm"
+    },
+    "wambo": {
+        "id": "wambo",
+        "name": "Wambo",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmboCwKk3gQS8URwgmz6u3cQbizzKCkf6dYpXvhPEN2vyG?filename=wambo.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQP3LaonjyTkyhAjX2f4q86hRegAtGo9vkLHV2DPvJni6?filename=wambo.png-1680198304.129.png",
+        "description": "A powerful spirit guides my path.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZqH37egCAXETQ3VBM5AdNEwPHRihw3JRJJ1tMw9AkrF4?filename=1684326117832.vrm"
+    },
+    "mister-contract": {
+        "id": "mister-contract",
+        "name": "Mister Contract",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTNPepp2LwANHDG9dmouGGkUg9s9AUSporyYx2ixu6qRt?filename=mister-contract.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaFkpMTpt7gn98WoqDKksZ48uDJBjRXc9t61Kv9KKAd6R?filename=mister-contract.png-1680198304.122.png",
+        "description": "Here I am, to make some real business on top of the network.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmSLNYcYJFazWMV8q6SkGRYAA5A1RXZETqEr3tyUXfP8Ka?filename=1684326119545.vrm"
+    },
+    "lil-bro": {
+        "id": "lil-bro",
+        "name": "Lil Bro",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZinTQHb1zEjq9yC2XTQWJesYk3g2CiUGRemYqi17Hj19?filename=lil-bro.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmemaP4KLj4DnP4x88ZKT3R5xmcETsmSV8FzqkG65WkvTQ?filename=lil-bro.png-1680198304.122.png",
+        "description": "Little brother of BigBro. Can't contain much liquid itself, but he sure has the spirit!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmXLbgq7eVjPk5dg1A9offsbGWrqChSfYJWTzeXDyWPvjH?filename=1684326121254.vrm"
+    },
+    "kate": {
+        "id": "kate",
+        "name": "Kate",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSSGKjiDmnTfds5NTqh3nqz7X4RRFzvPGNqidtdjLbKfp?filename=kate.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmSz3o5S8oGsTPdCVvecnUtdrEzMWxNrphSBwuK5Pot43t?filename=kate.png-1680198304.121.png",
+        "description": "Hello, my name is Kate.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmfGLkaifienrvXGUwihGFGdXzomaqLzHbzfJfhjReq7Sf?filename=1684326122799.vrm"
+    },
+    "polydancer": {
+        "id": "polydancer",
+        "name": "Polydancer",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmTHMrPZrQHxGoRDYvfn7MDoSvNCwZQVf16ThTK9msEKGC?filename=polydancer.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmRTvEc5XQ9ptfHyTPqLxuAWW6KCxNemcMpwPFyNtza43t?filename=polydancer.png-1680198304.124.png",
+        "description": "Shaking those edges.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNehLsR1j16W4gRcUG4he2TfEqmh9eozfXx61F2tJ82t3?filename=1684326124489.vrm"
+    },
+    "mushy": {
+        "id": "mushy",
+        "name": "Mushy",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXG8megzzXBr2RdmQvxaubZVCQCDgXRX994PkfKt6Qfg6?filename=mushy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmV2gLHJzZvbvUj6qQVtHygN1Z8dg8Bk71hDjzqmEVbfmd?filename=mushy.png-1680198304.123.png",
+        "description": "Friendly Mushroom that ate a human and became a cheerful being.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmfAdVKpKeS8H2yZAtTei7Z6rxPTmhnamHBnLovL49rHRP?filename=1684326126099.vrm"
+    },
+    "mighty-isak": {
+        "id": "mighty-isak",
+        "name": "Mighty Isak",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYBpYmrJAwgD5Cn9Tzew4MFk2a1zNYNGUuxbrP1K9HVhf?filename=mighty-isak.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmcYbyUFQxXBBa9i1SgfRsNJxkmguvNcp3ekf5TQR7tiMT?filename=mighty-isak.png-1680198304.122.png",
+        "description": "Born in the depper lands of the dessert, this knight is ready to discover the world and deal with anything that come in his way.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmR33b8Xx1HCB418ZxXTUUxa4Ndhn4eUsPi2aimzgoNTvX?filename=1684326127785.vrm"
+    },
+    "cylinder-head": {
+        "id": "cylinder-head",
+        "name": "Cylinder Head",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmaNAWoboYwpm65TE4vVNnxUfrLgvgJrVgNBLzzYTXrygs?filename=cylinder-head.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWTNkoyAe3Wisa7aKFsxu5jeoKqmmsc5bZHToi1ZHXYZJ?filename=cylinder-head.png-1680198304.114.png",
+        "description": "Thinking about cans.Their shape is familiar to me.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmWg1HDDUyzEW7nazro8EXDg4UXMh5fhgYSXd8cSAgvxW7?filename=1684326129302.vrm"
+    },
+    "candy-cane": {
+        "id": "candy-cane",
+        "name": "Candy Cane",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZxF7488XYftpkfCKv3wqVCznPonEutUSvNp5epsXLynp?filename=candy-cane.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmUMwYCfayusw1wKPgvT9R6tAExS1MvMqe9PaEojWREnWZ?filename=candy-cane.png-1680198304.104.png",
+        "description": "Don't eat many of these or you'll get cavities",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVm8r2kSqEUzJfb1Dq6F8eWXz9h9FnBgfGDoE7oAgWH3a?filename=1684326131099.vrm"
+    },
+    "cool-orange": {
+        "id": "cool-orange",
+        "name": "Cool Orange",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmRCNJco186u41aFA9NUF6MD64kpveELntTz1vThQ7waA3?filename=cool-orange.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQ44a5WRMNDin66LfjttxQwmtfA9rQhsRV3ppSUQD8Ffy?filename=cool-orange.png-1680198304.111.png",
+        "description": "No, juice, no.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRHa1U5v3hizzu1wt24T6a1aF1mQpkvCDDspxz2HQhxjv?filename=1684326132525.vrm"
+    },
+    "cool-choco": {
+        "id": "cool-choco",
+        "name": "Cool Choco",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmXJLmKJB5mZndy2GHJSuUqfsufzjkZcugD2qKb13D1SiJ?filename=cool-choco.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmapcMpEnyoZJkUp1oajyqKfZvpEwNtdZZZENHUaqwd3Uw?filename=cool-choco.png-1680198304.109.png",
+        "description": "The best kind of chocolate, want to try it yourself?",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbmFjzorDFdbLvbaKf1GTPjK7UJMU7pUpQG59REzthwm2?filename=1684326134139.vrm"
+    },
+    "pencil-being": {
+        "id": "pencil-being",
+        "name": "Pencil Being",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmPTEXyaFzMeKCgkFQqi6uQuntP4LjPPY5rhHEdsmGr1bP?filename=pencil-being.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPCHWAxJrC7L4ErjKecuUn9YfpkgJZcnQD2tSXLPk2obs?filename=pencil-being.png-1680198304.123.png",
+        "description": "Let's Draw! \nI'm the vessel of imagination!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmWQCu3vU9wfL3ghYVnea1C3N4zCV6ttjjtvJHvqwSLD9z?filename=1684326135654.vrm"
+    },
+    "bubble-boi": {
+        "id": "bubble-boi",
+        "name": "Bubble Boi",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdM91TT5ErdTiu7RsNb8NHtDpC7dhzztaeSQQP1LPM4Cg?filename=bubble-boi.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaHSbRRaNpN7za7JSoxeV1r8HK3Q6pDLXahbLmTNYkYWD?filename=bubble-boi.png-1680198304.103.png",
+        "description": "Half air, half water. Baths are my jam.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmc8dWqzi9bgRk75rSkDVU51fnbQYod2YFdnYDFdJFQNSc?filename=1684326137194.vrm"
+    },
+    "ice-cream": {
+        "id": "ice-cream",
+        "name": "Ice Cream",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmd7thrkSHv5xFeJFLKKZke3bdDgFM8FSTdAndtxBCu5DK?filename=ice-cream.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmeBvwdp6QBRJMro7iEtVu48jBAydB6KjYCP6Adyhk2UCU?filename=ice-cream.png-1680198304.121.png",
+        "description": "When the sun is unbearable this bad boy always fresh things up.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbowwVT8LSjSsG59BTi3HtKj1rjV3dFSv2hTaqqW5K7nw?filename=1684326138677.vrm"
+    },
+    "cool-trash": {
+        "id": "cool-trash",
+        "name": "Cool Trash",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmR5cbqu2TgtbxGSGJ8E9KjiDkXz2mR7mT7ZH4hvfSL4Rv?filename=cool-trash.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmdyApD8hjrjm635c4NkhGywdmt59WVFjL649odk3Q4WS5?filename=cool-trash.png-1680198304.113.png",
+        "description": "I AM THE ART MASTERPIECE OF THE NEW AGE.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmNudiizLrq8qW43HDU76bsu32KFZmXQ8pMQdWWuai4iPE?filename=1684326140876.vrm"
+    },
+    "disturbing-eyes": {
+        "id": "disturbing-eyes",
+        "name": "Disturbing Eyes",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmbHxS1M9HLoHNut7nyBtvLJQFzejyP9HkEApyeqHT9wmE?filename=disturbing-eyes.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWRL5qnzEZPu2UkqmKZJV4npmXmy12TqMNKCJqsnyMWQr?filename=disturbing-eyes.png-1680198304.115.png",
+        "description": "Always with a straight face.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmdZAVbCfpGJYFhR2XSrjawQPc5tc9Wm4E92vD6CsY3ZkM?filename=1684326142651.vrm"
+    },
+    "horror-nurse": {
+        "id": "horror-nurse",
+        "name": "Horror Nurse",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmf8uZXkaSJ2VSsihi1bkJNqRKa3E5ajb4vatfHjbJNcti?filename=horror-nurse.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmZUHMv1NHpzPJSjTt2sdJY1e9iJ3DVcbdg6CQFNxnWdJM?filename=horror-nurse.png-1680198304.118.png",
+        "description": "Be quiet, you don't want to disturb other patients...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUD5QotwoVBUZAxKpXsEfh4r5sUr2eryHoEKKBM2vDqV2?filename=1684326144225.vrm"
+    },
+    "cool-tnt": {
+        "id": "cool-tnt",
+        "name": "COOL TNT",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQyCkNnZLCuTWXtfvepwh7ffZueZRzCmYchQxAUPn2uYM?filename=cool-tnt.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWczpPjWUvFwa9tTssgpaXfv6gDu5qFYMPNSSHiRWror8?filename=cool-tnt.png-1680198304.113.png",
+        "description": "BOOM! So explosive!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmevo778dMX87o7kFu7uxU1FFTjGkpmRqxs2t4y4qrzQQJ?filename=1684326145887.vrm"
+    },
+    "bacondude": {
+        "id": "bacondude",
+        "name": "Bacondude",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmdmoj3wrzLoutNErYsDGgTdEjPw7Gn4aYprh4xc5nCXfJ?filename=bacondude.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmNSEPyWMBMncnDgxsC1Aw1W5Z7DWaSX1XRJ31Xx6xUGNN?filename=bacondude.png-1680198304.101.png",
+        "description": "100% made of the best food in the world.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmbY64mVhz8AEEjdgGcT1WWyHzC2zUDzUmu6GAiG7afzDS?filename=1684326147480.vrm"
+    },
+    "eyelids": {
+        "id": "eyelids",
+        "name": "Eyelids",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmbrqe3YBcdTDcKQZb8haVHC272CvDVXTUo2Yj9oeoqCNV?filename=eyelids.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmSxpWQA7QP6JLVs974XkeCHmGQDTx3edHPuCHnnbtsv4b?filename=eyelids.png-1680198304.117.png",
+        "description": "We can SEE YOU....",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmePpJKLqV311ffFbNEHJq9aC2QmYDw8PGULGYWyKJj1BV?filename=1684326149373.vrm"
+    },
+    "franky": {
+        "id": "franky",
+        "name": "Franky",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmd19HMfoocyeJBhKrwKz8vJocK7Xj3VUNnZw3vhNeFtGY?filename=franky.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmbgMmGR8UN8Kdi5uPfNJpDF9xCwiTNk3P5efPJQE9KhHX?filename=franky.png-1680198304.117.png",
+        "description": "With a new brain he's ready to go.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmSSofMoqAv4T8Y5V6Fmufc3xHoRg63jxCuMkyFREmYE8X?filename=1684326151107.vrm"
+    },
+    "cool-bell": {
+        "id": "cool-bell",
+        "name": "Cool Bell",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQXqsboDF735JbJ8Vyxr7T3AMkbr1STXby7XBJLxmf7wQ?filename=cool-bell.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qma9qqKfoZtFSA1MuGaRu9SeH9QdzeSTaye7F2jj7Gcsw7?filename=cool-bell.png-1680198304.108.png",
+        "description": "DING DOONG",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmS2ZezFQP9wWmYs1527rDCC11CZRKPGQf6W6pSESaJMVA?filename=1684326152845.vrm"
+    },
+    "cool-ramen": {
+        "id": "cool-ramen",
+        "name": "Cool Ramen",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmPJvRAF8cd3n17S37UVUGkggktsQ23hRRwPh5uFMKuwzK?filename=cool-ramen.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmY4FD5KXZAGrcrJRqaw2pNWLTQHsPAzNXXySawAXMnZgr?filename=cool-ramen.png-1680198304.112.png",
+        "description": "Open Ramen.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmeFYNCKeuw86af8y1tiu4iN7DjKsTHMt5jRRezgGBBj5e?filename=1684326154424.vrm"
+    },
+    "cool-cow": {
+        "id": "cool-cow",
+        "name": "Cool Cow",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmRoLHMX5zVrv1s3cQ94U8WVeNdyjoXYyMfKPsDxWsdbC6?filename=cool-cow.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmUk5nz2Cghx2LjcVfGhjtWoNJ6rX1ESdFjU8waGYZfxWp?filename=cool-cow.png-1680198304.109.png",
+        "description": "MOOOOOO",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmacHfagD3YPPqgNvmoX8xCFBxTiVY8Z4HWkkgkTxoYx1h?filename=1684326155982.vrm"
+    },
+    "egg-boy": {
+        "id": "egg-boy",
+        "name": "Egg BOY",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYGHisR7jpZKwWdkBWKEdZU1Ex9MsSMqpBSm2FY4ivRxp?filename=egg-boy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPs2kWv88EwfaVbL1npaDg6K4BFpT7GVjSFhs1HegZraE?filename=egg-boy.png-1680198304.115.png",
+        "description": "Eggscelent boi.\nThe first avatar for the second round, truly a classic!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmcgVFKVf13kYC6QReHyyQBEwPYD4PjzK6LBhEXQaPtJaf?filename=1684326157762.vrm"
+    },
+    "falcon-dude": {
+        "id": "falcon-dude",
+        "name": "Falcon Dude",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSrBZ1UJ1vvwYLARbW7pABU4zfJtfDasSmdqyE8gXeLk5?filename=falcon-dude.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmX49RMtYRernULSPKErMsVD1kmbVztD5Wr9hgqsMb7M2W?filename=falcon-dude.png-1680198304.117.png",
+        "description": "Ancient moves yo.\nMy eyes see though time.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRAMnBaFHHVyV9YAqPV8YxKdtk3Xs6kqLh9rzqtqGZWUc?filename=1684326159231.vrm"
+    },
+    "eye-wizard": {
+        "id": "eye-wizard",
+        "name": "EYE Wizard",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWd6nXF1xPmDa7UneHZ1V23UdGSYrBBCRbaUvcPuArymY?filename=eye-wizard.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaHHB6f3LYgaiwnpWsfyyxRw8tG5yF9gJznYaYwfi6fWJ?filename=eye-wizard.png-1680198304.116.png",
+        "description": "Behold the power of the EYE.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZ2CTKcH31yLwzNXab3YmccS2CuGruW4qVkS5L57nmhr8?filename=1684326161317.vrm"
+    },
+    "cool-board": {
+        "id": "cool-board",
+        "name": "Cool Board",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmRaNXjBGPDhBjVxapacyHRutfojvCvgfbkywLXgBzXKKt?filename=cool-board.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQ1VFzKdxNTFNMVfMtSXafgBiXpQuEoVcXKMRW8GED2fC?filename=cool-board.png-1680198304.108.png",
+        "description": "So here I am, doing everything I can,\nHodling on to what I have,\nPretending I'm a Superman.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmaYPrVqje1xyRWyUbvRem3jmXyJfNqsZjCUvd9pMv9ESs?filename=1684326162952.vrm"
+    },
+    "lup-lup": {
+        "id": "lup-lup",
+        "name": "Lup Lup",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qme2646K5opZyYQLWTcgBnsB2TYUuGka74DgG7VJJU6Dnw?filename=lup-lup.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmPXNJxNthMDo6ViZcGxiH2sMPQ46os9kCdKsSfJ3R4nUN?filename=lup-lup.png-1680198304.122.png",
+        "description": "L U P L U P L U P L U P L U P L U P L U P L U P L U P L U P L U P L U P L U P L U P ",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVWSDRV24A3okuJHRN6VRvAJZ3Dh4b9m1gQVMZdA7Uopp?filename=1684326164504.vrm"
+    },
+    "erika": {
+        "id": "erika",
+        "name": "Erika",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQvAPefmmrVSPW44K7na9zXc2nUVhcinNgQaS6ko3DYv7?filename=erika.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmYkz4tcnBpGKrmMqG9GLUVYojvaZuqygUvCS53PNkEw4L?filename=erika.png-1680198304.115.png",
+        "description": "Staying under the sun for too long isn't good... Peace...",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmaCHxbNgKMMYqmiRkgf1waCShfGZJsLn91LXUVmzh7CmK?filename=1684326166278.vrm"
+    },
+    "pepo": {
+        "id": "pepo",
+        "name": "Pepo",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmSsoeG4quN15qJ78LopawUY3TMC4EeGuWfmzqquptS3q3?filename=pepo.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmYvqan1YZNkCpkStsYm8ei7icghRdWtjjpa3KdJdCoYNq?filename=pepo.png-1680198304.124.png",
+        "description": "Don't be afraid of him, he just want to play!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmZMRJb2t5BTCddwRKHGvZJxK9JhE2q2oMYgbqNTsDcoCs?filename=1684326167959.vrm"
+    },
+    "kyle": {
+        "id": "kyle",
+        "name": "Kyle",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmczHb813dDqAF99VkcqTGLHcz8EMmBkRg2CGLrFaPGGVr?filename=kyle.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmZdFFofTNXLEDM8WpUoEwct1EXWescyKjKBzMmduaXNfF?filename=kyle.png-1680198304.121.png",
+        "description": "If you have a bad day, just go talk with Kyle!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmeWgkB3YDM3FadQg8P1oev82R9LpshS3GyHNn6MW5eJnu?filename=1684326170342.vrm"
+    },
+    "hourglass-person": {
+        "id": "hourglass-person",
+        "name": "Hourglass Person",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmeT9HippHGBiHo5SHRCmoP6UDr4xNTUfXKjheHxEZHygK?filename=hourglass-person.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQKuzQGHQSiTUGdnGbMAuA9x7UFvMrpreAow9jX1QVYjH?filename=hourglass-person.png-1680198304.12.png",
+        "description": "Time is running out!!! ",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmb9rcwYsVB9FGwT9ZMMgaZsHHX6i2843gvmns8rdMswsG?filename=1684326172145.vrm"
+    },
+    "wolfman": {
+        "id": "wolfman",
+        "name": "Wolfman",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmX9JcM25PBDDjc4b696wk8TqhMAP3F9K7HqbXpfznZELF?filename=wolfman.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWErQGiXe8oQ5HBoaZauNMWsu6REKeiTKv4vUJEjbEJkp?filename=wolfman.png-1680198304.13.png",
+        "description": "Always appears at midnight when there's full moon.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmRDYXK1PL2XEXkLKb9UZotLSar79GtPjU8E732dYSL625?filename=1684326173723.vrm"
+    },
+    "cool-baguette": {
+        "id": "cool-baguette",
+        "name": "Cool Baguette",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmZkhFcYpbhmBqDYF7Ez7PXX3W2uKEMMJ2PoD7scn8vaY1?filename=cool-baguette.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmbWPqiPYzwCXJ9U3zToFZ946AopWrVspti5uf2rJsE182?filename=cool-baguette.png-1680198304.107.png",
+        "description": "Fresh out the oven.\nReady to party!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYJJqnVcqaAxFTx84sWpsDLjokKp8LwwJ6KBinJPLg9Qw?filename=1684326175241.vrm"
+    },
+    "random-boi": {
+        "id": "random-boi",
+        "name": "Random Boi",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmbHwzg4DQPuu7WXyPFRvMWHUpbtfvw54f752dZDxjjiY2?filename=random-boi.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmZHPE92T2q55kNNmbu7v73YD5qNHwZneiLnxxrj3KLbZd?filename=random-boi.png-1680198304.124.png",
+        "description": "Pure Luck.\n",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmU4RkjBhDwxYbPdSdDgZfSWirHDg6dykCJ227nJHoUZMZ?filename=1684326176764.vrm"
+    },
+    "jimmy": {
+        "id": "jimmy",
+        "name": "Jimmy",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmVjTSMgUPgegaQwbZe29RSowFta3Eu7aPim8gZS856LPs?filename=jimmy.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQYpKG2aZ1urR9VtswCX8x93WMY7pGPbsN2BimrxDSpS8?filename=jimmy.png-1680198304.121.png",
+        "description": "Time traveler in SHORTS!!!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmS2aGzh1zarqzdaoZ8cAf7fcuLBGsWcaCktDTn3vpFZiX?filename=1684326178481.vrm"
+    },
+    "dope-screwdriver": {
+        "id": "dope-screwdriver",
+        "name": "DOPE Screwdriver",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmS1jps5PcJfTPkYUghvxVLecNbPwMT2KdumVQXxooSGeH?filename=dope-screwdriver.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qme1YBdkBkP8QnK5BQPwVgAB1Cocdc5KQLXBHCSQXMhonP?filename=dope-screwdriver.png-1680198304.115.png",
+        "description": "I love to spin and fix things!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmcN8pRKx8vtFnQ4iHeAJh9fBW8NJavRcwjdQbsihhScsp?filename=1684326180294.vrm"
+    },
+    "angry": {
+        "id": "angry",
+        "name": "Angry",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmYip27uAmqXULd2mnVHQynScZXvwrr2JbWek2FVYocngg?filename=angry.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmct9yNXwuWmHJN63rq8A1RFL3dbdaaCxVKYshx4TNmRkJ?filename=angry.png-1680198304.099.png",
+        "description": "Just angry. For not reason whatsoever.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYmdvrDT3qWSQCyC9UwigBJfwrpQbw2diUjnGWgMXy9rV?filename=1684326181797.vrm"
+    },
+    "cool-bunny": {
+        "id": "cool-bunny",
+        "name": "Cool Bunny",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmUrtcNBMh13aGkSLzg4jXw1AhvVcHcrHuwPtq39zSMeWy?filename=cool-bunny.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmW2S7aP7Ry1GXaXVYwoxm4F5VL3Hmo1U4EmYYCCEEpvr7?filename=cool-bunny.png-1680198304.108.png",
+        "description": "Down the rabbithole, the crypto rabbithole.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmQQExAzofkLJZWdHuxeYbMVXasTjTKyvSEY9fRj7To6XP?filename=1684326183879.vrm"
+    },
+    "cool-pizza": {
+        "id": "cool-pizza",
+        "name": "Cool Pizza",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmVUJLWLMLRW8kQ5iy9aUda524hDu83dfBhavF6DMGDzKs?filename=cool-pizza.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmQbYLYxx44oShj5XuAqiSF7rD1sAcGLqTcjKdPS1Nd74w?filename=cool-pizza.png-1680198304.112.png",
+        "description": "Awesome times. Couch, movies, and cheese!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVaffMKTGAhhPQJ9tZWkNQH8oCkBFPYBLYoHrjn1HRwPf?filename=1684326185332.vrm"
+    },
+    "eye-cleric": {
+        "id": "eye-cleric",
+        "name": "EYE Cleric",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmWgbZGaqvsLj6vmMN1RCK1JUgJWPcXxjSKDoBUJtJduD1?filename=eye-cleric.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmUMQTFyXVzibSZrcQtcRaaZdh58d3zmP4nHZetw24MMtw?filename=eye-cleric.png-1680198304.116.png",
+        "description": "The EYE is among us.\nFeel the power of the EYE in your heart.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmUVdEv2NcLYbkK5qC8K1rdHKhTL8xNyXHEJx9p9rWsAyg?filename=1684326187165.vrm"
+    },
+    "cool-drink": {
+        "id": "cool-drink",
+        "name": "Cool Drink",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmUohok98U5NEoYWrPnoTFQrYs8Vv7Pec9Kj3kBnabAnFd?filename=cool-drink.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmcEnnd5PycHWFnRa32BBtaRj5HZGYD1X5LKGjASwkAGq2?filename=cool-drink.png-1680198304.109.png",
+        "description": "Sweet bubbles inside me.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmcq6Rhrq5s5cWSmYFf8mPwaySuN5vA1kyWWWbTBdsAw2F?filename=1684326188997.vrm"
+    },
+    "lalobot": {
+        "id": "lalobot",
+        "name": "LaloBOT",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmbX9ogDggSLsVa39hmj5BB42Ttkwk8ypBqPyj7C1LQwYT?filename=lalobot.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmevrMC1KW3jM6UhseTFLf7wiDTbxoCzyXwTEVs6asisdA?filename=lalobot.png-1680198304.121.png",
+        "description": "Dance Now. Feel the music. Dance again.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPDzJyDGNFPoi19GbtNEeoUohJDrXnoGufiW4SnPyxZMu?filename=1684326190887.vrm"
+    },
+    "watermelon": {
+        "id": "watermelon",
+        "name": "Watermelon",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmaKFmRanzzHVWhjtgM3rFkCLXnmfbNykvM75n1aA7AERq?filename=watermelon.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmb6PkvsKLt6SjLQE1Rjjfmyb9cYFCQKy45dg9eDkPMCot?filename=watermelon.png-1680198304.129.png",
+        "description": "The summer fruit is here!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmPJ6bx915v2wtMBM6aFgAFc65scGTicagk5ReyPxwb8us?filename=1684326192824.vrm"
+    },
+    "zombie": {
+        "id": "zombie",
+        "name": "Zombie",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmUnXZofhqSJCBTrRi9pZE7ED4fGSCFLLG8Gqf7WW9cDtc?filename=zombie.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmaf3KUEH9pishAFZDpfun2MJdAM9QerfqAbE7dGg9QBGi?filename=zombie.png-1680198304.13.png",
+        "description": "Eats brains, necks, and whatever you put on a plate, really.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmamCdzq3WPfYs3ssF5ydW2ehjZGivYWp3zytBZCwcZSur?filename=1684326194956.vrm"
+    },
+    "goldfish-bag-person": {
+        "id": "goldfish-bag-person",
+        "name": "Goldfish Bag Person",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQCqtqKU9a6nQKR5g3oR5Kyoc9A378vurvCYc33rdH2Px?filename=goldfish-bag-person.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaSSXeEV7WtyNoss12Hb4Py8QWbPUKhRrSpy9KsEnSqaT?filename=goldfish-bag-person.png-1680198304.118.png",
+        "description": "Clean water for my lovely fishes!",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmVxzsCALt8zGv115QKgfjKpHEhBp6mRamvHByyivNm4Xy?filename=1684326196636.vrm"
+    },
+    "cool-taco": {
+        "id": "cool-taco",
+        "name": "Cool Taco",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmQSCN9tN3r2ZVL17FZPpq6EHgMxgTzKJxu1F4ASCniC6Z?filename=cool-taco.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmaKQdAz36BNpBfwqyqt8m3YHMcBvinQXAUfanCSJBnHbw?filename=cool-taco.png-1680198304.113.png",
+        "description": "Con pico de gallo! Super delicioso.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYHyF2rQF447BWWNH4EnxouLYd5Ab3fERmjTPLJibYaaH?filename=1684326198371.vrm"
+    },
+    "diver": {
+        "id": "diver",
+        "name": "Diver",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmcXpyhwZWt9jwcsKMLtS8nJf5arfUL7zRmLNfVwGGc2M3?filename=diver.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmWhAkLyECdWXXYtCwqZat88Cse7gq79vC44SK1MJPrTee?filename=diver.png-1680198304.115.png",
+        "description": "Diving in the open sea",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmXdkWUBt9xvX1SU5kF8ZTgVe14tSjyMf2HPgyhToR1N4N?filename=1684326200251.vrm"
+    },
+    "cool-fries": {
+        "id": "cool-fries",
+        "name": "COOL FRIES",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmeHBEhNrTx1afu3ve4Aaq5ebNK85JYhTXXchutTSBDmxt?filename=cool-fries.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmachzH1Z7sWnPKDu3vxAbvr5jctbL8kqrZcHG2MdCgSCA?filename=cool-fries.png-1680198304.11.png",
+        "description": "French Style. Try me with Cool Ketchup.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmT6tLUGEt2x8AKuxtJvWBD6dSaBHWWU1yeXB5D4GNYoda?filename=1684326202270.vrm"
+    },
+    "eye-summoner": {
+        "id": "eye-summoner",
+        "name": "EYE Summoner",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmdiKzCiAboqbpuBtmy57YVewaUEUHnLg1wSZPDkzevZu6?filename=eye-summoner.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/Qmet1M7BhRUwRxrhvukT52cfc2yi5TszjMtctxq5fBWKp8?filename=eye-summoner.png-1680198304.116.png",
+        "description": "Opening gates to the Ether realm.\nThe EYE awaits my command.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmew7Vr89adrATJ1SwkDPzC4qFfZk4zYCyhJBR5fh1hdQv?filename=1684326203852.vrm"
+    },
+    "cool-guitar": {
+        "id": "cool-guitar",
+        "name": "Cool Guitar",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmS9vL8WxUQkhiSzBhuj4XBpTF7AtqYQAPd3UqCh6JS9hP?filename=cool-guitar.glb",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmXdQ7f35WUgtWzsEWUCgWdTMnYxRsoQuhZNPs9dDWufnL?filename=cool-guitar.png-1680198304.11.png",
+        "description": "Best music, better times.",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/Qmdk5QyPUk7PmNEj7osxCuJecGsSCbhazQfxJRQc3YuTsb?filename=1684326205706.vrm"
+    },
+    "paladinpunks": {
+        "id": "paladinpunks",
+        "name": "PaladinPunks",
+        "url": "https://cyber.mypinata.cloud/ipfs/QmageYLcSLsGokb3HWUz4JHbCaqj8UnwyTyMTgQVNjn8fS?filename=1697560479-1697560478.602.vrm",
+        "image": "https://cyber.mypinata.cloud/ipfs/QmeWyVz83b2hcC2wekuNnGDsSBpDw8ezpmSPRtLGgt96Sa?filename=1697560481-u1697560480.684.jpg",
+        "description": "Paladin Punks",
+        "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTLWvpa22qk8mrgExcXfKUY7HTeWC33qYUyDVKcKe4BiD?filename=1697560483659.vrm"
+    }
+}

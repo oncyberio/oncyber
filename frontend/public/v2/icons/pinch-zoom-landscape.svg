@@ -1,0 +1,16 @@
+<svg width="124" height="123" viewBox="0 0 124 123" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="57.5" cy="65.5" r="57.5" fill="url(#paint0_radial_1643_5980)"/>
+<path d="M9.99994 97.9776L44.4485 63.529C48.0479 59.9296 53.8837 59.9296 57.4831 63.529C61.0825 67.1284 61.0825 72.9642 57.4831 76.5636L23.0345 111.012" stroke="white" stroke-width="4" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M49.1031 77.4947C49.1031 77.4947 46.931 77.1847 45.379 75.6326C43.8269 74.0806 43.5169 71.9085 43.5169 71.9085L47.2411 68.1843C48.7838 66.6416 51.2846 66.6416 52.8273 68.1843C54.37 69.727 54.37 72.2278 52.8273 73.7706L49.1031 77.4947Z" stroke="white" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M26.7588 90.5292L30.483 94.2534" stroke="white" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M23.0342 94.2535L26.7584 97.9776" stroke="white" stroke-width="2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M63.8177 2.22725L58.0823 8.84531L63.9823 15.3171" stroke="white" stroke-width="4" stroke-linecap="round"/>
+<path d="M109 58.9999L115.5 64.9999L122 58.9999" stroke="white" stroke-width="4" stroke-linecap="round"/>
+<path d="M61.5 8.49995C89.1142 8.49995 115 27.5 115 62.5" stroke="white" stroke-width="4" stroke-linecap="round"/>
+<defs>
+<radialGradient id="paint0_radial_1643_5980" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(57.5 65.5) rotate(90) scale(57.5)">
+<stop stop-color="#00E3BD"/>
+<stop offset="1" stop-color="#00E3BD" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

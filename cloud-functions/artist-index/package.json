@@ -1,0 +1,16 @@
+{
+    "name": "oncyber-gallery-artist-index",
+    "private": true,
+    "version": "1.0.0",
+    "main": "index.js",
+    "engines": {
+        "node": "22"
+    },
+    "dependencies": {
+        "firebase-admin": "^13.4.0",
+        "firebase-functions": "7.3.2"
+    },
+    "scripts": {
+        "test": "node --test indexer.test.cjs cost-controls.test.cjs"
+    }
+}

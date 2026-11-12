@@ -1,0 +1,116 @@
+{
+  "model": "public/models/summer_unlit_fixed.vrm",
+  "modelSha256": "cd1d50413c40d82002a9d1175a810190490ed3b136cf0a6cb75fdf86c8cd1b56",
+  "generatorSha256": "e1cbbdba10935ec0ecd1ce88f2e206abcc08f155e4731c44e705704eabcee7f0",
+  "clipsSha256": "0344bc659bbd5cb0a08141f0b45b85f6fa0ea419007180273ebcd991fa2f64f8",
+  "fps": 12,
+  "motionSize": 160,
+  "stillSize": 192,
+  "previews": {
+    "WAVING": {
+      "still": "/lobby/emote-previews/summer/waving.webp?v=5181b55042",
+      "motion": "/lobby/emote-previews/summer/waving-motion.webp?v=2a98b66f45",
+      "width": 192,
+      "height": 192,
+      "duration": 0.542
+    },
+    "HIPHOP": {
+      "still": "/lobby/emote-previews/summer/hiphop.webp?v=b414420e84",
+      "motion": "/lobby/emote-previews/summer/hiphop-motion.webp?v=4882052acc",
+      "width": 192,
+      "height": 192,
+      "duration": 2.208
+    },
+    "MOONWALK": {
+      "still": "/lobby/emote-previews/summer/moonwalk.webp?v=7b7a3ebadb",
+      "motion": "/lobby/emote-previews/summer/moonwalk-motion.webp?v=64e0bf4bd9",
+      "width": 192,
+      "height": 192,
+      "duration": 1.033
+    },
+    "TECHNO": {
+      "still": "/lobby/emote-previews/summer/techno.webp?v=6c544cbc33",
+      "motion": "/lobby/emote-previews/summer/techno-motion.webp?v=74baf642e2",
+      "width": 192,
+      "height": 192,
+      "duration": 1.033
+    },
+    "SHUFFLING": {
+      "still": "/lobby/emote-previews/summer/shuffling.webp?v=74baebaa54",
+      "motion": "/lobby/emote-previews/summer/shuffling-motion.webp?v=0ebb968d01",
+      "width": 192,
+      "height": 192,
+      "duration": 6
+    },
+    "CHAABI": {
+      "still": "/lobby/emote-previews/summer/chaabi.webp?v=e4b40f448a",
+      "motion": "/lobby/emote-previews/summer/chaabi-motion.webp?v=7aa4945932",
+      "width": 192,
+      "height": 192,
+      "duration": 1.9
+    },
+    "CHAABI2": {
+      "still": "/lobby/emote-previews/summer/chaabi2.webp?v=611749da7c",
+      "motion": "/lobby/emote-previews/summer/chaabi2-motion.webp?v=8ff319e395",
+      "width": 192,
+      "height": 192,
+      "duration": 1.3
+    },
+    "SEXY": {
+      "still": "/lobby/emote-previews/summer/sexy.webp?v=b4991e7ac3",
+      "motion": "/lobby/emote-previews/summer/sexy-motion.webp?v=100ed018d5",
+      "width": 192,
+      "height": 192,
+      "duration": 6
+    },
+    "DEATH": {
+      "still": "/lobby/emote-previews/summer/death.webp?v=519bb7e42d",
+      "motion": "/lobby/emote-previews/summer/death-motion.webp?v=0602b220bc",
+      "width": 192,
+      "height": 192,
+      "duration": 3.633
+    },
+    "PRAYING": {
+      "still": "/lobby/emote-previews/summer/praying.webp?v=c4bc09df54",
+      "motion": "/lobby/emote-previews/summer/praying-motion.webp?v=690a4e5936",
+      "width": 192,
+      "height": 192,
+      "duration": 2.667
+    },
+    "WANNAROCK": {
+      "still": "/lobby/emote-previews/summer/wannarock.webp?v=6b6124d850",
+      "motion": "/lobby/emote-previews/summer/wannarock-motion.webp?v=56835ac0b6",
+      "width": 192,
+      "height": 192,
+      "duration": 4.533
+    },
+    "CRIP": {
+      "still": "/lobby/emote-previews/summer/crip.webp?v=23c9241144",
+      "motion": "/lobby/emote-previews/summer/crip-motion.webp?v=95f48d5bfc",
+      "width": 192,
+      "height": 192,
+      "duration": 2.067
+    },
+    "SITTING": {
+      "still": "/lobby/emote-previews/summer/sitting.webp?v=279c61a8ba",
+      "motion": "/lobby/emote-previews/summer/sitting-motion.webp?v=9d9876b089",
+      "width": 192,
+      "height": 192,
+      "duration": 0.1
+    },
+    "FLOORSITTING": {
+      "still": "/lobby/emote-previews/summer/floorsitting.webp?v=354080c68d",
+      "motion": "/lobby/emote-previews/summer/floorsitting-motion.webp?v=db2bfcebd4",
+      "width": 192,
+      "height": 192,
+      "duration": 0.1
+    },
+    "SITTALKING": {
+      "still": "/lobby/emote-previews/summer/sittalking.webp?v=461abdabbf",
+      "motion": "/lobby/emote-previews/summer/sittalking-motion.webp?v=53ccfaeba6",
+      "width": 192,
+      "height": 192,
+      "duration": 3.417
+    }
+  }
+}

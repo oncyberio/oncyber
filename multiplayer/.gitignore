@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.env
+arena.env
+development.env
+.env.development
+build
+lib
+infra/vm/.env
+infra/.env

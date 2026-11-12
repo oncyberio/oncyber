@@ -1,0 +1,113 @@
+{
+    "artists": [
+        {
+            "id": "batzdu",
+            "name": "batzdu",
+            "aliases": ["batzdu"],
+            "wallets": []
+        },
+        {
+            "id": "jack-butcher",
+            "name": "Jack Butcher",
+            "aliases": ["jackbutcher", "jack butcher"],
+            "wallets": []
+        },
+        {
+            "id": "osf-rekt",
+            "name": "osf_rekt",
+            "aliases": ["osf_rekt", "osfrekt"],
+            "wallets": []
+        },
+        {
+            "id": "killer-acid",
+            "name": "Killer Acid",
+            "aliases": ["killer_acid", "killeracid", "killer acid"],
+            "wallets": []
+        },
+        {
+            "id": "bananakin",
+            "name": "bananakin",
+            "aliases": ["bananakin"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "bryan-brinkman",
+            "name": "Bryan Brinkman",
+            "aliases": ["bryanbrinkman", "bryan brinkman"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "beeple",
+            "name": "Beeple",
+            "aliases": ["beeple"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "xcopy",
+            "name": "XCOPY",
+            "aliases": ["xcopy", "xcopyart"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "rey",
+            "name": "rey",
+            "aliases": ["rey"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "jake-fried",
+            "name": "Jake Fried",
+            "aliases": ["jakejfried", "jake fried"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "grant-yun",
+            "name": "Grant Yun",
+            "aliases": ["grantyun", "grantyun2", "grant yun"],
+            "wallets": [],
+            "referenceGalleries": []
+        },
+        {
+            "id": "lois-voirol",
+            "name": "Lois Voirol",
+            "aliases": ["lois voirol", "loisvoirol"],
+            "wallets": [
+                {
+                    "chain": "ethereum",
+                    "address": "0x0e3c735708f660b9d29b1f05679c13f72e14c0ea",
+                    "evidence": "https://oncyber.io/voirolfoundation — user-provided identity; matching Oncyber owner profile verified 2026-09-16. Applies to explicit NFT creator credits, never uploads."
+                }
+            ],
+            "referenceGalleries": ["https://oncyber.io/voirolfoundation"]
+        },
+        {
+            "id": "claire-silver",
+            "name": "Claire Silver",
+            "aliases": ["clairesilver", "claire silver"],
+            "wallets": [
+                {
+                    "chain": "ethereum",
+                    "address": "0x9aaddc5040d2093dc0dafc0803cbfca822341bca",
+                    "evidence": "https://oncyber.io/spaces/AQV5O84RlBcdKmfQj0jh — user-provided identity; matching Oncyber owner profile verified 2026-09-16. Applies to explicit NFT creator credits, never uploads."
+                }
+            ],
+            "referenceGalleries": [
+                "https://oncyber.io/spaces/AQV5O84RlBcdKmfQj0jh"
+            ]
+        },
+        {
+            "id": "ack",
+            "name": "ACK",
+            "aliases": ["ack", "alphacentaurikid"],
+            "wallets": [],
+            "referenceGalleries": []
+        }
+    ],
+    "attributions": []
+}

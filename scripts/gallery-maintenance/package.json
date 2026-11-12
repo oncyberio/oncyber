@@ -1,0 +1,15 @@
+{
+    "name": "oncyber-gallery-maintenance",
+    "private": true,
+    "version": "1.0.0",
+    "engines": {
+        "node": "22"
+    },
+    "dependencies": {
+        "firebase-admin": "13.7.0",
+        "sharp": "0.34.5"
+    },
+    "scripts": {
+        "test": "node --test maintenance.test.cjs local-batch.test.cjs cdn.test.cjs"
+    }
+}

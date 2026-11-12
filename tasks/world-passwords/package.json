@@ -1,0 +1,15 @@
+{
+    "name": "world-passwords",
+    "version": "1.0.0",
+    "private": true,
+    "description": "One-off: hash world passwords still stored as plain text (see migrate.js)",
+    "main": "migrate.js",
+    "scripts": {
+        "dry-run": "node migrate.js",
+        "apply": "node migrate.js --apply"
+    },
+    "license": "UNLICENSED",
+    "dependencies": {
+        "firebase-admin": "^11.5.0"
+    }
+}

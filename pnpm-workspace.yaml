@@ -1,0 +1,7 @@
+packages:
+    - frontend
+# cloud-functions/functions is intentionally NOT a workspace member:
+# the Firebase deploy builder installs with npm and needs its own
+# package-lock.json. tasks/* are standalone one-off utilities.
+# multiplayer/ (the Colyseus realtime server) is likewise standalone:
+# it uses npm + its own Dockerfile and deploys to GCP, not via pnpm.

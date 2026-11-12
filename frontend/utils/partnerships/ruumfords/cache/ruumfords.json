@@ -1,0 +1,384 @@
+{
+    "jd_ircor_nyc": {
+        "user_height": 2.3,
+        "near": 0.5,
+        "far": 400,
+        "fog": {
+            "far": 200,
+            "near": 170,
+            "enabled": false
+        },
+        "enableSky": false,
+        "envMap": {
+            "name": "NY_back_05_Collapse_1k.png",
+            "format": ".png",
+            "id": "custom",
+            "path": "https://cyber.mypinata.cloud/ipfs/QmcAaPWRWVKaTT5a47wjnjh7vPdyS5R1kS8mjwd996gMbS?filename=1689534223-envMap-1689534222435.png",
+            "image": "https://cyber.mypinata.cloud/ipfs/QmcAaPWRWVKaTT5a47wjnjh7vPdyS5R1kS8mjwd996gMbS?filename=1689534223-envMap-1689534222435.png"
+        },
+        "usePostProcessing": {
+            "enabled": false
+        },
+        "lighting": {
+            "enabled": false,
+            "lightDirection": {
+                "x": -1,
+                "y": -1,
+                "z": -1
+            },
+            "lightPosition": {
+                "x": 200,
+                "y": 200,
+                "z": 200
+            },
+            "bias": -0.002,
+            "near": 150,
+            "far": 500,
+            "intensity": 1,
+            "size": 500,
+            "helper": false
+        },
+        "gravity": 20,
+        "jump": 8,
+        "capsuleRadius": 0.85,
+        "playerSpeed": 70,
+        "background": "#000000",
+        "artworkScale": 150,
+        "showPlaceholders": true,
+        "applyEnvMapBackground": true,
+        "backgroundMap": {
+            "name": "NY_back_05_Collapse_1k.png",
+            "format": ".png",
+            "id": "custom",
+            "path": "https://cyber.mypinata.cloud/ipfs/QmcAaPWRWVKaTT5a47wjnjh7vPdyS5R1kS8mjwd996gMbS?filename=1689534226-envMap-1689534225248.png",
+            "image": "https://cyber.mypinata.cloud/ipfs/QmcAaPWRWVKaTT5a47wjnjh7vPdyS5R1kS8mjwd996gMbS?filename=1689534226-envMap-1689534225248.png"
+        },
+        "skyOptions": {
+            "turbidity": 10,
+            "rayleigh": 3,
+            "mieCoefficient": 0.005,
+            "mieDirectionalG": 0.7,
+            "elevation": 2,
+            "azimuth": 180
+        },
+        "environnement_type": "image",
+        "background_type": "image",
+        "environnement_position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "enableWater": true,
+        "waterOptions": {
+            "color": "#001E0F",
+            "opacity": 1,
+            "scale": {
+                "x": 18.1,
+                "z": 45
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "z": -16.4
+            }
+        },
+        "enableReflector": false,
+        "reflectorOptions": {
+            "color": "#777777",
+            "scale": {
+                "x": 1000,
+                "z": 1000
+            },
+            "position": {
+                "x": 0,
+                "y": 0.1,
+                "z": 0
+            },
+            "normalmap": {
+                "enabled": false,
+                "strength": 0.5,
+                "tiles": 0.3,
+                "images": {}
+            },
+            "blur": true,
+            "opacity": 1
+        },
+        "isFuture": false,
+        "capacity": 3,
+        "_id": "64b43f15f696910011726bf5",
+        "status": "tested",
+        "tag": [],
+        "name": "NYC",
+        "thumbnail": "https://cyber.mypinata.cloud/ipfs/Qmb3pT86DsnjND66Kj3VkxqpuvWHdzLMML8HXjLbft2HFL?filename=1689605547-jd_ircor_nyc-thumb.jpg",
+        "author": {
+            "id": "0xb791b77590196c30b23ee6679eff5a967731cefd",
+            "userId": "0xb791b77590196c30b23ee6679eff5a967731cefd"
+        },
+        "paths": {
+            "low": "https://cyber.mypinata.cloud/ipfs/QmS17egYKp7XrrS3DCMEKKK5RAeUyWKNy1ydb7HzSjnC2d?filename=1689605515-jd_ircor_nyc-low-.glb",
+            "mid": "https://cyber.mypinata.cloud/ipfs/QmS17egYKp7XrrS3DCMEKKK5RAeUyWKNy1ydb7HzSjnC2d?filename=1689605524-jd_ircor_nyc-mid.glb",
+            "high": "https://cyber.mypinata.cloud/ipfs/QmS17egYKp7XrrS3DCMEKKK5RAeUyWKNy1ydb7HzSjnC2d?filename=1689605530-jd_ircor_nyc-high.glb",
+            "original_path": "https://cyber.mypinata.cloud/ipfs/QmVUWYYZv4W7SbSStxTzTiKUwqozsRbraXU3nB294ED2yU?filename=1689605534-jd_ircor_nyc-origin.glb",
+            "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmVxu3GnoWmyRuNYEmFpobgJ86m7BuQhRd4fK8NLPFmNLy?filename=1689605544-jd_ircor_nyc-low-compressed.glb"
+        },
+        "slug": "jd_ircor_nyc",
+        "created_at": "2023-07-16T19:03:49.101Z",
+        "updated_at": "2023-07-17T14:52:28.117Z",
+        "__v": 0
+    },
+    "chicago_": {
+        "user_height": 2.3,
+        "near": 0.5,
+        "far": 400,
+        "fog": {
+            "far": 200,
+            "near": 170,
+            "enabled": false
+        },
+        "enableSky": false,
+        "envMap": {
+            "name": "Chicago_BG_v2_1024.png",
+            "format": ".png",
+            "id": "custom",
+            "path": "https://cyber.mypinata.cloud/ipfs/QmP7RaWtDXXsDxh8R2REmDsnfu3uUpZcUJfSXCLoqADPeH?filename=1689421135-envMap-1689421134550.png",
+            "image": "https://cyber.mypinata.cloud/ipfs/QmP7RaWtDXXsDxh8R2REmDsnfu3uUpZcUJfSXCLoqADPeH?filename=1689421135-envMap-1689421134550.png"
+        },
+        "usePostProcessing": {
+            "enabled": false
+        },
+        "lighting": {
+            "enabled": false,
+            "lightDirection": {
+                "x": -1,
+                "y": -1,
+                "z": -1
+            },
+            "lightPosition": {
+                "x": 200,
+                "y": 200,
+                "z": 200
+            },
+            "bias": -0.002,
+            "near": 150,
+            "far": 500,
+            "intensity": 1,
+            "size": 500,
+            "helper": false
+        },
+        "gravity": 20,
+        "jump": 8,
+        "capsuleRadius": 0.85,
+        "playerSpeed": 70,
+        "background": "#000000",
+        "artworkScale": 150,
+        "showPlaceholders": true,
+        "applyEnvMapBackground": true,
+        "backgroundMap": {
+            "name": "Chicago_BG_v2_1024.png",
+            "format": ".png",
+            "id": "custom",
+            "path": "https://cyber.mypinata.cloud/ipfs/QmP7RaWtDXXsDxh8R2REmDsnfu3uUpZcUJfSXCLoqADPeH?filename=1689421138-envMap-1689421137898.png",
+            "image": "https://cyber.mypinata.cloud/ipfs/QmP7RaWtDXXsDxh8R2REmDsnfu3uUpZcUJfSXCLoqADPeH?filename=1689421138-envMap-1689421137898.png"
+        },
+        "skyOptions": {
+            "turbidity": 10,
+            "rayleigh": 3,
+            "mieCoefficient": 0.005,
+            "mieDirectionalG": 0.7,
+            "elevation": 2,
+            "azimuth": 180
+        },
+        "environnement_type": "image",
+        "background_type": "image",
+        "environnement_position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "enableWater": false,
+        "waterOptions": {
+            "color": "#001E0F",
+            "opacity": 1,
+            "scale": {
+                "x": 1000,
+                "z": 1000
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
+        "enableReflector": false,
+        "reflectorOptions": {
+            "color": "#777777",
+            "scale": {
+                "x": 1000,
+                "z": 1000
+            },
+            "position": {
+                "x": 0,
+                "y": 0.1,
+                "z": 0
+            },
+            "normalmap": {
+                "enabled": false,
+                "strength": 0.5,
+                "tiles": 0.3,
+                "images": {}
+            },
+            "blur": true,
+            "opacity": 1
+        },
+        "isFuture": false,
+        "capacity": 2,
+        "paths": {
+            "low": "https://cyber.mypinata.cloud/ipfs/QmUrDLGt5LzXjJct7HJebmMA8c8BonUET7ZnfxJxi2KkUT?filename=1689706793-chicago_-low-.glb",
+            "mid": "https://cyber.mypinata.cloud/ipfs/Qmc35SsKz8Mdb5YckzkyQjhZXi4duMX1Pi3K6QFwzsnKHC?filename=1689706800-chicago_-mid.glb",
+            "high": "https://cyber.mypinata.cloud/ipfs/Qmc35SsKz8Mdb5YckzkyQjhZXi4duMX1Pi3K6QFwzsnKHC?filename=1689706804-chicago_-high.glb",
+            "original_path": "https://cyber.mypinata.cloud/ipfs/QmSpCBWwWJufDWdtxDR1MMdhtik386LnczeiZazU1V8FLM?filename=1689706817-chicago_-origin.glb",
+            "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmXyxdKiwecSNNCPiKicUAx43HwbVeA7xnqTfHiQ7oRvZ9?filename=1689706831-chicago_-low-compressed.glb"
+        },
+        "_id": "64b2831cf696910011726bee",
+        "status": "tested",
+        "tag": [],
+        "name": "Chicago_",
+        "thumbnail": "https://cyber.mypinata.cloud/ipfs/QmYX5y1K7DRWUosWkfWk5kJRqvgZwr91wsNLcEnQ8DpF6d?filename=1689706834-chicago_-thumb.jpg",
+        "author": {
+            "id": "0xb791b77590196c30b23ee6679eff5a967731cefd",
+            "userId": "0xb791b77590196c30b23ee6679eff5a967731cefd"
+        },
+        "slug": "chicago_",
+        "created_at": "2023-07-15T11:29:32.338Z",
+        "updated_at": "2023-07-18T19:00:35.900Z",
+        "__v": 0
+    },
+    "jd_lobby": {
+        "user_height": 2.3,
+        "near": 0.5,
+        "far": 400,
+        "fog": {
+            "far": 200,
+            "near": 170,
+            "enabled": false
+        },
+        "enableSky": false,
+        "usePostProcessing": {
+            "enabled": false
+        },
+        "lighting": {
+            "enabled": false,
+            "lightDirection": {
+                "x": -1,
+                "y": -1,
+                "z": -1
+            },
+            "lightPosition": {
+                "x": 200,
+                "y": 200,
+                "z": 200
+            },
+            "bias": -0.002,
+            "near": 150,
+            "far": 500,
+            "intensity": 1,
+            "size": 500,
+            "helper": false
+        },
+        "gravity": 20,
+        "jump": 8,
+        "capsuleRadius": 0.85,
+        "playerSpeed": 70,
+        "background": "#000000",
+        "artworkScale": 150,
+        "showPlaceholders": true,
+        "applyEnvMapBackground": true,
+        "backgroundMap": {
+            "id": "day2",
+            "name": "Day2",
+            "image": "https://cyber.mypinata.cloud/ipfs/QmTFbaXfVrYmT9EsePMAgtq5yadNWJSax8tFQGfeeLfVfq?filename=day2_q7id12.jpg",
+            "path": "https://cyber.mypinata.cloud/ipfs/QmTFbaXfVrYmT9EsePMAgtq5yadNWJSax8tFQGfeeLfVfq?filename=day2_q7id12.jpg",
+            "format": ".jpg"
+        },
+        "skyOptions": {
+            "turbidity": 10,
+            "rayleigh": 3,
+            "mieCoefficient": 0.005,
+            "mieDirectionalG": 0.7,
+            "elevation": 2,
+            "azimuth": 180
+        },
+        "environnement_type": "scene",
+        "background_type": "image",
+        "environnement_position": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        },
+        "enableWater": false,
+        "waterOptions": {
+            "color": "#001E0F",
+            "opacity": 1,
+            "scale": {
+                "x": 1000,
+                "z": 1000
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
+        "enableReflector": true,
+        "reflectorOptions": {
+            "color": "#777777",
+            "scale": {
+                "x": 14.8,
+                "z": 100
+            },
+            "position": {
+                "x": 0,
+                "y": 0,
+                "z": -30
+            },
+            "normalmap": {
+                "enabled": true,
+                "strength": 10,
+                "tiles": 0.3,
+                "images": {
+                    "name": "2K_tiling_17_normal_Seams.png",
+                    "format": ".png",
+                    "id": "custom",
+                    "path": "https://cyber.mypinata.cloud/ipfs/QmQ5dQujKq23dJmDkhHWthakWGx4MTgfBMd2SkJLE8cGfR?filename=1686940056-normalMap-1686940056073.png",
+                    "image": "https://cyber.mypinata.cloud/ipfs/QmQ5dQujKq23dJmDkhHWthakWGx4MTgfBMd2SkJLE8cGfR?filename=1686940056-normalMap-1686940056073.png"
+                }
+            },
+            "blur": true,
+            "opacity": 0.35,
+            "strength": 10
+        },
+        "isFuture": false,
+        "capacity": 10,
+        "envMap": {},
+        "_id": "648ca9994e14d000116e5739",
+        "status": "tested",
+        "tag": [],
+        "name": "Lobby",
+        "thumbnail": "https://cyber.mypinata.cloud/ipfs/QmYmBhKaFCUATLP81pPxi8w4buHvGmwbDxTPtEPL9UnmyG?filename=1689625802-jd_lobby-thumb.jpg",
+        "author": {
+            "id": "0xb791b77590196c30b23ee6679eff5a967731cefd",
+            "userId": "0xb791b77590196c30b23ee6679eff5a967731cefd"
+        },
+        "paths": {
+            "low": "https://cyber.mypinata.cloud/ipfs/QmdNhEfc6Pwr6Q1r1LR2yt6L6QZ9BNsDEeR4ynuJCwjpm1?filename=1689625750-jd_lobby-low-.glb",
+            "mid": "https://cyber.mypinata.cloud/ipfs/QmNyqoUxsiJ5QkChq5KdDcDZhiSbrNwh853KjKEZRptk6f?filename=1689625756-jd_lobby-mid.glb",
+            "high": "https://cyber.mypinata.cloud/ipfs/QmNyqoUxsiJ5QkChq5KdDcDZhiSbrNwh853KjKEZRptk6f?filename=1689625767-jd_lobby-high.glb",
+            "original_path": "https://cyber.mypinata.cloud/ipfs/QmeMivQ7HDQdthQEqLzQoTAtfkMpp1TQcJKfpnoACAyc9r?filename=1689625779-jd_lobby-origin.glb",
+            "low_compressed": "https://cyber.mypinata.cloud/ipfs/QmRsrTdiB738ZtNgS1uaHJYFdn1vDj82TuJPU3oyYAF3Fj?filename=1689625800-jd_lobby-low-compressed.glb"
+        },
+        "slug": "jd_lobby",
+        "created_at": "2023-06-16T18:27:37.121Z",
+        "updated_at": "2023-07-17T20:30:03.412Z",
+        "__v": 0
+    }
+}

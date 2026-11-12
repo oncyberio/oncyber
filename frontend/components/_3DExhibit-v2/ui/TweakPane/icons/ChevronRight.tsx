@@ -1,0 +1,22 @@
+import React from "react";
+
+function ChevronRight({ stoke = "#A7A7A7", ...props }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 6 8"
+            {...props}
+        >
+            <path
+                stroke={stoke}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+                d="M1.5 1l3 3-3 3"
+            ></path>
+        </svg>
+    );
+}
+
+export default ChevronRight;

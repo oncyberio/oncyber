@@ -1,0 +1,243 @@
+{
+  "version": 1,
+  "enabledByDefault": false,
+  "format": "LCP1: JSON header, uint16 normalized key times, int16x4 normalized quaternions, uint16x3 ranged hips positions; little-endian",
+  "provenance": {
+    "author": "Quaternius",
+    "title": "Universal Animation Library — Standard",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "page": "https://quaternius.com/packs/universalanimationlibrary.html",
+    "downloadPage": "https://quaternius.itch.io/universal-animation-library",
+    "upstreamUploadId": "17958403",
+    "upstreamUploadDate": "2026-06-16",
+    "retrievedOn": "2026-10-06",
+    "files": [
+      {
+        "name": "UAL1_Standard.glb",
+        "bytes": 7618436,
+        "sha256": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997"
+      },
+      {
+        "name": "UAL1_Standard_RM.glb",
+        "bytes": 7620504,
+        "sha256": "be684571ed655a1b892c2c07e6e2aeca053b606c442d34004adaf1d944090d01"
+      }
+    ]
+  },
+  "rig": {
+    "coordinates": "Y-up, meters converted to canonical Mixamo centimeters; identity-rest normalized VRM rotations",
+    "sourceHipsHeightMeters": 0.9167,
+    "canonicalHipsHeightCm": 96.7448,
+    "bodyBones": 22,
+    "fingerBones": 30,
+    "measuredMaxRestBasisFkErrorMeters": 0.000001498,
+    "omitted": [
+      "meshes",
+      "materials",
+      "textures",
+      "leaf bones",
+      "scale tracks",
+      "non-hips translation tracks",
+      "unused clips"
+    ]
+  },
+  "validation": {
+    "denseComparisonHz": 120,
+    "maxAngularErrorDegrees": 0.25,
+    "maxPositionErrorCm": 0.1,
+    "reference": "30 Hz source interpolation after rest-basis conversion and planar drift removal; positional bound applies to hips, angular bound per joint (not end-effector world distance).",
+    "restBasisFk": "Source-skeleton forward kinematics compared against identity-rest reconstruction before key reduction, for every selected source frame.",
+    "contacts": "Heuristic toe-height and vertical-velocity intervals in normalized phase, before retargeting. Only apply while physically grounded. Air loop contacts are empty. Calibrate avatar soles after retargeting.",
+    "speeds": "Root-motion travel and median planted-toe travel are both recorded because source root motion does not necessarily match planted foot speed. Prefer planted-foot calibration for in-place playback; validate per-avatar ground speed."
+  },
+  "packs": [
+    {
+      "group": "core",
+      "file": "quaternius-core.c66c3d2a7450.lcp",
+      "sha256": "c66c3d2a74505ecb71b121959593c13aedd1c8a09b31c0949f9f4b9dbca3e387",
+      "bytes": 30347,
+      "gzipBytes": 16479,
+      "brotliBytes": 14410,
+      "uncompressedFloatJsonBytes": 892648,
+      "sourceKeys": 8851,
+      "packedKeys": 1840,
+      "measuredMaxAngularErrorDegrees": 0.179013,
+      "measuredMaxPositionErrorCm": 0.05412,
+      "clips": {
+        "IDLE": {
+          "sourceName": "Idle_Loop",
+          "duration": 2.5,
+          "loop": true,
+          "sourceRootDistanceMeters": 0.000105,
+          "sourceSpeedMps": 0.000042,
+          "canonicalRootMotionSpeedMps": 0.000044,
+          "canonicalPlantedFootSpeedMps": 0.000027,
+          "contactSampleRate": 30,
+          "contacts": {
+            "left": [
+              [
+                0,
+                1
+              ]
+            ],
+            "right": [
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        },
+        "WALK": {
+          "sourceName": "Walk_Loop",
+          "duration": 1.333333,
+          "loop": true,
+          "sourceRootDistanceMeters": 1.3,
+          "sourceSpeedMps": 0.975,
+          "canonicalRootMotionSpeedMps": 1.028975,
+          "canonicalPlantedFootSpeedMps": 1.033596,
+          "contactSampleRate": 29.999999,
+          "contacts": {
+            "left": [
+              [
+                0.1,
+                0.575
+              ]
+            ],
+            "right": [
+              [
+                0,
+                0.075
+              ],
+              [
+                0.6,
+                1
+              ]
+            ]
+          }
+        },
+        "JOG": {
+          "sourceName": "Jog_Fwd_Loop",
+          "duration": 0.933333,
+          "loop": true,
+          "sourceRootDistanceMeters": 5.000001,
+          "sourceSpeedMps": 5.357143,
+          "canonicalRootMotionSpeedMps": 5.653712,
+          "canonicalPlantedFootSpeedMps": 6.224819,
+          "contactSampleRate": 30,
+          "contacts": {
+            "left": [
+              [
+                0.0714,
+                0.1429
+              ]
+            ],
+            "right": [
+              [
+                0.5714,
+                0.6429
+              ]
+            ]
+          }
+        },
+        "RUN": {
+          "sourceName": "Sprint_Loop",
+          "duration": 0.666667,
+          "loop": true,
+          "sourceRootDistanceMeters": 5.5,
+          "sourceSpeedMps": 8.25,
+          "canonicalRootMotionSpeedMps": 8.706716,
+          "canonicalPlantedFootSpeedMps": 9.398037,
+          "contactSampleRate": 29.999999,
+          "contacts": {
+            "left": [
+              [
+                0.1,
+                0.15
+              ]
+            ],
+            "right": [
+              [
+                0.65,
+                0.65
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "group": "jump",
+      "file": "quaternius-jump.8983c8916396.lcp",
+      "sha256": "8983c8916396e99d5052d160896284a4abd348d977ff0637402925d13b2b0528",
+      "bytes": 27279,
+      "gzipBytes": 16395,
+      "brotliBytes": 14545,
+      "uncompressedFloatJsonBytes": 828150,
+      "sourceKeys": 8268,
+      "packedKeys": 1796,
+      "measuredMaxAngularErrorDegrees": 0.180631,
+      "measuredMaxPositionErrorCm": 0.059159,
+      "clips": {
+        "TAKEOFF": {
+          "sourceName": "Jump_Start",
+          "duration": 1.333333,
+          "loop": false,
+          "sourceRootDistanceMeters": 0.083001,
+          "sourceSpeedMps": 0.062251,
+          "canonicalRootMotionSpeedMps": 0.065697,
+          "canonicalPlantedFootSpeedMps": 0.081554,
+          "contactSampleRate": 29.999999,
+          "contacts": {
+            "left": [],
+            "right": [
+              [
+                0.8,
+                1
+              ]
+            ]
+          }
+        },
+        "JUMP": {
+          "sourceName": "Jump_Loop",
+          "duration": 2.5,
+          "loop": true,
+          "sourceRootDistanceMeters": 0,
+          "sourceSpeedMps": 0,
+          "canonicalRootMotionSpeedMps": 0,
+          "canonicalPlantedFootSpeedMps": null,
+          "contactSampleRate": 30,
+          "contacts": {
+            "left": [],
+            "right": []
+          }
+        },
+        "LAND": {
+          "sourceName": "Jump_Land",
+          "duration": 1.266667,
+          "loop": false,
+          "sourceRootDistanceMeters": 0.029976,
+          "sourceSpeedMps": 0.023665,
+          "canonicalRootMotionSpeedMps": 0.024976,
+          "canonicalPlantedFootSpeedMps": 0.000528,
+          "contactSampleRate": 30,
+          "contacts": {
+            "left": [
+              [
+                0,
+                1
+              ]
+            ],
+            "right": [
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+
+class ArtworkApi extends THREE.Object3D
+    properties:
+        isLookedAt, isVisibleToCamera, distanceToCamera
+        asset: { name, description, creator, collection, type }
+        type: (can be image, panorama, video, audio, html, model, text, embed-html or youtube)
+
+    events: update, keydown, keypress, lookedat, lookedaway
+
+    methods: playAnimation, stopAnimation
+
+class TextApi extends THREE.Object3D
+    properties: text, color, align (left | right | center)
+    methods:
+        snapTo(target, opts)
+            opts:
+                horz: "left" | "right" | "center"
+                vert: "top" | "bottom" | "center"
+                offset: number
+
+class PlayerApi
+    properties: position, rotation
+
+class CameraApi
+    properties: position, rotation
+
+class UIApi
+    methods: showMessage(text)
+
+class WorldApi
+    properties: lookedAtArtwork
+
+    methods:
+        playSound(url)
+        goto(artwork)
+
+those variables are available in the global scope
+    gsap: gsap animation lib
+    world: WorldApi
+    self: ArtworkApi
+    wait: (secs) => Promise
+    players: { main: PlayerApi }
+    ui: UIApi
+
+
+Only answer with the script, only use javascript, for self only use the code available above,
+DO NOT USE EXTERNAL LIBRARIES, DO NOT CREATE api classes, THREE create objects DO NOT SUPPORT api classes
+-----------------------------------------------
+Example:
+Query: hide the artwork when someone is looking at it
+
+Full Response:
+
+self.on('update', () => {
+  self.visible = !self.isLookedAt
+})
+
+---------------------------------
+Example:
+
+Query: make the artwork follow me when I press "s"
+
+Full Response:
+
+let isSticky = false
+
+self.on('keydown', e => {
+  if(self.isLookedAt && e.key === "s") {
+      isSticky = !isSticky
+  }
+})
+
+self.on('update', () => {
+  if(isSticky) {
+    const pos = players.main.position
+    const dist = self.position.distanceTo(pos)
+    self.lookAt(pos.x, self.position.y, pos.z)
+    self.translateZ(dist - 6)
+  }
+})
+----------------------------------
+Example:
+
+Query: goto me
+
+Full Response:
+
+world.goto(self)
+-----------------------------------
+Example:
+
+Query: play T animation
+
+Full Response:
+
+self.playAnimation("T")
+---------------------------------
+Example:
+
+Query: stop T animation
+
+Full Response:
+
+self.stopAnimation("T")
+------------------------------------
+Example:
+
+Query: show pink text 'Hello World' to the left when looked at
+
+Full Response:
+
+self.on('lookedat', () => {
+
+    self.showText("Hello World", { color: 0xff00ff }, { horz: 'left' })
+})
+
+self.on('lookedaway', () => {
+
+    self.hideText()
+})
+---------------------------------------
+Example:
+
+Query: show red blinking text 'Heyyyyy!' on the top of the artwork
+
+Full Response:
+
+
+let text = null
+
+self.on('lookedat', async () => {
+  text = await self.showText("Heyyyy!", { color: 0xff00ff }, { vert: 'top' })
+  gsap.to(text, { duration: 0.5, alpha: 0, repeat: -1, yoyo: true })
+})
+
+self.on('lookedaway', () => {
+  if(text == null) return
+  text.visible = false
+  gsap.killTweensOf(text)
+})

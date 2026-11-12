@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Independent Three.js world</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#151c28;color:#f4f6fc;font:14px system-ui}canvas{display:block;width:100%;height:100%}.caption{position:absolute;left:32px;bottom:30px;max-width:400px;pointer-events:none}h1{font-size:28px;margin:8px 0;font-weight:500}small{letter-spacing:.16em;color:#a4bccb}p{color:#acbccd;line-height:1.5}button{pointer-events:auto;background:#dae97c;color:#182313;border:0;border-radius:12px;padding:12px 16px;font:inherit;cursor:pointer}#status{min-height:20px}</style>
+<script src="/oncyber-content.js" data-host-origin="http://localhost:13000"></script></head><body>
+<div class="caption"><small>INDEPENDENT THREE.JS CONTENT</small><h1>A world inside Oncyber</h1><p>This renderer has its own code and origin. Oncyber’s controls and wallet permissions stay outside.</p><button id="connect">Request wallet address</button> <button id="gpu">Check WebGPU</button><p id="status" role="status"></p></div>
+<script type="module">
+import * as THREE from '/three.module.js';
+const renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();scene.background = new THREE.Color('#151c28');scene.fog = new THREE.Fog('#151c28',12,35);
+const camera = new THREE.PerspectiveCamera(45,1,.1,100);camera.position.set(5,3.5,7);camera.lookAt(0,.8,0);
+scene.add(new THREE.HemisphereLight('#d6eaff','#182131',3));const light=new THREE.DirectionalLight('#ffffff',5);light.position.set(3,8,4);scene.add(light);
+const mesh = new THREE.Mesh(new THREE.TorusKnotGeometry(1.2,.34,160,24),new THREE.MeshStandardMaterial({color:'#cfe870',metalness:.5,roughness:.25}));mesh.position.y=1.4;scene.add(mesh);
+const grid=new THREE.GridHelper(50,50,'#364753','#263540');scene.add(grid);
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}addEventListener('resize',resize);resize();
+renderer.setAnimationLoop((time)=>{mesh.rotation.y=time*.0002;mesh.rotation.x=Math.sin(time*.00025)*.2;renderer.render(scene,camera)});
+window.oncyberContent?.ready().catch(()=>{});
+document.querySelector('#gpu').onclick=async()=>{const status=document.querySelector('#status');try{const adapter=await navigator.gpu?.requestAdapter();if(!adapter){status.textContent='WebGPU unavailable in this browser; WebGL is running.';return;}const device=await adapter.requestDevice();const buffer=device.createBuffer({size:16,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.COPY_SRC});device.queue.writeBuffer(buffer,0,new Uint32Array([1,2,3,4]));await device.queue.onSubmittedWorkDone();buffer.destroy();device.destroy();status.textContent='WebGPU device and command submission work inside the sandbox.';}catch(error){status.textContent='WebGPU: '+error.message;}};
+document.querySelector('#connect').onclick=async()=>{const status=document.querySelector('#status');try{status.textContent='Waiting for Oncyber…';const result=await window.oncyberContent.requestWalletAddress();status.textContent='Shared address: '+result.address;}catch(error){status.textContent=error.message;}};
+</script></body></html>

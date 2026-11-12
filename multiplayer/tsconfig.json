@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "outDir": "build",
+        "target": "es6",
+        "module": "commonjs",
+        "strict": true,
+        "allowJs": true,
+        "strictNullChecks": false,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "skipLibCheck": true,
+        "noEmitOnError": false,
+        "forceConsistentCasingInFileNames": true,
+        // Scope @types to THIS package only. Nested inside the cyber
+        // monorepo, tsc would otherwise walk up and auto-include the
+        // parent's node_modules/@types (which reference glob/minimatch
+        // type libs that don't resolve here).
+        "typeRoots": ["./node_modules/@types"]
+    },
+    "include": ["src"]
+}

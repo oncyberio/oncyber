@@ -1,0 +1,179 @@
+import React, { useEffect, useRef, CSSProperties, useMemo } from "react";
+import styled from "styled-components";
+
+import IconImg from "@ui/components/IconImg";
+import { XY } from "@components/hooks/useDrag";
+import { clamp, noop } from "@utils/js";
+import { useEventCallback } from "@components/hooks/useEventCallback";
+
+export interface ClampPad {
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+}
+
+const defaultClamp = {
+    top: 80,
+    bottom: 6,
+    left: 20,
+    right: 20,
+};
+
+export function Floatbar({
+    className = "",
+    children,
+    clampPad: _clamp = {},
+    onChange = noop,
+    header = "",
+}) {
+    //
+    const handleRef = useRef<HTMLDivElement>();
+    const elementRef = useRef<HTMLDivElement>();
+
+    const clampPad = { ...defaultClamp, ..._clamp };
+
+    const handleChange = useEventCallback((coords) => {
+        const elem = elementRef.current as HTMLElement;
+
+        coords.x = clamp(
+            coords.x,
+            clampPad.left,
+            window.innerWidth - elem.clientWidth - clampPad.right
+        );
+
+        coords.y = clamp(
+            coords.y,
+            clampPad.top,
+            window.innerHeight - elem.clientHeight - clampPad.bottom
+        );
+
+        onChange?.(coords);
+    }, []);
+
+    useEffect(() => {
+        //
+
+        if (handleRef.current == null || elementRef.current == null) return;
+
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+
+        const onPointerDown = (event: PointerEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const { x, y } = elementRef.current.getBoundingClientRect();
+
+            startX = event.clientX - x;
+            startY = event.clientY - y;
+
+            handleRef.current.setPointerCapture(event.pointerId);
+            handleRef.current.addEventListener("pointermove", onPointerMove);
+        };
+
+        const onPointerMove = (event: PointerEvent) => {
+            //
+            event.stopPropagation();
+
+            currentX = event.clientX - startX;
+            currentY = event.clientY - startY;
+
+            let coords = { x: currentX, y: currentY };
+
+            handleChange?.(coords);
+
+            elementRef.current.style.transform = `translate(${coords.x}px, ${coords.y}px)`;
+        };
+
+        const onPointerUp = (event: PointerEvent) => {
+            event.stopPropagation();
+            handleRef.current.releasePointerCapture(event.pointerId);
+            handleRef.current.removeEventListener("pointermove", onPointerMove);
+        };
+
+        handleRef.current.addEventListener("pointerdown", onPointerDown);
+        handleRef.current.addEventListener("pointerup", onPointerUp);
+
+        return () => {
+            //
+            handleRef.current?.removeEventListener(
+                "pointerdown",
+                onPointerDown
+            );
+            handleRef.current?.removeEventListener("pointerup", onPointerUp);
+        };
+    }, [handleRef.current, elementRef.current]);
+
+    useEffect(() => {
+        //
+        const bounds = elementRef.current.getBoundingClientRect();
+
+        onChange?.({
+            x: bounds.left,
+            y: bounds.top,
+        });
+    }, []);
+
+    return (
+        <Container ref={elementRef} className={`${className}`}>
+            <Header>
+                <span>{header}</span>
+                <div className="grab" ref={handleRef}>
+                    <IconImg name="grab-vert" size={20} />
+                </div>
+            </Header>
+
+            {children}
+        </Container>
+    );
+}
+
+const Container = styled.div`
+    //
+    width: 100%;
+    position: fixed;
+    left: 0;
+    top: 0;
+    border-radius: 8px;
+    margin: 0;
+    user-select: none;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    max-height: 80vh;
+
+    //z-index: 1000000000;
+`;
+
+const Header = styled.div`
+    width: 100%;
+
+    display: flex;
+    padding: 20px;
+    user-select: none;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #292929;
+
+    & > span {
+        height: 100%;
+        margin: 0;
+        font-weight: 500;
+        font-size: 15px;
+        line-height: 100%;
+        color: #ffffff;
+        text-transform: capitalize;
+    }
+
+    & > .grab {
+        cursor: move;
+        display: flex;
+        align-items: center;
+    }
+`;

@@ -1,0 +1,1 @@
+export var ARC_DIVISIONS = 2000

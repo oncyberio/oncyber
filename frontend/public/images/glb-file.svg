@@ -1,0 +1,14 @@
+<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="402" width="582" y="-1" x="-1"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <path id="svg_2" fill="#00e3bd" d="m5,1.999976c-1.1046,0 -2,0.9 -2,2l0,8l0,4l0,6c0,1.1 0.8954,2 2,2l14,0c1.105,0 2,-0.9 2,-2l0,-6l0,-4l0,-4l-6,-6l-10,0z"/>
+  <path id="svg_3" fill="#1bc6a7" d="m5,0.999976c-1.1046,0 -2,0.9 -2,2l0,8l0,4l0,6c0,1.1 0.8954,2 2,2l14,0c1.105,0 2,-0.9 2,-2l0,-6l0,-4l0,-4l-6,-6l-10,0z"/>
+  <path id="svg_4" fill="#00e3bd" d="m21,6.999976l-6,-6l0,4c0,1.1 0.895,2 2,2l4,0z"/>
+  <text xml:space="preserve" text-anchor="start" font-family="Helvetica, Arial, sans-serif" font-size="5" id="svg_9" y="20.714047" x="9.497396" stroke-opacity="null" stroke-width="0" stroke="null" fill="#ffffff">GLB</text>
+ </g>
+</svg>

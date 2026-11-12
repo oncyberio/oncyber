@@ -1,0 +1,26 @@
+export const ruumfordsSpaces = [
+    "lobby_n",
+    "miami",
+    "london",
+    "paris",
+    "berlin",
+    "jd_ircor_nyc",
+    "berlin_",
+    "chicago_",
+
+    "jd_irc_berlin",
+    "jd_irc_london",
+    "jd_irc_paris",
+    "jd_irc_paris_y",
+    "jd_irc_miami",
+    "jd_irc_chicago",
+    "jd_irc_nyc",
+    "jd_nin_lobby",
+    "0616_jdlobby",
+    "jd_lobby",
+    "chicago_",
+    "jd_ircor_nyc",
+
+    "lobby_n",
+    "needitnow_lobby",
+];

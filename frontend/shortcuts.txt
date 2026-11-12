@@ -1,0 +1,21 @@
+
+DesktopArtworkControls
+
+    - `o` : opens the looked at portal
+    - `c` : closes the looked at portal
+    - `b` : opens portal to the last exhibit we teleported from
+
+
+OctreeControls
+
+    - `w`, `a`, `s`, `d` , arrows : keyboard navigation
+
+EditModeControls
+
+    - `p` : toggle TransformControls
+    - `o` : opens the looked at portal
+    - `c` : closes the looked at portal
+
+ArtworkInfoBulle
+
+    - `e` : shows ArtworkInfo

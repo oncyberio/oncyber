@@ -1,0 +1,10 @@
+[
+    {
+        "origin": [
+            "https://oncyber.io",
+            "https://cyber-art-git-gifs-oncyber.vercel.app"
+        ],
+        "method": ["GET"],
+        "maxAgeSeconds": 3600
+    }
+]

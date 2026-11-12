@@ -1,0 +1,13 @@
+# Explicit build-context allowlist: never upload .env files, keys or local data.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/
+!src/**
+!protocol/
+!protocol/**
+!scripts/
+!scripts/lobby-cert.cjs
+!scripts/lobby-world-entrypoint.sh
+!Dockerfile.world

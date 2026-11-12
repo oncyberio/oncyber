@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "origin": "User-supplied Pointing Gesture.fbx, provided 2026-10-20",
+  "note": "Only the authored skeletal take is distributed. Embedded meshes, textures, duplicate skin-cluster bones and the empty Take 001 are omitted.",
+  "generator": "frontend/scripts/pack-travel-animations.mjs",
+  "command": "node frontend/scripts/pack-travel-animations.mjs --input /path/to/source-directory --source-manifest frontend/public/lobby/flash/source-manifest.json --group flash --output frontend/public/lobby/flash",
+  "importer": {
+    "package": "three-vanilla",
+    "version": "0.180.0",
+    "loader": "examples/jsm/loaders/FBXLoader.js"
+  },
+  "referenceRig": {
+    "path": "frontend/components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/baker/baserig.json",
+    "sha256": "866a4cc19673cd99b2eb0c0d1f779ca5e839382454388b725d7613617d48de42"
+  },
+  "normalization": {
+    "names": "mixamorig9 canonicalized to mixamorig; first animation-bound node retained when skin clusters duplicate bone names. All 30 finger joints are preserved.",
+    "rotations": "Parent rest world rotation * local authored rotation * inverse bone rest world rotation, matching the identity-rest VRM convention in both renderers.",
+    "position": "Source hips scaled to native reference height; horizontal endpoint travel removed, authored hip sway and vertical motion retained.",
+    "playback": "Hold at frame 13 at 30 Hz (0.433333 seconds), the peak mean hand height on the normalized reference rig, with subtle breathing. Retain the rest of the take for the outro.",
+    "validation": "Forward kinematics checked against source bones at 60 Hz; compressed values checked using the runtime decoder at authored keys and 120 Hz."
+  },
+  "clips": [
+    {
+      "name": "FLASH_POINT",
+      "source": "Pointing Gesture.fbx",
+      "loop": false,
+      "holdTime": 0.43333333333333335,
+      "bytes": 54094416,
+      "sha256": "beb3401464bd5ba89f27ff652283905009004191885781a0904c8f209e794954"
+    }
+  ]
+}

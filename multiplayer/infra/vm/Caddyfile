@@ -1,0 +1,11 @@
+# Reverse-proxy EVERYTHING to Colyseus — do NOT enumerate paths. The
+# matchmaking HTTP endpoints (/join, /getRooms), the monitor (/cyber-h),
+# and the per-room WebSocket upgrade (/{processId}/{roomId}) all share this
+# host. Caddy handles WS upgrades natively with no streaming timeout.
+#
+# Replace the hostname with your DNS A record (→ the VM's static IP). Caddy
+# auto-provisions a Let's Encrypt cert on first boot (needs DNS live + :80).
+
+arena.oncyber.io {
+	reverse_proxy colyseus:2567
+}

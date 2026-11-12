@@ -1,0 +1,83 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+/.pnp
+.pnp.js
+build
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
+./server/.env
+.vercel
+
+docker-compose.yml
+Dockerfile
+# the Colyseus VM image builds from this one — it must be tracked
+!multiplayer/Dockerfile
+#local mongodb
+mongodb
+
+public/sw.*
+public/workbox-*
+
+*/coverage
+server/.env
+server/.env
+
+/tasks/resizevrm/sources
+/tasks/resizevrm/build
+
+tasks/texturecompressetc/source
+
+
+##
+cloud-functions/functions/lib/**/*
+cloud-functions/functions/**/*.log
+
+cloud-functions/**/lib/*
+cloud-functions/**/*.log
+
+# Reproducible gallery maintenance worker image
+!scripts/gallery-maintenance/Dockerfile
+
+# Local compiler state and diagnostic captures
+*.tsbuildinfo
+/tasks/analyzer/*.har
+/tasks/splines/build.zip
+
+# Local agent preferences
+.claude/settings.local.json
+
+# Local environment variants and backups; keep sanitized templates trackable
+.env.*
+!.env.example
+
+# Gallery manifests hold production gallery ids and visit counts; keep them local
+scripts/gallery-maintenance/manifests/
+
+# Licensed fonts are fetched at build time (docs/fonts.md)
+frontend/public/fonts/licensed/

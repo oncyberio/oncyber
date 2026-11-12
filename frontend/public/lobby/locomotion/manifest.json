@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "format": "LCP1",
+  "provenance": "source-manifest.json",
+  "packs": [
+    {
+      "group": "core",
+      "file": "core.0e2fa3a1be67.lcp",
+      "sha256": "0e2fa3a1be67f6241f1e70c84e69f22307464582a4e5bc40c8e1dbe76239109b",
+      "bytes": 47469,
+      "gzipBytes": 25209,
+      "brotliBytes": 22072,
+      "uncompressedFloatJsonBytes": 1283340,
+      "sourceKeys": 14702,
+      "packedKeys": 3032,
+      "measuredMaxAngularErrorDegrees": 0.180449,
+      "measuredMaxPositionErrorCm": 0.057223,
+      "clips": {
+        "SPRINT": {
+          "sourceName": "sprint",
+          "duration": 0.4000000059604645,
+          "loop": true
+        },
+        "IDLE": {
+          "sourceName": "p_idle",
+          "derivation": "idle",
+          "duration": 4,
+          "loop": true
+        },
+        "RUN": {
+          "sourceName": "p_run",
+          "duration": 0.5333333611488342,
+          "loop": true
+        },
+        "WALK": {
+          "sourceName": "p_walk",
+          "derivation": "walk",
+          "duration": 1.0333333015441895,
+          "loop": true
+        },
+        "IDLE_ONCYBER": {
+          "sourceName": "Oncyber IDLE + relaxed fingers",
+          "duration": 2,
+          "loop": true
+        },
+        "IDLE_CC0": {
+          "sourceName": "Quaternius Idle_Loop (CC0-1.0)",
+          "duration": 2.5,
+          "loop": true
+        }
+      }
+    },
+    {
+      "group": "air",
+      "file": "air.2dccf421740f.lcp",
+      "sha256": "2dccf421740f272b1283c9a6723cdf01d20e8fe25c4304e8b0aaf9493a05dc24",
+      "bytes": 120793,
+      "gzipBytes": 62507,
+      "brotliBytes": 51760,
+      "uncompressedFloatJsonBytes": 932739,
+      "sourceKeys": 11130,
+      "packedKeys": 8479,
+      "measuredMaxAngularErrorDegrees": 0.179591,
+      "measuredMaxPositionErrorCm": 0.055777,
+      "clips": {
+        "JUMP_IDLE": {
+          "sourceName": "jump_idle",
+          "duration": 0.36666667461395264,
+          "loop": false
+        },
+        "JUMP_RUNNING": {
+          "sourceName": "jump_running",
+          "duration": 0.5,
+          "loop": false
+        },
+        "JUMP_SPRINTING": {
+          "sourceName": "jump_sprinting",
+          "duration": 0.4333333373069763,
+          "loop": false
+        },
+        "JUMP_WALKING": {
+          "sourceName": "jump_walking",
+          "duration": 0.5,
+          "loop": false
+        },
+        "DROP_RUNNING_ROLL": {
+          "sourceName": "drop_running_roll",
+          "duration": 0.5666666626930237,
+          "loop": false
+        },
+        "DROP_RUNNING": {
+          "sourceName": "drop_running",
+          "duration": 0.30000001192092896,
+          "loop": false
+        },
+        "DROP_SPRINTING_ROLL": {
+          "sourceName": "drop_sprinting_roll",
+          "duration": 0.5,
+          "loop": false
+        },
+        "DROP_SPRINTING": {
+          "sourceName": "drop_sprinting",
+          "duration": 0.30000001192092896,
+          "loop": false
+        },
+        "DROP_WALKING_ROLL": {
+          "sourceName": "drop_walking_roll",
+          "duration": 0.6666666865348816,
+          "loop": false
+        },
+        "DROP_WALKING": {
+          "sourceName": "drop_walking",
+          "duration": 0.30000001192092896,
+          "loop": false
+        },
+        "FALLING": {
+          "sourceName": "falling",
+          "duration": 0.9666666388511658,
+          "loop": true
+        },
+        "JUMP_DOUBLE": {
+          "sourceName": "jump_double",
+          "duration": 0.6333333253860474,
+          "loop": false
+        },
+        "DROP_IDLE": {
+          "sourceName": "drop_idle",
+          "duration": 0.5333333611488342,
+          "loop": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+    "entry": [
+        "pages/**/*.{js,jsx,ts,tsx}",
+        "scripts/**/*.{js,mjs,cjs}",
+        "**/*.test.{js,jsx,ts,tsx}",
+        "gl/**/*.{js,ts}",
+        "content/**/*",
+        "glslifyloader/*.js"
+    ],
+    "project": ["**/*.{js,jsx,ts,tsx,mjs,cjs}"],
+    "ignore": ["public/**"],
+    "next": true,
+    "jest": true,
+    "ignoreDependencies": [
+        "@babel/plugin-transform-class-properties",
+        "@babel/plugin-transform-class-static-block",
+        "@babel/plugin-transform-private-methods",
+        "@babel/plugin-transform-modules-commonjs",
+        "@babel/core",
+        "babel-loader",
+        "glslify",
+        "glslify-loader",
+        "raw-loader",
+        "worker-loader",
+        "cross-env",
+        "jest",
+        "webpack"
+    ]
+}

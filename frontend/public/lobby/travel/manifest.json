@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "format": "LCP1",
+  "provenance": "source-manifest.json",
+  "packs": [
+    {
+      "group": "travel",
+      "file": "travel.f7d646d776ff.lcp",
+      "sha256": "f7d646d776ff0042c7f38d7a00ad0c808abcdac183235f577e7c9e3d17741940",
+      "bytes": 83288,
+      "gzipBytes": 67335,
+      "brotliBytes": 61966,
+      "sourceFbxBytes": 1940992,
+      "uncompressedFloatJsonBytes": 1304642,
+      "sourceKeys": 12727,
+      "packedKeys": 7128,
+      "measuredMaxAngularErrorDegrees": 0.187898,
+      "measuredMaxPositionErrorCm": 0.058664,
+      "measuredMaxRetargetFkErrorCm": 0.023455249,
+      "clips": {
+        "TRAVEL_ATTACK": {
+          "sourceName": "Standing 2H Magic Attack 05.fbx",
+          "duration": 3.5333333015441895,
+          "loop": false,
+          "sourceHipsHeightCm": 95.926173,
+          "referenceHipsHeightCm": 96.7448,
+          "hipsHeightRangeCm": [
+            49.637056,
+            90.841844
+          ]
+        },
+        "TRAVEL_CROUCH_DOWN": {
+          "sourceName": "Standing Idle To Crouch.fbx",
+          "duration": 1,
+          "loop": false,
+          "sourceHipsHeightCm": 95.926173,
+          "referenceHipsHeightCm": 96.7448,
+          "hipsHeightRangeCm": [
+            54.236176,
+            89.907769
+          ]
+        },
+        "TRAVEL_CROUCH_IDLE": {
+          "sourceName": "Crouch Idle.fbx",
+          "duration": 1.3666666746139526,
+          "loop": true,
+          "sourceHipsHeightCm": 95.926173,
+          "referenceHipsHeightCm": 96.7448,
+          "hipsHeightRangeCm": [
+            53.977363,
+            58.59435
+          ]
+        },
+        "TRAVEL_STAND_UP": {
+          "sourceName": "Crouch To Standing Idle.fbx",
+          "duration": 1,
+          "loop": false,
+          "sourceHipsHeightCm": 95.926173,
+          "referenceHipsHeightCm": 96.7448,
+          "hipsHeightRangeCm": [
+            54.23621,
+            91.048103
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+class ArtworkApi extends THREE.Object3D
+    properties:
+        isLookedAt, isVisibleToCamera, distanceToCamera
+        asset: { name, description, creator, collection, type }
+        type: (can be image, panorama, video, audio, html, model, text, embed-html or youtube)
+
+    events: update, keydown, keypress, lookedat, lookedaway
+
+    methods: playAnimation, stopAnimation. showText
+
+class TextApi extends THREE.Object3D
+    properties: text, color, align (left | right | center)
+    methods:
+    snapTo(target, opts)
+
+class PlayerApi
+    properties: position, rotation
+
+class CameraApi
+    properties: position, rotation
+
+class UIApi
+    methods: showMessage(text)
+
+class WorldApi extends BaseApi
+
+ properties:
+
+    lookedAtArtwork
+    scene: threejs Group (all created threejs objects are added here)
+
+ methods:
+    playSound(url)
+    getArtworkById(id: string): ArtworkApi
+    getArtworkByName(name: string): ArtworkApi
+    addText() => Promise<TextApi>
+
+ events:
+    artwork-added: { artwork: ArtworkApi }
+    artwork-removed: { artwork: ArtworkApi }
+    artwork-lookedat: { target: ArtworkApi }
+    artwork-lookedaway: { target: ArtworkApi }
+
+those variables are available in the global scope
+    gsap: gsap animation lib
+    THREE: threejs api
+    world: WorldApi
+    wait: (secs) => Promise
+    players: { main: PlayerApi }
+    ui: UIApi
+
+
+Only answer with the script, only use javascript, for self only use the code available above,
+DO NOT USE EXTERNAL LIBRARIES, DO NOT CREATE api classes, THREE create objects DO NOT SUPPORT api classes
+
+Example:
+Query: hide the artwork when someone is looking at it
+
+Full Response:
+
+world.on('artwork-added', e => {
+    const self = e.artwork
+    self.on('update', () => {
+        self.visible = !self.isLookedAt
+    })
+})
+
+---------------------------------
+Example:
+
+Query: make the artwork follow me when I press "s"
+
+Full Response:
+
+world.on('artwork-added', e => {
+
+    const self = e.artwork
+    let isSticky = false
+
+    self.on('keydown', e => {
+        if(self.isLookedAt && e.key === "s") {
+            isSticky = !isSticky
+        }
+    })
+
+    self.on('update', () => {
+        if(isSticky) {
+            const pos = players.main.position
+            const dist = self.position.distanceTo(pos)
+            self.lookAt(pos.x, self.position.y, pos.z)
+            self.translateZ(dist - 6)
+        }
+    })
+})
+
+---------------------------------
+Example:
+
+Query: I want all artworks to become visible only after being looked at
+
+Full Response:
+
+world.on("artwork-added", e => {
+
+    const self = e.artwork
+    self.visible = false
+
+    self.on("lookedat", e => {
+        self.visible = true
+    })
+
+})
+
+-----------------------------------------------
+
+Example:
+
+Query: make all artworks vibrate
+
+Full Response:
+
+world.on("artwork-added", e => {
+
+    const artwork = e.artwork
+
+    artwork.userData.vibrateAmount = 0.05
+    artwork.userData.vibrateSpeed = 0.5
+
+    let pos = artwork.position.clone()
+
+    let time = 0
+
+    artwork.on("update", () => {
+
+        time += 0.1
+
+        const amount = artwork.userData.vibrateAmount
+        const speed = artwork.userData.vibrateSpeed
+
+        artwork.position.x = pos.x + Math.sin(time * speed) * amount
+        artwork.position.y = pos.y + Math.cos(time * speed) * amount
+    })
+
+})
+-----------------------------------
+Example: play T animation when looked at
+
+Query:
+
+Full Response:
+
+world.on('artwork-added', e => {
+
+    const self = e.artwork
+
+    self.on('lookedat', e => {
+        self.playAnimation("T")
+    })
+
+
+    self.on('lookedaway', e => {
+        self.stopAnimation("T")
+    })
+})
+---------------------------------------
+Example:
+
+Query: create a virtual tour where user is taken to next artwork when he presses 'n',
+       the tour start when 's' is pressed and also stop whith s
+
+Full Response:
+
+let isTouring = false
+let currentArtworkIndex = 0
+let artworks = []
+
+world.on("artwork-added", e => {
+    artworks.push(e.artwork)
+})
+
+world.on("keydown", e => {
+    if(e.key === "s") {
+        isTouring = !isTouring
+        if(isTouring) {
+            currentArtworkIndex = 0
+            world.goto(artworks[currentArtworkIndex])
+        }
+    }
+    if(e.key === "n" && isTouring) {
+        currentArtworkIndex++
+        if(currentArtworkIndex >= artworks.length) {
+            currentArtworkIndex = 0
+        }
+        world.goto(artworks[currentArtworkIndex])
+    }
+})
+-------------------------------
+Example:
+
+Query: Create text 'Hello World' and red color
+
+Full Response:
+
+const text = await world.addText("Hello there", { color: 0xff0000 })
+------------------------------
+Example:
+
+Query: When user presses g show text 'Hello World' with pink color in front of main player at a distance 10
+
+Full Response:
+
+world.on("keydown", e => {
+    if(e.key === "g") {
+        const helloText = await world.createText("Hello World", { color: 0xff00ff })
+        world.scene.add(helloText)
+        helloText.position.copy(players.main.position)
+        helloText.translateZ(10)
+        helloText.lookAt(players.main.position)
+    }
+})

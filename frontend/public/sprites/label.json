@@ -1,0 +1,44 @@
+{"frames": [
+
+{
+	"filename": "icon_door.png",
+	"frame": {"x":1,"y":1,"w":58,"h":58},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":58,"h":58},
+	"sourceSize": {"w":58,"h":58}
+},
+{
+	"filename": "icon_e.png",
+	"frame": {"x":1,"y":61,"w":58,"h":58},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":58,"h":58},
+	"sourceSize": {"w":58,"h":58}
+},
+{
+	"filename": "icon_lock.png",
+	"frame": {"x":61,"y":1,"w":58,"h":58},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":58,"h":58},
+	"sourceSize": {"w":58,"h":58}
+},
+{
+	"filename": "icon_tap.png",
+	"frame": {"x":61,"y":61,"w":58,"h":58},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":58,"h":58},
+	"sourceSize": {"w":58,"h":58}
+}],
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "label.png",
+	"format": "RGBA8888",
+	"size": {"w":128,"h":128},
+	"scale": "0.83333",
+	"smartupdate": "$TexturePacker:SmartUpdate:0c9ffdb96ea8a4ad1b2a346fdd0e7d6b:76744dee6bd1935fc84b0ab881f5e556:0f2b839dff3e26edbbb1f44a3033ec7f$"
+}
+}

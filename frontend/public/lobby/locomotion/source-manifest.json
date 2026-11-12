@@ -1,0 +1,178 @@
+{
+    "origin": "original lobby motion set",
+    "note": "Original lobby motions plus Oncyber and Quaternius CC0 idle variants. Source URLs and byte hashes are pinned; variant derivation and CC0 provenance are recorded below.",
+    "clips": [
+        {
+            "source": "jump_idle",
+            "name": "JUMP_IDLE",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmU3U2FqjUBbyY5XneDrysxQqPGKJhyE4bFVsa7K9hSbp2?filename=947ed5b6b6b4b5d1de662006f9f56a15e26fbe81add2c18a3b3c3a0880b5bc92.json.undefined",
+            "sha256": "e96273cb5debe4da13008009bdbcf64b27dbeac34063fab6400071d4ae05d99e"
+        },
+        {
+            "source": "jump_running",
+            "name": "JUMP_RUNNING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmXmUvMcp9D49AjeiksR6B4d5CpqmFNKUShPsLfskzfqcC?filename=f97f989f11065d6ef16953997b376bbe52ec6579ffe8cac65fec545670812ea1.json.undefined",
+            "sha256": "551f0c1b32e5588a1b55838e891de394edc6efc67780dddccedcdf62dabd1860"
+        },
+        {
+            "source": "jump_sprinting",
+            "name": "JUMP_SPRINTING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmP1enTqi1rbzaWnprBYd56MioSREwoMwedoouBv1i8Avp?filename=676f434bbfa9a2dd21fd0e1e3f4e2cc56d41b3d137c0d44a3c83ba6c07f6a3c4.json.undefined",
+            "sha256": "23c82074f12d46d32d978ea8682de1dc118908d5caf4aa60140acd548e026121"
+        },
+        {
+            "source": "jump_walking",
+            "name": "JUMP_WALKING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmWWVUDee7ukb4qk3V35dGQEuYM7Rk6y6gGFNiWmLxBRsP?filename=5770376de5a698598b5e976bdc8522561b177134c5829bb8c8b3f2c2422f6dd9.json.undefined",
+            "sha256": "d28199a251554b0eb386d310005f53a4216dcce14d0f60c6b8b5fdc9042a2a53"
+        },
+        {
+            "source": "sprint",
+            "name": "SPRINT",
+            "group": "core",
+            "loop": true,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmdhcRiF3vJ144WZakKAb4XChPAz56b26ENmAqiYdmva5T?filename=5eaac025cd7d756f7be6a06e7624535e647157ce904bcc09998ddae59fee7bba.json.undefined",
+            "sha256": "dc955083643be239f901ae06b983818ca6b6d8900321398423e145cc7590532e"
+        },
+        {
+            "source": "drop_running_roll",
+            "name": "DROP_RUNNING_ROLL",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmPAbanWYfzJLyxCfVdD9tJ7E4aj6WuPE6pxi9u7Jwq1th?filename=d8284031e7d9767c5b17a96f747813fcd0dadca8bc52eb1563530c2eb6aaa413.json.undefined",
+            "sha256": "9f1f124beca4048b199ce4acd3cbb131397a637276d9db7de1885a1cfd912f7a"
+        },
+        {
+            "source": "drop_running",
+            "name": "DROP_RUNNING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmcLdny2zgX33QVGFUVcn3ad2M6FfYU8MfuJicfMbxGK19?filename=06c2913f25622fd029d5bf4fdf4a0594c872df3315c23f695811977ce612aa28.json.undefined",
+            "sha256": "02104fd536bfc1d8c51d98ff7b97d410595c34a0af4515c05a933729fe908c2b"
+        },
+        {
+            "source": "drop_sprinting_roll",
+            "name": "DROP_SPRINTING_ROLL",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/Qmf6abYscNUMo8ByczYzT7epXZwPFDH6FoHHvbNc3wFQik?filename=e955f9806042a1047ce31feb2efdac82200abca13892ae2b8967409c36a35bb4.json.undefined",
+            "sha256": "d2ea0b724fa6fd7eec0fb41d5cf881e27851e65ab18339493d27642b85ae6b83"
+        },
+        {
+            "source": "drop_sprinting",
+            "name": "DROP_SPRINTING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmUyHYZhdqqoNR2rtU6U5DKvofYpapgDCCruKUK1yhC4GT?filename=13311a9edda27e16b37451836117973a00f88da498b6c5d520a869e62ad2c405.json.undefined",
+            "sha256": "acbc256530819568f6048150f959c1561b136a3b812b1d08e0b079ee10a77e60"
+        },
+        {
+            "source": "drop_walking_roll",
+            "name": "DROP_WALKING_ROLL",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmbGbL4ohvCotBxpi4fju55N7uaZmDm5zyiMrjryzu1CJm?filename=663caf738a20b4176827161b4b88233be04375bccdbaabd1963882a0d1406026.json.undefined",
+            "sha256": "fb8fb87946d96ed633ee95b4a5f9d060998fb3ef6f2b04639c425a3c07fc6835"
+        },
+        {
+            "source": "drop_walking",
+            "name": "DROP_WALKING",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmQmdKX1CyJW8joPPoywpWe8F1h8dAs6quzqywGTYoo543?filename=eaba01df01a46722df3980a2587791187dd1e2e868b9bdc820e5965e98a2f221.json.undefined",
+            "sha256": "ed188163611e416a9242b08b68cb8ebc53c279420ffe72f716f5f2578c8fc1bf"
+        },
+        {
+            "source": "falling",
+            "name": "FALLING",
+            "group": "air",
+            "loop": true,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmbeBpnenyYyxGKTy4RksCUqpZdvTGK7QiVK2Ro6v1Hgvx?filename=ee8f320e6efae9f3513ed06b38ff04ee4ddd7a4f09da611aa5cf928ef44c00b7.json.undefined",
+            "sha256": "c628dc5d5a96dc89ae9bea781c6d27a6f06dd38f87ad4ed645bf84f5710403f3"
+        },
+        {
+            "source": "jump_double",
+            "name": "JUMP_DOUBLE",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmaTE6ownNg5sVCPd614FSQAzjtgoPWk6cx8sgFe8R95XF?filename=a0c74c836a855eae4a5eced9f4c018e986f59400438859f2f260802f01868d42.json.undefined",
+            "sha256": "8b3ba3642606b408033e27489ee8bd5d90b1356e65ee893ebd3eeaadd9fb6c7d"
+        },
+        {
+            "source": "p_idle",
+            "name": "IDLE",
+            "group": "core",
+            "loop": true,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmUZuYpduzkeaptycxzZbgicw1V1zwFwMHdHSxJBt3u2LE?filename=084b681c2ffd7e810e8d5dd71d93484ac949a2ecd03d6d8a379f267434d1fa7f.json.undefined",
+            "sha256": "aa910b09c9e6686ddff6f5d880c793fe274e8e748f261abb92970a4d08a99fdd"
+        },
+        {
+            "source": "p_run",
+            "name": "RUN",
+            "group": "core",
+            "loop": true,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmR569PSxoi7rjfoa9SigZJAm5kbBFHG8aGv5MZxGFn6qL?filename=86173d3e9c2c436658a9e6828d99c6a6378b63b53e3c308749cf965d2b738269.json.undefined",
+            "sha256": "1c51ae375830925118b58a734432e24270545fc87cc22612f2053dab8dea1232"
+        },
+        {
+            "source": "p_walk",
+            "name": "WALK",
+            "group": "core",
+            "loop": true,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmRt1FusiCybAqHThY2QYhvu1FY5QGdVnPW7RK3fS8cw7z?filename=eb0107c1383e7de11898ecf695938919af9d471d88439db9a2afb988c2c0dd6d.json.undefined",
+            "sha256": "a6a0f0f137a465d750eea8b8b5229ec320799b901d289cf69ea4cbd5408a6b21"
+        },
+        {
+            "source": "drop_idle",
+            "name": "DROP_IDLE",
+            "group": "air",
+            "loop": false,
+            "url": "https://cyber.mypinata.cloud/ipfs/QmbUuw4FiSyfSzhU59cD2BuMqbrQoGZqF7Fi1AgnpPmGEw?filename=e4a82d190538a0106255faaffffc4d3863f0726b5190ef91d2024691ac02bd41.json.undefined",
+            "sha256": "44503ac32833c29140e3ed6cbc7086d10a85b3ff5fdc6c38df3d6a4dc7c9e913"
+        }
+    ],
+    "derivation": {
+        "script": "frontend/scripts/style-locomotion.mjs",
+        "walk": {
+            "path": "frontend/public/lobby/native-avatar-motion.json",
+            "sha256": "fc8945b1d6aedd912ac78000c421cc8c735a07128502d07b491cd164c42718c2",
+            "clip": "WALK",
+            "note": "Oncyber body gait with original p_walk fingers, phase-aligned; upper arms abducted 4 degrees."
+        },
+        "idle": {
+            "source": "p_idle",
+            "note": "Four-second relaxed breathing loop: softened upper-body motion, subtle chest breathing with delayed head compensation, upper arms abducted 6 degrees. Original lower-body contact motion retained."
+        },
+        "inspiration": [
+            "https://quaternius.com/packs/universalanimationlibrary.html",
+            "https://dev.epicgames.com/documentation/en-us/unreal-engine/using-layered-animations-in-unreal-engine"
+        ],
+        "idleVariants": {
+            "script": "frontend/scripts/idle-variants.mjs",
+            "oncyber": {
+                "path": "frontend/public/lobby/native-avatar-motion.json",
+                "sha256": "fc8945b1d6aedd912ac78000c421cc8c735a07128502d07b491cd164c42718c2",
+                "clip": "IDLE",
+                "note": "Original Oncyber body motion with phase-aligned relaxed idle fingers."
+            },
+            "cc0": {
+                "path": "frontend/public/lobby/cc0/quaternius-core.c66c3d2a7450.lcp",
+                "sha256": "c66c3d2a74505ecb71b121959593c13aedd1c8a09b31c0949f9f4b9dbca3e387",
+                "clip": "IDLE",
+                "sourceName": "Idle_Loop",
+                "author": "Quaternius",
+                "license": "CC0-1.0",
+                "provenance": "../cc0/manifest.json",
+                "note": "Existing normalized CC0 idle and authored hands, repacked with the core pack to avoid another production request."
+            }
+        }
+    }
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "format": "LCP1",
+  "provenance": "source-manifest.json",
+  "packs": [
+    {
+      "group": "flash",
+      "file": "flash.1b83425c080e.lcp",
+      "sha256": "1b83425c080e0a25663161a15fb383594b547b9d79474921cb57e4cbd5314d6d",
+      "bytes": 17912,
+      "gzipBytes": 13536,
+      "brotliBytes": 12593,
+      "sourceFbxBytes": 54094416,
+      "uncompressedFloatJsonBytes": 236266,
+      "sourceKeys": 2320,
+      "packedKeys": 1399,
+      "measuredMaxAngularErrorDegrees": 0.178184,
+      "measuredMaxPositionErrorCm": 0.050233,
+      "measuredMaxRetargetFkErrorCm": 0.00596043,
+      "clips": {
+        "FLASH_POINT": {
+          "sourceName": "Pointing Gesture.fbx",
+          "holdTime": 0.43333333333333335,
+          "duration": 1.8333333730697632,
+          "loop": false,
+          "sourceHipsHeightCm": 95.704185,
+          "referenceHipsHeightCm": 96.7448,
+          "hipsHeightRangeCm": [
+            84.308087,
+            94.893466
+          ]
+        }
+      }
+    }
+  ]
+}

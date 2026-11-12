@@ -1,0 +1,35 @@
+name: Lobby world regression
+on:
+  pull_request:
+    paths: ["multiplayer/**", "frontend/features/lobby/**", "frontend/public/lobby/feel-metrics-worker.js", ".github/workflows/lobby-world.yml"]
+  push:
+    paths: ["multiplayer/**", "frontend/features/lobby/**", "frontend/public/lobby/feel-metrics-worker.js", ".github/workflows/lobby-world.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: lobby-world-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: multiplayer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: multiplayer/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:lobby-regression
+      - run: npm run test:lobby-feel -- --output=/tmp/lobby-feel-ci.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lobby-feel-metrics
+          path: /tmp/lobby-feel-ci.json
+      # The native Linux QUIC addon must load in the actual production image.
+      - run: docker build --file Dockerfile.world --tag lobby-world-regression .

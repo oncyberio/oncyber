@@ -1,0 +1,59 @@
+# Set the app name with `fly deploy -a <app>` or edit this line for your own deployment.
+app = "oncyber-lobby"
+primary_region = "cdg"
+kill_signal = "SIGTERM"
+kill_timeout = "15s"
+
+[build]
+  dockerfile = "Dockerfile.world"
+
+[env]
+  NODE_ENV = "production"
+  LOBBY_WORLD_BIND = "0.0.0.0"
+  LOBBY_WORLD_PORT = "2575"
+  LOBBY_WORLD_ADMIN_PORT = "2574"
+  LOBBY_WORLD_WORKERS = "2"
+  LOBBY_WORLD_CAPACITY = "256"
+  LOBBY_WORLD_REGION = "cdg"
+  LOBBY_WORLD_SINGLE_PORT = "1"
+  LOBBY_WORLD_TRUST_FLY_PROXY = "1"
+  LOBBY_WORLD_PUBLIC_HOST = "oncyber-lobby.fly.dev"
+  LOBBY_WORLD_WEBTRANSPORT = "1"
+  LOBBY_WORLD_ACME_HOST = "oncyber-lobby.fly.dev"
+  # LOBBY_WORLD_ACME_EMAIL is a Fly secret: fly secrets set LOBBY_WORLD_ACME_EMAIL=...
+  LOBBY_WORLD_TLS_DIR = "/data/tls"
+  LOBBY_WORLD_WT_BIND = "fly-global-services"
+  LOBBY_WORLD_WT_BASE = "2590"
+  LOBBY_WORLD_ORIGINS = "http://localhost:13000,http://127.0.0.1:13000,https://oncyber.io,https://www.oncyber.io"
+
+[http_service]
+  internal_port = 2575
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 300
+    hard_limit = 400
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/lobby/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory = "2gb"
+
+[mounts]
+  source = "lobby_tls"
+  destination = "/data"
+
+[[services]]
+  protocol = "udp"
+  internal_port = 2590
+  [[services.ports]]
+    port = 2590
