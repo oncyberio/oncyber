@@ -36,6 +36,73 @@ identity, avatar, friends and voice coming with you as you travel.
 3. **Outside worlds.** Open the content host to more engines and publishers,
    one small step at a time. Games come back later the same way.
 
+## Architecture in brief
+
+-   **`frontend/`** is one Next.js app on Vercel. It serves the landing, the
+    lobby, spaces, Studio and the in-app docs, and its API routes hold the
+    server logic (RPC procedures in `pages/api/_v2/`).
+-   **The 3D engine** (`components/_3DExhibit-v2/`) is three.js `WebGPURenderer`
+    with TSL materials, so the same code runs on WebGPU and the WebGL2 fallback.
+    The lobby and every native space render with it.
+-   **`multiplayer/`** is a separate Colyseus service for presence, chat and
+    voice signaling. The lobby and spaces join its rooms.
+-   **The content host** (`features/content-host/`) runs an outside experience
+    in a sandboxed frame. The world never touches the wallet or the account; it
+    asks the Oncyber page through the message bridge, and the page decides.
+-   **Data.** Accounts, profiles and space records are in Firebase today. Media
+    and space files go to IPFS (Pinata), and to Arweave over time.
+    `cloud-functions/` optimizes uploaded 3D assets and avatars.
+
+[AGENTS.md](AGENTS.md) has the full repository map and the code conventions.
+
+## Design system
+
+Every piece of interface follows one system, so the app looks like one product.
+Read [docs/brand/README.md](docs/brand/README.md) before building UI, take
+values from the tokens, and check `/dev/tokens` in the running app, which shows
+every value and the real components.
+
+-   **Tokens, never literals.** All values live in `frontend/styles/tokens/` and
+    import from `@styles/tokens`. `base.ts` is shared; `landing.ts`, `lobby.ts`
+    and `studio.ts` sit on top for the three surfaces; `action.ts` is the one
+    button spec. A value only one surface uses goes in that surface's set; it
+    moves to the base when a second surface needs it. See
+    [docs/brand/tokens.md](docs/brand/tokens.md).
+-   **Three surfaces.** The landing is a quiet dark canvas (`#101010`) with
+    solid panels (`#191919`) and paper cards. The lobby floats glass panels over
+    the 3D world. Studio is dense, with flat neutral greys and no glass. Keep
+    each surface's material on that surface.
+-   **Type.** Aeonik (registered as "Oncyber Sans") for language, Space Mono for
+    small numbers and labels. Body 14 px / 1.5, panel titles 16 px medium,
+    buttons 13 px medium. Sentence case. Never tilt, squash or re-track text to
+    make it fit; truncate it instead.
+-   **Color.** Color comes from the worlds; the interface stays neutral. Ink
+    `#f3f3f1`, secondary `#c2c2bd`, muted `#93938e`, white hairlines from
+    `line.faint` to `line.selected`. Blue `#2567ff` is for focus, the active
+    choice and important actions. The cyan-to-lime line marks a selected card.
+    Create red `#ff3b3b` is for Create. Never show state by color alone: add a
+    check, text or an accessible state.
+-   **Shape and spacing.** A 4 px rhythm (4, 8, 12, 16, 20, 24, 32). Corners are
+    8 for nested items, 12 for controls, 16 for compact cards and 24 for cards,
+    panels and dialogs. Studio is a little tighter (see its tokens).
+-   **Buttons.** One spec everywhere: 40 px high, 10 × 16 padding, 1 px border,
+    12 px corners or a full pill. Blue only to sign in or publish (at most one
+    per screen), white for the ordinary main action, outline for the rest. Use
+    `ActionButton` or the primitives in `@styles/brand`.
+-   **Shared components.** Dialogs come from `components/Dialogs` and are dark
+    everywhere except sign in. Empty lists use `EmptyState`. Studio panels use
+    the primitives in `features/studio/styles/` under `StudioTheme`. Reuse these
+    before writing a new one.
+-   **Motion.** 120 ms for hover, 180 ms for small affordances, 220 ms for a
+    popover entering, easing `cubic-bezier(0.2, 0.8, 0.2, 1)`. Animate opacity
+    and transform, never layout or type. Reduced motion turns durations to zero.
+-   **Access.** Every control has a visible focus ring (2 px blue), icon-only
+    controls have names, menus work with the keyboard and Escape, and touch
+    targets are at least 44 px.
+
+When a design decision changes, update the brand guide and the tokens in the
+same pull request.
+
 ## Contributing with your own setup
 
 Anyone can run Oncyber against services they own. Nothing in the repository

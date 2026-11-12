@@ -433,10 +433,7 @@ describe("build options", () => {
         ]);
         expect(
             BUILD_CARDS.filter((card) => card.href).map((card) => card.href)
-        ).toEqual([
-            "/studio/new-gallery",
-            "/studio/new-splat",
-        ]);
+        ).toEqual(["/studio/new-gallery", "/studio/new-splat"]);
         expect(
             BUILD_CARDS.filter((card) => !card.href).map(
                 (card) => card.buildStatus
@@ -557,4 +554,22 @@ it("filters displayed artists and gallery-maker aliases without conflating ACK w
         }).map((card) => card.id)
     ).toEqual(["image"]);
     expect(cards[0].artistNames).toEqual(["Jack Butcher"]);
+});
+
+describe("creatorLabel", () => {
+    const { creatorLabel, cardCreator } = require("./data");
+    it("credits the curator, then the owner's username, then the wallet", () => {
+        const wallet = "0x1234567890abcdef1234567890abcdef12345678";
+        expect(cardCreator("Mira", "mira_", wallet)).toBe("Mira");
+        expect(cardCreator("", "mira_", wallet)).toBe("mira_");
+        expect(cardCreator("", null, wallet)).toBe(wallet);
+        expect(cardCreator("", null, "firebaseUid123")).toBe("");
+    });
+    it("keeps names and shortens wallet addresses", () => {
+        expect(creatorLabel("@mira")).toBe("mira");
+        expect(creatorLabel("")).toBe("");
+        expect(creatorLabel("0x1234567890abcdef1234567890abcdef12345678")).toBe(
+            "0x1234…5678"
+        );
+    });
 });

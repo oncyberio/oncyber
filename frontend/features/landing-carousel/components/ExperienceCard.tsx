@@ -8,7 +8,7 @@ import {
 import Link from "@components/InAppLink";
 import styled from "styled-components";
 import { LandingCard } from "../types";
-import { roomLabel } from "../data";
+import { creatorLabel, roomLabel } from "../data";
 import Icon from "./Icon";
 import { useActivitySignal } from "../activity";
 import { coverSources } from "../coverSources";
@@ -84,6 +84,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 checking: "Checking…",
                 scan: "Your scan",
             }[card.templateStatus];
+        const creator = card.buildStatus ? "" : creatorLabel(card.creator);
         const content = (
             <Card
                 as={card.href ? "a" : "article"}
@@ -153,29 +154,26 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 <div className="card-caption">
                     <div className="caption-title">
                         <h2>{card.title}</h2>
-                        {featured &&
-                            (card.buildStatus ? (
-                                <span>{card.buildStatus}</span>
-                            ) : (
-                                card.creator &&
-                                !/^(0x|tz[123])/.test(card.creator) && (
-                                    <span>
-                                        @{card.creator.replace(/^@/, "")}
-                                    </span>
-                                )
-                            ))}
+                        {featured && card.buildStatus && (
+                            <span>{card.buildStatus}</span>
+                        )}
                     </div>
                     <div className="card-meta">
-                        <span>
+                        <span
+                            className={
+                                creator && !card.buildStatus ? "by" : undefined
+                            }
+                        >
                             {card.buildStatus
                                 ? featured
                                     ? card.description
                                     : card.buildStatus
+                                : creator
+                                ? `by ${
+                                      /^(0x|tz[123])/.test(creator) ? "" : "@"
+                                  }${creator}`
                                 : featured
                                 ? card.description || roomLabel(card.room)
-                                : card.creator &&
-                                  !/^(0x|tz[123])/.test(card.creator)
-                                ? `by ${card.creator}`
                                 : roomLabel(card.room)}
                         </span>
                         {!card.buildStatus && (
@@ -417,6 +415,9 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    .card-meta span.by {
+        font-size: 0.9em;
     }
     .card-meta span:last-child {
         white-space: nowrap;
