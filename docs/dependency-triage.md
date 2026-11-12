@@ -12,9 +12,7 @@ Snapshot of npm advisories against `pnpm-lock.yaml`, last updated 10 November 20
 -   Transitive criticals pinned in the root `pnpm.overrides`: DOMPurify,
     Handlebars, shell-quote, proxy-addr, form-data and protobufjs.
 
-## Still open
-
-On## Removed or replaced (10 November 2026)
+## Removed or replaced (10 November 2026)
 
 -   `web3` 1.x replaced by ethers v5 (already in use); it brought the `tar`
     critical and most high advisories.
@@ -39,18 +37,16 @@ Result: 0 critical and 1 high advisory in the frontend lockfile (from 1 and
 
 Run the check again after each change:
 
-<'EOF' > /tmp/pkgs.json
+```sh
+python3 - <<'EOF' > /tmp/pkgs.json
 import yaml, json
 lock = yaml.safe_load(open("pnpm-lock.yaml"))
 pkgs = {}
 for key in lock["packages"]:
-name, version = key.rsplit("@", 1)
-pkgs.setdefault(name, []).append(version.split("(")[0])
+    name, version = key.rsplit("@", 1)
+    pkgs.setdefault(name, []).append(version.split("(")[0])
 print(json.dumps(pkgs))
 EOF
 curl -s -X POST https://registry.npmjs.org/-/npm/v1/security/advisories/bulk \
- -H 'content-type: application/json' --data @/tmp/pkgs.json
-
-```
-
+    -H 'content-type: application/json' --data @/tmp/pkgs.json
 ```
