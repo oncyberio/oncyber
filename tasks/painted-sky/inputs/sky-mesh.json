@@ -1,0 +1,38 @@
+{
+    "what": "Starry Night skydome background (destination thestarrynight_skydome)",
+    "source": {
+        "kind": "destination envMap / backgroundMap image (not inside the GLB)",
+        "url": "https://cyber.mypinata.cloud/ipfs/Qmdqrd6XzhZKUcRhnqKmuBXTCY1RowWEZu8kQ57MABZMCs?filename=1674107029-envMap-1674107029085.jpg",
+        "file": "sky-envmap-2048x1024.jpg",
+        "format": "JPEG, baseline, sRGB",
+        "width": 2048,
+        "height": 1024,
+        "bytes": 317567,
+        "layout": "equirectangular; painted sky in rows 0..~550, below that solid black (hidden by the GLB's mountain backdrop meshes)"
+    },
+    "runtime": {
+        "mesh": "backgroundMesh (PipeLineMesh)",
+        "geometry": "SphereGeometry(radius 2, widthSegments 32, heightSegments 32), full phi and theta",
+        "scale": [1, 1, -1],
+        "material": "BackgroundSharpMaterial (frontend/components/_3DExhibit-v2/three/factory/background/materials/sharp.js), BackSide, transparent, fog false, vertexNode sets z = w (drawn at the far plane)",
+        "position": "matrixWorld copies the camera position every frame (onBeforeRender), so it is infinitely far",
+        "renderOrder": -100000000,
+        "frustumCulled": false,
+        "textureFilter": "minFilter LinearFilter (no mipmaps), sampled with raw uv()",
+        "mobile": "image resized to 2048 wide via resize() helper (no change, it already is 2048)"
+    },
+    "directionToUv": {
+        "note": "for a world direction d (unit, from the camera), what texel the dome shows",
+        "theta": "acos(d.y)",
+        "u": "fract(atan2(-d.z, -d.x) / (2*pi))",
+        "v_uv": "1 - theta/pi   (uv.y; texture flipY is true so uv.y = 1 is the image's top row)",
+        "imagePixel": "x = u * 2048, y = theta/pi * 1024 (row 0 = straight up)",
+        "verify": "derived from three's SphereGeometry vertex formula with scale.z = -1; confirm by sampling a star in a screenshot"
+    },
+    "camera": {
+        "type": "PerspectiveCamera",
+        "fov": 65,
+        "far": 1400,
+        "spawn": [0, 2.85, 0]
+    }
+}
