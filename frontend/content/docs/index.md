@@ -21,8 +21,8 @@ source so you can run it, read it and improve it.
     app on your machine.
 -   [Contribute](/docs/contributing): branches, checks and what makes a good pull
     request.
--   [Build a three.js experience](/docs/three-experiences): bring your own
-    WebGPU or three.js page into Oncyber.
+-   [Build a three.js experience](/docs/three-experiences): where outside
+    WebGPU and three.js pages are heading, and the early pieces you can try.
 -   [Multiplayer](/docs/multiplayer): how presence, movement, chat and voice work,
     and how to run the lobby server.
 -   [Avatars](/docs/avatars): where avatars come from, how a choice is saved, and

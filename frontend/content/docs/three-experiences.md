@@ -1,15 +1,22 @@
 ---
 title: Build a three.js experience
-description: Bring your own WebGPU or three.js page into Oncyber.
+description: Where outside WebGPU and three.js pages in Oncyber are heading, and what works today.
 order: 3
 ---
 
 # Build a three.js experience
 
-Any web page can become an Oncyber space. You keep your own engine, whether
-that's plain three.js, WebGPU or something else, and Oncyber puts its header,
-back button, chat and controls around it. Visitors reach it from the lobby like
-any gallery.
+Where this is going: any web page can become an Oncyber space. You keep your
+own engine, whether that's plain three.js, WebGPU or something else, and Oncyber
+puts its header, back button, chat and controls around it, with the visitor's
+identity, avatar and friends coming along.
+
+That's the direction, not a finished path. Today there's no publishing screen:
+you host the page yourself, attach it to a space you own with one API call,
+and the page doesn't get the visitor's identity, avatar or the lobby's
+multiplayer room yet (see [What isn't there yet](#what-isn-t-there-yet)). This
+page describes the pieces that exist, so you can try them and help build the
+rest.
 
 ## How it runs
 
@@ -107,9 +114,10 @@ signing or transactions.
 Without the bridge, Oncyber can only tell that your frame loaded, not that it
 rendered.
 
-## Attach it to a space
+## Attach it to a space (experimental)
 
-An experience is attached to an existing space that you own or edit. While
+This is a developer hook, not the way publishing will work. An experience is
+attached to an existing space that you own or edit. While
 signed in to Oncyber, call this from a page on the same Oncyber origin (for
 example the browser console):
 
@@ -145,8 +153,9 @@ read), with an on-screen button for touch.
 
 ## What isn't there yet
 
-Hosted pages don't yet get the visitor's identity, avatar or the lobby's
-multiplayer room. Bring your own networking if your experience needs it, and
+There's no publishing flow yet: no Studio screen, no review, and the attach call
+above is the only way in. Hosted pages don't yet get the visitor's identity,
+avatar or the lobby's multiplayer room. Bring your own networking if your experience needs it, and
 see [Multiplayer](/docs/multiplayer) and [Avatars](/docs/avatars) for how
 Oncyber's own systems work today. Wiring those into the bridge is open work, and
 contributions are welcome.
