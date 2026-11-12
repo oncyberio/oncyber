@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import styled, { css } from "styled-components";
 import { CustomDropdown } from "@features/studio/components/CustomDropdown";
 import {
@@ -23,6 +23,8 @@ import { SpaceGatingProvider } from "./Forms/context/SpaceGatingContext";
 import { Pfp } from "./Forms/Pfp";
 import { EventScheduler } from "./Forms/Events";
 import { Permissions } from "./Forms/Permissions";
+import { Export } from "./Forms/Export";
+import { canExportSpace } from "@features/studio/export/spaceExport";
 import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import {
     SpaceCoverProvider,
@@ -116,6 +118,15 @@ const steps: [MultiformStep, ...MultiformStep[]] = [
     },
 ];
 
+// Only the signed-in owner can take a copy of the whole world.
+const exportStep: MultiformStep = {
+    value: "export",
+    title: "Export",
+    description: "Download this world as one file",
+    icon: stepIcon("download"),
+    form: <Export />,
+};
+
 type Current = "settings" | "publish";
 
 const toggledStyle = { filter: "invert(1)" };
@@ -125,11 +136,23 @@ function SpaceSettings_Child() {
     //
     const actionsRef = useFormActions();
 
-    const { isAnonymous } = useContext(UserContext);
+    const { isAnonymous, user } = useContext(UserContext);
 
     const { toggleAuth } = useStudioMenu();
 
-    const { exhibit, baseAnalyticsEvent } = useCurrentExhibit();
+    const { exhibit, baseAnalyticsEvent, userRole } = useCurrentExhibit();
+
+    const canExport = canExportSpace({
+        isAnonymous,
+        userRole,
+        userId: user?.id,
+        owner: exhibit.owner,
+    });
+
+    const visibleSteps = useMemo<typeof steps>(
+        () => (canExport ? [...steps, exportStep] : steps),
+        [canExport]
+    );
 
     const { updateCover } = useSpaceCoverContext();
 
@@ -264,7 +287,7 @@ function SpaceSettings_Child() {
                         <Multiform
                             className="space-settings"
                             title="World settings"
-                            steps={steps}
+                            steps={visibleSteps}
                             actions={actions}
                         />
                     </Container>
