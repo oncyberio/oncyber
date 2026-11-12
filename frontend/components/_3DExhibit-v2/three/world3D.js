@@ -103,6 +103,9 @@ import { SpaceComponent } from './factory/abstract/spacecomponent'
 import { RENDER_ON_DEMAND, RenderDemand } from './utils/renderDemand'
 
 import { createRenderGate } from './utils/renderDemandGate'
+
+import { xrSessionInit } from './xr/xrBackend'
+
 // const USE_POSTPROCESSING = IS_FUTURE
 
 // The states a visitor settles in, where an unchanged frame is not drawn.
@@ -650,9 +653,10 @@ export default class World3D {
             syncAntialias()
 
 
-            const sessionInit = {
-                optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ]
-            }
+            const sessionInit = xrSessionInit({
+
+                isWebGPUBackend: /** @type { any } */ (Renderer.backend)?.isWebGPUBackend === true,
+            })
 
             // @ts-ignore
             const session = await navigator.xr.requestSession( 'immersive-vr', sessionInit )
