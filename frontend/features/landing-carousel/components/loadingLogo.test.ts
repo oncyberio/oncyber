@@ -1,48 +1,65 @@
 /** @jest-environment jsdom */
 import {
     CYCLE_MS,
+    FRAME_COUNT,
+    FRAME_MS,
     HOLD_MS,
+    LOOP_MS,
     MORPH_MS,
-    MORPH_OVERLAP_MS,
-    SPIN_MS,
-    SPIN_TURNS,
+    REST_FRAME,
     loadingLogoPose,
     startLoadingLogo,
 } from "./loadingLogo";
 
-const turn = (angle: number) => ((angle % 360) + 360) % 360;
-
 describe("loadingLogoPose", () => {
-    it("spins the new logo, morphs to the old one, holds, and comes back", () => {
-        expect(loadingLogoPose(0)).toEqual({ morph: 1, angle: -0 });
-        expect(loadingLogoPose(SPIN_MS / 2).morph).toBe(1);
-        expect(loadingLogoPose(SPIN_MS / 2).angle).toBeCloseTo(
-            -180 * SPIN_TURNS
+    it("plays the sequence from the rest frame, morphs to the old logo, holds, and comes back", () => {
+        expect(loadingLogoPose(0)).toEqual({
+            phase: "loop",
+            frame: REST_FRAME,
+        });
+        expect(loadingLogoPose(FRAME_MS * 10 + 1)).toEqual({
+            phase: "loop",
+            frame: REST_FRAME + 10,
+        });
+        // One whole loop ends back on the rest frame.
+        expect(loadingLogoPose(LOOP_MS - 1)).toEqual({
+            phase: "loop",
+            frame: (REST_FRAME + FRAME_COUNT - 1) % FRAME_COUNT,
+        });
+        const atMorphStart = loadingLogoPose(LOOP_MS + 0.01);
+        expect(atMorphStart).toMatchObject({ phase: "morph", morph: 1 });
+        expect(loadingLogoPose(LOOP_MS + MORPH_MS + 1)).toMatchObject({
+            phase: "morph",
+            morph: 0,
+            angle: 180,
+        });
+        expect(loadingLogoPose(LOOP_MS + MORPH_MS + HOLD_MS - 1)).toMatchObject(
+            { morph: 0 }
         );
-        const holdStart = SPIN_MS - MORPH_OVERLAP_MS + MORPH_MS;
-        // The morph starts while the spin is still easing out.
-        expect(loadingLogoPose(SPIN_MS - 100).morph).toBeLessThan(1);
-        expect(loadingLogoPose(holdStart + 1).morph).toBe(0);
-        expect(loadingLogoPose(holdStart + HOLD_MS - 1).morph).toBe(0);
-        expect(loadingLogoPose(CYCLE_MS - 1).morph).toBeCloseTo(1, 2);
-        expect(CYCLE_MS).toBe(2000 - 700 + 1200 + 1500 + 1200);
+        const back = loadingLogoPose(CYCLE_MS - 1);
+        expect(back.phase).toBe("morph");
+        if (back.phase === "morph") expect(back.morph).toBeCloseTo(1, 2);
+        expect(CYCLE_MS).toBe(LOOP_MS + MORPH_MS + HOLD_MS + MORPH_MS);
     });
 
-    it("never jumps in shape or angle", () => {
-        let previous = loadingLogoPose(0);
-        for (let ms = 1; ms <= CYCLE_MS * 2; ms += 1) {
+    it("never jumps in shape or angle during the morphs", () => {
+        let previous = loadingLogoPose(LOOP_MS);
+        for (let ms = LOOP_MS + 1; ms <= CYCLE_MS; ms += 1) {
             const pose = loadingLogoPose(ms);
-            expect(Math.abs(pose.morph - previous.morph)).toBeLessThan(0.01);
-            const step = turn(pose.angle - previous.angle);
-            expect(Math.min(step, 360 - step)).toBeLessThan(4);
+            if (pose.phase === "morph" && previous.phase === "morph") {
+                expect(Math.abs(pose.morph - previous.morph)).toBeLessThan(
+                    0.01
+                );
+                expect(Math.abs(pose.angle - previous.angle)).toBeLessThan(2);
+            }
             previous = pose;
         }
     });
 
-    it("holds the new logo still for reduced motion", () => {
-        expect(loadingLogoPose(SPIN_MS + 10, true)).toEqual({
-            morph: 1,
-            angle: 0,
+    it("holds the rest frame for reduced motion", () => {
+        expect(loadingLogoPose(LOOP_MS + 10, true)).toEqual({
+            phase: "loop",
+            frame: REST_FRAME,
         });
     });
 });
@@ -51,11 +68,9 @@ describe("startLoadingLogo", () => {
     it("mounts in the middle of its parent and removes itself", () => {
         const parent = document.createElement("div");
         const logo = startLoadingLogo(parent);
-        expect(parent.querySelector("svg[data-loading-logo]")).toBe(
-            logo.element
-        );
-        expect(logo.element.querySelectorAll("path").length).toBeGreaterThan(0);
+        expect(parent.querySelector("[data-loading-logo]")).toBe(logo.element);
+        expect(logo.element.querySelector("svg")).not.toBeNull();
         logo.remove();
-        expect(parent.querySelector("svg")).toBeNull();
+        expect(parent.querySelector("[data-loading-logo]")).toBeNull();
     });
 });
