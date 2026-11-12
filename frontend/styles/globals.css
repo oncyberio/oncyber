@@ -20,7 +20,10 @@
 
     --zIndex_create_page-link-invite-dropdown: 1000000;
 
-    --zIndex-snackbar: 10000000;
+    /* World settings covers every studio panel and modal (10000000). */
+    --zIndex_studio-settings: 10000001;
+    /* Messages stay readable above World settings. */
+    --zIndex-snackbar: 10000002;
 
     --world-builder-bg: #1a1a1a;
 

@@ -1,55 +1,45 @@
 ---
 title: Avatars
-description: Where avatars come from, how a choice is saved, and how they travel.
+description: The 3D character you take everywhere in Oncyber.
 order: 5
 ---
 
 # Avatars
 
-Every visitor has a 3D avatar in the VRM format. The same avatar is used in the
-lobby, in galleries, and during travel between them.
+Everyone has a 3D avatar, and it comes with you everywhere: the lobby, every
+gallery, and the trip between them. You can pick a built-in one, upload your
+own, or wear one you own as an NFT. Your choice is saved to your account.
 
-## Where avatars come from
+To add a built-in avatar, add an entry to
+`frontend/components/_3DExhibit-v2/three/factory/player/vrms.json` and try it
+in the lobby picker: walk, jump and run a few emotes.
 
--   **Built-in avatars.** The catalogue lives in
-    `frontend/components/_3DExhibit-v2/three/factory/player/vrms.json`, with a
-    name, model URL and preview image for each one. Guests start as "Square".
+:::details How avatars work
+
+Avatars use the VRM format.
+
+-   **Built-in avatars** live in `vrms.json`, with an `id`, `name`, model `url`
+    and preview `image` each. Guests start as "Square". Keep models light, with
+    one humanoid skeleton.
 -   **Uploaded avatars.** Signed-in people can upload their own VRM models.
 -   **Wallet avatars.** VRM NFTs found in a connected wallet on Ethereum or
     Polygon. Partner collections that store their model differently are mapped
-    in `frontend/utils/vrmPartners`.
+    in `frontend/utils/vrmPartners`. They're identified by model URL, so today
+    they stay in the lobby rather than being saved as your default.
 
-## Choosing and saving
-
-The lobby's avatar picker (`frontend/features/lobby/AvatarCarousel.tsx`) shows
-your own avatars first, then the catalogue. A choice applies right away, and once
-the model has loaded it's saved as your avatar in account settings
-(`settings.vrm`, with an optional `settings.default_vrm_scale`). That way
-galleries and later visits use it too.
-
-`resolveLobbyAvatar` in `frontend/features/lobby/avatarSelection.ts` turns
-saved settings back into a model: a built-in id, an uploaded model looked up by
-id, or the default.
-
-Wallet avatars are identified by their model URL, so today they stay in the
-lobby rather than being saved as your default.
-
-## Rendering
+The picker (`frontend/features/lobby/AvatarCarousel.tsx`) shows your own
+avatars first, then the catalogue. A choice applies right away and is saved
+once the model loads (`settings.vrm`, with an optional
+`settings.default_vrm_scale`). `resolveLobbyAvatar` in
+`frontend/features/lobby/avatarSelection.ts` turns saved settings back into a
+model.
 
 Avatars render through the WebGPU runtime
 (`frontend/features/lobby/webgpu/avatarAdapter.ts`). Nearby people are full
-avatars, and large crowds are drawn as GPU instances, so a room with hundreds of
-people stays fast. Animations, including the emotes in the dock, are shared
-clips retargeted onto each model, so any VRM can wave, dance or sit.
+avatars, and large crowds are drawn as GPU instances. Emotes are shared clips
+retargeted onto each model, so any VRM can wave, dance or sit. When you travel,
+your avatar crouches, the destination loads, and you stand up in the new world
+with the same model and camera framing. Group travel keeps your friends around
+you on arrival.
 
-When you travel into a space, your avatar crouches, the destination loads behind
-it, and you stand up in the new world with the same model, position and camera
-framing. Group travel keeps your friends around you on arrival.
-
-## Adding to the catalogue
-
-Add an entry to `vrms.json` with a stable `id`, a `name`, the model `url` and a
-preview `image`. Keep models light, with one humanoid skeleton, so they load
-quickly for everyone in the room.
-Check it in the lobby picker, walking, jumping and running a few emotes, before
-opening a pull request.
+:::

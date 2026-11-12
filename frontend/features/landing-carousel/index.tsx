@@ -61,6 +61,25 @@ const GRID_SIZES = [
     { columns: 2, rows: 2 },
     { columns: 1, rows: 1 },
 ];
+/** Phones show one column of two cards instead of the 2×2 grid. */
+const MOBILE_GRID_SIZES = [
+    { columns: 1, rows: 2 },
+    { columns: 1, rows: 1 },
+];
+const MOBILE_QUERY = "(max-width: 700px)";
+
+function useMobileLayout() {
+    const [mobile, setMobile] = useState(false);
+    useEffect(() => {
+        const query = window.matchMedia?.(MOBILE_QUERY);
+        if (!query) return;
+        const update = () => setMobile(query.matches);
+        update();
+        query.addEventListener?.("change", update);
+        return () => query.removeEventListener?.("change", update);
+    }, []);
+    return mobile;
+}
 
 const Scene = dynamic(() => import("./components/Scene"), {
     ssr: false,
@@ -120,7 +139,9 @@ function LandingContent(props: LandingPageProps) {
     } = discovery;
     // Image-only fallback for WebGL failures; curvature is never a user mode.
     const [flat, setFlat] = useState(false);
-    const [grid, setGrid] = useState(GRID_SIZES[0]);
+    const [gridChoice, setGridChoice] = useState(0);
+    const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
+    const grid = gridSizes[gridChoice];
     const router = useRouter();
     const inLobby = router.query.lobby === "1";
     const [browseVisible, setBrowseVisible] = useState(!inLobby);
@@ -370,15 +391,12 @@ function LandingContent(props: LandingPageProps) {
     const gridControls = (
         <ViewControls>
             <div className="density" role="group" aria-label="Grid size">
-                {GRID_SIZES.map((size) => (
+                {gridSizes.map((size, index) => (
                     <button
                         key={`${size.columns}x${size.rows}`}
                         aria-label={`${size.columns} by ${size.rows} grid`}
-                        aria-pressed={
-                            grid.columns === size.columns &&
-                            grid.rows === size.rows
-                        }
-                        onClick={() => setGrid(size)}
+                        aria-pressed={gridChoice === index}
+                        onClick={() => setGridChoice(index)}
                     >
                         {size.columns}×{size.rows}
                     </button>
