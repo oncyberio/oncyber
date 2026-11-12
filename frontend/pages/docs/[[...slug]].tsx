@@ -1,8 +1,14 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import styled from "styled-components";
-import { brandFoundation } from "@styles/brand";
+import styled, { css } from "styled-components";
+import {
+    actionSpec,
+    brandFoundation,
+    outlineAction,
+    pillAction,
+} from "@styles/brand";
+import { baseTokens as base } from "@styles/tokens/base";
 import Markdown, { headingsOf } from "@features/docs/markdown";
 import CopyPromptButton from "@features/docs/CopyPromptButton";
 import type { DocPage } from "@features/docs/content";
@@ -68,14 +74,18 @@ export default function DocsPage({ doc, nav }: Props) {
                     <Markdown source={doc.body} />
                     <footer className="docs-pager">
                         {previous ? (
-                            <Link href={href(previous.slug)}>
-                                ← {previous.slug ? previous.title : "Overview"}
+                            <Link href={href(previous.slug)} className="prev">
+                                <span>Previous</span>
+                                {previous.slug ? previous.title : "Overview"}
                             </Link>
                         ) : (
                             <span />
                         )}
                         {next && (
-                            <Link href={href(next.slug)}>{next.title} →</Link>
+                            <Link href={href(next.slug)} className="next">
+                                <span>Next</span>
+                                {next.title}
+                            </Link>
                         )}
                     </footer>
                 </main>
@@ -122,6 +132,19 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
     };
 };
 
+const { radius, motion, focus, font } = base;
+const ease = `${motion.fast}ms ${motion.ease}`;
+const focusRing = css`
+    outline: ${focus.width}px solid var(--oc-accent);
+    outline-offset: ${focus.offset}px;
+`;
+const monoLabel = css`
+    font: 400 ${font.size.micro}px / 1.5 var(--oc-mono);
+    letter-spacing: 0.02em;
+    color: var(--oc-muted);
+    text-transform: uppercase;
+`;
+
 const Page = styled.div`
     ${brandFoundation}
     min-height: 100vh;
@@ -131,7 +154,15 @@ const Page = styled.div`
 
     a {
         color: inherit;
+        transition: color ${ease}, background-color ${ease},
+            text-decoration-color ${ease};
     }
+    a:focus-visible,
+    summary:focus-visible {
+        ${focusRing}
+    }
+
+    /* Header */
     .docs-top {
         position: sticky;
         top: 0;
@@ -142,40 +173,34 @@ const Page = styled.div`
         height: 64px;
         padding: 0 32px;
         border-bottom: 1px solid var(--oc-line);
-        background: var(--oc-canvas);
+        background: color-mix(in srgb, var(--oc-canvas) 88%, transparent);
+        backdrop-filter: blur(16px);
+    }
+    .brand {
+        border-radius: ${radius.inset}px;
     }
     .brand img {
         display: block;
-        width: 104px;
+        width: 108px;
         height: auto;
     }
     .section {
         padding-left: 20px;
         border-left: 1px solid var(--oc-line);
         color: var(--oc-ink);
-        font-size: 14px;
+        font-size: ${font.size.body}px;
         text-decoration: none;
     }
     .copy-prompt {
+        ${actionSpec}
+        ${outlineAction}
+        ${pillAction}
         display: inline-flex;
         align-items: center;
         gap: 10px;
         margin-left: auto;
-        height: 36px;
-        padding: 0 14px 0 10px;
-        border: 1px solid var(--oc-line);
-        border-radius: 999px;
-        background: transparent;
-        color: var(--oc-ink);
-        font: 500 13px/1 var(--oc-font);
+        padding-left: 12px;
         cursor: pointer;
-    }
-    .copy-prompt:hover {
-        background: var(--oc-hover);
-    }
-    .copy-prompt:focus-visible {
-        outline: 2px solid var(--oc-ink);
-        outline-offset: 2px;
     }
     .copy-prompt .agents {
         display: flex;
@@ -187,32 +212,38 @@ const Page = styled.div`
         height: 18px;
     }
     .source {
-        font-size: 13px;
+        padding: 8px 4px;
+        border-radius: ${radius.inset}px;
+        color: var(--oc-secondary);
+        font-size: ${font.size.md}px;
         text-decoration: none;
     }
     .source:hover {
         color: var(--oc-ink);
     }
+
+    /* Layout */
     .docs-layout {
         display: grid;
         grid-template-columns: 220px minmax(0, 720px) 200px;
         gap: 48px;
         justify-content: center;
-        padding: 40px 32px 96px;
+        padding: 48px 32px 96px;
     }
     .docs-nav,
     .docs-toc {
         position: sticky;
-        top: 104px;
+        top: 112px;
         align-self: start;
         display: flex;
         flex-direction: column;
         gap: 2px;
     }
     .docs-nav a {
-        padding: 6px 10px;
-        border-radius: var(--oc-radius-inset, 8px);
-        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: ${radius.control}px;
+        font-size: ${font.size.body}px;
+        line-height: 1.5;
         text-decoration: none;
     }
     .docs-nav a:hover {
@@ -223,15 +254,18 @@ const Page = styled.div`
         background: var(--oc-surface);
         color: var(--oc-ink);
     }
+    .docs-toc {
+        padding-left: 16px;
+        border-left: 1px solid var(--oc-line);
+    }
     .docs-toc span {
-        margin-bottom: 6px;
-        font-family: var(--oc-mono);
-        font-size: 10px;
-        color: var(--oc-muted);
+        margin-bottom: 8px;
+        ${monoLabel}
     }
     .docs-toc a {
-        padding: 3px 0;
-        font-size: 13px;
+        padding: 4px 0;
+        border-radius: ${radius.inset}px;
+        font-size: ${font.size.md}px;
         color: var(--oc-muted);
         text-decoration: none;
     }
@@ -239,6 +273,7 @@ const Page = styled.div`
         color: var(--oc-ink);
     }
 
+    /* Content */
     .docs-body h1,
     .docs-body h2,
     .docs-body h3 {
@@ -249,12 +284,21 @@ const Page = styled.div`
     }
     .docs-body h1 {
         margin: 0 0 20px;
-        font-size: 36px;
+        font-size: 40px;
         letter-spacing: -0.02em;
     }
+    .docs-body h1 + p {
+        margin-bottom: 24px;
+        color: var(--oc-ink);
+        font-size: 18px;
+        line-height: 1.55;
+    }
     .docs-body h2 {
-        margin: 48px 0 12px;
+        margin: 56px 0 16px;
+        padding-top: 24px;
+        border-top: 1px solid var(--oc-line);
         font-size: 22px;
+        letter-spacing: -0.01em;
     }
     .docs-body h3 {
         margin: 32px 0 8px;
@@ -265,14 +309,22 @@ const Page = styled.div`
     .docs-body ol {
         margin: 0 0 16px;
     }
+    .docs-body ul,
+    .docs-body ol {
+        padding-left: 20px;
+    }
     .docs-body li + li {
-        margin-top: 6px;
+        margin-top: 8px;
+    }
+    .docs-body li::marker {
+        color: var(--oc-muted);
     }
     .docs-body strong {
         color: var(--oc-ink);
         font-weight: 500;
     }
     .docs-body a {
+        border-radius: 2px;
         color: var(--oc-ink);
         text-decoration: underline;
         text-decoration-color: var(--oc-line-strong);
@@ -282,18 +334,18 @@ const Page = styled.div`
         text-decoration-color: var(--oc-ink);
     }
     .docs-body code {
-        padding: 1px 5px;
-        border-radius: 4px;
+        padding: 1px 6px;
+        border-radius: 6px;
         background: var(--oc-surface);
         color: var(--oc-ink);
-        font: 13px/1.5 var(--oc-mono);
+        font: ${font.size.md}px / 1.5 var(--oc-mono);
     }
     .docs-body pre {
         margin: 0 0 20px;
-        padding: 16px 18px;
+        padding: 16px 20px;
         overflow-x: auto;
         border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control, 12px);
+        border-radius: ${radius.card}px;
         background: var(--oc-panel);
     }
     .docs-body pre code {
@@ -308,61 +360,124 @@ const Page = styled.div`
     .docs-body table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: ${font.size.body}px;
     }
     .docs-body th,
     .docs-body td {
-        padding: 9px 12px 9px 0;
+        padding: 10px 12px 10px 0;
         border-bottom: 1px solid var(--oc-line);
         text-align: left;
         vertical-align: top;
     }
     .docs-body th {
-        color: var(--oc-ink);
-        font-weight: 500;
+        ${monoLabel}
+        font-weight: 400;
     }
+
+    /* Dropdowns */
     .docs-body details {
-        margin: 0 0 20px;
+        margin: 0 0 12px;
         border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control, 12px);
+        border-radius: ${radius.card}px;
+        background: var(--oc-panel);
+        overflow: hidden;
     }
     .docs-body summary {
-        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 48px;
+        padding: 0 20px;
         cursor: pointer;
         color: var(--oc-ink);
-        font-size: 14px;
-        list-style-position: inside;
+        font-size: ${font.size.body}px;
+        font-weight: 500;
+        list-style: none;
+        border-radius: ${radius.card}px;
+        transition: background-color ${ease};
+    }
+    .docs-body summary::-webkit-details-marker {
+        display: none;
+    }
+    .docs-body summary::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        margin-left: auto;
+        border-right: 1.5px solid var(--oc-muted);
+        border-bottom: 1.5px solid var(--oc-muted);
+        transform: translateY(-2px) rotate(45deg);
+        transition: transform ${motion.standard}ms ${motion.ease};
+    }
+    .docs-body details[open] > summary::after {
+        transform: translateY(2px) rotate(-135deg);
     }
     .docs-body summary:hover {
         background: var(--oc-hover);
-        border-radius: var(--oc-radius-control, 12px);
     }
-    .docs-body details[open] summary {
+    .docs-body details[open] > summary {
         border-bottom: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control, 12px)
-            var(--oc-radius-control, 12px) 0 0;
+        border-radius: ${radius.card}px ${radius.card}px 0 0;
+    }
+    .docs-body summary:focus-visible {
+        outline-offset: -${focus.width}px;
     }
     .docs-body details > :not(summary) {
-        margin-left: 16px;
-        margin-right: 16px;
+        margin-left: 20px;
+        margin-right: 20px;
     }
     .docs-body details > summary + * {
-        margin-top: 16px;
+        margin-top: 20px;
     }
-    .docs-pager {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        margin-top: 64px;
-        padding-top: 24px;
-        border-top: 1px solid var(--oc-line);
-        font-size: 14px;
+    .docs-body details > :last-child {
+        margin-bottom: 20px;
     }
-    .docs-pager a {
-        text-decoration: none;
-        color: var(--oc-ink);
+    .docs-body details > .table {
+        margin: 0 20px 20px;
+    }
+    .docs-body details pre {
+        background: var(--oc-canvas);
     }
 
+    /* Previous and next */
+    .docs-pager {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 64px;
+    }
+    .docs-pager a {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px 20px;
+        border: 1px solid var(--oc-line);
+        border-radius: ${radius.card}px;
+        background: var(--oc-panel);
+        color: var(--oc-ink);
+        font-size: ${font.size.body}px;
+        font-weight: 500;
+        text-decoration: none;
+    }
+    .docs-pager a:hover {
+        background: var(--oc-hover);
+        border-color: var(--oc-line-strong);
+    }
+    .docs-pager a span {
+        ${monoLabel}
+    }
+    .docs-pager .next {
+        grid-column: 2;
+        align-items: flex-end;
+        text-align: right;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::after {
+            transition: none !important;
+        }
+    }
     @media (max-width: 1100px) {
         .docs-layout {
             grid-template-columns: 200px minmax(0, 1fr);
@@ -376,6 +491,12 @@ const Page = styled.div`
             gap: 12px;
             padding: 0 16px;
         }
+        .brand img {
+            width: 88px;
+        }
+        .section {
+            padding-left: 12px;
+        }
         .copy-prompt .agents {
             display: none;
         }
@@ -387,7 +508,7 @@ const Page = styled.div`
             position: static;
             flex-direction: row;
             gap: 4px;
-            margin: 0 -16px 24px;
+            margin: 0 -16px 32px;
             padding: 12px 16px;
             overflow-x: auto;
             border-bottom: 1px solid var(--oc-line);
@@ -396,7 +517,19 @@ const Page = styled.div`
             flex-shrink: 0;
         }
         .docs-body h1 {
-            font-size: 28px;
+            font-size: 30px;
+        }
+        .docs-body h1 + p {
+            font-size: 16px;
+        }
+        .docs-body summary {
+            min-height: 44px;
+            padding: 0 16px;
+        }
+        .docs-body details > :not(summary),
+        .docs-body details > .table {
+            margin-left: 16px;
+            margin-right: 16px;
         }
     }
 `;
