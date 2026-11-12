@@ -127,3 +127,26 @@ it("shows a loading state on the template being opened", () => {
         "Creating your space…"
     );
 });
+
+it('labels a world card "{title} by {creator}"', () => {
+    act(() =>
+        root.render(
+            <ExperienceCard
+                card={
+                    {
+                        id: "w1",
+                        title: "Night Garden",
+                        creator: "@mira",
+                        room: "void",
+                        href: "/night-garden",
+                        imageUrls: ["/cover.jpg"],
+                        visits: 12,
+                    } as any
+                }
+            />
+        )
+    );
+    expect(container.querySelector("h2").textContent).toBe(
+        "Night Garden by mira"
+    );
+});
