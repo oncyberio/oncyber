@@ -3,7 +3,8 @@ import { NButton } from "@features/studio/components/StudioButton";
 import { useContext, useEffect, useState } from "react";
 
 import styled from "styled-components";
-import { blueAction } from "@styles/brand";
+import { blueAction, compactActionSizing } from "@styles/brand";
+import { actionTokens } from "@styles/tokens/action";
 
 import { useStudioMenu } from "../context/StudioContext";
 
@@ -80,20 +81,14 @@ const Container = styled.div<{ isActive: boolean; status: string }>`
     position: relative;
     display: flex;
 
+    /* The same button as the landing header's Sign in: same size, and the
+       Oncyber Sans face rather than Studio's own font, so the arrow matches. */
     & > .action {
         cursor: pointer;
-        min-width: 100px;
         height: 40px;
-        min-height: 40px;
-        padding: 10px 16px;
-        border: none;
-        border-radius: 12px;
-        color: #fff;
-        font: 500 13px/1.35 var(--oc-font, var(--studio-font, sans-serif));
+        ${compactActionSizing}
+        font-family: ${actionTokens.type.family};
         text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         ${blueAction}
         border: 0;
     }

@@ -439,25 +439,25 @@ function LandingContent(props: LandingPageProps) {
                 />
             )}
             <DiscoveryHeader
-                    immersive={inLobby}
-                    onHome={inLobby ? leaveLobby : undefined}
-                    key={templateContext ? "templates" : "worlds"}
-                    filters={filters}
-                    update={searchWorlds}
-                    createControl={createControl}
-                    templates={
-                        templateContext
-                            ? {
-                                  category: templateCategory,
-                                  update: (category) =>
-                                      updateTemplates({
-                                          templateCategory: category,
-                                          create: "gallery",
-                                      }),
-                              }
-                            : undefined
-                    }
-                />
+                immersive={inLobby}
+                onHome={inLobby ? leaveLobby : undefined}
+                key={templateContext ? "templates" : "worlds"}
+                filters={filters}
+                update={searchWorlds}
+                createControl={createControl}
+                templates={
+                    templateContext
+                        ? {
+                              category: templateCategory,
+                              update: (category) =>
+                                  updateTemplates({
+                                      templateCategory: category,
+                                      create: "gallery",
+                                  }),
+                          }
+                        : undefined
+                }
+            />
             <main
                 ref={mainRef}
                 aria-hidden={inLobby || undefined}
@@ -467,14 +467,12 @@ function LandingContent(props: LandingPageProps) {
                 }
             >
                 <BrowseSurface>
-                    {step === "gallery" &&
-                        (templates?.error || templates?.opening) && (
-                            <TemplateStatus
-                                role={templates?.error ? "alert" : "status"}
-                            >
-                                {templates?.error || "Opening Studio…"}
-                            </TemplateStatus>
-                        )}
+                    {/* Opening shows on the picked card itself. */}
+                    {step === "gallery" && templates?.error && (
+                        <TemplateStatus role="alert">
+                            {templates.error}
+                        </TemplateStatus>
+                    )}
                     <div className="results" aria-busy={!creating && loading}>
                         {retainedGridCards.current.length > 0 && (
                             <Scene
