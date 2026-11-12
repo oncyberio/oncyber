@@ -15,6 +15,8 @@ import Players from "@3factory/player"
 
 import { getUserInitialPositions } from "@components/_3DExhibit-v2/three/utils/camera";
 
+import { isOutsideSpace, pickSpawnInsideSpace } from "./spaceBounds";
+
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
 const SNAP_GRACE = 0.1
 
@@ -289,7 +291,15 @@ export class Physics {
 
         // console.log("this, playerSatete", this.playerState.position);
 
-        if ( this.playerState.position.y < this.currentSpace.bbox.min.y - this.userHeight * 5) {
+        // Fell out, or ended up far outside the space: only the background
+        // colour shows there, so bring the player back to a spawn inside.
+        const bbox = this.currentSpace?.bbox
+
+        const outside = this.isPreview || this.flymode
+            ? bbox != null && this.playerState.position.y < bbox.min.y - this.userHeight * 5
+            : isOutsideSpace(this.playerState.position, bbox, this.userHeight)
+
+        if (outside) {
 
             this.reset()
         }
@@ -408,6 +418,26 @@ export class Physics {
         if (Players.main.deactivated) return;
 
         this.playerState.reset();
+
+        // A shared link's coords can point outside the space. Respawning
+        // there again would loop forever, so fall back to the room's own
+        // spawn and keep it for later resets.
+        const params = this.roomParameters || /** @type { import("@uitypes/roomParameters").RoomParameters } */ ({})
+
+        const spawn = pickSpawnInsideSpace(
+            [params.initialPlayerPosition, params.roomSpawnPosition],
+            this.currentSpace?.bbox
+        )
+
+        if (this.roomParameters && spawn !== params.initialPlayerPosition) {
+
+            this.roomParameters.initialPlayerPosition = spawn
+
+            if (spawn === params.roomSpawnPosition && params.roomSpawnRotation) {
+
+                this.roomParameters.initialPlayerRotation = params.roomSpawnRotation
+            }
+        }
 
         const { cameraPos, cameraRot } = getUserInitialPositions(this.roomParameters)
 
