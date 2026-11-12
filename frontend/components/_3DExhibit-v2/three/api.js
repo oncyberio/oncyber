@@ -10,6 +10,8 @@ import { waitForNextSceneUpdate } from "./utils/nextSceneUpdate"
 
 import { getGPU, isVRSupported } from '@3gl/utils/platform.js'
 
+import { canPresentXR } from './xr/xrBackend'
+
 
 import EditorApi from './editor.js'
 
@@ -420,9 +422,18 @@ export default class Api extends EditorApi {
         // the tier already, for the room download.
         const [ , tier ] = await Promise.all([
 
-            IS_VR_SUPPORTED == null ? isVRSupported().then(( val )=>{
+            IS_VR_SUPPORTED == null ? isVRSupported().then(async ( val )=>{
 
-                SET_VR_SUPPORTED(val)
+                // A WebGPU backend can present only with the WebXR/WebGPU
+                // binding; without it the VR button would fail (xrBackend.js).
+                const { default: Renderer } = await import("@3renderer")
+
+                SET_VR_SUPPORTED(!!val && canPresentXR({
+
+                    isWebGPUBackend: /** @type { any } */ (Renderer.backend)?.isWebGPUBackend === true,
+
+                    hasGPUBinding: typeof globalThis.XRGPUBinding !== "undefined",
+                }))
 
                 if(DEBUG) {
 

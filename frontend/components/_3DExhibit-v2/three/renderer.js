@@ -29,10 +29,19 @@ import {
 
 import { antialiasSamples, setRendererSamples } from "./rendererAntialias"
 
+import { forceWebGLForXR } from "./xr/xrBackend"
+
 // WebGPU when the browser has it, otherwise the same renderer on its WebGL2
 // backend (TSL compiles to GLSL there). `?renderer=webgl` forces the fallback.
-const FORCE_WEBGL = typeof window !== "undefined" &&
-	new URLSearchParams(window.location.search).get("renderer") === "webgl"
+// Headset browsers start on WebGL2 too, so "enter VR" can present (see
+// xr/xrBackend.js).
+const FORCE_WEBGL = typeof window !== "undefined" && (
+	new URLSearchParams(window.location.search).get("renderer") === "webgl" ||
+	forceWebGLForXR({
+		userAgent: navigator.userAgent,
+		hasGPUBinding: typeof globalThis.XRGPUBinding !== "undefined",
+	})
+)
 
 const renderer = new WebGPURenderer({
     canvas: CANVAS ?? undefined,
