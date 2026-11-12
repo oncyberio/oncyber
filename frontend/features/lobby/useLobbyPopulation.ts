@@ -29,7 +29,15 @@ export async function fetchLobbyPopulation(signal: AbortSignal): Promise<number 
 export function useLobbyPopulation(enabled = true) {
     const live = useLiveLobbyPopulation(enabled);
     const [staged, setStaged] = useState(0);
-    useEffect(() => setStaged(readRecordingCrowd()?.count || 0), []);
+    useEffect(() => {
+        const crowd = readRecordingCrowd();
+        setStaged(crowd?.count || 0);
+        // Look up and download the crowd's avatars before Jump in.
+        if (crowd)
+            void import("./useRecordingCrowd").then(({ prepareRecordingWardrobe }) =>
+                prepareRecordingWardrobe(crowd)
+            );
+    }, []);
     return staged ? (live ?? 0) + staged : live;
 }
 

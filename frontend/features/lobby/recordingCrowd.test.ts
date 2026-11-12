@@ -1,4 +1,6 @@
+import { LOBBY_SPAWN_CENTER } from "./lobbySpawn";
 import {
+    CLEAR_RADIUS,
     createRecordingCrowd,
     mixCrowdAvatars,
     parseRecordingCrowd,
@@ -22,7 +24,7 @@ test("options are bounded", () => {
             "&crowdNames=0"
     );
     expect(options).toMatchObject({
-        count: 80,
+        count: 250,
         travel: 16,
         wallets: ["rayan.eth", "0x" + "a".repeat(40)],
         names: false,
@@ -115,4 +117,21 @@ test("more than 8 travellers stand in rows instead of one wide line", () => {
         0
     );
     expect(eight[0].x).toBeCloseTo(-3.5 * 1.15);
+});
+
+test("you arrive in a clear spot with the whole crowd ahead", () => {
+    const crowd = createRecordingCrowd(
+        parseRecordingCrowd("?crowd=200"),
+        avatars
+    );
+    expect(crowd.participants).toHaveLength(200);
+    for (let frame = 0; frame < 1200; frame += 7) {
+        for (const p of crowd.sample(frame * 50)) {
+            const dx = p.x - LOBBY_SPAWN_CENTER.x;
+            const dz = p.z - LOBBY_SPAWN_CENTER.z;
+            expect(Math.hypot(dx, dz)).toBeGreaterThan(CLEAR_RADIUS);
+            // Ahead is -z from the arrival spot.
+            expect(dz).toBeLessThan(0);
+        }
+    }
 });

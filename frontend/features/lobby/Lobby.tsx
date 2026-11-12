@@ -95,10 +95,6 @@ export default function Lobby({
     initialReturn?: LobbyReturnTransition | null;
 }) {
     const account = useContext(UserContext);
-    const [recordingRequested, setRecordingRequested] = useState(false);
-    useEffect(() => {
-        setRecordingRequested(/[?&]crowd=[1-9]/.test(window.location.search));
-    }, []);
     const { user, userData, token, authenticated, isAnonymous } = account;
     const profilePhoto = lobbyPortraitUrl(userData?.avatar);
     const journey = useLobbyJourney(initialReturn);
@@ -234,10 +230,10 @@ export default function Lobby({
             ? user?.id || userData?.walletId || ""
             : "",
         flashWallets(account),
-        avatarOpen || recordingRequested
+        avatarOpen
     );
     // ?crowd=N stages people for recording a video (see recordingCrowd.ts).
-    const recording = useRecordingCrowd(ownedAvatars.items);
+    const recording = useRecordingCrowd();
     const avatarChoices = useMemo(
         () =>
             ownedFirst(
@@ -620,7 +616,7 @@ export default function Lobby({
             recording
                 ? {
                       maxModels: 24,
-                      maxNativeAvatars: 40,
+                      maxNativeAvatars: 16,
                       maxLabels: recording.options.names ? 64 : 0,
                       loadConcurrency: 4,
                   }

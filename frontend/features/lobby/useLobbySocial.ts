@@ -7,7 +7,8 @@ import type {
     LobbyGroupLocation,
 } from "../../../multiplayer/protocol/lobby-groups";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { randomLobbySpawn } from "./lobbySpawn";
+import { LOBBY_SPAWN_CENTER, randomLobbySpawn } from "./lobbySpawn";
+import { readRecordingCrowd } from "./recordingCrowdOptions";
 import {
     initialLobbySnapshot,
     LobbyConnection,
@@ -63,7 +64,11 @@ export default function useLobbySocial({
     const [attempt, setAttempt] = useState(0);
     const connection = useRef<LobbyConnection>(null);
     const spawn = useRef<LobbyPose>(null);
-    spawn.current ||= randomLobbySpawn();
+    // A staged recording crowd (?crowd=N) leaves the arrival spot clear; arrive
+    // in its middle, facing the crowd, so every take starts the same.
+    spawn.current ||= readRecordingCrowd()
+        ? { ...LOBBY_SPAWN_CENTER, y: 0, rotation: 0 }
+        : randomLobbySpawn();
     const pose = useRef<LobbyPose>(spawn.current);
     const { userId, username, avatar, token, vrmUrl, scale } = identity;
     const locationRef = useRef(location);

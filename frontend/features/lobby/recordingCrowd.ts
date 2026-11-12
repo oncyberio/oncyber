@@ -154,6 +154,9 @@ interface Plan {
     emoteCycle: number;
 }
 
+/** Nobody stands within this many metres of the arrival spot. */
+export const CLEAR_RADIUS = 3.2;
+
 export interface RecordingCrowd {
     participants: LobbyParticipant[];
     /** The people who stand next to you and travel with you. */
@@ -184,7 +187,12 @@ export function createRecordingCrowd(
             : undefined;
         return {
             id: `recording-crowd-${index}`,
-            name: options.names ? names[index % names.length] : "",
+            name: options.names
+                ? names[index % names.length] +
+                  (index >= names.length
+                      ? `_${Math.floor(index / names.length) + 1}`
+                      : "")
+                : "",
             x,
             y: 0,
             z,
@@ -210,16 +218,17 @@ export function createRecordingCrowd(
         return { emotes: list, emoteCycle: cycle };
     };
 
-    // Friends: a loose half ring just behind and beside the arrival spot, so
-    // they are in frame and close when you leave together.
+    // You arrive in a clear circle (CLEAR_RADIUS) with everyone ahead of you.
+    // Friends: a loose arc just past that circle, in frame and close when you
+    // leave together.
     const travelIds: string[] = [];
     for (let i = 0; i < options.travel; i++) {
         const side = i % 2 ? 1 : -1;
         const slot = Math.floor(i / 2);
-        const angle = side * (0.55 + slot * 0.42) + (rand() - 0.5) * 0.2;
-        const radius = 2.4 + (slot % 2) * 0.9 + rand() * 0.5;
+        const angle = side * (0.12 + slot * 0.2) + (rand() - 0.5) * 0.08;
+        const radius = CLEAR_RADIUS + 0.4 + (slot % 2) * 0.8 + rand() * 0.4;
         const x = center.x + Math.sin(angle) * radius;
-        const z = center.z - Math.cos(angle) * radius * 0.8;
+        const z = center.z - Math.cos(angle) * radius;
         const look = facing(center.x - x, center.z - z) + (rand() - 0.5) * 0.6;
         const p = person(x, z, look);
         travelIds.push(p.id);
@@ -237,13 +246,15 @@ export function createRecordingCrowd(
     const walkers = Math.round(remaining * 0.3);
     let talkers = remaining - walkers;
     const groups: { x: number; z: number }[] = [];
+    const depth = 12 + options.count * 0.07;
     while (talkers > 0) {
         const size = Math.min(talkers, 2 + Math.floor(rand() * 4));
         let x = 0,
             z = 0;
         for (let attempt = 0; attempt < 30; attempt++) {
-            const angle = (rand() - 0.5) * Math.PI * 1.7;
-            const distance = 5.5 + Math.sqrt(rand()) * 13;
+            // A cone ahead that deepens with the crowd's size.
+            const angle = (rand() - 0.5) * 1.8;
+            const distance = CLEAR_RADIUS + 3 + Math.sqrt(rand()) * depth;
             x = center.x + Math.sin(angle) * distance;
             z = center.z - Math.cos(angle) * distance;
             if (groups.every((g) => Math.hypot(g.x - x, g.z - z) > 3.2)) break;

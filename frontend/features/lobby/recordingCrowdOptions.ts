@@ -4,7 +4,7 @@
  * A staged crowd for recording videos of the lobby. URL-only, never stored,
  * never sent to the lobby server: other visitors don't see these people.
  *
- *   ?crowd=40              how many people (up to 80)
+ *   ?crowd=40              how many people (up to 250)
  *   ?crowdTravel=8         how many of them travel with you (up to 16)
  *   ?crowdWallet=a.eth,0x… also dress people in avatars these wallets own
  *   ?crowdAvatars=id,id    catalogue avatars to use (defaults to the first ones)
@@ -20,7 +20,7 @@ export interface RecordingCrowdOptions {
     seed: number;
 }
 
-export const RECORDING_CROWD_MAX = 80;
+export const RECORDING_CROWD_MAX = 250;
 export const RECORDING_CROWD_TRAVEL_MAX = 16;
 
 const integer = (value: string | null, fallback: number, max: number) => {
