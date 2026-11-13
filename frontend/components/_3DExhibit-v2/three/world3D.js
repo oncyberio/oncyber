@@ -1270,7 +1270,13 @@ export default class World3D {
         // looks at the camera and the scene once their matrices are current.
         let draw = this.renderGate ? this.renderGate.begin(this.canSkipFrame()) : true
 
-        if(draw) {
+        // In VR the renderer clears each eye's view itself: a manual clear
+        // outside render() has no XR view to clear.
+        const presenting = Renderer.xr?.isPresenting === true
+
+        Renderer.autoClear = presenting
+
+        if(draw && !presenting) {
 
             Renderer.clear()
         }
@@ -1299,7 +1305,7 @@ export default class World3D {
 
             draw = true
 
-            Renderer.clear()
+            if(!presenting) Renderer.clear()
         }
 
         // HTML embeds are DOM: they follow the camera whether or not we draw.

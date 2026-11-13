@@ -46,3 +46,25 @@ export function xrSessionInit({ isWebGPUBackend = false } = {}) {
     if (isWebGPUBackend) init.requiredFeatures = ["webgpu"];
     return init;
 }
+
+/**
+ * Sets the per-frame callback, also while a VR session is presenting.
+ *
+ * During a session three's XRManager owns the renderer's animation loop: it
+ * updates the head pose and the per-eye cameras, then calls the app's loop.
+ * `renderer.setAnimationLoop()` called after the session started replaces
+ * that frame handler, so the eye cameras are never set up, nothing but the
+ * clear color is drawn, and the headset shows black. While presenting, the
+ * callback goes to the XRManager instead, which calls it after its own work.
+ *
+ * @param {any} renderer
+ * @param {null | ((time?: number, frame?: any) => void)} callback
+ */
+export function setRenderLoop(renderer, callback) {
+    const xr = renderer?.xr;
+    if (xr?.isPresenting === true && "_currentAnimationLoop" in xr) {
+        xr._currentAnimationLoop = callback;
+        return;
+    }
+    renderer.setAnimationLoop(callback);
+}
