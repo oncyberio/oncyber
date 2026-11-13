@@ -836,8 +836,6 @@ test("a selected group retains its conversation, draft and focus throughout trav
         expect(useLobbyTravelParty).toHaveBeenLastCalledWith(
             expect.objectContaining({ enabled: true, identityKey: "account" })
         );
-        if (phase !== "entered" && phase !== "idle")
-            expect(button("Travel with Moon club").disabled).toBe(true);
         if (phase === "revealing")
             expect(useLobbySocial).toHaveBeenLastCalledWith(
                 expect.objectContaining({

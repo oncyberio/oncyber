@@ -806,13 +806,18 @@ export default function Lobby({
     );
     // Lines over speakers' heads. The scene fades each one out on its own.
     const speech = useMemo(() => {
-        const lines = activeSpeech(chatSocial.messages);
+        // Party messages only reach the party's members, so their lines
+        // show above the speaker for the party and nobody else.
+        const lines = activeSpeech([
+            ...chatSocial.messages,
+            ...(social.groupMessages || []),
+        ]);
         if (social.sessionId && lines[social.sessionId]) {
             lines.self = lines[social.sessionId];
             delete lines[social.sessionId];
         }
         return lines;
-    }, [chatSocial.messages, social.sessionId]);
+    }, [chatSocial.messages, social.groupMessages, social.sessionId]);
     const recordingBudget = useMemo(
         () =>
             recording
@@ -896,20 +901,13 @@ export default function Lobby({
         );
         socialElement.current?.toggleAttribute(
             "inert",
-            !!groupModal || flashOpen || peopleOpen
+            !!groupModal || flashOpen
         );
         journey.frameRef.current?.toggleAttribute(
             "inert",
             !entered || !!groupModal
         );
-    }, [
-        entered,
-        travelling,
-        journey.frameUrl,
-        groupModal,
-        flashOpen,
-        peopleOpen,
-    ]);
+    }, [entered, travelling, journey.frameUrl, groupModal, flashOpen]);
     useEffect(() => {
         if (!entered) return;
         setPortal(null);
@@ -1686,12 +1684,12 @@ export default function Lobby({
                 ref={socialElement}
                 data-search={exploreOpen || undefined}
                 data-entered={away || undefined}
+                data-people={peopleOpen || undefined}
                 data-collapsed={(away && !destinationGroupsOpen) || undefined}
                 data-hidden={
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1699,7 +1697,6 @@ export default function Lobby({
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1745,13 +1742,6 @@ export default function Lobby({
                                   onCreate: () => setGroupModal({}),
                                   onManage: (id) =>
                                       setGroupModal({ groupId: id }),
-                                  canExplore: !travelling,
-                                  onExplore: (id) => {
-                                      if (travelling) return;
-                                      selectGroup(id);
-                                      openExplore();
-                                      if (entered) journey.cancel();
-                                  },
                                   sendMessage: async (groupId, text) => {
                                       await social.groupAction({
                                           action: "message",
