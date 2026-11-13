@@ -756,6 +756,10 @@ class Camera extends Augmented {
 
                 this.currentControls.setCamera(this.current)
 
+                // Arriving through a portal is a spawn: keep the player put
+                // while the new space settles.
+                this.currentControls.world?.startSpawnSettle?.()
+
                 await Players.main.setState(STATE, opts)
 
                 await PlayerCamera.setState(STATE, opts);
