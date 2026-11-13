@@ -49,6 +49,9 @@ const ASPECT = CANVAS_W / CANVAS_H;
 const PLANE_H = 0.4 * 0.75;
 const PLANE_W = PLANE_H * ASPECT;
 
+/** The name tag's picture, against the engine tag's (UsernameGenerator). */
+export const TAG_PHOTO_SCALE = 0.85;
+
 const ATLAS = 2048;
 const COLUMNS = Math.floor(ATLAS / CANVAS_W);
 const ROWS = Math.floor(ATLAS / CANVAS_H);
@@ -105,7 +108,8 @@ function drawUsername(
     if (!textOnly) {
         const metrics = ctx.measureText(name);
         const margin = 10;
-        const imgSize = CANVAS_W / 10;
+        // the picture is 15% smaller than the engine's tag
+        const imgSize = (CANVAS_W / 10) * TAG_PHOTO_SCALE;
         const cx =
             ox + CANVAS_W / 2 - (metrics.width / 2 + imgSize / 2 + margin);
         const cy = oy + CANVAS_H / 2;
