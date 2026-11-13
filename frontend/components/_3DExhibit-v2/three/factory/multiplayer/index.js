@@ -22,6 +22,8 @@ import {
 
     Vector3,
 
+    Ray,
+
     Euler,
 
     Quaternion,
@@ -32,7 +34,7 @@ import shortid from "shortid";
 
 import { PatchClock } from "@features/lobby/patchClock";
 
-import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace } from "./recordingParty";
+import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace, recordingPartyLanding, recordingArrivalsHeld, ARRIVAL_HOLD_MAX_MS } from "./recordingParty";
 
 import { disposeObject3D } from "@3utils/three";
 
@@ -1161,7 +1163,14 @@ class Multiplayer extends Group {
 
             const now = performance.now()
 
-            if (now - (this.lastRealPacketAt || 0) > 1000 && now - (this.lastRecordingTick || 0) > 200) {
+            // Between patches while friends are still arriving, and always
+            // without a room.
+            const arriving = this.recordingPartyCache && this.recordingArrivalStart > -Infinity
+                && (now - this.recordingArrivalStart) / 1000 < Math.max(...this.recordingPartyCache.map((friend) => friend.arriveAt)) + 0.5
+
+            const quiet = now - (this.lastRealPacketAt || 0) > 1000
+
+            if ((quiet || arriving || !this.recordingPartyCache) && now - (this.lastRecordingTick || 0) > (arriving ? 100 : 200)) {
 
                 this.lastRecordingTick = now
 
@@ -1458,37 +1467,96 @@ class Multiplayer extends Group {
 
         const main = Players.main
 
-        if (this.recordingPartyCache) {
+        if (!this.recordingPartyCache) {
 
-            // Friends stay with you from room to room: a player whose
-            // space differs from yours is hidden.
-            for (const friend of this.recordingPartyCache) friend.space = main.currentSpace
+            // You land alone: friends start arriving once the arrival has
+            // handed you control, around the spot you landed on.
+            if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
 
-            return this.recordingPartyCache
+            this.recordingReadyAt ??= performance.now()
+
+            const held = recordingArrivalsHeld() && performance.now() - this.recordingReadyAt < ARRIVAL_HOLD_MAX_MS
+
+            if (held || !Camera.active) return null
+
+            const payload = main.getPacketPayload(true)
+
+            const forward = Camera.current.getWorldDirection(new Vector3())
+
+            forward.y = 0
+
+            if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1)
+
+            forward.normalize()
+
+            const position = { x: payload[0], y: payload[1], z: payload[2] }
+
+            const spots = recordingPartyLanding(this.recordingParty.length, position, forward, this.recordingPartyProbe(main))
+
+            this.recordingPartyCache = recordingPartyPlayers(this.recordingParty, {
+                ...position,
+                scale: payload[4],
+                space: payload[5],
+                userHeight: payload[9],
+            }, spots)
+
+            this.recordingArrivalStart = performance.now()
         }
 
-        if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
+        // Friends stay with you from room to room: a player whose
+        // space differs from yours is hidden.
+        for (const friend of this.recordingPartyCache) friend.space = main.currentSpace
 
-        const payload = main.getPacketPayload(true)
+        const elapsed = (performance.now() - this.recordingArrivalStart) / 1000
 
-        const forward = Camera.current.getWorldDirection(new Vector3())
+        return this.recordingPartyCache.filter((friend) => friend.arriveAt <= elapsed)
+    }
 
-        forward.y = 0
+    /**
+     * Floor and wall checks for where the friends land, against the space's
+     * collision mesh. Packet heights are your feet; rays start above them.
+     */
+    recordingPartyProbe(main) {
 
-        if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1)
+        const world = Camera.currentControls?.world
 
-        forward.normalize()
+        if (!world?.collisions?.rayIntersect) return {}
 
-        this.recordingPartyCache = recordingPartyPlayers(this.recordingParty, {
-            x: payload[0],
-            y: payload[1],
-            z: payload[2],
-            scale: payload[4],
-            space: payload[5],
-            userHeight: payload[9],
-        }, forward)
+        const ray = new Ray()
 
-        return this.recordingPartyCache
+        const down = new Vector3(0, -1, 0)
+
+        const chest = (main.avatar3D?.headPosition?.y || 1.6) * 0.6
+
+        return {
+            floorAt: (x, z, nearY) => {
+
+                ray.origin.set(x, nearY + 2, z)
+
+                ray.direction.copy(down)
+
+                const hit = world.collisions.rayIntersect(ray)
+
+                return hit && hit.distance < 4.5 ? hit.position.y : null
+            },
+            clearPath: (from, to) => {
+
+                const dx = to.x - from.x, dz = to.z - from.z
+
+                const distance = Math.hypot(dx, dz)
+
+                if (distance < 1e-3) return true
+
+                ray.origin.set(from.x, main.position.y + chest, from.z)
+
+                ray.direction.set(dx / distance, 0, dz / distance)
+
+                const hit = world.collisions.rayIntersect(ray)
+
+                // keep a body's width from anything solid
+                return !hit || hit.distance > distance + 0.4
+            },
+        }
     }
 
     /**
@@ -1497,6 +1565,9 @@ class Multiplayer extends Group {
      * in place at once instead of walking there. False without friends.
      */
     lineUpRecordingParty(yaw, snap = false) {
+
+        // Everyone still on the way arrives for the line.
+        if (this.recordingPartyCache) this.recordingArrivalStart = -Infinity
 
         const friends = this.recordingParty && this.recordingPartyEntries()
 
@@ -1543,11 +1614,20 @@ class Multiplayer extends Group {
 
         if (this.recordingParty) {
 
-            if (!opts.recordingTick) this.lastRealPacketAt = performance.now()
-
             const players = []
 
-            opts.packet?.players?.forEach?.((player) => players.push(player))
+            if (!opts.recordingTick) {
+
+                this.lastRealPacketAt = performance.now()
+
+                this.lastRealPlayers = []
+
+                opts.packet?.players?.forEach?.((player) => this.lastRealPlayers.push(player))
+            }
+
+            // A tick between patches repeats the room's last players, so
+            // they stay while friends arrive.
+            players.push(...(this.lastRealPlayers || []))
 
             const friends = this.recordingPartyEntries()
 

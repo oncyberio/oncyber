@@ -24,6 +24,7 @@ import {
     readLobbyKeyboard,
 } from "./lobbyControls";
 import React, { useEffect, useRef } from "react";
+import { createFrameCap, maxFrameRateFromSearch } from "@utils/frameCap";
 import type * as THREE from "three";
 
 import type { createAvatar as NativeAvatarFactory } from "./webgpu/avatarAdapter";
@@ -329,6 +330,9 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 const nativePixelRatio = Math.min(
                     window.devicePixelRatio || 1,
                     2
+                );
+                const frameCap = createFrameCap(
+                    maxFrameRateFromSearch(window.location.search)
                 );
                 let supersampled = true;
                 let supersampleCheck = 0;
@@ -2061,6 +2065,12 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         else if (transitionTimings?.finish())
                             publishTransitionTimings(time, true);
                         clearInput();
+                        return;
+                    }
+                    // 60 frames a second at most on fast displays (?fps=N
+                    // overrides): half the GPU work on a 120 Hz screen
+                    if (!frameCap.shouldDraw(time)) {
+                        frame = requestAnimationFrame(render);
                         return;
                     }
                     const delta = lastTime
