@@ -27,6 +27,8 @@ const LobbyConversationSurface = styled.div`
     /* In a space the party chat stays on the bottom bar's line, as in the
        lobby. */
     &[data-entered] {
+        /* The space's own chat is this wide; the party chat takes its place. */
+        width: 340px;
         max-width: calc(100% - 32px);
     }
     &[data-collapsed] .chat-view-viewport {

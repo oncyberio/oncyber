@@ -742,6 +742,24 @@ export default function Lobby({
             !entered || !!groupModal
         );
     }, [entered, travelling, journey.frameUrl, groupModal, flashOpen]);
+    // The party chat opens where the space keeps its own chat: the space
+    // puts its chat away meanwhile, so there is one composer on screen.
+    const partyChatOverSpace =
+        away &&
+        destinationGroupsOpen &&
+        !!(groups.length || invitations.length) &&
+        !exploreOpen &&
+        !avatarOpen &&
+        !flashOpen;
+    useEffect(() => {
+        let root: HTMLElement | undefined;
+        try {
+            root = journey.frameRef.current?.contentDocument?.documentElement;
+        } catch {
+            // An outside experience on another origin keeps its own chat.
+        }
+        root?.toggleAttribute("data-party-chat-open", partyChatOverSpace);
+    }, [partyChatOverSpace, entered, journey.frameUrl]);
     useEffect(() => {
         if (!entered) return;
         setPortal(null);
