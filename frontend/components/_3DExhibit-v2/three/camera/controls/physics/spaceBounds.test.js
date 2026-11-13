@@ -3,6 +3,7 @@ import {
     isSpawnInsideSpace,
     pickSpawnInsideSpace,
     OUTSIDE_MARGIN,
+    isRunawayStep,
 } from "./spaceBounds";
 
 // The "Evolucion de sonic" white cube room.
@@ -86,5 +87,27 @@ describe("pickSpawnInsideSpace", () => {
             z: 120,
             reference: "head",
         });
+    });
+});
+
+describe("isRunawayStep", () => {
+    const at = { x: 3, y: 0, z: -10 };
+
+    test("walking, sprinting and collision pushes are real steps", () => {
+        expect(isRunawayStep(at, { x: 3.4, y: 0, z: -10 }, 2.7)).toBe(false);
+        expect(isRunawayStep(at, { x: 3, y: 2, z: -12.5 }, 2.7)).toBe(false);
+    });
+
+    test("a throw of tens of metres in one frame is not", () => {
+        expect(isRunawayStep(at, { x: 40, y: 3, z: -30 }, 2.7)).toBe(true);
+    });
+
+    test("a tall avatar gets a longer allowance", () => {
+        expect(isRunawayStep(at, { x: 10, y: 0, z: -10 }, 1.8)).toBe(true);
+        expect(isRunawayStep(at, { x: 10, y: 0, z: -10 }, 4)).toBe(false);
+    });
+
+    test("a broken position is a runaway", () => {
+        expect(isRunawayStep(at, { x: NaN, y: 0, z: 0 }, 2.7)).toBe(true);
     });
 });

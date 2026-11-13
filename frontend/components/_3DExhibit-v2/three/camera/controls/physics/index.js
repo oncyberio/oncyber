@@ -15,7 +15,9 @@ import Players from "@3factory/player"
 
 import { getUserInitialPositions } from "@components/_3DExhibit-v2/three/utils/camera";
 
-import { isOutsideSpace, pickSpawnInsideSpace } from "./spaceBounds";
+import { isOutsideSpace, isRunawayStep, pickSpawnInsideSpace } from "./spaceBounds";
+
+import { EscapeRecorder } from "./escapeRecorder";
 
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
 const SNAP_GRACE = 0.1
@@ -93,6 +95,12 @@ export class Physics {
         this.thirdPersonPos = new Vector3()
 
         this.position = new Vector3()
+
+        this.beforeStep = new Vector3()
+
+        this.velocityBefore = new Vector3()
+
+        this.recorder = new EscapeRecorder()
 
         if (this.roomParameters?.quidditch){
             this.playerState.quidditch = true;
@@ -195,6 +203,10 @@ export class Physics {
         const lobbyFeel = impulse && !this.flymode && !state.quidditch && !state.opts?.editMode
         const wasOnFloor = state.playerOnFloor
 
+        const before = this.beforeStep.copy(state.position)
+
+        const velocityBefore = this.velocityBefore.copy(state.veclocity)
+
         if (state.playerOnFloor || this.flymode) {
 
             const damping = Math.exp(-10 * deltaTime) - 1
@@ -291,6 +303,19 @@ export class Physics {
 
         // console.log("this, playerSatete", this.playerState.position);
 
+        const colliderHeight = this.collisions.collider_height
+
+        this.recorder.record(deltaTime, before, this.playerState.position, velocityBefore, playerOnFloor, result, colliderHeight)
+
+        // No step, run or collision push moves a player this far in one
+        // frame. Undo it rather than throw the player out of the space.
+        if (!this.flymode && !this.isPreview && isRunawayStep(before, this.playerState.position, colliderHeight)) {
+
+            this.recorder.report("runaway step undone", { space: this.roomParameters?.slug, colliderHeight })
+
+            this.undoStep(before, shouldUseFirsPerson)
+        }
+
         // Fell out, or ended up far outside the space: only the background
         // colour shows there, so bring the player back to a spawn inside.
         const bbox = this.currentSpace?.bbox
@@ -300,6 +325,11 @@ export class Physics {
             : isOutsideSpace(this.playerState.position, bbox, this.userHeight)
 
         if (outside) {
+
+            if (!this.isPreview && !this.flymode) {
+
+                this.recorder.report("left the space", { space: this.roomParameters?.slug, colliderHeight })
+            }
 
             this.reset()
         }
@@ -411,6 +441,30 @@ export class Physics {
 
     playerCollitions(position) {
         return this.collisions.playerCollitions(position)
+    }
+
+    /**
+     * Puts the player back where this frame started, at rest.
+     * @param { Vector3 } before the player position (feet in third person, camera in first)
+     * @param { boolean } firstPerson
+     */
+    undoStep(before, firstPerson) {
+
+        this.playerState.veclocity.set(0, 0, 0)
+
+        this.playerState.position.copy(before)
+
+        const height = this.collisions.collider_height
+
+        const cameraPos = this.tmpVec3.copy(before)
+
+        if (!firstPerson) cameraPos.y += height
+
+        this.collisions.reset(cameraPos)
+
+        this.firstPersonPos.copy(cameraPos)
+
+        this.thirdPersonPos.set(cameraPos.x, cameraPos.y - height, cameraPos.z)
     }
 
     reset() {
