@@ -72,7 +72,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             }
 
             // Save to db the new avatar link
-            db.collection("users").doc(snap.docs[0].id).update({
+            await db.collection("users").doc(snap.docs[0].id).update({
                 avatar: url,
             });
 
