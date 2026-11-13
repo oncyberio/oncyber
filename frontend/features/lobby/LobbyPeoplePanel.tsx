@@ -674,19 +674,22 @@ const Panel = styled.section`
         flex: none;
         background: ${base.color.line.faint};
     }
-    .people-content .person-add {
+    /* button.person-add: the generic button rule above would otherwise
+       win and shrink the + to its 11px label size. */
+    .people-content button.person-add {
         display: grid;
         place-items: center;
-        width: 28px;
-        min-width: 28px;
-        height: 28px;
-        min-height: 28px;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        min-height: 32px;
         margin-left: auto;
         padding: 0;
         border-radius: 50%;
         border-color: ${lobby.panel.border};
         color: ${lobby.color.ink};
-        font-size: 16px;
+        font-size: 20px;
+        font-weight: 300;
         line-height: 1;
         &:hover:not(:disabled) {
             border-color: ${lobby.panel.cardSelected};
