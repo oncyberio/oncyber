@@ -441,7 +441,6 @@ export default function Lobby({
                 groupId: ownParty.id,
                 inviteeId: id,
             });
-            selectGroup(ownParty.id);
         } else {
             const result = await social.groupAction({
                 action: "create",
@@ -451,21 +450,37 @@ export default function Lobby({
             if (result.groupId) selectGroup(result.groupId);
         }
     };
-    // The people list, closest first (you on top). Sorted when the list
-    // opens, so rows don't shuffle under the pointer as people walk.
+    // The people list, closest first (you on top). The order is set once
+    // when the list opens: rows must not move under the pointer as people
+    // walk or join your party. Anyone who arrives later goes to the end.
+    const peopleOrder = useRef<Map<string, number> | null>(null);
+    if (!peopleOpen) peopleOrder.current = null;
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
-        const me = social.getPredictedPose?.() ||
-            social.players.find((player) => player.isLocal) || { x: 0, z: 0 };
-        return social.players
-            .map((player) => ({
-                player,
-                distance: player.isLocal
-                    ? -1
-                    : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
-            }))
-            .sort((a, b) => a.distance - b.distance)
-            .map(({ player }) => player);
+        if (!peopleOrder.current) {
+            const me = social.getPredictedPose?.() ||
+                social.players.find((player) => player.isLocal) || {
+                    x: 0,
+                    z: 0,
+                };
+            peopleOrder.current = new Map(
+                social.players
+                    .map((player) => ({
+                        id: player.id,
+                        d: player.isLocal
+                            ? -1
+                            : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
+                    }))
+                    .sort((a, b) => a.d - b.d)
+                    .map(({ id }, index) => [id, index])
+            );
+        }
+        const order = peopleOrder.current;
+        for (const player of social.players)
+            if (!order.has(player.id)) order.set(player.id, order.size);
+        return [...social.players].sort(
+            (a, b) => order.get(a.id) - order.get(b.id)
+        );
     }, [peopleOpen, social.players]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {

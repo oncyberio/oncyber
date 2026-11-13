@@ -368,9 +368,13 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     const position = visitor.group.position;
                     return {
                         x: position.x,
-                        // The foot of the name tag; the line takes its place.
-                        y: position.y + (visitor.model.height || 1.8) + 0.02,
+                        // The centre of their name tag.
+                        y: position.y + (visitor.model.height || 1.8) + 0.12,
                         z: position.z,
+                        name:
+                            visitor === self
+                                ? latest.current.selfName
+                                : visitor.speechName,
                         photo:
                             visitor === self
                                 ? latest.current.profilePhoto
@@ -382,10 +386,18 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     y: number;
                     z: number;
                 }) => {
+                    // One metre up from the point, to size the line like the tag.
+                    speechPoint
+                        .set(point.x, point.y + 1, point.z)
+                        .project(camera);
+                    const above = (-speechPoint.y * 0.5 + 0.5) * height;
                     speechPoint.set(point.x, point.y, point.z).project(camera);
                     return {
                         x: (speechPoint.x * 0.5 + 0.5) * width,
                         y: (-speechPoint.y * 0.5 + 0.5) * height,
+                        scale: Math.abs(
+                            (-speechPoint.y * 0.5 + 0.5) * height - above
+                        ),
                         visible:
                             speechPoint.z > -1 &&
                             speechPoint.z < 1 &&
@@ -493,6 +505,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     group: THREE.Group;
                     /** Profile picture, shown beside what they say. */
                     speechPhoto?: string;
+                    speechName?: string;
                     model?: Avatar;
                     /** Arrival build-up for other people, 0..1 while it plays. */
                     reveal?: number;
@@ -1711,6 +1724,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         // A tag waits for its avatar, so names don't float
                         // over empty floor while a model loads.
                         avatar.speechPhoto = participant.avatar;
+                        avatar.speechName = participant.name;
                         // What they just said stands in for the tag.
                         if (
                             avatar.model &&
