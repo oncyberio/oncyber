@@ -19,8 +19,11 @@ machine (rooms live in memory). Deploy with
 `fly deploy -c fly.arena.toml`, set the secrets listed at the top of that file,
 then point the frontend at it with `NEXT_PUBLIC_ARENA_URL`. Without that
 variable the frontend uses `arena.oncyber.io` (the GCP VM in `infra/`). The
-TURN relay itself (coturn) stays on the VM; the Fly app only signs credentials
-for it with the shared `TURN_SECRET`.
+voice relay is Cloudflare TURN when `CLOUDFLARE_TURN_KEY_ID` and
+`CLOUDFLARE_TURN_API_TOKEN` are set (the server mints short-lived per-visitor
+credentials through Cloudflare's API; the token never reaches browsers),
+otherwise coturn with `TURN_SECRET` + `TURN_HOST`. The lobby world server
+serves the same `/turnCredentials`.
 
 ## Shared world with WebTransport (protocol v2)
 

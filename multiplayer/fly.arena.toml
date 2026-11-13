@@ -3,7 +3,9 @@
 # (LocalPresence), so this stays one machine.
 # Secrets (fly secrets set -a oncyber-arena ...): SECRET_JWT_KEY,
 # LOBBY_IDENTITY_SECRET, FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL,
-# FIREBASE_ADMIN_PRIVATE_KEY, MONITOR_PASSWORD, TURN_SECRET, TURN_HOST,
+# FIREBASE_ADMIN_PRIVATE_KEY, MONITOR_PASSWORD,
+# CLOUDFLARE_TURN_KEY_ID + CLOUDFLARE_TURN_API_TOKEN (voice relay; or coturn's
+# TURN_SECRET + TURN_HOST),
 # VERCEL_PROTECTION_BYPASS (optional), WORLD_ACCESS_SECRET (optional).
 app = "oncyber-arena"
 primary_region = "cdg"
