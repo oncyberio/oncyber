@@ -41,6 +41,7 @@ import { lobbyPanelSurface } from "./lobbyPanelStyles";
 import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
+import LobbyVoiceRequests from "./LobbyVoiceRequests";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
 import LobbyDockIcon from "./LobbyDockIcon";
@@ -834,12 +835,39 @@ export default function Lobby({
         onExit,
     ]);
 
-    const voiceLabel =
-        social.voiceState === "live"
-            ? "Mute microphone"
-            : social.voiceState === "connecting"
-            ? "Connecting voice…"
-            : "Enable microphone";
+    const stage = social.stage;
+    const onStage = !!stage?.speakers.some(
+        (speaker) => speaker.sessionId === social.sessionId
+    );
+    // Lobby voice is admin-approved: until then the mic button asks to speak.
+    const voiceGated =
+        !!stage?.spatial && !onStage && social.voiceState !== "live";
+    const voiceLabel = voiceGated
+        ? stage.muted
+            ? "An admin muted you"
+            : stage.role
+            ? "Join voice"
+            : stage.requested
+            ? "Request sent · Cancel"
+            : "Request to speak"
+        : social.voiceState === "live"
+        ? "Mute microphone"
+        : social.voiceState === "connecting"
+        ? "Connecting voice…"
+        : "Enable microphone";
+    const pressVoice = () => {
+        if (!voiceGated) return void social.toggleVoice();
+        if (stage.muted) return void social.listen();
+        if (stage.role) {
+            // Admins skip the queue; the server still applies the speaker cap.
+            void social.adminAction("stage-add", social.sessionId);
+            return void social.toggleVoice();
+        }
+        social.requestVoice(stage.requested);
+        // Hear whoever is on voice while the request waits.
+        if (!stage.requested && social.voiceState === "off")
+            void social.listen();
+    };
     return (
         <>
             <LobbySurface
@@ -1061,12 +1089,16 @@ export default function Lobby({
                                 <button
                                     className="dock-button"
                                     aria-label={voiceLabel}
-                                    aria-pressed={social.voiceState === "live"}
+                                    aria-pressed={
+                                        voiceGated
+                                            ? stage.requested
+                                            : social.voiceState === "live"
+                                    }
                                     disabled={
                                         social.status !== "connected" ||
                                         social.voiceState === "connecting"
                                     }
-                                    onClick={() => void social.toggleVoice()}
+                                    onClick={pressVoice}
                                 >
                                     <LobbyDockIcon
                                         name={
@@ -1587,20 +1619,33 @@ export default function Lobby({
                             : undefined
                     }
                     notices={
-                        social.groupsSupported ? (
-                            <LobbyGroupNotices
-                                groups={groups}
-                                invitations={invitations}
-                                sessionId={social.sessionId}
-                                clock={social.groupClock}
-                                action={social.groupAction}
-                                onSelected={selectGroup}
-                                onAccept={groupJourney.accept}
-                                onDecline={groupJourney.decline}
-                                onLaunch={groupJourney.launch}
-                                onCancel={groupJourney.cancel}
+                        <>
+                            <LobbyVoiceRequests
+                                stage={social.stage}
+                                onAdmin={social.adminAction}
+                                onShowAll={() => {
+                                    setFlashOpen(false);
+                                    setPeopleOpen(true);
+                                    setAvatarOpen(false);
+                                    setEmotesOpen(false);
+                                    setExploreOpen(false);
+                                }}
                             />
-                        ) : null
+                            {social.groupsSupported && (
+                                <LobbyGroupNotices
+                                    groups={groups}
+                                    invitations={invitations}
+                                    sessionId={social.sessionId}
+                                    clock={social.groupClock}
+                                    action={social.groupAction}
+                                    onSelected={selectGroup}
+                                    onAccept={groupJourney.accept}
+                                    onDecline={groupJourney.decline}
+                                    onLaunch={groupJourney.launch}
+                                    onCancel={groupJourney.cancel}
+                                />
+                            )}
+                        </>
                     }
                 />
                 <InlineError

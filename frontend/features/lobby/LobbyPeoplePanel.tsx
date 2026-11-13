@@ -109,7 +109,9 @@ function VoiceSection({
             ) : (
                 <p className="voice-note">
                     {admin
-                        ? "Add someone from the list below. Up to 50 people nearest each speaker hear them."
+                        ? stage.spatial
+                            ? `Approve requests, or add someone from the list below. Up to ${stage.limit} people can talk; people near a speaker hear them.`
+                            : "Add someone from the list below. Up to 50 people nearest each speaker hear them."
                         : "Nobody is on voice right now."}
                 </p>
             )}
@@ -122,6 +124,15 @@ function VoiceSection({
                 <p className="voice-note">
                     An admin muted you. You can still listen.
                 </p>
+            )}
+            {admin && stage.spatial && !onStage && !stage.muted && selfId && (
+                <button
+                    type="button"
+                    className="voice-request"
+                    onClick={() => act("stage-add", selfId)}
+                >
+                    Join voice
+                </button>
             )}
             {!admin && !onStage && !stage.muted && (
                 <button
@@ -572,7 +583,7 @@ const Panel = styled.section`
     }
     .people-content .voice-request {
         width: 100%;
-        margin-top: 4px;
+        margin: 4px 0 12px;
     }
     .people-content .person-more {
         min-width: 32px;

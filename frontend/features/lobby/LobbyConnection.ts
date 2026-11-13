@@ -140,6 +140,12 @@ export type LobbyStage = {
     requests: LobbyStagePerson[];
     /** Admins only: people muted by an admin. */
     mutedPeople: string[];
+    /**
+     * Only approved speakers talk, and only people near them hear them.
+     * Without it (the older lobby), everyone talks nearby and speakers
+     * reach the whole room.
+     */
+    spatial: boolean;
 };
 export type LobbyAdminAction =
     | "stage-add"
@@ -1210,8 +1216,22 @@ export class LobbyConnection {
                       .slice(0, 256)
                       .filter((id) => typeof id === "string")
                 : [],
+            spatial: message.spatial === true,
         };
+        const selfId = this.room?.sessionId;
+        const leftStage =
+            stage.spatial &&
+            !!selfId &&
+            this.stageSpeakers.has(selfId) &&
+            !stage.speakers.some((s) => s.sessionId === selfId);
         this.stageSpeakers = new Set(stage.speakers.map((s) => s.sessionId));
+        // Off voice, the mic goes quiet here too, not just on the server.
+        if (leftStage && this.snapshot.voiceState === "live") {
+            this.microphone?.getTracks().forEach((track) => {
+                track.enabled = false;
+            });
+            this.update({ voiceState: "muted" });
+        }
         const self = this.room && this.players.get(this.room.sessionId);
         if (self && self.role !== (role || undefined)) {
             const { role: _previous, ...rest } = self;
@@ -1769,7 +1789,7 @@ export class LobbyConnection {
 
     private updateAudioVolume() {
         this.audio.forEach((audio, id) => {
-            if (this.stageSpeakers.has(id)) {
+            if (this.stageSpeakers.has(id) && !this.snapshot.stage?.spatial) {
                 audio.volume = 1;
                 return;
             }
