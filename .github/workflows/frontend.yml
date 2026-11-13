@@ -2,50 +2,88 @@ name: Frontend checks
 # Frontend tests also import multiplayer/src and multiplayer/protocol
 # directly, so those paths count too.
 on:
-  pull_request:
-    paths: ["frontend/**", "pnpm-lock.yaml", "package.json", "pnpm-workspace.yaml", ".npmrc", "vendor/**", "multiplayer/src/**", "multiplayer/protocol/**", ".github/workflows/frontend.yml"]
-  push:
-    paths: ["frontend/**", "pnpm-lock.yaml", "package.json", "pnpm-workspace.yaml", ".npmrc", "vendor/**", "multiplayer/src/**", "multiplayer/protocol/**", ".github/workflows/frontend.yml"]
+    pull_request:
+        paths:
+            [
+                "frontend/**",
+                "pnpm-lock.yaml",
+                "package.json",
+                "pnpm-workspace.yaml",
+                ".npmrc",
+                "vendor/**",
+                "multiplayer/src/**",
+                "multiplayer/protocol/**",
+                ".github/workflows/frontend.yml",
+            ]
+    push:
+        paths:
+            [
+                "frontend/**",
+                "pnpm-lock.yaml",
+                "package.json",
+                "pnpm-workspace.yaml",
+                ".npmrc",
+                "vendor/**",
+                "multiplayer/src/**",
+                "multiplayer/protocol/**",
+                ".github/workflows/frontend.yml",
+            ]
 permissions:
-  contents: read
+    contents: read
 concurrency:
-  group: frontend-${{ github.ref }}
-  cancel-in-progress: true
+    group: frontend-${{ github.ref }}
+    cancel-in-progress: true
 jobs:
-  test:
-    name: Unit tests
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      # Version comes from "packageManager" in the root package.json.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      # One workspace install from the root, exactly as the lockfile says.
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -C frontend exec jest --ci
-      - run: pnpm -C frontend test:scripts
+    test:
+        name: Unit tests
+        runs-on: ubuntu-24.04
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@v4
+            # Version comes from "packageManager" in the root package.json.
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            # One workspace install from the root, exactly as the lockfile says.
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm -C frontend exec jest --ci
+            - run: pnpm -C frontend test:scripts
 
-  types:
-    name: Type check (no new errors)
-    # tsc needs about 10 GB of heap. Standard runners for private
-    # repositories have 7 GB; set the repository variable TYPECHECK_RUNNER
-    # to a larger runner's label (16 GB or more) if this job runs out of
-    # memory.
-    runs-on: ${{ vars.TYPECHECK_RUNNER || 'ubuntu-24.04' }}
-    timeout-minutes: 30
-    env:
-      TYPECHECK_HEAP_MB: 10240
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # Fails only on errors that are not in frontend/scripts/type-baseline.json.
-      - run: pnpm -C frontend check:types
+    browser-transport:
+        name: Browser transport (Next/SWC)
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            # Run the shipped compiler, not only Jest's Babel transform: async
+            # stream loops have regressed in SWC while the source tests passed.
+            - run: pnpm -C frontend test:lobby-swc
+
+    types:
+        name: Type check (no new errors)
+        # tsc needs about 10 GB of heap. Standard runners for private
+        # repositories have 7 GB; set the repository variable TYPECHECK_RUNNER
+        # to a larger runner's label (16 GB or more) if this job runs out of
+        # memory.
+        runs-on: ${{ vars.TYPECHECK_RUNNER || 'ubuntu-24.04' }}
+        timeout-minutes: 30
+        env:
+            TYPECHECK_HEAP_MB: 10240
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            # Fails only on errors that are not in frontend/scripts/type-baseline.json.
+            - run: pnpm -C frontend check:types

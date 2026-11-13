@@ -652,6 +652,78 @@ describe("landing lobby social lifecycle", () => {
         return original;
     };
 
+    test.each(["muted", "removed", "muted then unmuted"])(
+        "a speaker %s while microphone permission is pending cannot publish its late stream",
+        async (moderation) => {
+            useV1();
+            const connection = createConnection(identity, jest.fn());
+            await connection.connect();
+            room.deliver("lobby-stage", {
+                spatial: true,
+                speakers: [{ sessionId: "self", username: "Guest A" }],
+            });
+            const permission = deferred<MediaStream>();
+            media.mockReturnValue(permission.promise);
+            const enabling = connection.toggleVoice();
+            await flush();
+            expect(media).toHaveBeenCalledTimes(1);
+            room.deliver("lobby-stage", {
+                spatial: true,
+                speakers:
+                    moderation === "removed"
+                        ? []
+                        : [{ sessionId: "self", username: "Guest A" }],
+                muted: moderation !== "removed",
+            });
+            // A later approval permits a fresh click; it must not revive the
+            // browser permission that an admin already cancelled.
+            if (moderation === "muted then unmuted")
+                room.deliver("lobby-stage", {
+                    spatial: true,
+                    speakers: [{ sessionId: "self", username: "Guest A" }],
+                    muted: false,
+                });
+            const track = {
+                stop: jest.fn(),
+                enabled: true,
+                addEventListener: jest.fn(),
+            };
+            permission.resolve({
+                getTracks: () => [track],
+                getAudioTracks: () => [track],
+            } as any);
+            await enabling;
+            expect(track.stop).toHaveBeenCalledTimes(1);
+            expect(voice.publish).not.toHaveBeenCalled();
+            expect(connection.snapshot.voiceState).toBe("muted");
+        }
+    );
+
+    test("an admin mute during voice startup keeps listening without requesting the microphone", async () => {
+        useV1();
+        const connection = createConnection(identity, jest.fn());
+        await connection.connect();
+        room.deliver("lobby-stage", {
+            spatial: true,
+            speakers: [{ sessionId: "self", username: "Guest A" }],
+        });
+        const startup = deferred<void>();
+        voice.init.mockReturnValue(startup.promise);
+        const enabling = connection.toggleVoice();
+        await flush();
+        expect(voice.init).toHaveBeenCalledTimes(1);
+        room.deliver("lobby-stage", {
+            spatial: true,
+            speakers: [{ sessionId: "self", username: "Guest A" }],
+            muted: true,
+        });
+        startup.resolve();
+        await enabling;
+        expect(media).not.toHaveBeenCalled();
+        expect(voice.publish).not.toHaveBeenCalled();
+        expect(connection.snapshot.voiceState).toBe("muted");
+    });
+
     test.each([false, true])(
         "signed-in lobby uses a scoped proof and keeps joining if proof lookup times out (%s)",
         async (timeout) => {

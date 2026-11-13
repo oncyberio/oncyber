@@ -11,6 +11,7 @@ let root: ReturnType<typeof createRoot>;
 let frames: FrameRequestCallback[];
 let rendered: THREE.Scene | undefined;
 let getContext: jest.SpyInstance;
+let now: number;
 
 function backend() {
     const floor = () => {
@@ -53,7 +54,10 @@ async function frame(count = 1) {
         await act(async () => {
             const pending = frames;
             frames = [];
-            pending.forEach((callback) => callback(performance.now()));
+            // A refresh advances the browser clock, even when the test runs
+            // much faster than a real display (or rendering caps the rate).
+            now += 1000 / 60;
+            pending.forEach((callback) => callback(now));
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
 }
@@ -74,6 +78,8 @@ beforeEach(() => {
         .mockReturnValue(null);
     frames = [];
     rendered = undefined;
+    now = 10000;
+    jest.spyOn(performance, "now").mockImplementation(() => now);
     jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback) =>
         frames.push(callback)
     );

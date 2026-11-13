@@ -1,7 +1,15 @@
 // Run with: node --test scripts/type-ratchet.test.mjs (from frontend/)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+    copyFileSync,
+    mkdirSync,
+    mkdtempSync,
+    readFileSync,
+    rmSync,
+    writeFileSync,
+} from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -129,3 +137,93 @@ test("the committed baseline parses", () => {
         assert.ok(Number.isInteger(count) && count > 0);
     }
 });
+
+for (const { name, compilerExit, diagnostics, expectedExit } of [
+    {
+        name: "fresh diagnostics",
+        compilerExit: 2,
+        diagnostics: LOG,
+        expectedExit: 0,
+    },
+    {
+        name: "cached diagnostics",
+        compilerExit: 1,
+        diagnostics: LOG,
+        expectedExit: 0,
+    },
+    {
+        name: "new cached diagnostics",
+        compilerExit: 1,
+        diagnostics: LOG + "features/new.ts(1,1): error TS2322: new\n",
+        expectedExit: 1,
+    },
+    {
+        name: "exit 1 without diagnostics",
+        compilerExit: 1,
+        diagnostics: "",
+        expectedExit: 2,
+    },
+    {
+        name: "exit 2 without diagnostics",
+        compilerExit: 2,
+        diagnostics: "",
+        expectedExit: 2,
+    },
+    {
+        name: "unexpected compiler exit",
+        compilerExit: 3,
+        diagnostics: LOG,
+        expectedExit: 2,
+    },
+]) {
+    test(`CLI handles ${name}`, () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "type-ratchet-cli-"));
+        try {
+            const scripts = path.join(dir, "scripts");
+            const compiler = path.join(dir, "node_modules/typescript/lib");
+            mkdirSync(scripts, { recursive: true });
+            mkdirSync(compiler, { recursive: true });
+            copyFileSync(
+                new URL("./type-ratchet.mjs", import.meta.url),
+                path.join(scripts, "type-ratchet.mjs")
+            );
+            writeFileSync(path.join(dir, "package.json"), "{}");
+            writeBaseline(
+                parseTscOutput(LOG),
+                path.join(scripts, "type-baseline.json")
+            );
+            // A fake compiler isolates exit handling from the repository's
+            // known errors and the machine's incremental TypeScript cache.
+            writeFileSync(
+                path.join(compiler, "tsc.js"),
+                `process.stdout.write(${JSON.stringify(
+                    diagnostics
+                )}, () => process.exit(${compilerExit}));`
+            );
+            const result = spawnSync(
+                process.execPath,
+                [path.join(scripts, "type-ratchet.mjs")],
+                {
+                    cwd: dir,
+                    encoding: "utf8",
+                }
+            );
+            assert.equal(
+                result.status,
+                expectedExit,
+                result.stdout + result.stderr
+            );
+            if (expectedExit === 0) {
+                assert.match(result.stdout, /Type errors now: 5\./);
+                assert.doesNotMatch(result.stderr, /did not finish/);
+            } else if (expectedExit === 1) {
+                assert.match(result.stdout, /New type errors \(1\)/);
+                assert.match(result.stdout, /features\/new\.ts TS2322/);
+            } else {
+                assert.match(result.stderr, /tsc did not finish/);
+            }
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+}

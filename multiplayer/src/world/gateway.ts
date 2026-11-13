@@ -55,6 +55,7 @@ interface Connection {
     input?: InputAuthority;
     velocitySnapshots?: boolean;
     rates: Record<string, TokenBucket>;
+    signalRates: Map<number, TokenBucket>;
     strikes: number;
     slowAt: number;
     lastHeartbeat: number;
@@ -131,9 +132,7 @@ export class WorldGateway {
         if (previous?.nonce === flash?.nonce && previous?.startedAt === flash?.startedAt) return;
         // Profile replication also carries Flash across gateway workers. Only
         // observers who already own this roster entry receive the immediate event.
-        for (const c of this.sessions.values())
-            if (c.ready && (c.id === member.id || c.roster.has(member.id)))
-                this.control(c, "lobby-flash", { sessionId: member.profile.sessionId, flash });
+        for (const c of this.sessions.values()) if (c.ready && (c.id === member.id || c.roster.has(member.id))) this.control(c, "lobby-flash", { sessionId: member.profile.sessionId, flash });
     }
     remove(id: number) {
         this.members.delete(id);
@@ -161,7 +160,7 @@ export class WorldGateway {
             ["signal", 20, 40],
         ] as Array<[string, number, number]>)
             rates[name] = new TokenBucket(rate, burst, now);
-        const c: Connection = { id: r.id, sessionId, phase: this.nextPhase++ % 20, token, slot: r.slot, endpoint, person, pose, ready: false, visible: [], roster: new Map(), voice: [], voiceKey: "", stageRevision: -2, pins: [], ack: null, pendingMove: null, rates, strikes: 0, slowAt: 0, lastHeartbeat: 0, population: -1, lastRosterRevision: -1, sent: new Map(), connectedAt: now };
+        const c: Connection = { id: r.id, sessionId, phase: this.nextPhase++ % 20, token, slot: r.slot, endpoint, person, pose, ready: false, visible: [], roster: new Map(), voice: [], voiceKey: "", stageRevision: -2, pins: [], ack: null, pendingMove: null, rates, signalRates: new Map(), strikes: 0, slowAt: 0, lastHeartbeat: 0, population: -1, lastRosterRevision: -1, sent: new Map(), connectedAt: now };
         this.sessions.set(sessionId, c);
         this.shared.write(pose);
         this.member({ id: r.id, slot: r.slot, owner: r.owner, profile: r.profile, revision: 1 });
@@ -179,8 +178,8 @@ export class WorldGateway {
         this.remove(c.id);
         this.options.post({ type: "left", id: c.id, token: c.token });
     }
-    private allow(c: Connection, kind: string) {
-        if (c.rates[kind].take(Date.now())) return true;
+    private allow(c: Connection, kind: string, bucket = c.rates[kind]) {
+        if (bucket.take(Date.now())) return true;
         if (++c.strikes > 120) c.endpoint.close(4008, "Message rate exceeded");
         return false;
     }
@@ -239,16 +238,33 @@ export class WorldGateway {
         }
         if (type === "lobby-flash") {
             if (!c.ready) return;
-            if (data?.flash === null) { this.setFlash(c, null); return; }
+            if (data?.flash === null) {
+                this.setFlash(c, null);
+                return;
+            }
             if (c.groupHold || c.activeWorld) return;
-            const flash = data?.flash && typeof data.flash === "object" && !Array.isArray(data.flash)
-                ? readLobbyFlash({ ...data.flash, startedAt: Date.now() }) : null;
+            const flash = data?.flash && typeof data.flash === "object" && !Array.isArray(data.flash) ? readLobbyFlash({ ...data.flash, startedAt: Date.now() }) : null;
             if (!flash || c.person.profile.flash?.nonce === flash.nonce || !this.allow(c, "flash")) return;
             this.setFlash(c, flash);
             return;
         }
-        const rate = type === "rtc-signal" ? "signal" : type === "lobby-profile" ? "profile" : (type === "chat-channel" || type === "chat-peer" || (type === "lobby-group-action" && data?.action === "message")) ? "chat" : "request";
-        if (!this.allow(c, rate)) return;
+        const rate = type === "rtc-signal" ? "signal" : type === "lobby-profile" ? "profile" : type === "chat-channel" || type === "chat-peer" || (type === "lobby-group-action" && data?.action === "message") ? "chat" : "request";
+        let bucket = c.rates[rate];
+        if (type === "rtc-signal") {
+            const to = Number(data?.to);
+            // Approval may start up to 200 listener handshakes together.
+            // Bound each eligible peer separately; unrelated traffic keeps
+            // the original connection-wide budget.
+            if (this.mutualVoice(c.id, to)) {
+                const paired = c.signalRates.get(to);
+                if (paired) bucket = paired;
+                else if (c.signalRates.size < VOICE_PICKS + VOICE_HEARERS) {
+                    bucket = new TokenBucket(20, 40, Date.now());
+                    c.signalRates.set(to, bucket);
+                }
+            }
+        }
+        if (!this.allow(c, rate, bucket)) return;
         if (type === "lobby-ready") {
             if (c.ready) return;
             c.ready = true;
@@ -292,7 +308,10 @@ export class WorldGateway {
         } else if (type === "rtc-ready") {
             c.person.voiceReady = !c.activeWorld && data?.enabled !== false;
             Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE, Number(c.person.voiceReady));
-            if (!c.person.voiceReady) for (let i = 1; i < VOICE_STRIDE; i++) Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE + i, 0);
+            if (!c.person.voiceReady) {
+                c.signalRates.clear();
+                for (let i = 1; i < VOICE_STRIDE; i++) Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE + i, 0);
+            }
         } else if (type === "rtc-signal") {
             const to = Number(data?.to);
             if (c.activeWorld || !Number.isSafeInteger(to) || !data?.payload || !["offer", "answer", "candidate"].includes(data.payload.kind) || JSON.stringify(data.payload).length > 15000 || !this.mutualVoice(c.id, to) || !this.near(c.id, to, STAGE_VOICE_EXIT_RADIUS)) return;
@@ -356,7 +375,12 @@ export class WorldGateway {
         if (!held && c.groupHold !== travelId) return;
         this.setFlash(c, null);
         c.groupHold = held ? travelId : undefined;
-        c.groupPins = held ? peers.map(Number).filter(id => Number.isSafeInteger(id) && id > 0).slice(0, 7) : [];
+        c.groupPins = held
+            ? peers
+                  .map(Number)
+                  .filter((id) => Number.isSafeInteger(id) && id > 0)
+                  .slice(0, 7)
+            : [];
         c.pendingMove = null;
         Object.assign(c.pose, { x: pose.x, y: 0, z: pose.z, yaw: pose.rotation, vx: 0, vy: 0, vz: 0, animation: -1, floor: true, revision: c.pose.revision + 1 });
         Object.assign(c.person, { x: pose.x, y: 0, z: pose.z, yaw: pose.rotation, animation: -1, floor: true, movedAt: Date.now(), revision: c.pose.revision });
@@ -364,14 +388,16 @@ export class WorldGateway {
         else c.ack = { seq: c.person.seq, position: [pose.x, 0, pose.z, pose.rotation], animation: -1, floor: true, serverTime: Date.now(), corrected: true };
         if (!c.activeWorld) this.shared.write(c.pose);
         this.control(c, "lobby-group-position", { travelId, pose: { ...pose, y: 0 }, held, serverNow: Date.now() });
-        this.control(c, "lobby-ack", c.ack); c.ack = null;
+        this.control(c, "lobby-ack", c.ack);
+        c.ack = null;
         if (held) this.options.post({ type: "group-placed", actor: c.id, travelId });
     }
     groupPresence(id: string, active: boolean) {
         const c = this.sessions.get(id);
         if (!c?.ready) return;
         if (active) this.setFlash(c, null);
-        c.activeWorld = active; c.pendingMove = null;
+        c.activeWorld = active;
+        c.pendingMove = null;
         if (active) {
             c.person.voiceReady = false;
             this.shared.remove(c.slot, c.id);
@@ -399,9 +425,7 @@ export class WorldGateway {
             origin = this.actors.get(from);
         if (!member || !origin) return;
         const data = { sessionId: String(from), username: member.profile.username, avatar: member.profile.avatar, radius: SUMMON_RADIUS };
-        for (const c of this.sessions.values())
-            if (c.ready && c.id !== from && !c.activeWorld && !c.groupHold && Math.hypot(c.pose.x - origin.x, c.pose.z - origin.z) > SUMMON_RADIUS)
-                this.control(c, "lobby-summon", data);
+        for (const c of this.sessions.values()) if (c.ready && c.id !== from && !c.activeWorld && !c.groupHold && Math.hypot(c.pose.x - origin.x, c.pose.z - origin.z) > SUMMON_RADIUS) this.control(c, "lobby-summon", data);
     }
     /** The main thread's moderation state; every worker holds the same copy. */
     setStage(stage: StageSnapshot) {
@@ -454,6 +478,7 @@ export class WorldGateway {
     private receiveVoiceOff(c: Connection) {
         for (const id of c.voice) this.control(c, "rtc-leave", { sessionId: String(id) });
         c.voice = [];
+        c.signalRates.clear();
         c.voiceKey = "";
         this.control(c, "lobby-voice", { peers: [] });
     }
@@ -470,10 +495,12 @@ export class WorldGateway {
      * can see, so this reads every actor's pose, not the AOI.
      */
     private selectVoice(c: Connection) {
-        const peers: number[] = [], scores: number[] = [];
+        const peers: number[] = [],
+            scores: number[] = [];
         for (const id of this.speakers) {
             if (id === c.id) continue;
-            const member = this.members.get(id), pose = this.actors.get(id);
+            const member = this.members.get(id),
+                pose = this.actors.get(id);
             if (!member || !pose || !Atomics.load(this.shared.voice, member.slot * VOICE_STRIDE)) continue;
             const retained = c.voice.includes(id);
             const distance = Math.hypot(pose.x - c.pose.x, pose.z - c.pose.z);
@@ -483,7 +510,8 @@ export class WorldGateway {
         return peers;
     }
     private selectHearers(c: Connection) {
-        const peers: number[] = [], scores: number[] = [];
+        const peers: number[] = [],
+            scores: number[] = [];
         if (!this.speakers.has(c.id)) return peers;
         for (const [id, pose] of this.actors) {
             if (id === c.id || this.speakers.has(id)) continue;
@@ -498,8 +526,12 @@ export class WorldGateway {
         let at = peers.length;
         while (at > 0 && (score < scores[at - 1] || (score === scores[at - 1] && id < peers[at - 1]))) at--;
         if (at >= limit) return;
-        peers.splice(at, 0, id); scores.splice(at, 0, score);
-        if (peers.length > limit) { peers.pop(); scores.pop(); }
+        peers.splice(at, 0, id);
+        scores.splice(at, 0, score);
+        if (peers.length > limit) {
+            peers.pop();
+            scores.pop();
+        }
     }
     private picked(slot: number, id: number) {
         const row = slot * VOICE_STRIDE;
@@ -516,7 +548,8 @@ export class WorldGateway {
         return false;
     }
     private hearersOf(slot: number) {
-        const ids: number[] = [], row = slot * VOICE_STRIDE + 1 + VOICE_PICKS;
+        const ids: number[] = [],
+            row = slot * VOICE_STRIDE + 1 + VOICE_PICKS;
         for (let i = 0; i < VOICE_HEARERS; i++) {
             const id = Atomics.load(this.shared.voice, row + i);
             if (!id) break;
@@ -529,7 +562,8 @@ export class WorldGateway {
         const x = this.members.get(a),
             y = this.members.get(b);
         if (!x || !y || !Atomics.load(this.shared.voice, x.slot * VOICE_STRIDE) || !Atomics.load(this.shared.voice, y.slot * VOICE_STRIDE)) return 0;
-        const sa = this.speakers.has(a), sb = this.speakers.has(b);
+        const sa = this.speakers.has(a),
+            sb = this.speakers.has(b);
         if (sa && sb) return this.picked(x.slot, b) && this.picked(y.slot, a) ? 1 : 0;
         if (sa) return this.picked(y.slot, a) && this.hears(x.slot, b) ? 2 : 0;
         if (sb) return this.picked(x.slot, b) && this.hears(y.slot, a) ? 3 : 0;
@@ -689,7 +723,12 @@ export class WorldGateway {
             } else if (this.tick % 20 === c.phase % 20) this.roster(c);
             if (c.stageRevision !== this.stageState.revision && this.stageState.revision >= 0 && this.control(c, "lobby-stage", this.stageView(c))) c.stageRevision = this.stageState.revision;
             if ((c.person.voiceReady || c.voice.length) && this.tick % 4 === c.phase % 4) {
-                const voice: number[] = [], listenOnly: string[] = [], speakOnly: string[] = [];
+                // A shared pair can admit signaling before its local voice
+                // event is published. Prune even when that event never changes.
+                for (const id of c.signalRates.keys()) if (!this.mutualVoice(c.id, id)) c.signalRates.delete(id);
+                const voice: number[] = [],
+                    listenOnly: string[] = [],
+                    speakOnly: string[] = [];
                 // Speakers' links name them; listeners' links come from speakers' rows.
                 const candidates = this.speakers.has(c.id) ? [...this.speakers, ...this.hearersOf(c.slot)] : this.speakers;
                 for (const id of candidates) {
@@ -701,7 +740,8 @@ export class WorldGateway {
                     else if (link === 3) listenOnly.push(String(id));
                 }
                 voice.sort((a, b) => a - b);
-                listenOnly.sort(); speakOnly.sort();
+                listenOnly.sort();
+                speakOnly.sort();
                 const key = `${listenOnly.join()}|${speakOnly.join()}`;
                 if (key !== c.voiceKey || voice.length !== c.voice.length || voice.some((id, i) => id !== c.voice[i])) {
                     if (this.control(c, "lobby-voice", { peers: voice.map(String), listenOnly, speakOnly })) {
@@ -760,7 +800,7 @@ export class WorldGateway {
     stats() {
         const sorted = this.samples.slice().sort((a, b) => a - b);
         const cadence = this.intervals.slice().sort((a, b) => a - b);
-        const inputs = Array.from(this.sessions.values()).flatMap(c => c.input ? [c.input.diagnostics()] : []);
-        return { tickIntervalMs: { p50: cadence[Math.floor(cadence.length * .5)] || 0, p95: cadence[Math.floor(cadence.length * .95)] || 0, p99: cadence[Math.floor(cadence.length * .99)] || 0 }, input: { maxQueued: Math.max(0, ...inputs.map(i => i.queued)), missing: inputs.reduce((sum, i) => sum + i.missing, 0), simulated: inputs.reduce((sum, i) => sum + i.simulated, 0) }, worker: this.options.owner, networkBudget: this.networkBudget, stageMs: { ...this.stages }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], connections: this.sessions.size, ready: Array.from(this.sessions.values()).filter((c) => c.ready).length, population: this.members.size, tick: this.tick, tickMs: { p50: sorted[Math.floor(sorted.length * 0.5)] || 0, p95: sorted[Math.floor(sorted.length * 0.95)] || 0, p99: sorted[Math.floor(sorted.length * 0.99)] || 0 }, sentBytes: this.bytesOut, receivedBytes: this.bytesIn, droppedSnapshots: this.drops, corrections: this.corrections, aoiMax: Math.max(0, ...Array.from(this.sessions.values(), (c) => c.visible.length)), voiceMax: Math.max(0, ...Array.from(this.sessions.values(), (c) => c.voice.length)), candidateVisits: this.candidateVisits };
+        const inputs = Array.from(this.sessions.values()).flatMap((c) => (c.input ? [c.input.diagnostics()] : []));
+        return { tickIntervalMs: { p50: cadence[Math.floor(cadence.length * 0.5)] || 0, p95: cadence[Math.floor(cadence.length * 0.95)] || 0, p99: cadence[Math.floor(cadence.length * 0.99)] || 0 }, input: { maxQueued: Math.max(0, ...inputs.map((i) => i.queued)), missing: inputs.reduce((sum, i) => sum + i.missing, 0), simulated: inputs.reduce((sum, i) => sum + i.simulated, 0) }, worker: this.options.owner, networkBudget: this.networkBudget, stageMs: { ...this.stages }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], connections: this.sessions.size, ready: Array.from(this.sessions.values()).filter((c) => c.ready).length, population: this.members.size, tick: this.tick, tickMs: { p50: sorted[Math.floor(sorted.length * 0.5)] || 0, p95: sorted[Math.floor(sorted.length * 0.95)] || 0, p99: sorted[Math.floor(sorted.length * 0.99)] || 0 }, sentBytes: this.bytesOut, receivedBytes: this.bytesIn, droppedSnapshots: this.drops, corrections: this.corrections, aoiMax: Math.max(0, ...Array.from(this.sessions.values(), (c) => c.visible.length)), voiceMax: Math.max(0, ...Array.from(this.sessions.values(), (c) => c.voice.length)), candidateVisits: this.candidateVisits };
     }
 }
