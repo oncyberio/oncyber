@@ -1,6 +1,7 @@
 # Shared lobby world, protocol v2
 
-This service makes one logical room span multiple CPU workers. Every worker can
+This is the lobby's new multiplayer server, being built now. It replaces the
+protocol-v1 crowd lobby. It makes one logical room span multiple CPU workers. Every worker can
 see actors owned by every other worker; joining a different gateway does not put
 someone in a separate overflow room. The existing protocol-v1 lobby and gallery
 multiplayer remain available independently.
@@ -132,9 +133,11 @@ packet sizes, message rates, pending joins and slow receivers are constrained.
 Guest names and profiles are not verified account identities. A production
 account/session verifier still belongs at the join boundary.
 
-Chat is proximity-limited and routed across worker ownership. Voice remains
-bounded proximity WebRTC, with at most eight mutual peers. No SFU is deployed by
-this change. A successful movement/socket test does not establish microphone,
+Chat is proximity-limited and routed across worker ownership. Voice is
+peer-to-peer WebRTC with a stage that lives on the main thread
+(`src/world/stage.ts`), so every worker shares one answer: people ask to speak
+and an admin approves, up to eight speakers at once. A speaker is heard within
+120 m (dropped beyond 150 m) by up to 200 listeners. No SFU is deployed. A successful movement/socket test does not establish microphone,
 TURN, SFU or large-audience audio capacity.
 
 ## Local operation

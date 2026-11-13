@@ -1,8 +1,10 @@
 # Multiplayer
 
-Oncyber's realtime services, built on [Colyseus](https://docs.colyseus.io/):
-the protocol-v1 crowd lobby, the protocol-v2 shared world over WebTransport,
-gallery rooms (`CyberRoom`), voice signaling relay and TURN credentials.
+Oncyber's realtime services. The lobby is moving to the protocol-v2 shared
+world server (`src/world/`, being built now; deployed with `fly.world.toml`).
+The package also holds the protocol-v1 crowd lobby it replaces, the
+[Colyseus](https://docs.colyseus.io/) gallery rooms (`CyberRoom`) that spaces
+join, voice signaling relay and TURN credentials.
 This package is not part of the root pnpm workspace; install it on its own
 with Node 22:
 

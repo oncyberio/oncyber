@@ -31,7 +31,7 @@ All of it is open source. You can run it, read it and make it better.
 | `frontend/features/lobby/`           | The shared lobby: scene, dock, chat, travel                     |
 | `frontend/components/_3DExhibit-v2/` | Scene runtime on three.js `WebGPURenderer`                      |
 | `frontend/features/content-host/`    | Hosts external experiences in a sandboxed frame                 |
-| `multiplayer/`                       | Colyseus rooms, lobby services, voice signalling                |
+| `multiplayer/`                       | Lobby world server, rooms for spaces, voice signalling          |
 | `cloud-functions/`                   | Firebase functions: 3D asset optimization, uploads              |
 
 Coding agents can read a plain-text index at [/llms.txt](/llms.txt).

@@ -16,7 +16,7 @@ avatar, friends and voice as they travel between spaces.
 | Path                            | What it is                                                                                     | Install with                  |
 | ------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------- |
 | `frontend/`                     | Next.js 15 app (React 18): pages, API routes, the lobby and the 3D engine                      | root `pnpm install`           |
-| `multiplayer/`                  | Colyseus rooms and the shared-world service: presence, chat, voice signaling, TURN credentials | `npm --prefix multiplayer ci` |
+| `multiplayer/`                  | The new lobby world server, Colyseus rooms for spaces, voice signaling, TURN credentials       | `npm --prefix multiplayer ci` |
 | `cloud-functions/functions/`    | Firebase functions: 3D asset and avatar optimization, IPFS uploads                             | its own `npm ci`              |
 | `cloud-functions/artist-index/` | Firebase functions: artist search index                                                        | its own `npm ci`              |
 | `scripts/`                      | Maintenance and content tools (gallery CDN, museum media, world CLI)                           | per script                    |

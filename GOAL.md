@@ -37,10 +37,11 @@ travel.
 -   **The 3D engine** (`components/_3DExhibit-v2/`) is three.js `WebGPURenderer`
     with TSL materials, so the same code runs on WebGPU and the WebGL2 fallback.
     The lobby and every native space render with it.
--   **`multiplayer/`** is a separate realtime service: the shared world server
-    the lobby runs on (WebTransport, with a WebSocket fallback), the Colyseus
-    rooms spaces join, voice signaling and TURN credentials. Presence, chat,
-    party travel and admin-approved voice live there.
+-   **`multiplayer/`** is a separate realtime service. The lobby is moving to a
+    new shared world server (`multiplayer/src/world/`, being built now): one
+    room spread over several CPU workers, WebTransport with a WebSocket
+    fallback, and presence, chat, party travel and admin-approved voice. Spaces
+    join Colyseus rooms in the same package.
 -   **The content host** (`features/content-host/`) runs a world in a sandboxed
     frame that never touches the wallet or the account; it asks the Oncyber
     page, and the page decides.

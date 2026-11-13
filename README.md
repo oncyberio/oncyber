@@ -11,7 +11,7 @@ the multiplayer services, Firebase functions and asset-processing tools.
 | Directory                       | Purpose                                                            | Dependency installation    |
 | ------------------------------- | ------------------------------------------------------------------ | -------------------------- |
 | `frontend/`                     | Next.js application, API routes, shared lobby and 3D scene runtime | Root pnpm workspace        |
-| `multiplayer/`                  | Colyseus rooms, lobby/world services, voice signaling              | Separate npm package       |
+| `multiplayer/`                  | Lobby world server, Colyseus rooms for spaces, voice signaling     | Separate npm package       |
 | `cloud-functions/functions/`    | Firebase asset optimization and upload functions                   | Separate npm package       |
 | `cloud-functions/artist-index/` | Firebase artist indexing functions                                 | Separate npm package       |
 | `tasks/`                        | Standalone asset-processing and migration tools                    | Per-tool packages          |
@@ -47,15 +47,17 @@ has a table of which feature needs which service, and
 [frontend setup](frontend/README.md) covers the details. Nothing falls back to
 Oncyber's own accounts.
 
-For multiplayer, install independently:
+The lobby is moving to a new shared world server in `multiplayer/`, being
+built now. To run it on its own:
 
 ```sh
 npm --prefix multiplayer ci
-npm --prefix multiplayer run lobby:dev
+npm --prefix multiplayer run build
+npm --prefix multiplayer run lobby:world:serve
 ```
 
-The local crowd-lobby entry binds to `127.0.0.1:2568`. Its frontend connection
-configuration and other server modes are documented in
+It listens on `127.0.0.1:2575`. How to point the app at it, and the older
+crowd lobby that `pnpm dev:local` still starts, are in
 [multiplayer/README.md](multiplayer/README.md) and
 [the shared-world guide](docs/lobby-world-v2.md).
 
