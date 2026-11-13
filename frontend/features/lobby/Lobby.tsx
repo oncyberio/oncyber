@@ -783,7 +783,10 @@ export default function Lobby({
                 return;
             }
             if (event.key === "Enter") {
-                if (target?.closest("button,a")) return;
+                // Enter is for the chat. A button left focused by a click
+                // (people, emotes, ...) must not open its panel again.
+                const focused = target?.closest("button,a");
+                if (focused instanceof HTMLElement) focused.blur();
                 event.preventDefault();
                 if (journey.phase === "ready" && !participatingTravel)
                     journey.enter();
