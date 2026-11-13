@@ -5,6 +5,7 @@ import LobbyChat, { ConversationSocial } from "@features/lobby/LobbyChat";
 import LobbyConversationSurface from "@features/lobby/LobbyConversationSurface";
 import LobbyPeoplePanel from "@features/lobby/LobbyPeoplePanel";
 import LobbyVoiceRequests from "@features/lobby/LobbyVoiceRequests";
+import LobbySummonNotice from "@features/lobby/LobbySummonNotice";
 import type {
     LobbyAdminAction,
     LobbyStage,
@@ -34,7 +35,7 @@ const person = (id: string): LobbyStagePerson => ({
 export default function LobbyVoicePreview() {
     const [stage, setStage] = useState<LobbyStage>({
         speakers: [],
-        limit: 5,
+        limit: 8,
         role: "owner",
         muted: false,
         requested: false,
@@ -44,6 +45,12 @@ export default function LobbyVoicePreview() {
     });
     const [open, setOpen] = useState(false);
     const [people, setPeople] = useState(true);
+    const [summon, setSummon] = useState(() => ({
+        sessionId: "3",
+        name: "Kenji",
+        avatar: "",
+        receivedAt: Date.now(),
+    }));
     const inputRef = useRef<HTMLInputElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const onAdmin = async (action: LobbyAdminAction, id: string) => {
@@ -85,11 +92,27 @@ export default function LobbyVoicePreview() {
                     buttonRef={buttonRef}
                     hidden={false}
                     notices={
-                        <LobbyVoiceRequests
-                            stage={stage}
-                            onAdmin={onAdmin}
-                            onShowAll={() => setPeople(true)}
-                        />
+                        <>
+                            <LobbySummonNotice
+                                summon={summon}
+                                onGo={() =>
+                                    // The preview loops the countdown.
+                                    setSummon(
+                                        (value) =>
+                                            value && {
+                                                ...value,
+                                                receivedAt: Date.now(),
+                                            }
+                                    )
+                                }
+                                onStay={() => setSummon(null)}
+                            />
+                            <LobbyVoiceRequests
+                                stage={stage}
+                                onAdmin={onAdmin}
+                                onShowAll={() => setPeople(true)}
+                            />
+                        </>
                     }
                 />
             </LobbyConversationSurface>
@@ -99,6 +122,8 @@ export default function LobbyVoicePreview() {
                     population={PEOPLE.length}
                     status="connected"
                     onClose={() => setPeople(false)}
+                    onGoTo={() => {}}
+                    onSummonAll={() => {}}
                     voice={{
                         stage,
                         voiceState: "off",

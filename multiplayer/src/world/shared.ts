@@ -2,11 +2,12 @@
 export const STRIDE = 11;
 export const FLAGS = 4;
 /**
- * Voice row per slot: [ready, 8 proximity picks, up to 50 listeners]. The
+ * Voice row per slot: [ready, 8 speaker picks, up to 200 listeners]. The
  * listener tail is written only by speakers and names who they send to.
+ * 200 matches the room size of spaces on oncyber.io, which cap no listeners.
  */
 export const VOICE_PICKS = 8;
-export const VOICE_HEARERS = 50;
+export const VOICE_HEARERS = 200;
 export const VOICE_STRIDE = 1 + VOICE_PICKS + VOICE_HEARERS;
 export interface SharedWorldData {
     capacity: number;

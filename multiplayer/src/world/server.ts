@@ -126,6 +126,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
         for (const i of live) workers[i].postMessage(message);
     };
     const stage = new StageAuthority();
+    const summoned = new Map<number, number>();
     let stageSent = -1;
     const publishStage = () => {
         if (stage.revision === stageSent) return;
@@ -141,6 +142,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
         departed.set(seat.token, { identity: seat.identity, at: Date.now() });
         loads[seat.owner]--;
         stage.leave(id);
+        summoned.delete(id);
         publishStage();
         state.remove(seat.slot, id);
         free.push(seat.slot);
@@ -179,8 +181,6 @@ export async function createWorldServer(options: WorldOptions = {}) {
                         updateBudget();
                         metadataRevision++;
                         broadcast({ type: "member", member });
-                        stage.join(seat.id, seat.identity, seat.verified, seat.claim);
-                        publishStage();
                     } else if (["group-ready", "group-action", "group-placed"].includes(message.type)) {
                         const seat = seats.get(message.actor);
                         if (!seat?.active || seat.owner !== owner) return;
@@ -194,6 +194,13 @@ export async function createWorldServer(options: WorldOptions = {}) {
                         if (!seat?.active || seat.owner !== owner || !data) return;
                         if (data.kind === "request") stage.request(seat.id, data.cancel === true);
                         else if (data.kind === "leave") stage.leaveStage(seat.id);
+                        else if (data.kind === "summon") {
+                            // One summon per admin every 10 s, so nobody's screen fills with them.
+                            if (stage.role(seat.id) && Date.now() - (summoned.get(seat.id) || 0) > 10000) {
+                                summoned.set(seat.id, Date.now());
+                                broadcast({ type: "summon", from: seat.id });
+                            }
+                        }
                         else if (data.kind === "admin") {
                             const outcome = stage.admin(seat.id, data.action, Number(data.sessionId));
                             worker.postMessage({ type: "stage-result", id: seat.id, data: { action: data.action, sessionId: data.sessionId, ok: outcome.ok, error: outcome.error || "" } });
@@ -449,6 +456,10 @@ export async function createWorldServer(options: WorldOptions = {}) {
         seats.set(id, { ...reservation, active: false, identity, verified: !!partyIdentity, claim: claims?.role });
         tokens.set(token, id);
         loads[owner]++;
+        // Join moderation before the worker hears of the seat, so every
+        // snapshot it receives after the reservation already carries the role.
+        stage.join(id, identity, !!partyIdentity, claims?.role);
+        publishStage();
         workers[owner].postMessage({ type: "reserve", reservation });
         const advertisedHost = options.publicHost || bind,
             host = advertisedHost.includes(":") && !advertisedHost.startsWith("[") ? `[${advertisedHost}]` : advertisedHost,

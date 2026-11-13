@@ -3,12 +3,18 @@
  * every gateway worker sees one answer. Nobody speaks until an admin puts
  * them on voice; speakers are still heard only by the people near them.
  */
-import { STAGE_SPEAKER_LIMIT } from "../rooms/crowd/protocol";
 
 export type StageRole = "owner" | "admin";
 export const STAGE_ACTIONS = ["stage-add", "stage-remove", "mute", "unmute", "kick", "decline-request", "grant-admin", "revoke-admin"] as const;
 export type StageAction = (typeof STAGE_ACTIONS)[number];
 export const STAGE_KICK_BAN_MS = 15 * 60 * 1000;
+/**
+ * Matches voice in spaces on oncyber.io: 8 open mics, heard by everyone
+ * within 2x the default voice range of 60 (120 m), kept until 2.5x (150 m).
+ */
+export const STAGE_SPEAKER_LIMIT = 8;
+export const STAGE_VOICE_RADIUS = 120;
+export const STAGE_VOICE_EXIT_RADIUS = 150;
 const REQUEST_LIMIT = 64;
 
 interface Seat {

@@ -20,6 +20,10 @@ async function fixture(count: number, { speakers = [] as number[], limit = 5 } =
             stage.leave(message.id);
             for (const gateway of gateways) gateway.remove(message.id);
         }
+        if (message.type === "stage-action" && message.data.kind === "summon") {
+            if (stage.role(message.actor)) for (const gateway of gateways) gateway.summon(message.actor);
+            return;
+        }
         if (message.type === "profile")
             for (const gateway of gateways) gateway.member(message.member);
         if (message.type === "stage-action") {
@@ -81,16 +85,16 @@ async function fixture(count: number, { speakers = [] as number[], limit = 5 } =
 }
 
 describe("shared-world voice selection", () => {
-    it("retains a cross-worker pair through 12m jitter, gates signaling, and tears down on mute/disconnect", async () => {
+    it("retains a cross-worker pair through 120-150 m jitter, gates signaling, and tears down on mute/disconnect", async () => {
         const f = await fixture(2, { speakers: [1, 2] });
         try {
-            f.move(2, 13); f.advance();
+            f.move(2, 121); f.advance();
             assert.deepStrictEqual(f.connection(1).voice, []);
-            f.move(2, 11.9); f.advance();
+            f.move(2, 119); f.advance();
             assert.deepStrictEqual(f.connection(1).voice, [2]);
             const changes = () => f.events.get(1)!.filter((event) => ["rtc-join", "rtc-leave", "lobby-voice"].includes(event.type)).length;
             const initialChanges = changes();
-            for (const x of [12.1, 11.9, 13.9, 12.2]) {
+            for (const x of [121, 119, 149, 122]) {
                 f.move(2, x); f.advance();
                 assert.deepStrictEqual(f.connection(1).voice, [2]);
             }
@@ -98,12 +102,12 @@ describe("shared-world voice selection", () => {
             const signals = () => f.events.get(2)!.filter((event) => event.type === "rtc-signal").length;
             const signal = () => f.send(1, "rtc-signal", { to: "2", payload: { kind: "candidate", candidate: "test" } });
             signal(); assert.equal(signals(), 1);
-            f.move(2, 14.1); f.advance();
+            f.move(2, 151); f.advance();
             assert.deepStrictEqual(f.connection(1).voice, []);
             signal(); assert.equal(signals(), 1);
-            f.move(2, 13); f.advance();
+            f.move(2, 121); f.advance();
             assert.deepStrictEqual(f.connection(1).voice, []);
-            f.move(2, 11.9); f.advance();
+            f.move(2, 119); f.advance();
             f.send(2, "rtc-ready", { enabled: false }); f.advance();
             assert.deepStrictEqual(f.connection(1).voice, []);
             signal(); assert.equal(signals(), 1);
@@ -130,7 +134,7 @@ describe("shared-world voice selection", () => {
             assert.equal(f.connection(1).visible[0], newcomer, "the visual pin actually changed visual order");
             assert.deepStrictEqual(f.connection(1).voice, initial);
             assert.equal(count(), initialCount, "visual ordering must not churn audio subscriptions");
-            f.move(initial[0], 20); f.advance();
+            f.move(initial[0], 200); f.advance();
             assert(!f.connection(1).voice.includes(initial[0]));
             assert(f.connection(1).voice.includes(newcomer));
         } finally { f.stop(); }
@@ -161,8 +165,10 @@ describe("shared-world voice selection", () => {
             const signals = () => f.events.get(4)!.filter((event) => event.type === "rtc-signal").length;
             f.send(3, "rtc-signal", { to: "4", payload: { kind: "candidate", candidate: "x" } });
             assert.equal(signals(), 0, "two listeners can't signal each other");
-            // Spatial: far away, the speaker isn't heard.
-            f.move(4, 30); f.advance();
+            // Like spaces: heard well beyond the visible crowd, but not past 150 m.
+            f.move(4, 100); f.advance();
+            assert.deepStrictEqual(f.connection(4).voice, [2]);
+            f.move(4, 200); f.advance();
             assert.deepStrictEqual(f.connection(4).voice, []);
             assert(!f.connection(2).voice.includes(4));
             // Removing the speaker ends every link.
@@ -203,6 +209,25 @@ describe("shared-world voice selection", () => {
             assert.equal(f.last(2, "lobby-admin-result").ok, true);
             f.send(2, "lobby-admin", { action: "mute", sessionId: "1" });
             assert.equal(f.last(2, "lobby-admin-result").ok, false, "admins can't moderate the main admin");
+        } finally { f.stop(); }
+    });
+
+    it("goes to someone, and lets an admin bring everyone further than 10 m", async () => {
+        const f = await fixture(4);
+        try {
+            f.move(2, 40); f.move(3, 5); f.move(4, -30); f.advance();
+            f.send(4, "lobby-teleport", { sessionId: "2" });
+            const near = (a: number, b: number) => Math.hypot(f.connection(a).pose.x - f.connection(b).pose.x, f.connection(a).pose.z - f.connection(b).pose.z);
+            assert(Math.abs(near(4, 2) - 2) < 1e-6, "lands 2 m from them");
+            assert.equal(f.last(4, "lobby-group-position").travelId, "teleport");
+            f.advance();
+            f.send(3, "lobby-summon", {});
+            assert(!f.events.get(2)!.some((e) => e.type === "lobby-summon"), "only admins summon");
+            f.send(1, "lobby-summon", {});
+            assert.equal(f.last(2, "lobby-summon").sessionId, "1");
+            assert.equal(f.last(3, "lobby-summon"), undefined, "already within 10 m");
+            f.send(2, "lobby-teleport", { sessionId: "1", radius: 10 });
+            assert(Math.abs(near(2, 1) - 10) < 1e-6);
         } finally { f.stop(); }
     });
 });

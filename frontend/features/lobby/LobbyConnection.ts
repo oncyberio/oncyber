@@ -33,6 +33,7 @@ import {
 } from "./LobbyVoiceSignaling";
 import ColyseusChatProvider from "@utils/chat/ColyseusChatProvider";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
+import { LOBBY_MIC_BITRATE } from "@utils/voiceChat/sdp";
 
 // A dedicated CyberRoom: matchmaking, presence, chat and voice all share it.
 export const LOBBY_ROOM = "oncyber-lobby-v1";
@@ -147,6 +148,27 @@ export type LobbyStage = {
      */
     spatial: boolean;
 };
+export type LobbySummon = {
+    sessionId: string;
+    name: string;
+    avatar: string;
+    receivedAt: number;
+};
+/**
+ * Voice volume as in spaces on oncyber.io: full up to 60 x 1.84 m, then
+ * inverse distance. Someone too far to be drawn is at least that far away.
+ */
+const SPACE_VOICE_REFERENCE = 60 * 1.84;
+export function spaceVoiceVolume(
+    player: { x: number; z: number } | undefined,
+    pose: { x: number; z: number }
+) {
+    if (!player) return 0.8;
+    const distance = Math.hypot(player.x - pose.x, player.z - pose.z);
+    return distance <= SPACE_VOICE_REFERENCE
+        ? 1
+        : SPACE_VOICE_REFERENCE / distance;
+}
 export type LobbyAdminAction =
     | "stage-add"
     | "stage-remove"
@@ -169,6 +191,8 @@ export type LobbySnapshot = {
     voiceError: string;
     /** Absent on servers without lobby voice moderation. */
     stage: LobbyStage | null;
+    /** An admin asked everyone to come to them. */
+    summon: LobbySummon | null;
     population?: number;
     groups: LobbyGroup[];
     invitations: LobbyGroupInvitation[];
@@ -195,6 +219,7 @@ export const initialLobbySnapshot = (): LobbySnapshot => ({
     voiceState: "off",
     voiceError: "",
     stage: null,
+    summon: null,
     groups: [],
     invitations: [],
     groupMessages: [],
@@ -764,6 +789,7 @@ export class LobbyConnection {
                         room.onMessage("lobby-pong", this.receivePong),
                         room.onMessage("lobby-voice", this.receiveVoice),
                         room.onMessage("lobby-stage", this.receiveStage),
+                        room.onMessage("lobby-summon", this.receiveSummon),
                         room.onMessage(
                             "lobby-admin-result",
                             this.receiveAdminResult
@@ -1285,6 +1311,38 @@ export class LobbyConnection {
             this.room.send("lobby-admin", { action, sessionId });
         });
     };
+    private receiveSummon = (message: any) => {
+        if (
+            typeof message?.sessionId !== "string" ||
+            message.sessionId.length > 128 ||
+            message.sessionId === this.room?.sessionId
+        )
+            return;
+        this.update({
+            summon: {
+                sessionId: message.sessionId,
+                name: readName(message.username),
+                avatar: avatarUrl(message.avatar),
+                receivedAt: Date.now(),
+            },
+        });
+    };
+    /** Go to someone; `summoned` answers an admin's "bring everyone here". */
+    teleportTo = (sessionId: string, summoned = false) => {
+        if (!this.room || this.snapshot.status !== "connected") return;
+        this.room.send("lobby-teleport", {
+            sessionId,
+            ...(summoned ? { radius: 10 } : {}),
+        });
+        if (summoned || this.snapshot.summon?.sessionId === sessionId)
+            this.update({ summon: null });
+    };
+    dismissSummon = () => this.update({ summon: null });
+    /** Admins: ask everyone further than 10 m to come here. */
+    summonAll = () => {
+        if (this.room && this.snapshot.stage?.role)
+            this.room.send("lobby-summon", {});
+    };
     requestVoice = (cancel = false) => {
         if (this.room && this.snapshot.stage)
             this.room.send("lobby-voice-request", { cancel });
@@ -1788,8 +1846,16 @@ export class LobbyConnection {
     };
 
     private updateAudioVolume() {
+        const spatial = !!this.snapshot.stage?.spatial;
         this.audio.forEach((audio, id) => {
-            if (this.stageSpeakers.has(id) && !this.snapshot.stage?.spatial) {
+            if (spatial) {
+                audio.volume = spaceVoiceVolume(
+                    this.players.get(id),
+                    this.pose
+                );
+                return;
+            }
+            if (this.stageSpeakers.has(id)) {
                 audio.volume = 1;
                 return;
             }
@@ -1846,7 +1912,11 @@ export class LobbyConnection {
                 if (!current()) return;
                 // The engine's facade uses a singleton; own this instance so
                 // a late permission result cannot disturb the next experience.
-                const voice = new WebRTCClient();
+                const voice = new WebRTCClient(
+                    this.protocol === "v2"
+                        ? { micBitrate: LOBBY_MIC_BITRATE }
+                        : {}
+                );
                 this.voice = voice;
                 voice.micAllowed = (id) => !this.listenOnly.has(id);
                 voice.on("user-published", (user, stream, channel) => {
@@ -2006,7 +2076,7 @@ export class LobbyConnection {
             pending.resolve("The lobby connection changed.");
         }
         this.adminRequests.clear();
-        this.update({ stage: null });
+        this.update({ stage: null, summon: null });
         this.players.clear();
         this.motion.clear();
         this.legacyClock.reset();

@@ -211,6 +211,16 @@ export default function useLobbySocial({
         []
     );
     const leaveStage = useCallback(() => connection.current?.leaveStage(), []);
+    const teleportTo = useCallback(
+        (sessionId: string, summoned?: boolean) =>
+            connection.current?.teleportTo(sessionId, summoned),
+        []
+    );
+    const dismissSummon = useCallback(
+        () => connection.current?.dismissSummon(),
+        []
+    );
+    const summonAll = useCallback(() => connection.current?.summonAll(), []);
     const leave = useCallback(async () => {
         flashRef.current = null;
         const client = connection.current;
@@ -267,6 +277,9 @@ export default function useLobbySocial({
         adminAction,
         requestVoice,
         leaveStage,
+        teleportTo,
+        dismissSummon,
+        summonAll,
         leave,
         retry,
     };

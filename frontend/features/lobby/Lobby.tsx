@@ -42,6 +42,7 @@ import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
 import LobbyVoiceRequests from "./LobbyVoiceRequests";
+import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
 import LobbyDockIcon from "./LobbyDockIcon";
@@ -1403,6 +1404,16 @@ export default function Lobby({
                                 onAdmin: social.adminAction,
                             }
                         }
+                        onGoTo={
+                            social.protocol === "v2"
+                                ? (id) => social.teleportTo(id)
+                                : undefined
+                        }
+                        onSummonAll={
+                            social.protocol === "v2"
+                                ? social.summonAll
+                                : undefined
+                        }
                     >
                         {authenticated && !isAnonymous && (
                             <PartyPanel
@@ -1620,6 +1631,11 @@ export default function Lobby({
                     }
                     notices={
                         <>
+                            <LobbySummonNotice
+                                summon={social.summon}
+                                onGo={(id) => social.teleportTo(id, true)}
+                                onStay={social.dismissSummon}
+                            />
                             <LobbyVoiceRequests
                                 stage={social.stage}
                                 onAdmin={social.adminAction}
