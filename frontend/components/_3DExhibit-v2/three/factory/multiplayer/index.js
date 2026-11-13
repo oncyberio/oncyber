@@ -1163,7 +1163,14 @@ class Multiplayer extends Group {
 
             const now = performance.now()
 
-            if (now - (this.lastRealPacketAt || 0) > 1000 && now - (this.lastRecordingTick || 0) > 200) {
+            // Between patches while friends are still arriving, and always
+            // without a room.
+            const arriving = this.recordingPartyCache && this.recordingArrivalStart > -Infinity
+                && (now - this.recordingArrivalStart) / 1000 < Math.max(...this.recordingPartyCache.map((friend) => friend.arriveAt)) + 0.5
+
+            const quiet = now - (this.lastRealPacketAt || 0) > 1000
+
+            if ((quiet || arriving || !this.recordingPartyCache) && now - (this.lastRecordingTick || 0) > (arriving ? 100 : 200)) {
 
                 this.lastRecordingTick = now
 
@@ -1607,11 +1614,20 @@ class Multiplayer extends Group {
 
         if (this.recordingParty) {
 
-            if (!opts.recordingTick) this.lastRealPacketAt = performance.now()
-
             const players = []
 
-            opts.packet?.players?.forEach?.((player) => players.push(player))
+            if (!opts.recordingTick) {
+
+                this.lastRealPacketAt = performance.now()
+
+                this.lastRealPlayers = []
+
+                opts.packet?.players?.forEach?.((player) => this.lastRealPlayers.push(player))
+            }
+
+            // A tick between patches repeats the room's last players, so
+            // they stay while friends arrive.
+            players.push(...(this.lastRealPlayers || []))
 
             const friends = this.recordingPartyEntries()
 
