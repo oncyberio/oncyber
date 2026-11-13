@@ -66,8 +66,7 @@ const SpaceInfoSidebar = dynamic(
 
 /** Shown as a toast, and said once to screen readers, when the visitor's own
  * avatar file fails and the scene shows the default avatar instead. */
-const AVATAR_FALLBACK_NOTICE =
-    "Couldn’t load your avatar. Using the default.";
+const AVATAR_FALLBACK_NOTICE = "Couldn’t load your avatar. Using the default.";
 
 function NativeIcon({ name, size = 20 }: { name: string; size?: number }) {
     return (
@@ -518,13 +517,18 @@ export default function Lobby({
     // What people just said, shown over their heads in place of their name
     // tags. The scene fades each line out on its own.
     const speech = useMemo(() => {
-        const lines = activeSpeech(social.messages);
+        // Party messages only reach the party's members, so their lines
+        // show above the speaker for the party and nobody else.
+        const lines = activeSpeech([
+            ...social.messages,
+            ...(social.groupMessages || []),
+        ]);
         if (social.sessionId && lines[social.sessionId]) {
             lines.self = lines[social.sessionId];
             delete lines[social.sessionId];
         }
         return lines;
-    }, [social.messages, social.sessionId]);
+    }, [social.messages, social.groupMessages, social.sessionId]);
     const party = useLobbyTravelParty({
         enabled: authenticated && !isAnonymous,
         players: social.players,
@@ -728,20 +732,13 @@ export default function Lobby({
         );
         socialElement.current?.toggleAttribute(
             "inert",
-            !!groupModal || flashOpen || peopleOpen
+            !!groupModal || flashOpen
         );
         journey.frameRef.current?.toggleAttribute(
             "inert",
             !entered || !!groupModal
         );
-    }, [
-        entered,
-        travelling,
-        journey.frameUrl,
-        groupModal,
-        flashOpen,
-        peopleOpen,
-    ]);
+    }, [entered, travelling, journey.frameUrl, groupModal, flashOpen]);
     useEffect(() => {
         if (!entered) return;
         setPortal(null);
@@ -1517,12 +1514,12 @@ export default function Lobby({
                 ref={socialElement}
                 data-search={exploreOpen || undefined}
                 data-entered={away || undefined}
+                data-people={peopleOpen || undefined}
                 data-collapsed={(away && !destinationGroupsOpen) || undefined}
                 data-hidden={
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1530,7 +1527,6 @@ export default function Lobby({
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1576,13 +1572,6 @@ export default function Lobby({
                                   onCreate: () => setGroupModal({}),
                                   onManage: (id) =>
                                       setGroupModal({ groupId: id }),
-                                  canExplore: !travelling,
-                                  onExplore: (id) => {
-                                      if (travelling) return;
-                                      selectGroup(id);
-                                      openExplore();
-                                      if (entered) journey.cancel();
-                                  },
                                   sendMessage: async (groupId, text) => {
                                       await social.groupAction({
                                           action: "message",

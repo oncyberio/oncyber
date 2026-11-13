@@ -742,9 +742,7 @@ test("loading with an immediate departure keeps the renderer active, locks input
     expect(surface.hasAttribute("data-travelling")).toBe(true);
     expect(surface.hasAttribute("inert")).toBe(true);
     expect(container.querySelector("iframe")).toBeNull();
-    expect(
-        container.querySelector('[aria-label="Selected world"]')
-    ).toBeNull();
+    expect(container.querySelector('[aria-label="Selected world"]')).toBeNull();
     expect(container.querySelector("button.enter")).toBeNull();
     const controls = container.querySelector(
         '[aria-label="Travelling to your world"]'
@@ -838,8 +836,6 @@ test("a selected group retains its conversation, draft and focus throughout trav
         expect(useLobbyTravelParty).toHaveBeenLastCalledWith(
             expect.objectContaining({ enabled: true, identityKey: "account" })
         );
-        if (phase !== "entered" && phase !== "idle")
-            expect(button("Travel with Moon club").disabled).toBe(true);
         if (phase === "revealing")
             expect(useLobbySocial).toHaveBeenLastCalledWith(
                 expect.objectContaining({
