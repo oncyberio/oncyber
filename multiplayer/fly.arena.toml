@@ -14,6 +14,8 @@ kill_timeout = "15s"
   dockerfile = "Dockerfile"
 
 [env]
+  # The VM ran with 200; unset, rooms get maxPlayers NaN.
+  MAX_PLAYERS = "200"
   NODE_ENV = "production"
   # Password worlds and moderator checks call the new site's API.
   ONCYBER_API_URL = "https://oncyber-two.vercel.app/api"
