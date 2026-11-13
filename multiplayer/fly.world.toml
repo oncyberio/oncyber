@@ -24,7 +24,7 @@ kill_timeout = "15s"
   LOBBY_WORLD_TLS_DIR = "/data/tls"
   LOBBY_WORLD_WT_BIND = "fly-global-services"
   LOBBY_WORLD_WT_BASE = "2590"
-  LOBBY_WORLD_ORIGINS = "http://localhost:13000,http://127.0.0.1:13000,http://localhost:13070,http://127.0.0.1:13070,https://oncyber.io,https://www.oncyber.io,https://oncyber-two.vercel.app,https://oncyber-git-claude-fly-lobby-oncyber.vercel.app"
+  LOBBY_WORLD_ORIGINS = "http://localhost:13000,http://127.0.0.1:13000,http://localhost:13070,http://127.0.0.1:13070,https://oncyber.io,https://www.oncyber.io,https://oncyber-two.vercel.app,https://oncyber-oncyber.vercel.app,https://oncyber-git-main-oncyber.vercel.app,https://oncyber-git-claude-fly-lobby-oncyber.vercel.app"
 
 [http_service]
   internal_port = 2575
