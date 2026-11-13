@@ -15,12 +15,19 @@ import Players from "@3factory/player"
 
 import { getUserInitialPositions } from "@components/_3DExhibit-v2/three/utils/camera";
 
-import { isOutsideSpace, isRunawayStep, pickSpawnInsideSpace } from "./spaceBounds";
-
-import { EscapeRecorder } from "./escapeRecorder";
+import { pickSpawnInsideSpace } from "./spaceBounds";
 
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
 const SNAP_GRACE = 0.1
+
+/**
+ * Seconds after spawning during which the player stays where they spawned.
+ * The world, colliders and avatar are still settling then (the avatar's
+ * collision height changes when it loads), and a push out of geometry in
+ * that window could throw the player far out of the space. They can still
+ * drop onto the floor below.
+ */
+export const SPAWN_SETTLE = 2
 
 export class Physics {
 
@@ -96,11 +103,16 @@ export class Physics {
 
         this.position = new Vector3()
 
-        this.beforeStep = new Vector3()
+        this.frameStart = new Vector3()
 
-        this.velocityBefore = new Vector3()
+        /** Seconds of the spawn settle still to run. */
+        this.settleLeft = SPAWN_SETTLE
 
-        this.recorder = new EscapeRecorder()
+        /** Where the player spawned, held during the settle. */
+        this.settleAnchor = null
+
+        /** Where the settle left the player last frame. */
+        this.settleEnd = new Vector3()
 
         if (this.roomParameters?.quidditch){
             this.playerState.quidditch = true;
@@ -203,9 +215,7 @@ export class Physics {
         const lobbyFeel = impulse && !this.flymode && !state.quidditch && !state.opts?.editMode
         const wasOnFloor = state.playerOnFloor
 
-        const before = this.beforeStep.copy(state.position)
-
-        const velocityBefore = this.velocityBefore.copy(state.veclocity)
+        const before = this.frameStart.copy(state.position)
 
         if (state.playerOnFloor || this.flymode) {
 
@@ -303,33 +313,12 @@ export class Physics {
 
         // console.log("this, playerSatete", this.playerState.position);
 
-        const colliderHeight = this.collisions.collider_height
+        if (this.settleLeft > 0 && !this.flymode && !this.isPreview) {
 
-        this.recorder.record(deltaTime, before, this.playerState.position, velocityBefore, playerOnFloor, result, colliderHeight)
-
-        // No step, run or collision push moves a player this far in one
-        // frame. Undo it rather than throw the player out of the space.
-        if (!this.flymode && !this.isPreview && isRunawayStep(before, this.playerState.position, colliderHeight)) {
-
-            this.recorder.report("runaway step undone", { space: this.roomParameters?.slug, colliderHeight })
-
-            this.undoStep(before, shouldUseFirsPerson)
+            this.holdSpawn(before, deltaTime, shouldUseFirsPerson)
         }
 
-        // Fell out, or ended up far outside the space: only the background
-        // colour shows there, so bring the player back to a spawn inside.
-        const bbox = this.currentSpace?.bbox
-
-        const outside = this.isPreview || this.flymode
-            ? bbox != null && this.playerState.position.y < bbox.min.y - this.userHeight * 5
-            : isOutsideSpace(this.playerState.position, bbox, this.userHeight)
-
-        if (outside) {
-
-            if (!this.isPreview && !this.flymode) {
-
-                this.recorder.report("left the space", { space: this.roomParameters?.slug, colliderHeight })
-            }
+        if ( this.playerState.position.y < this.currentSpace.bbox.min.y - this.userHeight * 5) {
 
             this.reset()
         }
@@ -444,30 +433,62 @@ export class Physics {
     }
 
     /**
-     * Puts the player back where this frame started, at rest.
-     * @param { Vector3 } before the player position (feet in third person, camera in first)
+     * During the spawn settle the player keeps their spawn spot: no sideways
+     * move and no rise, only a drop onto the floor. A move made outside
+     * physics (a teleport, the lobby's arrival staging) becomes the new spot.
+     * @param { Vector3 } before the position this frame started from
+     * @param { number } deltaTime
      * @param { boolean } firstPerson
      */
-    undoStep(before, firstPerson) {
+    holdSpawn(before, deltaTime, firstPerson) {
 
-        this.playerState.veclocity.set(0, 0, 0)
+        this.settleLeft -= deltaTime
 
-        this.playerState.position.copy(before)
+        if (this.settleAnchor == null || before.distanceToSquared(this.settleEnd) > 1e-6) {
+
+            this.settleAnchor = (this.settleAnchor || new Vector3()).copy(before)
+        }
+
+        const anchor = this.settleAnchor
+
+        const position = this.playerState.position
+
+        const velocity = this.playerState.veclocity
+
+        velocity.x = 0
+
+        velocity.z = 0
+
+        if (velocity.y > 0) velocity.y = 0
+
+        position.x = anchor.x
+
+        position.z = anchor.z
+
+        if (position.y > anchor.y) position.y = anchor.y
 
         const height = this.collisions.collider_height
 
-        const cameraPos = this.tmpVec3.copy(before)
+        this.firstPersonPos.set(position.x, firstPerson ? position.y : position.y + height, position.z)
 
-        if (!firstPerson) cameraPos.y += height
+        this.thirdPersonPos.set(position.x, firstPerson ? position.y - height : position.y, position.z)
 
-        this.collisions.reset(cameraPos)
+        this.collisions.reset(this.firstPersonPos)
 
-        this.firstPersonPos.copy(cameraPos)
+        this.settleEnd.copy(position)
+    }
 
-        this.thirdPersonPos.set(cameraPos.x, cameraPos.y - height, cameraPos.z)
+    /** Holds the player at their spot for the next SPAWN_SETTLE seconds. */
+    startSpawnSettle() {
+
+        this.settleLeft = SPAWN_SETTLE
+
+        this.settleAnchor = null
     }
 
     reset() {
+
+        this.startSpawnSettle()
 
         if (Players.main.deactivated) return;
 
