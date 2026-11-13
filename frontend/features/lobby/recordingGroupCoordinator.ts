@@ -2,7 +2,8 @@
  * Recording only (?crowd=N). A browser copy of the lobby server's party
  * coordinator, multiplayer/src/world/groups.ts, so the staged crowd can be
  * invited to parties and travel as one without a party server. Keep it in
- * step with the server file; only the id generator and byte counting differ.
+ * step with the server file; only the id generator, byte counting and the
+ * gathering formation (a line, not a ring) differ.
  */
 import { readGroupLocation } from "../../../multiplayer/protocol/group-location";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
@@ -642,15 +643,18 @@ export class LobbyGroups {
                 others = travel.acceptedIds.filter(
                     (id) => id !== travel.initiatorId
                 );
-            const radius = others.length > 5 ? 2.3 : 1.8;
+            // Differs from the server (a ring): one line, shoulder to
+            // shoulder with the initiator in the middle, like solo travel.
+            const spacing = 1.15,
+                rightX = Math.cos(anchor.rotation),
+                rightZ = -Math.sin(anchor.rotation);
             for (const [index, id] of others.entries()) {
-                const angle =
-                    anchor.rotation +
-                    (2 * Math.PI * index) / Math.max(others.length, 1);
+                const side =
+                    Math.ceil((index + 1) / 2) * (index % 2 ? -1 : 1) * spacing;
                 travel.poses[id] = {
-                    x: anchor.x + Math.sin(angle) * radius,
+                    x: anchor.x + rightX * side,
                     y: 0,
-                    z: anchor.z + Math.cos(angle) * radius,
+                    z: anchor.z + rightZ * side,
                     rotation: anchor.rotation,
                 };
             }
