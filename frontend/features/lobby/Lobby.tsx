@@ -47,6 +47,7 @@ import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
 import LobbyDockIcon from "./LobbyDockIcon";
+import { enterKeyTarget, ownsEnterKey } from "./lobbyEnterKey";
 import useLobbyJourney from "./useLobbyJourney";
 import { useEnginePrefetch } from "./enginePrefetch";
 import { lobbyJourneyView } from "./lobbyJourneyMachine";
@@ -774,8 +775,65 @@ export default function Lobby({
         if (!socialElement.current?.contains(document.activeElement))
             journey.frameRef.current?.focus();
     }, [entered]);
+    const enterTarget = enterKeyTarget({
+        entered,
+        travelling,
+        worldReady: journey.phase === "ready" && !participatingTravel,
+        partyChatOverSpace,
+    });
+    // Inside a space the keyboard belongs to the space's own page. While the
+    // party chat covers the space's chat, Enter there opens the party chat:
+    // the space would otherwise open the chat it has put away.
+    useEffect(() => {
+        if (enterTarget !== "party-chat") return;
+        let space: Window | null | undefined;
+        try {
+            space = journey.frameRef.current?.contentWindow;
+            void space?.document;
+        } catch {
+            // An outside experience on another origin keeps its keyboard.
+            return;
+        }
+        if (!space) return;
+        const toPartyChat = (event: KeyboardEvent) => {
+            if (
+                event.key !== "Enter" ||
+                event.repeat ||
+                event.isComposing ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey ||
+                event.shiftKey ||
+                ownsEnterKey(event.target)
+            )
+                return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            space.document.exitPointerLock?.();
+            setChatOpen(true);
+            chatInput.current?.focus();
+        };
+        space.addEventListener("keydown", toPartyChat, true);
+        return () => space.removeEventListener("keydown", toPartyChat, true);
+    }, [enterTarget, journey.frameUrl]);
     useEffect(() => {
         const keyboard = (event: KeyboardEvent) => {
+            if (
+                entered &&
+                event.key === "Enter" &&
+                !event.defaultPrevented &&
+                !event.repeat &&
+                !event.isComposing &&
+                !ownsEnterKey(event.target)
+            ) {
+                // Focus was left on the page around the space.
+                event.preventDefault();
+                if (enterTarget === "party-chat") {
+                    setChatOpen(true);
+                    chatInput.current?.focus();
+                } else journey.frameRef.current?.focus();
+                return;
+            }
             if (
                 event.defaultPrevented ||
                 entered ||
@@ -809,8 +867,7 @@ export default function Lobby({
                 const focused = target?.closest("button,a");
                 if (focused instanceof HTMLElement) focused.blur();
                 event.preventDefault();
-                if (journey.phase === "ready" && !participatingTravel)
-                    journey.enter();
+                if (enterTarget === "enter-world") journey.enter();
                 else {
                     setChatOpen(true);
                     chatInput.current?.focus();
@@ -832,6 +889,7 @@ export default function Lobby({
         return () => window.removeEventListener("keydown", keyboard);
     }, [
         entered,
+        enterTarget,
         travelling,
         peopleOpen,
         avatarOpen,
