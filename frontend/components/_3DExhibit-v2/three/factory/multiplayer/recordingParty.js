@@ -68,6 +68,25 @@ export function recordingPartyLinePlace(index, count) {
     };
 }
 
+/**
+ * Whether the lobby's arrival still has the camera. Friends wait until it
+ * hands you control (lobbyWorldReveal.ts releases it). Inside the lobby's
+ * frame an arrival is always coming, so they wait from the start; if none
+ * releases them within ARRIVAL_HOLD_MAX_MS of you being ready, they come
+ * anyway.
+ */
+let arrivalHeld = true;
+
+export const ARRIVAL_HOLD_MAX_MS = 15000;
+
+export function holdRecordingArrivals(held) {
+    arrivalHeld = !!held;
+}
+
+export function recordingArrivalsHeld() {
+    return arrivalHeld;
+}
+
 /** First friend shows up this long after you have control (seconds). */
 export const RECORDING_ARRIVAL_FIRST_S = 0.9;
 
@@ -131,7 +150,7 @@ export function recordingPartyLanding(count, main, forward, probe = {}) {
         // spread over the front and sides (±110°), alternating left and right
         const turn = ((index * GOLDEN_ANGLE) % (Math.PI * 2)) / (Math.PI * 2);
         const angle = (turn * 2 - 1) * 1.92 + (dice(index, 1) - 0.5) * 0.2;
-        const distance = 1.5 + dice(index, 2) * 1.1;
+        const distance = 1.8 + dice(index, 2) * 1.2;
         let spot = null;
         for (const scale of [1, 0.75, 0.55]) {
             spot = tryAt(angle, distance * scale);

@@ -34,7 +34,7 @@ import shortid from "shortid";
 
 import { PatchClock } from "@features/lobby/patchClock";
 
-import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace, recordingPartyLanding } from "./recordingParty";
+import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace, recordingPartyLanding, recordingArrivalsHeld, ARRIVAL_HOLD_MAX_MS } from "./recordingParty";
 
 import { disposeObject3D } from "@3utils/three";
 
@@ -1464,7 +1464,13 @@ class Multiplayer extends Group {
 
             // You land alone: friends start arriving once the arrival has
             // handed you control, around the spot you landed on.
-            if (!main?.avatar3D || !main.currentSpace || !Camera.current || !Camera.active) return null
+            if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
+
+            this.recordingReadyAt ??= performance.now()
+
+            const held = recordingArrivalsHeld() && performance.now() - this.recordingReadyAt < ARRIVAL_HOLD_MAX_MS
+
+            if (held || !Camera.active) return null
 
             const payload = main.getPacketPayload(true)
 

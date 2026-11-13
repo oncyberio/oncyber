@@ -62,7 +62,10 @@ import {
     easeWorldTravelHandoff,
 } from "@features/lobby/worldTravelPose";
 import { createLobbyTravelPeers } from "./lobbyTravelPeers";
-import { readRecordingParty } from "../factory/multiplayer/recordingParty";
+import {
+    holdRecordingArrivals,
+    readRecordingParty,
+} from "../factory/multiplayer/recordingParty";
 import {
     createNativeTravelAnimation,
     NATIVE_TRAVEL_STAND_UP_MS,
@@ -766,6 +769,8 @@ function* nativeLobbyReveal(world: RevealWorld) {
         Emitter.off(Events.PRE_UPDATE, maintainLock);
         Emitter.off(Events.PRE_RENDER, maintainLock);
         Camera.active = success ? true : saved.cameraActive;
+        // a staged recording party starts arriving now
+        holdRecordingArrivals(false);
         if (controls && Camera.currentControls === controls)
             controls.enabled = success ? true : saved.enabled;
         if (CSS_CANVAS) CSS_CANVAS.style.visibility = saved.cssVisibility ?? "";

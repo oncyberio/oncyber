@@ -14,7 +14,7 @@ test("friends land around you, apart, ahead and to the sides", () => {
     for (const spot of spots) {
         const distance = Math.hypot(spot.x, spot.z);
         expect(distance).toBeGreaterThan(0.5);
-        expect(distance).toBeLessThan(2.8);
+        expect(distance).toBeLessThan(3.1);
         // never straight behind you, where the camera is
         expect(spot.z).toBeLessThan(1.2);
     }
