@@ -21,6 +21,7 @@ kill_timeout = "15s"
   LOBBY_WORLD_WEBTRANSPORT = "1"
   LOBBY_WORLD_ACME_HOST = "oncyber-lobby.fly.dev"
   # LOBBY_WORLD_ACME_EMAIL is a Fly secret: fly secrets set LOBBY_WORLD_ACME_EMAIL=...
+  # Voice relay: CLOUDFLARE_TURN_KEY_ID + CLOUDFLARE_TURN_API_TOKEN secrets serve /turnCredentials.
   LOBBY_WORLD_TLS_DIR = "/data/tls"
   LOBBY_WORLD_WT_BIND = "fly-global-services"
   LOBBY_WORLD_WT_BASE = "2590"

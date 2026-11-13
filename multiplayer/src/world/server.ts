@@ -10,6 +10,7 @@ import { readFileSync } from "fs";
 import { availableParallelism } from "os";
 import express from "express";
 import cors from "cors";
+import { issueTurnCredentials } from "../utils/turnIssuer";
 import { createSharedWorld, SharedWorld, blankPose } from "./shared";
 import { profile } from "../rooms/crowd/protocol";
 import { Member, Reservation } from "./gateway";
@@ -415,6 +416,17 @@ export async function createWorldServer(options: WorldOptions = {}) {
     app.use(express.json({ limit: "16kb" }));
     const ipRates = new Map<string, { count: number; at: number }>();
     app.get("/lobby/health", (_req, res) => res.status(!shuttingDown && live.size === workerCount ? 200 : 503).json({ lobbyProtocol: 2, roomId, region, worldCapacity: capacity, population: metadata.size, networkBudget: updateBudget(), maxVisible: 128, highDensityVisible: 64, highDensityEnter: detailThreshold, highDensityLeave: Math.max(1, detailThreshold - 1024), workers: live.size, webTransport: !!tls }));
+    // Relay passes for lobby voice (same issuer as the space server).
+    const turnRates = new Map<string, { count: number; at: number }>();
+    app.get("/turnCredentials", async (req, res) => {
+        const ip = clientAddress(req, !!options.trustFlyProxy), at = Date.now(), rate = turnRates.get(ip);
+        if (rate && at - rate.at < 60_000 && rate.count >= 60) return res.status(429).json({ success: false });
+        turnRates.set(ip, rate && at - rate.at < 60_000 ? { count: rate.count + 1, at: rate.at } : { count: 1, at });
+        if (turnRates.size > 10_000) turnRates.clear();
+        const { status, body } = await issueTurnCredentials(process.env);
+        res.setHeader("Cache-Control", "no-store");
+        res.status(status).json(body);
+    });
     app.post("/join", async (req, res) => {
         if (shuttingDown || !live.size) return res.status(503).json({ error: "World unavailable" });
         if (req.body?.lobbyProtocol !== 2) return res.status(400).json({ error: "Expected lobbyProtocol:2" });

@@ -66,4 +66,18 @@ describe("regional TURN credential cache", () => {
         expect(await request).toEqual([]);
         expect(signal.aborted).toBe(true);
     });
+    test("caches Cloudflare credentials by the server's expiresAt", async () => {
+        (fetch as jest.Mock).mockImplementation(async () => ({
+            ok: true,
+            json: async () => ({
+                username: "random-cloudflare-name",
+                credential: "c",
+                urls: ["turns:turn.cloudflare.com:443?transport=tcp"],
+                expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            }),
+        }));
+        const first = await getTurnIceServers(2500, "https://cf.example");
+        expect(await getTurnIceServers(2500, "https://cf.example")).toBe(first);
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
 });

@@ -14,7 +14,7 @@ import { monitor } from "@colyseus/monitor";
 
 import { Mutex, MutexInterface, Semaphore, SemaphoreInterface, withTimeout } from "async-mutex";
 
-import { createTurnCredentials } from "../utils/turnCredentials";
+import { issueTurnCredentials } from "../utils/turnIssuer";
 
 const mutex = new Mutex();
 
@@ -24,32 +24,13 @@ export function initializeExpress(app: any) {
         res.send("Hello world from cyber!!");
     });
 
-    // Time-limited TURN credentials (coturn static-auth-secret scheme). When
-    // TURN isn't configured we 404 so the client fails open to STUN-only.
-    app.get("/turnCredentials", (req: Request, res: Response) => {
-        const secret = process.env.TURN_SECRET;
-        const host = process.env.TURN_HOST;
-
-        if (!secret || !host) {
-            return res.status(404).json({ success: false });
-        }
-
-        // unauthenticated endpoint -> keep the TTL short; coturn quotas bound abuse
-        const ttl = Math.min(Number(process.env.TURN_TTL) || 3600, 3600);
-
-        const { username, credential } = createTurnCredentials(secret, ttl);
-
+    // Short-lived TURN credentials (Cloudflare TURN, or coturn's shared
+    // secret). When TURN isn't configured we 404 so the client fails open to
+    // STUN-only. Unauthenticated, so the TTL stays at most an hour.
+    app.get("/turnCredentials", async (req: Request, res: Response) => {
+        const { status, body } = await issueTurnCredentials(process.env);
         res.setHeader("Cache-Control", "no-store");
-        res.json({
-            success: true,
-            urls: [
-                `turn:${host}:3478?transport=udp`,
-                `turn:${host}:3478?transport=tcp`,
-            ],
-            username,
-            credential,
-            ttl,
-        });
+        res.status(status).json(body);
     });
 
     app.get("/getRoom", async (req: Request, res: Response) => {
