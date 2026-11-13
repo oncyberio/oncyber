@@ -1,6 +1,11 @@
 /** @jest-environment jsdom */
-import { beginSpaceEntrance, finishSpaceEntrance } from "./spaceEntrance";
-const mockDraw = jest.fn();
+import {
+    beginSpaceEntrance,
+    finishSpaceEntrance,
+    handOffSpaceEntranceStars,
+} from "./spaceEntrance";
+const mockStars = [{ x: 10, y: -20, z: 3, lightness: 0.8 }];
+const mockDraw = Object.assign(jest.fn(), { stars: () => mockStars });
 jest.mock("@components/_3DExhibit-v2/ui/LoaderVideoContainer", () => ({
     drawStarfield: () => mockDraw,
 }));
@@ -79,7 +84,9 @@ const flushImports = async () => {
 test("starts the tunnel at black while the destination is still loading", async () => {
     beginSpaceEntrance(source, { title: "World" }, jest.fn());
     await flushImports();
-    const overlay = document.querySelector<HTMLElement>("[data-space-entrance]");
+    const overlay = document.querySelector<HTMLElement>(
+        "[data-space-entrance]"
+    );
     expect(overlay.querySelector("canvas")).toBeNull();
     jest.advanceTimersByTime(160);
     await flushImports();
@@ -97,4 +104,28 @@ test("cancelling during tunnel import does not attach a late canvas", async () =
     await flushImports();
     expect(document.querySelector("[data-space-entrance]")).toBeNull();
     expect(jest.getTimerCount()).toBe(0);
+});
+test("hands its stars to the engine and reveals the page under them", async () => {
+    beginSpaceEntrance(source, { title: "World" }, jest.fn());
+    jest.advanceTimersByTime(160);
+    await flushImports();
+    const overlay = document.querySelector<HTMLElement>(
+        "[data-space-entrance]"
+    );
+    expect(handOffSpaceEntranceStars()).toEqual(mockStars);
+    expect(overlay.dataset.spaceEntrance).toBe("revealing");
+    jest.advanceTimersByTime(160);
+    expect(document.querySelector("[data-space-entrance]")).toBeNull();
+    expect(handOffSpaceEntranceStars()).toBeNull();
+});
+test("a hand-off before any stars showed returns none and still reveals", () => {
+    beginSpaceEntrance(source, { title: "World" }, jest.fn());
+    expect(handOffSpaceEntranceStars()).toBeNull();
+    jest.advanceTimersByTime(160);
+    expect(
+        document.querySelector<HTMLElement>("[data-space-entrance]").dataset
+            .spaceEntrance
+    ).toBe("revealing");
+    jest.advanceTimersByTime(160);
+    expect(document.querySelector("[data-space-entrance]")).toBeNull();
 });

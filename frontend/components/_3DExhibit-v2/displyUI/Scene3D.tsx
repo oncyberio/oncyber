@@ -8,7 +8,10 @@ import {
 } from "@utils/lobbyDestinationBridge";
 import audioListener from "@3gl/globals/audioListener";
 import { loadSceneAssets } from "@utils/loadSceneAssets";
-import { finishSpaceEntrance } from "@utils/spaceEntrance";
+import {
+    finishSpaceEntrance,
+    handOffSpaceEntranceStars,
+} from "@utils/spaceEntrance";
 import { legacyGpuResources } from "@3utils/sessionResources";
 import { legacySceneSessions } from "@utils/sceneSession";
 import Loader from "@3loader";
@@ -475,7 +478,12 @@ export function Scene3D_Child({
 
             checkpoint();
 
-            await world.current.setState(APP_STATES.INTRO);
+            // The engine's star field carries on the entrance's stars and
+            // starts revealing it; finishSpaceEntrance below covers loads
+            // that never showed any.
+            await world.current.setState(APP_STATES.INTRO, {
+                handOffStars: handOffSpaceEntranceStars,
+            });
 
             checkpoint();
             finishSpaceEntrance();

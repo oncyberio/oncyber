@@ -4,9 +4,28 @@ export type SpaceEntrance = {
     image?: string;
     source?: () => HTMLElement | null;
 };
-let active: { finish: () => void; cancel: () => void } | null = null;
+import type {
+    LoadingStar,
+    drawStarfield as drawStarfieldType,
+} from "@components/_3DExhibit-v2/ui/LoaderVideoContainer";
+
+let active: {
+    finish: () => void;
+    cancel: () => void;
+    handOff: () => LoadingStar[] | null;
+} | null = null;
 export function finishSpaceEntrance() {
     active?.finish();
+}
+
+/**
+ * The 3D engine's own star field takes over from the entrance's: returns
+ * where the entrance's stars are now (null when it shows none) and starts
+ * revealing the page underneath, so the engine carries on the same stars
+ * instead of starting a second field from black.
+ */
+export function handOffSpaceEntranceStars(): LoadingStar[] | null {
+    return active?.handOff() ?? null;
 }
 
 export function beginSpaceEntrance(
@@ -62,7 +81,7 @@ export function beginSpaceEntrance(
         frame = 0;
     let finishTimer: ReturnType<typeof setTimeout>;
     let slowTimer: ReturnType<typeof setTimeout>;
-    let draw: (() => void) | undefined;
+    let draw: ReturnType<typeof drawStarfieldType> | undefined;
     let tunnel: HTMLCanvasElement | undefined;
     const paint = () => {
         frame = 0;
@@ -152,6 +171,12 @@ export function beginSpaceEntrance(
             reveal();
         },
         cancel,
+        handOff: () => {
+            if (ended) return null;
+            const stars = draw?.stars() ?? null;
+            handle.finish();
+            return stars;
+        },
     };
     active = handle;
     const blackTimer = setTimeout(() => {

@@ -216,11 +216,15 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 			case APP_STATES.INTRO:
 
-				this.activate()
+				this.resize( VIEW.w, VIEW.h )
+
+				// Opened from a link, the page has been showing its own star
+				// field (utils/spaceEntrance). Carry on those same stars at
+				// full brightness, so the two read as one field; otherwise
+				// fade in from black.
+				if( !this.adopt( opts?.handOffStars?.() ) ) this.activate()
 
 				this.addEvents()
-
-				this.resize( VIEW.w, VIEW.h )
 
 				break
 		}
@@ -355,6 +359,46 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 
 			ease: 'power1.easeOut',
 		})
+	}
+
+	/**
+	 * Takes over stars from the page's loading canvas (see `LoadingStar` in
+	 * ui/LoaderVideoContainer: y grows downwards there, upwards here) and shows
+	 * them at once. Returns whether there were any.
+	 */
+	adopt( stars ){
+
+		if ( !Array.isArray( stars ) || stars.length === 0 ) return false
+
+		for ( let i = 0; i < STAR_COUNT; i++ ) {
+
+			const from = stars[ i % stars.length ]
+
+			const star = this.stars[ i ]
+
+			star.x = from.x
+
+			star.y = -from.y
+
+			star.z = from.z
+
+			star.color = this.color.setHSL( 200 / 360, 1, from.lightness ).clone()
+
+			star.spawned = true
+		}
+
+		if ( this.tween ) {
+
+			this.tween.kill()
+
+			this.tween = null
+		}
+
+		this.fadingOut = false
+
+		this.transitionValue = 1
+
+		return true
 	}
 
 	spawn( star ){
