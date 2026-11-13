@@ -476,6 +476,7 @@ export default function Lobby({
     // the list opens: rows must not move under the pointer as people walk or
     // join your party. Anyone who arrives later goes to the end.
     const peopleOrder = useRef<Map<string, number> | null>(null);
+    const [peopleNearby, setPeopleNearby] = useState(true);
     if (!peopleOpen) peopleOrder.current = null;
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
@@ -500,8 +501,16 @@ export default function Lobby({
             };
             peopleOrder.current = new Map(
                 everyone
-                    .map((player) => ({ id: player.id, d: distance(player) }))
-                    .sort((a, b) => a.d - b.d)
+                    .map((player) => ({
+                        id: player.id,
+                        name: player.name,
+                        d: distance(player),
+                    }))
+                    .sort((a, b) =>
+                        peopleNearby || a.d < 0 || b.d < 0
+                            ? a.d - b.d
+                            : a.name.localeCompare(b.name)
+                    )
                     .map(({ id }, index) => [id, index])
             );
         }
@@ -509,7 +518,13 @@ export default function Lobby({
         for (const player of everyone)
             if (!order.has(player.id)) order.set(player.id, order.size);
         return everyone.sort((a, b) => order.get(a.id) - order.get(b.id));
-    }, [peopleOpen, social.players, social.groupPlayers, recording]);
+    }, [
+        peopleOpen,
+        peopleNearby,
+        social.players,
+        social.groupPlayers,
+        recording,
+    ]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
             const url = new URL(window.location.href);
@@ -1496,6 +1511,13 @@ export default function Lobby({
                 {peopleOpen && (
                     <LobbyPeoplePanel
                         players={peoplePlayers}
+                        sort={{
+                            nearby: peopleNearby,
+                            onToggle: () => {
+                                peopleOrder.current = null;
+                                setPeopleNearby((value) => !value);
+                            },
+                        }}
                         party={
                             social.groupsSupported
                                 ? {
