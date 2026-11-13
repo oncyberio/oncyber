@@ -1796,6 +1796,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             avatar.model &&
                             index < budget.maxLabels &&
                             distanceSq < 900 &&
+                            // Not while they shrink away to join the line.
+                            avatar.group.scale.x > 0.5 &&
                             !speechBubbles.speaking(participant.id)
                         )
                             nameTags?.show(
