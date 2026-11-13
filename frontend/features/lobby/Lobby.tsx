@@ -812,12 +812,19 @@ export default function Lobby({
             ...chatSocial.messages,
             ...(social.groupMessages || []),
         ]);
-        if (social.sessionId && lines[social.sessionId]) {
-            lines.self = lines[social.sessionId];
-            delete lines[social.sessionId];
-        }
+        for (const id of [social.sessionId, liveSocial.sessionId])
+            if (id && lines[id]) {
+                if (!lines.self || lines.self.at < lines[id].at)
+                    lines.self = lines[id];
+                delete lines[id];
+            }
         return lines;
-    }, [chatSocial.messages, social.groupMessages, social.sessionId]);
+    }, [
+        chatSocial.messages,
+        social.groupMessages,
+        social.sessionId,
+        liveSocial.sessionId,
+    ]);
     const recordingBudget = useMemo(
         () =>
             recording

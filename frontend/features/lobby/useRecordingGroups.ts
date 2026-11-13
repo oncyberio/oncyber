@@ -8,7 +8,7 @@ import type {
     LobbyGroupsSnapshot,
 } from "../../../multiplayer/protocol/lobby-groups";
 import { LobbyGroups } from "./recordingGroupCoordinator";
-import type { RecordingCrowd } from "./recordingCrowd";
+import { planCrowdReplies, type RecordingCrowd } from "./recordingCrowd";
 
 interface SocialParties {
     sessionId: string;
@@ -50,8 +50,17 @@ export default function useRecordingGroups<T extends SocialParties>(
     /** You are in a space (or on the way), not in the lobby. */
     away: boolean
 ): T & { groupPlayers?: { id: string; name: string; avatar?: string }[] } {
-    const active = !!crowd && !social.groupsSupported;
-    const selfId = social.sessionId || SELF_ID;
+    // Once the mock runs it keeps running, and keeps the id it started
+    // with: a reconnect (a new session id, or none while offline) must not
+    // throw the parties and the trip in progress away.
+    const locked = useRef({ active: false, selfId: "" });
+    if (!crowd) locked.current = { active: false, selfId: "" };
+    else if (!locked.current.active && !social.groupsSupported)
+        locked.current.active = true;
+    if (!locked.current.selfId && social.sessionId)
+        locked.current.selfId = social.sessionId;
+    const active = locked.current.active;
+    const selfId = locked.current.selfId || SELF_ID;
     const latest = useRef({ social, self, crowd });
     latest.current = { social, self, crowd };
     const [snapshot, setSnapshot] = useState<
@@ -184,12 +193,33 @@ export default function useRecordingGroups<T extends SocialParties>(
                         react(id, data as LobbyGroupsSnapshot);
                     return;
                 }
-                if (event === "lobby-groups")
-                    setSnapshot({
-                        ...(data as LobbyGroupsSnapshot),
-                        receivedAt: performance.now(),
-                    });
-                else if (event === "lobby-group-result") {
+                if (event === "lobby-groups") {
+                    const state = data as LobbyGroupsSnapshot;
+                    setSnapshot({ ...state, receivedAt: performance.now() });
+                    // The party answers what you say in its chat.
+                    for (const group of state.groups)
+                        for (const message of group.messages) {
+                            if (message.sessionId !== selfId) continue;
+                            const members = group.members
+                                .map((member) => member.id)
+                                .filter((id) => id !== selfId);
+                            const replies = planCrowdReplies(message.text, {
+                                participants: members.map((id) => ({ id })),
+                                travelIds: members,
+                            } as Parameters<typeof planCrowdReplies>[1]);
+                            for (const reply of replies.slice(0, 4))
+                                later(
+                                    `reply:${message.id}:${reply.id}`,
+                                    reply.delay,
+                                    () =>
+                                        act(reply.id, {
+                                            action: "message",
+                                            groupId: group.id,
+                                            text: reply.text,
+                                        })
+                                );
+                        }
+                } else if (event === "lobby-group-result") {
                     const result = data as LobbyGroupResult;
                     results.current.set(result.requestId, result);
                 }
