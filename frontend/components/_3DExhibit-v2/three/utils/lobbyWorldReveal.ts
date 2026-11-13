@@ -1016,8 +1016,6 @@ function* nativeLobbyReveal(world: RevealWorld) {
                         : undefined;
                     controls?.world?.thirdPersonPos?.copy(player.position);
                     controls?.world?.playerState?.veclocity?.set(0, 0, 0);
-                    // The arrival is a spawn: keep the player put while it settles.
-                    controls?.world?.startSpawnSettle?.();
                     if (controls?.world?.playerState) {
                         controls.world.playerState.tempRotation =
                             player.rotation.y;

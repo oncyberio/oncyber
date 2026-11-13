@@ -20,15 +20,6 @@ import { pickSpawnInsideSpace } from "./spaceBounds";
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
 const SNAP_GRACE = 0.1
 
-/**
- * Seconds after spawning during which the player stays where they spawned.
- * The world, colliders and avatar are still settling then (the avatar's
- * collision height changes when it loads), and a push out of geometry in
- * that window could throw the player far out of the space. They can still
- * drop onto the floor below.
- */
-export const SPAWN_SETTLE = 2
-
 export class Physics {
 
     /** Seconds since the floor was last under the player. */
@@ -102,17 +93,6 @@ export class Physics {
         this.thirdPersonPos = new Vector3()
 
         this.position = new Vector3()
-
-        this.frameStart = new Vector3()
-
-        /** Seconds of the spawn settle still to run. */
-        this.settleLeft = SPAWN_SETTLE
-
-        /** Where the player spawned, held during the settle. */
-        this.settleAnchor = null
-
-        /** Where the settle left the player last frame. */
-        this.settleEnd = new Vector3()
 
         if (this.roomParameters?.quidditch){
             this.playerState.quidditch = true;
@@ -215,8 +195,6 @@ export class Physics {
         const lobbyFeel = impulse && !this.flymode && !state.quidditch && !state.opts?.editMode
         const wasOnFloor = state.playerOnFloor
 
-        const before = this.frameStart.copy(state.position)
-
         if (state.playerOnFloor || this.flymode) {
 
             const damping = Math.exp(-10 * deltaTime) - 1
@@ -312,11 +290,6 @@ export class Physics {
         this.playerState.position.copy(!shouldUseFirsPerson ? this.thirdPersonPos : this.firstPersonPos)
 
         // console.log("this, playerSatete", this.playerState.position);
-
-        if (this.settleLeft > 0 && !this.flymode && !this.isPreview) {
-
-            this.holdSpawn(before, deltaTime, shouldUseFirsPerson)
-        }
 
         if ( this.playerState.position.y < this.currentSpace.bbox.min.y - this.userHeight * 5) {
 
@@ -432,63 +405,7 @@ export class Physics {
         return this.collisions.playerCollitions(position)
     }
 
-    /**
-     * During the spawn settle the player keeps their spawn spot: no sideways
-     * move and no rise, only a drop onto the floor. A move made outside
-     * physics (a teleport, the lobby's arrival staging) becomes the new spot.
-     * @param { Vector3 } before the position this frame started from
-     * @param { number } deltaTime
-     * @param { boolean } firstPerson
-     */
-    holdSpawn(before, deltaTime, firstPerson) {
-
-        this.settleLeft -= deltaTime
-
-        if (this.settleAnchor == null || before.distanceToSquared(this.settleEnd) > 1e-6) {
-
-            this.settleAnchor = (this.settleAnchor || new Vector3()).copy(before)
-        }
-
-        const anchor = this.settleAnchor
-
-        const position = this.playerState.position
-
-        const velocity = this.playerState.veclocity
-
-        velocity.x = 0
-
-        velocity.z = 0
-
-        if (velocity.y > 0) velocity.y = 0
-
-        position.x = anchor.x
-
-        position.z = anchor.z
-
-        if (position.y > anchor.y) position.y = anchor.y
-
-        const height = this.collisions.collider_height
-
-        this.firstPersonPos.set(position.x, firstPerson ? position.y : position.y + height, position.z)
-
-        this.thirdPersonPos.set(position.x, firstPerson ? position.y - height : position.y, position.z)
-
-        this.collisions.reset(this.firstPersonPos)
-
-        this.settleEnd.copy(position)
-    }
-
-    /** Holds the player at their spot for the next SPAWN_SETTLE seconds. */
-    startSpawnSettle() {
-
-        this.settleLeft = SPAWN_SETTLE
-
-        this.settleAnchor = null
-    }
-
     reset() {
-
-        this.startSpawnSettle()
 
         if (Players.main.deactivated) return;
 
