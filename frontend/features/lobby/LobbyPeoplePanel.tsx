@@ -7,6 +7,7 @@ import {
     lobbyPanelSurface,
     lobbyPanelTokens,
 } from "./lobbyPanelStyles";
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 import type {
     LobbyAdminAction,
     LobbyRole,
@@ -43,6 +44,8 @@ type Props = {
         memberIds: readonly string[];
         onAdd(id: string): Promise<void>;
     };
+    /** Closest people first, or by name when switched off. */
+    sort?: { nearby: boolean; onToggle(): void };
     children?: React.ReactNode;
 };
 
@@ -232,8 +235,14 @@ export default function LobbyPeoplePanel({
     returnFocusRef,
     voice,
     party,
+    sort,
     children,
 }: Props) {
+    const [query, setQuery] = useState("");
+    const wanted = query.trim().toLowerCase();
+    const listed = wanted
+        ? players.filter((player) => player.name.toLowerCase().includes(wanted))
+        : players;
     const [adding, setAdding] = useState<string[]>([]);
     const [invited, setInvited] = useState<string[]>([]);
     const addToParty = (id: string) => {
@@ -307,7 +316,7 @@ export default function LobbyPeoplePanel({
             }}
         >
             <header>
-                <h2 id="lobby-people-title">People nearby</h2>
+                <h2 id="lobby-people-title">People</h2>
                 <button
                     ref={close}
                     type="button"
@@ -318,6 +327,36 @@ export default function LobbyPeoplePanel({
                     <Icon name="close" size={16} />
                 </button>
             </header>
+            <div className="people-tools">
+                <label className="people-search">
+                    <Icon name="search" size={14} />
+                    <input
+                        type="search"
+                        value={query}
+                        placeholder="Search people"
+                        aria-label="Search people"
+                        onChange={(event) => setQuery(event.target.value)}
+                    />
+                </label>
+                {sort && (
+                    <div className="people-tool">
+                        <span>
+                            {sort.nearby
+                                ? "Nearest people first"
+                                : "Sorted by name"}
+                        </span>
+                        <button
+                            type="button"
+                            className="people-sort"
+                            aria-pressed={sort.nearby}
+                            aria-label="Show the nearest people first"
+                            onClick={sort.onToggle}
+                        >
+                            <Icon name="pin" size={15} />
+                        </button>
+                    </div>
+                )}
+            </div>
             <div className="people-content">
                 <p id="lobby-people-status" role="status">
                     {nearbyStatus}
@@ -335,9 +374,12 @@ export default function LobbyPeoplePanel({
                     </p>
                 )}
                 {children && <div className="people-party">{children}</div>}
-                {!!players.length && (
-                    <ul aria-label="People nearby" className="people-list">
-                        {players.map((player) => (
+                {!!players.length && !listed.length && (
+                    <p className="people-empty">Nobody here by that name.</p>
+                )}
+                {!!listed.length && (
+                    <ul aria-label="People" className="people-list">
+                        {listed.map((player) => (
                             <li key={player.id}>
                                 <div className="person-row">
                                     {player.avatar ? (
@@ -363,11 +405,11 @@ export default function LobbyPeoplePanel({
                                     {party &&
                                         !player.isLocal &&
                                         (party.memberIds.includes(player.id) ? (
-                                            <small className="person-party">
+                                            <small className="person-state">
                                                 In party
                                             </small>
                                         ) : invited.includes(player.id) ? (
-                                            <small className="person-party">
+                                            <small className="person-state pending">
                                                 Invited
                                             </small>
                                         ) : (
@@ -432,7 +474,7 @@ const Panel = styled.section`
     bottom: var(--people-bottom);
     transform: translateX(-50%);
     width: min(var(--lobby-panel-compact-width), calc(100% - 32px));
-    max-height: calc(100dvh - var(--people-bottom) - 16px);
+    max-height: min(460px, calc(100dvh - var(--people-bottom) - 16px));
     display: flex;
     flex-direction: column;
     gap: var(--lobby-panel-gap);
@@ -539,26 +581,131 @@ const Panel = styled.section`
         color: #c2c2bd;
         letter-spacing: 1px;
     }
+    .people-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+    }
+    .people-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+        color: ${lobby.color.secondary};
+    }
+    .people-search svg {
+        position: absolute;
+        left: 10px;
+        pointer-events: none;
+    }
+    .people-search input {
+        width: 100%;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 0 10px 0 30px;
+        border: 1px solid ${lobby.panel.border};
+        border-radius: ${lobby.panel.iconRadius}px;
+        background: ${base.color.line.faint};
+        color: ${lobby.color.ink};
+        font: 12px var(--oc-font, sans-serif);
+        outline: none;
+        &::placeholder {
+            color: ${lobby.color.secondary};
+        }
+        &:focus-visible {
+            border-color: ${lobby.panel.cardHover};
+        }
+    }
+    .people-tool {
+        position: relative;
+        display: flex;
+        flex-shrink: 0;
+    }
+    /* Same label as the dock's buttons, shown on hover or keyboard focus. */
+    .people-tool > span {
+        position: absolute;
+        z-index: 1;
+        top: calc(100% + 8px);
+        right: 0;
+        padding: 6px 10px;
+        border: 1px solid ${lobby.control.border};
+        border-radius: ${base.radius.inset}px;
+        background: ${lobby.control.tooltip};
+        color: ${lobby.color.tooltipInk};
+        font-size: ${base.font.size.sm}px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity ${base.motion.fast}ms ease;
+    }
+    .people-tool:hover > span,
+    .people-tool:has(:focus-visible) > span {
+        opacity: 1;
+        visibility: visible;
+    }
+    .people-tools .people-sort {
+        ${lobbyPanelIconButton}
+        border: 1px solid ${lobby.panel.border};
+        transition: border-color ${base.motion.fast}ms ease,
+            background ${base.motion.fast}ms ease;
+        &[aria-pressed="true"] {
+            border-color: ${lobby.panel.cardSelected};
+            background: ${base.color.line.faint};
+            color: ${lobby.color.ink};
+        }
+    }
+    .people-empty {
+        margin: 12px 0;
+        color: ${lobby.color.secondary};
+        font-size: 12px;
+    }
+    .person-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+    }
     .person-photo {
-        width: 20px;
-        height: 20px;
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
         object-fit: cover;
         flex: none;
+        background: ${base.color.line.faint};
     }
     .people-content .person-add {
+        display: grid;
+        place-items: center;
+        width: 28px;
         min-width: 28px;
+        height: 28px;
+        min-height: 28px;
         margin-left: auto;
-        padding: 0 8px;
+        padding: 0;
+        border-radius: 50%;
+        border-color: ${lobby.panel.border};
+        color: ${lobby.color.ink};
         font-size: 16px;
         line-height: 1;
+        &:hover:not(:disabled) {
+            border-color: ${lobby.panel.cardSelected};
+            background: ${base.color.line.faint};
+        }
     }
-    .person-row .person-party {
+    .person-row .person-state {
         margin-left: auto;
-        color: #2cf8d5;
+        color: ${lobby.color.ink};
+        font-size: 11px;
+    }
+    .person-row .person-state.pending {
+        color: ${lobby.color.secondary};
     }
     .person-add + .person-more,
-    .person-party + .person-more {
+    .person-state + .person-more {
         margin-left: 0;
     }
     .person-row small + .person-more {
