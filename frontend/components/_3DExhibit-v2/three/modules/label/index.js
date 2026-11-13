@@ -21,6 +21,21 @@ import PipeLineMesh from '@3abstract/pipelinemesh'
 
 import PipeLineSprite from "../../abstract/pipelinesprite"
 
+import { LABEL_CANVAS_SIZE } from "./constants"
+
+
+/**
+ * A label's texture before its text is drawn: transparent, and the size every
+ * drawn label has. `set()` waits for its icon before drawing, and the label
+ * can already be on screen by then. It used to start as a CanvasTexture with
+ * no image, which the renderer throws on mid-frame; on WebGPU that left the
+ * whole view black for good. The renderer keeps a texture's first size, so the
+ * placeholder must match what `set()` uploads later.
+ */
+export function blankLabelTexture() {
+
+    return new CanvasTexture(new ImageData(LABEL_CANVAS_SIZE, LABEL_CANVAS_SIZE))
+}
 
 class Label {
 
@@ -30,7 +45,7 @@ class Label {
 
     getLabel() {
         const material = new MeshBasicMaterial({
-            map: new CanvasTexture(undefined),
+            map: blankLabelTexture(),
             transparent: true,
             depthTest: false,
             depthWrite: false,
@@ -49,7 +64,7 @@ class Label {
 
     getBillboardLabel() {
         const material = new SpriteMaterial({
-            map: new CanvasTexture(undefined),
+            map: blankLabelTexture(),
             transparent: true,
             depthTest: false,
             depthWrite: false,

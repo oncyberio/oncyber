@@ -90,7 +90,46 @@ class PostProcessing {
 	}
 
 
+	/**
+	 * A throw inside the renderer stops the frame before it puts its output
+	 * target back, and every later frame then draws into that offscreen
+	 * target: the view stays black for good. Put the renderer back so the
+	 * next frame can draw, and report the error once.
+	 */
 	render(scene, camera, roomParameters, target, debug = false ) {
+
+		const renderTarget = Renderer.getRenderTarget()
+
+		const callDepth = Renderer._callDepth
+
+		const autoClear = Renderer.autoClear
+
+		try {
+
+			this.renderFrame(scene, camera, roomParameters, target, debug)
+		}
+		catch( err ) {
+
+			Renderer.setRenderTarget( renderTarget )
+
+			Renderer.autoClear = autoClear
+
+			if( typeof callDepth === "number" ) Renderer._callDepth = callDepth
+
+			const key = String( err?.message || err )
+
+			this.reportedErrors ??= new Set()
+
+			if( !this.reportedErrors.has( key ) ) {
+
+				this.reportedErrors.add( key )
+
+				console.error( "[PostProcessing] frame failed", err )
+			}
+		}
+	}
+
+	renderFrame(scene, camera, roomParameters, target, debug = false ) {
 
 		if ( roomParameters?.lighting?.enabled == true  ) {
 
