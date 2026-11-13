@@ -975,6 +975,16 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                   !request.signal.aborted
                           ).length
                         : activeLoads;
+                    // Your party's full avatars go ahead of the crowd's, on
+                    // slots of their own, so they are ready before a trip.
+                    if (!allowed)
+                        for (const [visitor, load] of remoteQueue) {
+                            if (!visitor.cinematic) continue;
+                            if (running >= limit + 4) break;
+                            remoteQueue.delete(visitor);
+                            load();
+                            running++;
+                        }
                     for (const [visitor, load] of remoteQueue) {
                         if (running >= limit) break;
                         if (
