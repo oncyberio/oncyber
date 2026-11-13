@@ -56,6 +56,8 @@ import {
 
 import gsap from 'gsap'
 
+import { setRenderLoop } from '../xr/xrBackend'
+
 // gsap.defaultEase = Linear.easeNone
 
 import Events from  '@3events'
@@ -235,7 +237,7 @@ class mediator {
 
                 console.log("Switching to XR animation loop")
 
-               this.renderer.setAnimationLoop(() => gsap.ticker.tick())
+               setRenderLoop(this.renderer, () => gsap.ticker.tick())
             }
 
             if( FPS != null ){
@@ -273,7 +275,7 @@ class mediator {
 
             if(IS_VR) {
 
-                this.renderer.setAnimationLoop(null)
+                setRenderLoop(this.renderer, null)
             }
             gsap.ticker.remove(this.updateEvent);
 

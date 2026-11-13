@@ -1,4 +1,9 @@
-import { canPresentXR, forceWebGLForXR, xrSessionInit } from "./xrBackend";
+import {
+    canPresentXR,
+    forceWebGLForXR,
+    setRenderLoop,
+    xrSessionInit,
+} from "./xrBackend";
 
 const QUEST =
     "Mozilla/5.0 (X11; Linux x86_64; Quest 3) AppleWebKit/537.36 (KHTML, like Gecko) OculusBrowser/40.0 Chrome/140.0 Mobile VR Safari/537.36";
@@ -43,5 +48,31 @@ describe("xrSessionInit", () => {
             "hand-tracking",
             "layers",
         ]);
+    });
+});
+
+describe("setRenderLoop", () => {
+    const loop = () => {};
+
+    it("uses the renderer's loop outside VR", () => {
+        const renderer = {
+            xr: { isPresenting: false, _currentAnimationLoop: null },
+            setAnimationLoop: jest.fn(),
+        };
+        setRenderLoop(renderer, loop);
+        expect(renderer.setAnimationLoop).toHaveBeenCalledWith(loop);
+        expect(renderer.xr._currentAnimationLoop).toBeNull();
+    });
+
+    it("hands the loop to the XR manager while presenting", () => {
+        const renderer = {
+            xr: { isPresenting: true, _currentAnimationLoop: null },
+            setAnimationLoop: jest.fn(),
+        };
+        setRenderLoop(renderer, loop);
+        expect(renderer.setAnimationLoop).not.toHaveBeenCalled();
+        expect(renderer.xr._currentAnimationLoop).toBe(loop);
+        setRenderLoop(renderer, null);
+        expect(renderer.xr._currentAnimationLoop).toBeNull();
     });
 });
