@@ -1,12 +1,8 @@
 // @ts-check
 
-// Keeps the player inside the space. A player who ends up far outside the
-// space's geometry (launched by a bad collision, or loaded from a shared link
-// whose coords point outside) sees only the background colour, so physics
-// sends them back to a spawn that is actually inside the space.
-
-/** How far past the space's bounds, in metres, a player may wander. */
-export const OUTSIDE_MARGIN = 20;
+// Picks a respawn spot inside the space. A shared link's coords can point
+// outside the space; respawning there after a fall would drop the player
+// again and again, so physics falls back to the room's own spawn.
 
 /** Pure: no three.js, so it runs in tests without a renderer. */
 
@@ -25,32 +21,6 @@ function usable(bounds) {
         ) &&
         bounds.min.x <= bounds.max.x &&
         bounds.min.z <= bounds.max.z
-    );
-}
-
-/**
- * True when the player has left the space: fallen well below it, or gone
- * far past its sides or its top.
- *
- * @param {XYZ} position player feet (or camera, in first person)
- * @param {Bounds | null | undefined} bounds the space's bounding box
- * @param {number} userHeight
- */
-export function isOutsideSpace(position, bounds, userHeight) {
-    if (!usable(bounds)) return false;
-
-    const { x, y, z } = position;
-
-    if (![x, y, z].every(Number.isFinite)) return true;
-
-    if (y < bounds.min.y - userHeight * 5) return true;
-
-    return (
-        x < bounds.min.x - OUTSIDE_MARGIN ||
-        x > bounds.max.x + OUTSIDE_MARGIN ||
-        z < bounds.min.z - OUTSIDE_MARGIN ||
-        z > bounds.max.z + OUTSIDE_MARGIN ||
-        y > bounds.max.y + OUTSIDE_MARGIN
     );
 }
 
@@ -108,26 +78,4 @@ export function pickSpawnInsideSpace(candidates, bounds) {
         z: (bounds.min.z + bounds.max.z) / 2,
         reference: "head",
     };
-}
-
-/** The shortest single-frame jump, in metres, that is never a real step. */
-export const MIN_RUNAWAY_STEP = 5;
-
-/**
- * True when one physics frame moved the player sideways further than
- * walking, running or a collision push ever can. Seen in the wild as a throw
- * kilometres out of the space right after spawning.
- *
- * @param {XYZ} before
- * @param {XYZ} after
- * @param {number} colliderHeight the player's collision height this frame
- */
-export function isRunawayStep(before, after, colliderHeight) {
-    const step = Math.hypot(after.x - before.x, after.z - before.z);
-    if (!Number.isFinite(step)) return true;
-    const limit = Math.max(
-        MIN_RUNAWAY_STEP,
-        2 * (Number.isFinite(colliderHeight) ? colliderHeight : 0)
-    );
-    return step > limit;
 }
