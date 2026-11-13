@@ -805,6 +805,13 @@ export default function Lobby({
         [social, crowdReplies]
     );
     // Lines over speakers' heads. The scene fades each one out on its own.
+    const stagedIds = useMemo(
+        () =>
+            social.groupPlayers
+                ? new Set(social.groupPlayers.map((person) => person.id))
+                : null,
+        [social.groupPlayers]
+    );
     const speech = useMemo(() => {
         // Party messages only reach the party's members, so their lines
         // show above the speaker for the party and nobody else.
@@ -1528,6 +1535,11 @@ export default function Lobby({
                                 ? {
                                       memberIds: partyMemberIds,
                                       onAdd: addToParty,
+                                      // The mock party only knows the
+                                      // staged crowd.
+                                      canAdd: stagedIds
+                                          ? (id) => stagedIds.has(id)
+                                          : undefined,
                                   }
                                 : undefined
                         }

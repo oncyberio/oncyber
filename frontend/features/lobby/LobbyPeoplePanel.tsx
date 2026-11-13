@@ -43,6 +43,8 @@ type Props = {
     party?: {
         memberIds: readonly string[];
         onAdd(id: string): Promise<void>;
+        /** Who can be added; everyone when left out. */
+        canAdd?(id: string): boolean;
     };
     /** Closest people first, or by name when switched off. */
     sort?: { nearby: boolean; onToggle(): void };
@@ -404,6 +406,7 @@ export default function LobbyPeoplePanel({
                                     {player.isLocal && <small>You</small>}
                                     {party &&
                                         !player.isLocal &&
+                                        party.canAdd?.(player.id) !== false &&
                                         (party.memberIds.includes(player.id) ? (
                                             <small className="person-state">
                                                 In party
