@@ -1453,9 +1453,16 @@ class Multiplayer extends Group {
 
     recordingPartyEntries() {
 
-        if (this.recordingPartyCache) return this.recordingPartyCache
-
         const main = Players.main
+
+        if (this.recordingPartyCache) {
+
+            // Friends stay with you from room to room: a player whose
+            // space differs from yours is hidden.
+            for (const friend of this.recordingPartyCache) friend.space = main.currentSpace
+
+            return this.recordingPartyCache
+        }
 
         if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
 
@@ -1576,9 +1583,10 @@ class Multiplayer extends Group {
                 !pSessionID
             ) {
 
-                const needsOverride =
+                // Recording friends keep their own avatar at any quality.
+                const needsOverride = !player.recordingFriend && (
                     Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
-                      || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY
+                      || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY )
 
 
                 const CURRENT_VRM = needsOverride ? ( QUALITIES.MEDIUM == QUALITY ? MID_LOD_VRM : LOD_VRM ) : ( VRM == null ? DEFAULT_VRM : VRM )
@@ -1752,8 +1760,8 @@ class Multiplayer extends Group {
 
                 const vrmIsntOverride = pSessionID.avatar3D.overrideVRMName != null && space == Players.main.currentSpace
 
-                const needsLOD =  Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
-                const needsOverride = needsLOD  || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY
+                const needsLOD = !player.recordingFriend && Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
+                const needsOverride = needsLOD  || ( !player.recordingFriend && ( QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY ) )
 
 
                 var CURRENT_VRM = needsOverride ? ( QUALITIES.MEDIUM == QUALITY ? MID_LOD_VRM : LOD_VRM ) : ( VRM == null ? DEFAULT_VRM : VRM )

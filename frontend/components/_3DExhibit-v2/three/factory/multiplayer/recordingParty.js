@@ -53,6 +53,7 @@ export function recordingPartyPlayers(party, main, forward) {
             floor: true,
             isAdmin: false,
             VRM: friend.vrmUrl || undefined,
+            recordingFriend: true,
         };
     });
 }
