@@ -197,8 +197,10 @@ function PersonActions({
     onGoTo,
     onSummonAll,
     onError,
+    up,
 }: {
     person: Person;
+    up?: boolean;
     voice?: LobbyVoiceControls | null;
     onGoTo?(id: string): void;
     onSummonAll?(): void;
@@ -215,20 +217,30 @@ function PersonActions({
     const moderate =
         admin && person.role !== "owner" && (!person.role || owner);
     return (
-        <div className="person-actions">
+        <div
+            className="person-actions"
+            role="menu"
+            aria-label={`Options for ${person.name}`}
+            data-up={up || undefined}
+        >
             {!person.isLocal && onGoTo && (
-                <button type="button" onClick={() => onGoTo(person.id)}>
+                <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => onGoTo(person.id)}
+                >
                     Go to them
                 </button>
             )}
             {person.isLocal && admin && onSummonAll && (
-                <button type="button" onClick={onSummonAll}>
+                <button type="button" role="menuitem" onClick={onSummonAll}>
                     Bring everyone here
                 </button>
             )}
             {moderate && !muted && (
                 <button
                     type="button"
+                    role="menuitem"
                     onClick={() => act(speaking ? "stage-remove" : "stage-add")}
                 >
                     {speaking ? "Remove from voice" : "Add to voice"}
@@ -238,6 +250,7 @@ function PersonActions({
                 <>
                     <button
                         type="button"
+                        role="menuitem"
                         onClick={() => act(muted ? "unmute" : "mute")}
                     >
                         {muted ? "Unmute" : "Mute"}
@@ -245,6 +258,7 @@ function PersonActions({
                     {owner && (
                         <button
                             type="button"
+                            role="menuitem"
                             onClick={() =>
                                 act(
                                     person.role ? "revoke-admin" : "grant-admin"
@@ -256,6 +270,7 @@ function PersonActions({
                     )}
                     <button
                         type="button"
+                        role="menuitem"
                         className="danger"
                         onClick={() => act("kick")}
                     >
@@ -301,6 +316,17 @@ export default function LobbyPeoplePanel({
     };
     const panel = useRef<HTMLElement>(null);
     const [open, setOpen] = useState<string | null>(null);
+    // The "•••" menu floats over the list; a click anywhere else closes it.
+    useEffect(() => {
+        if (!open) return;
+        const away = (event: PointerEvent) => {
+            const target = event.target as Element | null;
+            if (!target?.closest?.(`[data-person="${CSS.escape(open)}"]`))
+                setOpen(null);
+        };
+        document.addEventListener("pointerdown", away);
+        return () => document.removeEventListener("pointerdown", away);
+    }, [open]);
     const [error, setError] = useState("");
     const selfId = players.find((player) => player.isLocal)?.id;
     const admin = !!voice?.stage.role;
@@ -350,6 +376,12 @@ export default function LobbyPeoplePanel({
                     event.altKey
                 )
                     return;
+                if (event.key === "Escape" && open) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setOpen(null);
+                    return;
+                }
                 if (event.key === "Escape") {
                     event.preventDefault();
                     event.stopPropagation();
@@ -422,7 +454,7 @@ export default function LobbyPeoplePanel({
                 {!!listed.length && (
                     <ul aria-label="People" className="people-list">
                         {listed.map((player) => (
-                            <li key={player.id}>
+                            <li key={player.id} data-person={player.id}>
                                 <div className="person-row">
                                     {player.avatar ? (
                                         <img
@@ -493,6 +525,10 @@ export default function LobbyPeoplePanel({
                                 {open === player.id && (
                                     <PersonActions
                                         person={player}
+                                        up={
+                                            players.length > 3 &&
+                                            index >= players.length - 2
+                                        }
                                         voice={voice}
                                         onGoTo={
                                             onGoTo &&
@@ -630,12 +666,24 @@ const Panel = styled.section`
         width: 100%;
         margin: 4px 0 12px;
     }
+    /* Secondary to Add to party: a small, borderless "•••". */
     .people-content .person-more {
-        min-width: 32px;
-        padding: 0 6px;
+        min-width: 22px;
+        width: 22px;
+        min-height: 22px;
+        height: 22px;
+        padding: 0;
         border-color: transparent;
-        color: #c2c2bd;
-        letter-spacing: 1px;
+        border-radius: 6px;
+        color: #93938e;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        &:hover,
+        &[aria-expanded="true"] {
+            border-color: transparent;
+            background: #ffffff10;
+            color: #f3f3f1;
+        }
     }
     .people-tools {
         display: flex;
@@ -774,11 +822,40 @@ const Panel = styled.section`
         color: #2cf8d5;
         font: normal 10px var(--oc-mono, monospace);
     }
+    .people-content > ul > li {
+        position: relative;
+    }
+    /* A small floating menu, so the list itself never reflows. */
     .person-actions {
+        position: absolute;
+        z-index: 2;
+        top: calc(100% - 6px);
+        right: 0;
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 0 2px 10px 18px;
+        flex-direction: column;
+        min-width: 168px;
+        padding: 4px;
+        border: 1px solid #ffffff1a;
+        border-radius: 10px;
+        background: #15181ef5;
+        box-shadow: 0 10px 28px #00000080;
+    }
+    .person-actions[data-up] {
+        top: auto;
+        bottom: calc(100% - 6px);
+    }
+    .people-content .person-actions button {
+        justify-content: flex-start;
+        width: 100%;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        text-align: left;
+        font-size: 12px;
+        &:hover {
+            background: #ffffff10;
+        }
     }
     .people-content .person-actions button.danger {
         color: #ff8a80;
