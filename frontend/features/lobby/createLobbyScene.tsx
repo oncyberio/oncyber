@@ -287,11 +287,19 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 const arrivalBlack = new THREE.Color(0x000000);
                 const departureBackdrop = backdrop.clone();
                 scene.background = backdrop;
-                scene.fog = new THREE.Fog(
+                const fog = new THREE.Fog(
                     backdrop,
                     environment.fogNear,
                     environment.fogFar
                 );
+                scene.fog = fog;
+                // The fog stays on the scene and only moves out of reach:
+                // taking it off rebuilds every material, a long frame right
+                // on the clap.
+                const setFog = (on: boolean) => {
+                    fog.near = on ? environment.fogNear : 1e9;
+                    fog.far = on ? environment.fogFar : 2e9;
+                };
                 const travelAnchor = new THREE.Vector3();
                 const travelCameraStart = new THREE.Vector3();
                 const travelCameraFocusStart = new THREE.Vector3();
@@ -2915,7 +2923,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         floor.visible = false;
                         departureFloor.setProgress(1, travelAnchor);
                         scene.background = arrivalBlack;
-                        scene.fog = null;
+                        setFog(false);
                     } else {
                         previewWorld?.hide();
                         const dissolve = travelVisual?.dissolve ?? 0;
@@ -2941,13 +2949,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 returning ? 1 - dissolve : brightness
                             );
                         scene.background = departureBackdrop;
-                        if (dissolve > 0) scene.fog = null;
-                        else if (!scene.fog)
-                            scene.fog = new THREE.Fog(
-                                backdrop,
-                                environment.fogNear,
-                                environment.fogFar
-                            );
+                        setFog(dissolve === 0);
                     }
                     host.dataset.worldDissolve = String(
                         travelVisual?.dissolve ?? 0
