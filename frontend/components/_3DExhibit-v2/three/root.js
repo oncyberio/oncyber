@@ -2,6 +2,8 @@
 
 import { AnimationMixer, Euler, Group, Matrix4, Mesh, Vector3 } from "three";
 
+import { readNativeCameraPreference } from "@utils/nativeCameraPreference";
+
 import {
     APP_STATES,
     CINEMATIC,
@@ -215,15 +217,14 @@ class Root extends Group {
                         // flag says first person; with the third-person camera
                         // still active that becomes a loop that pushes the
                         // player one camera distance backwards every frame, out
-                        // of the space. With no saved preference (signed out,
-                        // or settings not loaded yet) keep the current camera.
-                        const preferred = opts.userData?.settings?.camera
+                        // of the space. With no saved choice, third person.
+                        const preferred = readNativeCameraPreference(opts.userData?.settings?.camera)
 
                         if (preferred === "first_person") {
 
                             Camera.setFirstPerson();
                         }
-                        else if (preferred) {
+                        else {
 
                             Camera.setThirdPerson();
                         }
