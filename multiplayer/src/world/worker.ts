@@ -138,6 +138,7 @@ port.on("message", (message: any) => {
     else if (message.type === "stage") gateway.setStage(message.stage);
     else if (message.type === "stage-result") gateway.deliverStageResult(message.id, message.data);
     else if (message.type === "stage-kick") gateway.kick(message.id);
+    else if (message.type === "summon") gateway.summon(message.from);
     else if (message.type === "proxy-accept") {
         const p = { buffered: 0, closed: false };
         proxyEndpoints.set(message.id, p);

@@ -46,6 +46,10 @@ type Props = {
     };
     /** Closest people first, or by name when switched off. */
     sort?: { nearby: boolean; onToggle(): void };
+    /** Walk up to someone, like Teleport in spaces. */
+    onGoTo?(id: string): void;
+    /** Admins: ask everyone further away to come here. */
+    onSummonAll?(): void;
     children?: React.ReactNode;
 };
 
@@ -182,26 +186,47 @@ function VoiceSection({
     );
 }
 
-function AdminActions({
+/**
+ * The "•••" menu, matching the people list in spaces: anyone can go to
+ * someone; admins also manage voice, mute, remove, make admins, and bring
+ * everyone to themselves.
+ */
+function PersonActions({
     person,
     voice,
+    onGoTo,
+    onSummonAll,
     onError,
 }: {
     person: Person;
-    voice: LobbyVoiceControls;
+    voice?: LobbyVoiceControls | null;
+    onGoTo?(id: string): void;
+    onSummonAll?(): void;
     onError(message: string): void;
 }) {
-    const { stage } = voice;
-    const owner = stage.role === "owner";
-    const speaking = stage.speakers.some((s) => s.sessionId === person.id);
-    const muted = stage.mutedPeople.includes(person.id);
+    const stage = voice?.stage;
+    const admin = !!stage?.role;
+    const owner = stage?.role === "owner";
+    const speaking = !!stage?.speakers.some((s) => s.sessionId === person.id);
+    const muted = !!stage?.mutedPeople.includes(person.id);
     const act = async (action: LobbyAdminAction) =>
-        onError(await voice.onAdmin(action, person.id));
+        onError(await voice!.onAdmin(action, person.id));
     // Mirrors the server: admins can't moderate admins; the main admin can.
-    if (person.role === "owner" || (person.role && !owner)) return null;
+    const moderate =
+        admin && person.role !== "owner" && (!person.role || owner);
     return (
         <div className="person-actions">
-            {!muted && (
+            {!person.isLocal && onGoTo && (
+                <button type="button" onClick={() => onGoTo(person.id)}>
+                    Go to them
+                </button>
+            )}
+            {person.isLocal && admin && onSummonAll && (
+                <button type="button" onClick={onSummonAll}>
+                    Bring everyone here
+                </button>
+            )}
+            {moderate && !muted && (
                 <button
                     type="button"
                     onClick={() => act(speaking ? "stage-remove" : "stage-add")}
@@ -209,16 +234,13 @@ function AdminActions({
                     {speaking ? "Remove from voice" : "Add to voice"}
                 </button>
             )}
-            {!person.isLocal && (
+            {moderate && !person.isLocal && (
                 <>
                     <button
                         type="button"
                         onClick={() => act(muted ? "unmute" : "mute")}
                     >
                         {muted ? "Unmute" : "Mute"}
-                    </button>
-                    <button type="button" onClick={() => act("kick")}>
-                        Remove from lobby
                     </button>
                     {owner && (
                         <button
@@ -232,6 +254,13 @@ function AdminActions({
                             {person.role ? "Remove admin" : "Make admin"}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        className="danger"
+                        onClick={() => act("kick")}
+                    >
+                        Remove from lobby
+                    </button>
                 </>
             )}
         </div>
@@ -247,6 +276,8 @@ export default function LobbyPeoplePanel({
     voice,
     party,
     sort,
+    onGoTo,
+    onSummonAll,
     children,
 }: Props) {
     const [query, setQuery] = useState("");
@@ -441,7 +472,7 @@ export default function LobbyPeoplePanel({
                                                     : "+"}
                                             </button>
                                         ))}
-                                    {admin && (
+                                    {(admin || (!player.isLocal && onGoTo)) && (
                                         <button
                                             type="button"
                                             className="person-more"
@@ -459,10 +490,24 @@ export default function LobbyPeoplePanel({
                                         </button>
                                     )}
                                 </div>
-                                {admin && open === player.id && (
-                                    <AdminActions
+                                {open === player.id && (
+                                    <PersonActions
                                         person={player}
                                         voice={voice}
+                                        onGoTo={
+                                            onGoTo &&
+                                            ((id) => {
+                                                setOpen(null);
+                                                onGoTo(id);
+                                            })
+                                        }
+                                        onSummonAll={
+                                            onSummonAll &&
+                                            (() => {
+                                                setOpen(null);
+                                                onSummonAll();
+                                            })
+                                        }
                                         onError={setError}
                                     />
                                 )}
@@ -734,6 +779,9 @@ const Panel = styled.section`
         flex-wrap: wrap;
         gap: 6px;
         padding: 0 2px 10px 18px;
+    }
+    .people-content .person-actions button.danger {
+        color: #ff8a80;
     }
     .person-dot.live {
         background: #ff5a4f;

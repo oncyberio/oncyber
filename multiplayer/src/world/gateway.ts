@@ -4,11 +4,13 @@ import { InputAuthority } from "./input";
 import { decodeInputs } from "../../protocol/movement";
 import { performance } from "perf_hooks";
 import { CrowdModel, Person, TokenBucket } from "../rooms/crowd/core";
-import { profile, Profile, VOICE_LIMIT, VOICE_RADIUS, VOICE_EXIT_RADIUS } from "../rooms/crowd/protocol";
+import { profile, Profile } from "../rooms/crowd/protocol";
 import { SharedWorld, SharedWorldData, ActorPose, blankPose, VOICE_STRIDE, VOICE_PICKS, VOICE_HEARERS } from "./shared";
-import { STAGE_ACTIONS, StageRole, StageSnapshot } from "./stage";
+import { STAGE_ACTIONS, STAGE_VOICE_EXIT_RADIUS, STAGE_VOICE_RADIUS, StageRole, StageSnapshot } from "./stage";
 import { InterestIndex } from "./interest";
 import { decodeMovement, encodeMotionPose, encodePose, encodeSnapshotParts } from "../../protocol/lobby-v2";
+/** Same ring as "teleport all here" in spaces. */
+export const SUMMON_RADIUS = 10;
 export interface Endpoint {
     sendControl(type: string, data: any): boolean;
     sendDatagram(bytes: Uint8Array): boolean;
@@ -293,8 +295,24 @@ export class WorldGateway {
             if (!c.person.voiceReady) for (let i = 1; i < VOICE_STRIDE; i++) Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE + i, 0);
         } else if (type === "rtc-signal") {
             const to = Number(data?.to);
-            if (c.activeWorld || !Number.isSafeInteger(to) || !data?.payload || !["offer", "answer", "candidate"].includes(data.payload.kind) || JSON.stringify(data.payload).length > 15000 || !this.mutualVoice(c.id, to) || !this.near(c.id, to, VOICE_EXIT_RADIUS)) return;
+            if (c.activeWorld || !Number.isSafeInteger(to) || !data?.payload || !["offer", "answer", "candidate"].includes(data.payload.kind) || JSON.stringify(data.payload).length > 15000 || !this.mutualVoice(c.id, to) || !this.near(c.id, to, STAGE_VOICE_EXIT_RADIUS)) return;
             this.options.post({ type: "relay", from: c.id, to: [to], event: "rtc-signal", data: { from: sessionId, payload: data.payload } });
+        } else if (type === "lobby-teleport") {
+            // Go to someone, or answer an admin's summon: land on a ring
+            // around them, 2 m out, or 10 m like a summon in spaces.
+            const to = Number(data?.sessionId),
+                radius = data?.radius === SUMMON_RADIUS ? SUMMON_RADIUS : 2,
+                target = this.actors.get(to);
+            if (c.groupHold || c.activeWorld || to === c.id || !target || typeof data?.sessionId !== "string") return;
+            const away = Math.hypot(target.x - c.pose.x, target.z - c.pose.z);
+            if (radius === SUMMON_RADIUS && away <= SUMMON_RADIUS) return;
+            const angle = Math.random() * Math.PI * 2,
+                x = target.x + Math.cos(angle) * radius,
+                z = target.z + Math.sin(angle) * radius;
+            this.place(c, x, z, Math.atan2(target.x - x, target.z - z));
+        } else if (type === "lobby-summon") {
+            if (!this.roles.has(c.id)) return;
+            this.options.post({ type: "stage-action", actor: c.id, data: { kind: "summon" } });
         } else if (type === "lobby-voice-request") {
             this.options.post({ type: "stage-action", actor: c.id, data: { kind: "request", cancel: data?.cancel === true } });
         } else if (type === "lobby-stage-leave") {
@@ -325,7 +343,7 @@ export class WorldGateway {
             if (!c.visible.includes(from) || !this.near(from, to, 32)) return;
         } else if (event === "chat-peer") {
             if (!this.members.has(from) || data?.from !== String(from) || data?.to !== c.sessionId) return;
-        } else if (event === "rtc-signal" && (!this.mutualVoice(from, to) || !this.near(from, to, VOICE_EXIT_RADIUS))) return;
+        } else if (event === "rtc-signal" && (!this.mutualVoice(from, to) || !this.near(from, to, STAGE_VOICE_EXIT_RADIUS))) return;
         if (!this.control(c, event, data)) c.endpoint.close(4008, "Reliable control backlog");
     }
     deliverGroup(to: string, event: string, data: unknown) {
@@ -362,6 +380,28 @@ export class WorldGateway {
             this.shared.write(c.pose);
             if (c.input) c.ack = c.input.place({ x: c.pose.x, y: 0, z: c.pose.z, rotation: c.pose.yaw, animation: -1, floor: true }, Date.now());
         }
+    }
+    private place(c: Connection, x: number, z: number, yaw: number) {
+        this.setFlash(c, null);
+        c.pendingMove = null;
+        Object.assign(c.pose, { x, y: 0, z, yaw, vx: 0, vy: 0, vz: 0, animation: -1, floor: true, revision: c.pose.revision + 1 });
+        Object.assign(c.person, { x, y: 0, z, yaw, animation: -1, floor: true, movedAt: Date.now(), revision: c.pose.revision });
+        if (c.input) c.ack = c.input.place({ x, y: 0, z, rotation: yaw, animation: -1, floor: true }, Date.now());
+        else c.ack = { seq: c.person.seq, position: [x, 0, z, yaw], animation: -1, floor: true, serverTime: Date.now(), corrected: true };
+        this.shared.write(c.pose);
+        this.control(c, "lobby-group-position", { travelId: "teleport", pose: { x, y: 0, z, rotation: yaw }, held: false, serverNow: Date.now() });
+        this.control(c, "lobby-ack", c.ack);
+        c.ack = null;
+    }
+    /** An admin's "bring everyone here", for everyone further than the summon ring. */
+    summon(from: number) {
+        const member = this.members.get(from),
+            origin = this.actors.get(from);
+        if (!member || !origin) return;
+        const data = { sessionId: String(from), username: member.profile.username, avatar: member.profile.avatar, radius: SUMMON_RADIUS };
+        for (const c of this.sessions.values())
+            if (c.ready && c.id !== from && !c.activeWorld && !c.groupHold && Math.hypot(c.pose.x - origin.x, c.pose.z - origin.z) > SUMMON_RADIUS)
+                this.control(c, "lobby-summon", data);
     }
     /** The main thread's moderation state; every worker holds the same copy. */
     setStage(stage: StageSnapshot) {
@@ -423,21 +463,21 @@ export class WorldGateway {
         return !!x && !!y && (x.x - y.x) ** 2 + (x.z - y.z) ** 2 <= radius * radius;
     }
     /**
-     * Only admin-approved speakers send audio. A speaker picks nearby
-     * speakers (two-way); everyone else picks nearby speakers to hear. The
-     * speaker then accepts its nearest listeners who picked it. Picks keep
-     * the AOI requirement so every audible peer has a pose, and retain
-     * established pairs through a small distance band.
+     * Only admin-approved speakers send audio, like spaces on oncyber.io.
+     * A speaker picks the other speakers in range (two-way); everyone else
+     * picks the speakers in range to hear. The speaker then accepts its
+     * nearest listeners who picked it. Voice reaches past the avatars you
+     * can see, so this reads every actor's pose, not the AOI.
      */
     private selectVoice(c: Connection) {
         const peers: number[] = [], scores: number[] = [];
-        for (const id of c.visible) {
-            if (!this.speakers.has(id)) continue;
+        for (const id of this.speakers) {
+            if (id === c.id) continue;
             const member = this.members.get(id), pose = this.actors.get(id);
             if (!member || !pose || !Atomics.load(this.shared.voice, member.slot * VOICE_STRIDE)) continue;
             const retained = c.voice.includes(id);
             const distance = Math.hypot(pose.x - c.pose.x, pose.z - c.pose.z);
-            if (distance > (retained ? VOICE_EXIT_RADIUS : VOICE_RADIUS)) continue;
+            if (distance > (retained ? STAGE_VOICE_EXIT_RADIUS : STAGE_VOICE_RADIUS)) continue;
             this.rank(peers, scores, id, distance - (retained ? 2 : 0), VOICE_PICKS);
         }
         return peers;
@@ -445,12 +485,12 @@ export class WorldGateway {
     private selectHearers(c: Connection) {
         const peers: number[] = [], scores: number[] = [];
         if (!this.speakers.has(c.id)) return peers;
-        for (const id of c.visible) {
-            if (this.speakers.has(id)) continue;
-            const member = this.members.get(id), pose = this.actors.get(id);
-            if (!member || !pose || !this.picked(member.slot, c.id)) continue;
+        for (const [id, pose] of this.actors) {
+            if (id === c.id || this.speakers.has(id)) continue;
+            const member = this.members.get(id);
+            if (!member || !this.picked(member.slot, c.id)) continue;
             const distance = Math.hypot(pose.x - c.pose.x, pose.z - c.pose.z);
-            if (distance <= VOICE_EXIT_RADIUS) this.rank(peers, scores, id, distance, VOICE_HEARERS);
+            if (distance <= STAGE_VOICE_EXIT_RADIUS) this.rank(peers, scores, id, distance, VOICE_HEARERS);
         }
         return peers;
     }
@@ -474,6 +514,15 @@ export class WorldGateway {
             if (!value) return false;
         }
         return false;
+    }
+    private hearersOf(slot: number) {
+        const ids: number[] = [], row = slot * VOICE_STRIDE + 1 + VOICE_PICKS;
+        for (let i = 0; i < VOICE_HEARERS; i++) {
+            const id = Atomics.load(this.shared.voice, row + i);
+            if (!id) break;
+            ids.push(id);
+        }
+        return ids;
     }
     /** 0: no link. 1: two speakers. 2: a speaks to b. 3: a listens to b. */
     private voiceLink(a: number, b: number) {
@@ -641,7 +690,10 @@ export class WorldGateway {
             if (c.stageRevision !== this.stageState.revision && this.stageState.revision >= 0 && this.control(c, "lobby-stage", this.stageView(c))) c.stageRevision = this.stageState.revision;
             if ((c.person.voiceReady || c.voice.length) && this.tick % 4 === c.phase % 4) {
                 const voice: number[] = [], listenOnly: string[] = [], speakOnly: string[] = [];
-                for (const id of c.visible) {
+                // Speakers' links name them; listeners' links come from speakers' rows.
+                const candidates = this.speakers.has(c.id) ? [...this.speakers, ...this.hearersOf(c.slot)] : this.speakers;
+                for (const id of candidates) {
+                    if (id === c.id) continue;
                     const link = this.voiceLink(c.id, id);
                     if (!link) continue;
                     voice.push(id);
