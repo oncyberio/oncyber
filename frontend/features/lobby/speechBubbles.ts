@@ -83,9 +83,10 @@ const tagName = (name: string, photo: boolean) => {
 };
 
 /**
- * What someone just said, shown inside their name tag. The picture stays
- * put; the message comes up from below and pushes the name up and out, and
- * when it leaves it is pushed back down as the name returns.
+ * What someone just said, shown in place of their name tag. The message
+ * comes up from below and pushes the whole tag, picture and name, up and
+ * out; when it leaves it is pushed back down as the tag returns. The message
+ * stands alone, centred over the speaker.
  *
  * The name tag itself is drawn on the GPU, so while someone is `speaking`
  * the scene hides it and this draws a DOM twin in the same place and size.
@@ -101,6 +102,7 @@ export class SpeechBubbles {
             backdrop: HTMLDivElement;
             image: HTMLImageElement;
             name: HTMLSpanElement;
+            bubble: HTMLDivElement;
             line: HTMLSpanElement;
             text: string;
             photo: string;
@@ -143,6 +145,17 @@ export class SpeechBubbles {
             height: "1.25em",
             width: "max-content",
         });
+        // The message hangs from the tag's baseline, centred on the speaker,
+        // and grows upward when it wraps.
+        const bubble = document.createElement("div");
+        Object.assign(bubble.style, {
+            position: "absolute",
+            left: "0",
+            top: "0",
+            width: "max-content",
+            maxWidth: "17em",
+            textAlign: "center",
+        });
         const backdrop = document.createElement("div");
         Object.assign(backdrop.style, {
             position: "absolute",
@@ -162,11 +175,6 @@ export class SpeechBubbles {
             display: "none",
         });
         image.onerror = () => (image.style.display = "none");
-        const words = document.createElement("div");
-        Object.assign(words.style, {
-            position: "relative",
-            height: "1.25em",
-        });
         const name = document.createElement("span");
         Object.assign(name.style, {
             display: "block",
@@ -174,17 +182,14 @@ export class SpeechBubbles {
         });
         const line = document.createElement("span");
         Object.assign(line.style, {
-            position: "absolute",
-            left: "0",
-            bottom: "0",
-            width: "max-content",
-            maxWidth: "17em",
+            position: "relative",
+            display: "block",
             whiteSpace: "pre-wrap",
             overflowWrap: "anywhere",
         });
-        words.append(name, line);
-        row.append(backdrop, image, words);
-        root.append(row);
+        row.append(image, name);
+        bubble.append(backdrop, line);
+        root.append(row, bubble);
         this.container.append(root);
         return {
             root,
@@ -192,6 +197,7 @@ export class SpeechBubbles {
             backdrop,
             image,
             name,
+            bubble,
             line,
             text: "",
             photo: "",
@@ -223,12 +229,10 @@ export class SpeechBubbles {
             }
             if (entry.text !== line.text) {
                 entry.text = line.text;
-                // The colon marks it as something said, not a name.
-                entry.line.textContent = `: ${
+                entry.line.textContent =
                     line.text.length > 140
                         ? `${line.text.slice(0, 139)}…`
-                        : line.text
-                }`;
+                        : line.text;
             }
             const photo = head.photo || "";
             const nameText = tagName(head.name || "Guest", !!photo);
@@ -255,19 +259,16 @@ export class SpeechBubbles {
             entry.root.style.transform = `translate3d(${screen.x.toFixed(
                 2
             )}px, ${screen.y.toFixed(2)}px, 0) scale(${zoom.toFixed(4)})`;
+            // The whole tag leaves upward as the message arrives from below.
+            entry.row.style.opacity = (1 - presence).toFixed(3);
             entry.row.style.transform = `translate(${(-entry.lead).toFixed(
                 2
-            )}px, -50%)`;
-            entry.backdrop.style.opacity = presence.toFixed(3);
-            entry.name.style.opacity = (1 - presence).toFixed(3);
-            entry.name.style.transform = `translateY(${(
-                -SLIDE_EM * presence
-            ).toFixed(3)}em)`;
-            entry.line.style.opacity = presence.toFixed(3);
-            entry.line.style.transform = `translateY(${(
+            )}px, calc(-50% - ${(SLIDE_EM * presence).toFixed(3)}em))`;
+            entry.bubble.style.opacity = presence.toFixed(3);
+            entry.bubble.style.transform = `translate(-50%, calc(0.625em - 100% + ${(
                 SLIDE_EM *
                 (1 - presence)
-            ).toFixed(3)}em)`;
+            ).toFixed(3)}em))`;
         }
         for (const [id, entry] of this.elements)
             if (!seen.has(id)) {
