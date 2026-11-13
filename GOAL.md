@@ -13,8 +13,7 @@ travel.
 2. **Spaces on WebGPU.** The lobby and gallery spaces render with a WebGPU
    engine (three.js and TSL), with a WebGL2 fallback.
 3. **Room to grow.** The current architecture is the base for supporting
-   worlds made with other engines later. It also has code, not live yet, that
-   can serve awe.box experiences.
+   worlds made with other engines later.
 4. **Creation in the browser.** An editable Studio, so people can make and
    curate spaces without leaving the site.
 5. **Discovery.** A landing page and explore experience to find spaces, worlds
@@ -133,8 +132,7 @@ find:unused` finds it. Git history keeps the old versions.
 ## Naming
 
 The product is Oncyber. Don't add other product or SDK names to code, docs or
-the interface. The one exception is the content-host code that can serve
-awe.box experiences, which names that domain.
+the interface.
 
 ## Keys and the public repository
 
