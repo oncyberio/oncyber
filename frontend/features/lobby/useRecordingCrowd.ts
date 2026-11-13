@@ -143,5 +143,10 @@ export default function useRecordingCrowd(): {
             options && avatars ? createRecordingCrowd(options, avatars) : null,
         [options, avatars]
     );
-    return options && crowd ? { options, crowd } : null;
+    // One object for the crowd's whole life: effects depend on it, and a new
+    // one each render makes them run forever.
+    return useMemo(
+        () => (options && crowd ? { options, crowd } : null),
+        [options, crowd]
+    );
 }

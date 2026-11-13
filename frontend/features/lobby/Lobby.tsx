@@ -716,16 +716,17 @@ export default function Lobby({
     const [groupTravellers, setGroupTravellers] = useState<string[] | null>(
         null
     );
+    const isRecording = !!recording;
     const tripStatus = groupJourney.activeTravel?.status;
     const tripIds = groupJourney.activeTravel?.acceptedIds.join(",");
     useEffect(() => {
-        if (!recording || !tripStatus || !tripIds) return;
+        if (!isRecording || !tripStatus || !tripIds) return;
         const ids = tripIds.split(",");
         if (!ids.includes(social.sessionId)) return;
         if (tripStatus === "cancelled") setGroupTravellers(null);
         else if (tripStatus !== "inviting")
             setGroupTravellers(ids.filter((id) => id !== social.sessionId));
-    }, [recording, tripStatus, tripIds, social.sessionId]);
+    }, [isRecording, tripStatus, tripIds, social.sessionId]);
     // Party members get their full (not crowd-drawn) avatar as soon as they
     // join, so nobody changes model while the party lines up to leave.
     const stagedPartyIds = useMemo(

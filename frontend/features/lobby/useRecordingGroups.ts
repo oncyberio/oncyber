@@ -96,7 +96,7 @@ export default function useRecordingGroups<T extends SocialParties>(
         // What a staged person does when the party state reaches them.
         const react = (id: string, state: LobbyGroupsSnapshot) => {
             for (const invitation of state.invitations)
-                later(`invite:${id}:${invitation.id}`, between(700, 2200), () =>
+                later(`invite:${id}:${invitation.id}`, between(80, 250), () =>
                     act(id, {
                         action: "respond-invite",
                         invitationId: invitation.id,
@@ -111,7 +111,7 @@ export default function useRecordingGroups<T extends SocialParties>(
                     travel.status === "inviting" &&
                     travel.responses[id] === "pending"
                 )
-                    later(`join:${id}:${travel.id}`, between(900, 3200), () =>
+                    later(`join:${id}:${travel.id}`, between(120, 400), () =>
                         act(id, {
                             ...base,
                             action: "travel-respond",
@@ -123,7 +123,7 @@ export default function useRecordingGroups<T extends SocialParties>(
                     ["inviting", "preparing"].includes(travel.status) &&
                     !travel.readyIds.includes(id)
                 )
-                    later(`ready:${id}:${travel.id}`, between(500, 1600), () =>
+                    later(`ready:${id}:${travel.id}`, between(120, 350), () =>
                         act(id, {
                             ...base,
                             action: "travel-ready",
