@@ -57,3 +57,19 @@ export function recordingPartyPlayers(party, main, forward) {
         };
     });
 }
+
+/**
+ * Where friend `index` of `count` stands for the trip back: the same line
+ * the lobby draws on return (features/lobby/travelPresentation.ts,
+ * travelParticipants), so nobody changes place across the cut. `side` is
+ * metres to your right, `depth` metres ahead (negative: behind you).
+ */
+export function recordingPartyLinePlace(index, count) {
+    const row = Math.floor(index / 8);
+    const inRow = Math.min(8, count - row * 8);
+    const column = index - row * 8 - (inRow - 1) / 2 + (row % 2 ? 0.5 : 0);
+    return {
+        side: column * 1.15,
+        depth: -0.9 - Math.abs(column) * 0.18 - row * 1.1,
+    };
+}

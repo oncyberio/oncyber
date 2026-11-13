@@ -32,7 +32,7 @@ import shortid from "shortid";
 
 import { PatchClock } from "@features/lobby/patchClock";
 
-import { readRecordingParty, recordingPartyPlayers } from "./recordingParty";
+import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace } from "./recordingParty";
 
 import { disposeObject3D } from "@3utils/three";
 
@@ -238,6 +238,9 @@ class Multiplayer extends Group {
         this.gateStates = {};
 
         this.recordingParty = readRecordingParty();
+
+        // The trip back asks the friends to line up (lobbyWorldDeparture.ts).
+        if (this.recordingParty) /** @type {any} */ (window).__oncyberRecordingLineUp = (yaw, snap) => this.lineUpRecordingParty(yaw, snap)
 
         this.addEvents();
 
@@ -1486,6 +1489,50 @@ class Multiplayer extends Group {
         }, forward)
 
         return this.recordingPartyCache
+    }
+
+    /**
+     * Recording only: the friends line up beside you for the trip back.
+     * `yaw` is your heading as the lobby reads it. With `snap` they are put
+     * in place at once instead of walking there. False without friends.
+     */
+    lineUpRecordingParty(yaw, snap = false) {
+
+        const friends = this.recordingParty && this.recordingPartyEntries()
+
+        const main = Players.main
+
+        if (!friends || !main) return false
+
+        const fx = -Math.sin(yaw), fz = -Math.cos(yaw)
+
+        const rx = -Math.cos(yaw), rz = Math.sin(yaw)
+
+        friends.forEach((friend, index) => {
+
+            const place = recordingPartyLinePlace(index, friends.length)
+
+            friend.positionX = main.position.x + rx * place.side + fx * place.depth
+
+            friend.positionZ = main.position.z + rz * place.side + fz * place.depth
+
+            friend.rotation = main.rotation.y
+
+            const player = snap && this.players[friend.sessionId]
+
+            if (player) {
+
+                player.position.x = friend.positionX
+
+                player.position.z = friend.positionZ
+
+                player.rotation.y = friend.rotation
+            }
+        })
+
+        this.handlePacket({ packet: { players: [] }, recordingTick: true })
+
+        return true
     }
 
     handlePacket = (opts) => {
