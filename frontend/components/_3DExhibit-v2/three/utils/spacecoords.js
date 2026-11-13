@@ -100,14 +100,6 @@ export function overrideInitialCoords(
 
     return {
         ...roomParameters,
-        // The room's own spawn, kept for when the link's coords turn out to
-        // be outside the space (see physics/spaceBounds.js).
-        roomSpawnPosition:
-            roomParameters.roomSpawnPosition ??
-            roomParameters.initialPlayerPosition,
-        roomSpawnRotation:
-            roomParameters.roomSpawnRotation ??
-            roomParameters.initialPlayerRotation,
         initialPlayerPosition: {
             ...location.position,
             reference,

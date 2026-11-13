@@ -55,12 +55,6 @@ export function updateRoomParamsFromSpawnData(params, data) {
 
         if (location == null) return;
 
-        // The room's own spawn, kept for when the link's coords turn out to
-        // be outside the space (see physics/spaceBounds.js).
-        params.roomSpawnPosition ??= { ...data.position, reference: CoordsReference.HEAD };
-
-        params.roomSpawnRotation ??= { ...data.rotation };
-
         params.initialPlayerPosition = {
             ...location.position,
             reference: CoordsReference.HEAD,

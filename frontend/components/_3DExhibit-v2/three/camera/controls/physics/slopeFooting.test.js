@@ -107,7 +107,7 @@ function slopeFloor(degrees) {
     return mesh;
 }
 
-function world(degrees, { settle = false } = {}) {
+function world(degrees) {
     const camera = new PerspectiveCamera();
     camera.position.set(0, 2.85, 0);
     const physics = new Physics({
@@ -122,8 +122,6 @@ function world(degrees, { settle = false } = {}) {
     physics.collisions.worldOctree = new TopOctree();
     physics.collisions.worldOctree.createStaticOcteee([slopeFloor(degrees)]);
     physics.playerState.position.set(0, 0.6, 0);
-    // These tests are about moving; the spawn settle has its own test.
-    if (!settle) physics.settleLeft = 0;
     return physics;
 }
 
@@ -200,23 +198,4 @@ describe.each([10, 30])("walking down a %d degree slope", (degrees) => {
         expect(mean).toBeGreaterThan(0);
         expect(worst).toBeLessThan(0.01);
     });
-});
-
-test("right after spawning nothing can move the player, then they walk", () => {
-    const physics = world(15, { settle: true });
-    const state = physics.playerState;
-    const dt = 1 / 60;
-    let time = 0;
-    state.keyStates.KeyW = true;
-    for (let i = 0; i < 60; i++) {
-        // A shove (a push out of geometry) and walking both stay put.
-        if (i === 30) state.veclocity.set(400, 50, 400);
-        physics.update(dt, (time += dt), 1);
-        expect(state.position.x).toBe(0);
-        expect(state.position.z).toBe(0);
-        expect(state.position.y).toBeLessThanOrEqual(0.6);
-    }
-    for (let i = 0; i < 120; i++) physics.update(dt, (time += dt), 1);
-    expect(state.position.z).toBeLessThan(-3);
-    expect(Math.abs(state.position.x)).toBeLessThan(0.01);
 });
