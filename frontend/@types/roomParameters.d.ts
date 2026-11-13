@@ -81,6 +81,9 @@ export interface RoomParameters {
     artworkScale?: number;
     initialPlayerPosition?: { x: number; y: number; z: number };
     initialPlayerRotation?: { x: number; y: number; z: number };
+    /** The room's own spawn when a link's coords replaced it. */
+    roomSpawnPosition?: { x: number; y: number; z: number; reference?: string };
+    roomSpawnRotation?: { x: number; y: number; z: number };
     mobile_initialPlayerPosition?: { x: number; y: number; z: number };
     mobile_initialPlayerRotation?: { azimuthAngle: number; polarAngle: number };
     playerSpeed?: number;
