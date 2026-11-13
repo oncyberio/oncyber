@@ -197,10 +197,10 @@ function PersonActions({
     onGoTo,
     onSummonAll,
     onError,
-    up,
+    style,
 }: {
     person: Person;
-    up?: boolean;
+    style?: React.CSSProperties;
     voice?: LobbyVoiceControls | null;
     onGoTo?(id: string): void;
     onSummonAll?(): void;
@@ -221,7 +221,8 @@ function PersonActions({
             className="person-actions"
             role="menu"
             aria-label={`Options for ${person.name}`}
-            data-up={up || undefined}
+            data-person={person.id}
+            style={style}
         >
             {!person.isLocal && onGoTo && (
                 <button
@@ -316,6 +317,24 @@ export default function LobbyPeoplePanel({
     };
     const panel = useRef<HTMLElement>(null);
     const [open, setOpen] = useState<string | null>(null);
+    /** Where the open menu sits in the panel, beside its "•••". */
+    const [anchor, setAnchor] = useState<React.CSSProperties>({});
+    const toggleMenu = (id: string, button: HTMLElement) => {
+        if (open === id) return setOpen(null);
+        const box = panel.current?.getBoundingClientRect(),
+            at = button.getBoundingClientRect();
+        if (box) {
+            const right = box.right - at.right;
+            // Open upward when there isn't room below inside the panel.
+            setAnchor(
+                at.bottom + 230 > box.bottom
+                    ? { right, bottom: box.bottom - at.top + 4 }
+                    : { right, top: at.bottom - box.top + 4 }
+            );
+        }
+        setOpen(id);
+    };
+    const menuPerson = open && players.find((player) => player.id === open);
     // The "•••" menu floats over the list; a click anywhere else closes it.
     useEffect(() => {
         if (!open) return;
@@ -431,7 +450,7 @@ export default function LobbyPeoplePanel({
                     </div>
                 )}
             </div>
-            <div className="people-content">
+            <div className="people-content" onScroll={() => setOpen(null)}>
                 <p id="lobby-people-status" role="status">
                     {nearbyStatus}
                 </p>
@@ -510,11 +529,10 @@ export default function LobbyPeoplePanel({
                                             className="person-more"
                                             aria-expanded={open === player.id}
                                             aria-label={`Manage ${player.name}`}
-                                            onClick={() =>
-                                                setOpen((value) =>
-                                                    value === player.id
-                                                        ? null
-                                                        : player.id
+                                            onClick={(event) =>
+                                                toggleMenu(
+                                                    player.id,
+                                                    event.currentTarget
                                                 )
                                             }
                                         >
@@ -522,36 +540,33 @@ export default function LobbyPeoplePanel({
                                         </button>
                                     )}
                                 </div>
-                                {open === player.id && (
-                                    <PersonActions
-                                        person={player}
-                                        up={
-                                            players.length > 3 &&
-                                            index >= players.length - 2
-                                        }
-                                        voice={voice}
-                                        onGoTo={
-                                            onGoTo &&
-                                            ((id) => {
-                                                setOpen(null);
-                                                onGoTo(id);
-                                            })
-                                        }
-                                        onSummonAll={
-                                            onSummonAll &&
-                                            (() => {
-                                                setOpen(null);
-                                                onSummonAll();
-                                            })
-                                        }
-                                        onError={setError}
-                                    />
-                                )}
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+            {menuPerson && (
+                <PersonActions
+                    person={menuPerson}
+                    style={anchor}
+                    voice={voice}
+                    onGoTo={
+                        onGoTo &&
+                        ((id) => {
+                            setOpen(null);
+                            onGoTo(id);
+                        })
+                    }
+                    onSummonAll={
+                        onSummonAll &&
+                        (() => {
+                            setOpen(null);
+                            onSummonAll();
+                        })
+                    }
+                    onError={setError}
+                />
+            )}
         </Panel>
     );
 }
@@ -667,7 +682,7 @@ const Panel = styled.section`
         margin: 4px 0 12px;
     }
     /* Secondary to Add to party: a small, borderless "•••". */
-    .people-content .person-more {
+    .people-content button.person-more {
         min-width: 22px;
         width: 22px;
         min-height: 22px;
@@ -822,15 +837,10 @@ const Panel = styled.section`
         color: #2cf8d5;
         font: normal 10px var(--oc-mono, monospace);
     }
-    .people-content > ul > li {
-        position: relative;
-    }
-    /* A small floating menu, so the list itself never reflows. */
+    /* A small floating menu over the panel, so the list never reflows. */
     .person-actions {
         position: absolute;
-        z-index: 2;
-        top: calc(100% - 6px);
-        right: 0;
+        z-index: 3;
         display: flex;
         flex-direction: column;
         min-width: 168px;
@@ -840,25 +850,29 @@ const Panel = styled.section`
         background: #15181ef5;
         box-shadow: 0 10px 28px #00000080;
     }
-    .person-actions[data-up] {
-        top: auto;
-        bottom: calc(100% - 6px);
-    }
-    .people-content .person-actions button {
-        justify-content: flex-start;
+    .person-actions button {
+        display: flex;
+        align-items: center;
         width: 100%;
         min-height: 30px;
         padding: 0 10px;
         border: 0;
         border-radius: 6px;
+        background: transparent;
+        color: #f3f3f1;
+        font: 12px var(--oc-font, sans-serif);
         text-align: left;
-        font-size: 12px;
+        cursor: pointer;
         &:hover {
             background: #ffffff10;
         }
-    }
-    .people-content .person-actions button.danger {
-        color: #ff8a80;
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: -2px;
+        }
+        &.danger {
+            color: #ff8a80;
+        }
     }
     .person-dot.live {
         background: #ff5a4f;
