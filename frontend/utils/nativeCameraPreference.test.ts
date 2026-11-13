@@ -21,5 +21,9 @@ test("an explicit later first-person selection supersedes the arrival preference
 test("malformed persisted values fall back to a valid account preference", () => {
     window.sessionStorage.setItem("oncyber:camera-preference", "invalid");
     expect(readNativeCameraPreference("third_person")).toBe("third_person");
-    expect(readNativeCameraPreference("invalid")).toBe("first_person");
+    expect(readNativeCameraPreference("invalid")).toBe("third_person");
+});
+test("with no saved choice, visitors start in third person", () => {
+    expect(readNativeCameraPreference()).toBe("third_person");
+    expect(readNativeCameraPreference(undefined)).toBe("third_person");
 });
