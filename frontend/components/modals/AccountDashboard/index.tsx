@@ -6,6 +6,7 @@ import { NButton } from "@ui/components/NButton";
 import styled from "styled-components";
 import Profile from "./Profile";
 import LinkAccount from "./LinkAccount";
+import ContributeSettings from "@features/contribute/ContributeSettings";
 import { stepIcon } from "@features/studio/StudioMenu/SpaceSettings";
 import {
     DARK_DIALOG_CONTENT,
@@ -28,6 +29,13 @@ const steps: [MultiformStep, ...MultiformStep[]] = [
         icon: stepIcon("wallet"),
         form: <LinkAccount />,
     },
+    {
+        value: "contribute",
+        title: "Contribute",
+        description: "Change Oncyber and open a pull request",
+        icon: stepIcon("git-pull-request"),
+        form: <ContributeSettings />,
+    },
 ];
 
 export default function AccountDashboard({
@@ -35,7 +43,7 @@ export default function AccountDashboard({
     defaultStep,
 }: {
     close?: () => void;
-    defaultStep?: "account" | "connections";
+    defaultStep?: "account" | "connections" | "contribute";
 }) {
     const actions = (
         <Actions>

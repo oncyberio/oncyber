@@ -42,6 +42,11 @@ import { isSupportedRuntime } from "@utils/runtimeKind";
 
 const AIProvider = dynamic(() => import("@features/ai/context/AIContext"));
 
+const ContributorHost = dynamic(
+    () => import("@features/contribute/ContributorHost"),
+    { ssr: false }
+);
+
 const EmailAuthHandler = dynamic(
     () => import("@components/modals/SignupProvider/EmailAuthHandler"),
     {
@@ -155,6 +160,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
                                         <EmailAuthHandler />
                                         {/* <ProgressBar /> */}
                                         <Component {...pageProps} />
+                                        <ContributorHost />
                                     </SignInSheetHost>
                                 </DialogProvider>
                             </AIProvider>

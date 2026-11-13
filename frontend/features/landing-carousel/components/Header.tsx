@@ -21,7 +21,9 @@ const ConnectModal = dynamic(() => import("@ui/components/ConnectWallet"), {
     ssr: false,
 });
 
-const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), { ssr: false });
+const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), {
+    ssr: false,
+});
 
 const AccountDashboard = dynamic(
     () => import("@components/modals/AccountDashboard"),
@@ -84,7 +86,9 @@ export default function Header({
         if (authRequest > 0 && !signedIn) setAuthOpen(true);
     }, [authRequest]);
 
-    function editProfile(defaultStep: "account" | "connections" = "account") {
+    function editProfile(
+        defaultStep: "account" | "connections" | "contribute" = "account"
+    ) {
         amplitude_logAnalyticsEvent("account_settings_opened");
         void showModal(<AccountDashboard defaultStep={defaultStep} />);
     }
@@ -189,6 +193,7 @@ export default function Header({
                     onClose={() => setAccountOpen(false)}
                     onEditProfile={() => editProfile()}
                     onConnections={() => editProfile("connections")}
+                    onContribute={() => editProfile("contribute")}
                     onFriends={() => setFriendsOpen(true)}
                     onSignOut={signOut}
                 />

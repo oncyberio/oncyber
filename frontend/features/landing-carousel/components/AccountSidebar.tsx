@@ -19,6 +19,7 @@ type Props = {
     onEditProfile(): void;
     onConnections(): void;
     onFriends(): void;
+    onContribute?(): void;
     onSignOut(): void;
 };
 
@@ -34,6 +35,7 @@ export default function AccountSidebar({
     onEditProfile,
     onConnections,
     onFriends,
+    onContribute,
     onSignOut,
 }: Props) {
     const dialog = useRef<HTMLDialogElement>(null);
@@ -234,6 +236,18 @@ export default function AccountSidebar({
                             <span>Linked accounts</span>
                             {arrow}
                         </button>
+                        {onContribute && (
+                            <button
+                                type="button"
+                                className="sidebar-row compact-row"
+                                data-account-item
+                                onClick={() => finish(onContribute)}
+                            >
+                                <Icon name="code" size={20} />
+                                <span>Contribute</span>
+                                {arrow}
+                            </button>
+                        )}
                     </section>
                 </div>
                 <footer className="sidebar-footer">

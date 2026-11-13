@@ -29,7 +29,8 @@ type Name =
     | "book"
     | "help"
     | "signin"
-    | "pin";
+    | "pin"
+    | "code";
 const paths: Record<Name, JSX.Element> = {
     people: (
         <>
@@ -156,6 +157,7 @@ const paths: Record<Name, JSX.Element> = {
             <circle cx="12" cy="10" r="2" />
         </>
     ),
+    code: <path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" />,
     chevron: <path d="m6 9 6 6 6-6" />,
     check: <path d="m5 12 4 4L19 6" />,
     forward: <path d="M4 12h16m-6-6 6 6-6 6" />,

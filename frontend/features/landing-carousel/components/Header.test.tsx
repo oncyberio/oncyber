@@ -129,6 +129,7 @@ it("keeps the account identity and exposes separate spaces and destinations link
         "Friends",
         "Edit profile",
         "Linked accounts",
+        "Contribute",
         "Sign out",
     ]);
     expect(items()[0].getAttribute("href")).toBe("/@rayan");
@@ -149,7 +150,7 @@ it("contains keyboard focus, supports Escape, and returns focus to the account t
     render();
     act(() => trigger().focus());
     key(trigger(), "ArrowUp");
-    expect(document.activeElement).toBe(items()[5]);
+    expect(document.activeElement).toBe(items()[6]);
     const close = document.querySelector<HTMLButtonElement>(".close-account");
     key(document.activeElement as HTMLElement, "Tab");
     expect(document.activeElement).toBe(close);
@@ -160,7 +161,7 @@ it("contains keyboard focus, supports Escape, and returns focus to the account t
         cancelable: true,
     });
     act(() => close.dispatchEvent(back));
-    expect(document.activeElement).toBe(items()[5]);
+    expect(document.activeElement).toBe(items()[6]);
     const escape = key(document.activeElement as HTMLElement, "Escape");
     expect(escape.defaultPrevented).toBe(true);
     expect(items()).toHaveLength(0);
@@ -210,6 +211,16 @@ it("linked accounts uses the existing connections form after closing the sidebar
     );
 });
 
+it("contribute opens the contribute settings after closing the sidebar", () => {
+    render();
+    open();
+    act(() => Simulate.click(items()[5]));
+    expect(document.querySelector("dialog")).toBeNull();
+    expect(showModal).toHaveBeenCalledWith(
+        expect.objectContaining({ props: { defaultStep: "contribute" } })
+    );
+});
+
 it("opens the existing profile settings and signs out through UserContext", async () => {
     render();
     open();
@@ -217,7 +228,7 @@ it("opens the existing profile settings and signs out through UserContext", asyn
     expect(showModal).toHaveBeenCalledTimes(1);
     expect(items()).toHaveLength(0);
     open();
-    await act(async () => Simulate.click(items()[5]));
+    await act(async () => Simulate.click(items()[6]));
     expect(logout).toHaveBeenCalledTimes(1);
     expect(items()).toHaveLength(0);
     expect(showError).not.toHaveBeenCalled();
