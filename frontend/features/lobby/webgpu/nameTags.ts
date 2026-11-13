@@ -1,3 +1,4 @@
+import { LOBBY_GUEST_PORTRAIT } from "../lobbyIdentity";
 import * as THREE from "three/webgpu";
 import {
     Discard,
@@ -268,7 +269,8 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
         }
         tile = { index, key, lastUsed: now };
         tiles.set(key, tile);
-        if (photo) {
+        photo ||= LOBBY_GUEST_PORTRAIT;
+        {
             const image = new Image();
             image.crossOrigin = "anonymous";
             image.decoding = "async";
@@ -277,6 +279,11 @@ export function createNameTags(scene: THREE.Scene, capacity = 64) {
             image.onload = () => {
                 if (!disposed && tiles.get(key) === current)
                     paint(current, name);
+            };
+            // A dead photo URL still gets a portrait bubble, never a bare name.
+            image.onerror = () => {
+                if (image.src !== LOBBY_GUEST_PORTRAIT)
+                    image.src = LOBBY_GUEST_PORTRAIT;
             };
             image.src = photo;
         }
