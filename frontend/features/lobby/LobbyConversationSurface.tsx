@@ -24,8 +24,9 @@ const LobbyConversationSurface = styled.div`
     &[data-search] .destination-group-toggle {
         pointer-events: auto;
     }
+    /* In a space the party chat stays on the bottom bar's line, as in the
+       lobby. */
     &[data-entered] {
-        bottom: max(84px, calc(env(safe-area-inset-bottom) + 76px));
         max-width: calc(100% - 32px);
     }
     &[data-collapsed] .chat-view-viewport {
