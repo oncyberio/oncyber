@@ -689,7 +689,8 @@ const Panel = styled.section`
         height: 22px;
         padding: 0;
         border-color: transparent;
-        border-radius: 6px;
+        /* Round, like Add to party beside it. */
+        border-radius: 50%;
         color: #93938e;
         font-size: 9px;
         letter-spacing: 0.5px;
