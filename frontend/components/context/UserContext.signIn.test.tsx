@@ -21,7 +21,10 @@ jest.mock(
     { virtual: true }
 );
 jest.mock("firebase/auth", () => ({ getAuth: () => ({}) }));
-jest.mock("@utils/firebaseApp", () => ({ firebaseApp: {} }));
+jest.mock("@utils/firebaseApp", () => ({
+    firebaseApp: {},
+    connectEmulator: jest.fn(),
+}));
 jest.mock("@components/Dialogs", () => ({
     showError: jest.fn(),
     showPrompt: jest.fn(),

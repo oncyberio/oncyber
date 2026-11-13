@@ -1,5 +1,6 @@
 import { GROUP_RECONNECT_GRACE_MS, LobbyGroups } from "./groups";
-import { verifyLobbyIdentity } from "../identity/lobby";
+import { verifyLobbyClaims } from "../identity/lobby";
+import { StageAuthority } from "./stage";
 import { Worker } from "worker_threads";
 import { randomBytes } from "crypto";
 import { createServer } from "http";
@@ -57,7 +58,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
         loads = Array.from({ length: workerCount }, () => 0),
         live = new Set<number>(),
         free = Array.from({ length: capacity }, (_, i) => capacity - i - 1),
-        seats = new Map<number, Reservation & { active: boolean; identity: string }>(),
+        seats = new Map<number, Reservation & { active: boolean; identity: string; verified: boolean; claim?: "owner" | "admin" }>(),
         tokens = new Map<string, number>(),
         // Seats released moments ago: a browser that reconnects naming one in replaceToken is the same traveller.
         departed = new Map<string, { identity: string; at: number }>();
@@ -124,6 +125,14 @@ export async function createWorldServer(options: WorldOptions = {}) {
     const broadcast = (message: any) => {
         for (const i of live) workers[i].postMessage(message);
     };
+    const stage = new StageAuthority();
+    const summoned = new Map<number, number>();
+    let stageSent = -1;
+    const publishStage = () => {
+        if (stage.revision === stageSent) return;
+        stageSent = stage.revision;
+        broadcast({ type: "stage", stage: stage.snapshot() });
+    };
     const release = (id: number) => {
         const seat = seats.get(id);
         if (!seat) return;
@@ -132,6 +141,9 @@ export async function createWorldServer(options: WorldOptions = {}) {
         tokens.delete(seat.token);
         departed.set(seat.token, { identity: seat.identity, at: Date.now() });
         loads[seat.owner]--;
+        stage.leave(id);
+        summoned.delete(id);
+        publishStage();
         state.remove(seat.slot, id);
         free.push(seat.slot);
         if (metadata.delete(id)) {
@@ -154,6 +166,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
                     if (message.type === "listening") {
                         listening = true;
                         live.add(owner);
+                        worker.postMessage({ type: "stage", stage: stage.snapshot() });
                         resolve();
                     } else if (message.type === "fatal") reject(new Error(message.message));
                     else if (message.type === "accepted") {
@@ -175,6 +188,26 @@ export async function createWorldServer(options: WorldOptions = {}) {
                         if (message.type === "group-ready") groups.connect(actor);
                         else if (message.type === "group-action") groups.action(actor, message.data);
                         else groups.placed(actor, message.travelId);
+                    } else if (message.type === "stage-action") {
+                        const seat = seats.get(message.actor),
+                            data = message.data;
+                        if (!seat?.active || seat.owner !== owner || !data) return;
+                        if (data.kind === "request") stage.request(seat.id, data.cancel === true);
+                        else if (data.kind === "leave") stage.leaveStage(seat.id);
+                        else if (data.kind === "summon") {
+                            // One summon per admin every 10 s, so nobody's screen fills with them.
+                            if (stage.role(seat.id) && Date.now() - (summoned.get(seat.id) || 0) > 10000) {
+                                summoned.set(seat.id, Date.now());
+                                broadcast({ type: "summon", from: seat.id });
+                            }
+                        }
+                        else if (data.kind === "admin") {
+                            const outcome = stage.admin(seat.id, data.action, Number(data.sessionId));
+                            worker.postMessage({ type: "stage-result", id: seat.id, data: { action: data.action, sessionId: data.sessionId, ok: outcome.ok, error: outcome.error || "" } });
+                            const target = outcome.kick !== undefined ? seats.get(outcome.kick) : undefined;
+                            if (target?.active && live.has(target.owner)) workers[target.owner].postMessage({ type: "stage-kick", id: target.id });
+                        }
+                        publishStage();
                     } else if (message.type === "left") release(message.id);
                     else if (message.type === "revoked") {
                         const id = tokens.get(message.token);
@@ -406,17 +439,27 @@ export async function createWorldServer(options: WorldOptions = {}) {
         }
         if (shuttingDown || !live.size) return res.status(503).json({ error: "World unavailable" });
         if (!free.length) return res.status(503).json({ error: "World capacity reached" });
+        // An admin removed this traveller recently: their account, or the seat they reconnect from.
+        if (stage.banned(verifyLobbyClaims(req.body.lobbyIdentityToken)?.sub) || (typeof replace === "string" && stage.banned(departed.get(replace)?.identity))) return res.status(403).json({ error: "Removed by an admin" });
         const owner = Array.from(live).sort((a, b) => loads[a] - loads[b] || a - b)[0],
             id = nextId++;
         if (id > 0x7fffffff) return res.status(503).json({ error: "World identity rollover requires restart" });
         const slot = free.pop()!,
             token = randomBytes(32).toString("hex"),
-            partyIdentity = verifyLobbyIdentity(req.body.lobbyIdentityToken),
-            reservation: Reservation = { id, slot, owner, token, expires: Date.now() + 15000, profile: profile(String(id), { ...req.body, userId: `guest:${id}` }, partyIdentity) };
-        // The same traveller as the seat this one replaces, else the same verified account, else nobody but this seat.
-        seats.set(id, { ...reservation, active: false, identity: (typeof replace === "string" && departed.get(replace)?.identity) || partyIdentity || token });
+            claims = verifyLobbyClaims(req.body.lobbyIdentityToken),
+            partyIdentity = claims?.sub,
+            // The same traveller as the seat this one replaces, else the same verified account, else nobody but this seat.
+            identity = (typeof replace === "string" && departed.get(replace)?.identity) || partyIdentity || token,
+            role = stage.roleFor(identity, !!partyIdentity, claims?.role),
+            base = profile(String(id), { ...req.body, userId: `guest:${id}` }, partyIdentity),
+            reservation: Reservation = { id, slot, owner, token, expires: Date.now() + 15000, profile: role ? { ...base, role } : base };
+        seats.set(id, { ...reservation, active: false, identity, verified: !!partyIdentity, claim: claims?.role });
         tokens.set(token, id);
         loads[owner]++;
+        // Join moderation before the worker hears of the seat, so every
+        // snapshot it receives after the reservation already carries the role.
+        stage.join(id, identity, !!partyIdentity, claims?.role);
+        publishStage();
         workers[owner].postMessage({ type: "reserve", reservation });
         const advertisedHost = options.publicHost || bind,
             host = advertisedHost.includes(":") && !advertisedHost.startsWith("[") ? `[${advertisedHost}]` : advertisedHost,

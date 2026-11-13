@@ -20,7 +20,7 @@ export const lobbyPanelHeading = css`
     gap: 12px;
     padding: 0 16px;
     pointer-events: auto;
-    text-shadow: 0 1px 6px #000;
+    text-shadow: ${lobby.glass.textShadow};
     h2 {
         margin: 0;
         min-width: 0;

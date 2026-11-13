@@ -317,7 +317,10 @@ export default function useLobbyGroupJourney({
                 activeTravel.status
             ) ||
             !activeTravel.acceptedIds.includes(social.sessionId) ||
-            !activeTravel.poses[social.sessionId]
+            !activeTravel.poses[social.sessionId] ||
+            // The trip is over and you are back: a finished trip must not
+            // hold the lobby in its gathering line.
+            (activeTravel.status === "complete" && journey.phase === "idle")
         )
             return null;
         // Who is travelling can change while the trip waits for a dropped
@@ -354,7 +357,7 @@ export default function useLobbyGroupJourney({
             poses: activeTravel.poses,
             startedAt: cache.startedAt,
         };
-    }, [group, activeTravel, social.sessionId]);
+    }, [group, activeTravel, social.sessionId, journey.phase]);
 
     const propose = useCallback(
         (groupId: string, destination: LobbyGroupDestination) => {

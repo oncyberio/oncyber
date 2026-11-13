@@ -12,7 +12,10 @@ import { formatExhibit, formatUpdate } from "@utils/metadata/formatExhibit";
 import { deepClone } from "@utils/js";
 import { getSlug, oldToNew, pathToSlug } from "@utils/saveToDb";
 import { getStylekitByRoom } from "./stylekit";
-import { getUserProfileByWalletId } from "@utils/firestore/userProfiles";
+import {
+    getUserProfileByWalletId,
+    getUserProfilesByWalletIds,
+} from "@utils/firestore/userProfiles";
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
 import {
@@ -924,8 +927,37 @@ const getExhibits = async (isActive, lastVisible, destination, walletId?) => {
         exhibits[i].artworks = [];
     });
 
+    await addOwnerNames(exhibits);
+
     return exhibits;
 };
+
+/**
+ * Give each feed exhibit its owner's username (`ownerName`, null when the
+ * wallet has no profile) so cards can read "World by creator". Uses the
+ * cached, batched profile lookup; a failed lookup leaves the names out.
+ */
+async function addOwnerNames(exhibits: any[]): Promise<void> {
+    const owners = exhibits
+        .map((exhibit) => exhibit?.owner)
+        .filter((owner) => typeof owner === "string" && owner);
+    if (!owners.length) return;
+    try {
+        const profiles = await getUserProfilesByWalletIds(owners);
+        const names = new Map(
+            profiles.map((user) => [
+                (user?.walletId || "").toLowerCase(),
+                user?.username || null,
+            ])
+        );
+        for (const exhibit of exhibits) {
+            if (typeof exhibit?.owner !== "string") continue;
+            exhibit.ownerName = names.get(exhibit.owner.toLowerCase()) || null;
+        }
+    } catch (err) {
+        // Cards fall back to the curator or the shortened owner address.
+    }
+}
 
 const getUserExhibits = async (userId) => {
     const exhibits = [];

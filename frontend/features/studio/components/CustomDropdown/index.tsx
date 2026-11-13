@@ -30,6 +30,12 @@ export interface CustomDropdownProps {
     className?: string;
     toggleAuth?: (b?: boolean) => void;
     addTogglerRef?: any;
+    /**
+     * A fixed stacking level, for a dropdown that acts as a modal and must
+     * cover every other panel while open. Without it, each opened dropdown
+     * goes above the ones opened before it.
+     */
+    zIndex?: string;
 }
 
 const captionsMap = new WeakMap<Element, Element>();
@@ -55,6 +61,7 @@ export function CustomDropdown({
     className = "",
     toggleAuth,
     addTogglerRef,
+    zIndex,
 }: CustomDropdownProps) {
     //
     const captionRef = useRef<HTMLDivElement>(null);
@@ -282,7 +289,13 @@ export function CustomDropdown({
                                 addTogglerRef(el);
                         }}
                         className={`m-dropdown m-dropdown m-${className}`}
-                        style={!isDropdownShoing ? { display: "none" } : {}}
+                        style={
+                            !isDropdownShoing
+                                ? { display: "none" }
+                                : zIndex != null
+                                ? { zIndex }
+                                : {}
+                        }
                     >
                         {isDropdownShoing &&
                             children({ toggle: toggleDropdown, setAutoClose })}

@@ -7,6 +7,7 @@ import {
     lobbyPanelSurface,
     lobbyPanelTokens,
 } from "./lobbyPanelStyles";
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 import type {
     LobbyAdminAction,
     LobbyRole,
@@ -14,7 +15,13 @@ import type {
     LobbyVoiceState,
 } from "./LobbyConnection";
 
-type Person = { id: string; name: string; isLocal?: boolean; role?: LobbyRole };
+type Person = {
+    id: string;
+    name: string;
+    avatar?: string;
+    isLocal?: boolean;
+    role?: LobbyRole;
+};
 /** Lobby voice, modelled on worlds: admins put people on voice for everyone nearby. */
 export type LobbyVoiceControls = {
     stage: LobbyStage;
@@ -32,6 +39,17 @@ type Props = {
     onClose(): void;
     returnFocusRef?: { current: HTMLElement | null };
     voice?: LobbyVoiceControls | null;
+    /** Lets you add people to your party from the list. */
+    party?: {
+        memberIds: readonly string[];
+        onAdd(id: string): Promise<void>;
+    };
+    /** Closest people first, or by name when switched off. */
+    sort?: { nearby: boolean; onToggle(): void };
+    /** Walk up to someone, like Teleport in spaces. */
+    onGoTo?(id: string): void;
+    /** Admins: ask everyone further away to come here. */
+    onSummonAll?(): void;
     children?: React.ReactNode;
 };
 
@@ -95,7 +113,9 @@ function VoiceSection({
             ) : (
                 <p className="voice-note">
                     {admin
-                        ? "Add someone from the list below. Up to 50 people nearest each speaker hear them."
+                        ? stage.spatial
+                            ? `Approve requests, or add someone from the list below. Up to ${stage.limit} people can talk; people near a speaker hear them.`
+                            : "Add someone from the list below. Up to 50 people nearest each speaker hear them."
                         : "Nobody is on voice right now."}
                 </p>
             )}
@@ -108,6 +128,15 @@ function VoiceSection({
                 <p className="voice-note">
                     An admin muted you. You can still listen.
                 </p>
+            )}
+            {admin && stage.spatial && !onStage && !stage.muted && selfId && (
+                <button
+                    type="button"
+                    className="voice-request"
+                    onClick={() => act("stage-add", selfId)}
+                >
+                    Join voice
+                </button>
             )}
             {!admin && !onStage && !stage.muted && (
                 <button
@@ -157,47 +186,80 @@ function VoiceSection({
     );
 }
 
-function AdminActions({
+/**
+ * The "•••" menu, matching the people list in spaces: anyone can go to
+ * someone; admins also manage voice, mute, remove, make admins, and bring
+ * everyone to themselves.
+ */
+function PersonActions({
     person,
     voice,
+    onGoTo,
+    onSummonAll,
     onError,
+    style,
 }: {
     person: Person;
-    voice: LobbyVoiceControls;
+    style?: React.CSSProperties;
+    voice?: LobbyVoiceControls | null;
+    onGoTo?(id: string): void;
+    onSummonAll?(): void;
     onError(message: string): void;
 }) {
-    const { stage } = voice;
-    const owner = stage.role === "owner";
-    const speaking = stage.speakers.some((s) => s.sessionId === person.id);
-    const muted = stage.mutedPeople.includes(person.id);
+    const stage = voice?.stage;
+    const admin = !!stage?.role;
+    const owner = stage?.role === "owner";
+    const speaking = !!stage?.speakers.some((s) => s.sessionId === person.id);
+    const muted = !!stage?.mutedPeople.includes(person.id);
     const act = async (action: LobbyAdminAction) =>
-        onError(await voice.onAdmin(action, person.id));
+        onError(await voice!.onAdmin(action, person.id));
     // Mirrors the server: admins can't moderate admins; the main admin can.
-    if (person.role === "owner" || (person.role && !owner)) return null;
+    const moderate =
+        admin && person.role !== "owner" && (!person.role || owner);
     return (
-        <div className="person-actions">
-            {!muted && (
+        <div
+            className="person-actions"
+            role="menu"
+            aria-label={`Options for ${person.name}`}
+            data-person={person.id}
+            style={style}
+        >
+            {!person.isLocal && onGoTo && (
                 <button
                     type="button"
+                    role="menuitem"
+                    onClick={() => onGoTo(person.id)}
+                >
+                    Go to them
+                </button>
+            )}
+            {person.isLocal && admin && onSummonAll && (
+                <button type="button" role="menuitem" onClick={onSummonAll}>
+                    Bring everyone here
+                </button>
+            )}
+            {moderate && !muted && (
+                <button
+                    type="button"
+                    role="menuitem"
                     onClick={() => act(speaking ? "stage-remove" : "stage-add")}
                 >
                     {speaking ? "Remove from voice" : "Add to voice"}
                 </button>
             )}
-            {!person.isLocal && (
+            {moderate && !person.isLocal && (
                 <>
                     <button
                         type="button"
+                        role="menuitem"
                         onClick={() => act(muted ? "unmute" : "mute")}
                     >
                         {muted ? "Unmute" : "Mute"}
                     </button>
-                    <button type="button" onClick={() => act("kick")}>
-                        Remove from lobby
-                    </button>
                     {owner && (
                         <button
                             type="button"
+                            role="menuitem"
                             onClick={() =>
                                 act(
                                     person.role ? "revoke-admin" : "grant-admin"
@@ -207,6 +269,14 @@ function AdminActions({
                             {person.role ? "Remove admin" : "Make admin"}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        role="menuitem"
+                        className="danger"
+                        onClick={() => act("kick")}
+                    >
+                        Remove from lobby
+                    </button>
                 </>
             )}
         </div>
@@ -220,10 +290,62 @@ export default function LobbyPeoplePanel({
     onClose,
     returnFocusRef,
     voice,
+    party,
+    sort,
+    onGoTo,
+    onSummonAll,
     children,
 }: Props) {
+    const [query, setQuery] = useState("");
+    const wanted = query.trim().toLowerCase();
+    const listed = wanted
+        ? players.filter((player) => player.name.toLowerCase().includes(wanted))
+        : players;
+    const [adding, setAdding] = useState<string[]>([]);
+    const [invited, setInvited] = useState<string[]>([]);
+    const addToParty = (id: string) => {
+        if (!party || adding.includes(id)) return;
+        setError("");
+        setAdding((ids) => [...ids, id]);
+        party
+            .onAdd(id)
+            .then(() => setInvited((ids) => [...ids, id]))
+            .catch((failure) =>
+                setError(failure?.message || "Couldn’t add them to the party.")
+            )
+            .finally(() => setAdding((ids) => ids.filter((x) => x !== id)));
+    };
     const panel = useRef<HTMLElement>(null);
     const [open, setOpen] = useState<string | null>(null);
+    /** Where the open menu sits in the panel, beside its "•••". */
+    const [anchor, setAnchor] = useState<React.CSSProperties>({});
+    const toggleMenu = (id: string, button: HTMLElement) => {
+        if (open === id) return setOpen(null);
+        const box = panel.current?.getBoundingClientRect(),
+            at = button.getBoundingClientRect();
+        if (box) {
+            const right = box.right - at.right;
+            // Open upward when there isn't room below inside the panel.
+            setAnchor(
+                at.bottom + 230 > box.bottom
+                    ? { right, bottom: box.bottom - at.top + 4 }
+                    : { right, top: at.bottom - box.top + 4 }
+            );
+        }
+        setOpen(id);
+    };
+    const menuPerson = open && players.find((player) => player.id === open);
+    // The "•••" menu floats over the list; a click anywhere else closes it.
+    useEffect(() => {
+        if (!open) return;
+        const away = (event: PointerEvent) => {
+            const target = event.target as Element | null;
+            if (!target?.closest?.(`[data-person="${CSS.escape(open)}"]`))
+                setOpen(null);
+        };
+        document.addEventListener("pointerdown", away);
+        return () => document.removeEventListener("pointerdown", away);
+    }, [open]);
     const [error, setError] = useState("");
     const selfId = players.find((player) => player.isLocal)?.id;
     const admin = !!voice?.stage.role;
@@ -273,6 +395,12 @@ export default function LobbyPeoplePanel({
                     event.altKey
                 )
                     return;
+                if (event.key === "Escape" && open) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setOpen(null);
+                    return;
+                }
                 if (event.key === "Escape") {
                     event.preventDefault();
                     event.stopPropagation();
@@ -281,7 +409,7 @@ export default function LobbyPeoplePanel({
             }}
         >
             <header>
-                <h2 id="lobby-people-title">People nearby</h2>
+                <h2 id="lobby-people-title">People</h2>
                 <button
                     ref={close}
                     type="button"
@@ -292,7 +420,37 @@ export default function LobbyPeoplePanel({
                     <Icon name="close" size={16} />
                 </button>
             </header>
-            <div className="people-content">
+            <div className="people-tools">
+                <label className="people-search">
+                    <Icon name="search" size={14} />
+                    <input
+                        type="search"
+                        value={query}
+                        placeholder="Search people"
+                        aria-label="Search people"
+                        onChange={(event) => setQuery(event.target.value)}
+                    />
+                </label>
+                {sort && (
+                    <div className="people-tool">
+                        <span>
+                            {sort.nearby
+                                ? "Nearest people first"
+                                : "Sorted by name"}
+                        </span>
+                        <button
+                            type="button"
+                            className="people-sort"
+                            aria-pressed={sort.nearby}
+                            aria-label="Show the nearest people first"
+                            onClick={sort.onToggle}
+                        >
+                            <Icon name="pin" size={15} />
+                        </button>
+                    </div>
+                )}
+            </div>
+            <div className="people-content" onScroll={() => setOpen(null)}>
                 <p id="lobby-people-status" role="status">
                     {nearbyStatus}
                 </p>
@@ -309,15 +467,27 @@ export default function LobbyPeoplePanel({
                     </p>
                 )}
                 {children && <div className="people-party">{children}</div>}
-                {!!players.length && (
-                    <ul aria-label="People nearby" className="people-list">
-                        {players.map((player) => (
-                            <li key={player.id}>
+                {!!players.length && !listed.length && (
+                    <p className="people-empty">Nobody here by that name.</p>
+                )}
+                {!!listed.length && (
+                    <ul aria-label="People" className="people-list">
+                        {listed.map((player) => (
+                            <li key={player.id} data-person={player.id}>
                                 <div className="person-row">
-                                    <span
-                                        className="person-dot"
-                                        aria-hidden="true"
-                                    />
+                                    {player.avatar ? (
+                                        <img
+                                            className="person-photo"
+                                            src={player.avatar}
+                                            alt=""
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <span
+                                            className="person-dot"
+                                            aria-hidden="true"
+                                        />
+                                    )}
                                     <span className="person-name">
                                         {player.name}
                                     </span>
@@ -325,17 +495,44 @@ export default function LobbyPeoplePanel({
                                         <em>{roleLabel(player.role)}</em>
                                     )}
                                     {player.isLocal && <small>You</small>}
-                                    {admin && (
+                                    {party &&
+                                        !player.isLocal &&
+                                        (party.memberIds.includes(player.id) ? (
+                                            <small className="person-state">
+                                                In party
+                                            </small>
+                                        ) : invited.includes(player.id) ? (
+                                            <small className="person-state pending">
+                                                Invited
+                                            </small>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="person-add"
+                                                disabled={adding.includes(
+                                                    player.id
+                                                )}
+                                                aria-label={`Add ${player.name} to your party`}
+                                                title="Add to party"
+                                                onClick={() =>
+                                                    addToParty(player.id)
+                                                }
+                                            >
+                                                {adding.includes(player.id)
+                                                    ? "…"
+                                                    : "+"}
+                                            </button>
+                                        ))}
+                                    {(admin || (!player.isLocal && onGoTo)) && (
                                         <button
                                             type="button"
                                             className="person-more"
                                             aria-expanded={open === player.id}
                                             aria-label={`Manage ${player.name}`}
-                                            onClick={() =>
-                                                setOpen((value) =>
-                                                    value === player.id
-                                                        ? null
-                                                        : player.id
+                                            onClick={(event) =>
+                                                toggleMenu(
+                                                    player.id,
+                                                    event.currentTarget
                                                 )
                                             }
                                         >
@@ -343,18 +540,33 @@ export default function LobbyPeoplePanel({
                                         </button>
                                     )}
                                 </div>
-                                {admin && open === player.id && (
-                                    <AdminActions
-                                        person={player}
-                                        voice={voice}
-                                        onError={setError}
-                                    />
-                                )}
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+            {menuPerson && (
+                <PersonActions
+                    person={menuPerson}
+                    style={anchor}
+                    voice={voice}
+                    onGoTo={
+                        onGoTo &&
+                        ((id) => {
+                            setOpen(null);
+                            onGoTo(id);
+                        })
+                    }
+                    onSummonAll={
+                        onSummonAll &&
+                        (() => {
+                            setOpen(null);
+                            onSummonAll();
+                        })
+                    }
+                    onError={setError}
+                />
+            )}
         </Panel>
     );
 }
@@ -369,7 +581,7 @@ const Panel = styled.section`
     bottom: var(--people-bottom);
     transform: translateX(-50%);
     width: min(var(--lobby-panel-compact-width), calc(100% - 32px));
-    max-height: calc(100dvh - var(--people-bottom) - 16px);
+    max-height: min(460px, calc(100dvh - var(--people-bottom) - 16px));
     display: flex;
     flex-direction: column;
     gap: var(--lobby-panel-gap);
@@ -467,14 +679,156 @@ const Panel = styled.section`
     }
     .people-content .voice-request {
         width: 100%;
-        margin-top: 4px;
+        margin: 4px 0 12px;
     }
-    .people-content .person-more {
-        min-width: 32px;
-        padding: 0 6px;
+    /* Secondary to Add to party: a small, borderless "•••". */
+    .people-content button.person-more {
+        min-width: 22px;
+        width: 22px;
+        min-height: 22px;
+        height: 22px;
+        padding: 0;
         border-color: transparent;
-        color: #c2c2bd;
-        letter-spacing: 1px;
+        border-radius: 6px;
+        color: #93938e;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        &:hover,
+        &[aria-expanded="true"] {
+            border-color: transparent;
+            background: #ffffff10;
+            color: #f3f3f1;
+        }
+    }
+    .people-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+    }
+    .people-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+        color: ${lobby.color.secondary};
+    }
+    .people-search svg {
+        position: absolute;
+        left: 10px;
+        pointer-events: none;
+    }
+    .people-search input {
+        width: 100%;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 0 10px 0 30px;
+        border: 1px solid ${lobby.panel.border};
+        border-radius: ${lobby.panel.iconRadius}px;
+        background: ${base.color.line.faint};
+        color: ${lobby.color.ink};
+        font: 12px var(--oc-font, sans-serif);
+        outline: none;
+        &::placeholder {
+            color: ${lobby.color.secondary};
+        }
+        &:focus-visible {
+            border-color: ${lobby.panel.cardHover};
+        }
+    }
+    .people-tool {
+        position: relative;
+        display: flex;
+        flex-shrink: 0;
+    }
+    /* Same label as the dock's buttons, shown on hover or keyboard focus. */
+    .people-tool > span {
+        position: absolute;
+        z-index: 1;
+        top: calc(100% + 8px);
+        right: 0;
+        padding: 6px 10px;
+        border: 1px solid ${lobby.control.border};
+        border-radius: ${base.radius.inset}px;
+        background: ${lobby.control.tooltip};
+        color: ${lobby.color.tooltipInk};
+        font-size: ${base.font.size.sm}px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity ${base.motion.fast}ms ease;
+    }
+    .people-tool:hover > span,
+    .people-tool:has(:focus-visible) > span {
+        opacity: 1;
+        visibility: visible;
+    }
+    .people-tools .people-sort {
+        ${lobbyPanelIconButton}
+        border: 1px solid ${lobby.panel.border};
+        transition: border-color ${base.motion.fast}ms ease,
+            background ${base.motion.fast}ms ease;
+        &[aria-pressed="true"] {
+            border-color: ${lobby.panel.cardSelected};
+            background: ${base.color.line.faint};
+            color: ${lobby.color.ink};
+        }
+    }
+    .people-empty {
+        margin: 12px 0;
+        color: ${lobby.color.secondary};
+        font-size: 12px;
+    }
+    .person-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+    .person-photo {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex: none;
+        background: ${base.color.line.faint};
+    }
+    /* button.person-add: the generic button rule above would otherwise
+       win and shrink the + to its 11px label size. */
+    .people-content button.person-add {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        min-height: 32px;
+        margin-left: auto;
+        padding: 0;
+        border-radius: 50%;
+        border-color: ${lobby.panel.border};
+        color: ${lobby.color.ink};
+        font-size: 20px;
+        font-weight: 300;
+        line-height: 1;
+        &:hover:not(:disabled) {
+            border-color: ${lobby.panel.cardSelected};
+            background: ${base.color.line.faint};
+        }
+    }
+    .person-row .person-state {
+        margin-left: auto;
+        color: ${lobby.color.ink};
+        font-size: 11px;
+    }
+    .person-row .person-state.pending {
+        color: ${lobby.color.secondary};
+    }
+    .person-add + .person-more,
+    .person-state + .person-more {
+        margin-left: 0;
     }
     .person-row small + .person-more {
         margin-left: 0;
@@ -483,11 +837,42 @@ const Panel = styled.section`
         color: #2cf8d5;
         font: normal 10px var(--oc-mono, monospace);
     }
+    /* A small floating menu over the panel, so the list never reflows. */
     .person-actions {
+        position: absolute;
+        z-index: 3;
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 0 2px 10px 18px;
+        flex-direction: column;
+        min-width: 168px;
+        padding: 4px;
+        border: 1px solid #ffffff1a;
+        border-radius: 10px;
+        background: #15181ef5;
+        box-shadow: 0 10px 28px #00000080;
+    }
+    .person-actions button {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #f3f3f1;
+        font: 12px var(--oc-font, sans-serif);
+        text-align: left;
+        cursor: pointer;
+        &:hover {
+            background: #ffffff10;
+        }
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: -2px;
+        }
+        &.danger {
+            color: #ff8a80;
+        }
     }
     .person-dot.live {
         background: #ff5a4f;

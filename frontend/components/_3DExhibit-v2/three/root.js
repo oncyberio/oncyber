@@ -2,6 +2,8 @@
 
 import { AnimationMixer, Euler, Group, Matrix4, Mesh, Vector3 } from "three";
 
+import { readNativeCameraPreference } from "@utils/nativeCameraPreference";
+
 import {
     APP_STATES,
     CINEMATIC,
@@ -19,7 +21,6 @@ import {
 
     QUALITY,
     SET_DEFAULT_VRM,
-    SET_IS_FIRST_PERSON,
     SET_SHADOW_NEEDS_UPDATE,
     TRANSITION_ACTIONS,
 
@@ -211,15 +212,19 @@ class Root extends Group {
                             return;
                         }
 
-                        if (!opts.userData?.settings?.camera) {
+                        // Switch cameras through Camera, never by flipping the
+                        // mode flag alone. Physics follows the camera when the
+                        // flag says first person; with the third-person camera
+                        // still active that becomes a loop that pushes the
+                        // player one camera distance backwards every frame, out
+                        // of the space. With no saved choice, third person.
+                        const preferred = readNativeCameraPreference(opts.userData?.settings?.camera)
 
-                            SET_IS_FIRST_PERSON(true);
-                        } else {
+                        if (preferred === "first_person") {
 
-                            SET_IS_FIRST_PERSON(opts.userData.settings.camera === "first_person");
+                            Camera.setFirstPerson();
                         }
-
-                        if (!IS_FIRST_PERSON) {
+                        else {
 
                             Camera.setThirdPerson();
                         }

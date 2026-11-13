@@ -112,7 +112,7 @@ export function toLandingCards(exhibits: any[]): LandingCard[] {
                     typeof info.description === "string"
                         ? info.description
                         : "",
-                creator: typeof info.curator === "string" ? info.curator : "",
+                creator: cardCreator(info.curator, exhibit.ownerName, owner),
                 owner,
                 curatorNames: Array.isArray(exhibit.artistSearch?.curatorNames)
                     ? exhibit.artistSearch.curatorNames.filter(
@@ -155,11 +155,11 @@ export function toLandingCards(exhibits: any[]): LandingCard[] {
     });
 }
 
-export async function fetchLandingFeed(
+async function fetchFeedPage(
     category: FeedCategory,
-    cursor = "",
-    signal?: AbortSignal,
-    origin = ""
+    cursor: string,
+    signal: AbortSignal | undefined,
+    origin: string
 ): Promise<LandingFeed> {
     const params = new URLSearchParams({
         type: "FETCH_ALL_EXHIBITS",
@@ -169,6 +169,41 @@ export async function fetchLandingFeed(
     const response = await fetch(`${origin}/api/exhibit?${params}`, { signal });
     if (!response.ok) throw new Error("The world feed is unavailable.");
     return landingFeedFromResponse(await response.json(), category, cursor);
+}
+
+/**
+ * The staff feed's cursor once its picks are all loaded: the feed carries on
+ * with the most popular worlds, whose own cursor follows the prefix.
+ */
+export const POPULAR_AFTER_STAFF = "popular:";
+
+/** Label shown above the first popular world after the staff picks. */
+export const POPULAR_SECTION_LABEL = "Most popular";
+
+/**
+ * One page of the landing feed. Staff picks are a single page; after them
+ * the staff feed continues with the most popular worlds, marked with
+ * `section: "popular"` (staff picks among them are left to the caller).
+ */
+export async function fetchLandingFeed(
+    category: FeedCategory,
+    cursor = "",
+    signal?: AbortSignal,
+    origin = ""
+): Promise<LandingFeed> {
+    if (category !== "staff" || !cursor.startsWith(POPULAR_AFTER_STAFF))
+        return fetchFeedPage(category, cursor, signal, origin);
+    const feed = await fetchFeedPage(
+        "most-visited",
+        cursor.slice(POPULAR_AFTER_STAFF.length),
+        signal,
+        origin
+    );
+    return {
+        cards: feed.cards.map((card) => ({ ...card, section: "popular" })),
+        cursor: feed.cursor && `${POPULAR_AFTER_STAFF}${feed.cursor}`,
+        hasMore: feed.hasMore,
+    };
 }
 
 /**
@@ -193,9 +228,38 @@ export function landingFeedFromResponse(
     return {
         // Missing previews use a local reference-mark cover in both renderers.
         cards: toLandingCards(exhibits),
-        cursor: exhibits[exhibits.length - 1]?.id || "",
-        hasMore: category !== "staff" && exhibits.length >= pageSize,
+        // The staff picks are followed by the most popular worlds.
+        cursor:
+            category === "staff"
+                ? POPULAR_AFTER_STAFF
+                : exhibits[exhibits.length - 1]?.id || "",
+        hasMore: category === "staff" || exhibits.length >= pageSize,
     };
+}
+
+/**
+ * Who a card credits: the world's own curator line, else the owner's
+ * username, else the owner's wallet address (shortened by `creatorLabel`).
+ */
+export function cardCreator(
+    curator: unknown,
+    ownerName: unknown,
+    owner: string
+): string {
+    for (const name of [curator, ownerName])
+        if (typeof name === "string" && name.trim()) return name.trim();
+    return /^(0x[0-9a-f]{20,}|tz[123][1-9a-z]{30,})$/i.test(owner) ? owner : "";
+}
+
+/**
+ * The creator name a card shows after "by". Wallet addresses are shortened so
+ * a card reads "World by 0x1234…cdef" rather than a 42-character string.
+ */
+export function creatorLabel(creator: string): string {
+    const name = (creator || "").trim().replace(/^@/, "");
+    if (/^(0x[0-9a-f]{20,}|tz[123][1-9a-z]{30,})$/i.test(name))
+        return `${name.slice(0, 6)}…${name.slice(-4)}`;
+    return name;
 }
 
 export function roomLabel(room: string): string {

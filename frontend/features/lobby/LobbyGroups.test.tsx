@@ -91,7 +91,6 @@ function Chat({
                 onSelect,
                 onCreate: jest.fn(),
                 onManage: jest.fn(),
-                onExplore: jest.fn(),
                 sendMessage: send,
             }}
             open={open}

@@ -63,8 +63,8 @@ export function drawStarfield(
             v = vec3.add(vec3.create(), v, vel);
             var x = v[0] / v[2];
             var y = v[1] / v[2];
-            var x2 = v[0] / (v[2] + speed * 0.5);
-            var y2 = v[1] / (v[2] + speed * 0.5);
+            var x2 = v[0] / (v[2] + speed * 1.1);
+            var y2 = v[1] / (v[2] + speed * 1.1);
 
             ctx.strokeStyle = this.color;
             ctx.beginPath();
@@ -79,7 +79,7 @@ export function drawStarfield(
     };
 
     var starfield = function () {
-        var numOfStars = 250;
+        var numOfStars = 400;
 
         var stars = [];
 
@@ -120,7 +120,7 @@ export function drawStarfield(
         if (Date.now() >= timeTarget) {
             timeTarget += dt;
 
-            speed = 0.055;
+            speed = 0.08;
 
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = "rgba(0,0,0,0.2)";

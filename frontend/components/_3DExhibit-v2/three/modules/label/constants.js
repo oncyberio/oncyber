@@ -1,5 +1,8 @@
 // @ts-check
 
+/** Labels draw into a square canvas this many pixels wide. */
+export const LABEL_CANVAS_SIZE = 512
+
 
 export const LABEL_ICONS = {
     PRESS_E      : "https://cyber.mypinata.cloud/ipfs/QmQyP5jBXS6rggQvAwBxfyRUZYEaEX9tqkdZF6rjhnDoEi?filename=the_E_iwmmk5.png",

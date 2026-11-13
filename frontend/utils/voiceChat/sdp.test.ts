@@ -80,6 +80,13 @@ function fmtpParams(section: string, pt: string): Record<string, string> {
 }
 
 describe("mungeMicOpus", () => {
+    test("takes a lower cap for crowded lobby voice", () => {
+        const out = mungeMicOpus(OFFER, new Set(["0"]), 16000);
+        expect(fmtpParams(sectionOf(out, "0"), "111").maxaveragebitrate).toBe(
+            "16000"
+        );
+    });
+
     test("munges only the mic m-section, preserving existing params", () => {
         const out = mungeMicOpus(OFFER, new Set(["0"]));
 

@@ -191,10 +191,12 @@ export const Search = styled.form`
         background: var(--oc-hover);
     }
     @media (max-width: 700px) {
-        width: min(82vw, 360px, calc(100% - 40px));
-        bottom: 84px;
+        /* Full width within the page gutters, clear of the controls below. */
+        width: calc(100% - 40px);
+        bottom: 100px;
         input {
-            font-size: 16px;
+            /* The viewport disables zoom, so iOS does not zoom into 14px. */
+            font-size: 14px;
         }
     }
 `;

@@ -148,6 +148,9 @@ export interface LobbySceneProps {
         partyIds?: readonly string[];
         reducedMotion?: boolean;
     };
+    /** Chat lines shown over speakers' heads, by participant id ("self" for
+     * this visitor). See speechBubbles.ts. */
+    speech?: Record<string, import("./speechBubbles").SpeechLine>;
     /** Keep active true during travel; clear this prop to cancel and restore the lobby. */
     travel?: LobbyTravelPresentation;
     /** Already approved companions whose authored travel rigs can warm before departure. */
@@ -208,6 +211,8 @@ export interface LobbySceneProps {
     avatarUrl?: string;
     avatarScale?: number;
     profilePhoto?: string;
+    /** Your own name, shown on the tag over your avatar. */
+    selfName?: string;
     emote?: { index: number; nonce: number };
     flash?: LobbyFlash | null;
     flashPreviewOpen?: boolean;

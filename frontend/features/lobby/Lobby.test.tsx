@@ -104,7 +104,11 @@ jest.mock("./useLobbyTravelParty", () => ({
         prepareTravel: async (destination) => destination,
     })),
 }));
-jest.mock("./useLobbySocial", () => ({ __esModule: true, default: jest.fn() }));
+jest.mock("./useLobbySocial", () => ({
+    __esModule: true,
+    default: jest.fn(),
+    lobbyDisplayName: (_id?: string, username?: string) => username || "Guest",
+}));
 jest.mock("./useLobbyJourney", () => ({
     __esModule: true,
     default: jest.fn(),
@@ -462,6 +466,27 @@ test("closing the people list returns focus to its trigger", () => {
     expect(document.activeElement).toBe(button("People in this lobby"));
 });
 
+test("Enter on a focused dock button goes to the chat, not the button", () => {
+    render();
+    click(button("People in this lobby"));
+    click(button("Close people"));
+    const trigger = button("People in this lobby");
+    expect(document.activeElement).toBe(trigger);
+    const enter = new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+    });
+    act(() => {
+        trigger.dispatchEvent(enter);
+    });
+    expect(enter.defaultPrevented).toBe(true);
+    expect(container.querySelector("#lobby-people")).toBeNull();
+    expect(document.activeElement).toBe(
+        container.querySelector('input[aria-label="Message the lobby"]')
+    );
+});
+
 test("Escape closes People when its native control holds focus", () => {
     render();
     const trigger = button("People in this lobby");
@@ -738,9 +763,7 @@ test("loading with an immediate departure keeps the renderer active, locks input
     expect(surface.hasAttribute("data-travelling")).toBe(true);
     expect(surface.hasAttribute("inert")).toBe(true);
     expect(container.querySelector("iframe")).toBeNull();
-    expect(
-        container.querySelector('[aria-label="Selected world"]')
-    ).toBeNull();
+    expect(container.querySelector('[aria-label="Selected world"]')).toBeNull();
     expect(container.querySelector("button.enter")).toBeNull();
     const controls = container.querySelector(
         '[aria-label="Travelling to your world"]'
@@ -834,8 +857,6 @@ test("a selected group retains its conversation, draft and focus throughout trav
         expect(useLobbyTravelParty).toHaveBeenLastCalledWith(
             expect.objectContaining({ enabled: true, identityKey: "account" })
         );
-        if (phase !== "entered" && phase !== "idle")
-            expect(button("Travel with Moon club").disabled).toBe(true);
         if (phase === "revealing")
             expect(useLobbySocial).toHaveBeenLastCalledWith(
                 expect.objectContaining({

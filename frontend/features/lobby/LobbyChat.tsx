@@ -22,8 +22,6 @@ export interface GroupConversations {
     onSelect: (groupId: string | null) => void;
     onCreate: () => void;
     onManage: (groupId: string) => void;
-    onExplore: (groupId: string) => void;
-    canExplore?: boolean;
     sendMessage: (groupId: string, text: string) => Promise<boolean>;
 }
 export type ConversationSocial = {
@@ -1002,21 +1000,6 @@ export default function LobbyChat({
                                 <small>
                                     {selectedGroup.members.length} people
                                 </small>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    groupConversations.onExplore(
-                                        selectedGroup.id
-                                    )
-                                }
-                                disabled={
-                                    groupConversations.canExplore === false
-                                }
-                                aria-label={`Travel with ${selectedGroup.name}`}
-                                title="Go somewhere together"
-                            >
-                                <LobbyDockIcon name="explore" />
                             </button>
                             {backToRoom}
                         </div>
