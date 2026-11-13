@@ -32,6 +32,17 @@ test("options are bounded", () => {
     expect(parseRecordingCrowd("?crowd=3")?.travel).toBe(3);
 });
 
+test("labels above avatars can be turned off without losing names", () => {
+    expect(parseRecordingCrowd("?crowd=3")).toMatchObject({
+        names: true,
+        labels: true,
+    });
+    expect(parseRecordingCrowd("?crowd=3&crowdLabels=0")).toMatchObject({
+        names: true,
+        labels: false,
+    });
+});
+
 test("the crowd has the requested size, unique ids and real avatars", () => {
     const crowd = createRecordingCrowd(
         parseRecordingCrowd("?crowd=40"),

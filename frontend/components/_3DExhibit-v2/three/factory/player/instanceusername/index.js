@@ -47,6 +47,19 @@ import {
 
 } from '@3constants'
 
+function recordingHidesLabels() {
+
+	try {
+
+		return window.parent.document.documentElement.hasAttribute( 'data-recording-no-labels' )
+	}
+
+	catch( e ) {
+
+		return false
+	}
+}
+
 export default class InstanceUserName extends Object3D {
 
 	constructor( atlas ){
@@ -126,9 +139,12 @@ export default class InstanceUserName extends Object3D {
 
 		let i = 0
 
+		// Recording only: the lobby around this space asked for no labels.
+		const hidden = recordingHidesLabels()
+
 		while( i < this.meshes.length ){
 
-			if( this.meshes[i].wrappers.length > 0 ) {
+			if( this.meshes[i].wrappers.length > 0 && hidden == false ) {
 
 				this.meshes[i].geometry.sort( this.meshes[i].wrappers )
 

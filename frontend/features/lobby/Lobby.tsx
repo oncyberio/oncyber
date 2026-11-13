@@ -862,12 +862,25 @@ export default function Lobby({
                 ? {
                       maxModels: 24,
                       maxNativeAvatars: 16,
-                      maxLabels: recording.options.names ? 64 : 0,
+                      maxLabels:
+                          recording.options.names && recording.options.labels
+                              ? 64
+                              : 0,
                       loadConcurrency: 4,
                   }
                 : undefined,
         [recording]
     );
+    // Recording without labels: spaces read this from the page around them.
+    const hideLabels = !!recording && !recording.options.labels;
+    useEffect(() => {
+        if (!hideLabels) return;
+        document.documentElement.setAttribute("data-recording-no-labels", "");
+        return () =>
+            document.documentElement.removeAttribute(
+                "data-recording-no-labels"
+            );
+    }, [hideLabels]);
     const sceneReady = useCallback(() => {
         setReady(true);
         onReady();

@@ -9,6 +9,7 @@
  *   ?crowdWallet=a.eth,0x… also dress people in avatars these wallets own
  *   ?crowdAvatars=id,id    catalogue avatars to use (defaults to the first ones)
  *   ?crowdNames=0          hide their name tags
+ *   ?crowdLabels=0         no labels above anyone, in the lobby and in spaces
  *   ?crowdSeed=7           another arrangement of the same crowd
  */
 export interface RecordingCrowdOptions {
@@ -17,6 +18,8 @@ export interface RecordingCrowdOptions {
     wallets: string[];
     avatarIds: string[];
     names: boolean;
+    /** Labels above avatars. Off for a cleaner picture; names stay in chat. */
+    labels: boolean;
     seed: number;
 }
 
@@ -54,6 +57,7 @@ export function parseRecordingCrowd(
         ),
         avatarIds: list("crowdAvatars"),
         names: params.get("crowdNames") !== "0",
+        labels: params.get("crowdLabels") !== "0",
         seed: integer(params.get("crowdSeed"), 1, 1_000_000),
     };
 }
