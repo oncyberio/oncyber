@@ -199,3 +199,32 @@ describe.each([10, 30])("walking down a %d degree slope", (degrees) => {
         expect(worst).toBeLessThan(0.01);
     });
 });
+
+describe("spawn on the floor", () => {
+    const { Vector3 } = jest.requireActual("three");
+
+    test("a spawn above the floor lands standing on it", () => {
+        const physics = world(30);
+        const spawn = new Vector3(0, 8, 0);
+
+        expect(physics.placeOnFloor(spawn)).toBe(true);
+        expect(spawn.y).toBeCloseTo(2.86, 2);
+    });
+
+    test("a spawn just under a slope is lifted onto it", () => {
+        const physics = world(30);
+        const floorY = -15.5 * Math.tan(Math.PI / 6);
+        const spawn = new Vector3(0, floorY + 2.6, -20.5);
+
+        expect(physics.placeOnFloor(spawn)).toBe(true);
+        expect(spawn.y).toBeCloseTo(floorY + 2.86, 1);
+    });
+
+    test("a spawn with no floor under it is left alone", () => {
+        const physics = world(30);
+        const spawn = new Vector3(100, 8, 0);
+
+        expect(physics.placeOnFloor(spawn)).toBe(false);
+        expect(spawn.y).toBe(8);
+    });
+});
