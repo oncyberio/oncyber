@@ -20,7 +20,9 @@ import type {
     LobbyGroupsSnapshot,
 } from "../../../multiplayer/protocol/lobby-groups";
 
-const MAX_MEMBERS = 8,
+// Recording only: you and up to 16 staged friends (the most a trip carries,
+// RECORDING_CROWD_TRAVEL_MAX). The lobby server's parties stay at 8.
+const MAX_MEMBERS = 17,
     MAX_GROUPS = 4,
     MAX_INVITATIONS = 8,
     MAX_MESSAGES = 24;
@@ -309,7 +311,7 @@ export class LobbyGroups {
                     invitees.every(
                         (id) => typeof id === "string" && this.member(id)
                     ),
-                "Choose up to seven people who are here."
+                "Choose up to sixteen people who are here."
             );
             this.require(
                 invitees.every(
