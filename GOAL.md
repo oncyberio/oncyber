@@ -44,8 +44,10 @@ you as you travel.
 -   **The 3D engine** (`components/_3DExhibit-v2/`) is three.js `WebGPURenderer`
     with TSL materials, so the same code runs on WebGPU and the WebGL2 fallback.
     The lobby and every native space render with it.
--   **`multiplayer/`** is a separate Colyseus service for presence, chat and
-    voice signaling. The lobby and spaces join its rooms.
+-   **`multiplayer/`** is a separate realtime service: the shared world server
+    the lobby runs on (WebTransport, with a WebSocket fallback), the Colyseus
+    rooms spaces join, voice signaling and TURN credentials. Presence, chat,
+    party travel and admin-approved voice live there.
 -   **The content host** (`features/content-host/`) runs an outside experience
     in a sandboxed frame. The world never touches the wallet or the account; it
     asks the Oncyber page through the message bridge, and the page decides.
@@ -70,8 +72,9 @@ every value and the real components.
     [docs/brand/tokens.md](docs/brand/tokens.md).
 -   **Three surfaces.** The landing is a quiet dark canvas (`#101010`) with
     solid panels (`#191919`) and paper cards. The lobby floats glass panels over
-    the 3D world. Studio is dense, with flat neutral greys and no glass. Keep
-    each surface's material on that surface.
+    the 3D world, and chat floats over it with no panel (`lobbyTokens.chat`
+    and `lobbyTokens.speech` for lines above heads). Studio is dense, with flat
+    neutral greys and no glass. Keep each surface's material on that surface.
 -   **Type.** Aeonik (registered as "Oncyber Sans") for language, Space Mono for
     small numbers and labels. Body 14 px / 1.5, panel titles 16 px medium,
     buttons 13 px medium. Sentence case. Never tilt, squash or re-track text to
@@ -110,7 +113,9 @@ points at Oncyber's accounts: every key is an environment variable, and
 `frontend/.env.example` lists them. [AGENTS.md](AGENTS.md) has the table of
 which feature needs which service.
 
--   **No keys:** the landing page and docs run as soon as you install.
+-   **No accounts at all:** `pnpm dev:local` runs the whole app on your
+    machine, with Firebase emulators seeded with a sample space and a local
+    lobby server. Start here (see `local-dev/README.md`).
 -   **Your own Firebase project:** sign-in, profiles, spaces and Studio. This is
     the one service most work needs today.
 -   **A local lobby server** (`multiplayer/`): the shared lobby, chat and voice.
