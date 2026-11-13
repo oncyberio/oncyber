@@ -2,6 +2,8 @@
 
 import emitter from '@3emitter'
 
+import { createFrameCap, maxFrameRate } from '@utils/frameCap'
+
 // import Renderer from '@3renderer'
 
 import {
@@ -105,6 +107,8 @@ class mediator {
 		this.mouseupRef     = this.mouseup.bind(this)
 
 		this.updateEvent    = this.update.bind(this)
+
+        this.frameCap       = createFrameCap( maxFrameRate( FPS ) )
 
 		this.mouseWheelRef  = this.mouseWheel.bind(this)
 
@@ -238,12 +242,6 @@ class mediator {
                this.renderer.setAnimationLoop(() => gsap.ticker.tick())
             }
 
-            if( FPS != null ){
-
-                gsap.ticker.fps( FPS )
-
-            }
-
             gsap.ticker.add(this.updateEvent);
 
 
@@ -306,6 +304,14 @@ class mediator {
     }
 
 	update( force = false , deltaForce = null) {
+
+        // 60 frames a second at most on fast displays (utils/frameCap.ts):
+        // only ticker frames are capped, never XR, recordings or forced ones
+        if( deltaForce == null && force !== true && !IS_VR && !IS_RECORDING
+            && !this.frameCap.shouldDraw( performance.now() ) ) {
+
+            return
+        }
 
         let tempnow = Date.now()
 
