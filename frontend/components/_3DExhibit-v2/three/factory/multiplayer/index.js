@@ -241,6 +241,9 @@ class Multiplayer extends Group {
 
         this.recordingParty = readRecordingParty();
 
+        /** @type {number | undefined} */
+        this.recordingReadyAt = undefined
+
         // The trip back asks the friends to line up (lobbyWorldDeparture.ts).
         if (this.recordingParty) /** @type {any} */ (window).__oncyberRecordingLineUp = (yaw, snap) => this.lineUpRecordingParty(yaw, snap)
 

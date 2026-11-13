@@ -723,9 +723,21 @@ export default function Lobby({
         else if (tripStatus !== "inviting")
             setGroupTravellers(ids.filter((id) => id !== social.sessionId));
     }, [recording, tripStatus, tripIds, social.sessionId]);
+    // Party members get their full (not crowd-drawn) avatar as soon as they
+    // join, so nobody changes model while the party lines up to leave.
+    const stagedPartyIds = useMemo(
+        () =>
+            staged && partyMemberIds.length > 1
+                ? partyMemberIds.filter((id) => id !== social.sessionId)
+                : null,
+        [staged, partyMemberIds, social.sessionId]
+    );
     const stagedTravelIds = useMemo(
-        () => (staged ? groupTravellers ?? staged.crowd.travelIds : []),
-        [staged, groupTravellers]
+        () =>
+            staged
+                ? groupTravellers ?? stagedPartyIds ?? staged.crowd.travelIds
+                : [],
+        [staged, groupTravellers, stagedPartyIds]
     );
     const travelPartyIds = useMemo(
         () =>
@@ -739,9 +751,14 @@ export default function Lobby({
             __oncyberRecordingParty?: unknown;
         };
         if (!staged) return;
-        const ids = new Set(stagedTravelIds);
-        win.__oncyberRecordingParty = staged.crowd.participants
-            .filter((person) => ids.has(person.id))
+        // In the trip's order, so the space can line friends up as the
+        // lobby did.
+        const people = new Map(
+            staged.crowd.participants.map((person) => [person.id, person])
+        );
+        win.__oncyberRecordingParty = stagedTravelIds
+            .map((id) => people.get(id))
+            .filter(Boolean)
             .map(({ id, name, vrmUrl, avatar }) => ({
                 id,
                 name,

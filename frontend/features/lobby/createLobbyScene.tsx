@@ -1407,8 +1407,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         self.model &&
                         budget.maxLabels > 0 &&
                         latest.current.selfName &&
-                        !travel &&
-                        !group &&
+                        // Shown through a trip too, like everyone else's
+                        // in the line; only the world reveal hides it.
                         !preview &&
                         !latest.current.avatarPreview &&
                         self.group.visible &&
