@@ -4,6 +4,7 @@
  */
 
 import { mimetoExt } from "./mimeUtils";
+import { sniffImageType, type ImageType } from "./imageType";
 import { publicFetch } from "@utils/net/publicFetch";
 
 const PINATA_API_URL = "https://api.pinata.cloud/pinning";
@@ -96,8 +97,14 @@ export async function uploadUrlToPinata(
     source: string,
     name: string,
     mimeType: string,
-    maxSize: number = MAX_MODEL_SIZE
-): Promise<{ url: string; secure_url: string; public_id: string }> {
+    maxSize: number = MAX_MODEL_SIZE,
+    { accept }: { accept?: string } = {}
+): Promise<{
+    url: string;
+    secure_url: string;
+    public_id: string;
+    imageType: ImageType | null;
+}> {
     // The source comes from API callers: only data URLs or public https hosts,
     // checked at connect time (see publicFetch).
     let buffer: ArrayBuffer;
@@ -105,7 +112,11 @@ export async function uploadUrlToPinata(
         buffer = await (await fetch(source)).arrayBuffer();
     } else {
         if (!source.startsWith("https:")) throw new Error("Unsupported upload source");
-        const res = await publicFetch(source, { maxBytes: maxSize, maxRedirects: 0 });
+        const res = await publicFetch(source, {
+            maxBytes: maxSize,
+            maxRedirects: 0,
+            ...(accept ? { accept } : {}),
+        });
         if (res.status < 200 || res.status >= 300) {
             throw new Error(`Failed to fetch upload source (${res.status})`);
         }
@@ -148,7 +159,12 @@ export async function uploadUrlToPinata(
 
     const url = `${PINATA_GATEWAY}${result.IpfsHash}?filename=${name}.${ext}`;
 
-    return { url, secure_url: url, public_id: result.IpfsHash };
+    return {
+        url,
+        secure_url: url,
+        public_id: result.IpfsHash,
+        imageType: sniffImageType(buffer),
+    };
 }
 
 /**
