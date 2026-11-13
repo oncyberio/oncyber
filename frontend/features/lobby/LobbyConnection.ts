@@ -347,6 +347,7 @@ export class LobbyConnection {
     /** Peers we send to but never play (our stage listeners). */
     private speakOnly = new Set<string>();
     private stageSpeakers = new Set<string>();
+    private microphonePermissionRevision = 0;
     private adminRequests = new Map<
         string,
         {
@@ -1253,6 +1254,9 @@ export class LobbyConnection {
             this.stageSpeakers.has(selfId) &&
             !stage.speakers.some((s) => s.sessionId === selfId);
         this.stageSpeakers = new Set(stage.speakers.map((s) => s.sessionId));
+        // A pending browser permission must not outlive an admin's decision,
+        // even if permission is granted after the stage changes again.
+        if (leftStage || stage.muted) this.microphonePermissionRevision++;
         // Off voice, the mic goes quiet here too, not just on the server.
         if (leftStage && this.snapshot.voiceState === "live") {
             this.microphone?.getTracks().forEach((track) => {
@@ -1895,6 +1899,10 @@ export class LobbyConnection {
             return;
         }
         const generation = this.generation;
+        const permissionRevision = this.microphonePermissionRevision;
+        const canPublish = () =>
+            permissionRevision === this.microphonePermissionRevision &&
+            !this.snapshot.stage?.muted;
         const current = () =>
             !this.closed &&
             this.lobbyPresent &&
@@ -1987,6 +1995,7 @@ export class LobbyConnection {
                 }
                 voice.setRole("host");
             }
+            if (!canPublish()) listenOnly = true;
             if (listenOnly) {
                 this.audio.forEach((audio) => {
                     void audio.play().catch(() => {});
@@ -2003,8 +2012,9 @@ export class LobbyConnection {
                     },
                     video: false,
                 });
-                if (!current()) {
+                if (!current() || !canPublish()) {
                     stream.getTracks().forEach((track) => track.stop());
+                    if (current()) this.update({ voiceState: "muted" });
                     return;
                 }
                 this.microphone = stream;

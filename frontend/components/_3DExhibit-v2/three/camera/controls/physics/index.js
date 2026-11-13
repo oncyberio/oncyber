@@ -20,9 +20,9 @@ import { pickSpawnInsideSpace } from "./spaceBounds";
 // A spawn's saved height is rarely exactly on the floor (it can be taken
 // while flying in the studio, or from another avatar's height). The player
 // is put on the floor under the spawn instead of dropping onto it: the
-// search starts a little above the head, so a spawn under a roof or on an
-// upper floor keeps that floor, and reaches this far below the feet.
-const SPAWN_FLOOR_ABOVE_HEAD = 0.5
+// search starts at the saved head: starting above it can cross a low
+// ceiling and choose the upper floor instead. It reaches this far below
+// the feet.
 const SPAWN_FLOOR_BELOW_FEET = 30
 
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
@@ -140,14 +140,14 @@ export class Physics {
 
         const height = this.collisions.collider_height
 
-        this.ray.origin.set(cameraPos.x, cameraPos.y + SPAWN_FLOOR_ABOVE_HEAD, cameraPos.z)
+        this.ray.origin.set(cameraPos.x, cameraPos.y, cameraPos.z)
 
         this.ray.direction.copy(DOWN_VECTOR)
 
         // Rays only hit faces turned towards them, so this finds floors.
         const hit = this.collisions.rayIntersect(this.ray)
 
-        if (hit == null || hit.distance > SPAWN_FLOOR_ABOVE_HEAD + height + SPAWN_FLOOR_BELOW_FEET) {
+        if (hit == null || hit.distance > height + SPAWN_FLOOR_BELOW_FEET) {
 
             return false
         }

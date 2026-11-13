@@ -220,6 +220,25 @@ describe("spawn on the floor", () => {
         expect(spawn.y).toBeCloseTo(floorY + 2.86, 1);
     });
 
+    test.each([
+        [2.85, 2.86],
+        [6, 5.86],
+    ])("a spawn at head height %s keeps its own floor", (height, expected) => {
+        const physics = world(0);
+        const upstairs = slopeFloor(0);
+        upstairs.position.y = 3;
+        upstairs.updateMatrixWorld(true);
+        physics.collisions.worldOctree = new TopOctree();
+        physics.collisions.worldOctree.createStaticOcteee([
+            slopeFloor(0),
+            upstairs,
+        ]);
+        const spawn = new Vector3(0, height, 0);
+
+        expect(physics.placeOnFloor(spawn)).toBe(true);
+        expect(spawn.y).toBeCloseTo(expected, 2);
+    });
+
     test("a spawn with no floor under it is left alone", () => {
         const physics = world(30);
         const spawn = new Vector3(100, 8, 0);
