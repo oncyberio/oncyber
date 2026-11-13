@@ -176,6 +176,10 @@ const Container = styled.div<{ $hidden: boolean }>`
     ${nativeChatPlacement}
     color: #e8e9ec;
     pointer-events: auto;
+    /* The lobby's party chat is open in this spot. */
+    :root[data-party-chat-open] & {
+        visibility: hidden;
+    }
     ${({ $hidden }) =>
         $hidden &&
         css`
