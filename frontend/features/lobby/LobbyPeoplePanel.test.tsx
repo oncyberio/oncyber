@@ -54,7 +54,7 @@ it("opens with a labelled dialog, nearby status, and focus on Close", () => {
         "12 in this lobby · showing people near you"
     );
     expect(
-        container.querySelectorAll('ul[aria-label="People nearby"] li')
+        container.querySelectorAll('ul[aria-label="People"] li')
     ).toHaveLength(2);
     expect(document.activeElement.getAttribute("aria-label")).toBe(
         "Close people"

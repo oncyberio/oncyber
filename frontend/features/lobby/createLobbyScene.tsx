@@ -986,6 +986,41 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     }
                 }
 
+                // People appear at once in the default avatar, which is ready
+                // first, and change into their own as each model finishes
+                // preparing, instead of standing invisible until then.
+                const readyUrls = new Set<string>();
+                const warming = new Set<string>();
+                const warmQueue: string[] = [];
+                let warmActive = 0;
+                function pumpWarm() {
+                    while (warmActive < 3 && warmQueue.length && !disposed) {
+                        const url = warmQueue.shift();
+                        warmActive++;
+                        crowd
+                            .create(url)
+                            .then((handle) => {
+                                // Held, undrawn, just long enough for the
+                                // people wearing it to take it over.
+                                handle.setReveal?.(0);
+                                handle.root.visible = false;
+                                readyUrls.add(url);
+                                setTimeout(() => handle.dispose(), 5000);
+                            })
+                            .catch(() => readyUrls.add(url))
+                            .finally(() => {
+                                warmActive--;
+                                warming.delete(url);
+                                pumpWarm();
+                            });
+                    }
+                }
+                function warmAvatar(url: string) {
+                    if (readyUrls.has(url) || warming.has(url)) return;
+                    warming.add(url);
+                    warmQueue.push(url);
+                    pumpWarm();
+                }
                 function loadVisitor(
                     visitor: Visitor,
                     url: string,
@@ -1051,6 +1086,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                     model.dispose();
                                     return;
                                 }
+                                if (!local && !cinematic && !flashing)
+                                    readyUrls.add(url);
                                 if (
                                     !local &&
                                     !cinematic &&
@@ -1496,17 +1533,31 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             avatar.url = undefined;
                             avatar.nativeSuppressed = false;
                         }
-                        loadVisitor(
-                            avatar,
-                            url,
-                            participant.scale,
-                            false,
-                            participant.avatar,
+                        const cinematic =
                             (allowed?.has(participant.id) ||
                                 latest.current.travelPartyIds
                                     ?.slice(0, 8)
                                     .includes(participant.id)) &&
-                                travel?.phase !== "return",
+                            travel?.phase !== "return";
+                        // Until their own avatar is ready, they stand in the
+                        // default one (see warmAvatar) so nobody is invisible.
+                        const standIn =
+                            !flashing &&
+                            latest.current.crowdEnabled !== false &&
+                            (!avatar.model ||
+                                avatar.url === DEFAULT_LOBBY_AVATAR_URL) &&
+                            (cinematic
+                                ? !avatar.model
+                                : url !== DEFAULT_LOBBY_AVATAR_URL &&
+                                  !readyUrls.has(url));
+                        if (standIn && !cinematic) warmAvatar(url);
+                        loadVisitor(
+                            avatar,
+                            standIn ? DEFAULT_LOBBY_AVATAR_URL : url,
+                            participant.scale,
+                            false,
+                            participant.avatar,
+                            standIn ? false : cinematic,
                             flashing
                         );
                         const sampled =

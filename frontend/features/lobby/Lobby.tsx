@@ -454,6 +454,7 @@ export default function Lobby({
     // when the list opens: rows must not move under the pointer as people
     // walk or join your party. Anyone who arrives later goes to the end.
     const peopleOrder = useRef<Map<string, number> | null>(null);
+    const [peopleNearby, setPeopleNearby] = useState(true);
     if (!peopleOpen) peopleOrder.current = null;
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
@@ -467,11 +468,16 @@ export default function Lobby({
                 social.players
                     .map((player) => ({
                         id: player.id,
+                        name: player.name,
                         d: player.isLocal
                             ? -1
                             : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
                     }))
-                    .sort((a, b) => a.d - b.d)
+                    .sort((a, b) =>
+                        peopleNearby || a.d < 0 || b.d < 0
+                            ? a.d - b.d
+                            : a.name.localeCompare(b.name)
+                    )
                     .map(({ id }, index) => [id, index])
             );
         }
@@ -481,7 +487,7 @@ export default function Lobby({
         return [...social.players].sort(
             (a, b) => order.get(a.id) - order.get(b.id)
         );
-    }, [peopleOpen, social.players]);
+    }, [peopleOpen, peopleNearby, social.players]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
             const url = new URL(window.location.href);
@@ -1336,6 +1342,13 @@ export default function Lobby({
                 {peopleOpen && (
                     <LobbyPeoplePanel
                         players={peoplePlayers}
+                        sort={{
+                            nearby: peopleNearby,
+                            onToggle: () => {
+                                peopleOrder.current = null;
+                                setPeopleNearby((value) => !value);
+                            },
+                        }}
                         party={
                             social.groupsSupported
                                 ? {
