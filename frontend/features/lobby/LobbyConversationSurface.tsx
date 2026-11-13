@@ -63,6 +63,10 @@ const LobbyConversationSurface = styled.div`
         margin: 5px 0;
     }
     @media (max-width: 850px) {
+        /* No room beside the people list here: it takes the chat's place. */
+        &[data-people] {
+            display: none;
+        }
         left: 16px;
         width: 280px;
         max-width: calc(100% - 242px);
