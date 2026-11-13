@@ -1,10 +1,9 @@
 # Oncyber: where we're going
 
 Oncyber started in 2021 as a place to build and visit 3D galleries for digital
-art. The goal now is **a home for 3D spaces on the web**: galleries, worlds
-people build in the browser, and outside worlds made with any engine, joined
-by a shared lobby, with your identity, avatar, friends and voice coming with
-you as you travel.
+art. The goal now is **a home for 3D spaces on the web**, joined by a shared
+lobby, with your identity, avatar, friends and voice coming with you as you
+travel.
 
 ## What we're building
 
@@ -13,28 +12,23 @@ you as you travel.
    space together without a loading screen breaking the moment.
 2. **Spaces on WebGPU.** The lobby and gallery spaces render with a WebGPU
    engine (three.js and TSL), with a WebGL2 fallback.
-3. **Any engine, one host.** The aim: any 3D world, made with any engine, can
-   become a space in Oncyber. It keeps its own engine and runs in a sandbox,
-   and Oncyber brings the visitor's identity, avatar, friends, chat and voice
-   (see `docs/content-host.md`). The host also has code, not live yet, that
+3. **Room to grow.** The current architecture is the base for supporting
+   worlds made with other engines later. It also has code, not live yet, that
    can serve awe.box experiences.
-4. **Creation in the browser.** An editable Studio and Gaussian-splat galleries,
-   so people can make and curate spaces without leaving the site.
+4. **Creation in the browser.** An editable Studio, so people can make and
+   curate spaces without leaving the site.
 5. **Discovery.** A landing page and explore experience to find spaces, worlds
    and people.
 6. **Content that lasts.** Art and spaces are stored on IPFS, and over time on
    Arweave, so they outlive any one server, including ours.
 7. **Open source.** The code is public so outside developers can read it, run
-   it and contribute. Docs live in the app at `/docs` and cover contributing,
-   plain three.js experiences, multiplayer and avatars.
+   it and contribute. Docs live in the app at `/docs`.
 
 ## Staged launch
 
-1. **Infrastructure first.** Open-source the lobby, landing, WebGPU spaces and
-   the content host. No games in this repository.
-2. **Creation.** Open Studio and splat galleries to more people.
-3. **Outside worlds.** Open the content host to more engines and publishers,
-   one small step at a time. Games come back later the same way.
+1. **Infrastructure first.** Open-source the lobby, landing and WebGPU spaces.
+2. **Creation.** Open Studio to more people.
+3. **More worlds.** Build on the same base, one step at a time.
 
 ## Architecture in brief
 
@@ -48,9 +42,9 @@ you as you travel.
     the lobby runs on (WebTransport, with a WebSocket fallback), the Colyseus
     rooms spaces join, voice signaling and TURN credentials. Presence, chat,
     party travel and admin-approved voice live there.
--   **The content host** (`features/content-host/`) runs an outside experience
-    in a sandboxed frame. The world never touches the wallet or the account; it
-    asks the Oncyber page through the message bridge, and the page decides.
+-   **The content host** (`features/content-host/`) runs a world in a sandboxed
+    frame that never touches the wallet or the account; it asks the Oncyber
+    page, and the page decides.
 -   **Data.** Accounts, profiles and space records are in Firebase today. Media
     and space files go to IPFS (Pinata), and to Arweave over time.
     `cloud-functions/` optimizes uploaded 3D assets and avatars.
