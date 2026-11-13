@@ -11,6 +11,17 @@ npm ci
 npm test
 ```
 
+## Space rooms on Fly
+
+`Dockerfile` builds the server spaces use: `CyberRoom`/`GameRoom`, voice
+signaling, `/getRooms` and `/turnCredentials`. `fly.arena.toml` runs it as one
+machine (rooms live in memory). Deploy with
+`fly deploy -c fly.arena.toml`, set the secrets listed at the top of that file,
+then point the frontend at it with `NEXT_PUBLIC_ARENA_URL`. Without that
+variable the frontend uses `arena.oncyber.io` (the GCP VM in `infra/`). The
+TURN relay itself (coturn) stays on the VM; the Fly app only signs credentials
+for it with the shared `TURN_SECRET`.
+
 ## Shared world with WebTransport (protocol v2)
 
 The new shared-world service uses CPU workers over shared authoritative state,
