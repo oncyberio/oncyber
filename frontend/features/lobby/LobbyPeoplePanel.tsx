@@ -340,25 +340,32 @@ export default function LobbyPeoplePanel({
                         onChange={(event) => setQuery(event.target.value)}
                     />
                 </label>
-                {sort && (
-                    <div className="people-tool">
-                        <span>
-                            {sort.nearby
-                                ? "Nearest people first"
-                                : "Sorted by name"}
-                        </span>
-                        <button
-                            type="button"
-                            className="people-sort"
-                            aria-pressed={sort.nearby}
-                            aria-label="Show the nearest people first"
-                            onClick={sort.onToggle}
-                        >
-                            <Icon name="pin" size={15} />
-                        </button>
-                    </div>
-                )}
             </div>
+            {sort && (
+                <div
+                    className="people-sort"
+                    role="group"
+                    aria-label="Sort people"
+                >
+                    <span>Sort by:</span>
+                    <button
+                        type="button"
+                        aria-pressed={sort.nearby}
+                        onClick={() => !sort.nearby && sort.onToggle()}
+                    >
+                        nearest people first
+                    </button>
+                    <span aria-hidden="true">|</span>
+                    <button
+                        type="button"
+                        aria-pressed={!sort.nearby}
+                        title="Who arrived last, first"
+                        onClick={() => sort.nearby && sort.onToggle()}
+                    >
+                        last
+                    </button>
+                </div>
+            )}
             <div className="people-content">
                 <p id="lobby-people-status" role="status">
                     {nearbyStatus}
@@ -621,43 +628,30 @@ const Panel = styled.section`
             border-color: ${lobby.panel.cardHover};
         }
     }
-    .people-tool {
-        position: relative;
+    .people-sort {
         display: flex;
-        flex-shrink: 0;
-    }
-    /* Same label as the dock's buttons, shown on hover or keyboard focus. */
-    .people-tool > span {
-        position: absolute;
-        z-index: 1;
-        top: calc(100% + 8px);
-        right: 0;
-        padding: 6px 10px;
-        border: 1px solid ${lobby.control.border};
-        border-radius: ${base.radius.inset}px;
-        background: ${lobby.control.tooltip};
-        color: ${lobby.color.tooltipInk};
-        font-size: ${base.font.size.sm}px;
-        white-space: nowrap;
-        pointer-events: none;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity ${base.motion.fast}ms ease;
-    }
-    .people-tool:hover > span,
-    .people-tool:has(:focus-visible) > span {
-        opacity: 1;
-        visibility: visible;
-    }
-    .people-tools .people-sort {
-        ${lobbyPanelIconButton}
-        border: 1px solid ${lobby.panel.border};
-        transition: border-color ${base.motion.fast}ms ease,
-            background ${base.motion.fast}ms ease;
-        &[aria-pressed="true"] {
-            border-color: ${lobby.panel.cardSelected};
-            background: ${base.color.line.faint};
-            color: ${lobby.color.ink};
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px 0;
+        color: ${lobby.color.secondary};
+        font-size: 12px;
+        button {
+            padding: 0;
+            border: 0;
+            background: none;
+            color: ${lobby.color.secondary};
+            font: inherit;
+            cursor: pointer;
+            &[aria-pressed="true"] {
+                color: ${lobby.color.ink};
+            }
+            &:hover {
+                color: ${lobby.color.ink};
+            }
+            &:focus-visible {
+                outline: 1px solid ${lobby.panel.cardHover};
+                outline-offset: 2px;
+            }
         }
     }
     .people-empty {

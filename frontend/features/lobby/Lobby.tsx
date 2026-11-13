@@ -499,17 +499,19 @@ export default function Lobby({
                     ? (spot.x - me.x) ** 2 + (spot.z - me.z) ** 2
                     : Infinity;
             };
+            // Nearest people first, or who arrived last first (the list
+            // comes in order of arrival). You stay on top either way.
             peopleOrder.current = new Map(
                 everyone
-                    .map((player) => ({
+                    .map((player, arrival) => ({
                         id: player.id,
-                        name: player.name,
+                        arrival,
                         d: distance(player),
                     }))
                     .sort((a, b) =>
                         peopleNearby || a.d < 0 || b.d < 0
                             ? a.d - b.d
-                            : a.name.localeCompare(b.name)
+                            : b.arrival - a.arrival
                     )
                     .map(({ id }, index) => [id, index])
             );
