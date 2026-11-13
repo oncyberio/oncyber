@@ -109,3 +109,25 @@ export function pickSpawnInsideSpace(candidates, bounds) {
         reference: "head",
     };
 }
+
+/** The shortest single-frame jump, in metres, that is never a real step. */
+export const MIN_RUNAWAY_STEP = 5;
+
+/**
+ * True when one physics frame moved the player sideways further than
+ * walking, running or a collision push ever can. Seen in the wild as a throw
+ * kilometres out of the space right after spawning.
+ *
+ * @param {XYZ} before
+ * @param {XYZ} after
+ * @param {number} colliderHeight the player's collision height this frame
+ */
+export function isRunawayStep(before, after, colliderHeight) {
+    const step = Math.hypot(after.x - before.x, after.z - before.z);
+    if (!Number.isFinite(step)) return true;
+    const limit = Math.max(
+        MIN_RUNAWAY_STEP,
+        2 * (Number.isFinite(colliderHeight) ? colliderHeight : 0)
+    );
+    return step > limit;
+}
