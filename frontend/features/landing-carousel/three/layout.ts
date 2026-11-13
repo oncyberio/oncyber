@@ -7,23 +7,90 @@ export interface GridCell {
     column: number;
 }
 
-/** Fill each vertical column, then continue horizontally without page gaps. */
+export interface GridLayout {
+    cells: GridCell[];
+    columnCount: number;
+    maxScrollColumn: number;
+    /**
+     * Card index in each slot, column by column (`column * rows + row`), or
+     * -1 where a column ends early so the next section starts a new one.
+     */
+    slots: number[];
+    /** First column of the popular section after the staff picks, or -1. */
+    sectionColumn: number;
+}
+
+/** Where the popular worlds start after the staff picks, or -1. */
+export function popularSectionStart(cards: LandingCard[]) {
+    const start = cards.findIndex((card) => card.section === "popular");
+    return start > 0 ? start : -1;
+}
+
+/**
+ * Fill each vertical column, then continue horizontally without page gaps.
+ * A new section (the popular worlds after the staff picks) starts at the top
+ * of a new column, so its label sits above its first card.
+ */
 export function createGridLayout(
     cards: LandingCard[],
     columns = 2,
     visibleRows = 2
-) {
-    const cells: GridCell[] = cards.map((_, index) => ({
-        index,
-        row: index % visibleRows,
-        column: Math.floor(index / visibleRows),
-    }));
-    const columnCount = Math.ceil(cards.length / visibleRows);
+): GridLayout {
+    const start = popularSectionStart(cards);
+    const padding =
+        start > 0 ? (visibleRows - (start % visibleRows)) % visibleRows : 0;
+    const cells: GridCell[] = cards.map((_, index) => {
+        const slot = index + (start > 0 && index >= start ? padding : 0);
+        return {
+            index,
+            row: slot % visibleRows,
+            column: Math.floor(slot / visibleRows),
+        };
+    });
+    const columnCount = cells.length ? cells[cells.length - 1].column + 1 : 0;
+    const slots = new Array(columnCount * visibleRows).fill(-1);
+    cells.forEach((cell) => {
+        slots[cell.column * visibleRows + cell.row] = cell.index;
+    });
     return {
         cells,
         columnCount,
         maxScrollColumn: Math.max(0, columnCount - columns),
+        slots,
+        sectionColumn: start > 0 ? cells[start].column : -1,
     };
+}
+
+/** The cells in columns `from` up to (not including) `to`, in card order. */
+export function cellsInColumns(layout: GridLayout, from: number, to: number) {
+    const rows = layout.columnCount
+        ? layout.slots.length / layout.columnCount
+        : 1;
+    return layout.slots
+        .slice(Math.max(0, from) * rows, Math.max(0, to) * rows)
+        .filter((index) => index >= 0)
+        .map((index) => layout.cells[index]);
+}
+
+/** The card in a slot, or the nearest card above it in a short column. */
+function cardInSlot(
+    slots: number[],
+    rows: number,
+    column: number,
+    row: number,
+    cardCount: number
+) {
+    const slot = column * rows + row;
+    if (slot >= slots.length) return cardCount - 1;
+    for (let r = row; r >= 0; r--) {
+        const index = slots[column * rows + r];
+        if (index >= 0) return index;
+    }
+    return Math.min(cardCount - 1, slot);
+}
+
+function plainSlots(cardCount: number) {
+    return Array.from({ length: cardCount }, (_, index) => index);
 }
 
 export interface CylinderMetrics {
@@ -143,19 +210,20 @@ export function selectedCardIndex(
     columns: number,
     rows: number,
     cardCount: number,
-    slot: { column: number; row: number }
+    slot: { column: number; row: number },
+    slots = plainSlots(cardCount)
 ) {
     if (!cardCount) return -1;
     const start = Math.max(
         0,
         Math.min(
             firstColumn,
-            Math.max(0, Math.ceil(cardCount / rows) - columns)
+            Math.max(0, Math.ceil(slots.length / rows) - columns)
         )
     );
     const column = Math.max(0, Math.min(columns - 1, slot.column));
     const row = Math.max(0, Math.min(rows - 1, slot.row));
-    return Math.min(cardCount - 1, (start + column) * rows + row);
+    return cardInSlot(slots, rows, start + column, row, cardCount);
 }
 
 /** Move between neighbors, scrolling only when the target leaves the grid. */
@@ -165,13 +233,15 @@ export function moveGridSelection(
     firstColumn: number,
     columns: number,
     rows: number,
-    cardCount: number
+    cardCount: number,
+    slots = plainSlots(cardCount)
 ) {
     if (!cardCount) return { index: -1, firstColumn: 0 };
     index = Math.max(0, Math.min(cardCount - 1, index));
-    let column = Math.floor(index / rows);
-    let row = index % rows;
-    const columnCount = Math.ceil(cardCount / rows);
+    const position = slots.indexOf(index);
+    let column = Math.floor(position / rows);
+    let row = position % rows;
+    const columnCount = Math.ceil(slots.length / rows);
     if (direction === "left" || direction === "right" || rows === 1) {
         const delta = direction === "left" || direction === "up" ? -1 : 1;
         column = Math.max(0, Math.min(columnCount - 1, column + delta));
@@ -181,7 +251,7 @@ export function moveGridSelection(
             Math.min(rows - 1, row + (direction === "up" ? -1 : 1))
         );
     }
-    const nextIndex = Math.min(cardCount - 1, column * rows + row);
+    const nextIndex = cardInSlot(slots, rows, column, row, cardCount);
     const start = Math.max(
         0,
         Math.min(Math.max(0, columnCount - columns), firstColumn)

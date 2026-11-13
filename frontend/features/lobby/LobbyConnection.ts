@@ -23,6 +23,7 @@ import { Client, Room } from "colyseus.js";
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "@utils/arena/constants";
 import { selectLobbyEndpoint, invalidateLobbyEndpoint } from "./lobbyEndpoints";
 import { LobbyMotionStore } from "./LobbyMotionStore";
+import { PatchClock } from "./patchClock";
 import { WorldLobbyTransport, WorldLobbyTicket } from "./WorldLobbyTransport";
 import { LobbyPrediction } from "./LobbyPrediction";
 import {
@@ -32,6 +33,7 @@ import {
 } from "./LobbyVoiceSignaling";
 import ColyseusChatProvider from "@utils/chat/ColyseusChatProvider";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
+import { LOBBY_MIC_BITRATE } from "@utils/voiceChat/sdp";
 
 // A dedicated CyberRoom: matchmaking, presence, chat and voice all share it.
 export const LOBBY_ROOM = "oncyber-lobby-v1";
@@ -95,6 +97,8 @@ export type LobbyPose = {
     vx?: number;
     vy?: number;
     vz?: number;
+    /** Presentation-only: 1 or 2 while airborne, inferred from velocity. */
+    jumpCount?: number;
 };
 export type LobbyPlayer = LobbyPose & {
     id: string;
@@ -139,7 +143,34 @@ export type LobbyStage = {
     requests: LobbyStagePerson[];
     /** Admins only: people muted by an admin. */
     mutedPeople: string[];
+    /**
+     * Only approved speakers talk, and only people near them hear them.
+     * Without it (the older lobby), everyone talks nearby and speakers
+     * reach the whole room.
+     */
+    spatial: boolean;
 };
+export type LobbySummon = {
+    sessionId: string;
+    name: string;
+    avatar: string;
+    receivedAt: number;
+};
+/**
+ * Voice volume as in spaces on oncyber.io: full up to 60 x 1.84 m, then
+ * inverse distance. Someone too far to be drawn is at least that far away.
+ */
+const SPACE_VOICE_REFERENCE = 60 * 1.84;
+export function spaceVoiceVolume(
+    player: { x: number; z: number } | undefined,
+    pose: { x: number; z: number }
+) {
+    if (!player) return 0.8;
+    const distance = Math.hypot(player.x - pose.x, player.z - pose.z);
+    return distance <= SPACE_VOICE_REFERENCE
+        ? 1
+        : SPACE_VOICE_REFERENCE / distance;
+}
 export type LobbyAdminAction =
     | "stage-add"
     | "stage-remove"
@@ -162,6 +193,8 @@ export type LobbySnapshot = {
     voiceError: string;
     /** Absent on servers without lobby voice moderation. */
     stage: LobbyStage | null;
+    /** An admin asked everyone to come to them. */
+    summon: LobbySummon | null;
     population?: number;
     groups: LobbyGroup[];
     invitations: LobbyGroupInvitation[];
@@ -188,6 +221,7 @@ export const initialLobbySnapshot = (): LobbySnapshot => ({
     voiceState: "off",
     voiceError: "",
     stage: null,
+    summon: null,
     groups: [],
     invitations: [],
     groupMessages: [],
@@ -302,6 +336,10 @@ export class LobbyConnection {
     private motion = new LobbyMotionStore();
     private prediction = new LobbyPrediction();
     private legacyTick = 0;
+    /** Legacy schema patches carry no time; snap their arrivals to the room's tick grid. */
+    private legacyClock = new PatchClock();
+    private legacyQuietTimer: ReturnType<typeof setTimeout> | null = null;
+    private legacyMoveKey = "";
     private population = 0;
     private voicePeers: string[] = [];
     /** Peers we hear but never send our mic to (stage speakers, or everyone while muted). */
@@ -453,16 +491,19 @@ export class LobbyConnection {
                     });
                     const proofTimeout = setTimeout(cancelProof, 2000);
                     try {
-                        const proof = await fetch("/api/social/lobby-identity", {
-                            method: "POST",
-                            credentials: "same-origin",
-                            signal: proofController.signal,
-                            headers: {
-                                "content-type": "application/json",
-                                authorization: `Bearer ${this.identity.token}`,
-                            },
-                            body: "{}",
-                        });
+                        const proof = await fetch(
+                            "/api/social/lobby-identity",
+                            {
+                                method: "POST",
+                                credentials: "same-origin",
+                                signal: proofController.signal,
+                                headers: {
+                                    "content-type": "application/json",
+                                    authorization: `Bearer ${this.identity.token}`,
+                                },
+                                body: "{}",
+                            }
+                        );
                         const value = proof.ok ? await proof.json() : null;
                         if (
                             typeof value?.token === "string" &&
@@ -750,6 +791,7 @@ export class LobbyConnection {
                         room.onMessage("lobby-pong", this.receivePong),
                         room.onMessage("lobby-voice", this.receiveVoice),
                         room.onMessage("lobby-stage", this.receiveStage),
+                        room.onMessage("lobby-summon", this.receiveSummon),
                         room.onMessage(
                             "lobby-admin-result",
                             this.receiveAdminResult
@@ -935,11 +977,52 @@ export class LobbyConnection {
                 changed = true;
             }
         this.population = this.players.size;
-        this.motion.pushFrame(++this.legacyTick, performance.now(), poses);
+        const arrival = performance.now();
+        const stamp = this.legacyClock.stamp(arrival);
+        this.motion.pushFrame(++this.legacyTick, stamp, poses, arrival, true);
+        this.scheduleLegacyQuietFrame(stamp, arrival);
         if (changed) this.publishRoster();
         this.selectLegacyVoice();
         this.updateAudioVolume();
     };
+    /**
+     * The room only sends a patch when something changed, so when the last
+     * mover stops, the patch holding their resting position is the last one.
+     * Without a following sample the avatar walks on past that point for a
+     * moment and keeps its walk until the buffer runs dry. A quiet tick means
+     * nothing moved: record it as a resting sample one interval later.
+     */
+    private scheduleLegacyQuietFrame(stamp: number, arrival: number) {
+        if (this.legacyQuietTimer) clearTimeout(this.legacyQuietTimer);
+        const interval = this.legacyClock.intervalMs;
+        this.legacyQuietTimer = setTimeout(() => {
+            this.legacyQuietTimer = null;
+            if (this.closed || this.protocol !== "legacy") return;
+            if (this.legacyClock.lastStamp !== stamp) return;
+            const poses: Array<[string, LobbyPose]> = [];
+            for (const [id, player] of this.players)
+                if (!player.isLocal)
+                    poses.push([
+                        id,
+                        {
+                            x: player.x,
+                            y: player.y,
+                            z: player.z,
+                            rotation: player.rotation,
+                            animation: player.animation,
+                            floor: player.floor,
+                        },
+                    ]);
+            if (!poses.length) return;
+            this.motion.pushFrame(
+                ++this.legacyTick,
+                stamp + interval,
+                poses,
+                arrival + interval,
+                true
+            );
+        }, interval * 1.25);
+    }
     private receiveRoster = (message: any) => {
         if (!Array.isArray(message?.enter) || !Array.isArray(message?.leave))
             return;
@@ -1161,8 +1244,22 @@ export class LobbyConnection {
                       .slice(0, 256)
                       .filter((id) => typeof id === "string")
                 : [],
+            spatial: message.spatial === true,
         };
+        const selfId = this.room?.sessionId;
+        const leftStage =
+            stage.spatial &&
+            !!selfId &&
+            this.stageSpeakers.has(selfId) &&
+            !stage.speakers.some((s) => s.sessionId === selfId);
         this.stageSpeakers = new Set(stage.speakers.map((s) => s.sessionId));
+        // Off voice, the mic goes quiet here too, not just on the server.
+        if (leftStage && this.snapshot.voiceState === "live") {
+            this.microphone?.getTracks().forEach((track) => {
+                track.enabled = false;
+            });
+            this.update({ voiceState: "muted" });
+        }
         const self = this.room && this.players.get(this.room.sessionId);
         if (self && self.role !== (role || undefined)) {
             const { role: _previous, ...rest } = self;
@@ -1215,6 +1312,38 @@ export class LobbyConnection {
             this.adminRequests.set(key, { resolve, timer });
             this.room.send("lobby-admin", { action, sessionId });
         });
+    };
+    private receiveSummon = (message: any) => {
+        if (
+            typeof message?.sessionId !== "string" ||
+            message.sessionId.length > 128 ||
+            message.sessionId === this.room?.sessionId
+        )
+            return;
+        this.update({
+            summon: {
+                sessionId: message.sessionId,
+                name: readName(message.username),
+                avatar: avatarUrl(message.avatar),
+                receivedAt: Date.now(),
+            },
+        });
+    };
+    /** Go to someone; `summoned` answers an admin's "bring everyone here". */
+    teleportTo = (sessionId: string, summoned = false) => {
+        if (!this.room || this.snapshot.status !== "connected") return;
+        this.room.send("lobby-teleport", {
+            sessionId,
+            ...(summoned ? { radius: 10 } : {}),
+        });
+        if (summoned || this.snapshot.summon?.sessionId === sessionId)
+            this.update({ summon: null });
+    };
+    dismissSummon = () => this.update({ summon: null });
+    /** Admins: ask everyone further than 10 m to come here. */
+    summonAll = () => {
+        if (this.room && this.snapshot.stage?.role)
+            this.room.send("lobby-summon", {});
     };
     requestVoice = (cancel = false) => {
         if (this.room && this.snapshot.stage)
@@ -1627,11 +1756,7 @@ export class LobbyConnection {
             (this.protocol !== "legacy" && !this.welcomed)
         )
             return;
-        const delay = Math.max(
-            0,
-            (this.protocol !== "legacy" ? 50 : 100) -
-                (Date.now() - this.lastMove)
-        );
+        const delay = Math.max(0, 33 - (Date.now() - this.lastMove));
         this.moveTimer = setTimeout(this.sendPosition, delay);
     };
     private sendPosition = () => {
@@ -1652,12 +1777,22 @@ export class LobbyConnection {
             return;
         }
         const { x, y, z, rotation, animation, floor } = this.pose;
-        this.room.send(
-            this.protocol !== "legacy" ? "lobby-move" : "move",
-            this.protocol !== "legacy"
-                ? this.prediction.packet()
-                : [x, y, z, rotation, animationCode(animation), floor !== false]
-        );
+        if (this.protocol === "legacy") {
+            const move = [
+                x,
+                y,
+                z,
+                rotation,
+                animationCode(animation),
+                floor !== false,
+            ];
+            // Standing still sends nothing new; refresh it once a second.
+            const key = move.join();
+            if (key === this.legacyMoveKey && Date.now() - this.lastMove < 1000)
+                return;
+            this.legacyMoveKey = key;
+            this.room.send("move", move);
+        } else this.room.send("lobby-move", this.prediction.packet());
         this.lastMove = Date.now();
     };
     updateAvatar = ({ vrmUrl, scale = this.identity.scale }: LobbyAvatar) => {
@@ -1713,7 +1848,15 @@ export class LobbyConnection {
     };
 
     private updateAudioVolume() {
+        const spatial = !!this.snapshot.stage?.spatial;
         this.audio.forEach((audio, id) => {
+            if (spatial) {
+                audio.volume = spaceVoiceVolume(
+                    this.players.get(id),
+                    this.pose
+                );
+                return;
+            }
             if (this.stageSpeakers.has(id)) {
                 audio.volume = 1;
                 return;
@@ -1771,7 +1914,11 @@ export class LobbyConnection {
                 if (!current()) return;
                 // The engine's facade uses a singleton; own this instance so
                 // a late permission result cannot disturb the next experience.
-                const voice = new WebRTCClient();
+                const voice = new WebRTCClient(
+                    this.protocol === "v2"
+                        ? { micBitrate: LOBBY_MIC_BITRATE }
+                        : {}
+                );
                 this.voice = voice;
                 voice.micAllowed = (id) => !this.listenOnly.has(id);
                 voice.on("user-published", (user, stream, channel) => {
@@ -1931,9 +2078,13 @@ export class LobbyConnection {
             pending.resolve("The lobby connection changed.");
         }
         this.adminRequests.clear();
-        this.update({ stage: null });
+        this.update({ stage: null, summon: null });
         this.players.clear();
         this.motion.clear();
+        this.legacyClock.reset();
+        this.legacyMoveKey = "";
+        if (this.legacyQuietTimer) clearTimeout(this.legacyQuietTimer);
+        this.legacyQuietTimer = null;
         this.population = 0;
         this.prediction.resetSession();
         const room = this.room;

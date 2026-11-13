@@ -9,6 +9,30 @@ import { updateAvatar } from "@utils/saveToDb";
 import { useContext, useRef, useState } from "react";
 import styled, { css, useTheme } from "styled-components";
 
+const PICTURE_SIZE = 512;
+
+const dataUrlBytes = (dataUrl: string) =>
+    Math.ceil(((dataUrl.length - dataUrl.indexOf(",") - 1) * 3) / 4);
+
+/** The picked picture as a JPEG no larger than the avatar ever shows it. */
+function profileJpeg(image: HTMLImageElement, original: string) {
+    const width = image.naturalWidth || image.width;
+    const height = image.naturalHeight || image.height;
+    if (!width || !height) return original;
+    const scale = Math.min(1, PICTURE_SIZE / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return original;
+    // JPEG has no transparency: see-through pixels would turn black.
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const jpeg = canvas.toDataURL("image/jpeg", 0.9);
+    return jpeg.startsWith("data:image/jpeg") ? jpeg : original;
+}
+
 export default function UploaderAvatar({
     currentAvatar,
     onImageReady = (url: string) => {},
@@ -21,6 +45,7 @@ export default function UploaderAvatar({
     // A picture over the size limit is explained under the picker; a failed
     // upload too, with Retry. See docs/feedback.md.
     const [tooLarge, setTooLarge] = useState(false);
+    const [unreadable, setUnreadable] = useState(false);
 
     const { user } = useContext(UserContext);
 
@@ -56,17 +81,11 @@ export default function UploaderAvatar({
 
     const handleDisplayImage = (e) => {
         setTooLarge(false);
+        setUnreadable(false);
         upload.reset();
 
         setImageFile(e.target.files[0]);
         if (!e.target.files[0]) return setImageSrc("");
-
-        const sizeInMo = e.target.files[0].size / 1024 / 1024;
-
-        // request size limit of vercel 1mo
-        if (sizeInMo > 0.9) {
-            return setTooLarge(true);
-        }
 
         var reader = new FileReader();
         reader.readAsDataURL(e.target.files[0]);
@@ -75,11 +94,21 @@ export default function UploaderAvatar({
             "load",
             function () {
                 var image = new Image();
-                image.src = reader.result as string;
                 image.onload = function () {
-                    setImageSrc(reader.result as string);
-                    upload.run(reader.result as string);
+                    // Saved as a small JPEG whatever was picked (AVIF, HEIC,
+                    // WebP, a large photo): every browser and the avatar
+                    // texture can read that.
+                    const picture = profileJpeg(image, reader.result as string);
+                    // request size limit of vercel 1mo
+                    if (dataUrlBytes(picture) / 1024 / 1024 > 0.9)
+                        return setTooLarge(true);
+                    setImageSrc(picture);
+                    upload.run(picture);
                 };
+                image.onerror = function () {
+                    setUnreadable(true);
+                };
+                image.src = reader.result as string;
             },
             false
         );
@@ -116,10 +145,16 @@ export default function UploaderAvatar({
                 message={
                     tooLarge
                         ? "This picture is larger than 900 KB. Choose a smaller one."
+                        : unreadable
+                        ? "This browser can't read that picture. Choose a JPEG or PNG."
                         : upload.status === "failed" &&
                           "Couldn't upload your picture."
                 }
-                onRetry={tooLarge ? undefined : () => upload.run(imageSrc)}
+                onRetry={
+                    tooLarge || unreadable
+                        ? undefined
+                        : () => upload.run(imageSrc)
+                }
                 surface={theme?.type === "light" ? "light" : "dark"}
                 style={{ maxWidth: "100%", marginTop: 8 }}
             />

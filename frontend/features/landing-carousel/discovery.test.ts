@@ -283,6 +283,64 @@ describe("cylindrical grid", () => {
             expect(metrics.cardWidth).toBeLessThanOrEqual(width * 0.5);
         }
     );
+    it.each([
+        [2, 2],
+        [1, 1],
+    ])(
+        "starts the popular section at the top of a new %i×%i column",
+        (columns, rows) => {
+            const mixed = cards
+                .slice(0, 12)
+                .map((card, index) =>
+                    index >= 5 ? { ...card, section: "popular" as const } : card
+                );
+            const layout = createGridLayout(mixed, columns, rows);
+            const first = layout.cells[5];
+            expect(first.row).toBe(0);
+            expect(layout.sectionColumn).toBe(first.column);
+            expect(first.column).toBe(Math.ceil(5 / rows));
+            expect(layout.columnCount).toBe(layout.cells[11].column + 1);
+            // The short staff column leaves its bottom slot empty in a 2-row grid.
+            expect(layout.slots.indexOf(-1)).toBe(rows === 2 ? 5 : -1);
+            // Moving down from the last staff pick stays on it; right reaches
+            // the first popular world.
+            if (rows === 2) {
+                expect(
+                    moveGridSelection(
+                        4,
+                        "down",
+                        0,
+                        columns,
+                        rows,
+                        12,
+                        layout.slots
+                    ).index
+                ).toBe(4);
+                expect(
+                    moveGridSelection(
+                        4,
+                        "right",
+                        0,
+                        columns,
+                        rows,
+                        12,
+                        layout.slots
+                    ).index
+                ).toBe(5);
+                expect(
+                    selectedCardIndex(
+                        2,
+                        columns,
+                        rows,
+                        12,
+                        { column: 0, row: 1 },
+                        layout.slots
+                    )
+                ).toBe(4);
+            }
+            expect(createGridLayout(cards.slice(0, 12)).sectionColumn).toBe(-1);
+        }
+    );
     it("does not move existing cards when another page is appended", () => {
         expect(createGridLayout(cards).cells.slice(0, 30)).toEqual(
             createGridLayout(cards.slice(0, 30)).cells
@@ -433,10 +491,7 @@ describe("build options", () => {
         ]);
         expect(
             BUILD_CARDS.filter((card) => card.href).map((card) => card.href)
-        ).toEqual([
-            "/studio/new-gallery",
-            "/studio/new-splat",
-        ]);
+        ).toEqual(["/studio/new-gallery", "/studio/new-splat"]);
         expect(
             BUILD_CARDS.filter((card) => !card.href).map(
                 (card) => card.buildStatus
@@ -495,6 +550,51 @@ describe("feed pagination and failures", () => {
             expect.stringContaining("lastVisible=id%26cursor"),
             expect.anything()
         );
+    });
+    it("continues the staff picks with the most popular worlds", async () => {
+        const page = (prefix: string, length: number) =>
+            Array.from({ length }, (_, index) => ({
+                id: `${prefix}-${index}`,
+                info: {},
+            }));
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ success: true, exhibits: page("staff", 7) }),
+        });
+        const staff = await fetchLandingFeed("staff");
+        expect(staff).toMatchObject({ hasMore: true, cursor: "popular:" });
+        expect(staff.cards.some((card) => card.section)).toBe(false);
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ success: true, exhibits: page("pop", 30) }),
+        });
+        const popular = await fetchLandingFeed("staff", staff.cursor);
+        expect(global.fetch).toHaveBeenCalledWith(
+            expect.stringContaining("isActive=most-visited"),
+            { signal: undefined }
+        );
+        expect((global.fetch as jest.Mock).mock.calls[0][0]).not.toContain(
+            "lastVisible"
+        );
+        expect(popular).toMatchObject({
+            hasMore: true,
+            cursor: "popular:pop-29",
+        });
+        expect(popular.cards.every((card) => card.section === "popular")).toBe(
+            true
+        );
+
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ success: true, exhibits: page("more", 3) }),
+        });
+        const last = await fetchLandingFeed("staff", popular.cursor);
+        expect(global.fetch).toHaveBeenCalledWith(
+            expect.stringContaining("lastVisible=pop-29"),
+            { signal: undefined }
+        );
+        expect(last.hasMore).toBe(false);
     });
     it("surfaces HTTP and API errors instead of treating them as empty results", async () => {
         global.fetch = jest.fn().mockResolvedValue({ ok: false });
@@ -557,4 +657,22 @@ it("filters displayed artists and gallery-maker aliases without conflating ACK w
         }).map((card) => card.id)
     ).toEqual(["image"]);
     expect(cards[0].artistNames).toEqual(["Jack Butcher"]);
+});
+
+describe("creatorLabel", () => {
+    const { creatorLabel, cardCreator } = require("./data");
+    it("credits the curator, then the owner's username, then the wallet", () => {
+        const wallet = "0x1234567890abcdef1234567890abcdef12345678";
+        expect(cardCreator("Mira", "mira_", wallet)).toBe("Mira");
+        expect(cardCreator("", "mira_", wallet)).toBe("mira_");
+        expect(cardCreator("", null, wallet)).toBe(wallet);
+        expect(cardCreator("", null, "firebaseUid123")).toBe("");
+    });
+    it("keeps names and shortens wallet addresses", () => {
+        expect(creatorLabel("@mira")).toBe("mira");
+        expect(creatorLabel("")).toBe("");
+        expect(creatorLabel("0x1234567890abcdef1234567890abcdef12345678")).toBe(
+            "0x1234…5678"
+        );
+    });
 });

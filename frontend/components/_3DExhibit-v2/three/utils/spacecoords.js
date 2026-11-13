@@ -82,6 +82,26 @@ export const CoordsReference = {
     HEAD: asConst("head"),
 };
 
+/** The default avatar's head height; matches USER_HEIGHT in constants.js. */
+const DEFAULT_HEAD_HEIGHT = 2.8;
+
+/**
+ * Saved spawns and `?coords` links hold where the head was. Spawn data
+ * holds where the feet go (the player's own head height is added on top),
+ * so this turns one into the other. A missing height means the floor at 0.
+ *
+ * @param {{ x?: number, y?: number, z?: number }} head
+ */
+export function headToFeet(head) {
+    const y = Number(head?.y);
+
+    return {
+        x: head?.x || 0,
+        y: Number.isFinite(y) ? y - DEFAULT_HEAD_HEIGHT : 0,
+        z: head?.z || 0,
+    };
+}
+
 /**
  * @param {import('@uitypes/roomParameters').RoomParameters} roomParameters
  * @param {string} coords
@@ -100,6 +120,14 @@ export function overrideInitialCoords(
 
     return {
         ...roomParameters,
+        // The room's own spawn, kept for when the link's coords turn out to
+        // be outside the space (see physics/spaceBounds.js).
+        roomSpawnPosition:
+            roomParameters.roomSpawnPosition ??
+            roomParameters.initialPlayerPosition,
+        roomSpawnRotation:
+            roomParameters.roomSpawnRotation ??
+            roomParameters.initialPlayerRotation,
         initialPlayerPosition: {
             ...location.position,
             reference,

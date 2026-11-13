@@ -1,34 +1,29 @@
 ---
 title: Oncyber docs
-description: Run, extend and contribute to the open-source Oncyber lobby.
+description: Run, extend and contribute to Oncyber, the open-source home for 3D spaces on the web.
 order: 0
 ---
 
 # Oncyber docs
 
-Oncyber is a shared 3D lobby that connects many worlds. People arrive in one
-social space, see who's around, chat, talk, emote, show art from their wallet,
-and travel together into galleries and other experiences while keeping the same
-identity and avatar.
+Oncyber is where people make and visit 3D spaces on the web: galleries for
+their art, worlds they build in the browser, and a shared lobby where everyone
+meets and travels between them with the same identity and avatar.
 
-This repository is the whole thing: the landing page, the lobby, the WebGPU
-scene runtime, the gallery player and the multiplayer services. It's open
-source so you can run it, read it and improve it.
+All of it is open source. You can run it, read it and make it better.
 
 ## Start here
 
--   [Run Oncyber locally](/docs/run-locally): install, configure and open the
-    app on your machine.
--   [Contribute](/docs/contributing): branches, checks and what makes a good pull
-    request.
--   [Build a three.js experience](/docs/three-experiences): bring your own
-    WebGPU or three.js page into Oncyber.
--   [Multiplayer](/docs/multiplayer): how presence, movement, chat and voice work,
-    and how to run the lobby server.
--   [Avatars](/docs/avatars): where avatars come from, how a choice is saved, and
-    how they travel between worlds.
+-   [Run Oncyber locally](/docs/run-locally): get the app running on your
+    machine.
+-   [Contribute](/docs/contributing): how to send a good change.
+-   [Bring your own world](/docs/three-experiences): the idea of any 3D world,
+    made with any engine, becoming a space in Oncyber.
+-   [Multiplayer](/docs/multiplayer): seeing, chatting and talking with other
+    people.
+-   [Avatars](/docs/avatars): the 3D character you take everywhere.
 
-## How the pieces fit
+:::details Where things live in the code
 
 | Folder                               | What lives there                                                |
 | ------------------------------------ | --------------------------------------------------------------- |
@@ -39,4 +34,6 @@ source so you can run it, read it and improve it.
 | `multiplayer/`                       | Colyseus rooms, lobby services, voice signalling                |
 | `cloud-functions/`                   | Firebase functions: 3D asset optimization, uploads              |
 
-For coding agents there is a plain-text index at [/llms.txt](/llms.txt).
+Coding agents can read a plain-text index at [/llms.txt](/llms.txt).
+
+:::

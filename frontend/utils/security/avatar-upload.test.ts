@@ -40,6 +40,7 @@ test("a blocked private avatar URL cannot reach Pinata or use unrestricted fetch
     expect(publicFetch).toHaveBeenCalledWith("https://127.0.0.1/internal", {
         maxBytes: 10 * 1024 * 1024,
         maxRedirects: 0,
+        accept: "image/jpeg,image/png,image/webp,image/gif",
     });
     expect(global.fetch).not.toHaveBeenCalled();
 });
@@ -51,7 +52,7 @@ test.each(["file:///etc/passwd", "ftp://127.0.0.1/file", "http://127.0.0.1/inter
 });
 
 test("a valid public avatar passes the bounded fetch and preserves the returned avatar URL", async () => {
-    (publicFetch as jest.Mock).mockResolvedValue({ status: 200, body: Buffer.from("image") });
+    (publicFetch as jest.Mock).mockResolvedValue({ status: 200, body: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10]) });
     const result = await uploadAsset("user", "https://assets.example/avatar.jpg", "contract", "1");
     expect(publicFetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);

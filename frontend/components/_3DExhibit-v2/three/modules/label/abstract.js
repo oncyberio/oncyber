@@ -14,6 +14,8 @@ import Smoothstep from "../../utils/math/smoothstep";
 
 import imageCache from "@3utils/imagecache"
 
+import { LABEL_CANVAS_SIZE } from "./constants"
+
 const FontSize = 15
 
 export class LabelAbstract extends SpaceItem {
@@ -58,9 +60,9 @@ export class LabelAbstract extends SpaceItem {
 
         this.ctx = this.canvas.getContext("2d")
 
-        this.canvas.width = 512
+        this.canvas.width = LABEL_CANVAS_SIZE
 
-        this.canvas.height = 512
+        this.canvas.height = LABEL_CANVAS_SIZE
    }
 
    setVisible( val ){

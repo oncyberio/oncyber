@@ -23,8 +23,8 @@ import {
 
 /*
  * Instanced nametags: camera facing billboards around each instance offset, sampled from the
- * username atlas ( atlas = [ uv scale, uv offset ] per instance ), faded by opacity and by the
- * distance to the camera, alpha tested at 0.5. The pipeline's occlusion variant
+ * username atlas ( atlas = [ uv scale, uv offset ] per instance ), faded by opacity, and hidden only
+ * when the camera is inside the head ( first person ), alpha tested at 0.5. The pipeline's occlusion variant
  * ( defines.OCCLUSION ) draws them black.
  */
 
@@ -56,7 +56,7 @@ function billboard() {
 
         const worldPosition = modelWorldMatrix.mul( vec4( position, 1.0 ) ).xyz
 
-        varyingProperty( "float", "vClose" ).assign( smoothstep( 2.0, 5.5, distance( cameraPosition, worldPosition ) ) )
+        varyingProperty( "float", "vClose" ).assign( smoothstep( 0.8, 1.4, distance( cameraPosition, worldPosition ) ) )
 
         return position
 

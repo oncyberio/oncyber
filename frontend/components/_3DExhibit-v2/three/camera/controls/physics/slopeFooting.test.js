@@ -173,3 +173,58 @@ test("a jump still leaves the floor", () => {
     }
     expect(air).toBeGreaterThan(0.3);
 });
+
+// The feet must follow the slope every frame. A ground snap that only finds
+// the floor in coarse steps lets the player hover, then drop a step at a
+// time, which shakes the camera all the way down a hill.
+describe.each([10, 30])("walking down a %d degree slope", (degrees) => {
+    test("descends smoothly, frame by frame", () => {
+        const physics = world(degrees);
+        const state = physics.playerState;
+        const dt = 1 / 60;
+        let time = 0;
+        for (let i = 0; i < 60; i++) physics.update(dt, (time += dt), 1);
+        state.keyStates.KeyW = true;
+        const drops = [];
+        for (let i = 0; i < 240 && state.position.z > -50; i++) {
+            const y = state.position.y;
+            physics.update(dt, (time += dt), 1);
+            // steady state on the slope, a few strides past the crest
+            if (state.position.z < -9) drops.push(y - state.position.y);
+        }
+        expect(state.position.z).toBeLessThan(-20);
+        const mean = drops.reduce((a, b) => a + b, 0) / drops.length;
+        const worst = Math.max(...drops.map((d) => Math.abs(d - mean)));
+        expect(mean).toBeGreaterThan(0);
+        expect(worst).toBeLessThan(0.01);
+    });
+});
+
+describe("spawn on the floor", () => {
+    const { Vector3 } = jest.requireActual("three");
+
+    test("a spawn above the floor lands standing on it", () => {
+        const physics = world(30);
+        const spawn = new Vector3(0, 8, 0);
+
+        expect(physics.placeOnFloor(spawn)).toBe(true);
+        expect(spawn.y).toBeCloseTo(2.86, 2);
+    });
+
+    test("a spawn just under a slope is lifted onto it", () => {
+        const physics = world(30);
+        const floorY = -15.5 * Math.tan(Math.PI / 6);
+        const spawn = new Vector3(0, floorY + 2.6, -20.5);
+
+        expect(physics.placeOnFloor(spawn)).toBe(true);
+        expect(spawn.y).toBeCloseTo(floorY + 2.86, 1);
+    });
+
+    test("a spawn with no floor under it is left alone", () => {
+        const physics = world(30);
+        const spawn = new Vector3(100, 8, 0);
+
+        expect(physics.placeOnFloor(spawn)).toBe(false);
+        expect(spawn.y).toBe(8);
+    });
+});

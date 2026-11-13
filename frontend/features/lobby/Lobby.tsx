@@ -1,3 +1,4 @@
+import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import { flashWallets } from "./useFlashNfts";
@@ -28,7 +29,8 @@ import LobbyScene from "./LobbyRenderer";
 import type { LobbyDestination, LobbySceneProps } from "./sceneTypes";
 import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
-import useLobbySocial from "./useLobbySocial";
+import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
+import { activeSpeech } from "./speechBubbles";
 import LobbyChat from "./LobbyChat";
 import LobbyPlace from "./LobbyPlace";
 import LobbyArrivalStatus from "./LobbyArrivalStatus";
@@ -40,9 +42,12 @@ import { lobbyPanelSurface } from "./lobbyPanelStyles";
 import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
+import LobbyVoiceRequests from "./LobbyVoiceRequests";
+import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
 import LobbyDockIcon from "./LobbyDockIcon";
+import { enterKeyTarget, ownsEnterKey } from "./lobbyEnterKey";
 import useLobbyJourney from "./useLobbyJourney";
 import { useEnginePrefetch } from "./enginePrefetch";
 import { lobbyJourneyView } from "./lobbyJourneyMachine";
@@ -54,7 +59,6 @@ import { lobbyGroupPresence } from "./lobbyGroupPresence";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
-import { lobbyPortraitUrl } from "./lobbyIdentity";
 import VRMS from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { EMOTES } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -65,8 +69,7 @@ const SpaceInfoSidebar = dynamic(
 
 /** Shown as a toast, and said once to screen readers, when the visitor's own
  * avatar file fails and the scene shows the default avatar instead. */
-const AVATAR_FALLBACK_NOTICE =
-    "Couldn’t load your avatar. Using the default.";
+const AVATAR_FALLBACK_NOTICE = "Couldn’t load your avatar. Using the default.";
 
 function NativeIcon({ name, size = 20 }: { name: string; size?: number }) {
     return (
@@ -95,7 +98,8 @@ export default function Lobby({
 }) {
     const account = useContext(UserContext);
     const { user, userData, token, authenticated, isAnonymous } = account;
-    const profilePhoto = lobbyPortraitUrl(userData?.avatar);
+    // Falls back to the NFT's current image, then the guest portrait.
+    const profilePhoto = useProfilePhoto(userData);
     const journey = useLobbyJourney(initialReturn);
     const [lobbyInfoOpen, setLobbyInfoOpen] = useState(false);
     const journeyView = lobbyJourneyView(journey);
@@ -424,6 +428,69 @@ export default function Lobby({
         if (code && /^[A-Za-z0-9_-]{6,128}$/.test(code))
             setGroupModal({ joinCode: code });
     }, [social.groupsSupported]);
+    // The party the + in the people list adds to: the one you have open,
+    // else the first one you own. Adding the first person starts it.
+    const ownParty =
+        (selectedGroup?.ownerId === social.sessionId && selectedGroup) ||
+        groups.find((group) => group.ownerId === social.sessionId);
+    const partyMemberIds = useMemo(
+        () => ownParty?.members.map((member) => member.id) || [],
+        [ownParty]
+    );
+    const addToParty = async (id: string) => {
+        if (ownParty) {
+            await social.groupAction({
+                action: "invite",
+                groupId: ownParty.id,
+                inviteeId: id,
+            });
+        } else {
+            const result = await social.groupAction({
+                action: "create",
+                name: "Your party",
+                memberIds: [id],
+            });
+            if (result.groupId) selectGroup(result.groupId);
+        }
+    };
+    // The people list, closest first (you on top). The order is set once
+    // when the list opens: rows must not move under the pointer as people
+    // walk or join your party. Anyone who arrives later goes to the end.
+    const peopleOrder = useRef<Map<string, number> | null>(null);
+    const [peopleNearby, setPeopleNearby] = useState(true);
+    if (!peopleOpen) peopleOrder.current = null;
+    const peoplePlayers = useMemo(() => {
+        if (!peopleOpen) return social.players;
+        if (!peopleOrder.current) {
+            const me = social.getPredictedPose?.() ||
+                social.players.find((player) => player.isLocal) || {
+                    x: 0,
+                    z: 0,
+                };
+            peopleOrder.current = new Map(
+                social.players
+                    .map((player) => ({
+                        id: player.id,
+                        name: player.name,
+                        d: player.isLocal
+                            ? -1
+                            : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
+                    }))
+                    .sort((a, b) =>
+                        peopleNearby || a.d < 0 || b.d < 0
+                            ? a.d - b.d
+                            : a.name.localeCompare(b.name)
+                    )
+                    .map(({ id }, index) => [id, index])
+            );
+        }
+        const order = peopleOrder.current;
+        for (const player of social.players)
+            if (!order.has(player.id)) order.set(player.id, order.size);
+        return [...social.players].sort(
+            (a, b) => order.get(a.id) - order.get(b.id)
+        );
+    }, [peopleOpen, peopleNearby, social.players]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
             const url = new URL(window.location.href);
@@ -451,6 +518,21 @@ export default function Lobby({
         )
             setDestinationGroupsOpen(true);
     }, [entered, invitations.length, groups, social.sessionId]);
+    // What people just said, shown over their heads in place of their name
+    // tags. The scene fades each line out on its own.
+    const speech = useMemo(() => {
+        // Party messages only reach the party's members, so their lines
+        // show above the speaker for the party and nobody else.
+        const lines = activeSpeech([
+            ...social.messages,
+            ...(social.groupMessages || []),
+        ]);
+        if (social.sessionId && lines[social.sessionId]) {
+            lines.self = lines[social.sessionId];
+            delete lines[social.sessionId];
+        }
+        return lines;
+    }, [social.messages, social.groupMessages, social.sessionId]);
     const party = useLobbyTravelParty({
         enabled: authenticated && !isAnonymous,
         players: social.players,
@@ -654,20 +736,31 @@ export default function Lobby({
         );
         socialElement.current?.toggleAttribute(
             "inert",
-            !!groupModal || flashOpen || peopleOpen
+            !!groupModal || flashOpen
         );
         journey.frameRef.current?.toggleAttribute(
             "inert",
             !entered || !!groupModal
         );
-    }, [
-        entered,
-        travelling,
-        journey.frameUrl,
-        groupModal,
-        flashOpen,
-        peopleOpen,
-    ]);
+    }, [entered, travelling, journey.frameUrl, groupModal, flashOpen]);
+    // The party chat opens where the space keeps its own chat: the space
+    // puts its chat away meanwhile, so there is one composer on screen.
+    const partyChatOverSpace =
+        away &&
+        destinationGroupsOpen &&
+        !!(groups.length || invitations.length) &&
+        !exploreOpen &&
+        !avatarOpen &&
+        !flashOpen;
+    useEffect(() => {
+        let root: HTMLElement | undefined;
+        try {
+            root = journey.frameRef.current?.contentDocument?.documentElement;
+        } catch {
+            // An outside experience on another origin keeps its own chat.
+        }
+        root?.toggleAttribute("data-party-chat-open", partyChatOverSpace);
+    }, [partyChatOverSpace, entered, journey.frameUrl]);
     useEffect(() => {
         if (!entered) return;
         setPortal(null);
@@ -682,8 +775,65 @@ export default function Lobby({
         if (!socialElement.current?.contains(document.activeElement))
             journey.frameRef.current?.focus();
     }, [entered]);
+    const enterTarget = enterKeyTarget({
+        entered,
+        travelling,
+        worldReady: journey.phase === "ready" && !participatingTravel,
+        partyChatOverSpace,
+    });
+    // Inside a space the keyboard belongs to the space's own page. While the
+    // party chat covers the space's chat, Enter there opens the party chat:
+    // the space would otherwise open the chat it has put away.
+    useEffect(() => {
+        if (enterTarget !== "party-chat") return;
+        let space: Window | null | undefined;
+        try {
+            space = journey.frameRef.current?.contentWindow;
+            void space?.document;
+        } catch {
+            // An outside experience on another origin keeps its keyboard.
+            return;
+        }
+        if (!space) return;
+        const toPartyChat = (event: KeyboardEvent) => {
+            if (
+                event.key !== "Enter" ||
+                event.repeat ||
+                event.isComposing ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey ||
+                event.shiftKey ||
+                ownsEnterKey(event.target)
+            )
+                return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            space.document.exitPointerLock?.();
+            setChatOpen(true);
+            chatInput.current?.focus();
+        };
+        space.addEventListener("keydown", toPartyChat, true);
+        return () => space.removeEventListener("keydown", toPartyChat, true);
+    }, [enterTarget, journey.frameUrl]);
     useEffect(() => {
         const keyboard = (event: KeyboardEvent) => {
+            if (
+                entered &&
+                event.key === "Enter" &&
+                !event.defaultPrevented &&
+                !event.repeat &&
+                !event.isComposing &&
+                !ownsEnterKey(event.target)
+            ) {
+                // Focus was left on the page around the space.
+                event.preventDefault();
+                if (enterTarget === "party-chat") {
+                    setChatOpen(true);
+                    chatInput.current?.focus();
+                } else journey.frameRef.current?.focus();
+                return;
+            }
             if (
                 event.defaultPrevented ||
                 entered ||
@@ -712,10 +862,12 @@ export default function Lobby({
                 return;
             }
             if (event.key === "Enter") {
-                if (target?.closest("button,a")) return;
+                // Enter is for the chat. A button left focused by a click
+                // (people, emotes, ...) must not open its panel again.
+                const focused = target?.closest("button,a");
+                if (focused instanceof HTMLElement) focused.blur();
                 event.preventDefault();
-                if (journey.phase === "ready" && !participatingTravel)
-                    journey.enter();
+                if (enterTarget === "enter-world") journey.enter();
                 else {
                     setChatOpen(true);
                     chatInput.current?.focus();
@@ -737,6 +889,7 @@ export default function Lobby({
         return () => window.removeEventListener("keydown", keyboard);
     }, [
         entered,
+        enterTarget,
         travelling,
         peopleOpen,
         avatarOpen,
@@ -760,12 +913,39 @@ export default function Lobby({
         onExit,
     ]);
 
-    const voiceLabel =
-        social.voiceState === "live"
-            ? "Mute microphone"
-            : social.voiceState === "connecting"
-            ? "Connecting voice…"
-            : "Enable microphone";
+    const stage = social.stage;
+    const onStage = !!stage?.speakers.some(
+        (speaker) => speaker.sessionId === social.sessionId
+    );
+    // Lobby voice is admin-approved: until then the mic button asks to speak.
+    const voiceGated =
+        !!stage?.spatial && !onStage && social.voiceState !== "live";
+    const voiceLabel = voiceGated
+        ? stage.muted
+            ? "An admin muted you"
+            : stage.role
+            ? "Join voice"
+            : stage.requested
+            ? "Request sent · Cancel"
+            : "Request to speak"
+        : social.voiceState === "live"
+        ? "Mute microphone"
+        : social.voiceState === "connecting"
+        ? "Connecting voice…"
+        : "Enable microphone";
+    const pressVoice = () => {
+        if (!voiceGated) return void social.toggleVoice();
+        if (stage.muted) return void social.listen();
+        if (stage.role) {
+            // Admins skip the queue; the server still applies the speaker cap.
+            void social.adminAction("stage-add", social.sessionId);
+            return void social.toggleVoice();
+        }
+        social.requestVoice(stage.requested);
+        // Hear whoever is on voice while the request waits.
+        if (!stage.requested && social.voiceState === "off")
+            void social.listen();
+    };
     return (
         <>
             <LobbySurface
@@ -834,6 +1014,15 @@ export default function Lobby({
                         avatarUrl={avatar?.url}
                         avatarScale={avatar?.scale}
                         profilePhoto={profilePhoto}
+                        selfName={lobbyDisplayName(
+                            authenticated && !isAnonymous
+                                ? user?.id
+                                : undefined,
+                            authenticated && !isAnonymous
+                                ? userData?.username
+                                : undefined
+                        )}
+                        speech={speech}
                         emote={emote}
                         flash={flash}
                         flashPreviewOpen={flashOpen}
@@ -978,12 +1167,16 @@ export default function Lobby({
                                 <button
                                     className="dock-button"
                                     aria-label={voiceLabel}
-                                    aria-pressed={social.voiceState === "live"}
+                                    aria-pressed={
+                                        voiceGated
+                                            ? stage.requested
+                                            : social.voiceState === "live"
+                                    }
                                     disabled={
                                         social.status !== "connected" ||
                                         social.voiceState === "connecting"
                                     }
-                                    onClick={() => void social.toggleVoice()}
+                                    onClick={pressVoice}
                                 >
                                     <LobbyDockIcon
                                         name={
@@ -1258,7 +1451,22 @@ export default function Lobby({
                     )}
                 {peopleOpen && (
                     <LobbyPeoplePanel
-                        players={social.players}
+                        players={peoplePlayers}
+                        sort={{
+                            nearby: peopleNearby,
+                            onToggle: () => {
+                                peopleOrder.current = null;
+                                setPeopleNearby((value) => !value);
+                            },
+                        }}
+                        party={
+                            social.groupsSupported
+                                ? {
+                                      memberIds: partyMemberIds,
+                                      onAdd: addToParty,
+                                  }
+                                : undefined
+                        }
                         population={population}
                         status={social.status}
                         onClose={closePeople}
@@ -1272,6 +1480,16 @@ export default function Lobby({
                                 onLeave: social.leaveStage,
                                 onAdmin: social.adminAction,
                             }
+                        }
+                        onGoTo={
+                            social.protocol === "v2"
+                                ? (id) => social.teleportTo(id)
+                                : undefined
+                        }
+                        onSummonAll={
+                            social.protocol === "v2"
+                                ? social.summonAll
+                                : undefined
                         }
                     >
                         {authenticated && !isAnonymous && (
@@ -1419,12 +1637,12 @@ export default function Lobby({
                 ref={socialElement}
                 data-search={exploreOpen || undefined}
                 data-entered={away || undefined}
+                data-people={peopleOpen || undefined}
                 data-collapsed={(away && !destinationGroupsOpen) || undefined}
                 data-hidden={
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1432,7 +1650,6 @@ export default function Lobby({
                     exploreOpen ||
                     avatarOpen ||
                     flashOpen ||
-                    peopleOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
                 }
@@ -1478,13 +1695,6 @@ export default function Lobby({
                                   onCreate: () => setGroupModal({}),
                                   onManage: (id) =>
                                       setGroupModal({ groupId: id }),
-                                  canExplore: !travelling,
-                                  onExplore: (id) => {
-                                      if (travelling) return;
-                                      selectGroup(id);
-                                      openExplore();
-                                      if (entered) journey.cancel();
-                                  },
                                   sendMessage: async (groupId, text) => {
                                       await social.groupAction({
                                           action: "message",
@@ -1497,20 +1707,38 @@ export default function Lobby({
                             : undefined
                     }
                     notices={
-                        social.groupsSupported ? (
-                            <LobbyGroupNotices
-                                groups={groups}
-                                invitations={invitations}
-                                sessionId={social.sessionId}
-                                clock={social.groupClock}
-                                action={social.groupAction}
-                                onSelected={selectGroup}
-                                onAccept={groupJourney.accept}
-                                onDecline={groupJourney.decline}
-                                onLaunch={groupJourney.launch}
-                                onCancel={groupJourney.cancel}
+                        <>
+                            <LobbySummonNotice
+                                summon={social.summon}
+                                onGo={(id) => social.teleportTo(id, true)}
+                                onStay={social.dismissSummon}
                             />
-                        ) : null
+                            <LobbyVoiceRequests
+                                stage={social.stage}
+                                onAdmin={social.adminAction}
+                                onShowAll={() => {
+                                    setFlashOpen(false);
+                                    setPeopleOpen(true);
+                                    setAvatarOpen(false);
+                                    setEmotesOpen(false);
+                                    setExploreOpen(false);
+                                }}
+                            />
+                            {social.groupsSupported && (
+                                <LobbyGroupNotices
+                                    groups={groups}
+                                    invitations={invitations}
+                                    sessionId={social.sessionId}
+                                    clock={social.groupClock}
+                                    action={social.groupAction}
+                                    onSelected={selectGroup}
+                                    onAccept={groupJourney.accept}
+                                    onDecline={groupJourney.decline}
+                                    onLaunch={groupJourney.launch}
+                                    onCancel={groupJourney.cancel}
+                                />
+                            )}
+                        </>
                     }
                 />
                 <InlineError

@@ -5,7 +5,7 @@ import { EDIT_MODE, UPLOADER_MODE, CINEMATIC } from "@3gl/shellconstants"
 
 import conf from "@3utils/params"
 
-import { CoordsReference } from "@3utils/spacecoords"
+import { CoordsReference, headToFeet } from "@3utils/spacecoords"
 
 import { parseLocation } from "@utils/js"
 
@@ -27,9 +27,8 @@ export function getSpawnDataFromRoom(room) {
 
     if (room.initialPlayerPosition) {
 
-        data.position = { ...room.initialPlayerPosition }
-
-        data.position.y = 0
+        // Saved as a head position; the player lands on the floor under it.
+        data.position = headToFeet(room.initialPlayerPosition)
     }
 
     if (room.initialPlayerRotation) {
@@ -55,8 +54,14 @@ export function updateRoomParamsFromSpawnData(params, data) {
 
         if (location == null) return;
 
+        // The room's own spawn, kept for when the link's coords turn out to
+        // be outside the space (see physics/spaceBounds.js).
+        params.roomSpawnPosition ??= { ...data.position, reference: CoordsReference.HEAD };
+
+        params.roomSpawnRotation ??= { ...data.rotation };
+
         params.initialPlayerPosition = {
-            ...location.position,
+            ...headToFeet(location.position),
             reference: CoordsReference.HEAD,
         };
 

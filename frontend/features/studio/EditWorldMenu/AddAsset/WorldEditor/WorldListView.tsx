@@ -668,12 +668,12 @@ export function WorldListView() {
                     <svg
                         key={side}
                         className={`wing wing-${side}`}
-                        viewBox="0 0 18 18"
+                        viewBox="0 0 58 28"
                         preserveAspectRatio="none"
                         aria-hidden="true"
                     >
                         <path
-                            d="M18 0A18 18 0 0 1 0 18H18Z"
+                            d="M0 0C0 7.73 12.98 14 29 14S58 20.27 58 28H0Z"
                             fill="currentColor"
                         />
                     </svg>
@@ -911,35 +911,43 @@ const Container = styled.div`
 `;
 
 const WorldDock = styled.div<{ $collapsed: boolean }>`
+    /* The collapsed button and its dock are 70% of the left dock's buttons. */
+    --world-list-scale: 0.7;
+    --world-list-size: calc(
+        var(--asset-tool-size, 45.9px) * var(--world-list-scale)
+    );
+
     position: relative;
     flex-shrink: 0;
     max-width: calc(100vw - 12px);
     width: ${(p) =>
         p.$collapsed
-            ? "calc(var(--asset-tool-size, 45.9px) + 16px)"
+            ? "calc(var(--world-list-size) + 16px * var(--world-list-scale))"
             : "var(--right-panel-width)"};
     background: var(--studio-bg, #141416);
     color: var(--studio-bg, #141416);
     pointer-events: auto;
     transition: width 280ms cubic-bezier(0.22, 1, 0.36, 1);
 
+    /* Same tangent curves as the asset dock on the left, mirrored. */
     > .wing {
         display: ${(p) => (p.$collapsed ? "block" : "none")};
         position: absolute;
         right: 0;
-        width: 18px;
-        height: 18px;
+        width: 100%;
+        height: calc(28px * var(--world-list-scale));
         pointer-events: none;
     }
     > .wing-top {
         bottom: calc(100% - 1px);
+        transform: scaleX(-1);
     }
     > .wing-bottom {
         top: calc(100% - 1px);
-        transform: scaleY(-1);
+        transform: scale(-1, -1);
     }
     border-radius: ${(p) =>
-        p.$collapsed ? "20px 0 0 20px" : "var(--studio-radius-panel, 16px)"};
+        p.$collapsed ? "0" : "var(--studio-radius-panel, 16px)"};
     > .dock-content > [role="region"] {
         border-radius: var(--studio-radius-panel, 16px);
         border: 1px solid var(--studio-line, #303035);
@@ -947,13 +955,31 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         box-shadow: var(--panel-shadow);
     }
     > .dock-content {
-        padding: ${(p) => (p.$collapsed ? "8px" : "0")};
+        padding: ${(p) =>
+            p.$collapsed
+                ? "calc(10px * var(--world-list-scale)) calc(8px * var(--world-list-scale))"
+                : "0"};
         animation: world-contents-in 220ms ease both;
     }
     button[aria-label="World contents"] {
-        width: var(--asset-tool-size, 45.9px);
-        height: var(--asset-tool-size, 45.9px);
-        border-radius: var(--asset-tool-radius, 12px);
+        width: var(--world-list-size);
+        height: var(--world-list-size);
+        border-radius: calc(
+            var(--asset-tool-radius, 12px) * var(--world-list-scale)
+        );
+        padding: 0;
+        > .icon-img {
+            transform: scale(
+                calc(
+                    var(--asset-tool-icon-scale, 0.85) * var(--world-list-scale)
+                )
+            );
+        }
+        /* The count keeps its size and moves into the smaller corner. */
+        > .badge {
+            bottom: 2px;
+            right: 2px;
+        }
     }
     @keyframes world-contents-in {
         from {

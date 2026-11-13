@@ -74,3 +74,42 @@ test("renders only safe links and never raw HTML", () => {
     expect(container.querySelector("b")).toBeNull();
     act(() => root.unmount());
 });
+
+test("renders a details block as a closed dropdown", () => {
+    const source = [
+        "Intro.",
+        "",
+        ":::details Technical **details**",
+        "- one",
+        "",
+        "```sh",
+        ":::",
+        "```",
+        ":::",
+        "",
+        "After.",
+    ].join("\n");
+    const blocks = parseBlocks(source);
+    expect(blocks.map((block) => block.type)).toEqual([
+        "paragraph",
+        "details",
+        "paragraph",
+    ]);
+    expect(blocks[1]).toMatchObject({
+        summary: "Technical **details**",
+        blocks: [{ type: "list" }, { type: "code", code: ":::" }],
+    });
+    expect(headingsOf(":::details More\n## Hidden\n:::")).toEqual([]);
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    act(() => root.render(<Markdown source={source} />));
+    const details = container.querySelector("details");
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector("summary strong")?.textContent).toBe(
+        "details"
+    );
+    expect(details?.querySelector("li")?.textContent).toBe("one");
+    act(() => root.unmount());
+});

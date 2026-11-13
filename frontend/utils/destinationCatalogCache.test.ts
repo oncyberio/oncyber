@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
-const KEY = "oncyber:public-destination-catalog:v1";
+const KEY = `oncyber:public-destination-catalog:v1:${
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ""
+}`;
 const DAY = 24 * 60 * 60 * 1000;
 const rooms = [{ _id: "warehouse", tag: ["free"] }];
 let cachedDestinationCatalog: typeof import("./destinationCatalogCache").cachedDestinationCatalog;

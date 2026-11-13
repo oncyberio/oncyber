@@ -41,7 +41,6 @@ function Chat() {
                 request: props.request,
                 onSelect: props.onSelect,
                 onCreate: jest.fn(),
-                onExplore: jest.fn(),
                 onManage: jest.fn(),
                 sendMessage: props.send,
             }}

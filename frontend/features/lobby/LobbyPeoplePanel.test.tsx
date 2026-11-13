@@ -54,7 +54,7 @@ it("opens with a labelled dialog, nearby status, and focus on Close", () => {
         "12 in this lobby · showing people near you"
     );
     expect(
-        container.querySelectorAll('ul[aria-label="People nearby"] li')
+        container.querySelectorAll('ul[aria-label="People"] li')
     ).toHaveLength(2);
     expect(document.activeElement.getAttribute("aria-label")).toBe(
         "Close people"
@@ -112,6 +112,7 @@ it("someone an admin muted is told that, not to turn their microphone on", () =>
             requested: false,
             requests: [],
             mutedPeople: [],
+            spatial: false,
         },
         voiceState: "muted" as const,
         onListen: jest.fn(),
@@ -140,4 +141,80 @@ it("someone an admin muted is told that, not to turn their microphone on", () =>
     ]);
     // Turning the microphone on would do nothing, so only the reason shows.
     expect(notes(true)).toEqual(["An admin muted you. You can still listen."]);
+});
+
+it("matches the people list in spaces: go to anyone, admins also manage", () => {
+    const onGoTo = jest.fn();
+    const onSummonAll = jest.fn();
+    const onAdmin = jest.fn().mockResolvedValue("");
+    const voice = (role: "owner" | null) => ({
+        stage: {
+            speakers: [],
+            limit: 8,
+            role,
+            muted: false,
+            requested: false,
+            requests: [],
+            mutedPeople: [],
+            spatial: true,
+        },
+        voiceState: "off" as const,
+        onListen: jest.fn(),
+        onRequest: jest.fn(),
+        onLeave: jest.fn(),
+        onAdmin,
+    });
+    const show = (role: "owner" | null) =>
+        act(() =>
+            root.render(
+                <LobbyPeoplePanel
+                    players={players}
+                    population={2}
+                    status="connected"
+                    onClose={onClose}
+                    voice={voice(role)}
+                    onGoTo={onGoTo}
+                    onSummonAll={onSummonAll}
+                />
+            )
+        );
+    const menu = (name: string) => {
+        act(() =>
+            (
+                container.querySelector(
+                    `[aria-label="Manage ${name}"]`
+                ) as HTMLButtonElement
+            ).click()
+        );
+        return Array.from(
+            container.querySelectorAll(".person-actions button")
+        ).map((b) => b.textContent);
+    };
+    show(null);
+    expect(container.querySelector('[aria-label="Manage You Name"]')).toBe(
+        null
+    );
+    expect(menu("Nearby Visitor")).toEqual(["Go to them"]);
+    act(() =>
+        (
+            container.querySelector(".person-actions button") as HTMLElement
+        ).click()
+    );
+    expect(onGoTo).toHaveBeenCalledWith("nearby");
+    show("owner");
+    expect(menu("Nearby Visitor")).toEqual([
+        "Go to them",
+        "Add to voice",
+        "Mute",
+        "Make admin",
+        "Remove from lobby",
+    ]);
+    menu("Nearby Visitor");
+    expect(menu("You Name")).toEqual(["Bring everyone here", "Add to voice"]);
+    act(() =>
+        (
+            container.querySelector(".person-actions button") as HTMLElement
+        ).click()
+    );
+    expect(onSummonAll).toHaveBeenCalled();
 });

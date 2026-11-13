@@ -6,6 +6,7 @@ import { resolve } from "path";
 import { runInNewContext } from "vm";
 import ts from "typescript";
 import { createTurnCredentials } from "../src/utils/turnCredentials";
+import { issueTurnCredentials } from "../src/utils/turnIssuer";
 
 const secret = "test-only-turn-secret";
 const now = 1800000000123;
@@ -49,7 +50,7 @@ function issuer(file: string, env: Record<string, string>) {
         },
     }, { filename });
     if (module.exports.initializeExpress) module.exports.initializeExpress(app);
-    return () => {
+    return async () => {
         let status = 200, body: any;
         const headers: Record<string, string> = {};
         const response = {
@@ -57,7 +58,7 @@ function issuer(file: string, env: Record<string, string>) {
             setHeader: (key: string, value: string) => { headers[key.toLowerCase()] = value; },
             json: (value: any) => { body = value; return response; },
         };
-        route!({}, response);
+        await route!({}, response);
         return { status, headers, body };
     };
 }
@@ -70,12 +71,12 @@ describe("per-issuance TURN credentials", () => {
         assert.equal(new Set(values.map((value) => value.credential)).size, values.length);
     });
     for (const file of ["express/index.ts", "lobby-server.ts"]) {
-        it(`${file} issues fresh noncached credentials and preserves TTL/URLs`, () => {
+        it(`${file} issues fresh noncached credentials and preserves TTL/URLs`, async () => {
             const env = { TURN_SECRET: secret, TURN_HOST: "turn.example.test", TURN_TTL: "600" };
             const request = issuer(file, env), oldNow = Date.now;
             Date.now = () => now;
             try {
-                const a = request(), b = request();
+                const a = await request(), b = await request();
                 for (const result of [a, b]) {
                     assert.equal(result.status, 200);
                     assert.equal(result.headers["cache-control"], "no-store");
@@ -87,13 +88,47 @@ describe("per-issuance TURN credentials", () => {
                 assert.notEqual(a.body.username, b.body.username);
                 assert.notEqual(a.body.credential, b.body.credential);
                 env.TURN_TTL = "9999";
-                verify(request().body, 3600);
+                verify((await request()).body, 3600);
                 env.TURN_SECRET = "";
-                assert.equal(request().status, 404);
+                assert.equal((await request()).status, 404);
                 env.TURN_SECRET = secret;
                 env.TURN_HOST = "";
-                assert.equal(request().status, 404);
+                assert.equal((await request()).status, 404);
             } finally { Date.now = oldNow; }
         });
     }
+});
+
+describe("Cloudflare TURN credentials", () => {
+    const env = { CLOUDFLARE_TURN_KEY_ID: "key-id", CLOUDFLARE_TURN_API_TOKEN: "api-token", TURN_TTL: "600" };
+    it("mints per-visitor credentials through the API and drops port 53", async () => {
+        const calls: any[] = [];
+        const fetchImpl = async (url: string, init: any) => {
+            calls.push({ url, init });
+            return { ok: true, json: async () => ({ iceServers: [
+                { urls: ["stun:stun.cloudflare.com:3478"] },
+                { urls: ["turn:turn.cloudflare.com:3478?transport=udp", "turn:turn.cloudflare.com:53?transport=udp", "turns:turn.cloudflare.com:5349?transport=tcp", "turns:turn.cloudflare.com:443?transport=tcp"], username: "u1", credential: "c1" },
+            ] }) };
+        };
+        const { status, body } = await issueTurnCredentials(env, fetchImpl, 1_800_000_000_000);
+        assert.equal(status, 200);
+        assert.equal(calls[0].url, "https://rtc.live.cloudflare.com/v1/turn/keys/key-id/credentials/generate-ice-servers");
+        assert.equal(calls[0].init.headers.Authorization, "Bearer api-token");
+        assert.deepEqual(JSON.parse(calls[0].init.body), { ttl: 600 });
+        assert.deepEqual(body.urls, ["turn:turn.cloudflare.com:3478?transport=udp", "turns:turn.cloudflare.com:5349?transport=tcp", "turns:turn.cloudflare.com:443?transport=tcp"]);
+        assert.equal(body.username, "u1");
+        assert.equal(body.expiresAt, 1_800_000_600);
+        assert.ok(!JSON.stringify(body).includes("api-token"));
+    });
+    it("reports a provider failure without leaking details", async () => {
+        const failing = async () => ({ ok: false, json: async () => ({ error: "bad token api-token" }) });
+        const { status, body } = await issueTurnCredentials(env, failing);
+        assert.equal(status, 502);
+        assert.deepEqual(body, { success: false });
+    });
+    it("prefers Cloudflare over coturn and falls back to 404 with neither", async () => {
+        const ok = async () => ({ ok: true, json: async () => ({ iceServers: { urls: "turn:turn.cloudflare.com:3478", username: "u", credential: "c" } }) });
+        assert.equal((await issueTurnCredentials({ ...env, TURN_SECRET: "s", TURN_HOST: "h" }, ok)).body.username, "u");
+        assert.equal((await issueTurnCredentials({}, ok)).status, 404);
+    });
 });

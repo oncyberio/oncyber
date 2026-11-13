@@ -19,6 +19,16 @@ export interface SpaceArtwork {
     collection: string;
 }
 
+/** The destination (room) a space is deployed in, shown inside the sidebar. */
+export interface SpaceLocation {
+    name: string;
+    href: string;
+    description?: string;
+    /** Cover images, tried in order. */
+    imageUrls?: string[];
+    author?: SpacePerson;
+}
+
 export interface SpaceInfo {
     id: string;
     title: string;
@@ -35,7 +45,7 @@ export interface SpaceInfo {
     /** Destination (room template) slug; the guestbook falls back to it. */
     room: string;
     /** Where the space is deployed, resolved by the API. */
-    location?: { name: string; href: string };
+    location?: SpaceLocation;
     collaborators: SpacePerson[];
     staffPick?: boolean;
     staffPickCount?: number;
@@ -67,6 +77,36 @@ export function shortAddress(address: string) {
     return /^0x[0-9a-f]{40}$/i.test(address)
         ? `${address.slice(0, 6)}…${address.slice(-4)}`
         : address;
+}
+
+/** Pure projection of a destination doc into the sidebar's Location view. */
+export function buildSpaceLocation(
+    destination: any,
+    room: string
+): SpaceLocation | undefined {
+    if (!destination || typeof destination !== "object") return undefined;
+    const slug = text(destination.slug, 200) || room;
+    const author = destination.author || {};
+    const address = text(author.id, 120);
+    const username = text(author.username, 80);
+    const authorName =
+        username ||
+        text(author.name, 80) ||
+        (address ? shortAddress(address) : "");
+    return {
+        name: text(destination.name, 200) || slug,
+        href: `/destinations/${encodeURIComponent(slug)}`,
+        description: text(destination.description, 2000),
+        imageUrls: images([destination.thumbnail, destination.image], 640),
+        author: authorName
+            ? {
+                  name: authorName,
+                  address,
+                  avatar: "",
+                  href: username ? `/${encodeURIComponent(username)}` : "",
+              }
+            : undefined,
+    };
 }
 
 /** Pure projection of a full exhibit doc into what the sidebar shows. */

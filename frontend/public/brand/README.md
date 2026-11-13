@@ -2,7 +2,7 @@
 
 Derived from the Cyber brand material supplied for Oncyber.
 
--   `cyberloop-sprite.webp`: all 225 frames of `Cyberloop_PNG_Sequence.zip`, sorted numerically, resized to 64 × 64 and packed into a 15 × 15 grid. Transparent, lossless WebP. Played at 30 fps in the login modal and activity-driven contexts.
+-   `cyberloop-sprite.webp`: all 225 frames of `Cyberloop_PNG_Sequence.zip`, sorted numerically, resized to 128 × 128 and packed into a 15 × 15 grid (1920 × 1920). White on transparent, WebP quality 90 with alpha. Played at 30 fps in the login modal, the header and the loading logo.
 -   `cyberloop-still.webp`: frame 90, used for reduced motion and static illustrations.
 -   `oncyber-wordmark-white.png`: the supplied ONCYBER wordmark from `Artboard_1_copy_51x.webp`, cropped to its lettering with the black background converted to transparency.
 

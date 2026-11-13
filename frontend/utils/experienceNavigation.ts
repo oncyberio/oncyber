@@ -9,6 +9,7 @@ import {
     finishLobbyReturn,
     pendingLobbyReturn,
 } from "./lobbyReturnTransition";
+import { warmLobbyRoute } from "@features/lobby/lobbyRouteWarmup";
 
 type Entry = { href: string; key?: string };
 const pathOf = (href: string) => href.split(/[?#]/)[0];
@@ -237,6 +238,8 @@ export function goToLobby(fallback: () => void) {
         fallback();
         return;
     }
+    // The lobby's page data loads during the dissolve instead of after it.
+    warmLobbyRoute();
     departBeforeNavigation(async (view) => {
         const transition = beginLobbyReturn(view);
         try {

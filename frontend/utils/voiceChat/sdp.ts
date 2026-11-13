@@ -6,6 +6,8 @@
 // Speech only; shared audio/video keeps its original encoding parameters.
 export const MIC_MAX_BITRATE = 24000;
 export const MIC_PACKET_TIME = 40;
+/** Crowded lobby voice: speech stays clear and each listener costs a speaker less upload. */
+export const LOBBY_MIC_BITRATE = 16000;
 
 const MIC_OPUS_FMTP: Record<string, string> = {
     stereo: "0",
@@ -14,7 +16,11 @@ const MIC_OPUS_FMTP: Record<string, string> = {
     usedtx: "1",
 };
 
-export function mungeMicOpus(sdp: string, micMids: Set<string>): string {
+export function mungeMicOpus(
+    sdp: string,
+    micMids: Set<string>,
+    bitrate = MIC_MAX_BITRATE
+): string {
     //
     if (!micMids || micMids.size === 0) return sdp;
 
@@ -33,12 +39,12 @@ export function mungeMicOpus(sdp: string, micMids: Set<string>): string {
 
             if (!mid || !micMids.has(mid[1])) return section;
 
-            return mungeSection(section, eol);
+            return mungeSection(section, eol, bitrate);
         })
         .join("");
 }
 
-function mungeSection(section: string, eol: string): string {
+function mungeSection(section: string, eol: string, bitrate: number): string {
     //
     const lines = section.split(eol);
 
@@ -61,9 +67,10 @@ function mungeSection(section: string, eol: string): string {
 
         if (fmtpIndex >= 0) {
             lines[fmtpIndex] =
-                prefix + mergeFmtp(lines[fmtpIndex].slice(prefix.length));
+                prefix +
+                mergeFmtp(lines[fmtpIndex].slice(prefix.length), bitrate);
         } else {
-            lines.splice(index + 1, 0, prefix + mergeFmtp(""));
+            lines.splice(index + 1, 0, prefix + mergeFmtp("", bitrate));
         }
     }
 
@@ -78,7 +85,7 @@ function mungeSection(section: string, eol: string): string {
     return lines.join(eol);
 }
 
-function mergeFmtp(existing: string): string {
+function mergeFmtp(existing: string, bitrate: number): string {
     //
     const params = new Map<string, string>();
 
@@ -98,6 +105,7 @@ function mergeFmtp(existing: string): string {
     for (const key in MIC_OPUS_FMTP) {
         params.set(key, MIC_OPUS_FMTP[key]);
     }
+    params.set("maxaveragebitrate", String(bitrate));
 
     return Array.from(params.entries())
         .map(([k, v]) => (v === "" ? k : `${k}=${v}`))
