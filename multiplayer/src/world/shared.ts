@@ -1,6 +1,13 @@
 /** One writer per actor slot. Even/odd stamps prevent readers observing torn poses. */
 export const STRIDE = 11;
 export const FLAGS = 4;
+/**
+ * Voice row per slot: [ready, 8 proximity picks, up to 50 listeners]. The
+ * listener tail is written only by speakers and names who they send to.
+ */
+export const VOICE_PICKS = 8;
+export const VOICE_HEARERS = 50;
+export const VOICE_STRIDE = 1 + VOICE_PICKS + VOICE_HEARERS;
 export interface SharedWorldData {
     capacity: number;
     state: SharedArrayBuffer;
@@ -24,7 +31,7 @@ export interface ActorPose {
     vz: number;
 }
 export function createSharedWorld(capacity: number): SharedWorldData {
-    return { capacity, state: new SharedArrayBuffer(capacity * FLAGS * 4), poses: new SharedArrayBuffer(capacity * STRIDE * 8), voice: new SharedArrayBuffer(capacity * 9 * 4) };
+    return { capacity, state: new SharedArrayBuffer(capacity * FLAGS * 4), poses: new SharedArrayBuffer(capacity * STRIDE * 8), voice: new SharedArrayBuffer(capacity * VOICE_STRIDE * 4) };
 }
 export class SharedWorld {
     readonly flags: Int32Array;
@@ -59,7 +66,7 @@ export class SharedWorld {
         if (Atomics.load(this.flags, f + 1) !== id) return;
         Atomics.add(this.flags, f, 1);
         Atomics.store(this.flags, f + 1, 0);
-        this.voice.fill(0, slot * 9, slot * 9 + 9);
+        this.voice.fill(0, slot * VOICE_STRIDE, slot * VOICE_STRIDE + VOICE_STRIDE);
         Atomics.add(this.flags, f, 1);
     }
     /** Only the coordinator may call this after the owning worker has exited. */
@@ -67,7 +74,7 @@ export class SharedWorld {
         const f = slot * FLAGS;
         Atomics.store(this.flags, f + 1, 0);
         Atomics.store(this.flags, f + 2, 0);
-        this.voice.fill(0, slot * 9, slot * 9 + 9);
+        this.voice.fill(0, slot * VOICE_STRIDE, slot * VOICE_STRIDE + VOICE_STRIDE);
         const stamp = Atomics.load(this.flags, f);
         // Advance the generation instead of resetting to zero: a reader that
         // began before a crash must not mistake a reused slot for its old pose.

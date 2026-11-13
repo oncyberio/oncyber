@@ -135,6 +135,9 @@ port.on("message", (message: any) => {
     else if (message.type === "group-deliver") gateway.deliverGroup(message.id, message.event, message.data);
     else if (message.type === "group-place") gateway.placeGroup(message.id, message.travelId, message.pose, message.peers, message.held);
     else if (message.type === "group-presence") gateway.groupPresence(message.id, message.active);
+    else if (message.type === "stage") gateway.setStage(message.stage);
+    else if (message.type === "stage-result") gateway.deliverStageResult(message.id, message.data);
+    else if (message.type === "stage-kick") gateway.kick(message.id);
     else if (message.type === "proxy-accept") {
         const p = { buffered: 0, closed: false };
         proxyEndpoints.set(message.id, p);

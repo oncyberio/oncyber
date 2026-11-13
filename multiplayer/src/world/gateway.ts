@@ -5,7 +5,8 @@ import { decodeInputs } from "../../protocol/movement";
 import { performance } from "perf_hooks";
 import { CrowdModel, Person, TokenBucket } from "../rooms/crowd/core";
 import { profile, Profile, VOICE_LIMIT, VOICE_RADIUS, VOICE_EXIT_RADIUS } from "../rooms/crowd/protocol";
-import { SharedWorld, SharedWorldData, ActorPose, blankPose } from "./shared";
+import { SharedWorld, SharedWorldData, ActorPose, blankPose, VOICE_STRIDE, VOICE_PICKS, VOICE_HEARERS } from "./shared";
+import { STAGE_ACTIONS, StageRole, StageSnapshot } from "./stage";
 import { InterestIndex } from "./interest";
 import { decodeMovement, encodeMotionPose, encodePose, encodeSnapshotParts } from "../../protocol/lobby-v2";
 export interface Endpoint {
@@ -43,6 +44,9 @@ interface Connection {
     visible: number[];
     roster: Map<number, number>;
     voice: number[];
+    /** "listenOnly|speakOnly" as last sent, so a direction change is resent. */
+    voiceKey: string;
+    stageRevision: number;
     pins: number[];
     ack: any;
     pendingMove: any;
@@ -87,6 +91,9 @@ export class WorldGateway {
     private drops = 0;
     private corrections = 0;
     private candidateVisits = 0;
+    private stageState: StageSnapshot = { revision: -1, limit: 5, speakers: [], requests: [], muted: [], roles: [] };
+    private speakers = new Set<number>();
+    private roles = new Map<number, StageRole>();
     constructor(readonly options: { owner: number; detailThreshold?: number; shared: SharedWorldData; epoch: number; roomId: string; region: string; post(message: any): void }) {
         this.shared = new SharedWorld(options.shared);
         this.slots = Array.from({ length: options.shared.capacity }, (_, i) => blankPose(i));
@@ -152,7 +159,7 @@ export class WorldGateway {
             ["signal", 20, 40],
         ] as Array<[string, number, number]>)
             rates[name] = new TokenBucket(rate, burst, now);
-        const c: Connection = { id: r.id, sessionId, phase: this.nextPhase++ % 20, token, slot: r.slot, endpoint, person, pose, ready: false, visible: [], roster: new Map(), voice: [], pins: [], ack: null, pendingMove: null, rates, strikes: 0, slowAt: 0, lastHeartbeat: 0, population: -1, lastRosterRevision: -1, sent: new Map(), connectedAt: now };
+        const c: Connection = { id: r.id, sessionId, phase: this.nextPhase++ % 20, token, slot: r.slot, endpoint, person, pose, ready: false, visible: [], roster: new Map(), voice: [], voiceKey: "", stageRevision: -2, pins: [], ack: null, pendingMove: null, rates, strikes: 0, slowAt: 0, lastHeartbeat: 0, population: -1, lastRosterRevision: -1, sent: new Map(), connectedAt: now };
         this.sessions.set(sessionId, c);
         this.shared.write(pose);
         this.member({ id: r.id, slot: r.slot, owner: r.owner, profile: r.profile, revision: 1 });
@@ -245,7 +252,7 @@ export class WorldGateway {
             c.ready = true;
             c.velocitySnapshots = data?.motion === "velocity-v1";
             if (data?.movement === "input-v1") c.input = new InputAuthority({ x: c.pose.x, y: c.pose.y, z: c.pose.z, rotation: c.pose.yaw }, Date.now());
-            this.control(c, "lobby-welcome", { lobbyProtocol: 2, flash: true, movement: c.input ? "input-v1" : "pose-v1", sessionId, roomId: this.options.roomId, region: this.options.region, partyIdentity: c.person.profile.partyIdentity, tickRate: 20, aoiLimit: this.networkBudget, voiceLimit: 8, position: [c.pose.x, c.pose.y, c.pose.z, c.pose.yaw], snapshotRates: { near: 20, mid: 5, far: 2 }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], epoch: this.options.epoch });
+            this.control(c, "lobby-welcome", { lobbyProtocol: 2, flash: true, movement: c.input ? "input-v1" : "pose-v1", sessionId, roomId: this.options.roomId, region: this.options.region, partyIdentity: c.person.profile.partyIdentity, role: this.roles.get(c.id) || null, tickRate: 20, aoiLimit: this.networkBudget, voiceLimit: 8, position: [c.pose.x, c.pose.y, c.pose.z, c.pose.yaw], snapshotRates: { near: 20, mid: 5, far: 2 }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], epoch: this.options.epoch });
             this.options.post({ type: "group-ready", actor: c.id });
             return;
         }
@@ -257,7 +264,10 @@ export class WorldGateway {
         } else if (type === "lobby-profile") {
             if (!data || typeof data !== "object") return;
             const member = this.members.get(c.id)!;
-            member.profile = profile(sessionId, { ...member.profile, username: data.username ?? member.profile.username, avatar: data.avatar ?? member.profile.avatar, VRM: data.VRM ?? member.profile.VRM, scale: data.scale ?? member.profile.scale }, member.profile.partyIdentity, member.profile.flash);
+            const next = profile(sessionId, { ...member.profile, username: data.username ?? member.profile.username, avatar: data.avatar ?? member.profile.avatar, VRM: data.VRM ?? member.profile.VRM, scale: data.scale ?? member.profile.scale }, member.profile.partyIdentity, member.profile.flash);
+            const role = this.roles.get(c.id);
+            member.profile = role ? { ...next, role } : next;
+            c.stageRevision = -2;
             member.revision++;
             c.person.profile = member.profile;
             this.rosterRevision++;
@@ -279,12 +289,25 @@ export class WorldGateway {
             this.options.post({ type: "relay", from: c.id, to: [to], event: "chat-peer", data: { from: sessionId, to: String(to), server_ts: Date.now(), profile: { username: c.person.profile.username, avatar: c.person.profile.avatar }, data: { type: "MESSAGE", text } } });
         } else if (type === "rtc-ready") {
             c.person.voiceReady = !c.activeWorld && data?.enabled !== false;
-            Atomics.store(this.shared.voice, c.slot * 9, Number(c.person.voiceReady));
-            if (!c.person.voiceReady) for (let i = 1; i <= 8; i++) Atomics.store(this.shared.voice, c.slot * 9 + i, 0);
+            Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE, Number(c.person.voiceReady));
+            if (!c.person.voiceReady) for (let i = 1; i < VOICE_STRIDE; i++) Atomics.store(this.shared.voice, c.slot * VOICE_STRIDE + i, 0);
         } else if (type === "rtc-signal") {
             const to = Number(data?.to);
             if (c.activeWorld || !Number.isSafeInteger(to) || !data?.payload || !["offer", "answer", "candidate"].includes(data.payload.kind) || JSON.stringify(data.payload).length > 15000 || !this.mutualVoice(c.id, to) || !this.near(c.id, to, VOICE_EXIT_RADIUS)) return;
             this.options.post({ type: "relay", from: c.id, to: [to], event: "rtc-signal", data: { from: sessionId, payload: data.payload } });
+        } else if (type === "lobby-voice-request") {
+            this.options.post({ type: "stage-action", actor: c.id, data: { kind: "request", cancel: data?.cancel === true } });
+        } else if (type === "lobby-stage-leave") {
+            this.options.post({ type: "stage-action", actor: c.id, data: { kind: "leave" } });
+        } else if (type === "lobby-admin") {
+            const action = data?.action,
+                target = data?.sessionId;
+            if (!(STAGE_ACTIONS as readonly string[]).includes(action) || typeof target !== "string" || !/^[1-9][0-9]{0,9}$/.test(target)) return;
+            if (!this.roles.has(c.id)) {
+                this.control(c, "lobby-admin-result", { action, sessionId: target, ok: false, error: "You’re not an admin here." });
+                return;
+            }
+            this.options.post({ type: "stage-action", actor: c.id, data: { kind: "admin", action, sessionId: target } });
         } else if (type === "attr-get-user" || type === "attr-get-channel") this.control(c, "attr-reply", { requestId: typeof data?.requestId === "string" ? data.requestId.slice(0, 128) : "", values: {} });
     }
     private setFlash(c: Connection, flash: LobbyFlash | null) {
@@ -340,9 +363,58 @@ export class WorldGateway {
             if (c.input) c.ack = c.input.place({ x: c.pose.x, y: 0, z: c.pose.z, rotation: c.pose.yaw, animation: -1, floor: true }, Date.now());
         }
     }
+    /** The main thread's moderation state; every worker holds the same copy. */
+    setStage(stage: StageSnapshot) {
+        if (!stage || stage.revision === this.stageState.revision) return;
+        this.stageState = stage;
+        this.speakers = new Set(stage.speakers);
+        this.roles = new Map(stage.roles);
+        // Roles travel in profiles too, so rosters on every worker can badge admins.
+        for (const c of this.sessions.values()) {
+            const member = this.members.get(c.id),
+                role = this.roles.get(c.id);
+            if (!member || member.profile.role === role) continue;
+            const { role: _previous, ...base } = member.profile;
+            const next = { ...member, profile: role ? { ...base, role } : base, revision: member.revision + 1 };
+            c.person.profile = next.profile;
+            this.member(next);
+            this.options.post({ type: "profile", member: next });
+        }
+    }
+    deliverStageResult(id: number, data: any) {
+        const c = this.sessions.get(String(id));
+        if (c?.ready) this.control(c, "lobby-admin-result", data);
+    }
+    kick(id: number) {
+        const c = this.sessions.get(String(id));
+        if (!c) return;
+        if (c.ready) this.control(c, "kick", { reason: "Removed by an admin" });
+        c.endpoint.close(4003, "Removed by an admin");
+        this.disconnect(c.sessionId);
+    }
+    private stageView(c: Connection) {
+        const stage = this.stageState,
+            admin = this.roles.has(c.id);
+        const entry = (id: number) => {
+            const p = this.members.get(id)?.profile;
+            return p && { sessionId: String(id), username: p.username, avatar: p.avatar, role: this.roles.get(id) };
+        };
+        return {
+            speakers: stage.speakers.map(entry).filter(Boolean),
+            limit: stage.limit,
+            role: this.roles.get(c.id) || null,
+            muted: stage.muted.includes(c.id),
+            requested: stage.requests.includes(c.id),
+            // Only admins see who asked to speak, and who is muted.
+            requests: admin ? stage.requests.map(entry).filter(Boolean) : [],
+            mutedPeople: admin ? stage.muted.map(String) : [],
+            spatial: true,
+        };
+    }
     private receiveVoiceOff(c: Connection) {
         for (const id of c.voice) this.control(c, "rtc-leave", { sessionId: String(id) });
         c.voice = [];
+        c.voiceKey = "";
         this.control(c, "lobby-voice", { peers: [] });
     }
     private near(a: number, b: number, radius: number) {
@@ -350,37 +422,72 @@ export class WorldGateway {
             y = this.actors.get(b);
         return !!x && !!y && (x.x - y.x) ** 2 + (x.z - y.z) ** 2 <= radius * radius;
     }
+    /**
+     * Only admin-approved speakers send audio. A speaker picks nearby
+     * speakers (two-way); everyone else picks nearby speakers to hear. The
+     * speaker then accepts its nearest listeners who picked it. Picks keep
+     * the AOI requirement so every audible peer has a pose, and retain
+     * established pairs through a small distance band.
+     */
     private selectVoice(c: Connection) {
-        // Audio ranking must not inherit the visual priority of selected avatars
-        // or group pins. Retain established pairs through a small distance band.
-        // Keep the existing AOI requirement so every audible peer has a pose.
         const peers: number[] = [], scores: number[] = [];
         for (const id of c.visible) {
+            if (!this.speakers.has(id)) continue;
             const member = this.members.get(id), pose = this.actors.get(id);
-            if (!member || !pose || !Atomics.load(this.shared.voice, member.slot * 9)) continue;
+            if (!member || !pose || !Atomics.load(this.shared.voice, member.slot * VOICE_STRIDE)) continue;
             const retained = c.voice.includes(id);
             const distance = Math.hypot(pose.x - c.pose.x, pose.z - c.pose.z);
             if (distance > (retained ? VOICE_EXIT_RADIUS : VOICE_RADIUS)) continue;
-            const score = distance - (retained ? 2 : 0);
-            let at = peers.length;
-            while (at > 0 && (score < scores[at - 1] || (score === scores[at - 1] && id < peers[at - 1]))) at--;
-            if (at >= VOICE_LIMIT) continue;
-            peers.splice(at, 0, id); scores.splice(at, 0, score);
-            if (peers.length > VOICE_LIMIT) { peers.pop(); scores.pop(); }
+            this.rank(peers, scores, id, distance - (retained ? 2 : 0), VOICE_PICKS);
         }
         return peers;
     }
-    private mutualVoice(a: number, b: number) {
+    private selectHearers(c: Connection) {
+        const peers: number[] = [], scores: number[] = [];
+        if (!this.speakers.has(c.id)) return peers;
+        for (const id of c.visible) {
+            if (this.speakers.has(id)) continue;
+            const member = this.members.get(id), pose = this.actors.get(id);
+            if (!member || !pose || !this.picked(member.slot, c.id)) continue;
+            const distance = Math.hypot(pose.x - c.pose.x, pose.z - c.pose.z);
+            if (distance <= VOICE_EXIT_RADIUS) this.rank(peers, scores, id, distance, VOICE_HEARERS);
+        }
+        return peers;
+    }
+    private rank(peers: number[], scores: number[], id: number, score: number, limit: number) {
+        let at = peers.length;
+        while (at > 0 && (score < scores[at - 1] || (score === scores[at - 1] && id < peers[at - 1]))) at--;
+        if (at >= limit) return;
+        peers.splice(at, 0, id); scores.splice(at, 0, score);
+        if (peers.length > limit) { peers.pop(); scores.pop(); }
+    }
+    private picked(slot: number, id: number) {
+        const row = slot * VOICE_STRIDE;
+        for (let i = 1; i <= VOICE_PICKS; i++) if (Atomics.load(this.shared.voice, row + i) === id) return true;
+        return false;
+    }
+    private hears(slot: number, id: number) {
+        const row = slot * VOICE_STRIDE + 1 + VOICE_PICKS;
+        for (let i = 0; i < VOICE_HEARERS; i++) {
+            const value = Atomics.load(this.shared.voice, row + i);
+            if (value === id) return true;
+            if (!value) return false;
+        }
+        return false;
+    }
+    /** 0: no link. 1: two speakers. 2: a speaks to b. 3: a listens to b. */
+    private voiceLink(a: number, b: number) {
         const x = this.members.get(a),
             y = this.members.get(b);
-        if (!x || !y || !Atomics.load(this.shared.voice, x.slot * 9) || !Atomics.load(this.shared.voice, y.slot * 9)) return false;
-        let ab = false,
-            ba = false;
-        for (let i = 1; i <= 8; i++) {
-            ab ||= Atomics.load(this.shared.voice, x.slot * 9 + i) === b;
-            ba ||= Atomics.load(this.shared.voice, y.slot * 9 + i) === a;
-        }
-        return ab && ba;
+        if (!x || !y || !Atomics.load(this.shared.voice, x.slot * VOICE_STRIDE) || !Atomics.load(this.shared.voice, y.slot * VOICE_STRIDE)) return 0;
+        const sa = this.speakers.has(a), sb = this.speakers.has(b);
+        if (sa && sb) return this.picked(x.slot, b) && this.picked(y.slot, a) ? 1 : 0;
+        if (sa) return this.picked(y.slot, a) && this.hears(x.slot, b) ? 2 : 0;
+        if (sb) return this.picked(x.slot, b) && this.hears(y.slot, a) ? 3 : 0;
+        return 0;
+    }
+    private mutualVoice(a: number, b: number) {
+        return this.voiceLink(a, b) !== 0;
     }
     private roster(c: Connection) {
         if (c.lastRosterRevision === this.rosterRevision && c.population === this.members.size && c.visible.length === c.roster.size && c.visible.every((id) => c.roster.has(id))) return;
@@ -524,17 +631,32 @@ export class WorldGateway {
                 this.candidateVisits += this.index.candidateVisits;
                 this.roster(c);
                 if (c.person.voiceReady) {
-                    const picks = this.selectVoice(c);
-                    for (let i = 0; i < 8; i++) Atomics.store(this.shared.voice, c.slot * 9 + i + 1, picks[i] || 0);
+                    const picks = this.selectVoice(c),
+                        hearers = this.selectHearers(c),
+                        row = c.slot * VOICE_STRIDE;
+                    for (let i = 0; i < VOICE_PICKS; i++) Atomics.store(this.shared.voice, row + 1 + i, picks[i] || 0);
+                    for (let i = 0; i < VOICE_HEARERS; i++) Atomics.store(this.shared.voice, row + 1 + VOICE_PICKS + i, hearers[i] || 0);
                 }
             } else if (this.tick % 20 === c.phase % 20) this.roster(c);
+            if (c.stageRevision !== this.stageState.revision && this.stageState.revision >= 0 && this.control(c, "lobby-stage", this.stageView(c))) c.stageRevision = this.stageState.revision;
             if ((c.person.voiceReady || c.voice.length) && this.tick % 4 === c.phase % 4) {
-                const voice = c.visible.filter((id) => this.mutualVoice(c.id, id)).sort((a, b) => a - b);
-                if (voice.length !== c.voice.length || voice.some((id, i) => id !== c.voice[i])) {
-                    if (this.control(c, "lobby-voice", { peers: voice.map(String) })) {
+                const voice: number[] = [], listenOnly: string[] = [], speakOnly: string[] = [];
+                for (const id of c.visible) {
+                    const link = this.voiceLink(c.id, id);
+                    if (!link) continue;
+                    voice.push(id);
+                    if (link === 2) speakOnly.push(String(id));
+                    else if (link === 3) listenOnly.push(String(id));
+                }
+                voice.sort((a, b) => a - b);
+                listenOnly.sort(); speakOnly.sort();
+                const key = `${listenOnly.join()}|${speakOnly.join()}`;
+                if (key !== c.voiceKey || voice.length !== c.voice.length || voice.some((id, i) => id !== c.voice[i])) {
+                    if (this.control(c, "lobby-voice", { peers: voice.map(String), listenOnly, speakOnly })) {
                         for (const id of c.voice) if (!voice.includes(id)) this.control(c, "rtc-leave", { sessionId: String(id) });
                         for (const id of voice) if (!c.voice.includes(id)) this.control(c, "rtc-join", { sessionId: String(id) });
                         c.voice = voice;
+                        c.voiceKey = key;
                     }
                 }
             }

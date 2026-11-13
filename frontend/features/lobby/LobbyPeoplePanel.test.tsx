@@ -112,6 +112,7 @@ it("someone an admin muted is told that, not to turn their microphone on", () =>
             requested: false,
             requests: [],
             mutedPeople: [],
+            spatial: false,
         },
         voiceState: "muted" as const,
         onListen: jest.fn(),
