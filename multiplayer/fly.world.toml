@@ -21,10 +21,11 @@ kill_timeout = "15s"
   LOBBY_WORLD_WEBTRANSPORT = "1"
   LOBBY_WORLD_ACME_HOST = "oncyber-lobby.fly.dev"
   # LOBBY_WORLD_ACME_EMAIL is a Fly secret: fly secrets set LOBBY_WORLD_ACME_EMAIL=...
+  # Voice relay: CLOUDFLARE_TURN_KEY_ID + CLOUDFLARE_TURN_API_TOKEN secrets serve /turnCredentials.
   LOBBY_WORLD_TLS_DIR = "/data/tls"
   LOBBY_WORLD_WT_BIND = "fly-global-services"
   LOBBY_WORLD_WT_BASE = "2590"
-  LOBBY_WORLD_ORIGINS = "http://localhost:13000,http://127.0.0.1:13000,https://oncyber.io,https://www.oncyber.io"
+  LOBBY_WORLD_ORIGINS = "http://localhost:13000,http://127.0.0.1:13000,http://localhost:13070,http://127.0.0.1:13070,https://oncyber.io,https://www.oncyber.io,https://oncyber-two.vercel.app,https://oncyber-oncyber.vercel.app,https://oncyber-git-main-oncyber.vercel.app,https://oncyber-git-claude-fly-lobby-oncyber.vercel.app"
 
 [http_service]
   internal_port = 2575

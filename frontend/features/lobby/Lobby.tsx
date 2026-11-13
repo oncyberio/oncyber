@@ -1,3 +1,4 @@
+import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import useRecordingCrowd from "./useRecordingCrowd";
@@ -45,6 +46,8 @@ import { lobbyPanelSurface } from "./lobbyPanelStyles";
 import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
+import LobbyVoiceRequests from "./LobbyVoiceRequests";
+import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
 import LobbyDockIcon from "./LobbyDockIcon";
@@ -59,7 +62,6 @@ import { lobbyGroupPresence } from "./lobbyGroupPresence";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
-import { lobbyPortraitUrl } from "./lobbyIdentity";
 import VRMS from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { EMOTES } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -99,7 +101,8 @@ export default function Lobby({
 }) {
     const account = useContext(UserContext);
     const { user, userData, token, authenticated, isAnonymous } = account;
-    const profilePhoto = lobbyPortraitUrl(userData?.avatar);
+    // Falls back to the NFT's current image, then the guest portrait.
+    const profilePhoto = useProfilePhoto(userData);
     const journey = useLobbyJourney(initialReturn);
     const [lobbyInfoOpen, setLobbyInfoOpen] = useState(false);
     const journeyView = lobbyJourneyView(journey);
@@ -1054,12 +1057,39 @@ export default function Lobby({
         onExit,
     ]);
 
-    const voiceLabel =
-        social.voiceState === "live"
-            ? "Mute microphone"
-            : social.voiceState === "connecting"
-            ? "Connecting voice…"
-            : "Enable microphone";
+    const stage = social.stage;
+    const onStage = !!stage?.speakers.some(
+        (speaker) => speaker.sessionId === social.sessionId
+    );
+    // Lobby voice is admin-approved: until then the mic button asks to speak.
+    const voiceGated =
+        !!stage?.spatial && !onStage && social.voiceState !== "live";
+    const voiceLabel = voiceGated
+        ? stage.muted
+            ? "An admin muted you"
+            : stage.role
+            ? "Join voice"
+            : stage.requested
+            ? "Request sent · Cancel"
+            : "Request to speak"
+        : social.voiceState === "live"
+        ? "Mute microphone"
+        : social.voiceState === "connecting"
+        ? "Connecting voice…"
+        : "Enable microphone";
+    const pressVoice = () => {
+        if (!voiceGated) return void social.toggleVoice();
+        if (stage.muted) return void social.listen();
+        if (stage.role) {
+            // Admins skip the queue; the server still applies the speaker cap.
+            void social.adminAction("stage-add", social.sessionId);
+            return void social.toggleVoice();
+        }
+        social.requestVoice(stage.requested);
+        // Hear whoever is on voice while the request waits.
+        if (!stage.requested && social.voiceState === "off")
+            void social.listen();
+    };
     return (
         <>
             <LobbySurface
@@ -1282,12 +1312,16 @@ export default function Lobby({
                                 <button
                                     className="dock-button"
                                     aria-label={voiceLabel}
-                                    aria-pressed={social.voiceState === "live"}
+                                    aria-pressed={
+                                        voiceGated
+                                            ? stage.requested
+                                            : social.voiceState === "live"
+                                    }
                                     disabled={
                                         social.status !== "connected" ||
                                         social.voiceState === "connecting"
                                     }
-                                    onClick={() => void social.toggleVoice()}
+                                    onClick={pressVoice}
                                 >
                                     <LobbyDockIcon
                                         name={
@@ -1597,6 +1631,16 @@ export default function Lobby({
                                 onAdmin: social.adminAction,
                             }
                         }
+                        onGoTo={
+                            social.protocol === "v2"
+                                ? (id) => social.teleportTo(id)
+                                : undefined
+                        }
+                        onSummonAll={
+                            social.protocol === "v2"
+                                ? social.summonAll
+                                : undefined
+                        }
                     >
                         {authenticated && !isAnonymous && (
                             <PartyPanel
@@ -1813,20 +1857,38 @@ export default function Lobby({
                             : undefined
                     }
                     notices={
-                        social.groupsSupported ? (
-                            <LobbyGroupNotices
-                                groups={groups}
-                                invitations={invitations}
-                                sessionId={social.sessionId}
-                                clock={social.groupClock}
-                                action={social.groupAction}
-                                onSelected={selectGroup}
-                                onAccept={groupJourney.accept}
-                                onDecline={groupJourney.decline}
-                                onLaunch={groupJourney.launch}
-                                onCancel={groupJourney.cancel}
+                        <>
+                            <LobbySummonNotice
+                                summon={social.summon}
+                                onGo={(id) => social.teleportTo(id, true)}
+                                onStay={social.dismissSummon}
                             />
-                        ) : null
+                            <LobbyVoiceRequests
+                                stage={social.stage}
+                                onAdmin={social.adminAction}
+                                onShowAll={() => {
+                                    setFlashOpen(false);
+                                    setPeopleOpen(true);
+                                    setAvatarOpen(false);
+                                    setEmotesOpen(false);
+                                    setExploreOpen(false);
+                                }}
+                            />
+                            {social.groupsSupported && (
+                                <LobbyGroupNotices
+                                    groups={groups}
+                                    invitations={invitations}
+                                    sessionId={social.sessionId}
+                                    clock={social.groupClock}
+                                    action={social.groupAction}
+                                    onSelected={selectGroup}
+                                    onAccept={groupJourney.accept}
+                                    onDecline={groupJourney.decline}
+                                    onLaunch={groupJourney.launch}
+                                    onCancel={groupJourney.cancel}
+                                />
+                            )}
+                        </>
                     }
                 />
                 <InlineError

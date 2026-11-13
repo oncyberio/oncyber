@@ -104,7 +104,11 @@ export class WebRTCClient {
     private _pcQueue: string[] = [];
     private _pcQueueTimer = null;
 
-    constructor() {
+    /** Opus cap for our microphone; both ends must agree. */
+    readonly micBitrate: number;
+
+    constructor(options: { micBitrate?: number } = {}) {
+        this.micBitrate = options.micBitrate || MIC_MAX_BITRATE;
         globalThis.$webrtc = this;
     }
 
@@ -617,7 +621,11 @@ export class WebRTCClient {
     private _safeMunge(pc: RTCPeerConnection, userId: string, sdp: string) {
         //
         try {
-            return mungeMicOpus(sdp, this._micMids(pc, userId));
+            return mungeMicOpus(
+                sdp,
+                this._micMids(pc, userId),
+                this.micBitrate
+            );
         } catch (err) {
             this.error("munge failed", err);
             return sdp;
@@ -939,7 +947,7 @@ export class WebRTCClient {
                 params.encodings = [{} as RTCRtpEncodingParameters];
             }
 
-            params.encodings[0].maxBitrate = MIC_MAX_BITRATE;
+            params.encodings[0].maxBitrate = this.micBitrate;
 
             const result = sender.setParameters(params);
             result?.catch?.(() => {});

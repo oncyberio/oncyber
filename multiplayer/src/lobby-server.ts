@@ -6,7 +6,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { createServer, Server as HttpServer } from "http";
-import { createTurnCredentials } from "./utils/turnCredentials";
+import { issueTurnCredentials } from "./utils/turnIssuer";
 import { Server, LocalPresence } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { registerCrowdRoom, joinCrowd, crowdJoinLimiter, lobbyHealth } from "./rooms/crowd/join";
@@ -32,15 +32,10 @@ app.use(cors({ origin: (origin, callback) => callback(null, permittedOrigin(orig
 app.use(express.json({ limit: "16kb" }));
 app.get("/lobby/health", lobbyHealth);
 app.post("/join", crowdJoinLimiter, joinCrowd);
-app.get("/turnCredentials", rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }), (_req, res) => {
-    const secret = process.env.TURN_SECRET,
-        host = process.env.TURN_HOST;
-    if (!secret || !host) return res.status(404).json({ success: false });
-    const requestedTtl = Number(process.env.TURN_TTL);
-    const ttl = Math.max(60, Math.min(3600, Number.isFinite(requestedTtl) && requestedTtl > 0 ? requestedTtl : 3600));
-    const { username, credential } = createTurnCredentials(secret, ttl);
+app.get("/turnCredentials", rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }), async (_req, res) => {
+    const { status, body } = await issueTurnCredentials(process.env);
     res.setHeader("Cache-Control", "no-store");
-    return res.json({ success: true, urls: [`turn:${host}:3478?transport=udp`, `turn:${host}:3478?transport=tcp`], username, credential, ttl });
+    return res.status(status).json(body);
 });
 app.use((_req, res) => res.status(404).json({ success: false }));
 

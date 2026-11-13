@@ -48,6 +48,10 @@ type Props = {
     };
     /** Closest people first, or by name when switched off. */
     sort?: { nearby: boolean; onToggle(): void };
+    /** Walk up to someone, like Teleport in spaces. */
+    onGoTo?(id: string): void;
+    /** Admins: ask everyone further away to come here. */
+    onSummonAll?(): void;
     children?: React.ReactNode;
 };
 
@@ -111,7 +115,9 @@ function VoiceSection({
             ) : (
                 <p className="voice-note">
                     {admin
-                        ? "Add someone from the list below. Up to 50 people nearest each speaker hear them."
+                        ? stage.spatial
+                            ? `Approve requests, or add someone from the list below. Up to ${stage.limit} people can talk; people near a speaker hear them.`
+                            : "Add someone from the list below. Up to 50 people nearest each speaker hear them."
                         : "Nobody is on voice right now."}
                 </p>
             )}
@@ -124,6 +130,15 @@ function VoiceSection({
                 <p className="voice-note">
                     An admin muted you. You can still listen.
                 </p>
+            )}
+            {admin && stage.spatial && !onStage && !stage.muted && selfId && (
+                <button
+                    type="button"
+                    className="voice-request"
+                    onClick={() => act("stage-add", selfId)}
+                >
+                    Join voice
+                </button>
             )}
             {!admin && !onStage && !stage.muted && (
                 <button
@@ -173,47 +188,80 @@ function VoiceSection({
     );
 }
 
-function AdminActions({
+/**
+ * The "•••" menu, matching the people list in spaces: anyone can go to
+ * someone; admins also manage voice, mute, remove, make admins, and bring
+ * everyone to themselves.
+ */
+function PersonActions({
     person,
     voice,
+    onGoTo,
+    onSummonAll,
     onError,
+    style,
 }: {
     person: Person;
-    voice: LobbyVoiceControls;
+    style?: React.CSSProperties;
+    voice?: LobbyVoiceControls | null;
+    onGoTo?(id: string): void;
+    onSummonAll?(): void;
     onError(message: string): void;
 }) {
-    const { stage } = voice;
-    const owner = stage.role === "owner";
-    const speaking = stage.speakers.some((s) => s.sessionId === person.id);
-    const muted = stage.mutedPeople.includes(person.id);
+    const stage = voice?.stage;
+    const admin = !!stage?.role;
+    const owner = stage?.role === "owner";
+    const speaking = !!stage?.speakers.some((s) => s.sessionId === person.id);
+    const muted = !!stage?.mutedPeople.includes(person.id);
     const act = async (action: LobbyAdminAction) =>
-        onError(await voice.onAdmin(action, person.id));
+        onError(await voice!.onAdmin(action, person.id));
     // Mirrors the server: admins can't moderate admins; the main admin can.
-    if (person.role === "owner" || (person.role && !owner)) return null;
+    const moderate =
+        admin && person.role !== "owner" && (!person.role || owner);
     return (
-        <div className="person-actions">
-            {!muted && (
+        <div
+            className="person-actions"
+            role="menu"
+            aria-label={`Options for ${person.name}`}
+            data-person={person.id}
+            style={style}
+        >
+            {!person.isLocal && onGoTo && (
                 <button
                     type="button"
+                    role="menuitem"
+                    onClick={() => onGoTo(person.id)}
+                >
+                    Go to them
+                </button>
+            )}
+            {person.isLocal && admin && onSummonAll && (
+                <button type="button" role="menuitem" onClick={onSummonAll}>
+                    Bring everyone here
+                </button>
+            )}
+            {moderate && !muted && (
+                <button
+                    type="button"
+                    role="menuitem"
                     onClick={() => act(speaking ? "stage-remove" : "stage-add")}
                 >
                     {speaking ? "Remove from voice" : "Add to voice"}
                 </button>
             )}
-            {!person.isLocal && (
+            {moderate && !person.isLocal && (
                 <>
                     <button
                         type="button"
+                        role="menuitem"
                         onClick={() => act(muted ? "unmute" : "mute")}
                     >
                         {muted ? "Unmute" : "Mute"}
                     </button>
-                    <button type="button" onClick={() => act("kick")}>
-                        Remove from lobby
-                    </button>
                     {owner && (
                         <button
                             type="button"
+                            role="menuitem"
                             onClick={() =>
                                 act(
                                     person.role ? "revoke-admin" : "grant-admin"
@@ -223,6 +271,14 @@ function AdminActions({
                             {person.role ? "Remove admin" : "Make admin"}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        role="menuitem"
+                        className="danger"
+                        onClick={() => act("kick")}
+                    >
+                        Remove from lobby
+                    </button>
                 </>
             )}
         </div>
@@ -238,6 +294,8 @@ export default function LobbyPeoplePanel({
     voice,
     party,
     sort,
+    onGoTo,
+    onSummonAll,
     children,
 }: Props) {
     const [query, setQuery] = useState("");
@@ -261,6 +319,35 @@ export default function LobbyPeoplePanel({
     };
     const panel = useRef<HTMLElement>(null);
     const [open, setOpen] = useState<string | null>(null);
+    /** Where the open menu sits in the panel, beside its "•••". */
+    const [anchor, setAnchor] = useState<React.CSSProperties>({});
+    const toggleMenu = (id: string, button: HTMLElement) => {
+        if (open === id) return setOpen(null);
+        const box = panel.current?.getBoundingClientRect(),
+            at = button.getBoundingClientRect();
+        if (box) {
+            const right = box.right - at.right;
+            // Open upward when there isn't room below inside the panel.
+            setAnchor(
+                at.bottom + 230 > box.bottom
+                    ? { right, bottom: box.bottom - at.top + 4 }
+                    : { right, top: at.bottom - box.top + 4 }
+            );
+        }
+        setOpen(id);
+    };
+    const menuPerson = open && players.find((player) => player.id === open);
+    // The "•••" menu floats over the list; a click anywhere else closes it.
+    useEffect(() => {
+        if (!open) return;
+        const away = (event: PointerEvent) => {
+            const target = event.target as Element | null;
+            if (!target?.closest?.(`[data-person="${CSS.escape(open)}"]`))
+                setOpen(null);
+        };
+        document.addEventListener("pointerdown", away);
+        return () => document.removeEventListener("pointerdown", away);
+    }, [open]);
     const [error, setError] = useState("");
     const selfId = players.find((player) => player.isLocal)?.id;
     const admin = !!voice?.stage.role;
@@ -310,6 +397,12 @@ export default function LobbyPeoplePanel({
                     event.altKey
                 )
                     return;
+                if (event.key === "Escape" && open) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setOpen(null);
+                    return;
+                }
                 if (event.key === "Escape") {
                     event.preventDefault();
                     event.stopPropagation();
@@ -366,7 +459,7 @@ export default function LobbyPeoplePanel({
                     </button>
                 </div>
             )}
-            <div className="people-content">
+            <div className="people-content" onScroll={() => setOpen(null)}>
                 <p id="lobby-people-status" role="status">
                     {nearbyStatus}
                 </p>
@@ -389,7 +482,7 @@ export default function LobbyPeoplePanel({
                 {!!listed.length && (
                     <ul aria-label="People" className="people-list">
                         {listed.map((player) => (
-                            <li key={player.id}>
+                            <li key={player.id} data-person={player.id}>
                                 <div className="person-row">
                                     {player.avatar ? (
                                         <img
@@ -440,17 +533,16 @@ export default function LobbyPeoplePanel({
                                                     : "+"}
                                             </button>
                                         ))}
-                                    {admin && (
+                                    {(admin || (!player.isLocal && onGoTo)) && (
                                         <button
                                             type="button"
                                             className="person-more"
                                             aria-expanded={open === player.id}
                                             aria-label={`Manage ${player.name}`}
-                                            onClick={() =>
-                                                setOpen((value) =>
-                                                    value === player.id
-                                                        ? null
-                                                        : player.id
+                                            onClick={(event) =>
+                                                toggleMenu(
+                                                    player.id,
+                                                    event.currentTarget
                                                 )
                                             }
                                         >
@@ -458,18 +550,33 @@ export default function LobbyPeoplePanel({
                                         </button>
                                     )}
                                 </div>
-                                {admin && open === player.id && (
-                                    <AdminActions
-                                        person={player}
-                                        voice={voice}
-                                        onError={setError}
-                                    />
-                                )}
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+            {menuPerson && (
+                <PersonActions
+                    person={menuPerson}
+                    style={anchor}
+                    voice={voice}
+                    onGoTo={
+                        onGoTo &&
+                        ((id) => {
+                            setOpen(null);
+                            onGoTo(id);
+                        })
+                    }
+                    onSummonAll={
+                        onSummonAll &&
+                        (() => {
+                            setOpen(null);
+                            onSummonAll();
+                        })
+                    }
+                    onError={setError}
+                />
+            )}
         </Panel>
     );
 }
@@ -582,14 +689,26 @@ const Panel = styled.section`
     }
     .people-content .voice-request {
         width: 100%;
-        margin-top: 4px;
+        margin: 4px 0 12px;
     }
-    .people-content .person-more {
-        min-width: 32px;
-        padding: 0 6px;
+    /* Secondary to Add to party: a small, borderless "•••". */
+    .people-content button.person-more {
+        min-width: 22px;
+        width: 22px;
+        min-height: 22px;
+        height: 22px;
+        padding: 0;
         border-color: transparent;
-        color: #c2c2bd;
-        letter-spacing: 1px;
+        border-radius: 6px;
+        color: #93938e;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        &:hover,
+        &[aria-expanded="true"] {
+            border-color: transparent;
+            background: #ffffff10;
+            color: #f3f3f1;
+        }
     }
     .people-tools {
         display: flex;
@@ -715,11 +834,42 @@ const Panel = styled.section`
         color: #2cf8d5;
         font: normal 10px var(--oc-mono, monospace);
     }
+    /* A small floating menu over the panel, so the list never reflows. */
     .person-actions {
+        position: absolute;
+        z-index: 3;
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        padding: 0 2px 10px 18px;
+        flex-direction: column;
+        min-width: 168px;
+        padding: 4px;
+        border: 1px solid #ffffff1a;
+        border-radius: 10px;
+        background: #15181ef5;
+        box-shadow: 0 10px 28px #00000080;
+    }
+    .person-actions button {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #f3f3f1;
+        font: 12px var(--oc-font, sans-serif);
+        text-align: left;
+        cursor: pointer;
+        &:hover {
+            background: #ffffff10;
+        }
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: -2px;
+        }
+        &.danger {
+            color: #ff8a80;
+        }
     }
     .person-dot.live {
         background: #ff5a4f;

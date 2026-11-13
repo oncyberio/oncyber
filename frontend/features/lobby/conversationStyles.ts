@@ -66,6 +66,21 @@ export const conversationStyles = css`
         opacity: 0.4;
         cursor: default;
     }
+    .voice-request-notice p {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .voice-request-notice img {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .group-notice button.notice-more {
+        margin-left: auto;
+    }
     .group-notice .notice-status {
         font-size: 10px;
         color: #9da6b5;
