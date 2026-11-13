@@ -235,12 +235,14 @@ export default function LobbyPeoplePanel({
     children,
 }: Props) {
     const [adding, setAdding] = useState<string[]>([]);
+    const [invited, setInvited] = useState<string[]>([]);
     const addToParty = (id: string) => {
         if (!party || adding.includes(id)) return;
         setError("");
         setAdding((ids) => [...ids, id]);
         party
             .onAdd(id)
+            .then(() => setInvited((ids) => [...ids, id]))
             .catch((failure) =>
                 setError(failure?.message || "Couldn’t add them to the party.")
             )
@@ -363,6 +365,10 @@ export default function LobbyPeoplePanel({
                                         (party.memberIds.includes(player.id) ? (
                                             <small className="person-party">
                                                 In party
+                                            </small>
+                                        ) : invited.includes(player.id) ? (
+                                            <small className="person-party">
+                                                Invited
                                             </small>
                                         ) : (
                                             <button

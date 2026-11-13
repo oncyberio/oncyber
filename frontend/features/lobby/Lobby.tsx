@@ -462,7 +462,6 @@ export default function Lobby({
                 groupId: ownParty.id,
                 inviteeId: id,
             });
-            selectGroup(ownParty.id);
         } else {
             const result = await social.groupAction({
                 action: "create",
@@ -473,32 +472,43 @@ export default function Lobby({
         }
     };
     // The people list, closest first (you on top). In a recording, the
-    // staged crowd is listed with everyone else. Sorted when the list opens,
-    // so rows don't shuffle under the pointer as people walk.
+    // staged crowd is listed with everyone else. The order is set once when
+    // the list opens: rows must not move under the pointer as people walk or
+    // join your party. Anyone who arrives later goes to the end.
+    const peopleOrder = useRef<Map<string, number> | null>(null);
+    if (!peopleOpen) peopleOrder.current = null;
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
-        const me = social.getPredictedPose?.() ||
-            social.players.find((player) => player.isLocal) || { x: 0, z: 0 };
-        const spots = new Map<string, { x: number; z: number }>();
-        for (const player of social.players) spots.set(player.id, player);
-        for (const person of recording?.crowd.sample(performance.now()) || [])
-            spots.set(person.id, person);
-        const distance = (id: string) => {
-            const spot = spots.get(id);
-            return spot
-                ? (spot.x - me.x) ** 2 + (spot.z - me.z) ** 2
-                : Infinity;
-        };
-        return [...social.players, ...(social.groupPlayers || [])]
-            .map((player) => ({
-                player,
-                distance:
-                    "isLocal" in player && player.isLocal
-                        ? -1
-                        : distance(player.id),
-            }))
-            .sort((a, b) => a.distance - b.distance)
-            .map(({ player }) => player);
+        const everyone = [...social.players, ...(social.groupPlayers || [])];
+        if (!peopleOrder.current) {
+            const me = social.getPredictedPose?.() ||
+                social.players.find((player) => player.isLocal) || {
+                    x: 0,
+                    z: 0,
+                };
+            const spots = new Map<string, { x: number; z: number }>();
+            for (const player of social.players) spots.set(player.id, player);
+            for (const person of recording?.crowd.sample(performance.now()) ||
+                [])
+                spots.set(person.id, person);
+            const distance = (player: (typeof everyone)[number]) => {
+                if ("isLocal" in player && player.isLocal) return -1;
+                const spot = spots.get(player.id);
+                return spot
+                    ? (spot.x - me.x) ** 2 + (spot.z - me.z) ** 2
+                    : Infinity;
+            };
+            peopleOrder.current = new Map(
+                everyone
+                    .map((player) => ({ id: player.id, d: distance(player) }))
+                    .sort((a, b) => a.d - b.d)
+                    .map(({ id }, index) => [id, index])
+            );
+        }
+        const order = peopleOrder.current;
+        for (const player of everyone)
+            if (!order.has(player.id)) order.set(player.id, order.size);
+        return everyone.sort((a, b) => order.get(a.id) - order.get(b.id));
     }, [peopleOpen, social.players, social.groupPlayers, recording]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
