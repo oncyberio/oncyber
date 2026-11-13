@@ -1054,7 +1054,8 @@ export default function LobbyChat({
                                         ? `Say hello to ${currentName}. Only party members can see this conversation.`
                                         : recipient
                                         ? `Say hello to ${currentName}. Only you two can see this conversation.`
-                                        : `Say hello to everyone in this ${spaceLabel}.`}
+                                        : disabledReason ||
+                                          `Say hello to everyone in this ${spaceLabel}.`}
                                 </p>
                             )}
                             {messages.map(renderMessage)}
