@@ -17,6 +17,14 @@ import { getUserInitialPositions } from "@components/_3DExhibit-v2/three/utils/c
 
 import { pickSpawnInsideSpace } from "./spaceBounds";
 
+// A spawn's saved height is rarely exactly on the floor (it can be taken
+// while flying in the studio, or from another avatar's height). The player
+// is put on the floor under the spawn instead of dropping onto it: the
+// search starts a little above the head, so a spawn under a roof or on an
+// upper floor keeps that floor, and reaches this far below the feet.
+const SPAWN_FLOOR_ABOVE_HEAD = 0.5
+const SPAWN_FLOOR_BELOW_FEET = 30
+
 /** Seconds a player who lost the floor without jumping keeps probing for it. */
 const SNAP_GRACE = 0.1
 
@@ -106,6 +114,47 @@ export class Physics {
             ...this.initial,
             position: this.opts.camera.position
         })
+
+        const { cameraPos } = getUserInitialPositions(this.roomParameters)
+
+        if (this.placeOnFloor(cameraPos)) {
+
+            this.collisions.reset(cameraPos)
+
+            if (this.shouldUseFirsPerson()) {
+
+                this.playerState.position.y = cameraPos.y
+            }
+        }
+    }
+
+    /**
+     * Moves a spawn (a head position) down or up onto the floor right under
+     * it. Leaves it alone, and returns false, when no floor is near.
+     *
+     * @param { Vector3 } cameraPos
+     */
+    placeOnFloor(cameraPos) {
+
+        if (this.flymode || this.collisions == null) return false
+
+        const height = this.collisions.collider_height
+
+        this.ray.origin.set(cameraPos.x, cameraPos.y + SPAWN_FLOOR_ABOVE_HEAD, cameraPos.z)
+
+        this.ray.direction.copy(DOWN_VECTOR)
+
+        // Rays only hit faces turned towards them, so this finds floors.
+        const hit = this.collisions.rayIntersect(this.ray)
+
+        if (hit == null || hit.distance > SPAWN_FLOOR_ABOVE_HEAD + height + SPAWN_FLOOR_BELOW_FEET) {
+
+            return false
+        }
+
+        cameraPos.y = hit.position.y + height + 0.01
+
+        return true
     }
 
     shouldUseFirsPerson() {
@@ -432,6 +481,8 @@ export class Physics {
         }
 
         const { cameraPos, cameraRot } = getUserInitialPositions(this.roomParameters)
+
+        this.placeOnFloor(cameraPos)
 
         this.playerState.position.copy(cameraPos)
 
