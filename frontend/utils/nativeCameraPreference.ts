@@ -3,8 +3,9 @@ export const NATIVE_CAMERA_PREFERENCE_EVENT = "oncyber:camera-preference";
 const KEY = "oncyber:camera-preference";
 const valid = (value: unknown): value is NativeCameraPreference =>
     value === "first_person" || value === "third_person";
+/** With no saved choice, visitors see their avatar (third person). */
 export function readNativeCameraPreference(
-    fallback: unknown = "first_person"
+    fallback: unknown = "third_person"
 ): NativeCameraPreference {
     let stored: string;
     try {
@@ -13,7 +14,7 @@ export function readNativeCameraPreference(
                 ? undefined
                 : window.sessionStorage.getItem(KEY);
     } catch {}
-    return valid(stored) ? stored : valid(fallback) ? fallback : "first_person";
+    return valid(stored) ? stored : valid(fallback) ? fallback : "third_person";
 }
 /** Keep the user's current view across same-tab native destinations. Explicit
  * settings changes still use the existing account persistence separately. */
