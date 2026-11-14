@@ -61,6 +61,14 @@ const NOTICE_MS = 8000;
 
 // The voice level readout, for tuning who counts as speaking. Loaded only
 // for a visit whose URL has `?voiceDebug`; every other visit never fetches it.
+// The lobby's avatar picker; loaded the first time a visitor opens it.
+const SpaceAvatarPicker = dynamic(() => import("./SpaceAvatarPicker"), {
+    ssr: false,
+});
+const SpacePeoplePanel = dynamic(() => import("./SpacePeoplePanel"), {
+    ssr: false,
+});
+
 const VoiceLevelDebug = dynamic(
     () => import("@utils/voiceChat/VoiceLevelDebug"),
     { ssr: false }
@@ -99,20 +107,27 @@ export default function NativeExperienceChrome({
     const emotesOpen = spacePanel === "emotes";
     const moreOpen = spacePanel === "more";
     const searchOpen = spacePanel === "search";
+    const avatarsOpen = spacePanel === "avatars";
+    const peopleOpen = spacePanel === "people";
     const setDockPanel =
-        (panel: "emotes" | "more" | "search") => (open: boolean) =>
+        (panel: "avatars" | "emotes" | "people" | "more" | "search") =>
+        (open: boolean) =>
             dispatchSpacePanel(
                 open ? { type: "open", panel } : { type: "close", panel }
             );
     const setEmotesOpen = setDockPanel("emotes");
     const setMoreOpen = setDockPanel("more");
     const setSearchOpen = setDockPanel("search");
+    const setAvatarsOpen = setDockPanel("avatars");
+    const setPeopleOpen = setDockPanel("people");
     // Stays mounted after the first open so the query and results survive.
     const [searchMounted, setSearchMounted] = useState(false);
     const searchButton = useRef<HTMLButtonElement>(null);
     const searchPanel = useRef<HTMLDivElement>(null);
     const restoreSearchFocus = useRef(false);
     const emoteButton = useRef<HTMLButtonElement>(null);
+    const avatarButton = useRef<HTMLButtonElement>(null);
+    const peopleButton = useRef<HTMLButtonElement>(null);
     const moreButton = useRef<HTMLButtonElement>(null);
     const phoneChatOpen = phoneControls && chat.isMobileChatOpen;
     const chatButton = useRef<HTMLButtonElement>(null);
@@ -175,6 +190,21 @@ export default function NativeExperienceChrome({
         document.addEventListener("pointerdown", dismiss);
         return () => document.removeEventListener("pointerdown", dismiss);
     }, [searchOpen]);
+    useEffect(() => {
+        if (!peopleOpen) return;
+        const dismiss = (event: PointerEvent) => {
+            const target = event.target as Element | null;
+            if (
+                target?.closest?.("#lobby-people") ||
+                peopleButton.current?.contains(target) ||
+                moreButton.current?.contains(target)
+            )
+                return;
+            setPeopleOpen(false);
+        };
+        document.addEventListener("pointerdown", dismiss);
+        return () => document.removeEventListener("pointerdown", dismiss);
+    }, [peopleOpen]);
     // Why the last voice or sharing request could not be sent, said above
     // the dock (docs/feedback.md). It goes on the next dock action, when a
     // moderator arrives, or after a while.
@@ -375,16 +405,12 @@ export default function NativeExperienceChrome({
             : []),
         {
             id: "avatar",
-            label:
-                phoneControls && currentTab === "profile"
-                    ? "Close avatars"
-                    : "Avatars",
-            icon: phoneControls && currentTab === "profile" ? "x" : "user",
-            active: currentTab === "profile",
-            onClick: () => {
-                setActiveProfileTab("profile");
-                toggleTab("profile");
-            },
+            label: phoneControls && avatarsOpen ? "Close avatars" : "Avatars",
+            icon: phoneControls && avatarsOpen ? "x" : "user",
+            active: avatarsOpen,
+            expanded: avatarsOpen,
+            buttonRef: avatarButton,
+            onClick: () => toggleTab("avatars"),
         },
         {
             id: "emotes",
@@ -406,7 +432,10 @@ export default function NativeExperienceChrome({
                       id: "people",
                       label: "Users list",
                       icon: "users",
-                      active: currentTab === "users",
+                      active: peopleOpen,
+                      expanded: peopleOpen,
+                      controls: "lobby-people",
+                      buttonRef: peopleButton,
                       // Agrees with the line under the title: a count only
                       // while connected, a dash as in the lobby otherwise.
                       badge: !presence
@@ -414,7 +443,7 @@ export default function NativeExperienceChrome({
                           : presence.state === "connected"
                           ? presence.count
                           : "—",
-                      onClick: () => toggleTab("users"),
+                      onClick: () => toggleTab("people"),
                   },
               ]
             : []),
@@ -462,6 +491,7 @@ export default function NativeExperienceChrome({
             data-phone-chat-open={phoneChatOpen || undefined}
             data-emotes-open={emotesOpen || undefined}
             data-search-open={searchOpen || undefined}
+            data-avatars-open={avatarsOpen || undefined}
         >
             <ExperienceShell
                 title={exhibit.info?.headline || "Untitled world"}
@@ -546,10 +576,33 @@ export default function NativeExperienceChrome({
                         />
                     </EmotePanelPosition>
                 )}
+                {avatarsOpen && (
+                    <SpaceAvatarPicker
+                        onClose={() => {
+                            setAvatarsOpen(false);
+                            requestAnimationFrame(() =>
+                                (compactControls
+                                    ? moreButton
+                                    : avatarButton
+                                ).current?.focus()
+                            );
+                        }}
+                    />
+                )}
+                {peopleOpen && (
+                    <SpacePeoplePanel
+                        status={connection}
+                        returnFocusRef={
+                            phoneControls ? moreButton : peopleButton
+                        }
+                        onClose={() => setPeopleOpen(false)}
+                        onModerate={() => toggleTab("users")}
+                    />
+                )}
                 {voiceDebug && (
                     <VoiceLevelDebug voiceService={voice?.voiceService} />
                 )}
-                {searchOpen && <HideSearchObstructions />}
+                {(searchOpen || avatarsOpen) && <HideSearchObstructions />}
                 {searchMounted && (
                     <SearchPanelPosition
                         ref={searchPanel}
@@ -600,6 +653,14 @@ export default function NativeExperienceChrome({
                                 </div>
                             )}
                             <div className="more-actions">
+                                <MoreAction
+                                    icon="user"
+                                    label="Avatar settings"
+                                    onClick={() => {
+                                        setActiveProfileTab("profile");
+                                        toggleTab("profile");
+                                    }}
+                                />
                                 <MoreAction
                                     icon="settings"
                                     label="Settings"
@@ -789,7 +850,7 @@ const NativeChromeFrame = styled.div`
         }
         .experience-badge {
             right: 2px;
-            top: -6px;
+            bottom: -6px;
         }
         .experience-tooltip {
             display: none;
@@ -822,6 +883,12 @@ const NativeChromeFrame = styled.div`
             pointer-events: none;
         }
     }
+    /* The avatar picker owns the bottom of the screen, as in the lobby. */
+    &[data-avatars-open] .experience-dock,
+    &[data-avatars-open] .experience-notice {
+        visibility: hidden;
+        pointer-events: none;
+    }
     &[data-search-open] .experience-dock {
         visibility: hidden;
         pointer-events: none;
@@ -840,7 +907,8 @@ const SearchPanelPosition = styled.div`
     }
 `;
 
-// Search owns the bottom of the viewport; unmounting restores normal controls.
+// Search and the avatar picker own the bottom of the viewport; unmounting
+// restores normal controls.
 const HideSearchObstructions = createGlobalStyle`
     .chat-container,
     [data-world-tips],

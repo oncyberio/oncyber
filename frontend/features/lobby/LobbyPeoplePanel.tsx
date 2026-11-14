@@ -51,6 +51,8 @@ type Props = {
     /** Admins: ask everyone further away to come here. */
     onSummonAll?(): void;
     children?: React.ReactNode;
+    /** Where these people are, for the count line: "lobby" or "space". */
+    place?: string;
 };
 
 const roleLabel = (role?: LobbyRole) =>
@@ -295,6 +297,7 @@ export default function LobbyPeoplePanel({
     onGoTo,
     onSummonAll,
     children,
+    place = "lobby",
 }: Props) {
     const [query, setQuery] = useState("");
     const wanted = query.trim().toLowerCase();
@@ -373,8 +376,8 @@ export default function LobbyPeoplePanel({
     }, []);
     const nearbyStatus = players.length
         ? population > players.length
-            ? `${population} in this lobby · showing people near you`
-            : `${population} in this lobby`
+            ? `${population} in this ${place} · showing people near you`
+            : `${population} in this ${place}`
         : status === "connecting"
         ? "Joining the room…"
         : "Reconnect to see who’s here.";

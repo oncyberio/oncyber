@@ -283,12 +283,21 @@ test("solo voice explains its availability without connecting or requesting a mi
     expect(social.voice.requestVoicePermission).not.toHaveBeenCalled();
     expect(social.changeMode).not.toHaveBeenCalled();
     click("Avatars");
-    expect(panel.currentTab).toBe("profile");
+    expect(panel.spacePanel).toBe("avatars");
     click("More");
     expect(button("Show chat")).toBeNull();
     expect(button("Explore spaces")).toBeNull();
     click("Settings");
     expect(panel.currentTab).toBe("settings");
+});
+
+test("More keeps the full avatar settings: uploads, size and profile", () => {
+    render();
+    click("More");
+    click("Avatar settings");
+    expect(panel.setActiveProfileTab).toHaveBeenCalledWith("profile");
+    expect(panel.currentTab).toBe("profile");
+    expect(more()).toBeNull();
 });
 
 test.each([false, true])(
@@ -329,8 +338,7 @@ test.each([false, true])(
         click("More");
         expect(more().contains(button("Avatars"))).toBe(true);
         click("Avatars");
-        expect(panel.setActiveProfileTab).toHaveBeenCalledWith("profile");
-        expect(panel.currentTab).toBe("profile");
+        expect(panel.spacePanel).toBe("avatars");
         expect(more()).toBeNull();
         click("More");
         expect(more().contains(button("Emotes"))).toBe(true);
@@ -393,7 +401,7 @@ test.each([false, true])(
         expect(social.chat.setIsTyping).toHaveBeenCalledWith(false);
         expect(button("Search worlds")).not.toBeNull();
         click("Avatars");
-        expect(panel.currentTab).toBe("profile");
+        expect(panel.spacePanel).toBe("avatars");
         click("Emotes");
         expect(panel.currentTab).toBe("");
         key("Escape");
@@ -714,6 +722,7 @@ test("Search worlds opens the lobby search panel, keeps it between opens and rou
 const openPanels = () =>
     [
         panel.currentTab,
+        ["avatars", "people"].includes(panel.spacePanel) && panel.spacePanel,
         container.querySelector("#native-emotes") && "emotes",
         more() && "more",
         container
@@ -726,16 +735,16 @@ test("opening any panel closes whichever was open, so only one is ever open", ()
     render();
     expect(openPanels()).toEqual([]);
     for (const [label, opened] of [
-        ["Avatars", "profile"],
+        ["Avatars", "avatars"],
         ["Emotes", "emotes"],
-        ["Users list", "users"],
+        ["Users list", "people"],
         ["More", "more"],
         ["Search worlds", "search"],
         ["Emotes", "emotes"],
         ["More", "more"],
-        ["Avatars", "profile"],
+        ["Avatars", "avatars"],
         ["Search worlds", "search"],
-        ["Users list", "users"],
+        ["Users list", "people"],
     ]) {
         click(label);
         expect(openPanels()).toEqual([opened]);
@@ -940,9 +949,9 @@ describe("the voice level readout", () => {
             expect(readout()).toBeNull();
         }
         // Declared once, at module level: the chunk is only fetched when
-        // the stand-in above would render. (The other loader is the shell's
-        // world info sidebar.)
-        expect(mockLoaders).toHaveLength(2);
+        // the stand-in above would render. (The others are the avatar
+        // picker, the people panel and the shell's world info sidebar.)
+        expect(mockLoaders).toHaveLength(4);
     });
 
     test.each(["?voiceDebug", "?voiceDebug=0.42", "?x=1&voiceDebug=-58"])(
