@@ -36,10 +36,17 @@ export function inAppPage(source) {
     return FRONT + body;
 }
 
+/** Prettier pads tables its own way; compare the words, not the padding. */
+export const sameText = (a, b) => {
+    const words = (text) =>
+        text.replace(/[ \t]+/g, " ").replace(/-{3,}/g, "---");
+    return words(a) === words(b);
+};
+
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const page = inAppPage(readFileSync(join(repo, SOURCE), "utf8"));
     if (process.argv.includes("--check")) {
-        if (readFileSync(join(repo, TARGET), "utf8") !== page) {
+        if (!sameText(readFileSync(join(repo, TARGET), "utf8"), page)) {
             console.error(
                 `${TARGET} is out of date; run node scripts/games/docs-sync.mjs`
             );

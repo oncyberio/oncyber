@@ -1,34 +1,153 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:09:19.722Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1794457,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-DCn2RIS6.js",
+      "bytes": 945972
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2093,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2093
       }
     ],
     "frames": null,
     "inspect": null,
     "bootOnly": true
+  },
+  "process": {
+    "status": "passed",
+    "checks": [
+      {
+        "id": "brief",
+        "rule": "The brief was written first",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "party",
+        "rule": "Respect the party",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "solo",
+        "rule": "Keep a solo path",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "bot",
+        "rule": "Ship a bot",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "arrival",
+        "rule": "Arrive like a world",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "handoff",
+        "rule": "Match the handoff",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "video",
+        "rule": "Leave a recording for review",
+        "status": "passed",
+        "findings": []
+      }
+    ],
+    "findings": [],
+    "video": {
+      "path": "games/ace/.check/bot.webm",
+      "bytes": 13703659,
+      "seconds": 115.3,
+      "chapters": {
+        "arrival": 5.9,
+        "revealed": 7.9,
+        "arrivalDone": 23.7,
+        "match": 23.7,
+        "playDone": 107.2,
+        "results": 107.6,
+        "leaveDone": 113.4,
+        "end": 115.3
+      }
+    },
+    "log": [
+      {
+        "at": 7.9,
+        "event": "revealed",
+        "answered": false,
+        "screen": "arrival",
+        "arrival": {
+          "distance": 5.19,
+          "height": 2.06,
+          "fov": 58,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        }
+      },
+      {
+        "at": 23.7,
+        "event": "arrival",
+        "status": "passed"
+      },
+      {
+        "at": 107.2,
+        "event": "play",
+        "status": "passed"
+      },
+      {
+        "at": 113.4,
+        "event": "leave",
+        "status": "passed"
+      },
+      {
+        "at": 115.3,
+        "event": "facts",
+        "facts": {
+          "screen": "arrival",
+          "position": [
+            2.4,
+            13.09
+          ],
+          "phase": "idle",
+          "games": [
+            0,
+            0
+          ],
+          "winner": null,
+          "arrival": {
+            "distance": 5.19,
+            "height": 2.06,
+            "fov": 58,
+            "avatarHeight": 1.75,
+            "facingCamera": false,
+            "crouched": false,
+            "handsEmpty": true
+          }
+        }
+      }
+    ]
   }
 }

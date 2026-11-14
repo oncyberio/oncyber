@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { inAppPage, SOURCE, TARGET } from "../docs-sync.mjs";
+import { inAppPage, sameText, SOURCE, TARGET } from "../docs-sync.mjs";
 import { createGame } from "../new.mjs";
 import {
     CHECKS,
@@ -55,7 +55,10 @@ test("every finding code the helpers can raise belongs to a check", async () => 
 });
 
 test("the in-app docs page is the repository page", () => {
-    assert.equal(read(TARGET), inAppPage(read(SOURCE)));
+    assert.ok(
+        sameText(read(TARGET), inAppPage(read(SOURCE))),
+        "run node scripts/games/docs-sync.mjs"
+    );
     assert.match(
         inAppPage(
             "[a.md](a.md) and [the guide](../x.md) and [site](https://e.com)"
