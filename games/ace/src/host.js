@@ -7,6 +7,24 @@ const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
 const STORAGE_MAX = 64 * 1024;
 
+/** The visitor's party: { id, size, members: [{ id, name }] }, or null. */
+export function readParty(value) {
+    if (!value || typeof value.id !== "string" || !Array.isArray(value.members))
+        return null;
+    const members = value.members
+        .slice(0, 7)
+        .filter((m) => m && typeof m.id === "string" && m.id)
+        .map((m) => ({
+            id: m.id.slice(0, 64),
+            name:
+                typeof m.name === "string" && m.name.trim()
+                    ? m.name.trim().slice(0, 24)
+                    : "Player",
+        }));
+    if (!members.length) return null;
+    return { id: value.id.slice(0, 96), size: members.length + 1, members };
+}
+
 /** The lobby's camera relative to the avatar's feet; null when malformed. */
 export function readArrivalView(value) {
     const vector = (v) =>
@@ -41,7 +59,17 @@ export function createHost() {
         embedded,
         identity: null,
         entered: !embedded,
-        listeners: { identity: [], entered: [], dispose: [], arrival: [] },
+        listeners: {
+            identity: [],
+            entered: [],
+            dispose: [],
+            arrival: [],
+            party: [],
+        },
+        party: null,
+        // The party room's roster: who actually arrived, by room id.
+        selfId: "",
+        roster: [],
     };
     const stored = new Map();
     const fire = (type, value) => host.listeners[type].forEach((f) => f(value));
@@ -73,6 +101,29 @@ export function createHost() {
             fire("identity", host.identity);
             // The host only accepts readiness after it has sent identity.
             if (host.readyPosted) post({ type: "ace:ready" });
+        } else if (data.type === "ace:self") {
+            host.selfId = typeof data.id === "string" ? data.id.slice(0, 64) : "";
+            fire("party", host.party);
+        } else if (data.type === "ace:peers") {
+            const roster = (Array.isArray(data.players) ? data.players : [])
+                .slice(0, 7)
+                .filter((p) => p && typeof p.id === "string" && p.id)
+                .map((p) => ({
+                    id: p.id.slice(0, 64),
+                    name:
+                        typeof p.name === "string" && p.name.trim()
+                            ? p.name.trim().slice(0, 24)
+                            : "Player",
+                }));
+            const key = (list) => list.map((p) => `${p.id}:${p.name}`).join("|");
+            if (key(roster) !== key(host.roster)) {
+                host.roster = roster;
+                fire("party", host.party);
+            }
+        } else if (data.type === "ace:party") {
+            // Who travelled here together, so the game can offer formats.
+            host.party = readParty(data.party);
+            fire("party", host.party);
         } else if (data.type === "ace:arrival") {
             // Travelling in from the lobby: its third-person view, so the
             // game can stand the visitor in the same framing.

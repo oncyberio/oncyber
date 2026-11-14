@@ -28,6 +28,7 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
@@ -215,6 +216,7 @@ const screens = [
     "boot",
     "title",
     "arrive",
+    "party",
     "setup",
     "howto",
     "hud",
@@ -384,6 +386,76 @@ const endArriveDrag = () => (arrive.drag = null);
 window.addEventListener("pointerup", endArriveDrag);
 window.addEventListener("pointercancel", endArriveDrag);
 
+// A party that arrived together picks a format before anything else.
+// Everyone in the party, the visitor first. Once the party's room has other
+// members, its roster decides (ids every member sees the same way, so the
+// draw matches on every screen); until then, the members the lobby named.
+function partyPlayers() {
+    const name = `${state.identity.name || "You"} (you)`;
+    if (host.selfId && host.roster.length)
+        return [{ id: host.selfId, name }, ...host.roster];
+    return [{ id: "self", name }, ...host.party.members];
+}
+
+function goParty() {
+    state.screen = "party";
+    show("party");
+    const everyone = partyPlayers();
+    $("#party-title").textContent = `Party of ${everyone.length}`;
+    $("#party-names").textContent = everyone.map((p) => p.name).join(" · ");
+    const formats = partyFormats(everyone.length);
+    const list = $("#party-formats");
+    list.replaceChildren(
+        ...formats.map((format, index) => {
+            const button = document.createElement("button");
+            button.className = `pill${index === 0 ? " big" : ""}`;
+            button.dataset.format = format.id;
+            const label = document.createElement("span");
+            label.textContent = format.label;
+            const blurb = document.createElement("small");
+            blurb.textContent = format.blurb;
+            button.append(label, blurb);
+            return button;
+        })
+    );
+    $("#party-lineup").hidden = true;
+    $("#party-note").hidden = true;
+    state.partyFormat = null;
+}
+
+function choosePartyFormat(format) {
+    if (format === "cpu") return goSetup();
+    const lineup = buildLineup(format, partyPlayers(), host.party.id);
+    if (!lineup) return;
+    state.partyFormat = format;
+    const box = $("#party-lineup");
+    box.replaceChildren(
+        ...lineup.rounds.flatMap((round) => {
+            const title = document.createElement("h3");
+            title.textContent = round.name;
+            return [
+                title,
+                ...round.matches.map(([a, b]) => {
+                    const line = document.createElement("p");
+                    const versus = document.createElement("i");
+                    versus.textContent = "v";
+                    line.append(
+                        sideLabel(a, lineup.rounds),
+                        versus,
+                        sideLabel(b, lineup.rounds)
+                    );
+                    return line;
+                }),
+            ];
+        })
+    );
+    box.hidden = false;
+    $("#party-note").hidden = false;
+    document
+        .querySelectorAll("#party-formats .pill")
+        .forEach((b) => b.classList.toggle("focus", b.dataset.format === format));
+}
+
 function goSetup() {
     state.screen = "setup";
     show("setup");
@@ -530,7 +602,8 @@ function action(name) {
     switch (name) {
         case "play":
             sound.sfxUI(audio, "ok");
-            goSetup();
+            if (host.party) goParty();
+            else goSetup();
             break;
         case "howto":
             sound.sfxUI(audio, "ok");
@@ -577,6 +650,12 @@ function action(name) {
 document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-action]");
     if (b) action(b.dataset.action);
+    const format = e.target.closest("#party-formats [data-format]");
+    if (format) {
+        sound.unlockAudio(audio);
+        sound.sfxUI(audio, "ok");
+        choosePartyFormat(format.dataset.format);
+    }
     const choice = e.target.closest(".choice button");
     if (choice) {
         sound.unlockAudio(audio);
@@ -651,6 +730,8 @@ function handleMenuInput(events) {
         } else if (s === "arrive") {
             // Arrows and WASD walk here, so only Enter acts.
             if (e.type === "confirm") action("play");
+        } else if (s === "party") {
+            if (e.type === "back") action("back");
         } else if (s === "howto") {
             if (e.type === "confirm" || e.type === "back") action("back");
         } else if (s === "playing") {
@@ -1450,6 +1531,15 @@ function stageArrival(view) {
     );
 }
 host.on("entered", () => (arrive.rising = true));
+// Someone joined or left the party's room while the formats are open.
+host.on("party", () => {
+    if (state.screen !== "party") return;
+    if (!host.party) return goHome();
+    const format = state.partyFormat;
+    goParty();
+    if (format && partyFormats(partyPlayers().length).some((f) => f.id === format))
+        choosePartyFormat(format);
+});
 host.on("arrival", (view) => {
     if (booted) stageArrival(view);
     else pendingArrival = view;

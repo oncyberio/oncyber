@@ -1074,3 +1074,64 @@ body.is-touch .hint {
     flex-wrap: wrap;
     justify-content: center;
 }
+
+/* Party formats: who arrived together and what they can play. */
+.party-names {
+    margin: 0 0 14px;
+    font-family: var(--body);
+    font-weight: 700;
+    color: #5b6078;
+    text-align: center;
+}
+.party-formats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.party-formats .pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.party-formats .pill small {
+    font-family: var(--body);
+    font-weight: 600;
+    font-size: 12px;
+    opacity: 0.7;
+}
+.party-lineup {
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border: 3px dashed #c6cbe6;
+    border-radius: 16px;
+    font-family: var(--body);
+    font-weight: 700;
+}
+.party-lineup h3 {
+    margin: 8px 0 4px;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5b6078;
+}
+.party-lineup h3:first-child {
+    margin-top: 0;
+}
+.party-lineup p {
+    margin: 2px 0;
+}
+.party-lineup i {
+    font-style: normal;
+    opacity: 0.55;
+    padding: 0 6px;
+}
+.party-note {
+    margin: 0 0 14px;
+    font-family: var(--body);
+    font-size: 13px;
+    color: #5b6078;
+    text-align: center;
+    max-width: 380px;
+}

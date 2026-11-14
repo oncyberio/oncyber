@@ -55,21 +55,42 @@ it is what makes checks, seamless travel and live editing possible.
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `<id>:<kind>`:
 
-| From        | Kind                       | Meaning                                                                                                            |
-| ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| game        | `hello`                    | Repeat until `identity` arrives.                                                                                   |
-| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                    |
-| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                            |
-| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                           |
-| game        | `pose`                     | The player's pose for the shared room.                                                                             |
-| page        | `peers`                    | Everyone else in the room, ten times a second.                                                                     |
-| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                  |
-| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                                                   |
-| page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet. |
-| game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                             |
+| From        | Kind                       | Meaning                                                                                                                                                                                           |
+| ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                                  |
+| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                                   |
+| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                                           |
+| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                                                                                                          |
+| game        | `pose`                     | The player's pose for the shared room.                                                                                                                                                            |
+| page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                                    |
+| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                                 |
+| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                                                                                                                                  |
+| page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. |
+| page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
+| game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
+
+## Parties
+
+A lobby group that travels together shares one trip id. The page reads it
+(`features/games/gameParty.ts`), tells the game its party (`party`), and puts
+the party in a room of its own, `oncyber-<game>-party-<trip id>`, with the
+relay on. So a game always gets, for a party: the members the lobby named,
+then `self` and `peers` from the party's room (who actually arrived, with
+ids every member sees the same way), and `net` packets between them.
+
+What a game does with it is the game's choice. Ace offers formats by party
+size (`games/ace/src/party.js`): 1 v 1 for two, 2 v 2 or a tournament for
+four, a round robin for three, a knockout for five to eight, and always a
+solo match against the CPU. The draw is seeded by the party id and sorted by
+room id, so it is the same on every member's screen. Playing each other is
+not built yet: it needs a real-time match channel (the relay carries about
+five packets a second per player, enough for turn state, not for a rally).
+
+On the development server, `/games/<id>?party=4` stands in for arriving
+with a party of four; open it in several windows to share the room.
 
 ## The games today
 

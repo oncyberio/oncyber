@@ -21,6 +21,13 @@ import {
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
 import { readGameStorage, writeGameStorage } from "./gameStorage";
+import {
+    developmentParty,
+    gameParty,
+    partyRoomLabel,
+    type GameParty,
+} from "./gameParty";
+import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
 
 const PEER_INTERVAL = 100;
 
@@ -61,9 +68,8 @@ const GAME_SANDBOX = "allow-scripts allow-pointer-lock";
 export default function GamePage({ game }: { game: GameEntry }) {
     const {
         id: GAME,
-        room: roomLabel,
+        room: sharedRoom,
         title: gameName,
-        relay,
         controlsStyle,
         crowdLabel,
     } = game;
@@ -77,6 +83,12 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
     const [identity, setIdentity] = useState<GameIdentity | null>(null);
+    // A party that travelled here together plays in a room of its own,
+    // with the relay on so its members can run matches between them.
+    const [party, setParty] = useState<GameParty | null>(null);
+    const partyRef = useRef<GameParty | null>(null);
+    const roomLabel = party ? partyRoomLabel(GAME, party.id) : sharedRoom;
+    const relay = party ? true : game.relay;
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [roomState, setRoomState] = useState<GameRoomState | null>(null);
     // The frame's origin is opaque, so no target origin can name it; the
@@ -107,6 +119,15 @@ export default function GamePage({ game }: { game: GameEntry }) {
         const entryLifetime = new AbortController();
         const post = (type: string, data: object = {}) =>
             send.current({ type: `${GAME}:${type}`, ...data });
+        const announceParty = (next: GameParty | null) => {
+            partyRef.current = next;
+            setParty(next);
+            if (sentIdentity) post("party", { party: next });
+        };
+        announceParty(
+            gameParty(readLobbyGroupCohort()) ??
+                developmentParty(window.location.search)
+        );
         const deliverIdentity = () => {
             if (!disposed && greeted && approved && !sentIdentity) {
                 sentIdentity = true;
@@ -114,6 +135,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     ...approved,
                     storage: readGameStorage(GAME),
                 });
+                post("party", { party: partyRef.current });
                 setIdentity(approved);
             }
         };
@@ -149,7 +171,15 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     resolve();
                 }
                 arrivalStaged = done;
-                post("arrival", { view: options?.travelView ?? null });
+                const view = options?.travelView as
+                    | { peers?: unknown }
+                    | undefined;
+                // The trip's final view carries the members the lobby showed.
+                if (partyRef.current && view?.peers) {
+                    const next = gameParty(partyRef.current.id, view.peers);
+                    if (next) announceParty(next);
+                }
+                post("arrival", { view: view ?? null });
             });
         const unregister = registerLobbyDestinationEntry(
             async () => {},
@@ -326,7 +356,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             setRoomState(null);
             void gameRoom.close();
         };
-    }, [identity]);
+    }, [identity, roomLabel, relay]);
 
     const voiceLabel =
         roomState?.voiceState === "live"
@@ -336,7 +366,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             : "Talk to people nearby";
     const people =
         roomState?.status === "connected"
-            ? `${roomState.players} ${crowdLabel}`
+            ? `${roomState.players} ${party ? "in your party" : crowdLabel}`
             : roomState?.status === "error"
             ? "Offline"
             : "Connecting…";

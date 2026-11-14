@@ -16,6 +16,15 @@ camera and crouched as the lobby left them, then standing up, and answers
 **Play match** (Enter) opens the match setup. Leaving a match or the setup
 returns here. A direct visit to `/games/ace` opens on the title screen instead.
 
+## Parties
+
+When the visitor arrived with a party (`ace:party`, then the party room's
+`ace:self` and `ace:peers`), **Play match** opens the party's formats first:
+1 v 1, 2 v 2, a tournament, or a solo match against the CPU. `src/party.js`
+decides the formats and builds the draw. Head-to-head play is not built yet;
+the draw is shown, and the solo match works. Try it with `?party=4` on the
+development server.
+
 ## How it plays
 
 - **Move** with WASD / arrows / left stick / the touch stick. Near the ball you
