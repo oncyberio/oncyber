@@ -2,7 +2,7 @@ import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import GamePage from "@features/games/GamePage";
 import {
-    findGame,
+    findSharedPageGame,
     gamesPreviewEnabled,
     type GameEntry,
 } from "@features/games/catalog";
@@ -21,7 +21,7 @@ export default function GameRoute({ game }: { game: GameEntry }) {
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-    const game = findGame(params?.game);
+    const game = findSharedPageGame(params?.game);
     if (!game || !gamesPreviewEnabled()) return { notFound: true };
     return { props: { game, lobbyWorld: true } };
 };

@@ -113,12 +113,9 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                             color: "#a8acaf",
                                         }}
                                     >
-                                        {game.check.run.backend} · ready in{" "}
-                                        {game.check.run.bootMs} ms · frames
-                                        median {game.check.run.frames.medianMs}{" "}
-                                        ms, p95 {game.check.run.frames.p95Ms}{" "}
-                                        ms, worst{" "}
-                                        {game.check.run.frames.worstMs} ms
+                                        {game.check.run.frames
+                                            ? `${game.check.run.backend} · ready in ${game.check.run.bootMs} ms · frames median ${game.check.run.frames.medianMs} ms, p95 ${game.check.run.frames.p95Ms} ms, worst ${game.check.run.frames.worstMs} ms`
+                                            : `Boot check only (no lifecycle yet) · ready in ${game.check.run.bootMs} ms`}
                                     </p>
                                 )}
                                 {game.check.findings.map((finding, i) => (

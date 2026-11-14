@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "origin": "User-supplied FBX files, provided 2026-10-11",
+  "note": "Four files were supplied for the five-stage travel sequence. The existing ready idle is reused before attack and after standing up. Source animation data is retargeted offline; meshes and FBX source files are not distributed in the app.",
+  "generator": "frontend/scripts/pack-travel-animations.mjs",
+  "importer": {
+    "package": "three-vanilla",
+    "version": "0.180.0",
+    "loader": "examples/jsm/loaders/FBXLoader.js"
+  },
+  "referenceRig": {
+    "path": "frontend/components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/baker/baserig.json",
+    "sha256": "866a4cc19673cd99b2eb0c0d1f779ca5e839382454388b725d7613617d48de42"
+  },
+  "normalization": {
+    "names": "mixamorig9 bone names canonicalized to mixamorig, including all 30 finger joints.",
+    "rotations": "Local FBX rotations are converted using parent rest world rotation * local animation rotation * inverse bone rest world rotation into the identity-rest VRM basis.",
+    "position": "Hips converted from the source rig height to the runtime reference rig height. Absolute vertical motion is preserved; each clip horizontal endpoint displacement is removed while keeping authored hip sway.",
+    "interpolation": "Original authored key times and quaternion spherical interpolation; reduced to <=0.25 degrees rotation and <=0.1 cm position error, checked using the runtime LCP1 decoder at source keys and 120 Hz."
+  },
+  "clips": [
+    {
+      "name": "TRAVEL_ATTACK",
+      "source": "Standing 2H Magic Attack 05.fbx",
+      "loop": false,
+      "bytes": 664240,
+      "sha256": "a0361b9a2104168e83078e9c1d93df2f5fe39ce4d0bb72172d24f3da181c783e"
+    },
+    {
+      "name": "TRAVEL_CROUCH_DOWN",
+      "source": "Standing Idle To Crouch.fbx",
+      "loop": false,
+      "bytes": 486736,
+      "sha256": "b6a2eeaf713ad4d4af9086c66cef892be0c7134abd882159b4f0c2d2e4782165"
+    },
+    {
+      "name": "TRAVEL_CROUCH_IDLE",
+      "source": "Crouch Idle.fbx",
+      "loop": true,
+      "bytes": 415600,
+      "sha256": "1b19491991e9d920d34ef00250432af00d98813d6130c39c7226bff246970a46"
+    },
+    {
+      "name": "TRAVEL_STAND_UP",
+      "source": "Crouch To Standing Idle.fbx",
+      "loop": false,
+      "bytes": 374416,
+      "sha256": "137371a3f3137faa68d124581db24ed450a501d6e68ca59168466bf165e3431c"
+    }
+  ]
+}

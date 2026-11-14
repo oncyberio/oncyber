@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#101b2a" />
+    <title>Glasshouse — Oncyber Padel</title>
+  </head>
+  <body class="is-visiting">
+    <canvas
+      id="court"
+      tabindex="0"
+      aria-label="Padel court. WASD moves, including while charging. Tap J for a control return, or hold Enter, aim with the arrow keys and release for power. The flight path previews your shot. V changes camera view."
+    ></canvas>
+    <div class="shade" aria-hidden="true"></div>
+    <header>
+      <button id="exit" class="quiet" aria-label="Back to lobby">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="17"
+          height="17"
+          fill="none"
+        >
+          <path
+            d="M19 12H5m6-6-6 6 6 6"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        ><span class="match-back-label">Lobby</span>
+      </button>
+      <div class="visit-title">Padel club<span>Exploring solo</span></div>
+      <div class="wordmark">GLASSHOUSE<span>ONCYBER PADEL CLUB</span></div>
+      <div class="header-controls">
+        <button
+          id="camera-view"
+          class="quiet"
+          aria-label="Camera: Broadcast. Switch to Low third person. Press V to change view."
+          aria-keyshortcuts="V"
+          hidden
+        >
+          <svg
+            viewBox="0 0 20 20"
+            width="17"
+            height="17"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M3.5 5.5h3l1-2h5l1 2h3v11h-13z"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linejoin="round"
+            />
+            <circle
+              cx="10"
+              cy="10.5"
+              r="3"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+          </svg>
+          <span id="camera-value">Broadcast</span>
+        </button>
+        <button
+          id="graphics"
+          class="quiet"
+          aria-label="Graphics quality: High. Switch to Balanced"
+        >
+          <span class="graphics-label">Graphics · </span
+          ><span id="graphics-value">High</span>
+        </button>
+        <button
+          id="sound"
+          class="quiet"
+          aria-pressed="true"
+          aria-label="Mute game sound"
+        >
+          Sound on</button
+        ><button id="pause" class="quiet" aria-label="Pause match" hidden>
+          Ⅱ
+        </button>
+      </div>
+    </header>
+    <div id="visit-labels" aria-hidden="true"></div>
+    <div id="visit-hud" hidden>
+      <button id="visit-play" class="visit-fallback visit-play">
+        Play padel <span aria-hidden="true">↗</span>
+      </button>
+      <button id="visit-options" class="visit-fallback visit-options quiet">
+        Settings
+      </button>
+      <div class="visit-move-hint">
+        <span>Click anywhere to move</span
+        ><span class="visit-keys"
+          ><kbd>WASD</kbd> Walk <kbd>SHIFT</kbd> Run <kbd>SPACE</kbd> Jump</span
+        >
+      </div>
+    </div>
+    <div id="loading" class="loading">
+      <span class="eyebrow">ONCYBER PADEL CLUB</span>
+      <h1>GLASSHOUSE</h1>
+      <p id="load-status">Preparing your court</p>
+      <div class="load-line"><i></i></div>
+    </div>
+    <section
+      id="setup"
+      class="setup"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="setup-title"
+      hidden
+    >
+      <button
+        id="setup-close"
+        class="dialog-close"
+        aria-label="Back to exploring"
+      >
+        ×
+      </button>
+      <div class="eyebrow"><i class="status-dot"></i> DOUBLES / COURT 01</div>
+      <h1 id="setup-title">Ready for a match?</h1>
+      <p class="intro">
+        Your avatar. Your partner. Your court.<br />Placement first. Power when
+        it counts.
+      </p>
+      <div class="lesson">
+        <div><kbd>ENTER</kbd><strong>Hold. Aim. Release.</strong></div>
+        <div class="example-meter"><span></span><i></i></div>
+        <p>
+          Tap J for control, K to lift a lob, or hold Enter to build power. Keep
+          moving with WASD; aim with the arrow keys and follow the flight path.
+          Release in blue for a safe power shot. Get under a high ball to smash:
+          a clean, powerful overhead can bounce over the enclosure for a winner.
+          Return the ball before its second bounce, including after the glass.
+        </p>
+      </div>
+      <div class="difficulty" role="group" aria-label="Opponent difficulty">
+        <button data-difficulty="casual" aria-pressed="true">Practice</button
+        ><button data-difficulty="club" aria-pressed="false">
+          Club player
+        </button>
+      </div>
+      <button id="play" class="primary">
+        Play doubles <span aria-hidden="true">↗</span>
+      </button>
+      <p class="fine">
+        You + Leo vs Noa + Mika · First to 7 · Win by 2 · Cap 15
+      </p>
+      <div class="setup-keys">
+        <span><kbd>WASD</kbd> Move</span><span><kbd>↔ ↕</kbd> Aim</span
+        ><span><kbd>J</kbd> Control</span><span><kbd>K</kbd> Lob</span>
+      </div>
+    </section>
+    <section
+      id="visit-settings"
+      class="modal-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+      hidden
+    >
+      <div class="club-settings">
+        <button
+          id="settings-close"
+          class="dialog-close"
+          aria-label="Close settings"
+        >
+          ×
+        </button>
+        <h2 id="settings-title">Settings</h2>
+        <p>Make yourself comfortable.</p>
+        <button id="visit-graphics">Graphics · High</button>
+        <button id="visit-sound" aria-pressed="true">Game sound · On</button>
+      </div>
+    </section>
+    <section id="score" class="score" aria-label="Padel score" hidden>
+      <div class="score-meta">
+        <span>DOUBLES / TIEBREAK</span><span id="rally-count">FIRST TO 7</span>
+      </div>
+      <div class="score-row">
+        <i id="human-server" aria-label="Serving"></i
+        ><span id="human-name">YOU</span><b id="human-score">0</b>
+      </div>
+      <div class="score-row rival">
+        <i id="npc-server" aria-label="Serving"></i><span>NOA + MIKA</span
+        ><b id="npc-score">0</b>
+      </div>
+    </section>
+    <div id="player-label" class="player-label" aria-hidden="true">YOU</div>
+    <div id="team-labels" aria-hidden="true" hidden>
+      <div id="rival-noa" class="player-label rival-label">NOA</div>
+      <div id="partner-leo" class="player-label partner-label">
+        LEO · PARTNER
+      </div>
+      <div id="rival-mika" class="player-label rival-label">MIKA</div>
+    </div>
+    <div id="announcement" class="announcement" aria-live="polite" hidden>
+      <span id="announcement-label"></span
+      ><strong id="announcement-title"></strong
+      ><small id="announcement-detail"></small>
+    </div>
+    <div id="feedback" class="feedback" aria-live="polite" hidden>
+      <strong id="feedback-quality"></strong><span id="feedback-detail"></span>
+    </div>
+    <div id="hud" hidden>
+      <div class="instructions">
+        <p id="tip">Your serve. Aim into the diagonal service box.</p>
+        <span
+          ><kbd>WASD</kbd> <span id="movement-hint">Move</span>
+          <kbd>SHIFT</kbd> Run <kbd>J</kbd> Control <kbd>K</kbd> Lob
+          <kbd>↔ ↕</kbd> Aim <kbd>V</kbd> View</span
+        >
+      </div>
+      <section class="shot-panel" aria-label="Power shot controls">
+        <div class="shot-heading">
+          <span id="shot-status">POWER SHOT</span
+          ><b id="power-value">0<span>%</span></b>
+        </div>
+        <button
+          id="power-toggle"
+          class="power-button"
+          aria-label="Charge power shot"
+          aria-pressed="false"
+        >
+          <span class="meter"
+            ><i id="charge-fill"></i><b class="sweet-zone"></b
+            ><em id="charge-needle"></em></span
+          ><span class="meter-labels"
+            ><span>CONTROL</span><span>SWEET SPOT</span><span>RISK</span></span
+          >
+        </button>
+        <div class="shot-footer">
+          <kbd>ENTER</kbd
+          ><span id="power-hint">Hold to charge · release to hit</span
+          ><i id="contact-ready"></i>
+        </div>
+      </section>
+    </div>
+    <section
+      id="pause-screen"
+      class="modal-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pause-title"
+      hidden
+    >
+      <div class="modal">
+        <span class="eyebrow">TIME OUT</span>
+        <h2 id="pause-title">TAKE YOUR TIME.</h2>
+        <p>
+          Get near the incoming ball. Tap J for control, or hold Enter to build
+          power. WASD keeps moving; the arrow keys aim. Watch the flight path
+          and first bounce. Release once and your player finishes the step into
+          the shot. On a high ball, release in blue for a power smash. Aim into
+          open court for a steep bounce that can clear the enclosure. Blue
+          timing keeps the first bounce in; stretched or mistimed shots lose
+          power.
+        </p>
+        <p class="camera-help">
+          <kbd>V</kbd> switches between Broadcast, Low third person and First
+          person.
+        </p>
+        <button id="resume" class="primary">Back to the court ↗</button
+        ><button id="restart" class="secondary">New match</button
+        ><button id="pause-club" class="secondary">Explore the club</button
+        ><button id="pause-exit" class="text-button">Return to lobby</button>
+      </div>
+    </section>
+    <section
+      id="results"
+      class="modal-screen"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="result-title"
+      hidden
+    >
+      <div class="modal">
+        <span class="eyebrow">GAME. SET. NEXT MATCH.</span>
+        <h2 id="result-title">MATCH POINT.</h2>
+        <p id="result-score" class="result-score"></p>
+        <p id="result-detail"></p>
+        <button id="rematch" class="primary">Play again ↗</button
+        ><button id="result-club" class="secondary">Explore the club</button
+        ><button id="result-exit" class="secondary">Return to lobby</button>
+      </div>
+    </section>
+    <section id="fatal" class="modal-screen" role="alert" hidden>
+      <div class="modal">
+        <h2>COURT UNAVAILABLE</h2>
+        <p id="fatal-message">The court could not finish loading.</p>
+        <button id="reload" class="primary">Try again</button
+        ><button id="fatal-exit" class="secondary">Return to lobby</button>
+      </div>
+    </section>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

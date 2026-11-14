@@ -37,6 +37,8 @@ const source = join(root, "games", id);
 const out = join(root, "frontend/public/games", id);
 if (!existsSync(join(source, "game.json"))) fail(`games/${id}/game.json not found`);
 const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
+// Games on the lifecycle play their scenario; others only prove they boot.
+const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -98,6 +100,7 @@ addEventListener("message", (event) => {
         const prefix = type.slice(0, -"hello".length);
         frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
     }
+    if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
 </script>`;
@@ -131,19 +134,27 @@ async function check() {
         fail("Playwright not found (npm i -g playwright, or set NODE_PATH)");
     }
     const server = await serve();
-    const errors = [];
+    const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null;
+    let report = null, gameError = null, readyAt = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
         page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 500)));
-        page.on("pageerror", (e) => errors.push(String(e.message).slice(0, 500)));
+        page.on("pageerror", (e) => {
+            errors.push(String(e.message).slice(0, 500));
+            pageErrors.push(String(e.message).slice(0, 500));
+        });
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         const deadline = Date.now() + 180_000;
-        while (Date.now() < deadline && !report && !gameError) {
+        while (Date.now() < deadline && !report && !gameError && !(readyAt && !lifecycle)) {
             await page.waitForTimeout(500);
-            ({ report, gameError } = await page.evaluate(() => ({ report: window.__report ?? null, gameError: window.__gameError ?? null })));
+            ({ report, gameError, readyAt } = await page.evaluate(() => ({ report: window.__report ?? null, gameError: window.__gameError ?? null, readyAt: window.__readyAt ?? null })));
+        }
+        // A boot-only game: give it a few seconds of play for late errors.
+        if (!lifecycle && readyAt) {
+            await page.waitForTimeout(5000);
+            report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
@@ -155,11 +166,14 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
+        scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
         findings: [
             ...scan.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
+            ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
             ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
         ],
@@ -170,7 +184,7 @@ async function check() {
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
-    console.log(`${id}: ${result.status}` + (report ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : ""));
+    console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "game": "padel",
+  "checkedAt": "2026-11-14T15:30:01.018Z",
+  "status": "passed",
+  "scope": "boot",
+  "files": {
+    "count": 21,
+    "bytes": 6296957,
+    "largest": {
+      "path": "assets/lobby-emotes-8uK82djf.json",
+      "bytes": 2000023
+    }
+  },
+  "findings": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "run": {
+    "status": "passed",
+    "backend": "unknown",
+    "bootMs": 277,
+    "stages": [
+      {
+        "stage": "boot",
+        "status": "passed",
+        "ms": 277
+      }
+    ],
+    "frames": null,
+    "inspect": null,
+    "bootOnly": true
+  }
+}

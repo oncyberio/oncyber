@@ -242,7 +242,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
 
     // One shared room per visit, joined with the identity the game shows.
     useEffect(() => {
-        if (!identity) return;
+        if (!identity || !roomLabel) return;
         const {
             user: account,
             authenticated: signedIn,
@@ -343,7 +343,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     display: "block",
                 }}
             />
-            {ready && !error && (
+            {ready && !error && roomLabel && (
                 <div
                     role="group"
                     aria-label="Game social controls"

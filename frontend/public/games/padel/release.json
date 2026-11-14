@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "game": "padel",
+  "name": "Glasshouse · Padel",
+  "release": "d37fd3adbd439815",
+  "publishedAt": "2026-11-14T15:30:01.018Z",
+  "check": {
+    "status": "passed",
+    "checkedAt": "2026-11-14T15:30:01.018Z",
+    "backend": "unknown",
+    "frames": null
+  },
+  "files": [
+    {
+      "path": "assets/Anton-Regular-DDTWnLuj.ttf",
+      "bytes": 170812,
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+    },
+    {
+      "path": "assets/basis_transcoder-VXdx5NbI.wasm",
+      "bytes": 527333,
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a"
+    },
+    {
+      "path": "assets/basis_transcoder-o4Hde_L7.js",
+      "bytes": 57529,
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
+    },
+    {
+      "path": "assets/index-Bh48h0Uc.js",
+      "bytes": 1230439,
+      "sha256": "0afcb03c0f53fc825f12fce487f97bfee7290387474c10db7f0c4587e1727f50"
+    },
+    {
+      "path": "assets/index-DDk9Ttym.css",
+      "bytes": 13210,
+      "sha256": "347db44f05baf9b9bfa367c569b90a4539e40aa4b751e510d87125675f6e3f97"
+    },
+    {
+      "path": "assets/lobby-emotes-8uK82djf.json",
+      "bytes": 2000023,
+      "sha256": "15e9e0f41f12f6f3aff3584bbcef9c464612cb14f1d40ffa855fcb99f7d91163"
+    },
+    {
+      "path": "assets/native-motion-DndDcoH7.json",
+      "bytes": 558785,
+      "sha256": "b8d856b4ef07871c7f3fe8fccdc96fb63c3b8603aa89a3b8ef83b48d1943bee0"
+    },
+    {
+      "path": "assets/tennis-motion-B3dyzj4F.json",
+      "bytes": 903297,
+      "sha256": "77fae49ef517c3283372926876fece2d37243358b19d719f963da42e989d4a7d"
+    },
+    {
+      "path": "avatars/square-catalogue.vrm",
+      "bytes": 255160,
+      "sha256": "5cc1a27184aaa559328491f63bc309a660098a3d3f5e08eabbc81427f01eb8a6"
+    },
+    {
+      "path": "avatars/square.vrm",
+      "bytes": 148652,
+      "sha256": "ae005c4319c0fdef93394db36eb2b7c76a9106aaea96a81c80698a70cd80f4ce"
+    },
+    {
+      "path": "fonts/Anton-OFL.txt",
+      "bytes": 4484,
+      "sha256": "ee67e6ee22790b7929f1a3769ca2801d565c64b5a9096942c1adf5596de9c9e4"
+    },
+    {
+      "path": "fonts/Anton-Regular.ttf",
+      "bytes": 170812,
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+    },
+    {
+      "path": "index.html",
+      "bytes": 10936,
+      "sha256": "90cbf4e791fb371747670877c228922c4178036f9a217f710874c8081d5f3b6a"
+    },
+    {
+      "path": "lobby/travel/CC0-LICENSE.txt",
+      "bytes": 332,
+      "sha256": "6d01f55c6e4c49a2c9963e147e561945ae2c83958c8ca667d90a6bffdbfac061"
+    },
+    {
+      "path": "lobby/travel/core-manifest.json",
+      "bytes": 3630,
+      "sha256": "24f60ee04865e7b6f3482d381f9ec3250b1ac090c2332ab15e316c0a77892957"
+    },
+    {
+      "path": "lobby/travel/core.0e2fa3a1be67.lcp",
+      "bytes": 47469,
+      "sha256": "0e2fa3a1be67f6241f1e70c84e69f22307464582a4e5bc40c8e1dbe76239109b"
+    },
+    {
+      "path": "lobby/travel/manifest.json",
+      "bytes": 1952,
+      "sha256": "e4e779f0420890734cb3593a37a32a504ed0ff0cb21ab131ff9b39520a0843e0"
+    },
+    {
+      "path": "lobby/travel/source-manifest.json",
+      "bytes": 2377,
+      "sha256": "fcdb433aa5c05f37b757b07ce65c33f1bcc0abeffe3cd35366376de3f93fb483"
+    },
+    {
+      "path": "lobby/travel/travel.f7d646d776ff.lcp",
+      "bytes": 83288,
+      "sha256": "f7d646d776ff0042c7f38d7a00ad0c808abcdac183235f577e7c9e3d17741940"
+    },
+    {
+      "path": "preview.jpg",
+      "bytes": 103230,
+      "sha256": "ea984d1223f0426684427204cead9b609170fa28cf862a06e37337a986859e2f"
+    },
+    {
+      "path": "preview.svg",
+      "bytes": 3207,
+      "sha256": "0460684b3afa579ab9de36820fc11c26f1acd956a578bba9d11220b0df460e5d"
+    }
+  ]
+}

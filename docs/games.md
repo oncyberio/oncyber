@@ -55,19 +55,31 @@ it is what makes checks, seamless travel and live editing possible.
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `<id>:<kind>`:
 
-| From        | Kind                       | Meaning                                                                         |
-| ----------- | -------------------------- | ------------------------------------------------------------------------------- |
-| game        | `hello`                    | Repeat until `identity` arrives.                                                |
-| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values. |
-| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                         |
-| game        | `storage`                  | `{ key, value }`: save one value (`save` or `muted`, strings up to 256 KiB).    |
-| game        | `pose`                     | The player's pose for the shared room.                                          |
-| page        | `peers`                    | Everyone else in the room, ten times a second.                                  |
-| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.               |
-| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                |
+| From        | Kind                       | Meaning                                                                                  |
+| ----------- | -------------------------- | ---------------------------------------------------------------------------------------- |
+| game        | `hello`                    | Repeat until `identity` arrives.                                                         |
+| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.          |
+| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                  |
+| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB). |
+| game        | `pose`                     | The player's pose for the shared room.                                                   |
+| page        | `peers`                    | Everyone else in the room, ten times a second.                                           |
+| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                        |
+| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                         |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
+
+## The games today
+
+| Game                       | Page                                                                                 | Lifecycle | Check                       |
+| -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------- |
+| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | not yet   | boot only                   |
+| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | boot only                   |
+
+Games without the lifecycle get a boot-only check: they must load, say
+`ready` and throw no page errors for five seconds. Moving Ace and Padel onto
+the lifecycle (and Padel into the sandbox) gives them the full check.
 
 ## Make a game
 
