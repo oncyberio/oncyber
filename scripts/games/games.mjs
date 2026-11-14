@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkDevices } from "./devices.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -136,7 +137,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, devices = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -158,6 +159,10 @@ async function check() {
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // The same check on a phone and a gamepad (scripts/games/devices.mjs).
+        page.removeAllListeners("console");
+        await page.close();
+        devices = await checkDevices({ browser, port: server.address().port, id, manifest, source, lifecycle, desktop: report });
     } finally {
         await browser.close();
         server.close();
@@ -166,12 +171,13 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && !devices?.blocking.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
         findings: [
             ...scan.findings,
+            ...(devices?.blocking ?? []),
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
@@ -180,12 +186,14 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        devices: devices?.report,
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
+    for (const line of devices?.lines ?? []) console.log(line);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
     return { result, files };

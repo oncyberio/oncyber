@@ -1,4 +1,26 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "devices": ["desktop", "phone", "gamepad"],
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "capabilities": [],
+    "assets": [],
+    "input": {
+      "up": { "keyboard": ["KeyW", "ArrowUp"], "touch": "stick-up", "gamepad": ["left-stick-up", "dpad-up"] },
+      "down": { "keyboard": ["KeyS", "ArrowDown"], "touch": "stick-down", "gamepad": ["left-stick-down", "dpad-down"] },
+      "left": { "keyboard": ["KeyA", "ArrowLeft"], "touch": "stick-left", "gamepad": ["left-stick-left", "dpad-left"] },
+      "right": { "keyboard": ["KeyD", "ArrowRight"], "touch": "stick-right", "gamepad": ["left-stick-right", "dpad-right"] },
+      "flat": { "keyboard": ["KeyJ", "Space"], "touch": "button:Hit", "gamepad": "button-a" },
+      "slice": { "keyboard": ["KeyH"], "touch": "button:Cut", "gamepad": "button-b" },
+      "topspin": { "keyboard": ["KeyK"], "touch": "button:Top", "gamepad": "button-x" },
+      "lob": { "keyboard": ["KeyU"], "touch": "button:Lob", "gamepad": "button-y" },
+      "drop": { "touch": "button:Drop", "gamepad": ["left-bumper", "right-bumper"] },
+      "confirm": { "keyboard": ["Enter", "Space", "KeyJ"], "gamepad": "button-a" },
+      "back": { "keyboard": ["Escape", "Backspace", "KeyK"], "gamepad": "button-b" },
+      "pause": { "keyboard": ["Escape", "KeyP"], "gamepad": "button-start" },
+      "mute": { "keyboard": ["KeyM"] }
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { deviceAct } from "@oncyber/game-runtime/device-check";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -282,6 +283,8 @@ async function start() {
             bootMs: performance.now() - bootStart,
             frame: () => new Promise((resolve) => requestAnimationFrame(resolve)),
             pauseHostClock: (paused) => host.hold(paused),
+            // ?check=phone and ?check=gamepad press the real controls.
+            act: deviceAct(host.session),
         });
         postCheckReport(report);
     }

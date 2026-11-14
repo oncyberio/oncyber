@@ -116,6 +116,14 @@ the lifecycle (and Padel into the sandbox) gives them the full check.
 3. Add the game to `frontend/features/games/catalog.ts`.
 4. Open `/games/<id>` on the dev server.
 
+## Devices
+
+Declare `devices` (`desktop`, `phone`, `gamepad`) and each action's
+`keyboard`, `touch` and `gamepad` bindings in `game.json`; the runtime
+draws the touch stick and buttons and maps the gamepad. Never read touch or
+gamepad events in game code. The check plays each device and fails when a
+claimed phone doesn't pass. Rules: [games/devices.md](games/devices.md).
+
 ## Check and publish
 
 ```sh
@@ -143,5 +151,5 @@ the headless browser's frame rate, not the game's.
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.
 -   Hosted releases: publishing is a commit today, not an upload.
--   Phone and headset profiles for the check.
+-   A headset profile for the check (phone and gamepad: [games/devices.md](games/devices.md)).
 -   Games in the lobby's Explore panel outside the development server.

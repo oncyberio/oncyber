@@ -1079,9 +1079,7 @@ function showResults() {
 
 // --------------------------------------------------------------- per frame
 
-const input = createInput(canvas, document.querySelector(".touch-pad"));
-if (window.matchMedia?.("(pointer: coarse)").matches)
-    document.body.classList.add("is-touch");
+const input = createInput(canvas);
 const clock = new THREE.Clock();
 const camPos = new THREE.Vector3();
 const camLook = new THREE.Vector3();
@@ -1508,7 +1506,8 @@ async function bootGame() {
         setTimeout(() => {
             // A lobby trip may already have staged the arrival view.
             if (state.screen !== "boot") return;
-            if (AUTOPLAY) startGame();
+            // The check goes straight to a match, where the controls are.
+            if (AUTOPLAY || params.has("check")) startGame();
             else if (pendingArrival !== undefined) stageArrival(pendingArrival);
             else goTitle();
         }, 250);

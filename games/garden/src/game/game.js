@@ -627,8 +627,9 @@ export default function createGame(ctx) {
         camera.lookAt(cam.target);
     }
     function updateCamera(dt) {
-        const lookX = ctx.deltas.lookX || 0;
-        const lookY = ctx.deltas.lookY || 0;
+        // A drag arrives as deltas; a gamepad's right stick as a held value.
+        const lookX = (ctx.deltas.lookX || 0) + (ctx.input.lookX || 0) * dt * 0.35;
+        const lookY = (ctx.deltas.lookY || 0) - (ctx.input.lookY || 0) * dt * 0.3;
         const zoom = ctx.deltas.zoom || 0;
         // Deltas arrive in UI pixels / 1000 and wheel notches / 10.
         cam.yaw -= lookX * 6;
