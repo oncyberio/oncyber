@@ -40,9 +40,9 @@ export const SHOTS = {
     },
     // Drop shot (H+K): soft, just over the net, dies after the bounce.
     drop: {
-        spin: 0,
-        bounce: 0.28,
-        skid: 0.3,
+        spin: -1,
+        bounce: 0.6,
+        skid: 0.5,
         time: [1.7, 1.5],
         color: 0xff7ad9,
         clear: 0.3,
