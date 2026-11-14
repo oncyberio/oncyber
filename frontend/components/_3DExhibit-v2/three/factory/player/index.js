@@ -75,7 +75,7 @@ export class Players {
         // Profile photos are sRGB: said up front, or they show washed out
         this.atlasAvatar = AtlasFactory.get( { debug: false, colorSpace: SRGBColorSpace })
 
-        this.atlasUserName = AtlasFactory.get( { debug : false, distance : true, elementSize : UserNameGenerator.CANVAS_SIZE })
+        this.atlasUserName = AtlasFactory.get( { debug : false, distance : true, elementSize : UserNameGenerator.CANVAS_SIZE, textureSize : UserNameGenerator.ATLAS_SIZE })
 
         InstanceAvatar3D.enabled = true
 

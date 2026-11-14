@@ -62,16 +62,14 @@ function blit( image, target, x, y ) {
 
 export default class UpdatableTexture extends CanvasTexture {
 
-    constructor( format  ){
+    constructor( size = TEXTURE_SIZE ){
 
         const canvas    = document.createElement('canvas');
-        canvas.width = TEXTURE_SIZE;
-        canvas.height = TEXTURE_SIZE;
+        canvas.width = size;
+        canvas.height = size;
 
         const ctx = canvas.getContext("2d")
-        ctx.canvas.width = TEXTURE_SIZE
-        ctx.canvas.height = TEXTURE_SIZE
-        ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+        ctx.clearRect(0, 0, size, size);
 
 
         super( canvas )

@@ -24,11 +24,18 @@ import {
 /*
  * Instanced nametags: camera facing billboards around each instance offset, sampled from the
  * username atlas ( atlas = [ uv scale, uv offset ] per instance ), faded by opacity, and hidden only
- * when the camera is inside the head ( first person ), alpha tested at 0.5. The pipeline's occlusion variant
- * ( defines.OCCLUSION ) draws them black.
+ * when the camera is inside the head ( first person ). Letters keep their soft, blended edges: a hard
+ * cut at 50% alpha left them jagged up close and broke thin strokes apart at a distance, once mipmaps
+ * thin them out. The pipeline's occlusion variant ( defines.OCCLUSION ) draws them black, cut at 50%.
  */
 
 const SIZE = 0.75
+
+// Below this the texel is only the fringe of a letter's edge: drop it
+export const ALPHA_CUT = 0.02
+
+// The occlusion pass writes a mask, so it keeps a hard edge
+export const OCCLUSION_ALPHA_CUT = 0.5
 
 function billboard() {
 
@@ -110,7 +117,7 @@ export default class Material extends MeshBasicNodeMaterial {
 
             const alpha = texel.a.mul( vOpacity ).mul( varyingProperty( "float", "vClose" ) )
 
-            If( alpha.lessThan( 0.5 ), () => {
+            If( alpha.lessThan( occlusion ? OCCLUSION_ALPHA_CUT : ALPHA_CUT ), () => {
 
                 Discard()
             } )

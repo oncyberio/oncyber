@@ -4,7 +4,9 @@ import { USERNAME_OFFSET, USERNAME_OFFSET_X } from "../constants";
 
 import {
 
-    CANVAS_SIZE
+    CANVAS_SIZE,
+
+    ATLAS_SIZE
 
 } from './constants.js'
 
@@ -21,6 +23,8 @@ class UsernameGenerator {
     constructor(){
 
         this.CANVAS_SIZE = CANVAS_SIZE
+
+        this.ATLAS_SIZE = ATLAS_SIZE
     }
 
     get( username, avatar, walletId, textOnly = false ) {
@@ -87,7 +91,7 @@ class UsernameGenerator {
         );
 
         const metrics = ctx.measureText(_username);
-        const margin = 10;
+        const margin = 5 * CANVAS_SIZE.scale;
         const imgSize = this.ctx.canvas.width / 10;
 
 
