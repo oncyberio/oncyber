@@ -11,15 +11,16 @@ where `GAMES_PREVIEW=1` is set.
 
 ## Where things are
 
-| Path                              | What it is                                                                          |
-| --------------------------------- | ----------------------------------------------------------------------------------- |
-| `games/runtime/`                  | The lifecycle runtime (TypeScript source, no dependencies). Games bundle it.        |
-| `games/<id>/`                     | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project. |
-| `frontend/public/games/<id>/`     | The published build, plus `release.json` and `check.json`. Committed.               |
-| `frontend/features/games/`        | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
-| `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
-| `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
-| `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| Path                              | What it is                                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| `games/runtime/`                  | The lifecycle runtime (TypeScript source, no dependencies). Games bundle it.           |
+| `games/<id>/`                     | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project.    |
+| `frontend/public/games/<id>/`     | The published build, plus `release.json` and `check.json`. Committed.                  |
+| `frontend/features/games/`        | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.     |
+| `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                         |
+| `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                      |
+| `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                           |
+| `games/kits/locomotion/`          | Optional kit: walk, run, jump and camera like the lobby ([rule](games/locomotion.md)). |
 
 ## The lifecycle
 

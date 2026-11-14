@@ -557,7 +557,8 @@ export function poseCharacter(ch, ath, ctx) {
     const dt = ctx.dt;
     ch.time += dt;
     const root = ch.root;
-    root.position.set(ath.x, 0, ath.z);
+    // `lift` is the height of a jump during the arrival walk.
+    root.position.set(ath.x, ctx.lift || 0, ath.z);
     // Face the far end, turning a little toward the ball.
     const baseYaw = ath.side > 0 ? 0 : Math.PI;
     // Off the court (the arrival walk) the caller owns the heading.

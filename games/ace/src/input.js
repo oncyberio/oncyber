@@ -36,7 +36,7 @@ export function createInput(target, touchRoot) {
             push({ type: "shot", shot: SHOT_KEYS[e.code] });
         if (e.code === "Escape" || e.code === "KeyP") push({ type: "pause" });
         if (e.code === "Enter" || e.code === "Space" || e.code === "KeyJ")
-            push({ type: "confirm" });
+            push({ type: "confirm", code: e.code });
         if (e.code === "Escape" || e.code === "Backspace" || e.code === "KeyK")
             push({ type: "back" });
         if (e.code === "KeyM") push({ type: "mute" });
@@ -198,7 +198,10 @@ export function readInput(input) {
         const prev = input.padPrev[pad.index] || [];
         const edge = (i) => b(i) && !prev[i];
         if (edge(0))
-            events.push({ type: "shot", shot: "flat" }, { type: "confirm" });
+            events.push(
+                { type: "shot", shot: "flat" },
+                { type: "confirm", pad: true }
+            );
         if (edge(1))
             events.push({ type: "shot", shot: "slice" }, { type: "back" });
         if (edge(2)) events.push({ type: "shot", shot: "topspin" });
@@ -210,7 +213,7 @@ export function readInput(input) {
             !shotBtns.some((i) => b(i))
         )
             events.push({ type: "release" });
-        if (edge(9)) events.push({ type: "pause" });
+        if (edge(9)) events.push({ type: "pause", pad: true });
         if (edge(12)) events.push({ type: "nav", dir: "up" });
         if (edge(13)) events.push({ type: "nav", dir: "down" });
         if (edge(14)) events.push({ type: "nav", dir: "left" });

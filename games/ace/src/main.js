@@ -34,6 +34,15 @@ import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
 import { attachVRM, driveVRM, loadVRM } from "./vrm.js";
+import {
+    applyCameraPose,
+    arrival,
+    bindControls,
+    cameraPose,
+    createFollowCamera,
+    createWalker,
+    exposeLocomotionProbe,
+} from "@oncyber/kit-locomotion";
 
 const $ = (s) => document.querySelector(s);
 const host = createHost();
@@ -57,15 +66,16 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xcfeaff, 90, 320);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 900);
 
+const courtFov = () => (camera.aspect < 1 ? 58 : 42);
+
 function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     // Keep the whole court in frame on tall screens. The arrival view keeps
-    // the lobby's own field of view instead.
-    camera.fov =
-        state?.camMode === "arrive" ? arrive.fov : camera.aspect < 1 ? 58 : 42;
+    // the lobby's own field of view instead (set in placeArrivalCamera).
+    if (state?.camMode !== "arrive") camera.fov = courtFov();
     camera.updateProjectionMatrix();
     // Resizing clears the canvas; redraw now instead of showing an empty
     // frame until the next animation frame.
@@ -162,14 +172,22 @@ const ARRIVE_BOUNDS = {
     zMax: COURT.halfLength + 2.6,
 };
 const ARRIVE_HEIGHT = 1.75;
+// The camera looks down the court at the net (the kit's yaw 0 looks down -z).
+const ARRIVE_FACING = 0;
+// Walking here is the lobby's: the locomotion kit owns pace, jump, camera
+// and controls; the court only says where the walls are.
 const arrive = {
     came: false, // this visit started as a lobby trip
-    offset: new THREE.Vector3(0, 2.3, 4.8),
-    look: new THREE.Vector3(0, 1.25, 0),
-    fov: 50,
-    camYaw: 0,
+    walker: createWalker(ARRIVE_SPOT, {
+        scale: ARRIVE_HEIGHT / 1.8,
+        constrain(s) {
+            s.x = Math.max(-ARRIVE_BOUNDS.x, Math.min(ARRIVE_BOUNDS.x, s.x));
+            s.z = Math.max(ARRIVE_BOUNDS.zMin, Math.min(ARRIVE_BOUNDS.zMax, s.z));
+        },
+    }),
+    camera: createFollowCamera({ scale: ARRIVE_HEIGHT / 1.8 }),
     faceYaw: 0,
-    drag: null,
+    lift: 0, // height of a jump
     // The lobby hands the visitor over crouched; they stand up once revealed.
     sink: 0,
     rising: false,
@@ -256,34 +274,23 @@ function goTitle() {
     sound.setCrowd(audio, 0.5);
 }
 
-/** Rotate a lobby offset (relative to the avatar's feet) into court space. */
-function mapArrival(view) {
-    // Turn the lobby's formation so its camera looks down the court at the
-    // net: the lobby camera sits at angle r + PI around the avatar.
-    const turn = Math.PI - view.avatarRotation;
-    const cos = Math.cos(turn);
-    const sin = Math.sin(turn);
-    const scale = ARRIVE_HEIGHT / view.avatarHeight;
-    const map = (v, out) =>
-        out.set(
-            (v.x * cos + v.z * sin) * scale,
-            v.y * scale,
-            (-v.x * sin + v.z * cos) * scale
-        );
-    map(view.cameraOffset, arrive.offset);
-    map(view.cameraTargetOffset, arrive.look);
-    // A camera at the avatar's feet or inside it is not a usable view.
-    if (arrive.offset.length() < 0.6) arrive.offset.set(0, 2.3, 4.8);
-    arrive.fov = view.fov;
-}
-
 function goArrive(view) {
-    if (view) mapArrival(view);
+    // The lobby's last frame, turned to look down the court. Its travel
+    // camera sits in front of the avatar, so a visitor arrives facing the
+    // camera with the court behind them, as they left. With no view (back
+    // from a match) it is the lobby's follow camera behind the visitor.
+    const arrived = arrival(view, {
+        at: ARRIVE_SPOT,
+        facing: ARRIVE_FACING,
+        avatarHeight: ARRIVE_HEIGHT,
+    });
     arrive.came = true;
-    arrive.camYaw = 0;
-    // The lobby's travel camera sits in front of the avatar, so a visitor
-    // arrives facing the camera with the court behind them, as they left.
-    arrive.faceYaw = view ? Math.PI : 0;
+    arrive.camera = arrived.camera;
+    walkControls.setCamera(arrived.camera);
+    walkControls.clear();
+    arrive.walker.place({ ...ARRIVE_SPOT, y: 0, rotation: arrived.avatarRotation });
+    arrive.faceYaw = arrived.avatarRotation;
+    arrive.lift = 0;
     state.attract = false;
     state.paused = false;
     state.screen = "arrive";
@@ -326,65 +333,53 @@ function smoothSink() {
 
 function placeArrivalCamera() {
     const me = state.engine.athletes[0];
-    const cos = Math.cos(arrive.camYaw);
-    const sin = Math.sin(arrive.camYaw);
-    const turn = (v, out) =>
-        out.set(
-            me.x + v.x * cos + v.z * sin,
-            v.y,
-            me.z - v.x * sin + v.z * cos
-        );
-    turn(arrive.offset, camPos);
-    turn(arrive.look, camLook);
+    const pose = cameraPose(arrive.camera, me, window.innerWidth);
+    // The court keeps its own near plane; the rest is the lobby's camera.
+    applyCameraPose(camera, pose, { near: false });
+    camPos.copy(pose.position);
+    camLook.copy(pose.target);
 }
 
 function updateArrive(raw, dt) {
     const me = state.engine.athletes[0];
     if (arrive.rising && arrive.sink > 0)
         arrive.sink = Math.max(0, arrive.sink - (ARRIVE_SINK / ARRIVE_RISE_S) * dt);
-    // Stay put until standing.
-    if (arrive.sink > 0) raw = { ...raw, x: 0, y: 0 };
-    // Walk relative to where the camera looks.
-    const dirX = camLook.x - camPos.x;
-    const dirZ = camLook.z - camPos.z;
-    const fl = Math.hypot(dirX, dirZ) || 1;
-    const mx = (raw.x * -dirZ + raw.y * dirX) / fl;
-    const mz = (raw.x * dirX + raw.y * dirZ) / fl;
-    const len = Math.hypot(mx, mz);
-    const speed = 4.4;
-    const tx = len > 0.05 ? (mx / Math.max(1, len)) * speed : 0;
-    const tz = len > 0.05 ? (mz / Math.max(1, len)) * speed : 0;
-    const k = 1 - Math.exp(-10 * dt);
-    me.vx += (tx - me.vx) * k;
-    me.vz += (tz - me.vz) * k;
-    me.x = Math.max(-ARRIVE_BOUNDS.x, Math.min(ARRIVE_BOUNDS.x, me.x + me.vx * dt));
-    me.z = Math.max(ARRIVE_BOUNDS.zMin, Math.min(ARRIVE_BOUNDS.zMax, me.z + me.vz * dt));
+    // The court's own floating touch stick drives the same walk.
+    const touch = input.touch.active;
+    walkControls.setStick(touch ? raw.x : 0, touch ? -raw.y : 0);
+    // Keys, drag, wheel and gamepad as in the lobby; still until standing.
+    const controls = walkControls.read(dt);
+    const shown = arrive.walker.advance(dt, controls);
+    const velocity = arrive.walker.velocity(controls.yaw);
+    me.x = shown.x;
+    me.z = shown.z;
+    me.vx = velocity.x;
+    me.vz = velocity.z;
     me.stateTime += dt;
-    if (Math.hypot(me.vx, me.vz) > 0.4) {
-        // Our forward is -z at yaw 0; take the short way round.
-        const want = Math.atan2(-me.vx, -me.vz);
-        const delta = Math.atan2(
-            Math.sin(want - arrive.faceYaw),
-            Math.cos(want - arrive.faceYaw)
-        );
-        arrive.faceYaw += delta;
-    }
+    arrive.lift = shown.y;
+    arrive.faceYaw = shown.rotation;
+    // The walker already eases the turn; don't ease it twice.
+    players[0].yaw = shown.rotation;
 }
 
-// Drag on the court to look around while standing in the arrival view.
-canvas.addEventListener("pointerdown", (event) => {
-    if (state.screen !== "arrive") return;
-    arrive.drag = { id: event.pointerId, x: event.clientX };
+// Keys, drag-to-look, wheel and gamepad while standing in the arrival view.
+const walkControls = bindControls({
+    view: canvas,
+    camera: arrive.camera,
+    enabled: () =>
+        state?.screen === "arrive" && arrive.sink <= 0 && input.enabled,
+    // A touch on the left half is the walk stick, not a look.
+    acceptLook: (event) =>
+        event.pointerType !== "touch" ||
+        event.clientX >= window.innerWidth * 0.5,
 });
-window.addEventListener("pointermove", (event) => {
-    if (!arrive.drag || arrive.drag.id !== event.pointerId) return;
-    if (state.screen !== "arrive") return (arrive.drag = null);
-    arrive.camYaw -= (event.clientX - arrive.drag.x) * 0.006;
-    arrive.drag.x = event.clientX;
-});
-const endArriveDrag = () => (arrive.drag = null);
-window.addEventListener("pointerup", endArriveDrag);
-window.addEventListener("pointercancel", endArriveDrag);
+// `pnpm games:check` walks here and compares the pace with the lobby's.
+exposeLocomotionProbe(
+    () => (state?.screen === "arrive" ? arrive.walker : null),
+    () => {
+        if (state.screen !== "arrive") goArrive(null);
+    }
+);
 
 // A party that arrived together picks a format before anything else.
 // Everyone in the party, the visitor first. Once the party's room has other
@@ -728,8 +723,13 @@ function handleMenuInput(events) {
             if (e.type === "confirm") action("start");
             if (e.type === "back") action("back");
         } else if (s === "arrive") {
-            // Arrows and WASD walk here, so only Enter acts.
-            if (e.type === "confirm") action("play");
+            // WASD and arrows walk and Space (or a gamepad's A) jumps here,
+            // so only Enter (or Start) acts.
+            if (
+                (e.type === "confirm" && e.code !== "Space" && !e.pad) ||
+                (e.type === "pause" && e.pad)
+            )
+                action("play");
         } else if (s === "party") {
             if (e.type === "back") action("back");
         } else if (s === "howto") {
@@ -1145,8 +1145,17 @@ function updateCamera(dt) {
     const ball = e.ball;
     state.camT += dt;
     if (state.camMode === "arrive") {
+        // The lobby's camera is rigid to the avatar: no extra easing.
         placeArrivalCamera();
-    } else if (state.camMode === "orbit") {
+        state.cam.pos.copy(camPos);
+        state.cam.look.copy(camLook);
+        return;
+    }
+    if (camera.fov !== courtFov()) {
+        camera.fov = courtFov();
+        camera.updateProjectionMatrix();
+    }
+    if (state.camMode === "orbit") {
         state.orbit += dt * 0.08;
         camPos.set(
             Math.sin(state.orbit) * 27,
@@ -1185,9 +1194,7 @@ function updateCamera(dt) {
         }
     }
     const rate =
-        state.camMode === "arrive"
-            ? 14
-            : state.camMode === "play"
+        state.camMode === "play"
               ? 5
               : state.camMode === "winner"
                 ? 3
@@ -1322,7 +1329,11 @@ function poseAll(dt) {
             headYaw: 0,
             mood,
             ...(i === 0 && state.camMode === "arrive"
-                ? { faceYaw: arrive.faceYaw, sink: smoothSink() }
+                ? {
+                      faceYaw: arrive.faceYaw,
+                      sink: smoothSink(),
+                      lift: arrive.lift,
+                  }
                 : {}),
         });
         if (ch.rig) driveVRM(ch, dt);
@@ -1548,6 +1559,7 @@ host.on("arrival", (view) => {
 host.on("dispose", () => {
     sound.stopAudio(audio);
     input.dispose();
+    walkControls.dispose();
     renderer.dispose();
     host.dispose();
 });
