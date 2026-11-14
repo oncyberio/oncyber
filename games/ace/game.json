@@ -1,4 +1,8 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "avatars": {
+    "others": "avatar",
+    "arrival": "pose"
+  }
 }

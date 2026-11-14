@@ -1,35 +1,80 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:17:45.100Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1335885,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-DBiD6Sk3.js",
+      "bytes": 999430
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [
+      {
+        "check": "arrival",
+        "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
+      }
+    ],
+    "ms": 34941,
+    "query": "&webgl",
+    "facts": {
+      "others": {
+        "booted": true,
+        "renderer": "webgl2",
+        "bloomlings": 1,
+        "stage0": "egg",
+        "held": "",
+        "match": "",
+        "matchPhase": "",
+        "menu": "",
+        "avatar": "vrm",
+        "online": true,
+        "peers": 1,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "none",
+        "avatarFacingCamera": false,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 0,
+        "avatarEmote": "",
+        "offers": 0,
+        "playerX": 0,
+        "playerZ": 13,
+        "hostPhase": "entered",
+        "hostFrames": 22
+      }
     }
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:43083/games/garden/assets/index-DBiD6Sk3.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1636,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1636
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 929
       },
       {
         "stage": "lifecycle",
@@ -39,14 +84,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,
@@ -60,6 +105,16 @@
       "avatar": "vrm",
       "online": false,
       "peers": 0,
+      "avatarSelf": "vrm",
+      "avatarSelfInFrame": false,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "none",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": true,
+      "avatarTalking": 0,
+      "avatarEmote": "",
       "offers": 0,
       "playerX": 0,
       "playerZ": 11.4,

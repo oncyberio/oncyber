@@ -33,7 +33,11 @@ import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
-import { attachVRM, driveVRM, loadVRM } from "./vrm.js";
+import { attachVRM, avatarTextures, driveVRM } from "./vrm.js";
+import { arrivalFraming, createAvatarKit, loadVRM } from "@oncyber/avatar-kit";
+import { answerInspect, pageAvatarService } from "@oncyber/avatar-kit/page";
+import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
 
 const $ = (s) => document.querySelector(s);
 const host = createHost();
@@ -56,6 +60,35 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xcfeaff, 90, 320);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 900);
+
+// ---------------------------------------------------------------- avatars
+// The avatar kit shows the visitor and the rest of their party as their
+// Oncyber avatars, with the lobby's motion, and stages the arrival pose.
+// Avatar bytes come only for avatars the page named: the visitor's own and
+// the players in the party's room.
+const params = new URLSearchParams(location.search);
+const ARRIVE_HEIGHT = 1.75;
+const avatarService = pageAvatarService();
+const avatarIdentity = { avatar: "" };
+const json = (url) => () => fetch(url).then((r) => r.json());
+let avatarKtx = null;
+const kit = createAvatarKit({
+    services: { identity: avatarIdentity, avatar: avatarService.avatar },
+    motion: json(locomotionUrl),
+    emotes: json(emotesUrl),
+    load: (bytes) =>
+        loadVRM(bytes, { ktx2: (avatarKtx ??= avatarTextures(renderer)) }),
+    height: ARRIVE_HEIGHT,
+    // Ace's forward is -z; the kit's avatars face +z.
+    heading: Math.PI,
+    // The toy player is the visitor's body until their avatar loads.
+    standIn: false,
+});
+scene.add(kit.group);
+host.on("peers", (players) => {
+    for (const p of players) avatarService.vouch(p?.vrm);
+    kit.setPeers(players);
+});
 
 function resize() {
     const w = window.innerWidth;
@@ -105,7 +138,6 @@ function loadSettings() {
     audio.muted = host.storage.get("muted") === "1";
 }
 
-const params = new URLSearchParams(location.search);
 function applySettingParams() {
     if (DIFFICULTY[params.get("difficulty")])
         settings.difficulty = params.get("difficulty");
@@ -161,7 +193,6 @@ const ARRIVE_BOUNDS = {
     zMin: 0.7, // the near half; the net is not a door
     zMax: COURT.halfLength + 2.6,
 };
-const ARRIVE_HEIGHT = 1.75;
 const arrive = {
     came: false, // this visit started as a lobby trip
     offset: new THREE.Vector3(0, 2.3, 4.8),
@@ -170,12 +201,10 @@ const arrive = {
     camYaw: 0,
     faceYaw: 0,
     drag: null,
-    // The lobby hands the visitor over crouched; they stand up once revealed.
-    sink: 0,
-    rising: false,
+    poseAt: 0,
 };
+// How far the toy player (no avatar) sinks in the kit's arrival crouch.
 const ARRIVE_SINK = 0.42;
-const ARRIVE_RISE_S = 0.7;
 resize();
 
 function buildScene() {
@@ -185,6 +214,9 @@ function buildScene() {
     const human = createCharacter(PALETTES[0]);
     const cpu = createCharacter(CPU_ROSTER[settings.difficulty].palette);
     scene.add(human.root, cpu.root);
+    // The kit's avatar faces +z; the character's forward is -z.
+    kit.self.root.rotation.y = Math.PI;
+    human.root.add(kit.self.root);
     players = [human, cpu];
     umpire = createCharacter({
         shirt: 0x1d2b4f,
@@ -256,25 +288,16 @@ function goTitle() {
     sound.setCrowd(audio, 0.5);
 }
 
-/** Rotate a lobby offset (relative to the avatar's feet) into court space. */
+/**
+ * The lobby's camera around the visitor, in court space. The kit gives it
+ * in the avatar's frame (facing +z), which is the court's when the visitor
+ * stands with their back to the net.
+ */
 function mapArrival(view) {
-    // Turn the lobby's formation so its camera looks down the court at the
-    // net: the lobby camera sits at angle r + PI around the avatar.
-    const turn = Math.PI - view.avatarRotation;
-    const cos = Math.cos(turn);
-    const sin = Math.sin(turn);
-    const scale = ARRIVE_HEIGHT / view.avatarHeight;
-    const map = (v, out) =>
-        out.set(
-            (v.x * cos + v.z * sin) * scale,
-            v.y * scale,
-            (-v.x * sin + v.z * cos) * scale
-        );
-    map(view.cameraOffset, arrive.offset);
-    map(view.cameraTargetOffset, arrive.look);
-    // A camera at the avatar's feet or inside it is not a usable view.
-    if (arrive.offset.length() < 0.6) arrive.offset.set(0, 2.3, 4.8);
-    arrive.fov = view.fov;
+    const framing = arrivalFraming(view, ARRIVE_HEIGHT);
+    arrive.offset.fromArray(framing.offset);
+    arrive.look.fromArray(framing.look);
+    arrive.fov = framing.fov;
 }
 
 function goArrive(view) {
@@ -297,10 +320,11 @@ function goArrive(view) {
     me.x = ARRIVE_SPOT.x;
     me.z = ARRIVE_SPOT.z;
     players[0].yaw = arrive.faceYaw;
-    // No racket in hand while walking around the club.
+    // The arrival pose: crouched as the lobby left them (when it sent its
+    // view), facing its camera, and no racket in hand around the club.
     players[0].racket.visible = false;
-    arrive.sink = view ? ARRIVE_SINK : 0;
-    arrive.rising = !view || host.entered;
+    kit.arrival.stage(view, { entered: host.entered });
+    kit.emote("");
     state.camMode = "arrive";
     resize();
     placeArrivalCamera();
@@ -316,12 +340,6 @@ function goArrive(view) {
 function goHome() {
     if (arrive.came) goArrive(null);
     else goTitle();
-}
-
-// Ease the stand-up: quick off the floor, gentle at the top.
-function smoothSink() {
-    const t = arrive.sink / ARRIVE_SINK;
-    return ARRIVE_SINK * t * t * (3 - 2 * t);
 }
 
 function placeArrivalCamera() {
@@ -340,10 +358,8 @@ function placeArrivalCamera() {
 
 function updateArrive(raw, dt) {
     const me = state.engine.athletes[0];
-    if (arrive.rising && arrive.sink > 0)
-        arrive.sink = Math.max(0, arrive.sink - (ARRIVE_SINK / ARRIVE_RISE_S) * dt);
-    // Stay put until standing.
-    if (arrive.sink > 0) raw = { ...raw, x: 0, y: 0 };
+    // Stay put until standing (the kit stands the avatar up on `entered`).
+    if (kit.arrival.crouch > 0) raw = { ...raw, x: 0, y: 0 };
     // Walk relative to where the camera looks.
     const dirX = camLook.x - camPos.x;
     const dirZ = camLook.z - camPos.z;
@@ -369,7 +385,28 @@ function updateArrive(raw, dt) {
         );
         arrive.faceYaw += delta;
     }
+    // The lobby's motion: walk and run by speed; moving ends an emote.
+    const pace = Math.hypot(me.vx, me.vz);
+    if (len > 0.05 || !(kit.self.motion.emote || kit.self.motion.wave))
+        kit.self.motion = { speed: pace };
+    // Tell the party's room where the visitor stands, ten times a second.
+    const now = performance.now();
+    if (now - arrive.poseAt > 100) {
+        arrive.poseAt = now;
+        host.pose(kit.pose({ x: me.x, y: 0, z: me.z }, players[0].yaw));
+    }
 }
+
+// Emotes around the club: G waves, B dances, V sits; walking ends them.
+window.addEventListener("keydown", (event) => {
+    if (state.screen !== "arrive" || event.repeat || kit.arrival.crouch > 0) return;
+    if (event.code === "KeyG") kit.self.motion = { wave: true };
+    else if (event.code === "KeyB") kit.emote("HIPHOP");
+    else if (event.code === "KeyV") kit.emote("SITTING");
+});
+window.addEventListener("keyup", (event) => {
+    if (event.code === "KeyG" && kit.self.motion.wave) kit.self.motion = {};
+});
 
 // Drag on the court to look around while standing in the arrival view.
 canvas.addEventListener("pointerdown", (event) => {
@@ -496,6 +533,7 @@ function refreshSetup() {
 function startAttract() {
     state.attract = true;
     if (players) players[0].racket.visible = true;
+    kit.arrival.fillHands();
     state.engine = createEngine({
         difficulty: "pro",
         games: 99,
@@ -512,6 +550,7 @@ function startGame() {
     setCpuLook(settings.difficulty);
     state.attract = false;
     players[0].racket.visible = true;
+    kit.arrival.fillHands();
     state.engine = createEngine({
         difficulty: settings.difficulty,
         games: settings.games,
@@ -1322,10 +1361,20 @@ function poseAll(dt) {
             headYaw: 0,
             mood,
             ...(i === 0 && state.camMode === "arrive"
-                ? { faceYaw: arrive.faceYaw, sink: smoothSink() }
+                ? {
+                      faceYaw: arrive.faceYaw,
+                      sink: kit.arrival.crouch * ARRIVE_SINK,
+                  }
                 : {}),
         });
-        if (ch.rig) driveVRM(ch, dt);
+        // Around the club the kit animates the visitor's avatar with the
+        // lobby's clips; in a match the tennis pose drives it.
+        const clubWalk = i === 0 && state.camMode === "arrive";
+        if (i === 0 && ch.rig && kit.self.manual !== !clubWalk) {
+            kit.self.manual = !clubWalk;
+            kit.self.rest();
+        }
+        if (ch.rig && !clubWalk) driveVRM(ch, dt);
     }
     // Umpire watches the ball.
     if (umpire) {
@@ -1438,6 +1487,9 @@ function frame() {
     updateServeGauge(dt);
     hints();
     updateCamera(dt);
+    // The rest of the party stands around the club, not on a live court.
+    kit.group.visible = state.screen === "arrive" || state.screen === "party";
+    kit.update(dt, camera);
     updateWorld(world, dt, e.ball.p);
     if (e.phase === "toss" || e.phase === "serve" || e.phase === "setup")
         resetTrail(fx);
@@ -1477,24 +1529,17 @@ async function bootGame() {
         const avatarUrl = identity.avatarUrl || params.get("vrm");
         if (avatarUrl) {
             setBoot(0.93, "Suiting up…");
-            try {
-                const vrm = await Promise.race([
-                    loadVRM(avatarUrl, renderer),
-                    new Promise((_, reject) =>
-                        setTimeout(
-                            () => reject(new Error("avatar timeout")),
-                            20000
-                        )
-                    ),
-                ]);
-                attachVRM(players[0], vrm);
+            avatarIdentity.avatar = avatarUrl;
+            avatarService.vouch(avatarUrl);
+            const loaded = await Promise.race([
+                kit.loadSelf(),
+                new Promise((r) => setTimeout(() => r(false), 20000)),
+            ]);
+            if (loaded) {
+                attachVRM(players[0], kit.self);
                 renderer.compile(scene, camera);
-            } catch (err) {
-                console.warn(
-                    "ACE: avatar unavailable, using the default player",
-                    err
-                );
-            }
+            } else
+                console.warn("ACE: avatar unavailable, using the default player");
         }
         clock.getDelta();
         requestAnimationFrame(frame);
@@ -1530,7 +1575,7 @@ function stageArrival(view) {
         requestAnimationFrame(() => host.arrivalReady())
     );
 }
-host.on("entered", () => (arrive.rising = true));
+host.on("entered", () => kit.arrival.enter());
 // Someone joined or left the party's room while the formats are open.
 host.on("party", () => {
     if (state.screen !== "party") return;
@@ -1548,6 +1593,8 @@ host.on("arrival", (view) => {
 host.on("dispose", () => {
     sound.stopAudio(audio);
     input.dispose();
+    kit.dispose();
+    avatarKtx?.dispose();
     renderer.dispose();
     host.dispose();
 });
@@ -1561,8 +1608,26 @@ const unlock = () => {
 window.addEventListener("pointerdown", unlock, { once: true });
 window.addEventListener("keydown", unlock, { once: true });
 
+// Facts for pnpm games:check (the avatar stage asks for them with ?check).
+function inspect() {
+    const facts = kit.inspect();
+    return {
+        screen: state.screen,
+        ...facts,
+        // The toy player stands in until (or unless) the avatar loads.
+        avatarSelf: facts.avatarSelf === "none" ? "stand-in" : facts.avatarSelf,
+        avatarSelfInFrame:
+            facts.avatarSelf === "none"
+                ? state.camMode === "arrive"
+                : facts.avatarSelfInFrame,
+        avatarHandsEmpty: facts.avatarHandsEmpty && !players?.[0].racket.visible,
+    };
+}
+answerInspect(inspect);
+
 // Read-only diagnostics for automated checks.
 window.__ace = {
+    inspect,
     state,
     get engine() {
         return state.engine;

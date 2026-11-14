@@ -1,51 +1,30 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
-import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import basisScript from "three/addons/libs/basis/basis_transcoder.js?url";
 import basisWasm from "three/addons/libs/basis/basis_transcoder.wasm?url";
-import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
-// The visitor's own VRM avatar, driven by the procedural pose in character.js:
-// the character still computes hands, feet, lean and twist every frame, and
-// this rig reaches the avatar's limbs toward them with two-bone IK.
+// The visitor's own avatar, loaded and owned by the avatar kit. Off the court
+// the kit plays the lobby's clips on it; in a match the procedural pose in
+// character.js drives it: the character still computes hands, feet, lean and
+// twist every frame, and this rig reaches the avatar's limbs toward them with
+// two-bone IK.
 
-const HEIGHT = 1.75;
-
-export async function loadVRM(url, renderer) {
+/**
+ * A texture decoder for avatars with compressed textures, for the avatar
+ * kit's loader. The caller disposes it once the avatars are loaded.
+ */
+export function avatarTextures(renderer) {
     const manager = new THREE.LoadingManager();
     manager.setURLModifier((resource) => {
         if (resource.endsWith("basis_transcoder.js")) return basisScript;
         if (resource.endsWith("basis_transcoder.wasm")) return basisWasm;
         return resource;
     });
-    const loader = new GLTFLoader(manager);
-    loader.setCrossOrigin("anonymous");
-    loader.setMeshoptDecoder(MeshoptDecoder);
     const ktx = new KTX2Loader(manager)
         .setTranscoderPath("/")
         .setWorkerLimit(1);
     ktx.detectSupport(renderer);
-    loader.setKTX2Loader(ktx);
-    loader.register((parser) => new VRMLoaderPlugin(parser));
-    try {
-        const gltf = await loader.loadAsync(url);
-        const vrm = gltf.userData.vrm;
-        if (!vrm?.humanoid?.getNormalizedBoneNode("hips")) {
-            VRMUtils.deepDispose(gltf.scene);
-            throw new Error("Avatar has no VRM humanoid");
-        }
-        VRMUtils.removeUnnecessaryVertices(gltf.scene);
-        VRMUtils.rotateVRM0(vrm);
-        vrm.scene.traverse((o) => {
-            if (!o.isMesh) return;
-            o.castShadow = true;
-            o.frustumCulled = false;
-        });
-        return vrm;
-    } finally {
-        ktx.dispose();
-    }
+    return ktx;
 }
 
 const v1 = new THREE.Vector3();
@@ -120,20 +99,15 @@ const FACE = {
     neutral: {},
 };
 
-/** Swap the procedural body of `ch` for a VRM. Returns the rig. */
-export function attachVRM(ch, vrm) {
-    const holder = new THREE.Group();
-    holder.name = "vrm";
-    // Faces +z after rotateVRM0; the character's forward is -z.
-    holder.rotation.y = Math.PI;
-    holder.add(vrm.scene);
-    ch.root.add(holder);
-    vrm.scene.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(vrm.scene);
-    const h = box.max.y - box.min.y;
-    const scale = Math.max(0.4, Math.min(3, HEIGHT / (h || HEIGHT)));
-    holder.scale.setScalar(scale);
-    holder.position.y = -box.min.y * scale;
+/** Swap the procedural body of `ch` for the kit's avatar. Returns the rig. */
+export function attachVRM(ch, avatar) {
+    const vrm = avatar.vrm;
+    const holder = avatar.holder;
+    const scale = holder.scale.y;
+    // The kit's avatar faces +z; the character's forward is -z.
+    avatar.root.rotation.y = Math.PI;
+    ch.root.add(avatar.root);
+    avatar.rest();
 
     const bone = (name) => vrm.humanoid.getNormalizedBoneNode(name);
     const bones = {
@@ -260,14 +234,4 @@ export function driveVRM(ch, dt) {
     // The racket follows the avatar's actual hand.
     limbs.right.hand.getWorldPosition(world);
     ch.racket.position.copy(root.worldToLocal(world));
-}
-
-export function disposeVRM(ch) {
-    const rig = ch.rig;
-    if (!rig) return;
-    rig.holder.parent?.remove(rig.holder);
-    VRMUtils.deepDispose(rig.vrm.scene);
-    ch.body.visible = true;
-    for (const part of Object.values(ch.parts)) part.visible = true;
-    ch.rig = null;
 }

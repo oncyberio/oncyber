@@ -1,0 +1,119 @@
+# Avatars in games
+
+Rules for anyone, human or coding agent, building a game in `games/<id>/`.
+The lifecycle and the page bridge: [../games.md](../games.md).
+
+## The rule
+
+1. **Other people appear as their Oncyber avatar** unless the game says why
+   not in `game.json`. A player whose avatar hasn't loaded, or who has none,
+   still appears: as a stand-in body with their name.
+2. **The visitor arrives in the arrival pose**: when the page sends
+   `arrival`, the first frame shows their avatar crouched, facing the camera,
+   with empty hands. When the page sends `entered`, the avatar stands up.
+   Give them a racket, a tool or a pet only after that.
+
+`game.json` (both lines are the default; write them anyway):
+
+```json
+"avatars": { "others": "avatar", "arrival": "pose" }
+```
+
+To opt out of either, say why in a sentence. The check prints the reason
+instead of testing it:
+
+```json
+"avatars": {
+    "others": "other",
+    "why": "Everyone is a chess piece; the board is the game.",
+    "arrival": "none",
+    "arrivalWhy": "The board is seen from above, with no body to stand up."
+}
+```
+
+## Use the kit
+
+`games/kits/avatar/` is an optional library for three.js games. A game
+bundles it like any other source; the lifecycle runtime never imports it
+(the runtime has no renderer). Alias it in `vite.config.js` as Ace does
+(`games/ace/vite.config.js`), with `dedupe: ["three", "@pixiv/three-vrm"]`
+so the game and the kit share one copy of each.
+
+```js
+import { createAvatarKit, arrivalFraming } from "@oncyber/avatar-kit";
+import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
+
+const kit = createAvatarKit({
+    services, // context.services: identity.avatar and avatar(ref, signal)
+    motion: () => fetch(locomotionUrl).then((r) => r.json()),
+    emotes: () => fetch(emotesUrl).then((r) => r.json()), // fetched on first use
+    height: 1.75,
+});
+scene.add(kit.self.root, kit.group); // the visitor, and everyone else
+await kit.loadSelf();
+
+// Page messages
+onPeers((players) => kit.setPeers(players)); // poses, names, avatars, talking
+onArrival((view) => {
+    kit.arrival.stage(view); // crouched, hands empty
+    const { offset, look, fov } = arrivalFraming(view, 1.75); // the lobby's camera, avatar facing +z
+});
+onEntered(() => kit.arrival.enter()); // stand up
+
+// Every frame, before rendering
+kit.self.motion = { speed }; // or { air: true }, { wave: true }
+kit.update(seconds, camera);
+
+kit.emote("HIPHOP"); // a lobby emote; kit.emote("") ends it
+postPose(kit.pose(position, heading)); // others see the motion and the emote
+inspect: () => ({ ...kit.inspect() /* , the game's own facts */ });
+```
+
+What it does:
+
+-   **Avatars.** The visitor's and other players' VRMs, only through
+    `services.avatar()`, so only avatars the page vouches for. A game not on
+    the lifecycle host yet gets the same contract from `pageAvatarService()`
+    (`@oncyber/avatar-kit/page`): vouch the identity's avatar and each
+    announced player's, nothing else is fetched.
+-   **Lobby motion.** Idle, walk, run, jump and wave from the lobby's own clip
+    files (`motion/`, copied by `npm run motion`; a test fails when they
+    drift). Emotes are four short lobby loops by default.
+-   **Name tag and talking indicator** over each other player. The page
+    decides who is talking (`talking` in `peers`); no audio reaches the game.
+-   **Arrival pose.** `kit.arrival` holds the crouch until `entered`, then
+    stands the avatar up in 0.7 s. Call `kit.arrival.fillHands()` when the
+    game hands the visitor something.
+-   **A game that poses the rig itself** (Ace's tennis swing) sets
+    `kit.self.manual = true` while it does, after `kit.self.rest()`.
+
+A game with its own avatar code (Garden's DOM-free reader) can keep it: pass
+`load` to the kit, or report the same facts itself with `drawProbe()`
+(`@oncyber/avatar-kit/probe`) as Garden does.
+
+## The check
+
+`pnpm games:check <id>` runs an avatar stage
+(`scripts/games/avatar-check.mjs`). It opens the build with
+`?check=avatars&party=2`, plays the page's part for a party of two with a
+test avatar, and asks the game for `inspect()`:
+
+| When                 | Must be true                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| after `arrival`      | `avatarSelf` is `vrm` or `stand-in`, `avatarSelfInFrame`, `avatarArrival: "crouched"`, `avatarFacingCamera`, `avatarHandsEmpty` |
+| after `entered`      | `avatarArrival: "standing"`                                                                                                     |
+| with a second player | `avatarOthersDrawn >= 1` and `avatarOthersVrm >= 1`                                                                             |
+
+"Drawn" means the renderer submitted the body's meshes in the last frame,
+not that an object exists. To answer the question, call
+`answerInspect(inspect)` from `@oncyber/avatar-kit/page` once (it only
+answers when the page was opened with `?check`). Findings are `AVATAR_*`
+in `check.json`; the two frames are saved as
+`games/<id>/.check/avatar-arrival.png` and `avatar-party.png`.
+
+If the headless browser loses its graphics device the stage fails with
+`AVATAR_GPU_LOST`: run with `PW_CHANNEL=chrome`, or
+`GAMES_CHECK_QUERY="&webgl"` for a game with a WebGL fallback (Garden).
+
+Tests: `npm --prefix games/kits/avatar test`.

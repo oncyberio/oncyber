@@ -1,6 +1,11 @@
 {
   "name": "Bloom Garden",
   "avatar": "vrm",
+  "avatars": {
+    "others": "avatar",
+    "arrival": "none",
+    "arrivalWhy": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
+  },
   "runtime": {
     "profile": "portable-v1",
     "version": "1",

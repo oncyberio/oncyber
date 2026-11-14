@@ -2,6 +2,7 @@ import { Client, type Room } from "colyseus.js";
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "@utils/arena/constants";
 import { ColyseusSignaling } from "@utils/voiceChat/ColyseusSignaling";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
+import { TalkingMeter } from "./gameTalking";
 
 // Voice carries a block or two: full volume up close, silent past this.
 const VOICE_FULL = 4;
@@ -31,6 +32,8 @@ export type GamePeer = GamePose & {
     vrm: string;
     /** True when the room reported a new pose since the previous sample. */
     fresh: boolean;
+    /** Their voice is audible right now (the game's talking indicator). */
+    talking: boolean;
 };
 
 export type VoiceState = "off" | "connecting" | "live" | "muted";
@@ -71,6 +74,7 @@ export class GameRoom {
     private pose: GamePose = { x: 0, y: 0, z: 0, h: 0, a: 0 };
     private last = new Map<string, string>();
     private voice: WebRTCClient | null = null;
+    private talking = new TalkingMeter();
     private signaling: ColyseusSignaling | null = null;
     private microphone: MediaStream | null = null;
     private audio = new Map<string, HTMLAudioElement>();
@@ -223,6 +227,7 @@ export class GameRoom {
                 pfp: typeof player.avatar === "string" ? player.avatar : "",
                 vrm: typeof player.VRM === "string" ? player.VRM : "",
                 fresh,
+                talking: this.talking.talking(id),
             });
         });
         for (const id of Array.from(this.last.keys()))
@@ -255,6 +260,7 @@ export class GameRoom {
         audio.pause();
         audio.srcObject = null;
         this.audio.delete(id);
+        this.talking.unwatch(id);
     }
 
     /** Join the voice mesh without a microphone, so you hear people nearby. */
@@ -280,6 +286,7 @@ export class GameRoom {
             audio.autoplay = true;
             audio.srcObject = stream;
             this.audio.set(user.uid, audio);
+            this.talking.watch(user.uid, stream);
             this.updateVolumes();
             void audio.play().catch(() => {
                 this.update({

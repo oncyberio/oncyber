@@ -3,6 +3,8 @@
 // opaque-origin sandboxed frame with no storage, so the page keeps its saved
 // settings and hands them over with the identity.
 
+import { readArrivalView } from "@oncyber/avatar-kit";
+
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
 const STORAGE_MAX = 64 * 1024;
@@ -25,34 +27,6 @@ export function readParty(value) {
     return { id: value.id.slice(0, 96), size: members.length + 1, members };
 }
 
-/** The lobby's camera relative to the avatar's feet; null when malformed. */
-export function readArrivalView(value) {
-    const vector = (v) =>
-        v &&
-        [v.x, v.y, v.z].every(
-            (n) => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1000
-        );
-    if (
-        !value ||
-        !vector(value.cameraOffset) ||
-        !vector(value.cameraTargetOffset) ||
-        !Number.isFinite(value.avatarRotation) ||
-        !(value.fov > 5 && value.fov < 150)
-    )
-        return null;
-    const copy = (v) => ({ x: v.x, y: v.y, z: v.z });
-    return {
-        cameraOffset: copy(value.cameraOffset),
-        cameraTargetOffset: copy(value.cameraTargetOffset),
-        avatarRotation: value.avatarRotation,
-        avatarHeight:
-            value.avatarHeight >= 0.2 && value.avatarHeight <= 10
-                ? value.avatarHeight
-                : 1.8,
-        fov: value.fov,
-    };
-}
-
 export function createHost() {
     const embedded = window.parent !== window;
     const host = {
@@ -65,6 +39,7 @@ export function createHost() {
             dispose: [],
             arrival: [],
             party: [],
+            peers: [],
         },
         party: null,
         // The party room's roster: who actually arrived, by room id.
@@ -105,6 +80,8 @@ export function createHost() {
             host.selfId = typeof data.id === "string" ? data.id.slice(0, 64) : "";
             fire("party", host.party);
         } else if (data.type === "ace:peers") {
+            // Poses, names and avatars for the avatar kit, as the page sent them.
+            fire("peers", Array.isArray(data.players) ? data.players : []);
             const roster = (Array.isArray(data.players) ? data.players : [])
                 .slice(0, 7)
                 .filter((p) => p && typeof p.id === "string" && p.id)
@@ -183,6 +160,8 @@ export function createHost() {
         host.readyPosted = true;
         post({ type: "ace:ready" });
     };
+    // The visitor's pose in the club, for the party's room.
+    host.pose = (pose) => post({ type: "ace:pose", ...pose });
     host.arrivalReady = () => post({ type: "ace:arrival-ready" });
     host.fail = (message) =>
         post({ type: "ace:error", message: String(message).slice(0, 200) });

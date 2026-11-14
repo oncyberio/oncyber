@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-14T15:30:01.018Z",
+  "checkedAt": "2026-11-14T18:17:57.233Z",
   "status": "passed",
   "scope": "boot",
   "files": {
@@ -12,19 +12,32 @@
       "bytes": 2000023
     }
   },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [
+      {
+        "check": "others",
+        "why": "Padel draws players as avatars with its own code on its own page, which this check cannot drive; it moves to the avatar kit with the shared game page."
+      },
+      {
+        "check": "arrival",
+        "why": "Padel plays its own travel reveal on its own page, not the shared page's arrival message."
+      }
+    ]
+  },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 277,
+    "bootMs": 489,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 277
+        "ms": 489
       }
     ],
     "frames": null,

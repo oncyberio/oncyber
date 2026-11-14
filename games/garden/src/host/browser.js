@@ -1,6 +1,7 @@
 import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { answerInspect } from "@oncyber/avatar-kit/page";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -271,10 +272,12 @@ async function start() {
         camera: { position: [0, 3.5, 20], target: [0, 1.3, 13], fov: 50, mode: "third-person" },
         party: [],
     });
+    // The avatar stage of pnpm games:check asks what the game sees.
+    answerInspect(() => host.session.inspect());
     page.ready();
     // pnpm games:check opens the game with ?check: play the scenario, measure
     // frames and report to the check page.
-    if (params.has("check")) {
+    if (params.has("check") && params.get("check") !== "avatars") {
         const report = await runCheck({
             session: host.session,
             scenario,

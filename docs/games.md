@@ -15,6 +15,7 @@ where `GAMES_PREVIEW=1` is set.
 | --------------------------------- | ----------------------------------------------------------------------------------- |
 | `games/runtime/`                  | The lifecycle runtime (TypeScript source, no dependencies). Games bundle it.        |
 | `games/<id>/`                     | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project. |
+| `games/kits/avatar/`              | Optional avatar kit for three.js games: [games/avatar-kit.md](games/avatar-kit.md). |
 | `frontend/public/games/<id>/`     | The published build, plus `release.json` and `check.json`. Committed.               |
 | `frontend/features/games/`        | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
@@ -131,6 +132,10 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+
+The check also runs an avatar stage with a party of two: other people are
+drawn as their Oncyber avatars and the visitor arrives in the arrival pose,
+unless `game.json` says why not. See [games/avatar-kit.md](games/avatar-kit.md).
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
