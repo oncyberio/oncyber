@@ -41,7 +41,7 @@ const positionNode = transform(
 )
 
 // color is in sRGB space, used as-is like the WebGL shader did
-const shade = varying( borderShade( attribute( "color", "vec3" ), attribute( "border", "float" ) ) )
+const shade = varying( borderShade( attribute( "color", "vec3" ), attribute( "frameBorder", "float" ) ) )
 
 const discardHidden = Fn( ( [ color ] ) => {
 
