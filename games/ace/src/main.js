@@ -28,6 +28,14 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import { createDeparture } from "@oncyber/game-runtime/departure";
+import {
+    arrivalShot,
+    createBlackout,
+    fadeAt,
+    FADE_S,
+    visibleHeight,
+} from "./departure.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
@@ -69,7 +77,7 @@ function resize() {
     camera.updateProjectionMatrix();
     // Resizing clears the canvas; redraw now instead of showing an empty
     // frame until the next animation frame.
-    if (world) renderer.render(scene, camera);
+    if (world && !leaving.active) renderer.render(scene, camera);
 }
 window.addEventListener("resize", resize);
 
@@ -175,6 +183,9 @@ const arrive = {
     rising: false,
 };
 const ARRIVE_SINK = 0.42;
+// Leaving for the lobby: stood courtside while the world fades to black.
+const leaving = { active: false, from: 0, staged: null };
+const blackout = createBlackout(renderer, scene);
 const ARRIVE_RISE_S = 0.7;
 resize();
 
@@ -373,7 +384,7 @@ function updateArrive(raw, dt) {
 
 // Drag on the court to look around while standing in the arrival view.
 canvas.addEventListener("pointerdown", (event) => {
-    if (state.screen !== "arrive") return;
+    if (state.screen !== "arrive" || leaving.active) return;
     arrive.drag = { id: event.pointerId, x: event.clientX };
 });
 window.addEventListener("pointermove", (event) => {
@@ -636,7 +647,7 @@ function action(name) {
             goHome();
             break;
         case "lobby":
-            host.exit();
+            departure.leave();
             break;
         case "rematch":
             sound.sfxUI(audio, "ok");
@@ -671,7 +682,7 @@ $("#pause-btn").addEventListener("click", () => {
     pauseGame();
 });
 $("#lobby").hidden = !host.embedded;
-$("#lobby").addEventListener("click", () => host.exit());
+$("#lobby").addEventListener("click", () => departure.leave());
 document.addEventListener("visibilitychange", () => {
     if (document.hidden && !AUTOPLAY) pauseGame();
 });
@@ -1394,7 +1405,7 @@ function frame() {
     requestAnimationFrame(frame);
     let dt = Math.min(0.05, clock.getDelta()) * TIME_SCALE;
     const raw = readInput(input);
-    handleMenuInput(raw.events);
+    if (!leaving.active) handleMenuInput(raw.events);
     const e = state.engine;
     if (!e || !world) return;
     const live = state.screen === "playing" || state.attract;
@@ -1410,7 +1421,7 @@ function frame() {
             )
         );
     } else if (state.screen === "arrive") {
-        updateArrive(raw, dt);
+        updateArrive(leaving.active ? { ...raw, x: 0, y: 0 } : raw, dt);
     } else if (state.screen === "intro" || state.screen === "vs") {
         // Players warm up in place.
         for (const a of e.athletes) a.stateTime += dt;
@@ -1448,8 +1459,57 @@ function frame() {
         e.ball.p,
         e.ballVisible && e.phase !== "idle" && e.phase !== "intro"
     );
-    renderer.render(scene, camera);
+    if (leaving.active) renderLeaving();
+    else renderer.render(scene, camera);
 }
+
+// ------------------------------------------------------------- departure
+// The way back to the lobby always starts courtside, in the walkable
+// arrival state, whatever screen the visitor left from. The page asks for
+// this (`departure`) and waits for the view of the last frame.
+
+function stageDeparture() {
+    if (!booted) throw new Error("ACE_NOT_READY");
+    if (state.screen !== "arrive") goArrive(null);
+    arrive.sink = 0;
+    arrive.drag = null;
+    const me = state.engine.athletes[0];
+    me.vx = me.vz = 0;
+    leaving.active = true;
+    // Wall-clock time: the fade must end on time on a slow device too.
+    leaving.from =
+        performance.now() -
+        (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+            ? FADE_S * 1000
+            : 0);
+    show();
+    document.body.classList.add("leaving");
+    sound.setCrowd(audio, 0);
+    return new Promise((resolve) => (leaving.staged = resolve));
+}
+
+function renderLeaving() {
+    const fade = fadeAt((performance.now() - leaving.from) / 1000);
+    blackout.render(camera, players[0].root, fade);
+    if (fade < 1 || !leaving.staged) return;
+    // What is on screen now: the lobby opens on the same view.
+    leaving.staged(
+        arrivalShot({
+            cameraPosition: state.cam.pos,
+            cameraLook: state.cam.look,
+            fov: camera.fov,
+            feet: players[0].root.position,
+            faceYaw: arrive.faceYaw,
+            height: visibleHeight(players[0].root, ARRIVE_HEIGHT),
+        })
+    );
+    leaving.staged = null;
+}
+const departure = createDeparture({
+    post: (kind, data) => host.post(kind, data),
+    stage: stageDeparture,
+});
+host.on("departure", (data) => departure.receive("departure", data));
 
 // --------------------------------------------------------------- boot
 
@@ -1568,6 +1628,7 @@ window.__ace = {
         return state.engine;
     },
     action,
+    leaving,
     set timeScale(v) {
         TIME_SCALE = v;
     },

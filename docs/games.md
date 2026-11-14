@@ -69,6 +69,11 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
 
+Leaving has its own four messages (`exit`, `departure`, `departure-staging`,
+`departure-ready`) and one rule: exit always returns to the lobby, from the
+walkable arrival state, never from a dead end. See
+[games/departure.md](games/departure.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
@@ -80,6 +85,9 @@ the party in a room of its own, `oncyber-<game>-party-<trip id>`, with the
 relay on. So a game always gets, for a party: the members the lobby named,
 then `self` and `peers` from the party's room (who actually arrived, with
 ids every member sees the same way), and `net` packets between them.
+
+When one member starts the trip back to the lobby, the others are offered
+to follow ([games/departure.md](games/departure.md)).
 
 What a game does with it is the game's choice. Ace offers formats by party
 size (`games/ace/src/party.js`): 1 v 1 for two, 2 v 2 or a tournament for
@@ -129,7 +137,9 @@ with `?check`, and the game (through `runCheck` in
 measures 180 frames. The script adds the bundle's size and declared files,
 console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
-the bundle must stay under 30 MiB with every declared file present. Console
+the bundle must stay under 30 MiB with every declared file present. A game
+that declares `"departure": "matched"` must also pass the departure stage
+([games/departure.md](games/departure.md)). Console
 errors are listed but don't block, since games load avatars from the network.
 
 A release is the set of files whose hashes make up its `release` id. Commit

@@ -1,30 +1,163 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:38:30.799Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1798007,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-BzFq4ow8.js",
+      "bytes": 949439
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2372,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2372
+      },
+      {
+        "stage": "departure",
+        "status": "passed",
+        "ms": 110015,
+        "departure": {
+          "answerMs": 1356.6,
+          "frameMs": 436.1,
+          "lobbyFrame": "recorded",
+          "view": {
+            "cameraOffset": {
+              "x": 0,
+              "y": 2.3,
+              "z": 4.8
+            },
+            "cameraTargetOffset": {
+              "x": 0,
+              "y": 1.25,
+              "z": 0
+            },
+            "avatarRotation": 0,
+            "avatarHeight": 1.937,
+            "fov": 50
+          },
+          "gameAvatar": {
+            "x": 0.492,
+            "top": 0.378,
+            "bottom": 0.694,
+            "height": 0.317,
+            "width": 0.091
+          },
+          "lobbyAvatar": {
+            "x": 0.502,
+            "top": 0.378,
+            "bottom": 0.694,
+            "height": 0.317,
+            "width": 0.078
+          },
+          "frames": [
+            {
+              "ms": 46,
+              "phase": "playing",
+              "lit": 1
+            },
+            {
+              "ms": 6734,
+              "phase": "leaving",
+              "lit": 0.02
+            },
+            {
+              "ms": 7829,
+              "phase": "last",
+              "lit": 0.02
+            },
+            {
+              "ms": 8407,
+              "phase": "held",
+              "lit": 0.02
+            }
+          ],
+          "seam": [
+            {
+              "side": "game",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.492,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.091
+              }
+            },
+            {
+              "side": "game",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.492,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.091
+              }
+            },
+            {
+              "side": "game",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.492,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.091
+              }
+            },
+            {
+              "side": "lobby",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.502,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.078
+              }
+            },
+            {
+              "side": "lobby",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.502,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.078
+              }
+            },
+            {
+              "side": "lobby",
+              "lit": 0.01,
+              "outside": 0,
+              "box": {
+                "x": 0.502,
+                "top": 0.378,
+                "bottom": 0.694,
+                "height": 0.317,
+                "width": 0.078
+              }
+            }
+          ]
+        }
       }
     ],
     "frames": null,

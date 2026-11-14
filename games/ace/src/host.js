@@ -64,6 +64,7 @@ export function createHost() {
             entered: [],
             dispose: [],
             arrival: [],
+            departure: [],
             party: [],
         },
         party: null,
@@ -128,6 +129,9 @@ export function createHost() {
             // Travelling in from the lobby: its third-person view, so the
             // game can stand the visitor in the same framing.
             fire("arrival", readArrivalView(data.view));
+        } else if (data.type === "ace:departure") {
+            // Leaving for the lobby: the page asks for the last frame's view.
+            fire("departure", { reason: data.reason });
         } else if (data.type === "ace:entered") {
             host.entered = true;
             fire("entered");
@@ -141,6 +145,7 @@ export function createHost() {
             window.parent.postMessage(message, window.location.origin);
     };
     host.on = (type, f) => host.listeners[type].push(f);
+    host.post = (kind, data = {}) => post({ type: `ace:${kind}`, ...data });
     // Saved values: the page's storage when embedded, localStorage standalone.
     host.storage = {
         get(key) {

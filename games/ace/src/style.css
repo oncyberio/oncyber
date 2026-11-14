@@ -1135,3 +1135,11 @@ body.is-touch .hint {
     text-align: center;
     max-width: 380px;
 }
+
+/* Leaving for the lobby: only the avatar on black is left (departure.js). */
+body.leaving {
+    background: #000;
+}
+body.leaving > :not(#stage) {
+    visibility: hidden !important;
+}

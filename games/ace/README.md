@@ -16,6 +16,15 @@ camera and crouched as the lobby left them, then standing up, and answers
 **Play match** (Enter) opens the match setup. Leaving a match or the setup
 returns here. A direct visit to `/games/ace` opens on the title screen instead.
 
+## Leaving for the lobby
+
+Every way out (the Lobby buttons, the pause menu, a party member leaving)
+goes through `departure.leave()` or the page's `ace:departure`. The game
+returns the visitor courtside, hides the interface, fades the court to black
+around the lit avatar (`src/departure.js`) and answers `ace:departure-ready`
+with the view on screen; the lobby opens on the same frame. See
+`docs/games/departure.md`.
+
 ## Parties
 
 When the visitor arrived with a party (`ace:party`, then the party room's

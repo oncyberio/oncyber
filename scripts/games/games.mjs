@@ -24,10 +24,13 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkDeparture } from "./departure-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
 const headed = flags.includes("--headed");
+// --lobby <url>: record the lobby's first frame from a running app (departure-check.mjs).
+const lobbyUrl = flags.includes("--lobby") ? flags[flags.indexOf("--lobby") + 1] : null;
 
 if (!["check", "publish"].includes(command) || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(id ?? "")) {
     console.error("usage: games.mjs check|publish <id> [--headed]");
@@ -96,6 +99,8 @@ addEventListener("message", (event) => {
     if (event.source !== frame.contentWindow) return;
     const type = event.data && event.data.type;
     if (type === "oncyber:check-report") window.__report = event.data.report;
+    // The game's messages by kind, for stages that play the page's part.
+    if (typeof type === "string" && type.includes(":")) (window.__game ||= {})[type.slice(type.indexOf(":") + 1)] = { data: event.data, at: performance.now() };
     if (typeof type === "string" && type.endsWith(":hello")) {
         const prefix = type.slice(0, -"hello".length);
         frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
@@ -158,6 +163,8 @@ async function check() {
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // Last, because it ends the visit: the trip back to the lobby (docs/games/departure.md).
+        if (report && manifest.departure === "matched") report.stages.push(await checkDeparture({ page, browser, id, title: manifest.name ?? id, shots: join(source, ".check"), lobbyUrl }));
     } finally {
         await browser.close();
         server.close();
@@ -166,7 +173,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },

@@ -1,5 +1,4 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import {
     resolveLobbyAvatar,
@@ -28,6 +27,8 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { useGameDeparture } from "./useGameDeparture";
+import { readPartyLeave } from "./gamePartyLeave";
 
 const PEER_INTERVAL = 100;
 
@@ -76,7 +77,6 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const title = `${game.title} · ${game.tagline}`;
     const { userData, user, authenticated, isAnonymous } =
         useContext(UserContext);
-    const router = useRouter();
     const profile = useRef({ userData, user, authenticated, isAnonymous });
     profile.current = { userData, user, authenticated, isAnonymous };
     const frame = useRef<HTMLIFrameElement>(null);
@@ -99,10 +99,16 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
-    const leave = useRef(() => {
-        document.exitPointerLock?.();
-        if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
+    // Every way out asks the game for its last frame first (gameDeparture.ts).
+    const departure = useGameDeparture({
+        game: GAME,
+        frame,
+        ready,
+        room,
+        inParty: !!party,
+        name: identity?.name || "Someone",
     });
+    const leave = useRef(departure.leave);
 
     // Lifecycle and identity: the game says hello, gets the identity, then says ready.
     useEffect(() => {
@@ -184,7 +190,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
         const unregister = registerLobbyDestinationEntry(
             async () => {},
             disposeGame,
-            { prepareReveal: stageArrival }
+            { prepareReveal: stageArrival, depart: departure.depart }
         );
         if (inJourney) {
             void waitForLobbyDestinationEntry(entryLifetime.signal)
@@ -324,15 +330,19 @@ export default function GamePage({ game }: { game: GameEntry }) {
             roomLabel
         );
         if (relay)
-            gameRoom.onRelay((from, data) =>
-                send.current({ type: `${GAME}:net`, from, data })
+            gameRoom.onRelay(
+                (from, data) =>
+                    departure.relayed(from, data) ||
+                    send.current({ type: `${GAME}:net`, from, data })
             );
         setRoom(gameRoom);
         void gameRoom.connect();
         const receive = (event: MessageEvent) => {
             if (!fromGame(event)) return;
             if (relay && event.data?.type === `${GAME}:net`) {
-                gameRoom.relay(event.data.data);
+                // Party notices are the page's to send, not the game's.
+                if (!readPartyLeave(event.data.data))
+                    gameRoom.relay(event.data.data);
                 return;
             }
             if (event.data?.type !== `${GAME}:pose`) return;
@@ -394,7 +404,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     display: "block",
                 }}
             />
-            {ready && !error && roomLabel && (
+            {departure.offer}
+            {ready && !error && roomLabel && !departure.leaving && (
                 <div
                     role="group"
                     aria-label="Game social controls"
