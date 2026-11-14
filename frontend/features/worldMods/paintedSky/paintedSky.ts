@@ -11,7 +11,8 @@ import {
     type Material,
     type Object3D,
 } from "three/webgpu";
-import { attribute, modelViewProjection } from "three/tsl";
+import { attribute } from "three/tsl";
+import { skyClipPosition } from "@components/_3DExhibit-v2/three/factory/background/materials/skyPosition";
 import { RenderDemand } from "@components/_3DExhibit-v2/three/utils/renderDemand";
 import {
     backstopColours,
@@ -107,7 +108,7 @@ export function createBackstop(instances: StrokeInstances, coarse: number) {
     material.fog = false;
     material.transparent = true;
     material.depthWrite = false;
-    material.vertexNode = modelViewProjection.setZ(modelViewProjection.w);
+    material.vertexNode = skyClipPosition();
     material.colorNode = attribute("color", "vec3");
     const mesh = new Mesh(geometry, material);
     mesh.name = "paintedSkyBackstop";
