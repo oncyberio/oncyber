@@ -28,6 +28,7 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import { createHud } from "./hud.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
@@ -1549,6 +1550,7 @@ host.on("dispose", () => {
     sound.stopAudio(audio);
     input.dispose();
     renderer.dispose();
+    hud.dispose();
     host.dispose();
 });
 
@@ -1561,9 +1563,13 @@ const unlock = () => {
 window.addEventListener("pointerdown", unlock, { once: true });
 window.addEventListener("keydown", unlock, { once: true });
 
+// Safe-area insets from the page, and where the HUD is for the checks.
+const hud = createHud(state);
+
 // Read-only diagnostics for automated checks.
 window.__ace = {
     state,
+    inspect: hud.inspect,
     get engine() {
         return state.engine;
     },

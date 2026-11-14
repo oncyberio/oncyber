@@ -32,6 +32,7 @@
         <div id="title" class="screen">
             <button
                 id="lobby"
+                data-hud="title-lobby"
                 class="chip corner"
                 hidden
                 aria-label="Back to lobby"
@@ -53,13 +54,13 @@
                 </svg>
                 Lobby
             </button>
-            <div class="logo">
+            <div class="logo" data-hud="title-logo">
                 <span class="logo-a">A</span><span class="logo-c">C</span
                 ><span class="logo-e">E</span
                 ><span class="logo-bang"><i></i></span>
             </div>
             <p class="tagline">TENNIS CLUB</p>
-            <nav class="menu" id="main-menu">
+            <nav class="menu" id="main-menu" data-hud="title-menu">
                 <button class="pill big" data-action="play">Play match</button>
                 <button class="pill" data-action="howto">How to play</button>
                 <button class="pill" data-action="sound">
@@ -73,7 +74,7 @@
         </div>
 
         <div id="arrive" class="screen">
-            <nav class="menu row" id="arrive-menu">
+            <nav class="menu row" id="arrive-menu" data-hud="arrive-menu">
                 <button class="pill big focus" data-action="play">
                     Play match
                 </button>
@@ -86,7 +87,7 @@
             </p>
         </div>
         <div id="party" class="screen">
-            <div class="card">
+            <div class="card" data-hud="party-card">
                 <h2 id="party-title">Your party</h2>
                 <p class="party-names" id="party-names"></p>
                 <div class="party-formats" id="party-formats"></div>
@@ -101,7 +102,7 @@
             </div>
         </div>
         <div id="setup" class="screen">
-            <div class="card">
+            <div class="card" data-hud="setup-card">
                 <h2>Match setup</h2>
                 <div class="field">
                     <span class="label">Opponent</span>
@@ -136,7 +137,7 @@
         </div>
 
         <div id="howto" class="screen">
-            <div class="card wide">
+            <div class="card wide" data-hud="howto-card">
                 <h2>How to play</h2>
                 <div class="howto-grid">
                     <div class="tip">
@@ -206,7 +207,7 @@
         </div>
 
         <div id="hud" class="screen hud">
-            <div class="scoreboard" id="scoreboard">
+            <div class="scoreboard" id="scoreboard" data-hud="scoreboard">
                 <div class="sb-row" data-who="0">
                     <span class="sb-serve"></span
                     ><span class="sb-face" id="sb-face-0"></span
@@ -222,7 +223,12 @@
                     ><span class="sb-points" id="sb-points-1">0</span>
                 </div>
             </div>
-            <button id="pause-btn" class="chip round" aria-label="Pause">
+            <button
+                id="pause-btn"
+                class="chip round"
+                aria-label="Pause"
+                data-hud="pause"
+            >
                 <svg
                     viewBox="0 0 20 20"
                     width="16"
@@ -247,14 +253,14 @@
                     />
                 </svg>
             </button>
-            <div class="rally" id="rally">
+            <div class="rally" id="rally" data-hud="rally">
                 <b id="rally-count">0</b><span>rally</span>
             </div>
             <div class="serve-gauge" id="serveGauge" aria-hidden="true">
                 <i class="sg-fill"></i>
             </div>
-            <div class="hint" id="hint"></div>
-            <div class="banner" id="banner"></div>
+            <div class="hint" id="hint" data-hud="hint"></div>
+            <div class="banner" id="banner" data-hud="banner"></div>
             <div class="callout" id="callout"></div>
             <div class="grade" id="grade"></div>
         </div>
@@ -272,7 +278,7 @@
         </div>
 
         <div id="pause" class="screen">
-            <div class="card">
+            <div class="card" data-hud="pause-card">
                 <h2>Paused</h2>
                 <nav class="menu" id="pause-menu">
                     <button class="pill big" data-action="resume">
@@ -295,7 +301,7 @@
         </div>
 
         <div id="results" class="screen">
-            <div class="card">
+            <div class="card" data-hud="results-card">
                 <h2 id="result-title">You win!</h2>
                 <p class="result-score" id="result-score">2 – 1</p>
                 <div class="stats" id="stats"></div>
@@ -310,7 +316,7 @@
 
         <div class="touch-pad" aria-hidden="true">
             <div class="touch-stick"><div class="touch-knob"></div></div>
-            <div class="touch-buttons">
+            <div class="touch-buttons" data-hud="touch-buttons">
                 <button data-shot="drop" class="t-drop">Drop</button>
                 <button data-shot="lob" class="t-lob">Lob</button>
                 <button data-shot="topspin" class="t-spin">Top</button>

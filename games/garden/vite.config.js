@@ -41,6 +41,7 @@ export default defineConfig({
     plugins: [lobbyFiles, devLog],
     resolve: {
         alias: [
+            { find: /^@oncyber\/game-runtime\/safe-area$/, replacement: `${runtime}/safe-area.ts` },
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
             { find: /^@oncyber\/game-runtime$/, replacement: `${runtime}/index.ts` },

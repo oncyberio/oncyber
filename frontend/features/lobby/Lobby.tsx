@@ -1635,6 +1635,7 @@ export default function Lobby({
             )}
             <LobbyConversationSurface
                 ref={socialElement}
+                data-game-overlay="party-chat"
                 data-search={exploreOpen || undefined}
                 data-entered={away || undefined}
                 data-people={peopleOpen || undefined}

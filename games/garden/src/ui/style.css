@@ -969,3 +969,49 @@ body.is-touch .prompt .key {
 body.is-touch .prompt .p {
     padding-left: 14px;
 }
+
+/* ---------- safe area */
+/* The Oncyber page floats its controls and chat over the game and says how
+   far in they reach (--oncyber-safe-*, 0px standalone). The HUD layers and
+   everything pinned to the frame stay inside. See docs/games/safe-area.md. */
+body.ui .hud {
+    inset: var(--oncyber-safe-top, 0px) var(--oncyber-safe-right, 0px)
+        var(--oncyber-safe-bottom, 0px) var(--oncyber-safe-left, 0px);
+}
+body.ui .screen {
+    padding-top: var(--oncyber-safe-top, 0px);
+    padding-bottom: var(--oncyber-safe-bottom, 0px);
+    padding-left: max(
+        env(safe-area-inset-left, 0px),
+        var(--oncyber-safe-left, 0px)
+    );
+    padding-right: max(
+        env(safe-area-inset-right, 0px),
+        var(--oncyber-safe-right, 0px)
+    );
+}
+body.ui .card {
+    max-height: calc(
+        100vh - 40px - var(--oncyber-safe-top, 0px) -
+            var(--oncyber-safe-bottom, 0px)
+    );
+}
+body.ui .panel {
+    top: calc(64px + var(--oncyber-safe-top, 0px));
+    max-height: calc(
+        100vh - 80px - var(--oncyber-safe-top, 0px) -
+            var(--oncyber-safe-bottom, 0px)
+    );
+}
+body.ui .touch-buttons {
+    right: calc(18px + var(--oncyber-safe-right, 0px));
+    bottom: calc(80px + var(--oncyber-safe-bottom, 0px));
+}
+/* One reading of every panel's box for the check (main.js). */
+body.hud-measure .screen.modal {
+    display: flex;
+}
+body.hud-measure #match[hidden],
+body.hud-measure #details[hidden] {
+    display: block !important;
+}

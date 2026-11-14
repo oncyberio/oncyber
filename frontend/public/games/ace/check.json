@@ -1,30 +1,421 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:14:16.539Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1797575,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-pPnuW2w7.js",
+      "bytes": 947569
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "safeArea": {
+    "status": "passed",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 24,
+            "y": 658,
+            "width": 340,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-lobby",
+            "x": 18,
+            "y": 65,
+            "width": 108,
+            "height": 41
+          },
+          {
+            "id": "title-logo",
+            "x": 392,
+            "y": 82,
+            "width": 495.9,
+            "height": 189
+          },
+          {
+            "id": "title-menu",
+            "x": 470,
+            "y": 345,
+            "width": 340,
+            "height": 215
+          },
+          {
+            "id": "arrive-menu",
+            "x": 366.5,
+            "y": 500,
+            "width": 547.1,
+            "height": 71
+          },
+          {
+            "id": "party-card",
+            "x": 380,
+            "y": 253,
+            "width": 520,
+            "height": 207
+          },
+          {
+            "id": "setup-card",
+            "x": 380,
+            "y": 99.5,
+            "width": 520,
+            "height": 514
+          },
+          {
+            "id": "howto-card",
+            "x": 230,
+            "y": 55,
+            "width": 820,
+            "height": 603
+          },
+          {
+            "id": "scoreboard",
+            "x": 16,
+            "y": 63,
+            "width": 274,
+            "height": 99
+          },
+          {
+            "id": "pause",
+            "x": 1220,
+            "y": 63,
+            "width": 44,
+            "height": 44
+          },
+          {
+            "id": "rally",
+            "x": 587.1,
+            "y": 67,
+            "width": 105.8,
+            "height": 44
+          },
+          {
+            "id": "hint",
+            "x": 622,
+            "y": 626,
+            "width": 36,
+            "height": 20
+          },
+          {
+            "id": "banner",
+            "x": 615,
+            "y": 158.4,
+            "width": 50,
+            "height": 22
+          },
+          {
+            "id": "pause-card",
+            "x": 380,
+            "y": 111.5,
+            "width": 520,
+            "height": 490
+          },
+          {
+            "id": "results-card",
+            "x": 380,
+            "y": 195,
+            "width": 520,
+            "height": 323
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 782,
+            "width": 280,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-lobby",
+            "x": 18,
+            "y": 65,
+            "width": 108,
+            "height": 41
+          },
+          {
+            "id": "title-logo",
+            "x": 81.7,
+            "y": 201.8,
+            "width": 226.7,
+            "height": 86.4
+          },
+          {
+            "id": "title-menu",
+            "x": 35.1,
+            "y": 349.2,
+            "width": 319.8,
+            "height": 215
+          },
+          {
+            "id": "arrive-menu",
+            "x": 0,
+            "y": 552,
+            "width": 390,
+            "height": 143
+          },
+          {
+            "id": "party-card",
+            "x": 15.6,
+            "y": 320,
+            "width": 358.8,
+            "height": 197
+          },
+          {
+            "id": "setup-card",
+            "x": 15.6,
+            "y": 151,
+            "width": 358.8,
+            "height": 535
+          },
+          {
+            "id": "howto-card",
+            "x": 11.7,
+            "y": 55,
+            "width": 366.6,
+            "height": 727
+          },
+          {
+            "id": "scoreboard",
+            "x": 16,
+            "y": 63,
+            "width": 228,
+            "height": 99
+          },
+          {
+            "id": "pause",
+            "x": 330,
+            "y": 63,
+            "width": 44,
+            "height": 44
+          },
+          {
+            "id": "rally",
+            "x": 142.1,
+            "y": 67,
+            "width": 105.8,
+            "height": 44
+          },
+          {
+            "id": "banner",
+            "x": 170,
+            "y": 185.7,
+            "width": 50,
+            "height": 22
+          },
+          {
+            "id": "pause-card",
+            "x": 15.6,
+            "y": 178.5,
+            "width": 358.8,
+            "height": 480
+          },
+          {
+            "id": "results-card",
+            "x": 15.6,
+            "y": 262,
+            "width": 358.8,
+            "height": 313
+          },
+          {
+            "id": "touch-buttons",
+            "x": 132,
+            "y": 606,
+            "width": 238,
+            "height": 164
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone-landscape",
+        "width": 844,
+        "height": 390,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 328,
+            "width": 340,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-lobby",
+            "x": 18,
+            "y": 65,
+            "width": 108,
+            "height": 41
+          },
+          {
+            "id": "title-logo",
+            "x": 320.7,
+            "y": 112.9,
+            "width": 202.6,
+            "height": 77.2
+          },
+          {
+            "id": "title-menu",
+            "x": 208.1,
+            "y": 221.1,
+            "width": 427.8,
+            "height": 49
+          },
+          {
+            "id": "arrive-menu",
+            "x": 148.5,
+            "y": 170,
+            "width": 547.1,
+            "height": 71
+          },
+          {
+            "id": "party-card",
+            "x": 162,
+            "y": 88,
+            "width": 520,
+            "height": 207
+          },
+          {
+            "id": "setup-card",
+            "x": 162,
+            "y": 55,
+            "width": 520,
+            "height": 273
+          },
+          {
+            "id": "howto-card",
+            "x": 25.3,
+            "y": 55,
+            "width": 793.4,
+            "height": 273
+          },
+          {
+            "id": "scoreboard",
+            "x": 16,
+            "y": 63,
+            "width": 274,
+            "height": 99
+          },
+          {
+            "id": "pause",
+            "x": 784,
+            "y": 63,
+            "width": 44,
+            "height": 44
+          },
+          {
+            "id": "rally",
+            "x": 369.1,
+            "y": 67,
+            "width": 105.8,
+            "height": 44
+          },
+          {
+            "id": "banner",
+            "x": 397,
+            "y": 85.8,
+            "width": 50,
+            "height": 22
+          },
+          {
+            "id": "pause-card",
+            "x": 162,
+            "y": 55,
+            "width": 520,
+            "height": 273
+          },
+          {
+            "id": "results-card",
+            "x": 162,
+            "y": 55,
+            "width": 520,
+            "height": 273
+          },
+          {
+            "id": "touch-buttons",
+            "x": 586,
+            "y": 152,
+            "width": 238,
+            "height": 164
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      }
+    ],
+    "findings": []
+  },
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2593,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2593
       }
     ],
     "frames": null,

@@ -53,6 +53,8 @@ export const GAMES: Record<string, GameEntry> = {
         room: null,
         relay: false,
         crowdLabel: "",
+        // Ace lays its HUD out below the page's safe-area band.
+        controlsStyle: { top: 14 },
     },
 };
 

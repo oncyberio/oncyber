@@ -68,9 +68,16 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. |
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
+| page        | `safe-area`                | `{ insets, width, height }`: how far in the page's controls and chat reach, in CSS pixels ([games/safe-area.md](games/safe-area.md)).                                                             |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
+
+## Screen space
+
+The page floats its controls and chat over the frame. Keep the HUD and menus
+inside the safe-area insets it sends, and report where they are so the check
+can prove it: [games/safe-area.md](games/safe-area.md).
 
 ## Parties
 
@@ -128,7 +135,9 @@ with `?check`, and the game (through `runCheck` in
 `games/runtime/src/check.ts`) plays its scenario, suspends, restores, then
 measures 180 frames. The script adds the bundle's size and declared files,
 console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
-writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
+writes `check.json`. A safe-area stage then reopens the game under the page's
+overlays at desktop and phone sizes and fails if the HUD sits under one.
+Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
 
