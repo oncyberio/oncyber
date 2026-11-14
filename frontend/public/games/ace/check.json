@@ -1,30 +1,88 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:34:48.550Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1815326,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-tp1NjWs8.js",
+      "bytes": 966933
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "party": {
+    "status": "passed",
+    "ms": 50345,
+    "options": {
+      "1": [
+        "solo"
+      ],
+      "2": [
+        "singles",
+        "solo"
+      ],
+      "3": [
+        "tournament",
+        "solo"
+      ],
+      "4": [
+        "doubles",
+        "tournament",
+        "solo"
+      ],
+      "5-8": [
+        "tournament",
+        "solo"
+      ]
+    },
+    "drops": [
+      {
+        "dropped": "guest",
+        "packetsPerSecond": {
+          "a": 4.6,
+          "b": 3.5
+        },
+        "largestPacket": 211,
+        "refused": 0,
+        "after": {
+          "role": "authority",
+          "authority": "a",
+          "standIns": [
+            "b"
+          ]
+        }
+      },
+      {
+        "dropped": "host",
+        "packetsPerSecond": {
+          "a": 6.2,
+          "b": 5
+        },
+        "largestPacket": 213,
+        "refused": 0,
+        "after": {
+          "role": "authority",
+          "authority": "b",
+          "standIns": [
+            "a"
+          ]
+        }
+      }
+    ]
+  },
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2329,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2329
       }
     ],
     "frames": null,

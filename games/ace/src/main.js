@@ -28,7 +28,13 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
-import { buildLineup, partyFormats, sideLabel } from "./party.js";
+import {
+    buildLineup,
+    partyFormats,
+    sideLabel,
+} from "@oncyber/game-runtime/party";
+import { matchAuthority } from "@oncyber/game-runtime/roster";
+import { createDuel } from "./duel.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
@@ -47,11 +53,17 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true,
     powerPreference: "high-performance",
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// The party check runs two copies side by side on a software renderer and
+// is about who plays whom, not pixels: draw small and skip the shadows.
+const PARTY_CHECK =
+    new URLSearchParams(location.search).get("check") === "party";
+renderer.setPixelRatio(
+    PARTY_CHECK ? 0.3 : Math.min(window.devicePixelRatio || 1, 2)
+);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !PARTY_CHECK;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xcfeaff, 90, 320);
@@ -392,10 +404,49 @@ window.addEventListener("pointercancel", endArriveDrag);
 // draw matches on every screen); until then, the members the lobby named.
 function partyPlayers() {
     const name = `${state.identity.name || "You"} (you)`;
-    if (host.selfId && host.roster.length)
-        return [{ id: host.selfId, name }, ...host.roster];
-    return [{ id: "self", name }, ...host.party.members];
+    const roster = host.link.roster;
+    const seated = roster.members.filter((m) => m.seat === "player");
+    if (roster.self && seated.length > 1)
+        return seated.map((m) => ({
+            id: m.id,
+            name: m.id === roster.self ? name : m.name,
+        }));
+    return [{ id: "self", name }, ...(host.party?.members ?? [])];
 }
+
+const memberName = (id) =>
+    host.link.roster.members.find((m) => m.id === id)?.name ?? "Player";
+
+/** What this visitor can pick right now, best first; solo is always last. */
+function partyOptions() {
+    const roster = host.link.roster;
+    // Past the eighth arrival a member watches or plays the house.
+    const watching =
+        roster.members.find((m) => m.id === roster.self)?.seat === "spectator";
+    const count = host.party ? (watching ? 1 : partyPlayers().length) : 1;
+    const formats = partyFormats(count, {
+        label: host.party ? "Solo vs CPU" : "Play match",
+        blurb: "A match against the house.",
+    });
+    if (duel.mine)
+        formats.unshift({
+            id: "rejoin",
+            label: "Rejoin your match",
+            blurb: `Take your side back against ${memberName(duel.mine.from)}.`,
+            solo: false,
+        });
+    if (duel.live)
+        formats.unshift({
+            id: "watch",
+            label: `Watch ${duel.live.players.map(memberName).join(" v ")}`,
+            blurb: "Sit courtside for the match being played.",
+            solo: false,
+        });
+    return formats;
+}
+
+/** The offers that come and go with other members' matches. */
+const partyOffers = () => `${!!duel.live}${!!duel.mine}`;
 
 function goParty() {
     state.screen = "party";
@@ -403,7 +454,8 @@ function goParty() {
     const everyone = partyPlayers();
     $("#party-title").textContent = `Party of ${everyone.length}`;
     $("#party-names").textContent = everyone.map((p) => p.name).join(" · ");
-    const formats = partyFormats(everyone.length);
+    const formats = partyOptions();
+    state.partyOffers = partyOffers();
     const list = $("#party-formats");
     list.replaceChildren(
         ...formats.map((format, index) => {
@@ -423,9 +475,22 @@ function goParty() {
     state.partyFormat = null;
 }
 
+const PARTY_NOTE =
+    "The draw is ready. Playing it through is the next step; 1 v 1 between two is live.";
+function partyNote(text) {
+    $("#party-note").textContent = text;
+    $("#party-note").hidden = !text;
+}
+
 function choosePartyFormat(format) {
-    if (format === "cpu") return goSetup();
-    const lineup = buildLineup(format, partyPlayers(), host.party.id);
+    if (format !== "singles") duel.cancel();
+    if (format === "solo") return goSetup();
+    if (format === "watch" || format === "rejoin") {
+        if (!(format === "watch" ? duel.watch() : duel.rejoin())) goParty();
+        return;
+    }
+    const everyone = partyPlayers();
+    const lineup = buildLineup(format, everyone, host.party.id);
     if (!lineup) return;
     state.partyFormat = format;
     const box = $("#party-lineup");
@@ -450,10 +515,151 @@ function choosePartyFormat(format) {
         })
     );
     box.hidden = false;
-    $("#party-note").hidden = false;
+    if (format === "singles") {
+        // Both pick it, then the match starts on both screens.
+        const other = everyone.find((p) => p.id !== host.link.roster.self);
+        const here = host.link.roster.members.length > 1;
+        partyNote(
+            here
+                ? `Waiting for ${other?.name ?? "the other player"} to pick 1 v 1…`
+                : `${other?.name ?? "The other player"} hasn't arrived yet. The match starts when they pick 1 v 1.`
+        );
+        duel.want(settings.games);
+    } else partyNote(PARTY_NOTE);
     document
         .querySelectorAll("#party-formats .pill")
         .forEach((b) => b.classList.toggle("focus", b.dataset.format === format));
+}
+
+// ------------------------------------------------------- 1 v 1 (duel.js)
+
+const duel = createDuel({
+    link: host.link,
+    pick: matchAuthority,
+    settings: () => settings,
+    hooks: {
+        start: (info) => startVersus(info),
+        note: (text) => versusNote(text),
+        over: () => {
+            // The match being watched ended or its players left.
+            state.versus = null;
+            if (host.party) goParty();
+            else goHome();
+        },
+    },
+});
+
+/** True while another person is on the far side (no pausing them). */
+const versusLive = () =>
+    duel.state === "playing" && !(duel.role === "authority" && duel.standIn);
+// Another member's name reaches the HUD through innerHTML in two places.
+const escapeHTML = (text) =>
+    String(text).replace(
+        /[&<>"']/g,
+        (c) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+    );
+const foeName = () =>
+    state.versus ? state.versus.names[1] : CPU_ROSTER[settings.difficulty].name;
+
+function versusNote(text) {
+    if (!text) return;
+    if (["playing", "pause", "intro"].includes(state.screen)) banner(text, 2400);
+    else if (state.screen === "party") partyNote(text);
+    else if (state.screen === "results") $("#result-note").textContent = text;
+}
+
+function startVersus({ role, players: ids, resume }) {
+    const roster = host.link.roster;
+    const member = (id) => roster.members.find((m) => m.id === id);
+    // Athlete 0 is this player; a spectator sees the authority's court.
+    const near = role === "watch" ? duel.authority() : roster.self;
+    const far = ids.find((id) => id !== near);
+    const me = state.identity;
+    const face = (id) => member(id)?.pfp || portrait(PALETTES[id === near ? 0 : 1]);
+    state.versus = {
+        role,
+        names: [
+            role === "watch" ? memberName(near) : me.name,
+            memberName(far),
+        ],
+        faces: [role === "watch" ? face(near) : me.pfp || face(near), face(far)],
+    };
+    state.attract = false;
+    state.paused = false;
+    state.engine = duel.engine;
+    players[0].racket.visible = true;
+    clearInput(input);
+    for (const w of [0, 1]) {
+        $(`#sb-name-${w}`).textContent = state.versus.names[w];
+        $(`#vs-name-${w}`).textContent = state.versus.names[w];
+        for (const el of [$(`#sb-face-${w}`), $(`#vs-face-${w}`)])
+            el.style.backgroundImage = `url("${state.versus.faces[w]}")`;
+    }
+    $("#vs-tag").textContent = role === "watch" ? "Watching" : "1 v 1";
+    $("#result-note").textContent = "";
+    refreshScore(false);
+    if (resume) {
+        // A change of hands mid-match: no intro, straight back to the court.
+        if (state.screen !== "pause") {
+            state.screen = "playing";
+            show("hud");
+        }
+        state.camMode = "play";
+        return;
+    }
+    setFoeLook(member(far));
+    state.rally = 0;
+    state.hintPoints = 0;
+    state.matchEndAt = 0;
+    resetTrail(fx);
+    if (role === "authority") state.engine.phase = "intro";
+    state.screen = "vs";
+    show("vs");
+    sound.startMusic(audio, "soft");
+    sound.sfxUI(audio, "stamp");
+    state.camMode = "intro";
+    resize();
+    state.camT = 0;
+    const engine = state.engine;
+    setTimeout(() => {
+        if (state.screen !== "vs" || state.engine !== engine) return;
+        show("hud");
+        state.screen = "intro";
+        callout("READY?", "yellow");
+        sound.sfxCall(audio, "ready");
+        setTimeout(() => {
+            if (state.screen !== "intro" || state.engine !== engine) return;
+            callout("PLAY!", "green");
+            sound.sfxCall(audio, "go");
+            sound.startMusic(audio, "match");
+            sound.setCrowd(audio, 0.35);
+            cheer(world, 0.8);
+            state.screen = "playing";
+            if (duel.role === "authority" && engine.phase === "intro") {
+                engine.phase = "setup";
+                engine.phaseTime = 0;
+            }
+            state.camMode = "play";
+        }, 1100);
+    }, 1900);
+}
+
+/** The other player's body: their avatar when it loads, else the toy one. */
+let foeLook = 0;
+function setFoeLook(member) {
+    const fresh = createCharacter(PALETTES[1]);
+    scene.remove(players[1].root);
+    players[1] = fresh;
+    scene.add(fresh.root);
+    const mine = ++foeLook;
+    if (!member?.avatarUrl) return;
+    loadVRM(member.avatarUrl, renderer)
+        .then((vrm) => {
+            if (mine !== foeLook || players[1] !== fresh) return;
+            attachVRM(fresh, vrm);
+        })
+        .catch(() => {});
 }
 
 function goSetup() {
@@ -494,6 +700,8 @@ function refreshSetup() {
 }
 
 function startAttract() {
+    if (duel.state === "playing") duel.leave();
+    state.versus = null;
     state.attract = true;
     if (players) players[0].racket.visible = true;
     state.engine = createEngine({
@@ -509,6 +717,9 @@ function startAttract() {
 }
 
 function startGame() {
+    if (duel.state !== "idle") duel.leave();
+    state.versus = null;
+    foeLook++;
     setCpuLook(settings.difficulty);
     state.attract = false;
     players[0].racket.visible = true;
@@ -567,7 +778,8 @@ function startGame() {
 
 function pauseGame() {
     if (state.screen !== "playing") return;
-    state.paused = true;
+    // Another person is playing: the menu opens over a match that goes on.
+    state.paused = !versusLive();
     state.screen = "pause";
     sound.chargeStop(audio);
     show("hud", "pause");
@@ -617,7 +829,10 @@ function action(name) {
             if (state.screen === "howto" && howtoReturn === "pause") {
                 state.screen = "pause";
                 show("hud", "pause");
-            } else goHome();
+            } else {
+                duel.cancel();
+                goHome();
+            }
             break;
         case "start":
             sound.sfxUI(audio, "ok");
@@ -633,6 +848,8 @@ function action(name) {
         case "quit":
         case "menu":
             sound.sfxUI(audio, "back");
+            if (duel.state !== "idle") duel.leave();
+            state.versus = null;
             goHome();
             break;
         case "lobby":
@@ -640,7 +857,11 @@ function action(name) {
             break;
         case "rematch":
             sound.sfxUI(audio, "ok");
-            startGame();
+            // Against a person who is still here, both ask again.
+            if (state.versus && state.versus.role !== "watch" && !duel.standIn) {
+                duel.want(settings.games);
+                $("#result-note").textContent = `Waiting for ${foeName()}…`;
+            } else startGame();
             break;
         default:
             break;
@@ -673,7 +894,9 @@ $("#pause-btn").addEventListener("click", () => {
 $("#lobby").hidden = !host.embedded;
 $("#lobby").addEventListener("click", () => host.exit());
 document.addEventListener("visibilitychange", () => {
-    if (document.hidden && !AUTOPLAY) pauseGame();
+    // A hidden tab draws no frames: tell the other player before it stops.
+    duel.hidden(document.hidden);
+    if (document.hidden && !AUTOPLAY && !CHECK) pauseGame();
 });
 
 function menuNav(name, dir) {
@@ -985,7 +1208,7 @@ function handleEvents(events) {
                             label.leader === 0 ? "red" : "blue",
                             label.leader === 0
                                 ? state.identity.name
-                                : CPU_ROSTER[settings.difficulty].name
+                                : escapeHTML(foeName())
                         );
                     } else {
                         const m = e0.match;
@@ -1045,13 +1268,17 @@ function showResults() {
     const e = state.engine;
     const m = e.match;
     const won = m.winner === 0;
+    $("#result-note").textContent = "";
     state.screen = "results";
     show("results");
     focusMenu("results", 0);
     sound.startMusic(audio, "title");
-    $("#result-title").textContent = won
+    const watching = state.versus?.role === "watch";
+    $("#result-title").textContent = watching
+        ? `${state.versus.names[m.winner ?? 0]} wins!`
+        : won
         ? "You win!"
-        : `${CPU_ROSTER[settings.difficulty].name} wins!`;
+        : `${foeName()} wins!`;
     $("#result-title").style.color = won ? "var(--red)" : "var(--blue)";
     $("#result-score").textContent = `${m.games[0]} – ${m.games[1]}`;
     const s = m.stats;
@@ -1065,9 +1292,7 @@ function showResults() {
         `<span class="h"></span><span class="h v">${state.identity.name.slice(
             0,
             8
-        )}</span><span class="h v">${
-            CPU_ROSTER[settings.difficulty].name
-        }</span>` +
+        )}</span><span class="h v">${escapeHTML(foeName().slice(0, 8))}</span>` +
         rows
             .map(
                 ([k, a, b]) =>
@@ -1090,8 +1315,16 @@ const freezeRng = () => 0.25;
 
 // ?autoplay drives the human through the normal input path (visual QA).
 const AUTOPLAY = new URLSearchParams(location.search).has("autoplay");
+// Under `pnpm games:check` nobody is at the keyboard: a 1 v 1 plays itself.
+const CHECK = new URLSearchParams(location.search).has("check");
 const bot = { pressed: -1 };
 let TIME_SCALE = Number(new URLSearchParams(location.search).get("slow")) || 1;
+const IDLE_INPUT = {
+    move: { x: 0, z: 0 },
+    aim: { x: 0, y: 0 },
+    press: null,
+    release: false,
+};
 function botInput() {
     const e = state.engine;
     const h = e.athletes[0];
@@ -1107,7 +1340,15 @@ function botInput() {
         e.ball.v.y > -0.4
     )
         press = "flat";
-    if (e.phase === "rally" && e.rally.lastHitter === 1 && e.ball.v.z > 0) {
+    // Against another bot (a check's 1 v 1) it lets every sixth ball go,
+    // or the rally would never end.
+    const tired = duel.state === "playing" && e.hitCount % 6 === 5;
+    if (
+        e.phase === "rally" &&
+        e.rally.lastHitter === 1 &&
+        e.ball.v.z > 0 &&
+        !tired
+    ) {
         if (
             bot.pressed !== e.hitCount &&
             (h.z - e.ball.p.z) / Math.max(1, e.ball.v.z) < 0.85
@@ -1127,7 +1368,8 @@ function botInput() {
 }
 
 function humanInput(raw) {
-    if (AUTOPLAY) return botInput();
+    if (state.versus?.role === "watch") return IDLE_INPUT;
+    if (AUTOPLAY || (CHECK && duel.state === "playing")) return botInput();
     // Camera sits behind the near baseline: screen up is -z, screen right is +x.
     const move = { x: raw.x, z: -raw.y };
     let press = null;
@@ -1290,7 +1532,9 @@ function poseAll(dt) {
         let view = ath;
         // The CPU visibly winds up as the ball approaches.
         if (i === 1 || state.attract) {
-            const brain = i === 1 ? e.brain : e.autoBrain;
+            // A person on the far side poses from what they are doing.
+            const brain =
+                i === 1 ? (e.rival || e.remote ? null : e.brain) : e.autoBrain;
             const plan = brain?.plan;
             const coming =
                 ball.v.z * ath.dir < 0 && e.phase === "rally" && !ball.held;
@@ -1374,6 +1618,7 @@ function updateServeGauge(dt) {
 
 function hints() {
     if (state.attract || state.screen !== "playing") return;
+    if (state.versus?.role === "watch") return setHint("");
     const e = state.engine;
     if (e.phase === "serve" || e.phase === "toss") {
         if (e.match.server === 0)
@@ -1398,7 +1643,26 @@ function frame() {
     const e = state.engine;
     if (!e || !world) return;
     const live = state.screen === "playing" || state.attract;
-    if (state.screen === "playing" && !state.paused) {
+    // A 1 v 1 runs through the duel, whatever menu is open over it.
+    const versus = duel.state === "playing" && e === duel.engine;
+    if (state.screen === "party" && state.partyOffers !== partyOffers()) {
+        const format = state.partyFormat;
+        goParty();
+        if (format && partyOptions().some((f) => f.id === format))
+            choosePartyFormat(format);
+    }
+    // In menus this only keeps the channel alive (a pick, a watch offer).
+    if (!versus) duel.frame(IDLE_INPUT, dt);
+    if (versus) {
+        const playing = state.screen === "playing";
+        handleEvents(
+            duel.frame(
+                playing ? humanInput(raw) : IDLE_INPUT,
+                dt,
+                state.screen === "pause" && state.paused
+            )
+        );
+    } else if (state.screen === "playing" && !state.paused) {
         const events = update(e, humanInput(raw), dt);
         handleEvents(events);
     } else if (state.attract) {
@@ -1415,7 +1679,7 @@ function frame() {
         // Players warm up in place.
         for (const a of e.athletes) a.stateTime += dt;
     }
-    if (state.screen === "pause") dt = 0.0001;
+    if (state.screen === "pause" && state.paused) dt = 0.0001;
     if (
         state.matchEndAt &&
         performance.now() > state.matchEndAt &&
@@ -1424,7 +1688,7 @@ function frame() {
         state.matchEndAt = 0;
         showResults();
     }
-    if (state.screen === "results") {
+    if (state.screen === "results" && !versus) {
         // Keep the celebration going behind the card.
         update(
             e,
@@ -1537,7 +1801,7 @@ host.on("party", () => {
     if (!host.party) return goHome();
     const format = state.partyFormat;
     goParty();
-    if (format && partyFormats(partyPlayers().length).some((f) => f.id === format))
+    if (format && partyOptions().some((f) => f.id === format))
         choosePartyFormat(format);
 });
 host.on("arrival", (view) => {
@@ -1561,6 +1825,35 @@ const unlock = () => {
 window.addEventListener("pointerdown", unlock, { once: true });
 window.addEventListener("keydown", unlock, { once: true });
 
+// What `pnpm games:check` asks about party play (docs/games/party.md).
+host.link.report(() => {
+    const e = state.engine;
+    const inMatch = ["vs", "intro", "playing", "pause"].includes(state.screen);
+    const self = host.link.roster.self || "self";
+    return {
+        options: partyOptions().map((f) => ({ id: f.id, solo: f.solo })),
+        phase: inMatch ? "match" : state.screen === "results" ? "results" : "menu",
+        match:
+            duel.describe() ??
+            (inMatch && e && !state.attract
+                ? {
+                      format: "solo",
+                      players: [self],
+                      authority: self,
+                      role: "solo",
+                      progress: Math.round(e.time * 10),
+                      standIns: [],
+                  }
+                : null),
+    };
+});
+host.link.on("choose", (option) => {
+    if (!booted) return;
+    if (option === "solo" || !host.party) return startGame();
+    goParty();
+    if (partyOptions().some((f) => f.id === option)) choosePartyFormat(option);
+});
+
 // Read-only diagnostics for automated checks.
 window.__ace = {
     state,
@@ -1568,6 +1861,8 @@ window.__ace = {
         return state.engine;
     },
     action,
+    duel,
+    link: host.link,
     set timeScale(v) {
         TIME_SCALE = v;
     },

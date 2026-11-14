@@ -17,4 +17,6 @@ interface JoinParams {
     VRM: string;
     /** World access proof for a password-gated world (identity/worldAccess.ts). */
     accessProof?: string;
+    /** Party rooms: the page's private seat key (rooms/cyber/match/roster.ts). */
+    matchKey?: string;
 }

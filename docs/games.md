@@ -20,6 +20,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
 
 ## The lifecycle
 
@@ -81,13 +82,22 @@ relay on. So a game always gets, for a party: the members the lobby named,
 then `self` and `peers` from the party's room (who actually arrived, with
 ids every member sees the same way), and `net` packets between them.
 
-What a game does with it is the game's choice. Ace offers formats by party
-size (`games/ace/src/party.js`): 1 v 1 for two, 2 v 2 or a tournament for
-four, a round robin for three, a knockout for five to eight, and always a
-solo match against the CPU. The draw is seeded by the party id and sorted by
-room id, so it is the same on every member's screen. Playing each other is
-not built yet: it needs a real-time match channel (the relay carries about
-five packets a second per player, enough for turn state, not for a rally).
+A party's room also carries its **roster** (`roster`: members in arrival
+order, the host, seats, who dropped and may come back) and a **real-time
+match channel** (`match`: about thirty small packets a second per member,
+limits enforced by the server), which the relay's five packets a second
+can't be. The runtime has the game's side of both, plus the shared formats
+and seeded draws (`games/runtime/src/partyLink.ts`, `roster.ts`, `match.ts`,
+`party.ts`).
+
+The rule for every game: state in `game.json` what a party of 1, 2, 3, 4
+and 5 to 8 is offered, always with a solo option, and what late, dropped
+and extra players get; `games:check` holds the game to it and drops a
+member mid-match. All of it, with the API: [games/party.md](games/party.md).
+
+Ace plays 1 v 1 between two party members this way (`games/ace/src/duel.js`):
+the CPU takes over a dropped player's side, and a third member can watch.
+Its doubles and tournaments show the seeded draw and are not played yet.
 
 On the development server, `/games/<id>?party=4` stands in for arriving
 with a party of four; open it in several windows to share the room.
@@ -97,7 +107,7 @@ with a party of four; open it in several windows to share the room.
 | Game                       | Page                                                                                 | Lifecycle | Check                       |
 | -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------- |
 | Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | not yet   | boot only                   |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room                 | not yet   | boot, party                 |
 | Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | boot only                   |
 
 Games without the lifecycle get a boot-only check: they must load, say
@@ -131,6 +141,9 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+Every game also gets the party stage ([games/party.md](games/party.md)): its
+`party` statement in `game.json`, the options it offers by party size, and a
+member dropped mid-match.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

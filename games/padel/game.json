@@ -1,4 +1,28 @@
 {
   "name": "Glasshouse \u00b7 Padel",
-  "avatar": "vrm"
+  "avatar": "vrm",
+  "party": {
+    "solo": "doubles",
+    "sizes": {
+      "1": [
+        "doubles"
+      ],
+      "2": [
+        "doubles"
+      ],
+      "3": [
+        "doubles"
+      ],
+      "4": [
+        "doubles"
+      ],
+      "5-8": [
+        "doubles"
+      ]
+    },
+    "shared": "Padel is one player with an NPC partner against two NPCs. Party members share the club and each plays their own match.",
+    "late": "Arrives in the club and starts their own match when they like.",
+    "dropped": "Nothing changes for the others: every match is local to its player.",
+    "extra": "No seats to run out of: each member plays their own match."
+  }
 }

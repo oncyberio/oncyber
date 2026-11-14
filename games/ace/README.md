@@ -19,11 +19,30 @@ returns here. A direct visit to `/games/ace` opens on the title screen instead.
 ## Parties
 
 When the visitor arrived with a party (`ace:party`, then the party room's
-`ace:self` and `ace:peers`), **Play match** opens the party's formats first:
-1 v 1, 2 v 2, a tournament, or a solo match against the CPU. `src/party.js`
-decides the formats and builds the draw. Head-to-head play is not built yet;
-the draw is shown, and the solo match works. Try it with `?party=4` on the
-development server.
+`ace:roster`), **Play match** opens the party's formats first: 1 v 1, 2 v 2, a
+tournament, or a solo match against the CPU. The formats and the seeded draw
+come from the game runtime (`games/runtime/src/party.ts`).
+
+**1 v 1 is played between the two members.** Both pick it; the party's host
+runs the engine and the other plays as its guest over the room's match
+channel, each seeing themselves on the near half.
+
+-   `src/duel.js`: who runs the match and what happens when someone comes or
+    goes. A player who drops, hides the tab or leaves is replaced by the CPU and
+    the match goes on; if they were running it, the other player takes it over
+    and the point is replayed. Coming back (a reconnect, or **Rejoin your match**
+    after a reload) returns their side with the score kept. A third member can
+    **Watch**.
+-   `src/versus.js`: the engine packed into a snapshot about thirty times a
+    second, the guest's view rebuilt from it, and the guest's input on the way
+    back.
+-   `test/duel.test.js` plays whole matches through an in-memory room.
+
+Doubles and tournaments show the draw; playing them through is not built yet.
+Try it with `/games/ace?party=2` in two windows on the development server
+(the room needs `multiplayer/` running: `npm --prefix multiplayer start`,
+`NEXT_PUBLIC_ARENA_URL=http://localhost:2567`). The rule every game follows
+for parties: [docs/games/party.md](../../docs/games/party.md).
 
 ## How it plays
 

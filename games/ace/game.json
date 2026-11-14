@@ -1,4 +1,34 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "party": {
+    "solo": "solo",
+    "sizes": {
+      "1": [
+        "solo"
+      ],
+      "2": [
+        "singles",
+        "solo"
+      ],
+      "3": [
+        "tournament",
+        "solo"
+      ],
+      "4": [
+        "doubles",
+        "tournament",
+        "solo"
+      ],
+      "5-8": [
+        "tournament",
+        "solo"
+      ]
+    },
+    "play": "singles",
+    "late": "A member who arrives while two others are mid-match is offered Watch (a courtside view of the live match) and Solo vs CPU. The party menu redraws its formats for the new count.",
+    "dropped": "The CPU takes a dropped player's side and the match goes on with the score kept. If the dropped player was running the match, the other takes it over and the point is replayed from the serve. Coming back while the match lasts (a reconnect, or Rejoin your match after a reload) returns their side to them.",
+    "extra": "A match seats two. Anyone else in the room can watch the live match or play solo against the CPU.",
+    "note": "1 v 1 is played between the two members. Doubles and tournaments show the seeded draw; playing them through is not built yet."
+  }
 }

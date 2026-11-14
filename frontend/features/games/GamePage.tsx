@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { MatchBridge, matchSeatKey } from "./gameMatch";
 
 const PEER_INTERVAL = 100;
 
@@ -309,6 +310,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 name: identity.name,
                 pfp: identity.pfp,
                 avatarUrl: identity.avatarUrl,
+                matchKey: party ? matchSeatKey() : undefined,
             },
             (state) => {
                 setRoomState(state);
@@ -327,10 +329,21 @@ export default function GamePage({ game }: { game: GameEntry }) {
             gameRoom.onRelay((from, data) =>
                 send.current({ type: `${GAME}:net`, from, data })
             );
+        // A party's room also carries its roster and the match channel.
+        const match = party
+            ? new MatchBridge((kind, data) =>
+                  send.current({ type: `${GAME}:${kind}`, ...data })
+              )
+            : null;
+        gameRoom.onRoom = (joined) => match?.attach(joined);
         setRoom(gameRoom);
         void gameRoom.connect();
         const receive = (event: MessageEvent) => {
             if (!fromGame(event)) return;
+            if (match && event.data?.type === `${GAME}:match`) {
+                match.send(event.data);
+                return;
+            }
             if (relay && event.data?.type === `${GAME}:net`) {
                 gameRoom.relay(event.data.data);
                 return;
@@ -356,7 +369,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             setRoomState(null);
             void gameRoom.close();
         };
-    }, [identity, roomLabel, relay]);
+    }, [identity, roomLabel, relay, Boolean(party)]);
 
     const voiceLabel =
         roomState?.voiceState === "live"
