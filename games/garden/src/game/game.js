@@ -34,7 +34,7 @@ import {
 } from "./minigames.js";
 import { RING } from "./arenas.js";
 import { resolveCamera, spring } from "./camera.js";
-import { createPeers, peerBloomlings, receivePacket, receivePeers, updatePeers } from "./peers.js";
+import { createPeers, peerBloomlings, receivePacket, receivePeers, setTalking, talkingCount, updatePeers } from "./peers.js";
 import { CRITTERS, FRUITS, GROW_AT } from "./sim.js";
 import { CAVE, FALLS, RACE_GATE, SPAWN, WATER, heightAt, ISLAND_RADIUS } from "./terrain.js";
 import { createWorld, isNight, updateWorld } from "./world.js";
@@ -267,6 +267,8 @@ export default function createGame(ctx) {
             if (peers.players.size > net.lastPeers) net.lookTimer = 0;
             net.lastPeers = peers.players.size;
         }
+        // Who is talking, from the page's voice: their name tag pulses.
+        if (Array.isArray(r.talking)) setTalking(peers, r.talking);
         for (const item of Array.isArray(r.inbox) ? r.inbox : []) {
             if (!item || typeof item.from !== "string" || typeof item.json !== "string") continue;
             let packet = null;
@@ -835,6 +837,7 @@ export default function createGame(ctx) {
                 avatar: avatar?.rig ? "vrm" : "toy",
                 online: net.online,
                 peers: peers ? peers.players.size : 0,
+                talking: peers ? talkingCount(peers) : 0,
                 offers: state.offers.length,
                 playerX: Math.round(player.x * 10) / 10,
                 playerZ: Math.round(player.z * 10) / 10,

@@ -69,6 +69,10 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
 
+Chat and voice are the page's: a game never builds its own. It may send
+`voice` (poses for spatial voice) and it receives `talking`. See
+[games/voice-chat.md](games/voice-chat.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
@@ -128,7 +132,10 @@ with `?check`, and the game (through `runCheck` in
 `games/runtime/src/check.ts`) plays its scenario, suspends, restores, then
 measures 180 frames. The script adds the bundle's size and declared files,
 console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
-writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
+writes `check.json`. A `social` stage then sends two visitors from a lobby
+into the game and checks their chat and voice came with them
+([games/voice-chat.md](games/voice-chat.md)). Boot, scenario, lifecycle,
+frames and social must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
 

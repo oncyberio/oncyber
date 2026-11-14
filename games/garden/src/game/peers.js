@@ -279,9 +279,26 @@ function sampleAt(samples, t) {
     return samples[samples.length - 1];
 }
 
+/** Room ids of the players the page's voice hears talking. */
+export function setTalking(P, ids) {
+    const talking = new Set(ids);
+    for (const [id, p] of P.players) p.talking = talking.has(id);
+}
+
+export function talkingCount(P) {
+    let count = 0;
+    for (const p of P.players.values()) if (p.talking) count++;
+    return count;
+}
+
 export function updatePeers(P, dt) {
     const now = performance.now() / 1000;
     for (const p of P.players.values()) {
+        // A talker's name tag swells and pulses.
+        const base = (p.tag.userData.base ||= p.tag.scale.clone());
+        p.tag.scale
+            .copy(base)
+            .multiplyScalar(p.talking ? 1.22 + 0.08 * Math.sin(now * 9) : 1);
         const s = sampleAt(p.samples, now - POSE_DELAY);
         if (s) {
             const moved = Math.hypot(s.x - p.x, s.z - p.z);

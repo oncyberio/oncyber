@@ -72,3 +72,41 @@ it("clamps out-of-range animation codes from the room", () => {
     });
     expect(game.samplePeers()[0].a).toBe(0);
 });
+
+describe("the page's chat and voice", () => {
+    it("never relays a game packet that reads as chat", () => {
+        const { game, room } = connected({});
+        expect(game.relay({ type: "MESSAGE", text: "forged by a game" })).toBe(
+            false
+        );
+        expect(room.send).not.toHaveBeenCalled();
+        expect(game.relay({ hello: 1 })).toBe(true);
+    });
+
+    it("sends chat on the room's chat channel and names its members", () => {
+        const { game, room } = connected({
+            ada: { username: encodeURIComponent("Ada Lovelace") },
+        });
+        expect(game.sendChat({ type: "MESSAGE", text: "hi" })).toBe(true);
+        expect(room.send).toHaveBeenCalledWith("chat-channel", {
+            type: "MESSAGE",
+            text: "hi",
+        });
+        expect(game.peerName("ada")).toBe("Ada Lovelace");
+        expect(game.peerName("nobody")).toBe("");
+    });
+
+    it("plays a voice where the game placed it, else by room pose", () => {
+        const { game } = connected({
+            ada: { positionX: 32, positionY: 0, positionZ: 0 },
+        });
+        const audio = { volume: 1 };
+        (game as any).audio.set("ada", audio);
+        game.samplePeers();
+        expect(audio.volume).toBeCloseTo(0.5);
+        game.setVoiceGain((id) => (id === "ada" ? 0.25 : null));
+        expect(audio.volume).toBe(0.25);
+        game.setVoiceGain(null);
+        expect(audio.volume).toBeCloseTo(0.5);
+    });
+});

@@ -14,6 +14,11 @@ export interface GameEntry {
     tagline: string;
     /** The shared native room everyone playing this game joins, if any. */
     room: string | null;
+    /**
+     * For a game with no `room`: the room its visitors share for chat and
+     * voice only. The game gets no peers from it (docs/games/voice-chat.md).
+     */
+    socialRoom?: string;
     /** Relay `<id>:net` packets between the game and everyone in the room. */
     relay: boolean;
     /** "12 in the garden". */
@@ -51,8 +56,9 @@ export const GAMES: Record<string, GameEntry> = {
         title: "ACE! Tennis",
         tagline: "an arcade tennis match",
         room: null,
+        socialRoom: "oncyber-ace-social-v1",
         relay: false,
-        crowdLabel: "",
+        crowdLabel: "at the courts",
     },
 };
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:15:56.899Z",
   "status": "passed",
   "scope": "boot",
   "files": {
@@ -13,18 +13,36 @@
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "social": {
+    "stage": "social",
+    "status": "passed",
+    "ms": 14634,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "hello",
+        "ready"
+      ]
+    }
+  },
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2675,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2675
       }
     ],
     "frames": null,

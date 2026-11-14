@@ -43,6 +43,7 @@ export default defineConfig({
         alias: [
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
+            { find: /^@oncyber\/game-runtime\/voice$/, replacement: `${runtime}/voice.ts` },
             { find: /^@oncyber\/game-runtime$/, replacement: `${runtime}/index.ts` },
         ],
     },

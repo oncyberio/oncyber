@@ -28,6 +28,8 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { useGameSocial } from "./useGameSocial";
+import GameChat from "./GameChat";
 
 const PEER_INTERVAL = 100;
 
@@ -87,7 +89,12 @@ export default function GamePage({ game }: { game: GameEntry }) {
     // with the relay on so its members can run matches between them.
     const [party, setParty] = useState<GameParty | null>(null);
     const partyRef = useRef<GameParty | null>(null);
-    const roomLabel = party ? partyRoomLabel(GAME, party.id) : sharedRoom;
+    // A game with no room of its own still has one for chat and voice; the
+    // game hears nothing of who is in it.
+    const roomLabel = party
+        ? partyRoomLabel(GAME, party.id)
+        : sharedRoom ?? game.socialRoom ?? null;
+    const playsInRoom = !!(party || sharedRoom);
     const relay = party ? true : game.relay;
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [roomState, setRoomState] = useState<GameRoomState | null>(null);
@@ -99,6 +106,14 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // Chat and voice are the page's: carried from the lobby, in this room.
+    const social = useGameSocial({
+        game: GAME,
+        send,
+        fromGame,
+        selfName: identity?.name,
+        room,
+    });
     const leave = useRef(() => {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
@@ -340,14 +355,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
             if (pose) gameRoom.setPose(pose);
         };
         window.addEventListener("message", receive);
-        const timer = setInterval(
-            () =>
-                send.current({
-                    type: `${GAME}:peers`,
-                    players: gameRoom.samplePeers(),
-                }),
-            PEER_INTERVAL
-        );
+        const timer = setInterval(() => {
+            const players = gameRoom.samplePeers();
+            if (playsInRoom) send.current({ type: `${GAME}:peers`, players });
+        }, PEER_INTERVAL);
         return () => {
             clearInterval(timer);
             window.removeEventListener("message", receive);
@@ -356,7 +367,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             setRoomState(null);
             void gameRoom.close();
         };
-    }, [identity, roomLabel, relay]);
+    }, [identity, roomLabel, relay, playsInRoom]);
 
     const voiceLabel =
         roomState?.voiceState === "live"
@@ -465,6 +476,12 @@ export default function GamePage({ game }: { game: GameEntry }) {
                         Lobby
                     </button>
                 </div>
+            )}
+            {ready && !error && roomLabel && (
+                <GameChat
+                    social={social}
+                    onClose={() => frame.current?.focus()}
+                />
             )}
             {roomState?.voiceError && ready && !error && (
                 <p
