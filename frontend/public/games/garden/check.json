@@ -1,8 +1,9 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:15:55.233Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
     "bytes": 1334557,
@@ -13,23 +14,43 @@
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:39583/games/garden/assets/index-ac7f7IRj.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
+  "contract": {
+    "listed": true,
+    "prefix": "garden:",
+    "version": 1,
+    "visit": {
+      "arrival": "lobby",
+      "party": 0
+    },
+    "warnings": [
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "src/host/host.js still says \"garden:<kind>\"; use connectPage() from @oncyber/game-runtime/page"
+      },
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "the build greets with \"garden:hello\"; rebuild it on connectPage() to speak \"oncyber:game:\""
+      }
+    ]
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1489,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1489
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 944
       },
       {
         "stage": "lifecycle",
@@ -39,14 +60,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,

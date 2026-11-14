@@ -1,5 +1,5 @@
-// What a party can play. Pure rules: the page tells the game who arrived
-// together (`ace:party`), and these decide the formats on offer and who
+// What a party can play. Pure rules: enter() says who travelled here
+// together (the trip), and these decide the formats on offer and who
 // meets whom. Renderer-free so the checks can run them.
 
 /** Formats for a party of `size` (the visitor included), best first. */

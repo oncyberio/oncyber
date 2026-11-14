@@ -12,7 +12,8 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
 const HEIGHT = 1.75;
 
-export async function loadVRM(url, renderer) {
+/** `bytes`: the avatar file (a VRM) as the host's avatar service returns it. */
+export async function loadVRM(bytes, renderer) {
     const manager = new THREE.LoadingManager();
     manager.setURLModifier((resource) => {
         if (resource.endsWith("basis_transcoder.js")) return basisScript;
@@ -29,7 +30,7 @@ export async function loadVRM(url, renderer) {
     loader.setKTX2Loader(ktx);
     loader.register((parser) => new VRMLoaderPlugin(parser));
     try {
-        const gltf = await loader.loadAsync(url);
+        const gltf = await loader.parseAsync(bytes, "");
         const vrm = gltf.userData.vrm;
         if (!vrm?.humanoid?.getNormalizedBoneNode("hips")) {
             VRMUtils.deepDispose(gltf.scene);

@@ -51,3 +51,14 @@ test("formats that don't fit the party return no lineup", () => {
     assert.equal(buildLineup("singles", players(4), "s"), null);
     assert.equal(buildLineup("cpu", players(2), "s"), null);
 });
+
+test("the formats on offer are the ones game.json declares for each party size", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { party } = JSON.parse(readFileSync(new URL("../game.json", import.meta.url), "utf8"));
+    for (let size = party.sizes[0]; size <= party.sizes[1]; size++)
+        assert.deepEqual(
+            ids(partyFormats(size)),
+            party.formats.filter((format) => format.sizes.includes(size)).map((format) => format.id),
+            `party of ${size}`
+        );
+});
