@@ -6,6 +6,7 @@ import "./compat";
 import {
 
 	WebGPURenderer,
+	Object3D,
 	PCFShadowMap,
 	SRGBColorSpace,
 
@@ -30,6 +31,8 @@ import {
 import { antialiasSamples, setRendererSamples } from "./rendererAntialias"
 
 import { forceWebGLForXR } from "./xr/xrBackend"
+
+import { stabiliseWebGLUniformBufferNames } from "./utils/glslUniformBufferNames"
 
 // WebGPU when the browser has it, otherwise the same renderer on its WebGL2
 // backend (TSL compiles to GLSL there). `?renderer=webgl` forces the fallback.
@@ -205,6 +208,10 @@ export const rendererReady = renderer.init().then(() => {
 	const backend = /** @type {any} */ (renderer.backend)
 
 	renderer.domElement.dataset.renderer = backend.isWebGPUBackend ? "webgpu" : "webgl2"
+
+	// Before any shader is built: keeps uniform-array blocks bound on WebGL
+	// (without it, VR on a headset drops most of a world's draws).
+	stabiliseWebGLUniformBufferNames( renderer, new Object3D() )
 
 	// One invalid pipeline voids the whole frame on WebGPU; surface the cause.
 	const reported = new Set()
