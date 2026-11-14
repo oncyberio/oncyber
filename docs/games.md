@@ -69,6 +69,11 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
 
+Saved data has its own messages (`saved`, `saved-result`) and rule:
+declare every key in `game.json`; saved values are plain JSON with a
+version. See [games/saved-data.md](games/saved-data.md). The three fixed
+`storage` keys above remain for games that have not moved yet.
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 

@@ -1,30 +1,81 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:21:55.231Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1798804,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-x0DwLl72.js",
+      "bytes": 950257
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
+  "saved": {
+    "status": "passed",
+    "ms": 30772,
+    "keys": 4,
+    "runs": [
+      {
+        "run": "first visit",
+        "booted": true,
+        "ms": 2484,
+        "requests": 13
+      },
+      {
+        "run": "reload",
+        "booted": true,
+        "ms": 3103,
+        "requests": 7
+      },
+      {
+        "run": "old saves (1 of 1)",
+        "booted": true,
+        "ms": 2716,
+        "outcomes": {
+          "settings": "migrated",
+          "muted": "migrated"
+        },
+        "requests": 5
+      },
+      {
+        "run": "unreadable version 0 saves",
+        "booted": true,
+        "ms": 2973,
+        "outcomes": {
+          "settings": "reset",
+          "muted": "migrated",
+          "tally": "reset",
+          "format": "reset"
+        },
+        "requests": 6
+      },
+      {
+        "run": "saves from a future version",
+        "booted": true,
+        "ms": 2794,
+        "outcomes": {
+          "settings": "reset",
+          "muted": "reset",
+          "tally": "reset",
+          "format": "reset"
+        },
+        "requests": 5
+      }
+    ]
+  },
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 3051,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 3051
       }
     ],
     "frames": null,

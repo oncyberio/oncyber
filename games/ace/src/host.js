@@ -1,11 +1,13 @@
 // Talks to the Oncyber game page (/games/ace, "ace:*" messages) when embedded,
 // or plays standalone with defaults (vite dev). Embedded, the game runs in an
-// opaque-origin sandboxed frame with no storage, so the page keeps its saved
-// settings and hands them over with the identity.
+// opaque-origin sandboxed frame with no storage, so the page keeps what the
+// game saves (the keys declared in game.json; see saved.js).
+
+import { connectSavedData } from "../../runtime/src/saved.ts";
+import manifest from "../game.json";
+import { MIGRATE } from "./saved.js";
 
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
-const STORAGE_KEYS = new Set(["settings", "muted"]);
-const STORAGE_MAX = 64 * 1024;
 
 /** The visitor's party: { id, size, members: [{ id, name }] }, or null. */
 export function readParty(value) {
@@ -71,7 +73,6 @@ export function createHost() {
         selfId: "",
         roster: [],
     };
-    const stored = new Map();
     const fire = (type, value) => host.listeners[type].forEach((f) => f(value));
     const onMessage = (event) => {
         if (
@@ -92,11 +93,6 @@ export function createHost() {
                 avatarUrl:
                     typeof data.avatarUrl === "string" ? data.avatarUrl : "",
             };
-            const saved = data.storage;
-            if (saved && typeof saved === "object")
-                for (const key of STORAGE_KEYS)
-                    if (typeof saved[key] === "string" && saved[key].length <= STORAGE_MAX)
-                        stored.set(key, saved[key]);
             clearInterval(helloTimer);
             fire("identity", host.identity);
             // The host only accepts readiness after it has sent identity.
@@ -141,31 +137,13 @@ export function createHost() {
             window.parent.postMessage(message, window.location.origin);
     };
     host.on = (type, f) => host.listeners[type].push(f);
-    // Saved values: the page's storage when embedded, localStorage standalone.
-    host.storage = {
-        get(key) {
-            if (!STORAGE_KEYS.has(key)) return null;
-            if (embedded) return stored.get(key) ?? null;
-            try {
-                return localStorage.getItem(`ace:${key}`);
-            } catch {
-                return null;
-            }
-        },
-        set(key, value) {
-            if (!STORAGE_KEYS.has(key) || typeof value !== "string" || value.length > STORAGE_MAX) return;
-            if (embedded) {
-                stored.set(key, value);
-                post({ type: "ace:storage", key, value });
-                return;
-            }
-            try {
-                localStorage.setItem(`ace:${key}`, value);
-            } catch {
-                /* private mode */
-            }
-        },
-    };
+    // Saved values: the page keeps them when embedded, localStorage standalone.
+    host.saved = connectSavedData({
+        prefix: "ace:",
+        declared: manifest.saved,
+        migrate: MIGRATE,
+        timeoutMs: 2500,
+    });
     // The parent page may attach its listener after this frame loads, so keep
     // greeting until it answers with an identity.
     let helloTimer = 0;
@@ -190,6 +168,7 @@ export function createHost() {
         if (embedded) post({ type: "ace:exit" });
     };
     host.dispose = () => {
+        host.saved.dispose();
         clearInterval(helloTimer);
         window.removeEventListener("message", onMessage);
     };

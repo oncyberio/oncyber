@@ -28,6 +28,8 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { attachSavedData, signedInAccount } from "./savedDataBridge";
+import { createRemoteSavedStore } from "./savedDataRemote";
 
 const PEER_INTERVAL = 100;
 
@@ -290,6 +292,20 @@ export default function GamePage({ game }: { game: GameEntry }) {
             unregister();
         };
     }, []);
+
+    // Saved data: the keys the game declared (docs/games/saved-data.md).
+    useEffect(
+        () =>
+            attachSavedData({
+                game: GAME,
+                remote: createRemoteSavedStore(),
+                fromGame,
+                send: send.current,
+                account: () => signedInAccount(profile.current),
+                party: () => partyRef.current?.id ?? null,
+            }),
+        []
+    );
 
     // One shared room per visit, joined with the identity the game shows.
     useEffect(() => {

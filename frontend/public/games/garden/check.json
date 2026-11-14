@@ -1,35 +1,86 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:22:18.201Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1339218,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-JBhTMnMA.js",
+      "bytes": 1002763
     }
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:36227/games/garden/assets/index-JBhTMnMA.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
+  "saved": {
+    "status": "passed",
+    "ms": 10594,
+    "keys": 2,
+    "runs": [
+      {
+        "run": "first visit",
+        "booted": true,
+        "ms": 1928,
+        "requests": 7
+      },
+      {
+        "run": "reload",
+        "booted": true,
+        "ms": 1936,
+        "requests": 5
+      },
+      {
+        "run": "old saves (1 of 1)",
+        "booted": true,
+        "ms": 2169,
+        "outcomes": {
+          "muted": "migrated",
+          "save": "migrated"
+        },
+        "requests": 5
+      },
+      {
+        "run": "unreadable version 0 saves",
+        "booted": true,
+        "ms": 2109,
+        "outcomes": {
+          "muted": "migrated",
+          "save": "reset"
+        },
+        "requests": 4
+      },
+      {
+        "run": "saves from a future version",
+        "booted": true,
+        "ms": 2179,
+        "outcomes": {
+          "muted": "reset",
+          "save": "reset"
+        },
+        "requests": 3
+      }
+    ]
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1976,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1976
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 947
       },
       {
         "stage": "lifecycle",
@@ -39,14 +90,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3018
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,

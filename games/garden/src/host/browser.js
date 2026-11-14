@@ -107,21 +107,17 @@ async function call(capability, operation, value) {
                 grow: Number(params.get("grow")) || null,
                 fast: Number(params.get("fast")) || null,
             };
-        if (operation === "load") {
-            try {
-                return { data: JSON.parse(page.storage.get("save") || "null") };
-            } catch {
-                return { data: null };
-            }
-        }
+        // A missing, unreadable or reset save is null: a fresh garden.
+        if (operation === "load") return { data: (await page.saved.get("save")).value };
         if (operation === "save") {
-            return page.storage.set("save", JSON.stringify(value?.data ?? null));
+            if (!value?.data) return false;
+            return (await page.saved.set("save", value.data)).ok;
         }
     }
     if (capability === "audio") {
         if (operation === "mute") {
             setMuted(audio, !!value?.muted);
-            page.storage.set("muted", value?.muted ? "1" : "0");
+            void page.saved.set("muted", !!value?.muted);
             return true;
         }
         if (operation === "update") {
@@ -225,7 +221,7 @@ async function createFallbackSession(options) {
 
 async function start() {
     const who = await page.resolveIdentity();
-    audio.muted = page.storage.get("muted") === "1";
+    audio.muted = (await page.saved.get("muted")).value === true;
     identity = {
         id: "local-visitor",
         name: who.name || "You",

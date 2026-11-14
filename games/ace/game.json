@@ -1,4 +1,51 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "saved": {
+    "settings": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 256,
+      "sample": {
+        "difficulty": "rookie",
+        "games": 3
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"difficulty\":\"ace\",\"games\":1}",
+          "expect": "migrated"
+        }
+      ]
+    },
+    "muted": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 16,
+      "sample": true,
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "1",
+          "expect": "migrated"
+        }
+      ]
+    },
+    "format": {
+      "scope": "party",
+      "stateVersion": 1,
+      "maxBytes": 128,
+      "sample": {
+        "format": "singles"
+      }
+    },
+    "tally": {
+      "scope": "game",
+      "stateVersion": 1,
+      "maxBytes": 64,
+      "sample": {
+        "matches": 1
+      }
+    }
+  }
 }

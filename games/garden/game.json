@@ -214,5 +214,37 @@
         "touch": "lobby"
       }
     }
+  },
+  "saved": {
+    "save": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 262144,
+      "sample": {
+        "v": 1,
+        "saved": 1,
+        "list": []
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"v\":1,\"saved\":1,\"list\":[]}",
+          "expect": "migrated"
+        }
+      ]
+    },
+    "muted": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 16,
+      "sample": true,
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "1",
+          "expect": "migrated"
+        }
+      ]
+    }
   }
 }

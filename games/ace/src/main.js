@@ -28,6 +28,12 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import {
+    DEFAULT_SETTINGS,
+    readFormat,
+    readSettings,
+    readTally,
+} from "./saved.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
@@ -91,18 +97,26 @@ const CPU_ROSTER = {
     },
 };
 
-const settings = { difficulty: "pro", games: 2 };
-// Saved settings arrive with the identity when embedded (see host.js).
-function loadSettings() {
-    try {
-        const saved = JSON.parse(host.storage.get("settings") || "{}");
-        if (DIFFICULTY[saved.difficulty]) settings.difficulty = saved.difficulty;
-        if ([1, 2, 3].includes(saved.games)) settings.games = saved.games;
-    } catch {
-        /* malformed */
-    }
+const settings = { ...DEFAULT_SETTINGS };
+// What the visitor saved comes from the page (see host.js and saved.js).
+// A missing, unreadable or reset save leaves the defaults in place.
+let savedSettings = "";
+async function loadSettings() {
+    const [saved, muted] = await Promise.all([
+        host.saved.get("settings"),
+        host.saved.get("muted"),
+    ]);
+    Object.assign(settings, readSettings(saved.value, settings));
+    savedSettings = JSON.stringify(settings);
     applySettingParams();
-    audio.muted = host.storage.get("muted") === "1";
+    audio.muted = muted.value === true;
+    refreshSoundLabels();
+}
+function saveSettings() {
+    const next = JSON.stringify(settings);
+    if (next === savedSettings) return;
+    savedSettings = next;
+    void host.saved.set("settings", { ...settings });
 }
 
 const params = new URLSearchParams(location.search);
@@ -254,6 +268,16 @@ function goTitle() {
     startAttract();
     sound.startMusic(audio, "title");
     sound.setCrowd(audio, 0.5);
+    void host.saved.get("tally").then(({ value }) => showTally(readTally(value)));
+}
+
+// Matches finished by everyone who plays here (the game-wide `tally` key).
+function showTally(matches) {
+    const line = $("#club-tally");
+    line.hidden = matches < 1;
+    line.textContent = `${matches.toLocaleString("en")} ${
+        matches === 1 ? "match" : "matches"
+    } played at the club`;
 }
 
 /** Rotate a lobby offset (relative to the avatar's feet) into court space. */
@@ -421,13 +445,26 @@ function goParty() {
     $("#party-lineup").hidden = true;
     $("#party-note").hidden = true;
     state.partyFormat = null;
+    // Show the format a party member already picked for this trip.
+    void host.saved.get("format").then(({ value }) => {
+        const picked = readFormat(value);
+        if (
+            state.screen === "party" &&
+            !state.partyFormat &&
+            picked !== "cpu" &&
+            formats.some((format) => format.id === picked)
+        )
+            choosePartyFormat(picked, false);
+    });
 }
 
-function choosePartyFormat(format) {
+function choosePartyFormat(format, remember = true) {
     if (format === "cpu") return goSetup();
     const lineup = buildLineup(format, partyPlayers(), host.party.id);
     if (!lineup) return;
     state.partyFormat = format;
+    // Shared by the party for the trip; the last pick wins, never blindly.
+    if (remember) void host.saved.update("format", () => ({ format }));
     const box = $("#party-lineup");
     box.replaceChildren(
         ...lineup.rounds.flatMap((round) => {
@@ -490,7 +527,7 @@ function refreshSetup() {
     document
         .querySelectorAll("#setup .field")
         .forEach((f, i) => f.classList.toggle("focus", i === state.setupField));
-    host.storage.set("settings", JSON.stringify(settings));
+    saveSettings();
 }
 
 function startAttract() {
@@ -586,7 +623,7 @@ function resumeGame() {
 function toggleSound() {
     sound.unlockAudio(audio);
     sound.setMuted(audio, !audio.muted);
-    host.storage.set("muted", audio.muted ? "1" : "0");
+    void host.saved.set("muted", audio.muted);
     refreshSoundLabels();
     sound.sfxUI(audio, "ok");
 }
@@ -1010,6 +1047,11 @@ function handleEvents(events) {
                     break;
                 }
                 const won = e.winner === 0;
+                // Several people finish matches at once: read, add one,
+                // write, and retry if someone else's write landed first.
+                void host.saved.update("tally", (tally) => ({
+                    matches: readTally(tally) + 1,
+                }));
                 setTimeout(() => {
                     callout(
                         won ? "GAME, SET & MATCH!" : "MATCH OVER",
@@ -1468,7 +1510,7 @@ async function bootGame() {
         renderer.compile(scene, camera);
         setBoot(0.9, "Warming up…");
         const identity = await host.resolveIdentity();
-        loadSettings();
+        await loadSettings();
         state.identity = {
             name: identity.name || "You",
             pfp: identity.pfp || "",
@@ -1538,7 +1580,7 @@ host.on("party", () => {
     const format = state.partyFormat;
     goParty();
     if (format && partyFormats(partyPlayers().length).some((f) => f.id === format))
-        choosePartyFormat(format);
+        choosePartyFormat(format, false);
 });
 host.on("arrival", (view) => {
     if (booted) stageArrival(view);

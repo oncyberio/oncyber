@@ -1,0 +1,36 @@
+{
+    "ace": {
+        "settings": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 256
+        },
+        "muted": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 16
+        },
+        "format": {
+            "scope": "party",
+            "stateVersion": 1,
+            "maxBytes": 128
+        },
+        "tally": {
+            "scope": "game",
+            "stateVersion": 1,
+            "maxBytes": 64
+        }
+    },
+    "garden": {
+        "save": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 262144
+        },
+        "muted": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 16
+        }
+    }
+}

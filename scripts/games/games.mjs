@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -92,8 +93,10 @@ const harness = `<!doctype html><meta charset="utf-8"><title>check</title>
 <iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check"></iframe>
 <script>
 const frame = document.getElementById("game");
+${savedFreshVisitor}
 addEventListener("message", (event) => {
     if (event.source !== frame.contentWindow) return;
+    savedFreshVisitor(event, frame);
     const type = event.data && event.data.type;
     if (type === "oncyber:check-report") window.__report = event.data.report;
     if (typeof type === "string" && type.endsWith(":hello")) {
@@ -127,6 +130,7 @@ function serve() {
 async function check() {
     const files = bundleFiles();
     const scan = staticScan(files);
+    scan.findings.push(...(await savedStaticFindings({ id, manifest })));
     let chromium;
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
@@ -135,7 +139,8 @@ async function check() {
     }
     const server = await serve();
     const errors = [], pageErrors = [];
-    const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
+    const launch = () => chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
+    const browser = await launch();
     let report = null, gameError = null, readyAt = null;
     const started = Date.now();
     try {
@@ -162,16 +167,19 @@ async function check() {
         await browser.close();
         server.close();
     }
+    // Saved data: save, reload, read back; then boot against old saves.
+    const saved = await runSavedDataStage({ id, manifest, out, launch });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && saved.status === "passed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
         findings: [
             ...scan.findings,
+            ...saved.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
@@ -180,11 +188,13 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        saved: { status: saved.status, ms: saved.ms, keys: saved.keys, runs: saved.runs },
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
+    if (saved.keys) console.log(`  saved data: ${saved.status} · ${saved.keys} key(s), ${saved.runs.length} boots`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-14T15:30:01.018Z",
+  "checkedAt": "2026-11-14T18:24:20.769Z",
   "status": "passed",
   "scope": "boot",
   "files": {
@@ -13,18 +13,22 @@
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
+  "saved": {
+    "status": "passed",
+    "ms": 0,
+    "keys": 0,
+    "runs": []
+  },
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 277,
+    "bootMs": 639,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 277
+        "ms": 639
       }
     ],
     "frames": null,
