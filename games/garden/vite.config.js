@@ -42,6 +42,7 @@ export default defineConfig({
     resolve: {
         alias: [
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
+            { find: /^@oncyber\/game-runtime\/(loading|pausing)$/, replacement: `${runtime}/$1.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
             { find: /^@oncyber\/game-runtime$/, replacement: `${runtime}/index.ts` },
         ],

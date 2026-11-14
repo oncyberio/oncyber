@@ -1,30 +1,72 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:15:13.830Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1796288,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-DnoZwcFb.js",
+      "bytes": 947803
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 2815,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 2299,
+    "progress": {
+      "messages": 4,
+      "labels": [
+        "Rolling out the court…",
+        "Stringing rackets…",
+        "Warming up…",
+        "Ready!"
+      ]
+    },
+    "resize": [
+      {
+        "width": 900,
+        "height": 620,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 520,
+        "height": 700,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      }
+    ],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": []
+  },
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2815,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2815
       }
     ],
     "frames": null,

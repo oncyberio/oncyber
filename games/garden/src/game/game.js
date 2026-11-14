@@ -729,6 +729,8 @@ export default function createGame(ctx) {
         async prepare() {
             const setBoot = (p, text) => {
                 state.boot = { p, text };
+                // The page shows this while it waits for the first frame.
+                ctx.loading?.progress(p, text);
                 publish(0, true);
             };
             setBoot(0.05, "Planting the island…");

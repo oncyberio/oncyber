@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkLoading, loadingHarness } from "./loading-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -103,6 +104,7 @@ addEventListener("message", (event) => {
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
+${loadingHarness}
 </script>`;
 
 function serve() {
@@ -136,7 +138,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, loading = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -158,6 +160,8 @@ async function check() {
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // Loading and pausing (loading-check.mjs), on the live game.
+        if (report?.status === "passed") loading = await checkLoading(page, { manifest, required: lifecycle }).catch((error) => ({ status: "failed", findings: [{ code: "LOADING_CHECK_ERROR", message: String(error.message).slice(0, 300) }] }));
     } finally {
         await browser.close();
         server.close();
@@ -166,7 +170,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && loading?.status !== "failed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -176,7 +180,9 @@ async function check() {
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
             ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
+            ...(loading?.findings ?? []),
         ],
+        loading: loading && { ...loading, findings: undefined },
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
@@ -185,6 +191,8 @@ async function check() {
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
+    if (loading) console.log(`  loading: ${loading.status}` + (loading.firstFrameMs != null ? ` · first frame ${loading.firstFrameMs} ms (budget ${loading.firstFrameBudgetMs} ms) · pause ${loading.pause.mode}: menu ${loading.pause.menu}, hidden ${loading.pause.hidden}` : ""));
+    for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);

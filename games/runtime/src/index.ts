@@ -74,6 +74,8 @@ export interface GameContext {
     /** Rising edges survive a press/release between rendered frames. Cleared after update. */
     pressed: Readonly<Record<string, boolean>>;
     ui: { publish(value: Json): void };
+    /** Call during prepare(): 0..1 and a short label the page shows while it waits. See loading.ts. */
+    loading: { progress(value: number, label?: string): void };
 }
 export interface PortableGame {
     prepare(): Promise<void>;
@@ -91,6 +93,8 @@ export interface RuntimeOptions {
     graphics: GraphicsSurface;
     services: HostServices;
     sendUI(value: Json): void;
+    /** Where `context.loading.progress` goes; the browser host posts it to the page. */
+    onProgress?(value: number, label?: string): void;
     now?: () => number;
     timeoutMs?: number;
 }
@@ -177,6 +181,7 @@ export class RuntimeSession {
         };
         this.game = factory({ graphics: options.graphics, services, signal: this.lifetime.signal,
             ui: { publish: value => { this.assertLive(); this.pendingUI = compactJSON(value); } },
+            loading: { progress: (value, label) => { if (this.phase === "preparing") options.onProgress?.(value, label); } },
             // Getters make the action state read-only to game code.
             input: Object.freeze(Object.defineProperties({}, Object.fromEntries(Object.keys(this.input)
                 .map(k => [k, { enumerable: true, get: () => this.input[k] }])))),

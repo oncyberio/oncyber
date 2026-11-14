@@ -2,6 +2,7 @@
 // or plays standalone with defaults (vite dev). Embedded, the game runs in an
 // opaque-origin sandboxed frame with no storage, so the page keeps its saved
 // settings and hands them over with the identity.
+import { createLoading } from "@oncyber/game-runtime/loading";
 
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
@@ -178,7 +179,12 @@ export function createHost() {
             else post({ type: "ace:hello" });
         }, 250);
     };
-    host.progress = () => {};
+    // Loading: progress while the court is built, then one first-frame
+    // signal; the page shows the game only after it (docs/games/loading-and-pausing.md).
+    host.loading = createLoading({
+        post: (kind, data) => post({ type: `ace:${kind}`, ...data }),
+    });
+    host.progress = (value, label) => host.loading.progress(value, label);
     host.ready = () => {
         host.readyPosted = true;
         post({ type: "ace:ready" });

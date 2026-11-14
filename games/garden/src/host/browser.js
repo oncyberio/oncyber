@@ -1,6 +1,8 @@
 import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
+import { bindPausing, sessionPausing } from "@oncyber/game-runtime/pausing";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -23,6 +25,9 @@ const frame = document.querySelector("#game-ui");
 const notice = document.querySelector("#notice");
 const page = createHost();
 page.hello();
+// Progress while the garden is built, then one first-frame signal
+// (docs/games/loading-and-pausing.md).
+const loading = createLoading({ post: (kind, data) => page.post(kind, data) });
 
 // Dev diagnostics for device simulators: ?log posts errors and state.
 const remoteLog = params.has("log")
@@ -195,7 +200,8 @@ async function createFallbackSession(options) {
         graphics.width = options.canvas.clientWidth;
         graphics.height = options.canvas.clientHeight;
         try {
-            session.tick((now - last) / 1000);
+            // A frame can begin before the clock was last reset.
+            session.tick(Math.max(0, now - last) / 1000);
         } catch (e) {
             options.onError(e);
         }
@@ -203,13 +209,9 @@ async function createFallbackSession(options) {
         requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-    document.addEventListener("visibilitychange", () => {
-        last = performance.now();
-        if (document.hidden && session.phase === "entered") void session.suspend();
-        else if (!document.hidden && session.phase === "suspended") void session.restore();
-    });
     return {
         session,
+        graphics,
         hold(paused) {
             held = paused;
             last = performance.now();
@@ -236,6 +238,9 @@ async function start() {
         ui: frame,
         manifest: manifest.runtime,
         services: { identity, asset, call, avatar },
+        onProgress: (value, label) => loading.progress(value, label),
+        // Pausing is sessionPausing's job, below.
+        visibility: false,
         onError: (error) => {
             console.error("[garden]", error);
             if (/DEVICE_LOST|destroyed/i.test(error?.message || "")) fail("The graphics device was lost. Reload to keep playing.");
@@ -271,7 +276,41 @@ async function start() {
         camera: { position: [0, 3.5, 20], target: [0, 1.3, 13], fov: 50, mode: "third-person" },
         party: [],
     });
+    // The first frame the visitor can be shown: one update after entering.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    loading.firstFrame({ width: innerWidth, height: innerHeight });
     page.ready();
+    // A resize draws at once instead of waiting for the next animation frame.
+    let checking = params.has("check");
+    redrawOnResize(
+        loading,
+        () => {
+            host.graphics.width = canvas.clientWidth;
+            host.graphics.height = canvas.clientHeight;
+            if (checking || host.session.phase !== "entered") return;
+            try {
+                host.session.tick(0);
+            } catch (error) {
+                options.onError(error);
+            }
+        },
+        window
+    );
+    // Alone in the garden the game pauses for a hidden tab or a page menu;
+    // in a match with other players it keeps simulating and catches up.
+    const inMatch = () => {
+        try {
+            return !!host.session.inspect().match;
+        } catch {
+            return false;
+        }
+    };
+    const pausing = sessionPausing(host.session, {
+        mode: () => (inMatch() ? "multiplayer" : "solo"),
+        onChange: () => host.hold(false),
+        onError: options.onError,
+    });
+    const unbindPausing = bindPausing(pausing, { prefix: "garden:", document, window });
     // pnpm games:check opens the game with ?check: play the scenario, measure
     // frames and report to the check page.
     if (params.has("check")) {
@@ -284,9 +323,13 @@ async function start() {
             pauseHostClock: (paused) => host.hold(paused),
         });
         postCheckReport(report);
+        checking = false;
     }
     if (remoteLog) setInterval(() => remoteLog(`state ${JSON.stringify(host.session.inspect())}`), 3000);
-    const dispose = () => void host.dispose();
+    const dispose = () => {
+        unbindPausing();
+        void host.dispose();
+    };
     page.on("dispose", dispose);
     window.addEventListener("pagehide", dispose, { once: true });
 }

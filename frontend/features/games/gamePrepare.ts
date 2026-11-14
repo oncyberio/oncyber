@@ -1,0 +1,119 @@
+import { findSharedPageGame } from "./catalog";
+
+/**
+ * Prepares a game while the visitor is still in the lobby.
+ *
+ * A trip mounts the destination page only once the avatar is seated, and
+ * the game's own frame inside it later still. This starts earlier: the
+ * moment a game is chosen, the lobby loads the game's frame hidden, in the
+ * same sandbox the game page uses. The game downloads its files, builds its
+ * scene, compiles its shaders and draws one frame; then the frame is
+ * removed. The trip's own frame finds those files in the browser's cache
+ * and the shaders in the GPU process's cache, so it reaches its first frame
+ * sooner (measurements: docs/games/loading-and-pausing.md).
+ *
+ * The hidden frame is the game and nothing else: an opaque origin, no
+ * identity (it gets a guest), no room, no saved data, no audio (it never
+ * receives a gesture). It cannot be handed to the trip, because a frame
+ * does not survive a move between documents.
+ */
+const GAME_HREF = /^\/games\/([a-z0-9][a-z0-9-]{0,62})\/?$/;
+/** A prepared game stays warm this long before it is prepared again. */
+export const PREPARE_AGAIN_AFTER_MS = 5 * 60 * 1000;
+/** A game that hasn't drawn by now is left to the trip itself. */
+export const PREPARE_TIMEOUT_MS = 20000;
+
+/** The id of the shared-page game `href` opens, or null. */
+export function gameDestinationId(href: string, origin: string): string | null {
+    let url: URL;
+    try {
+        url = new URL(href, origin);
+    } catch {
+        return null;
+    }
+    if (url.origin !== origin) return null;
+    const id = GAME_HREF.exec(url.pathname)?.[1];
+    return id && findSharedPageGame(id) ? id : null;
+}
+
+let current: { id: string; stop(): void } | null = null;
+const prepared = new Map<string, number>();
+
+/** Stops a preparation in flight (the visitor chose somewhere else). */
+export function cancelGamePreparation() {
+    current?.stop();
+}
+
+/**
+ * Starts preparing the game `href` leads to. Safe to call often: one game
+ * prepares at a time, and each at most once per PREPARE_AGAIN_AFTER_MS.
+ * Returns whether the game is being (or was just) prepared.
+ */
+export function prepareGameDestination(href: string): boolean {
+    if (typeof window === "undefined" || !document.body) return false;
+    if ((navigator as any).connection?.saveData === true) return false;
+    const id = gameDestinationId(href, window.location.origin);
+    if (!id) return false;
+    if (current?.id === id) return true;
+    const last = prepared.get(id);
+    if (last != null && performance.now() - last < PREPARE_AGAIN_AFTER_MS)
+        return true;
+    current?.stop();
+
+    const frame = document.createElement("iframe");
+    frame.src = `/games/${id}/index.html?prepare`;
+    // The game page's sandbox, without pointer lock: nobody plays this one.
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.setAttribute("referrerpolicy", "no-referrer");
+    frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("data-game-prepare", id);
+    frame.tabIndex = -1;
+    frame.inert = true;
+    // On screen but invisible, so the browser still gives it frames; small,
+    // because shaders compile the same at any size.
+    frame.style.cssText =
+        "position:fixed;left:0;top:0;width:320px;height:180px;border:0;" +
+        "opacity:0;pointer-events:none;z-index:-1";
+    const post = (kind: string, data: object = {}) =>
+        frame.contentWindow?.postMessage(
+            { type: `${id}:${kind}`, ...data },
+            "*"
+        );
+    const receive = (event: MessageEvent) => {
+        if (event.source !== frame.contentWindow || event.origin !== "null")
+            return;
+        const type = event.data?.type;
+        // A guest with nothing saved: the real identity goes to the trip.
+        if (type === `${id}:hello`)
+            post("identity", {
+                name: "Guest",
+                pfp: "",
+                avatarUrl: "",
+                storage: {},
+            });
+        else if (type === `${id}:first-frame` || type === `${id}:ready`) {
+            prepared.set(id, performance.now());
+            stop();
+        } else if (type === `${id}:error`) stop();
+    };
+    const stop = () => {
+        if (current !== session) return;
+        current = null;
+        clearTimeout(timer);
+        window.removeEventListener("message", receive);
+        post("dispose");
+        frame.remove();
+    };
+    const session = { id, stop };
+    const timer = setTimeout(stop, PREPARE_TIMEOUT_MS);
+    current = session;
+    window.addEventListener("message", receive);
+    document.body.appendChild(frame);
+    return true;
+}
+
+/** For tests. */
+export function resetGamePreparation() {
+    current?.stop();
+    prepared.clear();
+}

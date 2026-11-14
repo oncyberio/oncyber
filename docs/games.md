@@ -69,6 +69,11 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
 
+Loading and pausing add `progress`, `first-frame`, `frame`, `pause` and
+`resume`, with four rules every game follows (progress while preparing, a
+first-frame signal, redraw on resize, solo games pause and multiplayer
+matches don't): [games/loading-and-pausing.md](games/loading-and-pausing.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 

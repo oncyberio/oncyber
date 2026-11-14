@@ -27,6 +27,7 @@ import {
     setTrail,
     updateFx,
 } from "./fx.js";
+import { bindPausing, createPausing } from "@oncyber/game-runtime/pausing";
 import { createHost } from "./host.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
@@ -70,6 +71,7 @@ function resize() {
     // Resizing clears the canvas; redraw now instead of showing an empty
     // frame until the next animation frame.
     if (world) renderer.render(scene, camera);
+    host.loading.redrawn({ width: w, height: h });
 }
 window.addEventListener("resize", resize);
 
@@ -123,7 +125,7 @@ function setBoot(value, text) {
     boot.progress = value;
     $("#boot-fill").style.width = `${Math.round(value * 100)}%`;
     if (text) $("#boot-text").textContent = text;
-    host.progress(value);
+    host.progress(value, text || $("#boot-text").textContent);
 }
 setBoot(0.1);
 
@@ -672,8 +674,37 @@ $("#pause-btn").addEventListener("click", () => {
 });
 $("#lobby").hidden = !host.embedded;
 $("#lobby").addEventListener("click", () => host.exit());
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden && !AUTOPLAY) pauseGame();
+
+// A match against the CPU is a solo game: it pauses while the tab is hidden
+// or the page has a menu open, and picks up where it was. (Matches between
+// party members, once built, must not: see docs/games/loading-and-pausing.md.)
+const held = { on: false };
+const pausing = createPausing({
+    mode: "solo",
+    pause(reason) {
+        held.on = true;
+        if (audio.ctx?.state === "running") void audio.ctx.suspend();
+        // Coming back to a hidden tab, the visitor restarts play themselves.
+        if (reason === "hidden") pauseGame();
+    },
+    resume() {
+        held.on = false;
+        clock.getDelta();
+        if (audio.ctx?.state === "suspended") void audio.ctx.resume();
+    },
+    // What the check compares: it stands still while paused.
+    fingerprint() {
+        const e = state.engine;
+        const at = (v) => Math.round(v * 1000) / 1000;
+        return e
+            ? {
+                  ball: [at(e.ball.p.x), at(e.ball.p.y), at(e.ball.p.z)],
+                  athletes: e.athletes.map((a) => [at(a.x), at(a.z)]),
+                  points: [...e.match.points],
+                  games: [...e.match.games],
+              }
+            : null;
+    },
 });
 
 function menuNav(name, dir) {
@@ -1089,7 +1120,10 @@ const reticle = { x: 0, z: 0 };
 const freezeRng = () => 0.25;
 
 // ?autoplay drives the human through the normal input path (visual QA).
-const AUTOPLAY = new URLSearchParams(location.search).has("autoplay");
+// ?check (pnpm games:check) plays the same way, with pausing left on.
+const CHECK = new URLSearchParams(location.search).has("check");
+const AUTOPLAY = CHECK || new URLSearchParams(location.search).has("autoplay");
+if (!AUTOPLAY || CHECK) bindPausing(pausing, { prefix: "ace:", document, window });
 const bot = { pressed: -1 };
 let TIME_SCALE = Number(new URLSearchParams(location.search).get("slow")) || 1;
 function botInput() {
@@ -1392,6 +1426,7 @@ function hints() {
 
 function frame() {
     requestAnimationFrame(frame);
+    if (held.on) return;
     let dt = Math.min(0.05, clock.getDelta()) * TIME_SCALE;
     const raw = readInput(input);
     handleMenuInput(raw.events);
@@ -1503,6 +1538,10 @@ async function bootGame() {
             requestAnimationFrame(() => requestAnimationFrame(r))
         );
         setBoot(1, "Ready!");
+        host.loading.firstFrame({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
         host.ready();
         booted = true;
         setTimeout(() => {

@@ -28,6 +28,8 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
+import { useGamePause } from "./gamePause";
 
 const PEER_INTERVAL = 100;
 
@@ -81,6 +83,9 @@ export default function GamePage({ game }: { game: GameEntry }) {
     profile.current = { userData, user, authenticated, isAnonymous };
     const frame = useRef<HTMLIFrameElement>(null);
     const [ready, setReady] = useState(false);
+    // Progress and the first frame (gameLoading.ts); page menus pause the game.
+    const loading = useGameLoading(GAME, frame);
+    useGamePause(GAME, frame);
     const [error, setError] = useState("");
     const [identity, setIdentity] = useState<GameIdentity | null>(null);
     // A party that travelled here together plays in a room of its own,
@@ -394,6 +399,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     display: "block",
                 }}
             />
+            {!error && <GameLoadingCover state={loading} title={gameName} />}
             {ready && !error && roomLabel && (
                 <div
                     role="group"
