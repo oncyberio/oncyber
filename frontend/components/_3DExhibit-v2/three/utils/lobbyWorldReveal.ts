@@ -63,6 +63,10 @@ import {
 } from "@features/lobby/worldTravelPose";
 import { createLobbyTravelPeers } from "./lobbyTravelPeers";
 import {
+    holdRecordingArrivals,
+    readRecordingParty,
+} from "../factory/multiplayer/recordingParty";
+import {
     createNativeTravelAnimation,
     NATIVE_TRAVEL_STAND_UP_MS,
 } from "./nativeTravelAnimation";
@@ -765,6 +769,8 @@ function* nativeLobbyReveal(world: RevealWorld) {
         Emitter.off(Events.PRE_UPDATE, maintainLock);
         Emitter.off(Events.PRE_RENDER, maintainLock);
         Camera.active = success ? true : saved.cameraActive;
+        // a staged recording party starts arriving now
+        holdRecordingArrivals(false);
         if (controls && Camera.currentControls === controls)
             controls.enabled = success ? true : saved.enabled;
         if (CSS_CANVAS) CSS_CANVAS.style.visibility = saved.cssVisibility ?? "";
@@ -1124,7 +1130,10 @@ function* nativeLobbyReveal(world: RevealWorld) {
                 debugValue("camera-fov", view?.fov ?? camera.fov);
                 // Friends are cosmetic during staging. Their module and avatar loads
                 // must not hold the local player's rendered world or controls hostage.
-                prepareTravelPeers(orientedView, options.reducedMotion);
+                // A staged recording party lands you alone: its friends then
+                // arrive one by one around the spawn (multiplayer/recordingParty.js).
+                if (!readRecordingParty())
+                    prepareTravelPeers(orientedView, options.reducedMotion);
                 if (view && options.travelView)
                     debugValue(
                         "camera-adjusted",

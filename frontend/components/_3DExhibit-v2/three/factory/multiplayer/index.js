@@ -22,6 +22,8 @@ import {
 
     Vector3,
 
+    Ray,
+
     Euler,
 
     Quaternion,
@@ -31,6 +33,8 @@ import {
 import shortid from "shortid";
 
 import { PatchClock } from "@features/lobby/patchClock";
+
+import { readRecordingParty, recordingPartyPlayers, recordingPartyLinePlace, recordingPartyLanding, recordingArrivalsHeld, ARRIVAL_HOLD_MAX_MS } from "./recordingParty";
 
 import { disposeObject3D } from "@3utils/three";
 
@@ -234,6 +238,14 @@ class Multiplayer extends Group {
         this.players[Players.main.sessionId] = Players.main;
 
         this.gateStates = {};
+
+        this.recordingParty = readRecordingParty();
+
+        /** @type {number | undefined} */
+        this.recordingReadyAt = undefined
+
+        // The trip back asks the friends to line up (lobbyWorldDeparture.ts).
+        if (this.recordingParty) /** @type {any} */ (window).__oncyberRecordingLineUp = (yaw, snap) => this.lineUpRecordingParty(yaw, snap)
 
         this.addEvents();
 
@@ -1148,6 +1160,27 @@ class Multiplayer extends Group {
           this.handlePacket(this.fakePlayers)
         }
 
+        // Without a room (or between its patches) still place the
+        // recording friends; real patches carry them too.
+        if (this.recordingParty) {
+
+            const now = performance.now()
+
+            // Between patches while friends are still arriving, and always
+            // without a room.
+            const arriving = this.recordingPartyCache && this.recordingArrivalStart > -Infinity
+                && (now - this.recordingArrivalStart) / 1000 < Math.max(...this.recordingPartyCache.map((friend) => friend.arriveAt)) + 0.5
+
+            const quiet = now - (this.lastRealPacketAt || 0) > 1000
+
+            if ((quiet || arriving || !this.recordingPartyCache) && now - (this.lastRecordingTick || 0) > (arriving ? 100 : 200)) {
+
+                this.lastRecordingTick = now
+
+                this.handlePacket({ packet: { players: [] }, recordingTick: true })
+            }
+        }
+
     }
 
 
@@ -1433,10 +1466,177 @@ class Multiplayer extends Group {
         }
     }
 
+    recordingPartyEntries() {
+
+        const main = Players.main
+
+        if (!this.recordingPartyCache) {
+
+            // You land alone: friends start arriving once the arrival has
+            // handed you control, around the spot you landed on.
+            if (!main?.avatar3D || !main.currentSpace || !Camera.current) return null
+
+            this.recordingReadyAt ??= performance.now()
+
+            const held = recordingArrivalsHeld() && performance.now() - this.recordingReadyAt < ARRIVAL_HOLD_MAX_MS
+
+            if (held || !Camera.active) return null
+
+            const payload = main.getPacketPayload(true)
+
+            const forward = Camera.current.getWorldDirection(new Vector3())
+
+            forward.y = 0
+
+            if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1)
+
+            forward.normalize()
+
+            const position = { x: payload[0], y: payload[1], z: payload[2] }
+
+            const spots = recordingPartyLanding(this.recordingParty.length, position, forward, this.recordingPartyProbe(main))
+
+            this.recordingPartyCache = recordingPartyPlayers(this.recordingParty, {
+                ...position,
+                scale: payload[4],
+                space: payload[5],
+                userHeight: payload[9],
+            }, spots)
+
+            this.recordingArrivalStart = performance.now()
+        }
+
+        // Friends stay with you from room to room: a player whose
+        // space differs from yours is hidden.
+        for (const friend of this.recordingPartyCache) friend.space = main.currentSpace
+
+        const elapsed = (performance.now() - this.recordingArrivalStart) / 1000
+
+        return this.recordingPartyCache.filter((friend) => friend.arriveAt <= elapsed)
+    }
+
+    /**
+     * Floor and wall checks for where the friends land, against the space's
+     * collision mesh. Packet heights are your feet; rays start above them.
+     */
+    recordingPartyProbe(main) {
+
+        const world = Camera.currentControls?.world
+
+        if (!world?.collisions?.rayIntersect) return {}
+
+        const ray = new Ray()
+
+        const down = new Vector3(0, -1, 0)
+
+        const chest = (main.avatar3D?.headPosition?.y || 1.6) * 0.6
+
+        return {
+            floorAt: (x, z, nearY) => {
+
+                ray.origin.set(x, nearY + 2, z)
+
+                ray.direction.copy(down)
+
+                const hit = world.collisions.rayIntersect(ray)
+
+                return hit && hit.distance < 4.5 ? hit.position.y : null
+            },
+            clearPath: (from, to) => {
+
+                const dx = to.x - from.x, dz = to.z - from.z
+
+                const distance = Math.hypot(dx, dz)
+
+                if (distance < 1e-3) return true
+
+                ray.origin.set(from.x, main.position.y + chest, from.z)
+
+                ray.direction.set(dx / distance, 0, dz / distance)
+
+                const hit = world.collisions.rayIntersect(ray)
+
+                // keep a body's width from anything solid
+                return !hit || hit.distance > distance + 0.4
+            },
+        }
+    }
+
+    /**
+     * Recording only: the friends line up beside you for the trip back.
+     * `yaw` is your heading as the lobby reads it. With `snap` they are put
+     * in place at once instead of walking there. False without friends.
+     */
+    lineUpRecordingParty(yaw, snap = false) {
+
+        // Everyone still on the way arrives for the line.
+        if (this.recordingPartyCache) this.recordingArrivalStart = -Infinity
+
+        const friends = this.recordingParty && this.recordingPartyEntries()
+
+        const main = Players.main
+
+        if (!friends || !main) return false
+
+        const fx = -Math.sin(yaw), fz = -Math.cos(yaw)
+
+        const rx = -Math.cos(yaw), rz = Math.sin(yaw)
+
+        friends.forEach((friend, index) => {
+
+            const place = recordingPartyLinePlace(index, friends.length)
+
+            friend.positionX = main.position.x + rx * place.side + fx * place.depth
+
+            friend.positionZ = main.position.z + rz * place.side + fz * place.depth
+
+            friend.rotation = main.rotation.y
+
+            const player = snap && this.players[friend.sessionId]
+
+            if (player) {
+
+                player.position.x = friend.positionX
+
+                player.position.z = friend.positionZ
+
+                player.rotation.y = friend.rotation
+            }
+        })
+
+        this.handlePacket({ packet: { players: [] }, recordingTick: true })
+
+        return true
+    }
+
     handlePacket = (opts) => {
 
         if (!this.inited) {
             this.inited = true;
+        }
+
+        if (this.recordingParty) {
+
+            const players = []
+
+            if (!opts.recordingTick) {
+
+                this.lastRealPacketAt = performance.now()
+
+                this.lastRealPlayers = []
+
+                opts.packet?.players?.forEach?.((player) => this.lastRealPlayers.push(player))
+            }
+
+            // A tick between patches repeats the room's last players, so
+            // they stay while friends arrive.
+            players.push(...(this.lastRealPlayers || []))
+
+            const friends = this.recordingPartyEntries()
+
+            if (friends) players.push(...friends)
+
+            opts = { packet: { players } }
         }
 
         const packet = opts.packet;
@@ -1513,9 +1713,10 @@ class Multiplayer extends Group {
                 !pSessionID
             ) {
 
-                const needsOverride =
+                // Recording friends keep their own avatar at any quality.
+                const needsOverride = !player.recordingFriend && (
                     Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
-                      || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY
+                      || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY )
 
 
                 const CURRENT_VRM = needsOverride ? ( QUALITIES.MEDIUM == QUALITY ? MID_LOD_VRM : LOD_VRM ) : ( VRM == null ? DEFAULT_VRM : VRM )
@@ -1689,8 +1890,8 @@ class Multiplayer extends Group {
 
                 const vrmIsntOverride = pSessionID.avatar3D.overrideVRMName != null && space == Players.main.currentSpace
 
-                const needsLOD =  Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
-                const needsOverride = needsLOD  || QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY
+                const needsLOD = !player.recordingFriend && Players.main.position.distanceTo({x: positionX, y: positionY, z: positionZ}) > LOD_VRM_DISTANCE
+                const needsOverride = needsLOD  || ( !player.recordingFriend && ( QUALITIES.LOW == QUALITY || QUALITIES.MEDIUM == QUALITY ) )
 
 
                 var CURRENT_VRM = needsOverride ? ( QUALITIES.MEDIUM == QUALITY ? MID_LOD_VRM : LOD_VRM ) : ( VRM == null ? DEFAULT_VRM : VRM )

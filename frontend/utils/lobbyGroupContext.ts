@@ -21,6 +21,17 @@ export function groupDestinationHref(
 /** Ordinary top-level visits cannot opt into the prepared-frame cohort hint. */
 export function readLobbyGroupCohort(): string | undefined {
     if (!initializeLobbyDestinationBridge()) return;
+    // Recording: the party is staged in this browser (?crowd=N), so no room
+    // knows its trip. Join the world as an ordinary visitor.
+    try {
+        if (
+            window.parent !== window &&
+            Array.isArray((window.parent as any).__oncyberRecordingParty)
+        )
+            return;
+    } catch {
+        // A cross-origin parent is never a recording.
+    }
     const value = new URLSearchParams(window.location.search).get(
         LOBBY_GROUP_COHORT_PARAM
     );

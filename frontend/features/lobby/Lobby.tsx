@@ -1,6 +1,11 @@
 import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
+import useRecordingCrowd from "./useRecordingCrowd";
+import useRecordingGroups from "./useRecordingGroups";
+import { planCrowdReplies } from "./recordingCrowd";
+import { activeSpeech } from "./speechBubbles";
+import type { LobbyMessage } from "./LobbyConnection";
 import { flashWallets } from "./useFlashNfts";
 import React, {
     useCallback,
@@ -30,7 +35,6 @@ import type { LobbyDestination, LobbySceneProps } from "./sceneTypes";
 import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
 import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
-import { activeSpeech } from "./speechBubbles";
 import LobbyChat from "./LobbyChat";
 import LobbyPlace from "./LobbyPlace";
 import LobbyArrivalStatus from "./LobbyArrivalStatus";
@@ -235,6 +239,8 @@ export default function Lobby({
         flashWallets(account),
         avatarOpen
     );
+    // ?crowd=N stages people for recording a video (see recordingCrowd.ts).
+    const recording = useRecordingCrowd();
     const avatarChoices = useMemo(
         () =>
             ownedFirst(
@@ -336,7 +342,7 @@ export default function Lobby({
         travelling
     );
     const away = entered || travelling;
-    const social = useLobbySocial({
+    const liveSocial = useLobbySocial({
         enabled: true,
         ...groupPresence,
         identity: {
@@ -349,6 +355,22 @@ export default function Lobby({
             scale: (loadedAvatar || avatar)?.scale,
         },
     });
+    // Recording only: without a party server, the staged crowd can still be
+    // invited to parties and travel with you (see useRecordingGroups).
+    const social = useRecordingGroups(
+        liveSocial,
+        recording?.crowd,
+        {
+            name: lobbyDisplayName(
+                authenticated && !isAnonymous ? user?.id : undefined,
+                authenticated && !isAnonymous ? userData?.username : undefined
+            ),
+            avatar: profilePhoto,
+            vrmUrl: (loadedAvatar || avatar)?.url,
+            scale: (loadedAvatar || avatar)?.scale,
+        },
+        away
+    );
     const stopFlash = useCallback(
         (nonce?: string) => {
             if (nonce && flashRef.current?.nonce !== nonce) return;
@@ -453,44 +475,62 @@ export default function Lobby({
             if (result.groupId) selectGroup(result.groupId);
         }
     };
-    // The people list, closest first (you on top). The order is set once
-    // when the list opens: rows must not move under the pointer as people
-    // walk or join your party. Anyone who arrives later goes to the end.
+    // The people list, closest first (you on top). In a recording, the
+    // staged crowd is listed with everyone else. The order is set once when
+    // the list opens: rows must not move under the pointer as people walk or
+    // join your party. Anyone who arrives later goes to the end.
     const peopleOrder = useRef<Map<string, number> | null>(null);
     const [peopleNearby, setPeopleNearby] = useState(true);
     if (!peopleOpen) peopleOrder.current = null;
     const peoplePlayers = useMemo(() => {
         if (!peopleOpen) return social.players;
+        const everyone = [...social.players, ...(social.groupPlayers || [])];
         if (!peopleOrder.current) {
             const me = social.getPredictedPose?.() ||
                 social.players.find((player) => player.isLocal) || {
                     x: 0,
                     z: 0,
                 };
+            const spots = new Map<string, { x: number; z: number }>();
+            for (const player of social.players) spots.set(player.id, player);
+            for (const person of recording?.crowd.sample(performance.now()) ||
+                [])
+                spots.set(person.id, person);
+            const distance = (player: (typeof everyone)[number]) => {
+                if ("isLocal" in player && player.isLocal) return -1;
+                const spot = spots.get(player.id);
+                return spot
+                    ? (spot.x - me.x) ** 2 + (spot.z - me.z) ** 2
+                    : Infinity;
+            };
+            // Nearest people first, or who arrived last first (the list
+            // comes in order of arrival). You stay on top either way.
             peopleOrder.current = new Map(
-                social.players
-                    .map((player) => ({
+                everyone
+                    .map((player, arrival) => ({
                         id: player.id,
-                        name: player.name,
-                        d: player.isLocal
-                            ? -1
-                            : (player.x - me.x) ** 2 + (player.z - me.z) ** 2,
+                        arrival,
+                        d: distance(player),
                     }))
                     .sort((a, b) =>
                         peopleNearby || a.d < 0 || b.d < 0
                             ? a.d - b.d
-                            : a.name.localeCompare(b.name)
+                            : b.arrival - a.arrival
                     )
                     .map(({ id }, index) => [id, index])
             );
         }
         const order = peopleOrder.current;
-        for (const player of social.players)
+        for (const player of everyone)
             if (!order.has(player.id)) order.set(player.id, order.size);
-        return [...social.players].sort(
-            (a, b) => order.get(a.id) - order.get(b.id)
-        );
-    }, [peopleOpen, peopleNearby, social.players]);
+        return everyone.sort((a, b) => order.get(a.id) - order.get(b.id));
+    }, [
+        peopleOpen,
+        peopleNearby,
+        social.players,
+        social.groupPlayers,
+        recording,
+    ]);
     const closeGroupModal = () => {
         if (groupModal?.joinCode) {
             const url = new URL(window.location.href);
@@ -518,21 +558,6 @@ export default function Lobby({
         )
             setDestinationGroupsOpen(true);
     }, [entered, invitations.length, groups, social.sessionId]);
-    // What people just said, shown over their heads in place of their name
-    // tags. The scene fades each line out on its own.
-    const speech = useMemo(() => {
-        // Party messages only reach the party's members, so their lines
-        // show above the speaker for the party and nobody else.
-        const lines = activeSpeech([
-            ...social.messages,
-            ...(social.groupMessages || []),
-        ]);
-        if (social.sessionId && lines[social.sessionId]) {
-            lines.self = lines[social.sessionId];
-            delete lines[social.sessionId];
-        }
-        return lines;
-    }, [social.messages, social.groupMessages, social.sessionId]);
     const party = useLobbyTravelParty({
         enabled: authenticated && !isAnonymous,
         players: social.players,
@@ -633,6 +658,7 @@ export default function Lobby({
                     )
                 );
         } else {
+            setGroupTravellers(null);
             void party.refresh().catch(() => {});
             journey.go(destination, options);
         }
@@ -660,11 +686,201 @@ export default function Lobby({
         if (!socialElement.current?.contains(document.activeElement))
             travelControls.current?.focus({ preventScroll: true });
     }, [travelling]);
-    const population = social.population ?? social.players.length;
+    const population =
+        (social.population ?? social.players.length) +
+        (recording?.crowd.participants.length || 0);
+    // Hand the crowd to the scene only once your own avatar is in, so its
+    // dozens of models don't queue ahead of yours.
+    const staged = ready ? recording : null;
     const participants = useMemo(
-        () => social.players.filter((player) => !player.isLocal),
-        [social.players]
+        () => [
+            ...social.players.filter((player) => !player.isLocal),
+            ...(staged?.crowd.participants || []),
+        ],
+        [social.players, staged]
     );
+    const sampleParticipants = useMemo(
+        () =>
+            staged
+                ? (now?: number) => {
+                      const time = now ?? performance.now();
+                      return [
+                          ...social.sampleParticipants(time),
+                          ...staged.crowd.sample(time),
+                      ];
+                  }
+                : social.sampleParticipants,
+        [staged, social.sampleParticipants]
+    );
+    // Who from the staged crowd travels with you: the party you just took a
+    // trip with, otherwise the friends standing next to you.
+    const [groupTravellers, setGroupTravellers] = useState<string[] | null>(
+        null
+    );
+    const isRecording = !!recording;
+    const tripStatus = groupJourney.activeTravel?.status;
+    const tripIds = groupJourney.activeTravel?.acceptedIds.join(",");
+    useEffect(() => {
+        if (!isRecording || !tripStatus || !tripIds) return;
+        const ids = tripIds.split(",");
+        if (!ids.includes(social.sessionId)) return;
+        if (tripStatus === "cancelled") setGroupTravellers(null);
+        else if (tripStatus !== "inviting")
+            setGroupTravellers(ids.filter((id) => id !== social.sessionId));
+    }, [isRecording, tripStatus, tripIds, social.sessionId]);
+    // Party members get their full (not crowd-drawn) avatar as soon as they
+    // join, so nobody changes model while the party lines up to leave.
+    const stagedPartyIds = useMemo(
+        () =>
+            staged && partyMemberIds.length > 1
+                ? partyMemberIds.filter((id) => id !== social.sessionId)
+                : null,
+        [staged, partyMemberIds, social.sessionId]
+    );
+    const stagedTravelIds = useMemo(
+        () =>
+            staged
+                ? groupTravellers ?? stagedPartyIds ?? staged.crowd.travelIds
+                : [],
+        [staged, groupTravellers, stagedPartyIds]
+    );
+    const travelPartyIds = useMemo(
+        () =>
+            staged ? [...party.partyIds, ...stagedTravelIds] : party.partyIds,
+        [party.partyIds, staged, stagedTravelIds]
+    );
+    // The space this group travels to shows the same friends beside you
+    // (read by the space's multiplayer, see recordingParty.js).
+    useEffect(() => {
+        const win = window as typeof window & {
+            __oncyberRecordingParty?: unknown;
+        };
+        if (!staged) return;
+        // In the trip's order, so the space can line friends up as the
+        // lobby did.
+        const people = new Map(
+            staged.crowd.participants.map((person) => [person.id, person])
+        );
+        win.__oncyberRecordingParty = stagedTravelIds
+            .map((id) => people.get(id))
+            .filter(Boolean)
+            .map(({ id, name, vrmUrl, avatar }) => ({
+                id,
+                name,
+                vrmUrl,
+                avatar,
+            }));
+        return () => {
+            delete win.__oncyberRecordingParty;
+        };
+    }, [staged, stagedTravelIds]);
+    // The staged crowd answers what you say in the global chat.
+    const [crowdReplies, setCrowdReplies] = useState<LobbyMessage[]>([]);
+    const answered = useRef(new Set<string>());
+    useEffect(() => {
+        if (!staged) return;
+        const timers: number[] = [];
+        for (const message of social.messages) {
+            if (
+                message.sessionId !== social.sessionId ||
+                message.recipientId ||
+                answered.current.has(message.id) ||
+                Date.now() - message.sentAt > 10_000
+            )
+                continue;
+            answered.current.add(message.id);
+            for (const reply of planCrowdReplies(message.text, staged.crowd)) {
+                const person = staged.crowd.participants.find(
+                    (candidate) => candidate.id === reply.id
+                );
+                if (!person) continue;
+                timers.push(
+                    window.setTimeout(() => {
+                        const sentAt = Date.now();
+                        setCrowdReplies((previous) =>
+                            [
+                                ...previous,
+                                {
+                                    id: `${reply.id}-${sentAt}`,
+                                    sessionId: reply.id,
+                                    name: person.name || "Guest",
+                                    avatar: person.avatar,
+                                    text: reply.text,
+                                    sentAt,
+                                },
+                            ].slice(-60)
+                        );
+                    }, reply.delay)
+                );
+            }
+        }
+        return () => timers.forEach((timer) => window.clearTimeout(timer));
+    }, [staged, social.messages, social.sessionId]);
+    const chatSocial = useMemo(
+        () =>
+            crowdReplies.length
+                ? {
+                      ...social,
+                      messages: [...social.messages, ...crowdReplies].sort(
+                          (a, b) => a.sentAt - b.sentAt
+                      ),
+                  }
+                : social,
+        [social, crowdReplies]
+    );
+    // Lines over speakers' heads. The scene fades each one out on its own.
+    const stagedIds = useMemo(
+        () =>
+            social.groupPlayers
+                ? new Set(social.groupPlayers.map((person) => person.id))
+                : null,
+        [social.groupPlayers]
+    );
+    const speech = useMemo(() => {
+        // Party messages only reach the party's members, so their lines
+        // show above the speaker for the party and nobody else.
+        const lines = activeSpeech([
+            ...chatSocial.messages,
+            ...(social.groupMessages || []),
+        ]);
+        for (const id of [social.sessionId, liveSocial.sessionId])
+            if (id && lines[id]) {
+                if (!lines.self || lines.self.at < lines[id].at)
+                    lines.self = lines[id];
+                delete lines[id];
+            }
+        return lines;
+    }, [
+        chatSocial.messages,
+        social.groupMessages,
+        social.sessionId,
+        liveSocial.sessionId,
+    ]);
+    const recordingBudget = useMemo(
+        () =>
+            recording
+                ? {
+                      maxModels: 24,
+                      maxNativeAvatars: 16,
+                      maxLabels:
+                          recording.options.names && recording.options.labels
+                              ? 64
+                              : 0,
+                      loadConcurrency: 4,
+                  }
+                : undefined,
+        [recording]
+    );
+    // Recording without labels: spaces read this from the page around them.
+    const hideLabels = !!recording && !recording.options.labels;
+    useEffect(() => {
+        if (!hideLabels) return;
+        document.documentElement.setAttribute("data-recording-no-labels", "");
+        return () =>
+            document.documentElement.removeAttribute(
+                "data-recording-no-labels"
+            );
+    }, [hideLabels]);
     const sceneReady = useCallback(() => {
         setReady(true);
         onReady();
@@ -985,7 +1201,7 @@ export default function Lobby({
                             journey.travel
                                 ? {
                                       ...journey.travel,
-                                      partyIds: party.partyIds,
+                                      partyIds: travelPartyIds,
                                       // Progress for the halo's band only;
                                       // the scene draws no name or status.
                                       viaPortal: portalTrip,
@@ -1005,9 +1221,11 @@ export default function Lobby({
                         crowdEnabled={true}
                         proceduralMotion={true}
                         participants={participants}
+                        renderBudget={recordingBudget}
+                        speech={speech}
                         initializePose={social.initializePose}
                         advanceMovement={social.advanceMovement}
-                        sampleParticipants={social.sampleParticipants}
+                        sampleParticipants={sampleParticipants}
                         consumeCorrection={social.consumeCorrection}
                         avatarPreview={avatarOpen}
                         onAvatarStatus={avatarStatus}
@@ -1022,7 +1240,6 @@ export default function Lobby({
                                 ? userData?.username
                                 : undefined
                         )}
-                        speech={speech}
                         emote={emote}
                         flash={flash}
                         flashPreviewOpen={flashOpen}
@@ -1032,7 +1249,7 @@ export default function Lobby({
                         destinations={[]}
                         onMove={social.updatePosition}
                         onSelectDestination={() => {}}
-                        travelPartyIds={party.partyIds}
+                        travelPartyIds={travelPartyIds}
                         onReady={sceneReady}
                         onError={sceneFailed}
                     />
@@ -1464,6 +1681,11 @@ export default function Lobby({
                                 ? {
                                       memberIds: partyMemberIds,
                                       onAdd: addToParty,
+                                      // The mock party only knows the
+                                      // staged crowd.
+                                      canAdd: stagedIds
+                                          ? (id) => stagedIds.has(id)
+                                          : undefined,
                                   }
                                 : undefined
                         }
@@ -1671,7 +1893,7 @@ export default function Lobby({
                     </button>
                 )}
                 <LobbyChat
-                    social={social}
+                    social={chatSocial}
                     open={chatOpen}
                     onOpenChange={setChatOpen}
                     inputRef={chatInput}
@@ -1753,7 +1975,7 @@ export default function Lobby({
                         (group) => group.id === groupModal.groupId
                     )}
                     joinCode={groupModal.joinCode}
-                    players={social.players}
+                    players={social.groupPlayers || social.players}
                     sessionId={social.sessionId}
                     action={social.groupAction}
                     onClose={closeGroupModal}
