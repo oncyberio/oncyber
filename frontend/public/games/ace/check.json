@@ -1,34 +1,60 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:18:45.030Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1797425,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-DQSxPE71.js",
+      "bytes": 948940
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2901,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2901
       }
     ],
     "frames": null,
     "inspect": null,
     "bootOnly": true
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 18,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 4,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 15,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
   }
 }

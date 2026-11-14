@@ -46,6 +46,10 @@ and `call(capability, operation, value)` for anything else the game declared
 (storage, audio, network, travel). Undeclared capabilities, assets and input
 actions are refused. Full types: `games/runtime/src/index.ts`.
 
+Input comes only from declared actions: a game adds no key listeners and
+binds no key the page reserves. The rule and its check:
+[games/keys-focus.md](games/keys-focus.md).
+
 A game doesn't have to use the lifecycle; any page in the frame runs. Using
 it is what makes checks, seamless travel and live editing possible.
 
@@ -68,6 +72,7 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. |
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
+| game / page | `key`, `input`, `muted`    | Keys and focus: the page owns Escape, Enter and M, and pauses the game's input while the visitor types or a page menu is open. See [games/keys-focus.md](games/keys-focus.md).                    |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -131,6 +136,8 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+The keys stage (`scripts/games/keysCheck.mjs`) then scans the source for raw
+key listeners and types in the page's chat during play; it must pass too.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

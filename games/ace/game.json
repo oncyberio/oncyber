@@ -1,4 +1,89 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "input": {
+    "up": {
+      "keyboard": [
+        "KeyW",
+        "ArrowUp"
+      ],
+      "touch": "stick",
+      "gamepad": "left-stick-up"
+    },
+    "down": {
+      "keyboard": [
+        "KeyS",
+        "ArrowDown"
+      ],
+      "touch": "stick",
+      "gamepad": "left-stick-down"
+    },
+    "left": {
+      "keyboard": [
+        "KeyA",
+        "ArrowLeft"
+      ],
+      "touch": "stick",
+      "gamepad": "left-stick-left"
+    },
+    "right": {
+      "keyboard": [
+        "KeyD",
+        "ArrowRight"
+      ],
+      "touch": "stick",
+      "gamepad": "left-stick-right"
+    },
+    "flat": {
+      "keyboard": [
+        "KeyJ",
+        "Space"
+      ],
+      "touch": "flat",
+      "gamepad": "button-a"
+    },
+    "topspin": {
+      "keyboard": [
+        "KeyK"
+      ],
+      "touch": "topspin",
+      "gamepad": "button-x"
+    },
+    "slice": {
+      "keyboard": [
+        "KeyH"
+      ],
+      "touch": "slice",
+      "gamepad": "button-b"
+    },
+    "lob": {
+      "keyboard": [
+        "KeyU"
+      ],
+      "touch": "lob",
+      "gamepad": "button-y"
+    },
+    "pause": {
+      "keyboard": [
+        "KeyP"
+      ],
+      "gamepad": "button-start"
+    },
+    "back": {
+      "keyboard": [
+        "Backspace"
+      ],
+      "gamepad": "button-b"
+    }
+  },
+  "keysCheck": {
+    "start": [
+      "Space",
+      "Space"
+    ],
+    "ready": {
+      "screen": "playing"
+    },
+    "move": "KeyD"
+  }
 }

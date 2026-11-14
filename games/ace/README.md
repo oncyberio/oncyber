@@ -13,7 +13,7 @@ sends the lobby camera (`ace:arrival`), the game stands the visitor beside the
 near baseline with the same camera offset and field of view, facing the
 camera and crouched as the lobby left them, then standing up, and answers
 `ace:arrival-ready`. From there WASD walks, dragging looks around, and
-**Play match** (Enter) opens the match setup. Leaving a match or the setup
+**Play match** (Space) opens the match setup. Leaving a match or the setup
 returns here. A direct visit to `/games/ace` opens on the title screen instead.
 
 ## Parties
@@ -38,7 +38,7 @@ development server.
   will land.
 - **Serve:** press once to toss, again at the top. Timing sets pace and accuracy.
 - Real tennis scoring (deuce, advantage, faults, lets, net cords), 1, 3 or 5
-  games. **Esc / P** pauses, **M** mutes.
+  games. **P** pauses. Esc (menu), Enter (chat) and M (sound) belong to the page.
 
 ## Code map
 

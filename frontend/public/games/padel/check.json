@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-14T15:30:01.018Z",
+  "checkedAt": "2026-11-14T18:19:16.441Z",
   "status": "passed",
   "scope": "boot",
   "files": {
@@ -13,22 +13,39 @@
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 277,
+    "bootMs": 574,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 277
+        "ms": 574
       }
     ],
     "frames": null,
     "inspect": null,
     "bootOnly": true
+  },
+  "keys": {
+    "status": "legacy",
+    "scanned": 27,
+    "warnings": [
+      {
+        "code": "ACTION_INVALID",
+        "message": "game.json declares no input actions"
+      },
+      {
+        "code": "RAW_KEY_LISTENER",
+        "message": "src/main.js:550 raw key listener; take keys as declared actions from bindPageKeys"
+      },
+      {
+        "code": "RAW_KEY_LISTENER",
+        "message": "src/main.js:653 raw key listener; take keys as declared actions from bindPageKeys"
+      }
+    ],
+    "steps": []
   }
 }

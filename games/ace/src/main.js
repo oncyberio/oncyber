@@ -141,6 +141,7 @@ const state = {
     camMode: "orbit",
     camT: 0,
     paused: false,
+    inputPaused: false,
     hintPoints: 0,
     rally: 0,
     matchEndAt: 0,
@@ -688,7 +689,6 @@ function menuConfirm(name) {
 
 function handleMenuInput(events) {
     for (const e of events) {
-        if (e.type === "mute") toggleSound();
         if (e.type === "confirm" || e.type === "shot" || e.type === "nav")
             sound.unlockAudio(audio);
         const s = state.screen;
@@ -728,7 +728,7 @@ function handleMenuInput(events) {
             if (e.type === "confirm") action("start");
             if (e.type === "back") action("back");
         } else if (s === "arrive") {
-            // Arrows and WASD walk here, so only Enter acts.
+            // Arrows and WASD walk here, so only confirm (Space, J) acts.
             if (e.type === "confirm") action("play");
         } else if (s === "party") {
             if (e.type === "back") action("back");
@@ -1079,7 +1079,31 @@ function showResults() {
 
 // --------------------------------------------------------------- per frame
 
-const input = createInput(canvas, document.querySelector(".touch-pad"));
+// The page owns Escape, Enter and M (docs/games/keys-focus.md). While the
+// visitor types in the page or its menu is open, the match stands still.
+const input = createInput(canvas, document.querySelector(".touch-pad"), {
+    paused() {
+        state.inputPaused = true;
+        sound.chargeStop(audio);
+    },
+    resumed() {
+        state.inputPaused = false;
+    },
+    muted(muted) {
+        sound.setMuted(audio, muted);
+        refreshSoundLabels();
+    },
+    probe() {
+        const h = state.engine?.athletes[0];
+        return {
+            position: h ? [h.x, 0, h.z] : null,
+            screen: state.screen,
+            phase: state.engine?.phase ?? "",
+            muted: audio.muted,
+            frozen: state.inputPaused,
+        };
+    },
+});
 if (window.matchMedia?.("(pointer: coarse)").matches)
     document.body.classList.add("is-touch");
 const clock = new THREE.Clock();
@@ -1398,7 +1422,10 @@ function frame() {
     const e = state.engine;
     if (!e || !world) return;
     const live = state.screen === "playing" || state.attract;
-    if (state.screen === "playing" && !state.paused) {
+    if (state.screen === "playing" && state.inputPaused) {
+        // Input is paused by the page: nothing moves until it resumes.
+        dt = 0.0001;
+    } else if (state.screen === "playing" && !state.paused) {
         const events = update(e, humanInput(raw), dt);
         handleEvents(events);
     } else if (state.attract) {
@@ -1552,14 +1579,14 @@ host.on("dispose", () => {
     host.dispose();
 });
 
-// First interaction anywhere unlocks audio (browsers require a gesture).
+// The first click or tap unlocks audio (browsers require a gesture); the
+// first key does too, when its action arrives (handleMenuInput).
 const unlock = () => {
     sound.unlockAudio(audio);
     if (state.screen === "title" || state.screen === "results")
         sound.startMusic(audio, "title");
 };
 window.addEventListener("pointerdown", unlock, { once: true });
-window.addEventListener("keydown", unlock, { once: true });
 
 // Read-only diagnostics for automated checks.
 window.__ace = {

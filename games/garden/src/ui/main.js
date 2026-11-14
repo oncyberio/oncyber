@@ -1,4 +1,6 @@
 import { connectUI } from "@oncyber/game-runtime/browser";
+import { bindPageKeys } from "@oncyber/game-runtime/keys-browser";
+import manifest from "../../game.json";
 import "./style.css";
 
 // Bloom Garden's UI: an HTML page in its own sandbox (or a native WebView).
@@ -32,33 +34,21 @@ const unlock = () => {
     pulse("audioUnlock");
 };
 
-// Keys: held actions follow the key; the rest pulse on press.
-const HOLD = {
-    KeyW: "forward", ArrowUp: "forward",
-    KeyS: "backward", ArrowDown: "backward",
-    KeyA: "left", ArrowLeft: "left",
-    KeyD: "right", ArrowRight: "right",
-    ShiftLeft: "walk", ShiftRight: "walk",
-    KeyF: "pet",
-};
-const PRESS = {
-    Space: "jump", KeyE: "interact", Enter: "interact", KeyQ: "throw", KeyR: "whistle",
-    KeyC: "cheer", Tab: "panel", KeyB: "panel", KeyH: "help", KeyM: "mute",
-    Escape: "back", KeyG: "wave",
-};
-window.addEventListener("keydown", (e) => {
-    unlock();
-    if (e.code === "Tab" || e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
-    if (e.repeat) return;
-    if (HOLD[e.code]) ui.action(HOLD[e.code], 1);
-    else if (PRESS[e.code]) pulse(PRESS[e.code]);
-    else if (/^Digit[1-4]$/.test(e.code)) pulse("details", indexValue(Number(e.code.slice(5)) - 1));
-});
-window.addEventListener("keyup", (e) => {
-    if (HOLD[e.code]) ui.action(HOLD[e.code], 0);
-});
-window.addEventListener("blur", () => {
-    for (const a of new Set(Object.values(HOLD))) ui.action(a, 0);
+// Keys arrive as the actions game.json declares, through the page keys
+// binder; this frame adds no key listeners (docs/games/keys-focus.md). Held
+// actions follow the key; the rest pulse on press. Escape, Enter and M are
+// the page's: the host frame relays them up.
+const HOLD = new Set(["forward", "backward", "left", "right", "walk", "pet"]);
+bindPageKeys({
+    game: "garden",
+    input: manifest.runtime.input,
+    action(name, value) {
+        if (value) unlock();
+        if (HOLD.has(name)) ui.action(name, value);
+        else if (!value) return;
+        else if (/^pick[1-4]$/.test(name)) pulse("details", indexValue(Number(name.slice(4)) - 1));
+        else pulse(name);
+    },
 });
 
 // Look: drag the world (mouse or a finger on the right), wheel to zoom,

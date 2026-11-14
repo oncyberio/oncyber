@@ -1,35 +1,37 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:19:03.219Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1345255,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-B4_aaWVw.js",
+      "bytes": 1003499
     }
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:38487/games/garden/assets/index-B4_aaWVw.js:1:12168)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1817,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1817
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 933
       },
       {
         "stage": "lifecycle",
@@ -39,14 +41,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3018
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,
@@ -64,7 +66,36 @@
       "playerX": 0,
       "playerZ": 11.4,
       "hostPhase": "entered",
-      "hostFrames": 236
+      "hostFrames": 236,
+      "hostInputPaused": false
     }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 28,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 18,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
   }
 }

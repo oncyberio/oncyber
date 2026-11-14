@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import GameInputLayer from "./GameInputLayer";
 
 const PEER_INTERVAL = 100;
 
@@ -480,6 +481,16 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 >
                     {roomState.voiceError}
                 </p>
+            )}
+            {!error && (
+                <GameInputLayer
+                    game={GAME}
+                    title={gameName}
+                    frame={frame}
+                    send={send.current}
+                    fromGame={fromGame}
+                    onLeave={leave.current}
+                />
             )}
             {error && (
                 <div

@@ -84,8 +84,7 @@
       },
       "interact": {
         "keyboard": [
-          "KeyE",
-          "Enter"
+          "KeyE"
         ],
         "touch": "use",
         "gamepad": "button-x"
@@ -141,14 +140,11 @@
         "gamepad": "button-start"
       },
       "mute": {
-        "keyboard": [
-          "KeyM"
-        ],
         "touch": "sound"
       },
       "back": {
         "keyboard": [
-          "Escape"
+          "Backspace"
         ],
         "touch": "close",
         "gamepad": "button-b"
@@ -212,7 +208,30 @@
       },
       "exit": {
         "touch": "lobby"
+      },
+      "pick1": {
+        "keyboard": [
+          "Digit1"
+        ]
+      },
+      "pick2": {
+        "keyboard": [
+          "Digit2"
+        ]
+      },
+      "pick3": {
+        "keyboard": [
+          "Digit3"
+        ]
+      },
+      "pick4": {
+        "keyboard": [
+          "Digit4"
+        ]
       }
     }
+  },
+  "keysCheck": {
+    "move": "KeyW"
   }
 }

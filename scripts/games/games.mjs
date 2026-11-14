@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runKeysCheck } from "./keysCheck.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -136,7 +137,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, keys = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -158,6 +159,11 @@ async function check() {
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        page.removeAllListeners();
+        await page.close();
+        // Keys and focus (docs/games/keys-focus.md): source scan, then typing in the page's chat during play.
+        keys = await runKeysCheck({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, manifest });
+        scan.findings.push(...keys.findings);
     } finally {
         await browser.close();
         server.close();
@@ -181,6 +187,7 @@ async function check() {
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
         run: report,
+        keys: keys?.report ?? null,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;

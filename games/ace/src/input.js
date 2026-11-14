@@ -1,16 +1,20 @@
 // Keyboard, mouse, gamepad and touch merged into one small per-frame snapshot.
+// The keyboard arrives as the actions declared in game.json, through the
+// page keys binder: this file adds no key listeners (docs/games/keys-focus.md).
+import { bindPageKeys } from "@oncyber/game-runtime/keys-browser";
+import manifest from "../game.json";
 
-// J regular, K topspin, H cut (slice), U lob. H and K together play a drop shot.
-const SHOT_KEYS = {
-    KeyJ: "flat",
-    Space: "flat",
-    KeyK: "topspin",
-    KeyH: "slice",
-    KeyU: "lob",
-};
-const DROP_CHORD = { KeyH: "KeyK", KeyK: "KeyH" };
+// flat (J, Space) regular, topspin (K), slice (H) cut, lob (U). Slice and
+// topspin together play a drop shot.
+const SHOTS = new Set(["flat", "topspin", "slice", "lob"]);
+const DROP_CHORD = { slice: "topspin", topspin: "slice" };
+const NAV = new Set(["up", "down", "left", "right"]);
 
-export function createInput(target, touchRoot) {
+/**
+ * `page`: `{ paused(reason), resumed(), muted(muted), probe() }`, what the
+ * game does when the page pauses input or turns sound off.
+ */
+export function createInput(target, touchRoot, page = {}) {
     const held = new Set();
     const queue = [];
     const input = {
@@ -22,52 +26,42 @@ export function createInput(target, touchRoot) {
         padPrev: [],
     };
     const push = (e) => queue.push(e);
-    const onKey = (e) => {
-        if (e.repeat) {
-            if (["Space", "ArrowUp", "ArrowDown"].includes(e.code))
-                e.preventDefault();
+    const shotHeld = () => [...SHOTS].some((k) => held.has(k));
+    const onAction = (name, value) => {
+        if (!value) {
+            held.delete(name);
+            if (SHOTS.has(name) && !shotHeld()) push({ type: "release" });
             return;
         }
         input.lastDevice = "keyboard";
-        held.add(e.code);
-        if (DROP_CHORD[e.code] && held.has(DROP_CHORD[e.code]))
+        held.add(name);
+        if (DROP_CHORD[name] && held.has(DROP_CHORD[name]))
             push({ type: "shot", shot: "drop" });
-        else if (SHOT_KEYS[e.code])
-            push({ type: "shot", shot: SHOT_KEYS[e.code] });
-        if (e.code === "Escape" || e.code === "KeyP") push({ type: "pause" });
-        if (e.code === "Enter" || e.code === "Space" || e.code === "KeyJ")
-            push({ type: "confirm" });
-        if (e.code === "Escape" || e.code === "Backspace" || e.code === "KeyK")
-            push({ type: "back" });
-        if (e.code === "KeyM") push({ type: "mute" });
-        const nav = {
-            ArrowUp: "up",
-            KeyW: "up",
-            ArrowDown: "down",
-            KeyS: "down",
-            ArrowLeft: "left",
-            KeyA: "left",
-            ArrowRight: "right",
-            KeyD: "right",
-        }[e.code];
-        if (nav) push({ type: "nav", dir: nav });
-        if (
-            [
-                "Space",
-                "ArrowUp",
-                "ArrowDown",
-                "ArrowLeft",
-                "ArrowRight",
-            ].includes(e.code)
-        )
-            e.preventDefault();
+        else if (SHOTS.has(name)) push({ type: "shot", shot: name });
+        if (name === "pause") push({ type: "pause" });
+        if (name === "flat") push({ type: "confirm" });
+        if (name === "back" || name === "topspin") push({ type: "back" });
+        if (NAV.has(name)) push({ type: "nav", dir: name });
     };
-    const shotHeld = () => Object.keys(SHOT_KEYS).some((k) => held.has(k));
-    const onKeyUp = (e) => {
-        held.delete(e.code);
-        if (SHOT_KEYS[e.code] && !shotHeld()) push({ type: "release" });
-    };
-    const onBlur = () => held.clear();
+    const keys = bindPageKeys({
+        game: "ace",
+        input: manifest.input,
+        action: onAction,
+        paused(reason) {
+            // Nothing from any device reaches the game until `resumed`.
+            input.enabled = false;
+            clearInput(input);
+            input.touch = { active: false, id: null, x: 0, y: 0 };
+            page.paused?.(reason);
+        },
+        resumed() {
+            input.enabled = true;
+            clearInput(input);
+            page.resumed?.();
+        },
+        muted: (muted) => page.muted?.(muted),
+        probe: () => page.probe?.(),
+    });
     const onMouse = (e) => {
         if (e.target.closest && e.target.closest("button, .touch-pad")) return;
         input.lastDevice = "mouse";
@@ -77,9 +71,6 @@ export function createInput(target, touchRoot) {
     };
     const onMouseUp = () => push({ type: "release" });
     const noMenu = (e) => e.preventDefault();
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", onBlur);
     target.addEventListener("mousedown", onMouse);
     window.addEventListener("mouseup", onMouseUp);
     target.addEventListener("contextmenu", noMenu);
@@ -152,9 +143,7 @@ export function createInput(target, touchRoot) {
     window.addEventListener("touchcancel", onTouchEnd);
 
     input.dispose = () => {
-        window.removeEventListener("keydown", onKey);
-        window.removeEventListener("keyup", onKeyUp);
-        window.removeEventListener("blur", onBlur);
+        keys.dispose();
         target.removeEventListener("mousedown", onMouse);
         window.removeEventListener("mouseup", onMouseUp);
         target.removeEventListener("contextmenu", noMenu);
@@ -169,12 +158,8 @@ export function createInput(target, touchRoot) {
 /** Read and clear this frame's input. Move is in screen space: +y is up/forward. */
 export function readInput(input) {
     const h = input.held;
-    let x =
-        (h.has("KeyD") || h.has("ArrowRight") ? 1 : 0) -
-        (h.has("KeyA") || h.has("ArrowLeft") ? 1 : 0);
-    let y =
-        (h.has("KeyW") || h.has("ArrowUp") ? 1 : 0) -
-        (h.has("KeyS") || h.has("ArrowDown") ? 1 : 0);
+    let x = (h.has("right") ? 1 : 0) - (h.has("left") ? 1 : 0);
+    let y = (h.has("up") ? 1 : 0) - (h.has("down") ? 1 : 0);
     if (input.touch.active) {
         x = input.touch.x;
         y = input.touch.y;
@@ -231,9 +216,7 @@ export function readInput(input) {
     return {
         x,
         y,
-        events: input.enabled
-            ? events
-            : events.filter((e) => e.type === "pause"),
+        events: input.enabled ? events : [],
     };
 }
 

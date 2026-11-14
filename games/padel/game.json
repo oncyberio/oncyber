@@ -1,4 +1,7 @@
 {
-  "name": "Glasshouse \u00b7 Padel",
-  "avatar": "vrm"
+  "name": "Glasshouse · Padel",
+  "avatar": "vrm",
+  "keysCheck": {
+    "legacy": true
+  }
 }
