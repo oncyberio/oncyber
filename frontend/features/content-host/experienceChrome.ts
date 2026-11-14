@@ -20,7 +20,7 @@ export const nativeChatPlacement = css`
     position: fixed;
     left: max(24px, env(safe-area-inset-left));
     bottom: max(20px, calc(env(safe-area-inset-bottom) + 8px));
-    width: 340px;
+    width: ${lobby.chat.width}px;
     max-width: calc(50vw - 180px);
     z-index: 10000;
     @media ${nativeCompactControlsQuery} {
