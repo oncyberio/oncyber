@@ -139,6 +139,13 @@ It needs Playwright and Chromium. `PW_CHANNEL=chrome` uses the installed
 Chrome and its GPU; `--headed` shows the window. Headless frame times follow
 the headless browser's frame rate, not the game's.
 
+## Field health and the kill switch
+
+Every game calls `reportHealth()` first thing, so uncaught errors, failed
+lifecycle stages and frame times from real visits reach `/dev/games`; and
+`GAMES_DISABLED` pauses a game or one release. Rules, what is collected and
+why: [games/field-health.md](games/field-health.md).
+
 ## Not built yet
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.

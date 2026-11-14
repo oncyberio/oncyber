@@ -1,35 +1,42 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:03:50.160Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1337432,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-CIMOPP1-.js",
+      "bytes": 1000977
     }
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:36911/games/garden/assets/index-CIMOPP1-.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1858,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1858
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 939
       },
       {
         "stage": "lifecycle",
@@ -39,14 +46,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,

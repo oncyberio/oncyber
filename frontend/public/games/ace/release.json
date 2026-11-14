@@ -2,11 +2,11 @@
   "version": 1,
   "game": "ace",
   "name": "ACE! Tennis",
-  "release": "0800022feca2d8ba",
-  "publishedAt": "2026-11-14T16:29:14.044Z",
+  "release": "d29f024af53e805d",
+  "publishedAt": "2026-11-14T17:53:27.429Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-14T16:29:14.043Z",
+    "checkedAt": "2026-11-14T17:53:27.428Z",
     "backend": "unknown",
     "frames": null
   },
@@ -22,19 +22,19 @@
       "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
     },
     {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572,
-      "sha256": "bf924e588fd200e4be496979d39b5049ce06c8456188423c4cb16e7dc2509b38"
-    },
-    {
       "path": "assets/index-Bfj8B_-b.css",
       "bytes": 16956,
       "sha256": "7dc92a5e1e9b8968157461f1db926fc744fa3556cdc7920a516fbcf43176e13d"
     },
     {
+      "path": "assets/index-gB0dzjd3.js",
+      "bytes": 947401,
+      "sha256": "04117b7c73b32750a51d974997a3fe9d868e7a20039388ea7d7f87c38cea9228"
+    },
+    {
       "path": "index.html",
       "bytes": 13540,
-      "sha256": "1d39bf5873bf5a6ac3246ddbe57e985ca3898b7d5e3647455afbe7f2002a8fe6"
+      "sha256": "2ad6afb52be68ad6ca6a1880b03a1ca45f43e4092ecd37c1ba98c5b0edbdc0f7"
     },
     {
       "path": "preview.jpg",

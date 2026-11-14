@@ -28,6 +28,7 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import { reportHealth } from "@oncyber/game-runtime/health";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
@@ -36,6 +37,8 @@ import { cheer, createWorld, updateWorld } from "./world.js";
 import { attachVRM, driveVRM, loadVRM } from "./vrm.js";
 
 const $ = (s) => document.querySelector(s);
+// Uncaught errors and frame times, reported to the page from the start.
+const health = reportHealth({ game: "ace" });
 const host = createHost();
 host.hello();
 
@@ -1514,6 +1517,7 @@ async function bootGame() {
         }, 250);
     } catch (err) {
         console.error(err);
+        health.stageFailed("prepare", err);
         host.fail(err && err.message ? err.message : "boot failed");
         $("#boot-text").textContent = "Something went wrong. Please reload.";
     }

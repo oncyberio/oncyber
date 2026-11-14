@@ -1,6 +1,7 @@
 import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { reportHealth } from "@oncyber/game-runtime/health";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -23,6 +24,8 @@ const frame = document.querySelector("#game-ui");
 const notice = document.querySelector("#notice");
 const page = createHost();
 page.hello();
+// Uncaught errors, failed lifecycle stages and frame times, reported to the page.
+const health = reportHealth({ game: "garden" });
 
 // Dev diagnostics for device simulators: ?log posts errors and state.
 const remoteLog = params.has("log")
@@ -238,6 +241,7 @@ async function start() {
         services: { identity, asset, call, avatar },
         onError: (error) => {
             console.error("[garden]", error);
+            health.stageFailed("update", error);
             if (/DEVICE_LOST|destroyed/i.test(error?.message || "")) fail("The graphics device was lost. Reload to keep playing.");
         },
     };
@@ -265,12 +269,12 @@ async function start() {
             get: () => debugHooks.photo,
         });
     }
-    await host.session.prepare();
-    await host.session.enter({
+    await health.stage("prepare", () => host.session.prepare());
+    await health.stage("enter", () => host.session.enter({
         avatar: { id: identity.id, position: [0, 0, 13], rotation: [0, 1, 0, 0] },
         camera: { position: [0, 3.5, 20], target: [0, 1.3, 13], fov: 50, mode: "third-person" },
         party: [],
-    });
+    }));
     page.ready();
     // pnpm games:check opens the game with ?check: play the scenario, measure
     // frames and report to the check page.

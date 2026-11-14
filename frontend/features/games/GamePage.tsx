@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { useGameHealth } from "./gameHealth";
 
 const PEER_INTERVAL = 100;
 
@@ -99,6 +100,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // What breaks and how fast it runs on real visits (gameHealth.ts).
+    useGameHealth(GAME, frame);
     const leave = useRef(() => {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");

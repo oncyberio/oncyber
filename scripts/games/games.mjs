@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkHealth, healthHarness } from "./health-stage.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -103,7 +104,7 @@ addEventListener("message", (event) => {
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
-</script>`;
+</script>${healthHarness}`;
 
 function serve() {
     const server = createServer((req, res) => {
@@ -136,7 +137,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, health = { findings: [], summary: null };
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -156,6 +157,8 @@ async function check() {
             await page.waitForTimeout(5000);
             report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
+        // Field health: a thrown error is recorded; a disabled game stays paused.
+        health = await checkHealth(page, { id, manifest, files, ready: Boolean(report || readyAt) });
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
     } finally {
@@ -166,12 +169,13 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !health.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
         findings: [
             ...scan.findings,
+            ...health.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
@@ -180,6 +184,7 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        health: health.summary,
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
