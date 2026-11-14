@@ -7,13 +7,41 @@ const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
 const STORAGE_MAX = 64 * 1024;
 
+/** The lobby's camera relative to the avatar's feet; null when malformed. */
+export function readArrivalView(value) {
+    const vector = (v) =>
+        v &&
+        [v.x, v.y, v.z].every(
+            (n) => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1000
+        );
+    if (
+        !value ||
+        !vector(value.cameraOffset) ||
+        !vector(value.cameraTargetOffset) ||
+        !Number.isFinite(value.avatarRotation) ||
+        !(value.fov > 5 && value.fov < 150)
+    )
+        return null;
+    const copy = (v) => ({ x: v.x, y: v.y, z: v.z });
+    return {
+        cameraOffset: copy(value.cameraOffset),
+        cameraTargetOffset: copy(value.cameraTargetOffset),
+        avatarRotation: value.avatarRotation,
+        avatarHeight:
+            value.avatarHeight >= 0.2 && value.avatarHeight <= 10
+                ? value.avatarHeight
+                : 1.8,
+        fov: value.fov,
+    };
+}
+
 export function createHost() {
     const embedded = window.parent !== window;
     const host = {
         embedded,
         identity: null,
         entered: !embedded,
-        listeners: { identity: [], entered: [], dispose: [] },
+        listeners: { identity: [], entered: [], dispose: [], arrival: [] },
     };
     const stored = new Map();
     const fire = (type, value) => host.listeners[type].forEach((f) => f(value));
@@ -45,6 +73,10 @@ export function createHost() {
             fire("identity", host.identity);
             // The host only accepts readiness after it has sent identity.
             if (host.readyPosted) post({ type: "ace:ready" });
+        } else if (data.type === "ace:arrival") {
+            // Travelling in from the lobby: its third-person view, so the
+            // game can stand the visitor in the same framing.
+            fire("arrival", readArrivalView(data.view));
         } else if (data.type === "ace:entered") {
             host.entered = true;
             fire("entered");
@@ -100,6 +132,7 @@ export function createHost() {
         host.readyPosted = true;
         post({ type: "ace:ready" });
     };
+    host.arrivalReady = () => post({ type: "ace:arrival-ready" });
     host.fail = (message) =>
         post({ type: "ace:error", message: String(message).slice(0, 200) });
     host.exit = () => {

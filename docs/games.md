@@ -55,16 +55,18 @@ it is what makes checks, seamless travel and live editing possible.
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `<id>:<kind>`:
 
-| From        | Kind                       | Meaning                                                                                  |
-| ----------- | -------------------------- | ---------------------------------------------------------------------------------------- |
-| game        | `hello`                    | Repeat until `identity` arrives.                                                         |
-| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.          |
-| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                  |
-| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB). |
-| game        | `pose`                     | The player's pose for the shared room.                                                   |
-| page        | `peers`                    | Everyone else in the room, ten times a second.                                           |
-| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                        |
-| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                         |
+| From        | Kind                       | Meaning                                                                                                            |
+| ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| game        | `hello`                    | Repeat until `identity` arrives.                                                                                   |
+| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                    |
+| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                            |
+| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                           |
+| game        | `pose`                     | The player's pose for the shared room.                                                                             |
+| page        | `peers`                    | Everyone else in the room, ten times a second.                                                                     |
+| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                  |
+| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                                                   |
+| page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet. |
+| game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                             |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -121,4 +123,4 @@ the headless browser's frame rate, not the game's.
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.
 -   Hosted releases: publishing is a commit today, not an upload.
 -   Phone and headset profiles for the check.
--   Games in the lobby's Explore panel.
+-   Games in the lobby's Explore panel outside the development server.

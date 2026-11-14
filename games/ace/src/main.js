@@ -61,12 +61,13 @@ function resize() {
     const h = window.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Keep the whole court in frame on tall screens.
-    camera.fov = camera.aspect < 1 ? 58 : 42;
+    // Keep the whole court in frame on tall screens. The arrival view keeps
+    // the lobby's own field of view instead.
+    camera.fov =
+        state?.camMode === "arrive" ? arrive.fov : camera.aspect < 1 ? 58 : 42;
     camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", resize);
-resize();
 
 const CPU_ROSTER = {
     rookie: {
@@ -146,6 +147,28 @@ const state = {
     intro: 0,
 };
 
+// Arrival from the lobby: the visitor stands courtside in the lobby's own
+// third-person framing, walks around, and starts a match when they like.
+// Kept well inside the courtside walls so the camera behind the visitor
+// stays on the court side of them.
+const ARRIVE_SPOT = { x: 2.4, z: COURT.halfLength + 1.2 };
+const ARRIVE_BOUNDS = {
+    x: COURT.doublesHalfWidth + 2.4,
+    zMin: 0.7, // the near half; the net is not a door
+    zMax: COURT.halfLength + 2.6,
+};
+const ARRIVE_HEIGHT = 1.75;
+const arrive = {
+    came: false, // this visit started as a lobby trip
+    offset: new THREE.Vector3(0, 2.3, 4.8),
+    look: new THREE.Vector3(0, 1.25, 0),
+    fov: 50,
+    camYaw: 0,
+    faceYaw: 0,
+    drag: null,
+};
+resize();
+
 function buildScene() {
     world = createWorld(scene);
     setBoot(0.5, "Seating the crowd…");
@@ -183,6 +206,7 @@ function setCpuLook(difficulty) {
 const screens = [
     "boot",
     "title",
+    "arrive",
     "setup",
     "howto",
     "hud",
@@ -221,6 +245,119 @@ function goTitle() {
     sound.startMusic(audio, "title");
     sound.setCrowd(audio, 0.5);
 }
+
+/** Rotate a lobby offset (relative to the avatar's feet) into court space. */
+function mapArrival(view) {
+    // The lobby avatar faces (sin r, cos r); ours faces the net (-z) at yaw 0.
+    const turn = Math.PI - view.avatarRotation;
+    const cos = Math.cos(turn);
+    const sin = Math.sin(turn);
+    const scale = ARRIVE_HEIGHT / view.avatarHeight;
+    const map = (v, out) =>
+        out.set(
+            (v.x * cos + v.z * sin) * scale,
+            v.y * scale,
+            (-v.x * sin + v.z * cos) * scale
+        );
+    map(view.cameraOffset, arrive.offset);
+    map(view.cameraTargetOffset, arrive.look);
+    // A camera at the avatar's feet or inside it is not a usable view.
+    if (arrive.offset.length() < 0.6) arrive.offset.set(0, 2.3, 4.8);
+    arrive.fov = view.fov;
+}
+
+function goArrive(view) {
+    if (view) mapArrival(view);
+    arrive.came = true;
+    arrive.camYaw = 0;
+    arrive.faceYaw = 0;
+    state.attract = false;
+    state.paused = false;
+    state.screen = "arrive";
+    // An idle court: the opponent waits at the far baseline, no ball in play.
+    state.engine = createEngine({
+        difficulty: settings.difficulty,
+        games: settings.games,
+        seed: (Math.random() * 1e9) | 0,
+    });
+    const me = state.engine.athletes[0];
+    me.x = ARRIVE_SPOT.x;
+    me.z = ARRIVE_SPOT.z;
+    players[0].yaw = 0;
+    state.camMode = "arrive";
+    resize();
+    placeArrivalCamera();
+    state.cam.pos.copy(camPos);
+    state.cam.look.copy(camLook);
+    resetTrail(fx);
+    show("arrive");
+    sound.startMusic(audio, "title");
+    sound.setCrowd(audio, 0.3);
+}
+
+/** Back from a match, setup or the how-to: wherever this visit started. */
+function goHome() {
+    if (arrive.came) goArrive(null);
+    else goTitle();
+}
+
+function placeArrivalCamera() {
+    const me = state.engine.athletes[0];
+    const cos = Math.cos(arrive.camYaw);
+    const sin = Math.sin(arrive.camYaw);
+    const turn = (v, out) =>
+        out.set(
+            me.x + v.x * cos + v.z * sin,
+            v.y,
+            me.z - v.x * sin + v.z * cos
+        );
+    turn(arrive.offset, camPos);
+    turn(arrive.look, camLook);
+}
+
+function updateArrive(raw, dt) {
+    const me = state.engine.athletes[0];
+    // Walk relative to where the camera looks.
+    const dirX = camLook.x - camPos.x;
+    const dirZ = camLook.z - camPos.z;
+    const fl = Math.hypot(dirX, dirZ) || 1;
+    const mx = (raw.x * -dirZ + raw.y * dirX) / fl;
+    const mz = (raw.x * dirX + raw.y * dirZ) / fl;
+    const len = Math.hypot(mx, mz);
+    const speed = 4.4;
+    const tx = len > 0.05 ? (mx / Math.max(1, len)) * speed : 0;
+    const tz = len > 0.05 ? (mz / Math.max(1, len)) * speed : 0;
+    const k = 1 - Math.exp(-10 * dt);
+    me.vx += (tx - me.vx) * k;
+    me.vz += (tz - me.vz) * k;
+    me.x = Math.max(-ARRIVE_BOUNDS.x, Math.min(ARRIVE_BOUNDS.x, me.x + me.vx * dt));
+    me.z = Math.max(ARRIVE_BOUNDS.zMin, Math.min(ARRIVE_BOUNDS.zMax, me.z + me.vz * dt));
+    me.stateTime += dt;
+    if (Math.hypot(me.vx, me.vz) > 0.4) {
+        // Our forward is -z at yaw 0; take the short way round.
+        const want = Math.atan2(-me.vx, -me.vz);
+        const delta = Math.atan2(
+            Math.sin(want - arrive.faceYaw),
+            Math.cos(want - arrive.faceYaw)
+        );
+        arrive.faceYaw += delta;
+    }
+}
+
+// Drag on the court to look around while standing in the arrival view.
+canvas.addEventListener("pointerdown", (event) => {
+    if (state.screen !== "arrive") return;
+    arrive.drag = { id: event.pointerId, x: event.clientX };
+});
+window.addEventListener("pointermove", (event) => {
+    if (!arrive.drag || arrive.drag.id !== event.pointerId) return;
+    if (state.screen !== "arrive") return (arrive.drag = null);
+    arrive.camYaw -= (event.clientX - arrive.drag.x) * 0.006;
+    arrive.drag.x = event.clientX;
+});
+const endArriveDrag = () => (arrive.drag = null);
+window.addEventListener("pointerup", endArriveDrag);
+window.addEventListener("pointercancel", endArriveDrag);
 
 function goSetup() {
     state.screen = "setup";
@@ -269,6 +406,7 @@ function startAttract() {
     });
     startMatch(state.engine);
     state.camMode = "orbit";
+    resize();
     resetTrail(fx);
 }
 
@@ -305,6 +443,7 @@ function startGame() {
     sound.startMusic(audio, "soft");
     sound.sfxUI(audio, "stamp");
     state.camMode = "intro";
+    resize();
     state.camT = 0;
     setTimeout(() => {
         if (state.screen !== "vs") return;
@@ -378,7 +517,7 @@ function action(name) {
             if (state.screen === "howto" && howtoReturn === "pause") {
                 state.screen = "pause";
                 show("hud", "pause");
-            } else goTitle();
+            } else goHome();
             break;
         case "start":
             sound.sfxUI(audio, "ok");
@@ -394,7 +533,10 @@ function action(name) {
         case "quit":
         case "menu":
             sound.sfxUI(audio, "back");
-            goTitle();
+            goHome();
+            break;
+        case "lobby":
+            host.exit();
             break;
         case "rematch":
             sound.sfxUI(audio, "ok");
@@ -479,6 +621,9 @@ function handleMenuInput(events) {
             }
             if (e.type === "confirm") action("start");
             if (e.type === "back") action("back");
+        } else if (s === "arrive") {
+            // Arrows and WASD walk here, so only Enter acts.
+            if (e.type === "confirm") action("play");
         } else if (s === "howto") {
             if (e.type === "confirm" || e.type === "back") action("back");
         } else if (s === "playing") {
@@ -891,7 +1036,9 @@ function updateCamera(dt) {
     const [h] = e.athletes;
     const ball = e.ball;
     state.camT += dt;
-    if (state.camMode === "orbit") {
+    if (state.camMode === "arrive") {
+        placeArrivalCamera();
+    } else if (state.camMode === "orbit") {
         state.orbit += dt * 0.08;
         camPos.set(
             Math.sin(state.orbit) * 27,
@@ -930,7 +1077,13 @@ function updateCamera(dt) {
         }
     }
     const rate =
-        state.camMode === "play" ? 5 : state.camMode === "winner" ? 3 : 2;
+        state.camMode === "arrive"
+            ? 14
+            : state.camMode === "play"
+              ? 5
+              : state.camMode === "winner"
+                ? 3
+                : 2;
     const a = 1 - Math.exp(-rate * dt);
     state.cam.pos.lerp(camPos, a);
     state.cam.look.lerp(camLook, a);
@@ -1060,6 +1213,9 @@ function poseAll(dt) {
             hopNow: hop,
             headYaw: 0,
             mood,
+            ...(i === 0 && state.camMode === "arrive"
+                ? { faceYaw: arrive.faceYaw }
+                : {}),
         });
         if (ch.rig) driveVRM(ch, dt);
     }
@@ -1145,6 +1301,8 @@ function frame() {
                 dt
             )
         );
+    } else if (state.screen === "arrive") {
+        updateArrive(raw, dt);
     } else if (state.screen === "intro" || state.screen === "vs") {
         // Players warm up in place.
         for (const a of e.athletes) a.stateTime += dt;
@@ -1238,13 +1396,36 @@ async function bootGame() {
         );
         setBoot(1, "Ready!");
         host.ready();
-        setTimeout(AUTOPLAY ? startGame : goTitle, 250);
+        booted = true;
+        setTimeout(() => {
+            // A lobby trip may already have staged the arrival view.
+            if (state.screen !== "boot") return;
+            if (AUTOPLAY) startGame();
+            else if (pendingArrival !== undefined) stageArrival(pendingArrival);
+            else goTitle();
+        }, 250);
     } catch (err) {
         console.error(err);
         host.fail(err && err.message ? err.message : "boot failed");
         $("#boot-text").textContent = "Something went wrong. Please reload.";
     }
 }
+
+// The lobby sends its final third-person view just before it reveals us.
+let booted = false;
+let pendingArrival;
+function stageArrival(view) {
+    pendingArrival = undefined;
+    goArrive(view);
+    // Two rendered frames in the new framing before the lobby lets go.
+    requestAnimationFrame(() =>
+        requestAnimationFrame(() => host.arrivalReady())
+    );
+}
+host.on("arrival", (view) => {
+    if (booted) stageArrival(view);
+    else pendingArrival = view;
+});
 
 host.on("dispose", () => {
     sound.stopAudio(audio);

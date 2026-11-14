@@ -31,6 +31,7 @@ import useDiscovery from "../landing-carousel/hooks/useDiscovery";
 import useDestinationPreviews from "../landing-carousel/hooks/useDestinationPreviews";
 import type { LobbyDestination } from "./sceneTypes";
 import { warmDestination } from "./destinationWarmup";
+import { developmentGameCards } from "@features/games/gameCards";
 import { CARD_WARM_DWELL_MS } from "./destinationWarmupSource";
 
 export default function LobbyExplorePanel({
@@ -79,14 +80,19 @@ export default function LobbyExplorePanel({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [context]);
     const resolvedCards = useDestinationPreviews(discovery.cards, true);
+    // Games are hidden at launch: listed on the development server only,
+    // and never inside a group's or a filtered feed.
+    const showGames =
+        !groupName && !filters.chain && !filters.owner && !filters.collection;
     const destinations = useMemo(
         () => [
+            ...(showGames ? developmentGameCards(filters.q) : []),
             ...resolvedCards.filter(
                 (card) =>
                     card.href?.startsWith("/") && !/^\/[\\/]/.test(card.href)
             ),
         ],
-        [resolvedCards]
+        [resolvedCards, showGames, filters.q]
     );
     const [menuOpen, setMenuOpen] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);

@@ -6,6 +6,15 @@ a fresh build, independent of the earlier Baseline tennis destination.
 
 Open `/games/ace` on the local frontend (`pnpm dev:frontend`). It is hidden until launch: development only, or `GAMES_PREVIEW=1`.
 
+## Arriving from the lobby
+
+A lobby trip ends courtside in the lobby's own third-person framing: the page
+sends the lobby camera (`ace:arrival`), the game stands the visitor beside the
+near baseline with the same camera offset and field of view, and answers
+`ace:arrival-ready`. From there WASD walks, dragging looks around, and
+**Play match** (Enter) opens the match setup. Leaving a match or the setup
+returns here. A direct visit to `/games/ace` opens on the title screen instead.
+
 ## How it plays
 
 - **Move** with WASD / arrows / left stick / the touch stick. Near the ball you

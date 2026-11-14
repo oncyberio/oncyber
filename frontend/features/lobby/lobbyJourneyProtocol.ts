@@ -202,7 +202,9 @@ export function destinationFrameUrl(
     if (url.origin !== origin || !/^https?:$/.test(url.protocol)) {
         throw new Error("This world needs to open in its own page.");
     }
-    if (!/^\/(?:spaces\/|mints\/)?[a-z0-9@_-]+\/?$/i.test(url.pathname)) {
+    if (
+        !/^\/(?:spaces\/|mints\/|games\/)?[a-z0-9@_-]+\/?$/i.test(url.pathname)
+    ) {
         throw new Error(
             "This world does not support preparation in the lobby."
         );

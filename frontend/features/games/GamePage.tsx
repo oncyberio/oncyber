@@ -135,8 +135,27 @@ export default function GamePage({ game }: { game: GameEntry }) {
             cancelAnimationFrame(focusFrame);
             post("dispose");
         };
-        const unregister = registerLobbyDestinationEntry(async () => {},
-        disposeGame);
+        // Just before the lobby reveals the game it sends its final
+        // third-person view. The game may stand the visitor in the same
+        // framing (`arrival`) and answer `arrival-ready`; games that don't
+        // know the message are revealed as they are after a short wait.
+        let arrivalStaged: (() => void) | null = null;
+        const stageArrival = (options: { travelView?: unknown }) =>
+            new Promise<void>((resolve) => {
+                const timer = setTimeout(done, 1500);
+                function done() {
+                    clearTimeout(timer);
+                    arrivalStaged = null;
+                    resolve();
+                }
+                arrivalStaged = done;
+                post("arrival", { view: options?.travelView ?? null });
+            });
+        const unregister = registerLobbyDestinationEntry(
+            async () => {},
+            disposeGame,
+            { prepareReveal: stageArrival }
+        );
         if (inJourney) {
             void waitForLobbyDestinationEntry(entryLifetime.signal)
                 .then(() => {
@@ -168,7 +187,9 @@ export default function GamePage({ game }: { game: GameEntry }) {
             }
             if (!fromGame(event)) return;
             const type = event.data?.type;
-            if (type === `${GAME}:storage`) {
+            if (type === `${GAME}:arrival-ready`) {
+                arrivalStaged?.();
+            } else if (type === `${GAME}:storage`) {
                 writeGameStorage(GAME, event.data.key, event.data.value);
             } else if (type === `${GAME}:hello`) {
                 greeted = true;

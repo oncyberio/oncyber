@@ -560,7 +560,9 @@ export function poseCharacter(ch, ath, ctx) {
     root.position.set(ath.x, 0, ath.z);
     // Face the far end, turning a little toward the ball.
     const baseYaw = ath.side > 0 ? 0 : Math.PI;
-    const targetYaw = baseYaw + (ctx.yawBias || 0);
+    // Off the court (the arrival walk) the caller owns the heading.
+    const targetYaw =
+        ctx.faceYaw !== undefined ? ctx.faceYaw : baseYaw + (ctx.yawBias || 0);
     ch.yaw = damp(ch.yaw, targetYaw, 10, dt);
     root.rotation.y = ch.yaw;
 

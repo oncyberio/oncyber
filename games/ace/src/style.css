@@ -1062,3 +1062,15 @@ body.is-touch .hint {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* Arrival from the lobby: the court in third person, with the way into a match. */
+#arrive {
+    justify-content: flex-end;
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    background: none;
+}
+#arrive .menu.row {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
