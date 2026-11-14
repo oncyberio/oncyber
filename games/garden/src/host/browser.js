@@ -5,6 +5,7 @@ import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
 import { createHost } from "./host.js";
+import { createResults } from "@oncyber/game-runtime/results";
 import { createAudio, play, setMuted, unlockAudio, updateAudio } from "./audio.js";
 
 // The browser host for Bloom Garden's portable game: it creates the runtime
@@ -22,6 +23,8 @@ const canvas = document.querySelector("#world");
 const frame = document.querySelector("#game-ui");
 const notice = document.querySelector("#notice");
 const page = createHost();
+// Match results go to the page: one `garden:result` per finished match.
+const results = createResults((result) => page.post("result", { result }));
 page.hello();
 
 // Dev diagnostics for device simulators: ?log posts errors and state.
@@ -150,6 +153,14 @@ async function call(capability, operation, value) {
             inbox.push(room.inbox.shift());
         }
         return json({ self: page.selfId, online: !!page.selfId && page.embedded, peers: room.peers, inbox });
+    }
+    if (capability === "results") {
+        if (operation === "begin") return results.begin(String(value?.match ?? ""));
+        if (operation === "report") return results.report(value).match;
+        if (operation === "abandon") {
+            results.abandon();
+            return true;
+        }
     }
     if (capability === "travel" && operation === "lobby") {
         page.exit();

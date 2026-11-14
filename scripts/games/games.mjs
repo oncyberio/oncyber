@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -39,6 +40,9 @@ if (!existsSync(join(source, "game.json"))) fail(`games/${id}/game.json not foun
 const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
 // Games on the lifecycle play their scenario; others only prove they boot.
 const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
+
+// Match results: what the run must report (docs/games/results.md).
+const results = resultsPlan(manifest);
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -89,7 +93,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 // the page bridge that answers hello with a test identity.
 const harness = `<!doctype html><meta charset="utf-8"><title>check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check${results.query}"></iframe>
 <script>
 const frame = document.getElementById("game");
 addEventListener("message", (event) => {
@@ -100,6 +104,7 @@ addEventListener("message", (event) => {
         const prefix = type.slice(0, -"hello".length);
         frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
     }
+${resultsHarness}
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
@@ -136,7 +141,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, reported = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -156,6 +161,14 @@ async function check() {
             await page.waitForTimeout(5000);
             report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
+        // Every finished match reports exactly one result.
+        if (report) {
+            reported = await resultsStage(page, results);
+            if (reported.ran) {
+                report.stages.push(reported.stage);
+                if (reported.stage.status === "failed") report.status = "failed";
+            }
+        }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
     } finally {
@@ -173,12 +186,14 @@ async function check() {
         findings: [
             ...scan.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
+            ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
-            ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
+            ...(report?.stages ?? []).filter((s) => s.status === "failed" && s.stage !== "results").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
         ],
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
+        ...(reported?.ran ? { results: reported.results } : {}),
         consoleErrors: errors.slice(0, 20),
         run: report,
     };

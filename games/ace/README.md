@@ -25,6 +25,14 @@ decides the formats and builds the draw. Head-to-head play is not built yet;
 the draw is shown, and the solo match works. Try it with `?party=4` on the
 development server.
 
+## Results
+
+A match against the CPU reports one result when it ends (`src/result.js`,
+`host.results`): the visitor, the opponent, games won and the winner. A
+match left from the pause menu reports nothing. `pnpm games:check ace` has
+the bot play a one-game match and requires that one result (`results` in
+`game.json`). See `docs/games/results.md`.
+
 ## How it plays
 
 - **Move** with WASD / arrows / left stick / the touch stick. Near the ball you
@@ -55,6 +63,7 @@ development server.
 | `src/fx.js` | Particles, trail, shadow, markers, rings |
 | `src/audio.js` | All sound and music, synthesized with Web Audio |
 | `src/main.js` | Screens, HUD, camera and the frame loop |
+| `src/result.js` | The result a finished match reports |
 | `src/host.js` | Embedding: the Oncyber game page (`ace:*` messages, saved settings) or standalone |
 
 Everything is procedural: no meshes, textures or samples to license. Text uses

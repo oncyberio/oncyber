@@ -28,6 +28,7 @@ import {
     updateFx,
 } from "./fx.js";
 import { createHost } from "./host.js";
+import { cpuMatchReport } from "./result.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
 import { pointLabel } from "./rules.js";
@@ -495,6 +496,8 @@ function refreshSetup() {
 
 function startAttract() {
     state.attract = true;
+    // Back at the title or courtside: a match left unfinished reports nothing.
+    host.results.abandon();
     if (players) players[0].racket.visible = true;
     state.engine = createEngine({
         difficulty: "pro",
@@ -518,6 +521,7 @@ function startGame() {
         seed: (Math.random() * 1e9) | 0,
     });
     startMatch(state.engine);
+    host.results.begin();
     state.engine.phase = "intro";
     state.rally = 0;
     state.hintPoints = 0;
@@ -1010,6 +1014,21 @@ function handleEvents(events) {
                     break;
                 }
                 const won = e.winner === 0;
+                // The one result for this match. A failed report must not
+                // stop the game.
+                try {
+                    host.results.report(
+                        cpuMatchReport({
+                            match: state.engine.match,
+                            name: state.identity.name,
+                            selfId: host.selfId,
+                            foe: CPU_ROSTER[settings.difficulty].name,
+                            difficulty: settings.difficulty,
+                        })
+                    );
+                } catch (err) {
+                    console.error("ACE: result not reported", err);
+                }
                 setTimeout(() => {
                     callout(
                         won ? "GAME, SET & MATCH!" : "MATCH OVER",
@@ -1568,6 +1587,9 @@ window.__ace = {
         return state.engine;
     },
     action,
+    get results() {
+        return host.results.inspect();
+    },
     set timeScale(v) {
         TIME_SCALE = v;
     },

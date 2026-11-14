@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { useGameResults } from "./useGameResults";
 
 const PEER_INTERVAL = 100;
 
@@ -99,6 +100,20 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // Match results: validated, recorded and shown by the page.
+    const results = useGameResults({
+        game: GAME,
+        fromGame,
+        send: (message) => send.current(message),
+        signedIn: () =>
+            Boolean(
+                profile.current.authenticated &&
+                    !profile.current.isAnonymous &&
+                    profile.current.user?.id
+            ),
+        selfName: () => identity?.name,
+        partyRoom: party && room ? room : null,
+    });
     const leave = useRef(() => {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
@@ -324,8 +339,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
             roomLabel
         );
         if (relay)
-            gameRoom.onRelay((from, data) =>
-                send.current({ type: `${GAME}:net`, from, data })
+            gameRoom.onRelay(
+                (from, data) =>
+                    results.fromParty(data) ||
+                    send.current({ type: `${GAME}:net`, from, data })
             );
         setRoom(gameRoom);
         void gameRoom.connect();
@@ -481,6 +498,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     {roomState.voiceError}
                 </p>
             )}
+            {ready && !error && results.card}
             {error && (
                 <div
                     role="status"

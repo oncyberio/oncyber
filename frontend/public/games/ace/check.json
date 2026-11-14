@@ -1,30 +1,63 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:40:13.968Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1796116,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-KhtBMAVU.js",
+      "bytes": 947631
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  "results": [
+    {
+      "match": "1980c1c74e084e30aff65753",
+      "format": "cpu",
+      "durationSeconds": 117.1,
+      "teams": [
+        {
+          "score": 1,
+          "players": [
+            {
+              "id": "self",
+              "name": "Check",
+              "kind": "self"
+            }
+          ]
+        },
+        {
+          "score": 0,
+          "players": [
+            {
+              "id": "cpu-rookie",
+              "name": "Benny",
+              "kind": "cpu"
+            }
+          ]
+        }
+      ],
+      "winner": 0
+    }
   ],
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2209,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2209
+      },
+      {
+        "stage": "results",
+        "status": "passed",
+        "ms": 115624
       }
     ],
     "frames": null,

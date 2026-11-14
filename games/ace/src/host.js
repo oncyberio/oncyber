@@ -3,6 +3,8 @@
 // opaque-origin sandboxed frame with no storage, so the page keeps its saved
 // settings and hands them over with the identity.
 
+import { createResults } from "@oncyber/game-runtime/results";
+
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
 const STORAGE_MAX = 64 * 1024;
@@ -141,6 +143,8 @@ export function createHost() {
             window.parent.postMessage(message, window.location.origin);
     };
     host.on = (type, f) => host.listeners[type].push(f);
+    // Match results: begin() when a match starts, one report() when it ends.
+    host.results = createResults((result) => post({ type: "ace:result", result }));
     // Saved values: the page's storage when embedded, localStorage standalone.
     host.storage = {
         get(key) {

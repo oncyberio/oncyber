@@ -20,6 +20,7 @@
       "audio",
       "avatar",
       "network",
+      "results",
       "storage",
       "travel"
     ],
@@ -214,5 +215,6 @@
         "touch": "lobby"
       }
     }
-  }
+  },
+  "results": true
 }
