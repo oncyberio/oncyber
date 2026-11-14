@@ -10,7 +10,8 @@ Open `/games/ace` on the local frontend (`pnpm dev:frontend`). It is hidden unti
 
 A lobby trip ends courtside in the lobby's own third-person framing: the page
 sends the lobby camera (`ace:arrival`), the game stands the visitor beside the
-near baseline with the same camera offset and field of view, and answers
+near baseline with the same camera offset and field of view, facing the
+camera and crouched as the lobby left them, then standing up, and answers
 `ace:arrival-ready`. From there WASD walks, dragging looks around, and
 **Play match** (Enter) opens the match setup. Leaving a match or the setup
 returns here. A direct visit to `/games/ace` opens on the title screen instead.

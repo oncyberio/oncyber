@@ -66,6 +66,9 @@ function resize() {
     camera.fov =
         state?.camMode === "arrive" ? arrive.fov : camera.aspect < 1 ? 58 : 42;
     camera.updateProjectionMatrix();
+    // Resizing clears the canvas; redraw now instead of showing an empty
+    // frame until the next animation frame.
+    if (world) renderer.render(scene, camera);
 }
 window.addEventListener("resize", resize);
 
@@ -166,7 +169,12 @@ const arrive = {
     camYaw: 0,
     faceYaw: 0,
     drag: null,
+    // The lobby hands the visitor over crouched; they stand up once revealed.
+    sink: 0,
+    rising: false,
 };
+const ARRIVE_SINK = 0.42;
+const ARRIVE_RISE_S = 0.7;
 resize();
 
 function buildScene() {
@@ -248,7 +256,8 @@ function goTitle() {
 
 /** Rotate a lobby offset (relative to the avatar's feet) into court space. */
 function mapArrival(view) {
-    // The lobby avatar faces (sin r, cos r); ours faces the net (-z) at yaw 0.
+    // Turn the lobby's formation so its camera looks down the court at the
+    // net: the lobby camera sits at angle r + PI around the avatar.
     const turn = Math.PI - view.avatarRotation;
     const cos = Math.cos(turn);
     const sin = Math.sin(turn);
@@ -270,7 +279,9 @@ function goArrive(view) {
     if (view) mapArrival(view);
     arrive.came = true;
     arrive.camYaw = 0;
-    arrive.faceYaw = 0;
+    // The lobby's travel camera sits in front of the avatar, so a visitor
+    // arrives facing the camera with the court behind them, as they left.
+    arrive.faceYaw = view ? Math.PI : 0;
     state.attract = false;
     state.paused = false;
     state.screen = "arrive";
@@ -283,7 +294,11 @@ function goArrive(view) {
     const me = state.engine.athletes[0];
     me.x = ARRIVE_SPOT.x;
     me.z = ARRIVE_SPOT.z;
-    players[0].yaw = 0;
+    players[0].yaw = arrive.faceYaw;
+    // No racket in hand while walking around the club.
+    players[0].racket.visible = false;
+    arrive.sink = view ? ARRIVE_SINK : 0;
+    arrive.rising = !view || host.entered;
     state.camMode = "arrive";
     resize();
     placeArrivalCamera();
@@ -299,6 +314,12 @@ function goArrive(view) {
 function goHome() {
     if (arrive.came) goArrive(null);
     else goTitle();
+}
+
+// Ease the stand-up: quick off the floor, gentle at the top.
+function smoothSink() {
+    const t = arrive.sink / ARRIVE_SINK;
+    return ARRIVE_SINK * t * t * (3 - 2 * t);
 }
 
 function placeArrivalCamera() {
@@ -317,6 +338,10 @@ function placeArrivalCamera() {
 
 function updateArrive(raw, dt) {
     const me = state.engine.athletes[0];
+    if (arrive.rising && arrive.sink > 0)
+        arrive.sink = Math.max(0, arrive.sink - (ARRIVE_SINK / ARRIVE_RISE_S) * dt);
+    // Stay put until standing.
+    if (arrive.sink > 0) raw = { ...raw, x: 0, y: 0 };
     // Walk relative to where the camera looks.
     const dirX = camLook.x - camPos.x;
     const dirZ = camLook.z - camPos.z;
@@ -398,6 +423,7 @@ function refreshSetup() {
 
 function startAttract() {
     state.attract = true;
+    if (players) players[0].racket.visible = true;
     state.engine = createEngine({
         difficulty: "pro",
         games: 99,
@@ -413,6 +439,7 @@ function startAttract() {
 function startGame() {
     setCpuLook(settings.difficulty);
     state.attract = false;
+    players[0].racket.visible = true;
     state.engine = createEngine({
         difficulty: settings.difficulty,
         games: settings.games,
@@ -1214,7 +1241,7 @@ function poseAll(dt) {
             headYaw: 0,
             mood,
             ...(i === 0 && state.camMode === "arrive"
-                ? { faceYaw: arrive.faceYaw }
+                ? { faceYaw: arrive.faceYaw, sink: smoothSink() }
                 : {}),
         });
         if (ch.rig) driveVRM(ch, dt);
@@ -1422,6 +1449,7 @@ function stageArrival(view) {
         requestAnimationFrame(() => host.arrivalReady())
     );
 }
+host.on("entered", () => (arrive.rising = true));
 host.on("arrival", (view) => {
     if (booted) stageArrival(view);
     else pendingArrival = view;

@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:09:45.189Z",
+  "checkedAt": "2026-11-14T16:23:52.757Z",
   "status": "passed",
   "scope": "boot",
   "files": {
     "count": 6,
-    "bytes": 1786561,
+    "bytes": 1786981,
     "largest": {
-      "path": "assets/index-CBsVl1QK.js",
-      "bytes": 939636
+      "path": "assets/index-Dqz0geHY.js",
+      "bytes": 940056
     }
   },
   "findings": [],
@@ -19,12 +19,12 @@
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 145,
+    "bootMs": 192,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 145
+        "ms": 192
       }
     ],
     "frames": null,

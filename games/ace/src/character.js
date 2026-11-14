@@ -621,11 +621,15 @@ export function poseCharacter(ch, ath, ctx) {
             : Math.sin(ch.time * 3.2) * 0.012;
     let crouch = ath.state === "charge" ? 0.1 : speed < 0.3 ? 0.04 : 0.02;
     if (ath.state === "sad") crouch = 0.12;
+    // The arrival from the lobby starts low and stands up.
+    const sink = ctx.sink || 0;
+    crouch += sink;
     ch.body.position.y = ch.hop + bob - crouch - 0.06;
     ch.lean.x = damp(ch.lean.x, -lvx * 0.035, 8, dt);
     ch.lean.y = damp(ch.lean.y, lvz * 0.035, 8, dt);
     ch.body.rotation.z = ch.lean.x;
-    ch.body.rotation.x = ch.lean.y + (ath.state === "sad" ? 0.35 : 0);
+    ch.body.rotation.x =
+        ch.lean.y + (ath.state === "sad" ? 0.35 : 0) + sink * 0.5;
     ch.body.scale.set(
         1 / Math.sqrt(ch.squash),
         ch.squash,
