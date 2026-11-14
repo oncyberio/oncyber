@@ -141,8 +141,10 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
         if (opts.border) {
 
-            this.items.border = {
-                name: 'border',
+            // "border" is a reserved word in GLSL ES, so the attribute
+            // can't carry that name on the WebGL backend.
+            this.items.frameBorder = {
+                name: 'frameBorder',
                 array: [],
                 length: 1,
                 type: Int16Array
@@ -290,7 +292,7 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
                         if (this.opts.border) {
 
-                            this.attributes.border.array[c] = wrapper.border
+                            this.attributes.frameBorder.array[c] = wrapper.border
                         }
 
 
@@ -354,7 +356,7 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
                 if (this.opts.border) {
 
-                    this.attributes.border.array[c] = wrapper.border
+                    this.attributes.frameBorder.array[c] = wrapper.border
                 }
 
 
