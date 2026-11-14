@@ -30,6 +30,8 @@ export const lobbyTokens = {
     },
     /** Chat floats over the world without a panel behind it. */
     chat: {
+        /** Desktop width of the chat column, in the lobby and in spaces. */
+        width: 280,
         /** Soft lift for lines over the world; not an outline. */
         textShadow: "0 1px 2px #00000073",
         /** Faint dark wash behind the lines above the input. */
