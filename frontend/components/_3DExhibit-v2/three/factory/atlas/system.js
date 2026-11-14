@@ -63,12 +63,9 @@ export default class Atlas extends Augmented {
 
         this.megaTextures  = []
 
-        // Pixels per side of each atlas texture
-        this.textureSize = opts?.textureSize || TEXTURE_SIZE
+        this.packer = new Packer( TEXTURE_SIZE , TEXTURE_SIZE )
 
-        this.packer = new Packer( this.textureSize , this.textureSize )
-
-        this.packer.init( this.textureSize , this.textureSize )
+        this.packer.init( TEXTURE_SIZE , TEXTURE_SIZE)
 
         this.textureIndex = 0
 
@@ -85,8 +82,8 @@ export default class Atlas extends Augmented {
 
         if( this.distanceBased && opts.elementSize ) {
 
-            let w = Math.floor(this.textureSize / opts.elementSize.w)
-            let h = Math.floor(this.textureSize / opts.elementSize.h)
+            let w = Math.floor(TEXTURE_SIZE / opts.elementSize.w)
+            let h = Math.floor(TEXTURE_SIZE / opts.elementSize.h)
 
             this.distanceBasedMaxElements  = w * h
 
@@ -556,7 +553,7 @@ export default class Atlas extends Augmented {
 
         // console.log(this.blocks)
 
-        const opts = { needsFitData: this.textureSize }
+        const opts = { needsFitData: TEXTURE_SIZE }
 
         if( this.distanceBased ) {
 
@@ -646,7 +643,7 @@ export default class Atlas extends Augmented {
 
                 if( this.distanceBased == false || (this.distanceBased == true && i < this.maxTexture ) ){
 
-                    const megaTex = new UpdatableTexture( this.textureSize )
+                    const megaTex = new UpdatableTexture()
 
                     // Before its first upload: the renderer picks the texture's
                     // format then, and a later tag no longer changes it.
