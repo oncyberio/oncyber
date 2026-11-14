@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./browser": "./src/browser.ts",
-    "./check": "./src/check.ts"
+    "./check": "./src/check.ts",
+    "./audio": "./src/audio.ts",
+    "./audio-browser": "./src/audio-browser.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

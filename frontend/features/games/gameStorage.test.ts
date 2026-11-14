@@ -17,10 +17,12 @@ function memory() {
 test("keeps declared keys per game and hands them back", () => {
     const storage = memory();
     expect(writeGameStorage("garden", "save", '{"a":1}', storage)).toBe(true);
-    expect(writeGameStorage("garden", "muted", "1", storage)).toBe(true);
+    expect(writeGameStorage("garden", "settings", "1", storage)).toBe(true);
+    // Sound is the page's own setting, not a value a game saves.
+    expect(writeGameStorage("garden", "muted", "1", storage)).toBe(false);
     expect(readGameStorage("garden", storage)).toEqual({
         save: '{"a":1}',
-        muted: "1",
+        settings: "1",
     });
     expect(readGameStorage("other", storage)).toEqual({});
 });

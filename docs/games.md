@@ -60,7 +60,7 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                                  |
 | page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                                   |
 | game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                                           |
-| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                                                                                                          |
+| game        | `storage`                  | `{ key, value }`: save one value (`save` or `settings`, strings up to 256 KiB).                                                                                                                   |
 | game        | `pose`                     | The player's pose for the shared room.                                                                                                                                                            |
 | page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                                    |
 | page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                                 |
@@ -68,6 +68,10 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 | page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. |
 | page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
 | game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
+
+Sound has its own messages (`audio`, `audio-state`) and one rule: route all
+sound through the SDK's output; never keep a private mute. See
+[games/sound.md](games/sound.md).
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -131,6 +135,8 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+A `sound` stage follows ([games/sound.md](games/sound.md)): boot-only games
+that use the SDK's sound output get it too.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

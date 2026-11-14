@@ -103,6 +103,7 @@ export default function createGame(ctx) {
 
     // ----------------------------------------------------------- state
     const sound = createSound();
+    const isMuted = () => ctx.audio?.muted ?? false;
     const player = {
         x: SPAWN.x,
         y: heightAt(SPAWN.x, SPAWN.z),
@@ -382,8 +383,8 @@ export default function createGame(ctx) {
     function handleActions() {
         if (pressed("audioUnlock")) play(sound, "ui");
         if (pressed("mute")) {
-            sound.muted = !sound.muted;
-            void call("audio", "mute", { muted: sound.muted }).catch(() => {});
+            // The page owns mute; the host's sound output says what it is.
+            void call("audio", "mute", { muted: !isMuted() }).catch(() => {});
         }
         if (pressed("help")) state.help = !state.help;
         if (pressed("back")) {
@@ -672,7 +673,7 @@ export default function createGame(ctx) {
             match: hud,
             countdown: state.countdown,
             help: state.help,
-            muted: sound.muted,
+            muted: isMuted(),
             wipe: state.wipe ?? null,
             players: peers ? peers.players.size + 1 : 1,
             online: net.online,

@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { soundHarness, soundStage } from "./sound-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -89,7 +90,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 // the page bridge that answers hello with a test identity.
 const harness = `<!doctype html><meta charset="utf-8"><title>check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad; autoplay" src="/games/${id}/index.html?check"></iframe>
 <script>
 const frame = document.getElementById("game");
 addEventListener("message", (event) => {
@@ -103,7 +104,7 @@ addEventListener("message", (event) => {
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
-</script>`;
+</script>${soundHarness(id)}`;
 
 function serve() {
     const server = createServer((req, res) => {
@@ -158,6 +159,7 @@ async function check() {
         }
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        if (report) await soundStage(page, report, { required: lifecycle && manifest.runtime.capabilities.includes("audio") });
     } finally {
         await browser.close();
         server.close();

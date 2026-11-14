@@ -3,7 +3,7 @@
 // named cues and sends them through the runtime's "audio" capability.
 
 export function createSound() {
-    return { queue: [], muted: false };
+    return { queue: [] };
 }
 
 export function play(sound, name, opts = {}) {

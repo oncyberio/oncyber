@@ -5,7 +5,8 @@ import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
 import { createHost } from "./host.js";
-import { createAudio, play, setMuted, unlockAudio, updateAudio } from "./audio.js";
+import { connectGameAudio } from "@oncyber/game-runtime/audio-browser";
+import { createAudio, play, updateAudio } from "./audio.js";
 
 // The browser host for Bloom Garden's portable game: it creates the runtime
 // session (WebGPU; a WebGL 2 fallback for older browsers only), mounts the UI
@@ -48,14 +49,13 @@ const fail = (message) => {
 
 // ------------------------------------------------------------- services
 
-const audio = createAudio();
-// Audio may only start inside a user gesture. A tap in the UI frame also
-// activates this document, so unlock on the UI's first action and on our own.
-const unlock = () => unlockAudio(audio);
-window.addEventListener("pointerdown", unlock, { capture: true });
-window.addEventListener("keydown", unlock, { capture: true });
+// Sound goes through the runtime's output: the page owns volume and mute,
+// and the output starts on the first gesture here or on the page.
+const output = connectGameAudio("garden");
+const audio = createAudio(output);
+// A tap in the UI frame also activates this document.
 window.addEventListener("message", (event) => {
-    if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") unlock();
+    if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") void output.unlock();
 });
 
 // Peers and inbox from the page's room.
@@ -120,8 +120,8 @@ async function call(capability, operation, value) {
     }
     if (capability === "audio") {
         if (operation === "mute") {
-            setMuted(audio, !!value?.muted);
-            page.storage.set("muted", value?.muted ? "1" : "0");
+            // The game asks; the page owns the setting and answers the output.
+            output.requestMuted(!!value?.muted);
             return true;
         }
         if (operation === "update") {
@@ -225,7 +225,6 @@ async function createFallbackSession(options) {
 
 async function start() {
     const who = await page.resolveIdentity();
-    audio.muted = page.storage.get("muted") === "1";
     identity = {
         id: "local-visitor",
         name: who.name || "You",
@@ -236,6 +235,7 @@ async function start() {
         ui: frame,
         manifest: manifest.runtime,
         services: { identity, asset, call, avatar },
+        audio: output,
         onError: (error) => {
             console.error("[garden]", error);
             if (/DEVICE_LOST|destroyed/i.test(error?.message || "")) fail("The graphics device was lost. Reload to keep playing.");
@@ -286,7 +286,10 @@ async function start() {
         postCheckReport(report);
     }
     if (remoteLog) setInterval(() => remoteLog(`state ${JSON.stringify(host.session.inspect())}`), 3000);
-    const dispose = () => void host.dispose();
+    const dispose = () => {
+        output.dispose();
+        void host.dispose();
+    };
     page.on("dispose", dispose);
     window.addEventListener("pagehide", dispose, { once: true });
 }

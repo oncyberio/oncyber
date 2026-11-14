@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import "./style.css";
 import * as sound from "./audio.js";
+import { connectGameAudio } from "@oncyber/game-runtime/audio-browser";
 import {
     createCharacter,
     PALETTES,
@@ -102,7 +103,6 @@ function loadSettings() {
         /* malformed */
     }
     applySettingParams();
-    audio.muted = host.storage.get("muted") === "1";
 }
 
 const params = new URLSearchParams(location.search);
@@ -114,7 +114,9 @@ function applySettingParams() {
 }
 applySettingParams();
 
-const audio = sound.createAudio();
+// Sound goes through the runtime's output: the page owns volume and mute.
+const output = connectGameAudio("ace");
+const audio = sound.createAudio(output);
 
 // --------------------------------------------------------------- scene
 
@@ -583,22 +585,21 @@ function resumeGame() {
     sound.sfxUI(audio, "ok");
 }
 
+// M and the Sound buttons ask the page; its answer updates the labels.
 function toggleSound() {
-    sound.unlockAudio(audio);
-    sound.setMuted(audio, !audio.muted);
-    host.storage.set("muted", audio.muted ? "1" : "0");
-    refreshSoundLabels();
+    output.requestMuted(!output.muted);
     sound.sfxUI(audio, "ok");
 }
 function refreshSoundLabels() {
-    $("#sound-label").textContent = audio.muted ? "Off" : "On";
+    $("#sound-label").textContent = output.muted ? "Off" : "On";
     for (const el of document.querySelectorAll(".sound-label"))
-        el.textContent = audio.muted ? "Off" : "On";
+        el.textContent = output.muted ? "Off" : "On";
 }
+output.onChange(refreshSoundLabels);
 refreshSoundLabels();
 
 function action(name) {
-    sound.unlockAudio(audio);
+    output.unlock();
     switch (name) {
         case "play":
             sound.sfxUI(audio, "ok");
@@ -652,13 +653,13 @@ document.addEventListener("click", (e) => {
     if (b) action(b.dataset.action);
     const format = e.target.closest("#party-formats [data-format]");
     if (format) {
-        sound.unlockAudio(audio);
+        output.unlock();
         sound.sfxUI(audio, "ok");
         choosePartyFormat(format.dataset.format);
     }
     const choice = e.target.closest(".choice button");
     if (choice) {
-        sound.unlockAudio(audio);
+        output.unlock();
         sound.sfxUI(audio, "move");
         if (choice.parentElement.id === "opt-difficulty")
             settings.difficulty = choice.dataset.value;
@@ -667,7 +668,7 @@ document.addEventListener("click", (e) => {
     }
 });
 $("#pause-btn").addEventListener("click", () => {
-    sound.unlockAudio(audio);
+    output.unlock();
     pauseGame();
 });
 $("#lobby").hidden = !host.embedded;
@@ -690,7 +691,7 @@ function handleMenuInput(events) {
     for (const e of events) {
         if (e.type === "mute") toggleSound();
         if (e.type === "confirm" || e.type === "shot" || e.type === "nav")
-            sound.unlockAudio(audio);
+            output.unlock();
         const s = state.screen;
         if (s === "title" || s === "pause" || s === "results") {
             if (e.type === "nav") menuNav(s, e.dir);
@@ -1552,18 +1553,10 @@ host.on("dispose", () => {
     host.dispose();
 });
 
-// First interaction anywhere unlocks audio (browsers require a gesture).
-const unlock = () => {
-    sound.unlockAudio(audio);
-    if (state.screen === "title" || state.screen === "results")
-        sound.startMusic(audio, "title");
-};
-window.addEventListener("pointerdown", unlock, { once: true });
-window.addEventListener("keydown", unlock, { once: true });
-
 // Read-only diagnostics for automated checks.
 window.__ace = {
     state,
+    inspect: () => output.inspect(),
     get engine() {
         return state.engine;
     },

@@ -4,7 +4,7 @@
 // settings and hands them over with the identity.
 
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
-const STORAGE_KEYS = new Set(["settings", "muted"]);
+const STORAGE_KEYS = new Set(["settings"]);
 const STORAGE_MAX = 64 * 1024;
 
 /** The visitor's party: { id, size, members: [{ id, name }] }, or null. */

@@ -4,10 +4,14 @@
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
-export function createAudio() {
-    return {
-        ctx: null,
-        muted: false,
+// `out` is the game's sound output from the Oncyber runtime. Everything here
+// ends at `out.output`; volume, mute, ducking under voice chat, starting on a
+// gesture and silence while suspended are the runtime's and the page's.
+export function createAudio(out) {
+    const ctx = out.context;
+    const a = {
+        out,
+        ctx,
         master: null,
         sfx: null,
         music: null,
@@ -20,23 +24,14 @@ export function createAudio() {
         musicOn: true,
         mode: "garden",
     };
-}
-
-export function unlockAudio(a) {
-    if (a.ctx) {
-        if (a.ctx.state === "suspended") a.ctx.resume();
-        return;
-    }
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    a.ctx = ctx;
+    if (!ctx) return a;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 4;
-    comp.connect(ctx.destination);
+    comp.connect(out.output);
+    // The game's own mix level, not a mute.
     a.master = ctx.createGain();
-    a.master.gain.value = a.muted ? 0 : 0.8;
+    a.master.gain.value = 0.8;
     a.master.connect(comp);
     for (const k of ["sfx", "music", "amb"]) {
         a[k] = ctx.createGain();
@@ -51,12 +46,7 @@ export function unlockAudio(a) {
     a.noise = buf;
     startBeds(a);
     a.next = ctx.currentTime + 0.3;
-}
-
-export function setMuted(a, muted) {
-    a.muted = muted;
-    if (a.master)
-        a.master.gain.setTargetAtTime(muted ? 0 : 0.8, a.ctx.currentTime, 0.05);
+    return a;
 }
 
 function noiseSource(a) {
@@ -126,7 +116,8 @@ function hiss(a, t, dur, gain, freq = 2000, type = "bandpass", dest = a.sfx) {
     s.stop(t + dur + 0.05);
 }
 
-const ok = (a) => a.ctx && !a.muted;
+// Nothing is scheduled while it could not be heard.
+const ok = (a) => a.ctx && a.out.audible;
 
 export function play(a, name, opts = {}) {
     if (!ok(a)) return;
@@ -304,15 +295,17 @@ export function updateAudio(
     a,
     { fallsDist = 99, night = false, mode = "garden" } = {}
 ) {
-    if (!a.ctx) return;
+    if (!a.ctx || a.ctx.state !== "running") return;
     const t = a.ctx.currentTime;
+    // After a pause, pick the tune up from now instead of catching up.
+    if (a.next < t) a.next = t + 0.1;
     if (a.falls)
         a.falls.gain.setTargetAtTime(
             Math.max(0, 0.35 - fallsDist * 0.012),
             t,
             0.3
         );
-    if (!a.muted) {
+    if (a.out.audible) {
         if (!night && Math.random() < 0.006) play(a, "chirp", { gain: 0.8 });
         if (night && Math.random() < 0.05) play(a, "cricket", { gain: 0.7 });
     }

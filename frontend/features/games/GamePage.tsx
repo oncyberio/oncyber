@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { GameSoundButton, useGameAudio } from "./GameSound";
 
 const PEER_INTERVAL = 100;
 
@@ -80,6 +81,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const profile = useRef({ userData, user, authenticated, isAnonymous });
     profile.current = { userData, user, authenticated, isAnonymous };
     const frame = useRef<HTMLIFrameElement>(null);
+    useGameAudio(GAME, frame);
     const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
     const [identity, setIdentity] = useState<GameIdentity | null>(null);
@@ -386,7 +388,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 title={title}
                 sandbox={GAME_SANDBOX}
                 referrerPolicy="no-referrer"
-                allow="gamepad"
+                allow="gamepad; autoplay"
                 style={{
                     width: "100%",
                     height: "100%",
@@ -449,6 +451,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                             ? "Mic on"
                             : "Mic off"}
                     </button>
+                    <GameSoundButton onDone={() => frame.current?.focus()} />
                     <button
                         type="button"
                         onClick={() => leave.current()}

@@ -74,6 +74,8 @@ export interface GameContext {
     /** Rising edges survive a press/release between rendered frames. Cleared after update. */
     pressed: Readonly<Record<string, boolean>>;
     ui: { publish(value: Json): void };
+    /** The game's sound output (audio.ts), when the host has one. */
+    audio?: RuntimeOptions["audio"];
 }
 export interface PortableGame {
     prepare(): Promise<void>;
@@ -91,6 +93,8 @@ export interface RuntimeOptions {
     graphics: GraphicsSurface;
     services: HostServices;
     sendUI(value: Json): void;
+    /** Sound output (audio.ts): silenced on suspend, back on restore, its facts in inspect(). */
+    audio?: { suspend(): void; restore(): void; inspect(): object };
     now?: () => number;
     timeoutMs?: number;
 }
@@ -175,7 +179,7 @@ export class RuntimeSession {
                 return options.services.call(capability, operation, compactJSON(value), signal).then(v => compactJSON(v));
             },
         };
-        this.game = factory({ graphics: options.graphics, services, signal: this.lifetime.signal,
+        this.game = factory({ graphics: options.graphics, services, audio: options.audio, signal: this.lifetime.signal,
             ui: { publish: value => { this.assertLive(); this.pendingUI = compactJSON(value); } },
             // Getters make the action state read-only to game code.
             input: Object.freeze(Object.defineProperties({}, Object.fromEntries(Object.keys(this.input)
@@ -217,13 +221,13 @@ export class RuntimeSession {
     }); }
     suspend() { return this.serial(async () => {
         if (this.phase !== "entered") throw new Error("RUNTIME_PHASE");
-        this.phase = "suspended"; this.clearInput();
+        this.phase = "suspended"; this.clearInput(); this.options.audio?.suspend();
         this.saved = compactJSON(await this.bounded(() => this.game.suspend()), 65536);
     }); }
     restore() { return this.serial(async () => {
         if (this.phase !== "suspended") throw new Error("RUNTIME_PHASE");
         await this.bounded(() => this.game.restore(compactJSON(this.saved, 65536)));
-        this.phase = "entered";
+        this.phase = "entered"; this.options.audio?.restore();
     }); }
     action(action: string, value = 1) {
         this.assertLive();
@@ -252,7 +256,7 @@ export class RuntimeSession {
             }
         } catch (error) { this.phase = "failed"; this.lifetime.abort(); throw error; }
     }
-    inspect() { return compactJSON({ ...this.game.inspect(), hostPhase: this.phase, hostFrames: this.frames }); }
+    inspect() { return compactJSON({ ...this.game.inspect(), ...this.options.audio?.inspect(), hostPhase: this.phase, hostFrames: this.frames }); }
     dispose(): Promise<void> {
         if (this.stop) return this.stop;
         this.lifetime.abort(); this.clearInput(); this.phase = "disposed"; this.pendingUI = undefined;

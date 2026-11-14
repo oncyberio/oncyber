@@ -2,10 +2,14 @@
 
 const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
 
-export function createAudio() {
+// `out` is the game's sound output from the Oncyber runtime. Everything here
+// ends at `out.output`; volume, mute, ducking under voice chat, starting on a
+// gesture and silence while suspended are the runtime's and the page's.
+export function createAudio(out) {
+    const ctx = out.context;
     const a = {
-        ctx: null,
-        muted: false,
+        out,
+        ctx,
         musicOn: true,
         master: null,
         sfx: null,
@@ -16,24 +20,14 @@ export function createAudio() {
         seq: null,
         musicMode: "off",
     };
-    return a;
-}
-
-export function unlockAudio(a) {
-    if (a.ctx) {
-        if (a.ctx.state === "suspended") a.ctx.resume();
-        return;
-    }
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    a.ctx = ctx;
+    if (!ctx) return a;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14;
     comp.ratio.value = 4;
-    comp.connect(ctx.destination);
+    comp.connect(out.output);
+    // The game's own mix level, not a mute.
     a.master = ctx.createGain();
-    a.master.gain.value = a.muted ? 0 : 0.85;
+    a.master.gain.value = 0.85;
     a.master.connect(comp);
     a.sfx = ctx.createGain();
     a.sfx.gain.value = 1;
@@ -50,17 +44,7 @@ export function unlockAudio(a) {
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     a.noise = buf;
     startCrowdBed(a);
-    if (a.musicMode !== "off") startMusic(a, a.musicMode);
-}
-
-export function setMuted(a, muted) {
-    a.muted = muted;
-    if (a.master)
-        a.master.gain.setTargetAtTime(
-            muted ? 0 : 0.85,
-            a.ctx.currentTime,
-            0.05
-        );
+    return a;
 }
 
 function env(g, t, attack, peak, decay, sustain = 0.0001) {
@@ -121,7 +105,16 @@ export function sfxHit(a, power = 0.5, gradeName = "nice", shot = "topspin") {
     const p = 0.6 + power * 0.6;
     osc(a, "sine", 190 + power * 60, t, 0.09, 0.7 * p, a.sfx, 55);
     noise(a, t, 0.035, 0.55 * p, "bandpass", 2600 + power * 1400, 1.4);
-    osc(a, "triangle", shot === "slice" || shot === "drop" ? 520 : 760, t, 0.05, 0.18, a.sfx, 380);
+    osc(
+        a,
+        "triangle",
+        shot === "slice" || shot === "drop" ? 520 : 760,
+        t,
+        0.05,
+        0.18,
+        a.sfx,
+        380
+    );
     if (gradeName === "perfect") {
         // Sparkly chime on top of the thwack.
         [84, 88, 91, 96].forEach((n, i) =>
@@ -446,7 +439,11 @@ export function startMusic(a, mode = "title") {
             const beat = seq.step % 8;
             const t = seq.next;
             const chord = CHORDS[bar];
-            if (a.musicMode === "match" || a.musicMode === "off" || a.muted) {
+            if (
+                a.musicMode === "match" ||
+                a.musicMode === "off" ||
+                a.out.muted
+            ) {
                 seq.step += 1;
                 seq.next += eighth;
                 continue;
@@ -536,6 +533,6 @@ export function stopAudio(a) {
     if (a.seq) clearInterval(a.seq.timer);
     a.seq = null;
     chargeStop(a);
-    if (a.ctx) a.ctx.close();
+    a.out.dispose();
     a.ctx = null;
 }
