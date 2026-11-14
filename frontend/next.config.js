@@ -98,6 +98,13 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "",
         NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
+        // Stamped on every analytics event (utils/analytics.ts), so PostHog
+        // can tell this frontend's builds and environments apart.
+        NEXT_PUBLIC_BUILD_SHA: (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(
+            0,
+            7
+        ),
+        NEXT_PUBLIC_DEPLOY_ENV: process.env.VERCEL_ENV || "",
     },
     experimental: {
         // The lobby imports shared TS from ../multiplayer (protocol, identity,

@@ -24,6 +24,24 @@ export function isMacMobile() {
     );
 }
 
+/**
+ * Sent with every event, pageviews and exceptions included. `frontend` tells
+ * this open-source frontend apart from the old oncyber.io build, which sends
+ * to the same PostHog project without it.
+ */
+export function analyticsSuperProperties(
+    env: Record<string, string | undefined> = {
+        NEXT_PUBLIC_BUILD_SHA: process.env.NEXT_PUBLIC_BUILD_SHA,
+        NEXT_PUBLIC_DEPLOY_ENV: process.env.NEXT_PUBLIC_DEPLOY_ENV,
+    }
+) {
+    return {
+        frontend: "oncyber-v2",
+        build: env.NEXT_PUBLIC_BUILD_SHA || "unknown",
+        deploy_env: env.NEXT_PUBLIC_DEPLOY_ENV || "unknown",
+    };
+}
+
 // posthog-js instance (lazily imported), and the 3D constants module used to
 // stamp the current game mode onto every event.
 export let posthog;
@@ -89,6 +107,8 @@ async function initPosthog(user_id = "") {
             capture_exceptions: true,
             persistence: "localStorage+cookie",
         });
+
+        posthog.register(analyticsSuperProperties());
 
         if (user_id) {
             posthog.identify(user_id);
@@ -198,8 +218,7 @@ export async function reportError(
     try {
         if (!(await ensureReady())) return;
 
-        const err =
-            error instanceof Error ? error : new Error(String(error));
+        const err = error instanceof Error ? error : new Error(String(error));
 
         // posthog-js >= 1.x exposes captureException; fall back to a named event
         // if an older build is ever pinned.
