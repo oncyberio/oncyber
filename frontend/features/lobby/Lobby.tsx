@@ -1372,6 +1372,9 @@ export default function Lobby({
                                 active={exploreOpen}
                                 cards={cards}
                                 groupName={selectedGroup?.name}
+                                partyTrips={groups.flatMap((group) =>
+                                    group.travel ? [group.travel.id] : []
+                                )}
                                 onClose={closeExplore}
                                 onSelect={openPortal}
                             />

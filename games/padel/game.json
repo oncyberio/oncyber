@@ -1,4 +1,23 @@
 {
   "name": "Glasshouse \u00b7 Padel",
-  "avatar": "vrm"
+  "avatar": "vrm",
+  "listing": {
+    "tagline": "doubles padel with NPC partners",
+    "description": "Walk the club, then play doubles with an NPC partner.",
+    "thumbnail": "preview.jpg",
+    "players": {
+      "min": 1,
+      "max": 1
+    },
+    "devices": [
+      "desktop"
+    ],
+    "tags": [
+      "sports",
+      "club"
+    ]
+  },
+  "page": {
+    "ownPage": true
+  }
 }

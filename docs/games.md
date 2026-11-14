@@ -20,6 +20,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `docs/games/listing.md`           | What a game's listing must contain, and what the lobby shows from it.               |
 
 ## The lifecycle
 
@@ -55,19 +56,19 @@ it is what makes checks, seamless travel and live editing possible.
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `<id>:<kind>`:
 
-| From        | Kind                       | Meaning                                                                                                                                                                                           |
-| ----------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                                  |
-| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                                   |
-| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                                           |
-| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                                                                                                          |
-| game        | `pose`                     | The player's pose for the shared room.                                                                                                                                                            |
-| page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                                    |
-| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                                 |
-| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                                                                                                                                  |
-| page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. |
-| page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                |
-| game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                            |
+| From        | Kind                       | Meaning                                                                                                                                                                                                                                                                                                  |
+| ----------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                                                                                                                                         |
+| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                                                                                                                                          |
+| game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                                                                                                                                                  |
+| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                                                                                                                                                                                                                 |
+| game        | `pose`                     | The player's pose for the shared room.                                                                                                                                                                                                                                                                   |
+| page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                                                                                                                                           |
+| page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                                                                                                                                        |
+| page        | `entered` / `dispose`      | The visitor arrived from the lobby / is leaving.                                                                                                                                                                                                                                                         |
+| page        | `party`                    | `{ party }`: who travelled here together, `{ id, size, members: [{ id, name, pfp, avatarUrl }] }`, or `null` when alone. Sent after `identity` and again when the trip's final members are known. A late arrival by a join link gets `late: true` and no members ([games/listing.md](games/listing.md)). |
+| page        | `arrival`                  | From the lobby, just before the reveal: `{ view }`, the lobby's third-person camera relative to the avatar's feet.                                                                                                                                                                                       |
+| game        | `arrival-ready`            | The game has framed the visitor the same way (optional; the page waits 1.5 s at most).                                                                                                                                                                                                                   |
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -113,7 +114,8 @@ the lifecycle (and Padel into the sandbox) gives them the full check.
 2. Write `game.json` (`runtime.capabilities`, `assets`, `input`) and a
    `scenario.json` that proves the game works: actions, waits and
    assertions on `inspect()` keys.
-3. Add the game to `frontend/features/games/catalog.ts`.
+3. Write the `listing` in `game.json` and run `pnpm games:catalog`, which
+   adds the game to the site's catalog ([games/listing.md](games/listing.md)).
 4. Open `/games/<id>` on the dev server.
 
 ## Check and publish

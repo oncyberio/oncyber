@@ -28,6 +28,7 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import { joinedParty, rememberGameParty } from "./gamePartyJoin";
 
 const PEER_INTERVAL = 100;
 
@@ -122,10 +123,12 @@ export default function GamePage({ game }: { game: GameEntry }) {
         const announceParty = (next: GameParty | null) => {
             partyRef.current = next;
             setParty(next);
+            if (next) rememberGameParty(GAME, next.id);
             if (sentIdentity) post("party", { party: next });
         };
         announceParty(
             gameParty(readLobbyGroupCohort()) ??
+                joinedParty(window.location.search) ??
                 developmentParty(window.location.search)
         );
         const deliverIdentity = () => {
@@ -175,7 +178,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     | { peers?: unknown }
                     | undefined;
                 // The trip's final view carries the members the lobby showed.
-                if (partyRef.current && view?.peers) {
+                if (partyRef.current && !partyRef.current.late && view?.peers) {
                     const next = gameParty(partyRef.current.id, view.peers);
                     if (next) announceParty(next);
                 }

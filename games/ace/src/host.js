@@ -7,7 +7,7 @@ const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 const STORAGE_KEYS = new Set(["settings", "muted"]);
 const STORAGE_MAX = 64 * 1024;
 
-/** The visitor's party: { id, size, members: [{ id, name }] }, or null. */
+/** The visitor's party: { id, size, members: [{ id, name }], late? }, or null. */
 export function readParty(value) {
     if (!value || typeof value.id !== "string" || !Array.isArray(value.members))
         return null;
@@ -21,8 +21,10 @@ export function readParty(value) {
                     ? m.name.trim().slice(0, 24)
                     : "Player",
         }));
-    if (!members.length) return null;
-    return { id: value.id.slice(0, 96), size: members.length + 1, members };
+    // A late arrival (a join link) knows nobody yet: the room's roster does.
+    const late = value.late === true;
+    if (!members.length && !late) return null;
+    return { id: value.id.slice(0, 96), size: members.length + 1, members, ...(late ? { late } : {}) };
 }
 
 /** The lobby's camera relative to the avatar's feet; null when malformed. */
