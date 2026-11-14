@@ -594,6 +594,12 @@ export default class World3D {
 
         Raycaster.active = false
 
+        // A first/third-person switch still animating would ignore the
+        // switch below and leave the headset behind the avatar.
+        await Camera.waitForTransition()
+
+        if(IS_VR) return
+
         this.wasThirdPerson = !IS_FIRST_PERSON
 
         if(this.wasThirdPerson) {

@@ -891,7 +891,21 @@ class Camera extends Augmented {
 
     }
 
+    /** Resolves once a first/third-person switch has finished (or after `timeout` ms). */
+    async waitForTransition(timeout = 3000) {
+
+        const start = performance.now()
+
+        while (this.isTransitioning && performance.now() - start < timeout) {
+
+            await delay(50)
+        }
+    }
+
     async enterVR() {
+
+        // The headset sees from the player's eyes: never show the own avatar.
+        Players.main?.hide()
 
         this.preVRCamera = this.current
 
