@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+        />
+        <meta name="theme-color" content="#3fbf5a" />
+        <title>Bloom Garden — Oncyber</title>
+        <style>
+            html, body { margin: 0; height: 100%; overflow: hidden; background: #9fdcff; touch-action: none; }
+            #world, #game-ui { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+            #game-ui { background: transparent; color-scheme: normal; }
+            #notice { position: fixed; inset: 0; display: none; place-content: center; text-align: center;
+                font: 600 16px/1.5 system-ui, sans-serif; color: #1d1a2e; padding: 24px; }
+            #notice.show { display: grid; }
+        </style>
+    </head>
+    <body>
+        <canvas id="world"></canvas>
+        <iframe id="game-ui" title="Bloom Garden controls" allowtransparency="true"></iframe>
+        <div id="notice" role="status"></div>
+        <script type="module" src="./src/host/browser.js"></script>
+    </body>
+</html>

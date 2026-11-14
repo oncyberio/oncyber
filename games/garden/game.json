@@ -1,0 +1,218 @@
+{
+  "name": "Bloom Garden",
+  "avatar": "vrm",
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game/game.js",
+      "ui": "ui.html",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "assets",
+      "audio",
+      "avatar",
+      "network",
+      "storage",
+      "travel"
+    ],
+    "assets": [
+      "public/motion.json"
+    ],
+    "input": {
+      "forward": {
+        "keyboard": [
+          "KeyW",
+          "ArrowUp"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-up"
+      },
+      "backward": {
+        "keyboard": [
+          "KeyS",
+          "ArrowDown"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-down"
+      },
+      "left": {
+        "keyboard": [
+          "KeyA",
+          "ArrowLeft"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-left"
+      },
+      "right": {
+        "keyboard": [
+          "KeyD",
+          "ArrowRight"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-right"
+      },
+      "moveX": {
+        "touch": "stick",
+        "gamepad": "left-stick-x"
+      },
+      "moveY": {
+        "touch": "stick",
+        "gamepad": "left-stick-y"
+      },
+      "walk": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "stick-half",
+        "gamepad": "left-stick-press"
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "jump",
+        "gamepad": "button-a"
+      },
+      "interact": {
+        "keyboard": [
+          "KeyE",
+          "Enter"
+        ],
+        "touch": "use",
+        "gamepad": "button-x"
+      },
+      "pet": {
+        "keyboard": [
+          "KeyF"
+        ],
+        "touch": "pet",
+        "gamepad": "button-y"
+      },
+      "throw": {
+        "keyboard": [
+          "KeyQ"
+        ],
+        "touch": "throw",
+        "gamepad": "button-b"
+      },
+      "whistle": {
+        "keyboard": [
+          "KeyR"
+        ],
+        "touch": "whistle",
+        "gamepad": "dpad-up"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ],
+        "touch": "wave",
+        "gamepad": "dpad-down"
+      },
+      "cheer": {
+        "keyboard": [
+          "KeyC"
+        ],
+        "touch": "cheer",
+        "gamepad": "right-trigger"
+      },
+      "panel": {
+        "keyboard": [
+          "Tab",
+          "KeyB"
+        ],
+        "touch": "roster",
+        "gamepad": "button-select"
+      },
+      "help": {
+        "keyboard": [
+          "KeyH"
+        ],
+        "touch": "help",
+        "gamepad": "button-start"
+      },
+      "mute": {
+        "keyboard": [
+          "KeyM"
+        ],
+        "touch": "sound"
+      },
+      "back": {
+        "keyboard": [
+          "Escape"
+        ],
+        "touch": "close",
+        "gamepad": "button-b"
+      },
+      "lookX": {
+        "touch": "drag",
+        "gamepad": "right-stick-x"
+      },
+      "lookY": {
+        "touch": "drag",
+        "gamepad": "right-stick-y"
+      },
+      "zoom": {
+        "touch": "pinch",
+        "gamepad": "right-stick-press"
+      },
+      "looking": {
+        "touch": "drag"
+      },
+      "tapX": {
+        "touch": "tap"
+      },
+      "tapY": {
+        "touch": "tap"
+      },
+      "tap": {
+        "touch": "tap"
+      },
+      "details": {
+        "touch": "roster"
+      },
+      "callOne": {
+        "touch": "call"
+      },
+      "menuWho": {
+        "touch": "menu"
+      },
+      "menuTier": {
+        "touch": "menu"
+      },
+      "menuGo": {
+        "touch": "menu"
+      },
+      "menuClose": {
+        "touch": "menu"
+      },
+      "join": {
+        "touch": "offer"
+      },
+      "watch": {
+        "touch": "offer"
+      },
+      "matchLeave": {
+        "touch": "match"
+      },
+      "matchNow": {
+        "touch": "match"
+      },
+      "audioUnlock": {
+        "touch": "any"
+      },
+      "exit": {
+        "touch": "lobby"
+      }
+    }
+  }
+}

@@ -19,6 +19,7 @@ avatar, friends and voice as they travel between spaces.
 | `multiplayer/`                  | Colyseus rooms and the shared-world service: presence, chat, voice signaling, TURN credentials | `npm --prefix multiplayer ci` |
 | `cloud-functions/functions/`    | Firebase functions: 3D asset and avatar optimization, IPFS uploads                             | its own `npm ci`              |
 | `cloud-functions/artist-index/` | Firebase functions: artist search index                                                        | its own `npm ci`              |
+| `games/`                        | Games (plain three.js) and their lifecycle runtime, hidden at launch; see `docs/games.md`      | per game (`npm ci`)           |
 | `scripts/`                      | Maintenance and content tools (gallery CDN, museum media, world CLI)                           | per script                    |
 | `tasks/`                        | Standalone asset tools (VRM resize, texture compression, FBX to VRM animation, camera splines) | per tool                      |
 | `docs/`                         | Architecture notes, brand guide, measurements and plans                                        |                               |

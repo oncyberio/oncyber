@@ -1,0 +1,15 @@
+{
+  "name": "@oncyber/game-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Oncyber game lifecycle: prepare, enter, update, suspend, restore, dispose, inspect. TypeScript source, no dependencies; games bundle it.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts",
+    "./check": "./src/check.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
+  }
+}

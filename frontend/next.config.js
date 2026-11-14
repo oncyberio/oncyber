@@ -281,6 +281,14 @@ const nextConfig = {
         ])
             headers.push({ source, headers: NO_THIRD_PARTY_FRAMES });
 
+        // Games run in an opaque-origin sandboxed frame (features/games), so
+        // the browser fetches their modules and files in CORS mode. They are
+        // public static files with no credentials.
+        headers.push({
+            source: "/games/:id/:path*",
+            headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+        });
+
         // Browser caching for static files under public/ (Next already serves
         // /_next/static, where the engine and three.js chunks live, as
         // immutable). Without these, every file here is revalidated on each
