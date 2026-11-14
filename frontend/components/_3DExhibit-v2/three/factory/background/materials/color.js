@@ -52,8 +52,9 @@ export default class ColorMaterial extends NodeMaterial {
 		// clip-space triangle, z = w (far plane). In VR the renderer draws
 		// once per eye and binds the eye's index; a shader that never reads
 		// it has no slot for it and the draw throws, so the frame is lost.
-		// Reading it (times zero) keeps that slot without moving anything.
-		this.vertexNode = vec4( positionGeometry.xy, float( cameraIndex ).mul( 0.0 ).add( 1.0 ), 1.0 )
+		// Reading it keeps that slot; times 1e-30 so the compiler can't drop it,
+		// and 1 + 1e-30 is still exactly 1 in float, so nothing moves.
+		this.vertexNode = vec4( positionGeometry.xy, float( cameraIndex ).mul( 1e-30 ).add( 1.0 ), 1.0 )
 
 		this.colorNode = this.uniforms.color
 	}
