@@ -72,6 +72,63 @@ no cookies, storage or account access. Messages are `<id>:<kind>`:
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
+## What a good game does
+
+Four rules, in order. Each came from a game getting it wrong; the "SDK and
+checks still owed" section lists what would make them automatic.
+
+1. **Arrive like a world.** A game opened from the lobby starts in a
+   walkable third-person view of its place, in the framing the visitor had
+   in the lobby. "Start the game" is a choice from there. Title screens are
+   for direct visits only, and leaving a match or a menu returns to the
+   arrival, not to a title.
+2. **Match the handoff.** The first frame the visitor sees must continue
+   the lobby's last one: same camera, same avatar place and size, same pose.
+   No frame without the avatar, and no pop.
+3. **Respect the party.** A game says what it offers for one, two, three,
+   four and five to eight players, changes its options when a party
+   arrives, and builds the same teams or bracket on every member's screen.
+4. **Keep a solo path.** Whatever the party, one person can always play.
+
+## Arriving from the lobby
+
+What the lobby hands over, measured on 14 November 2026 by recording the
+trip frame by frame:
+
+-   **The view** (`arrival`, a `LobbyTravelView` from
+    `frontend/features/lobby/lobbyJourneyProtocol.ts`): `cameraOffset` and
+    `cameraTargetOffset` relative to the avatar's feet, `avatarRotation`,
+    `avatarHeight` (1.8) and `fov`. The page sends it just before the reveal
+    and waits up to 1.5 s for `arrival-ready`.
+-   **Where the camera is.** In front of the avatar, not behind: about 5 m
+    away (4.6 m plus 0.44 m per party member), 2 m up, looking at a point
+    1.05 m above the feet, with a 58° field of view. The camera sits at
+    angle `avatarRotation + π` around the avatar, and from there you see the
+    avatar's face.
+-   **How the avatar ends the trip.** Crouched (hips at about half height),
+    facing the camera, nothing in its hands, on a black background.
+-   **The sequence.** `ready` (game prepared, hidden) → the lobby plays its
+    departure → `arrival` → the game frames the visitor and answers
+    `arrival-ready` → the lobby hides and the game shows → `entered`.
+
+What a game does with it (Ace's `goArrive` in `games/ace/src/main.js` is the
+reference):
+
+1. Scale the offsets by its own avatar height over `avatarHeight`.
+2. Turn the whole formation (camera and target together) so the camera
+   looks where the game wants; the framing on screen doesn't change with
+   that turn. Ace turns it by `π − avatarRotation` so the camera looks down
+   the court at the net.
+3. Stand the avatar at its arrival spot **facing the camera**, crouched,
+   with no held items, and keep the lobby's field of view.
+4. Render two frames, then answer `arrival-ready`.
+5. On `entered`, stand the avatar up (Ace takes 0.7 s) and only then accept
+   movement. Walking is relative to the camera; dragging looks around.
+6. Keep the arrival spot and the camera behind it inside the walls: a
+   camera 5 m behind the visitor must not end up outside the place.
+7. Redraw at once after a resize. Resizing clears the canvas, and waiting
+   for the next animation frame shows an empty one.
+
 ## Parties
 
 A lobby group that travels together shares one trip id. The page reads it
@@ -138,6 +195,53 @@ A release is the set of files whose hashes make up its `release` id. Commit
 It needs Playwright and Chromium. `PW_CHANNEL=chrome` uses the installed
 Chrome and its GPU; `--headed` shows the window. Headless frame times follow
 the headless browser's frame rate, not the game's.
+
+## SDK and checks still owed
+
+Each line is something a game does by hand today, or a rule nothing
+enforces yet.
+
+**Lifecycle and runtime (`games/runtime`)**
+
+-   `enter(continuity)` should carry the lobby's real view and the party.
+    The type has `avatar`, `camera` and `party`, but the page fills none of
+    it: the view and the party travel as the `arrival` and `party` messages,
+    which only Ace reads.
+-   An arrival helper: lobby view in, camera position, look target and
+    field of view out, in the game's own space, facing a direction the game
+    picks.
+-   An avatar arrival pose in an avatar kit: crouched and facing the camera
+    at the handoff, standing up on `entered`.
+-   A "first frame ready" signal the page waits for before revealing,
+    instead of each game counting frames.
+-   A `party` object on the context: trip id, members, who has arrived,
+    and the party's room.
+-   Shared format and draw helpers (1 v 1, teams, round robin, knockout),
+    seeded so every member builds the same bracket. They live in
+    `games/ace/src/party.js` today.
+-   A real-time match channel. The relay carries about five packets a
+    second per player: enough for turns and lobbies, not for a rally. Until
+    it exists, party formats can be drawn but not played.
+
+**Manifest (`game.json`)**
+
+-   `arrival`: whether the game has a walkable arrival.
+-   `party`: the sizes and formats it supports.
+
+**Checks (`pnpm games:check`)**
+
+-   Arrival: open the game with a lobby view; fail a menu-only start or an
+    ignored camera.
+-   Handoff: compare the lobby's last frame with the game's first (avatar
+    position and size) and flag any frame without the avatar. Done by hand
+    so far, with a frame recorder.
+-   Party: open the game with `?party=2` and `?party=4`; fail if its
+    options don't change, or if no solo option remains.
+-   The full check for Ace and Padel, once they are on the lifecycle.
+
+**Games**
+
+-   Bloom Garden and Padel don't use `arrival` or `party` yet.
 
 ## Not built yet
 
