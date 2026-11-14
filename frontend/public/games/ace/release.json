@@ -2,15 +2,30 @@
   "version": 1,
   "game": "ace",
   "name": "ACE! Tennis",
-  "release": "0800022feca2d8ba",
-  "publishedAt": "2026-11-14T16:29:14.044Z",
+  "release": "b08d7bf48ac99774",
+  "publishedAt": "2026-11-14T17:55:20.460Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-14T16:29:14.043Z",
+    "checkedAt": "2026-11-14T17:55:20.459Z",
     "backend": "unknown",
     "frames": null
   },
   "files": [
+    {
+      "path": "assets/SpaceGrotesk-Medium-Du45cukc.woff2",
+      "bytes": 31856,
+      "sha256": "ca29135eeaa7eb5babe31e7baa53970e6a4149b54a005beac0d4617eb61b64c8"
+    },
+    {
+      "path": "assets/SpaceGrotesk-Regular-CLcxnAOH.woff2",
+      "bytes": 32136,
+      "sha256": "75aa6ffb32c2dd458c78c1055fff50089b56ea7177f135a64e370245e130769d"
+    },
+    {
+      "path": "assets/SpaceMono-Regular-B6K0B1Cw.woff2",
+      "bytes": 34932,
+      "sha256": "a3281287939a152ec1485709aff1a77515b4f0d657a24fcda3a5a439aa39adb2"
+    },
     {
       "path": "assets/basis_transcoder-VXdx5NbI.wasm",
       "bytes": 527333,
@@ -22,19 +37,19 @@
       "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
     },
     {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572,
-      "sha256": "bf924e588fd200e4be496979d39b5049ce06c8456188423c4cb16e7dc2509b38"
+      "path": "assets/index-Culnrkht.js",
+      "bytes": 944661,
+      "sha256": "66489b5e82fe4ccf4109b898eb08cf260b83979faa55bb54cea1f4172171cdc5"
     },
     {
-      "path": "assets/index-Bfj8B_-b.css",
-      "bytes": 16956,
-      "sha256": "7dc92a5e1e9b8968157461f1db926fc744fa3556cdc7920a516fbcf43176e13d"
+      "path": "assets/index-DJ4w9-Rf.css",
+      "bytes": 29470,
+      "sha256": "ab95c87ae1bb5f727e52fbc711bef87a38fb4bb37432d49c4ff410a8dd12076a"
     },
     {
       "path": "index.html",
-      "bytes": 13540,
-      "sha256": "1d39bf5873bf5a6ac3246ddbe57e985ca3898b7d5e3647455afbe7f2002a8fe6"
+      "bytes": 14676,
+      "sha256": "7110a85f90c55e468f2875fcba7e520be0569bd5b6e48fc807e5ff9812065b8c"
     },
     {
       "path": "preview.jpg",

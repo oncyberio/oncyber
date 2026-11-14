@@ -1,30 +1,63 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T17:55:20.459Z",
   "status": "passed",
   "scope": "boot",
   "files": {
-    "count": 6,
-    "bytes": 1793057,
+    "count": 9,
+    "bytes": 1905720,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-Culnrkht.js",
+      "bytes": 944661
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  "warnings": [
+    {
+      "code": "UI_KIT_UNUSED",
+      "message": "4 of 5 menu screen(s) use no UI kit classes: #title, #arrive, #pause, #results. See docs/games/ui-kit.md."
+    }
   ],
+  "ui": {
+    "screens": [
+      {
+        "name": "#title",
+        "controls": 4,
+        "kit": false
+      },
+      {
+        "name": "#arrive",
+        "controls": 3,
+        "kit": false
+      },
+      {
+        "name": "#setup",
+        "controls": 8,
+        "kit": true
+      },
+      {
+        "name": "#pause",
+        "controls": 5,
+        "kit": false
+      },
+      {
+        "name": "#results",
+        "controls": 2,
+        "kit": false
+      }
+    ]
+  },
+  "consoleErrors": [],
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 168,
+    "bootMs": 2234,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 2234
       }
     ],
     "frames": null,

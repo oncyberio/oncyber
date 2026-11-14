@@ -1,4 +1,7 @@
 import * as THREE from "three";
+// Oncyber's UI kit first, so Ace's own styles can sit on top of it.
+import "@oncyber/game-ui/fonts.css";
+import "@oncyber/game-ui/oncyber-ui.css";
 import "./style.css";
 import * as sound from "./audio.js";
 import {
@@ -406,15 +409,18 @@ function goParty() {
     const formats = partyFormats(everyone.length);
     const list = $("#party-formats");
     list.replaceChildren(
-        ...formats.map((format, index) => {
+        ...formats.map((format) => {
             const button = document.createElement("button");
-            button.className = `pill${index === 0 ? " big" : ""}`;
+            button.className = "oui-list__item";
             button.dataset.format = format.id;
-            const label = document.createElement("span");
-            label.textContent = format.label;
-            const blurb = document.createElement("small");
+            button.setAttribute("aria-pressed", "false");
+            const body = document.createElement("span");
+            body.className = "oui-list__body";
+            const blurb = document.createElement("span");
+            blurb.className = "oui-list__meta";
             blurb.textContent = format.blurb;
-            button.append(label, blurb);
+            body.append(format.label, blurb);
+            button.append(body);
             return button;
         })
     );
@@ -432,18 +438,16 @@ function choosePartyFormat(format) {
     box.replaceChildren(
         ...lineup.rounds.flatMap((round) => {
             const title = document.createElement("h3");
+            title.className = "oui-label";
             title.textContent = round.name;
             return [
                 title,
                 ...round.matches.map(([a, b]) => {
                     const line = document.createElement("p");
-                    const versus = document.createElement("i");
-                    versus.textContent = "v";
-                    line.append(
-                        sideLabel(a, lineup.rounds),
-                        versus,
-                        sideLabel(b, lineup.rounds)
-                    );
+                    const left = sideLabel(a, lineup.rounds);
+                    const right = sideLabel(b, lineup.rounds);
+                    line.className = "oui-text";
+                    line.textContent = `${left} v ${right}`;
                     return line;
                 }),
             ];
@@ -452,8 +456,10 @@ function choosePartyFormat(format) {
     box.hidden = false;
     $("#party-note").hidden = false;
     document
-        .querySelectorAll("#party-formats .pill")
-        .forEach((b) => b.classList.toggle("focus", b.dataset.format === format));
+        .querySelectorAll("#party-formats [data-format]")
+        .forEach((b) =>
+            b.setAttribute("aria-pressed", String(b.dataset.format === format))
+        );
 }
 
 function goSetup() {
@@ -487,9 +493,13 @@ function refreshSetup() {
     }`;
     $("#foe-blurb").textContent = foe.blurb;
     $("#foe-face").style.backgroundImage = `url(${portrait(foe.palette)})`;
-    document
-        .querySelectorAll("#setup .field")
-        .forEach((f, i) => f.classList.toggle("focus", i === state.setupField));
+    // Arrow-key focus: the kit draws its ring on data-oui-focus.
+    [
+        ...document.querySelectorAll("#setup .choice"),
+        document.querySelector("#setup .go"),
+    ].forEach((el, i) =>
+        el.toggleAttribute("data-oui-focus", i === state.setupField)
+    );
     host.storage.set("settings", JSON.stringify(settings));
 }
 
@@ -721,9 +731,6 @@ function handleMenuInput(events) {
                 }
                 sound.sfxUI(audio, "move");
                 refreshSetup();
-                document
-                    .querySelector("#setup .go")
-                    .classList.toggle("focus", state.setupField === 2);
             }
             if (e.type === "confirm") action("start");
             if (e.type === "back") action("back");

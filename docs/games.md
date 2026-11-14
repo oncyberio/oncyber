@@ -20,6 +20,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
 
 ## The lifecycle
 
@@ -131,6 +132,8 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+Menu screens that use none of the UI kit's classes are listed as a warning
+(`UI_KIT_UNUSED`), which doesn't block either.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
