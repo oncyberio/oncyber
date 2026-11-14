@@ -141,13 +141,13 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
         if (opts.border) {
 
-            // "border" is a reserved word in GLSL ES, so the attribute
-            // can't carry that name on the WebGL backend.
-            this.items.frameBorder = {
-                name: 'frameBorder',
+            this.items.border = {
+                name: 'border',
                 array: [],
-                length: 1,
-                type: Int16Array
+                length: 1
+                // Float, like the other attributes: the WebGL backend wrote an
+                // Int16 attribute as "nt border" and the shader failed to
+                // compile, so instanced frames vanished on WebGL (and VR).
             }
         }
 
@@ -292,7 +292,7 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
                         if (this.opts.border) {
 
-                            this.attributes.frameBorder.array[c] = wrapper.border
+                            this.attributes.border.array[c] = wrapper.border
                         }
 
 
@@ -356,7 +356,7 @@ export default class GeometryInstancer extends InstancedBufferGeometry {
 
                 if (this.opts.border) {
 
-                    this.attributes.frameBorder.array[c] = wrapper.border
+                    this.attributes.border.array[c] = wrapper.border
                 }
 
 
