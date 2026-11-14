@@ -6,6 +6,8 @@ import Chat from ".";
 
 let mockChat: any;
 const mockUpdatePlayer = jest.fn();
+// Voice requests have their own tests; the chat only places them.
+jest.mock("@features/content-host/SpaceVoiceRequests", () => () => null);
 jest.mock("../../context/MultiplayerProvider", () => ({
     useMultiplayer: () => ({
         room: { id: "room-1", sessionId: "alice" },
