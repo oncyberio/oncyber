@@ -20,6 +20,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `scripts/games/releases/`         | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
 
 ## The lifecycle
 
@@ -135,6 +136,11 @@ errors are listed but don't block, since games load avatars from the network.
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
 
+Publishing also stores the release outside the repository and moves the
+game's pointer to it; the page loads from the pointer and falls back to the
+committed build. Rollback, drafts, backends and the `hosted` check stage:
+[games/releases.md](games/releases.md).
+
 It needs Playwright and Chromium. `PW_CHANNEL=chrome` uses the installed
 Chrome and its GPU; `--headed` shows the window. Headless frame times follow
 the headless browser's frame rate, not the game's.
@@ -142,6 +148,7 @@ the headless browser's frame rate, not the game's.
 ## Not built yet
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.
--   Hosted releases: publishing is a commit today, not an upload.
+-   Hosted releases in production: built and checked with the local
+    backend; the decisions left are in [games/releases.md](games/releases.md).
 -   Phone and headset profiles for the check.
 -   Games in the lobby's Explore panel outside the development server.

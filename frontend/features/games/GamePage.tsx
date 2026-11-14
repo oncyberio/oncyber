@@ -20,6 +20,7 @@ import {
 } from "./gameIdentity";
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
+import type { GameFrame } from "./gameRelease";
 import { readGameStorage, writeGameStorage } from "./gameStorage";
 import {
     developmentParty,
@@ -65,7 +66,14 @@ const GAME_SANDBOX = "allow-scripts allow-pointer-lock";
  * the shared room, voice and the game's saved values; the game renders
  * everything, avatars included. Messages are `<id>:<kind>` on both sides.
  */
-export default function GamePage({ game }: { game: GameEntry }) {
+export default function GamePage({
+    game,
+    frame: gameFrame,
+}: {
+    game: GameEntry;
+    /** Where the frame loads from; the committed build when not given. */
+    frame?: GameFrame;
+}) {
     const {
         id: GAME,
         room: sharedRoom,
@@ -382,7 +390,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
         >
             <iframe
                 ref={frame}
-                src={`/games/${GAME}/index.html`}
+                src={gameFrame?.src ?? `/games/${GAME}/index.html`}
+                data-release={gameFrame?.release ?? undefined}
                 title={title}
                 sandbox={GAME_SANDBOX}
                 referrerPolicy="no-referrer"

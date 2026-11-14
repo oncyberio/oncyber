@@ -24,6 +24,8 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { hostedReleaseStage } from "./releases/stage.mjs";
+import { publishRelease, releaseTarget } from "./releases/publish.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -162,16 +164,20 @@ async function check() {
         await browser.close();
         server.close();
     }
+    // The build must also work from a release address, not only this folder.
+    const hosted = await hostedReleaseStage({ id, out, files, chromium, headed });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && !hosted.findings.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
+        hosted: hosted.summary,
         findings: [
             ...scan.findings,
+            ...hosted.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
@@ -209,5 +215,9 @@ if (command === "publish") {
     };
     writeFileSync(join(out, "release.json"), JSON.stringify(release, null, 2) + "\n");
     console.log(`${id}: published release ${version} (${files.length} files). Commit frontend/public/games/${id}.`);
+    // Hosted release: store the checked files and move the game's pointer.
+    const target = releaseTarget();
+    const { entry } = await publishRelease({ game: id, dir: out, files, ...target });
+    console.log(`${id}: release ${entry.release} stored (${entry.backend}) at ${entry.base}; pointer: ${relative(root, target.pointers)}`);
 }
 process.exit(result.status === "passed" ? 0 : 1);
