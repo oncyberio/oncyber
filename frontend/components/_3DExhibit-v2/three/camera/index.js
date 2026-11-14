@@ -65,6 +65,8 @@ import {
 
     IS_FIRST_PERSON,
 
+    IS_VR,
+
     CINEMATIC,
 
     IS_MULTIPLAYER,
@@ -1331,6 +1333,10 @@ class Camera extends Augmented {
 
         if (this.currentControls?.world == null || !Players?.main || this.isFly) return;
 
+        // A headset always sees through the VR camera; the saved third-person
+        // preference applies again when the session ends (world3D.exitVR).
+        if (IS_VR) return;
+
         if (this.isTransitioning) return;
 
         if (!this.thirdPersonCamInited) {
@@ -1389,6 +1395,20 @@ class Camera extends Augmented {
         PlayerCamera.update(0.1);
 
         await this.playerModeTransition(true)
+
+        // VR started during the transition: keep the VR camera it set up.
+        if (IS_VR) {
+
+            SET_IS_FIRST_PERSON(true);
+
+            Players.main.hide();
+
+            this.isTransitioning = false;
+
+            this.currentControls.addEvents();
+
+            return;
+        }
 
         this.current = PlayerCamera
 
