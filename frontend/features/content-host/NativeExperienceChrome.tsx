@@ -59,9 +59,8 @@ const OFFLINE_REASON: Partial<Record<MultiplayerConnection, string>> = {
 // How long a notice above the dock stays when nothing else clears it.
 const NOTICE_MS = 8000;
 
-// The voice level readout, for tuning who counts as speaking. Loaded only
-// for a visit whose URL has `?voiceDebug`; every other visit never fetches it.
-// The lobby's avatar picker; loaded the first time a visitor opens it.
+// The lobby's avatar picker and People panel, each loaded the first time a
+// visitor opens it.
 const SpaceAvatarPicker = dynamic(() => import("./SpaceAvatarPicker"), {
     ssr: false,
 });
@@ -69,6 +68,8 @@ const SpacePeoplePanel = dynamic(() => import("./SpacePeoplePanel"), {
     ssr: false,
 });
 
+// The voice level readout, for tuning who counts as speaking. Loaded only
+// for a visit whose URL has `?voiceDebug`; every other visit never fetches it.
 const VoiceLevelDebug = dynamic(
     () => import("@utils/voiceChat/VoiceLevelDebug"),
     { ssr: false }
