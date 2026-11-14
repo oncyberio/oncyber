@@ -1,0 +1,69 @@
+{
+ "browser": "153.0.8010.12",
+ "gpu": "software",
+ "granularity": {
+  "world": "world",
+  "options": "&nokeep=1",
+  "coldStartBigWorld": {
+   "outcome": "mounted",
+   "totalMs": 1094,
+   "loadMs": 93.7,
+   "prepareMs": 1000.2,
+   "commitMs": 0.1,
+   "framesDuring": 0,
+   "maxFrameGapMs": 50,
+   "keep": "0 kept / 4 rebuilt"
+  },
+  "logicEdit": {
+   "outcomes": [
+    "swapped → committed",
+    "swapped → committed",
+    "swapped → committed",
+    "swapped → committed"
+   ],
+   "prepareMs": [
+    653.8,
+    524.1,
+    627.1,
+    635.1
+   ],
+   "medianPrepareMs": 635.1,
+   "maxFrameGapMs": 16.8,
+   "keep": "1 kept / 3 rebuilt"
+  },
+  "groundEdit": {
+   "outcomes": [
+    "swapped → committed",
+    "swapped → committed",
+    "swapped → committed",
+    "swapped → committed"
+   ],
+   "prepareMs": [
+    621,
+    629.7,
+    737.1,
+    649.8
+   ],
+   "medianPrepareMs": 649.8,
+   "maxFrameGapMs": 33.4,
+   "keep": "1 kept / 3 rebuilt"
+  },
+  "end": {
+   "inspect": {
+    "score": 1,
+    "x": 50.3,
+    "y": 0,
+    "z": 0,
+    "maxY": 0,
+    "jumps": 0,
+    "t": 8.383333
+   },
+   "memory": {
+    "geometries": 8,
+    "textures": 3
+   },
+   "heapMB": 17.5
+  },
+  "errors": []
+ }
+}

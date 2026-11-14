@@ -1,0 +1,216 @@
+{
+ "browser": "153.0.8010.12",
+ "gpu": "software",
+ "webgpu": {
+  "backend": "webgpu",
+  "options": "(default)",
+  "gpu": "software",
+  "coldStart": {
+   "outcome": "mounted",
+   "totalMs": 556.8,
+   "loadMs": 78.2,
+   "prepareMs": 478.5,
+   "commitMs": 0.1,
+   "framesDuring": 0,
+   "maxFrameGapMs": 33.4,
+   "keep": "0 kept / 4 rebuilt",
+   "wallMsFromFrameCreate": 597
+  },
+  "steady": {
+   "backend": "webgpu",
+   "simFps": 61.2,
+   "updateCostMs": 1.4,
+   "memory": {
+    "geometries": 8,
+    "textures": 3
+   },
+   "sandbox": {
+    "origin": "null",
+    "canReachParent": false,
+    "storage": "blocked"
+   }
+  },
+  "swaps": [
+   {
+    "name": "visual edit (ground colours)",
+    "outcome": "swapped → committed",
+    "totalMs": 321.5,
+    "loadMs": 7.2,
+    "prepareMs": 313.8,
+    "commitMs": 0.4,
+    "framesDuring": 19,
+    "maxFrameGapMs": 16.7,
+    "keep": "3 kept / 1 rebuilt",
+    "x": "15.6 → 21.2",
+    "t": "2.6 → 3.5",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "logic edit (jump strength)",
+    "outcome": "swapped → committed",
+    "totalMs": 305.2,
+    "loadMs": 9.6,
+    "prepareMs": 294.9,
+    "commitMs": 0.7,
+    "framesDuring": 18,
+    "maxFrameGapMs": 16.7,
+    "keep": "3 kept / 1 rebuilt",
+    "x": "21.4 → 27.0",
+    "t": "3.6 → 4.5",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "syntax error",
+    "outcome": "rejected",
+    "totalMs": 8.6,
+    "framesDuring": 1,
+    "maxFrameGapMs": 16.6,
+    "keep": "0 kept / 0 rebuilt",
+    "stage": "load",
+    "error": "SyntaxError: Unexpected token '='",
+    "x": "27.3 → 29.0",
+    "t": "4.5 → 4.8",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "prepare() throws",
+    "outcome": "rolled-back",
+    "totalMs": 13.9,
+    "loadMs": 13,
+    "framesDuring": 0,
+    "maxFrameGapMs": 0,
+    "keep": "1 kept / 0 rebuilt",
+    "stage": "prepare",
+    "error": "Error: boom in prepare",
+    "x": "29.2 → 31.0",
+    "t": "4.9 → 5.2",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "enter() throws",
+    "outcome": "rolled-back",
+    "totalMs": 328.9,
+    "loadMs": 7.1,
+    "prepareMs": 320.8,
+    "framesDuring": 20,
+    "maxFrameGapMs": 16.7,
+    "keep": "4 kept / 0 rebuilt",
+    "stage": "enter",
+    "error": "Error: boom in enter",
+    "x": "31.2 → 34.9",
+    "t": "5.2 → 5.8",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "update() throws on 5th frame",
+    "outcome": "swapped → reverted",
+    "totalMs": 302,
+    "loadMs": 7.3,
+    "prepareMs": 294.5,
+    "commitMs": 0.2,
+    "framesDuring": 18,
+    "maxFrameGapMs": 16.7,
+    "keep": "4 kept / 0 rebuilt",
+    "revertError": "Error: boom in update",
+    "x": "35.1 → 38.6",
+    "t": "5.8 → 6.4",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "heavy edit (300 → 400 props)",
+    "outcome": "swapped → committed",
+    "totalMs": 292.7,
+    "loadMs": 15.8,
+    "prepareMs": 276.5,
+    "commitMs": 0.4,
+    "framesDuring": 18,
+    "maxFrameGapMs": 16.8,
+    "keep": "3 kept / 1 rebuilt",
+    "x": "38.8 → 44.4",
+    "t": "6.5 → 7.4",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "new state field, old snapshot",
+    "outcome": "swapped → committed",
+    "totalMs": 320.7,
+    "loadMs": 9.8,
+    "prepareMs": 310.6,
+    "commitMs": 0.3,
+    "framesDuring": 19,
+    "maxFrameGapMs": 16.8,
+    "keep": "3 kept / 1 rebuilt",
+    "x": "44.7 → 50.4",
+    "t": "7.5 → 8.4",
+    "jumps": "1 → 1"
+   },
+   {
+    "name": "state shape break (stateVersion 1)",
+    "outcome": "swapped-state-reset → committed",
+    "totalMs": 232.7,
+    "loadMs": 8.7,
+    "prepareMs": 223.7,
+    "commitMs": 0.1,
+    "framesDuring": 14,
+    "maxFrameGapMs": 16.7,
+    "keep": "4 kept / 0 rebuilt",
+    "x": "50.5 → 55.6",
+    "t": "8.4 → 0.6",
+    "jumps": "1 → 0"
+   }
+  ],
+  "bigger": {
+   "grow": {
+    "outcome": "swapped-state-reset → committed",
+    "totalMs": 1394.9,
+    "loadMs": 7,
+    "prepareMs": 1387.7,
+    "commitMs": 0.1,
+    "framesDuring": 84,
+    "maxFrameGapMs": 16.7,
+    "keep": "3 kept / 1 rebuilt"
+   },
+   "smallEditAfter": {
+    "outcome": "swapped → committed",
+    "totalMs": 721,
+    "loadMs": 7.5,
+    "prepareMs": 713.3,
+    "commitMs": 0.2,
+    "framesDuring": 43,
+    "maxFrameGapMs": 16.8,
+    "keep": "3 kept / 1 rebuilt"
+   }
+  },
+  "dataOnly": {
+   "unitsPerSecondBefore": 6,
+   "unitsPerSecondAfter": 18
+  },
+  "burst": {
+   "editsSent": 8,
+   "swapsDone": 1,
+   "superseded": 1,
+   "msUntilLatestIsLive": 457
+  },
+  "leak": {
+   "swaps": 30,
+   "gpuObjectsBefore": {
+    "geometries": 8,
+    "textures": 3
+   },
+   "gpuObjectsAfter": {
+    "geometries": 8,
+    "textures": 3
+   },
+   "heapBeforeMB": 16.1,
+   "heapAfterMB": 34.6,
+   "keptAtEnd": "ground,props,renderer,trees",
+   "pixelsAtEnd": "readback timed out"
+  },
+  "fullFrameReload": {
+   "wallMs": 57315,
+   "prepareMs": 390.9,
+   "stateKept": false
+  },
+  "errors": []
+ }
+}
