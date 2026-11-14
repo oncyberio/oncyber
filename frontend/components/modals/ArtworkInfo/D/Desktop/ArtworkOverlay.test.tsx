@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import { ArtworkInfoDesktop } from "./index";
+import { ArtworkInfoDesktop, hiddenWorldControls } from "./index";
 
 const mockAsset = {
     name: "Artwork title",
@@ -90,4 +90,15 @@ test("Escape first collapses See more, then closes details, and unmount restores
     expect(close).toHaveBeenCalledWith(false);
     act(() => root.render(null));
     expect(document.activeElement).toBe(opener);
+});
+
+test("hides the whole world chrome by default, but keeps the header on small screens", () => {
+    expect(hiddenWorldControls(false)).toMatch(/^\[data-experience-chrome\],/);
+    expect(hiddenWorldControls(true)).toMatch(
+        /^\[data-experience-chrome\] > :not\(header\):not\(\.experience-place\),/
+    );
+    for (const keep of [false, true]) {
+        expect(hiddenWorldControls(keep)).toContain(".mobile-joystick");
+        expect(hiddenWorldControls(keep)).toContain(".jump-btn");
+    }
 });

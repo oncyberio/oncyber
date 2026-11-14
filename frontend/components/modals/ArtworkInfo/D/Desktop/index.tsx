@@ -1,4 +1,4 @@
-import styled, { createGlobalStyle } from "styled-components";
+import styled, { createGlobalStyle, css } from "styled-components";
 import React, { useEffect, useRef } from "react";
 import IconImg from "@ui/components/IconImg";
 import { brandFoundation } from "@styles/brand";
@@ -13,7 +13,15 @@ import { useArtworkInfo } from "../ArtworkContext";
 
 export function ArtworkInfoDesktop({
     toggle,
-}: Pick<ArtworkInfoProps, "toggle"> & Partial<ArtworkInfoProps>) {
+    keepWorldHeader = false,
+}: Pick<ArtworkInfoProps, "toggle"> &
+    Partial<ArtworkInfoProps> & {
+        /**
+         * Small screens: leave the world header (back, title, account) in
+         * place above the details and hide only the controls under it.
+         */
+        keepWorldHeader?: boolean;
+    }) {
     const ref = useRef<HTMLDivElement>(null);
     const closeRef = useRef<HTMLButtonElement>(null);
     const { marketplace } = useArtworkInfo();
@@ -28,6 +36,7 @@ export function ArtworkInfoDesktop({
     return (
         <Container
             ref={ref}
+            $keepWorldHeader={keepWorldHeader}
             data-artwork-details
             role="region"
             aria-label="Artwork details"
@@ -41,7 +50,7 @@ export function ArtworkInfoDesktop({
                 if (event.target === ref.current) toggle(false);
             }}
         >
-            <HideWorldControls />
+            <HideWorldControls $keepWorldHeader={keepWorldHeader} />
             <TopBar>
                 <ShareButton />
                 <Control
@@ -78,7 +87,11 @@ export function ArtworkInfoDesktop({
     );
 }
 
-const Container = styled.div`
+/** The world header row: 44px controls at a 22px inset (ExperienceShell). */
+const worldHeaderClearance =
+    "calc(max(22px, env(safe-area-inset-top)) + 44px + 8px)";
+
+const Container = styled.div<{ $keepWorldHeader?: boolean }>`
     ${brandFoundation}
     --artwork-summary-title-size: 16px;
     --artwork-summary-title-leading: 22px;
@@ -100,6 +113,14 @@ const Container = styled.div`
     flex-direction: column;
     gap: 16px;
 
+    ${({ $keepWorldHeader }) =>
+        $keepWorldHeader &&
+        css`
+            /* Under the world chrome (10010) so its header stays tappable. */
+            z-index: 10005;
+            padding-top: ${worldHeaderClearance};
+        `}
+
     /* A transparent fade protects the metadata even when the world is bright.
        The middle of the view stays clear for the selected artwork. */
     &::before {
@@ -119,12 +140,24 @@ const Container = styled.div`
 
 // The details overlay is transparent around the artwork. Hide the normal HUD
 // while it is mounted so its buttons cannot show or receive focus underneath.
-const HideWorldControls = createGlobalStyle`
-    [data-experience-chrome],
-    .chat-container,
-    [data-world-tips],
-    .mobile-joystick,
-    .jump-btn {
+/**
+ * What the details hide underneath them. With `keepWorldHeader`, the world
+ * header row (back, title, account) stays; only the controls below it go.
+ */
+export function hiddenWorldControls(keepWorldHeader: boolean) {
+    return [
+        keepWorldHeader
+            ? "[data-experience-chrome] > :not(header):not(.experience-place)"
+            : "[data-experience-chrome]",
+        ".chat-container",
+        "[data-world-tips]",
+        ".mobile-joystick",
+        ".jump-btn",
+    ].join(",\n    ");
+}
+
+const HideWorldControls = createGlobalStyle<{ $keepWorldHeader?: boolean }>`
+    ${({ $keepWorldHeader }) => hiddenWorldControls(!!$keepWorldHeader)} {
         display: none !important;
     }
 `;
