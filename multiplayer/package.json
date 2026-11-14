@@ -25,7 +25,7 @@
         "test:lobby-quic-loss": "node scripts/lobby-wt-impaired.cjs",
         "lobby:world:load-quic": "node loadtest/world-quic.cjs",
         "test:lobby-fly": "node scripts/lobby-fly-smoke.cjs",
-        "test:lobby-regression": "npm run build && npm run test:lobby-wire && npm run test:lobby-world && npm run test:lobby-quic && npm run test:lobby-quic-loss && node --test test/FlyProbeLogs_test.cjs",
+        "test:lobby-regression": "npm run build && npm run test:lobby-wire && npm test && npm run test:lobby-quic && npm run test:lobby-quic-loss && node --test test/FlyProbeLogs_test.cjs",
         "lab:lobby": "npm run build && node scripts/lobby-lab.cjs",
         "test:lobby-feel": "node scripts/lobby-feel.cjs",
         "test:lobby-crowd-feel": "node scripts/lobby-crowd-audit.cjs",

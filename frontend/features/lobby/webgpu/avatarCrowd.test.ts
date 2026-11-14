@@ -546,6 +546,10 @@ test("generated WGSL skins positions before applying the visitor transform and s
     });
     gpu.hasFeature = () => false;
     const backend = gpu.backend as any;
+    // Building WGSL does not need a GPU, but r187 queries the device's
+    // portable uniform-buffer limit while choosing instance-matrix storage.
+    backend.device = { limits: { maxUniformBufferBindingSize: 65536 } };
+    (gpu as any)._bindings = { getSharedBindGroup: (group: unknown) => group };
     backend.utils.getTextureSampleData = () => ({ primarySamples: 1 });
     for (const mesh of batches()) {
         const builder = backend.createNodeBuilder(mesh, gpu);
@@ -567,7 +571,9 @@ test("generated WGSL skins positions before applying the visitor transform and s
         expect(positions).toHaveLength(3);
         expect(positions[0]).toContain("positionLocal = position;");
         expect(positions[1]).toContain("vec4<f32>( positionLocal, 1.0 )");
-        expect(positions[2]).toContain("NodeBuffer_");
+        expect(positions[2]).toMatch(
+            /\[ instanceIndex \] \* vec4<f32>\( positionLocal, 1\.0 \)/
+        );
         if (
             (mesh.material as THREE.MeshBasicNodeMaterial)
                 .isMeshBasicNodeMaterial
@@ -610,13 +616,14 @@ test("all per-visitor shader fields share one vertex buffer within WebGPU's port
         "lobbyFrameB",
         "lobbyBlend",
         "lobbyPortrait",
+        "lobbyReveal",
     ].map(
         (name) =>
             geometry.getAttribute(name) as THREE.InterleavedBufferAttribute
     );
     expect(new Set(fields.map((field) => field.data)).size).toBe(1);
-    expect(fields.map((field) => field.offset)).toEqual([0, 3, 6, 7]);
-    expect(fields[0].data.stride).toBe(11);
+    expect(fields.map((field) => field.offset)).toEqual([0, 3, 6, 7, 11]);
+    expect(fields[0].data.stride).toBe(13);
     expect(fields[0].data).toBeInstanceOf(THREE.InstancedInterleavedBuffer);
     expect(
         (fields[0].data as THREE.InstancedInterleavedBuffer).meshPerAttribute
@@ -1020,7 +1027,14 @@ test("idle variants bake once per shared model and preserve the crowd draw budge
         v.update(1 / 60, undefined, { speed: 0, grounded: true });
     });
     await settle();
-    for (let frame = 0; frame < 60; frame++)
+    // Start with the ready idle, then allow the 4–6s confirmed-rest clock
+    // and the 0.85s relaxed-idle fade to finish for every phase seed.
+    for (let frame = 0; frame < 420; frame++)
+        visitors.forEach((v) =>
+            v.update(1 / 60, undefined, { speed: 0, grounded: true })
+        );
+    await settle();
+    for (let frame = 0; frame < 12; frame++)
         visitors.forEach((v) =>
             v.update(1 / 60, undefined, { speed: 0, grounded: true })
         );
@@ -1034,7 +1048,7 @@ test("idle variants bake once per shared model and preserve the crowd draw budge
             (instance: any) => instance.current.name
         )
     );
-    expect(clips).toEqual(new Set(["IDLE", "IDLE_ONCYBER", "IDLE_CC0"]));
+    expect(clips).toEqual(new Set(["IDLE", "IDLE_ONCYBER"]));
     expect(crowd.stats).toMatchObject({ instances: 63, models: 1, batches: 2 });
     expect(crowd.stats.textureBytes).toBeLessThan(32 * 1024 * 1024);
 });
