@@ -25,8 +25,6 @@ import {
 
     float as tslFloat,
 
-    modelViewProjection,
-
     modelWorldMatrix,
 
     normalize,
@@ -44,6 +42,7 @@ import {
 import Triangle from './geos/triangle'
 
 import ColorMaterial from './materials/color.js'
+import { skyClipPosition } from './materials/skyPosition.js'
 import SharpMaterial from './materials/sharp.js'
 
 import PipeLineMesh from '@3abstract/pipelinemesh'
@@ -77,7 +76,8 @@ class BackgroundCubeMaterial extends NodeMaterial {
             envMap: envMapNode
         }
 
-        this.vertexNode = modelViewProjection.setZ( modelViewProjection.w )
+        // At infinity (far plane), the same for both eyes in VR.
+        this.vertexNode = skyClipPosition()
 
         this.colorNode = envMapNode
     }
