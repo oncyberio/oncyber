@@ -1,4 +1,80 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "format": "match",
+  "party": {
+    "1": "A match against the CPU, at three difficulties.",
+    "2": "1 v 1, or each plays the CPU.",
+    "3": "A round robin: everyone plays everyone, one match at a time.",
+    "4": "2 v 2 doubles, or a four-player tournament.",
+    "5-8": "A knockout bracket, seeded by the party."
+  },
+  "input": {
+    "forward": {
+      "keyboard": [
+        "KeyW",
+        "ArrowUp"
+      ]
+    },
+    "backward": {
+      "keyboard": [
+        "KeyS",
+        "ArrowDown"
+      ]
+    },
+    "left": {
+      "keyboard": [
+        "KeyA",
+        "ArrowLeft"
+      ]
+    },
+    "right": {
+      "keyboard": [
+        "KeyD",
+        "ArrowRight"
+      ]
+    },
+    "confirm": {
+      "keyboard": [
+        "Enter"
+      ]
+    },
+    "back": {
+      "keyboard": [
+        "Escape",
+        "Backspace"
+      ]
+    },
+    "flat": {
+      "keyboard": [
+        "KeyJ",
+        "Space"
+      ]
+    },
+    "topspin": {
+      "keyboard": [
+        "KeyK"
+      ]
+    },
+    "slice": {
+      "keyboard": [
+        "KeyH"
+      ]
+    },
+    "lob": {
+      "keyboard": [
+        "KeyU"
+      ]
+    },
+    "pause": {
+      "keyboard": [
+        "KeyP"
+      ]
+    },
+    "mute": {
+      "keyboard": [
+        "KeyM"
+      ]
+    }
+  }
 }

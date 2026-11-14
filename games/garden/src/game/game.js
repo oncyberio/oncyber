@@ -1,4 +1,5 @@
 import * as THREE from "three/webgpu";
+import { describeArrival, mapArrivalView } from "@oncyber/game-runtime/arrival";
 import { createSound, play } from "./sound.js";
 import { CARRY_OFFSET, attachVRM, createAvatar, driveAvatar, loadMotion, loadVRM } from "./avatar.js";
 import { ambient, createFx, dust, hearts, splash, updateFx } from "./fx.js";
@@ -89,6 +90,12 @@ export default function createGame(ctx) {
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
     let post = null;
     let sizeKey = "";
+    // A lobby trip: the lobby's last view, matched on our first frame
+    // (docs/games/good-game.md, "Match the handoff").
+    const trip = { view: null, fov: 0, sink: 0, rising: false, stage: 0 };
+    const TRIP_SINK = 0.4;
+    const TRIP_RISE_S = 0.7;
+    const AVATAR_HEIGHT = 1.62;
     function resize() {
         const w = Math.max(1, Math.floor(g.width));
         const h = Math.max(1, Math.floor(g.height));
@@ -97,7 +104,7 @@ export default function createGame(ctx) {
         sizeKey = key;
         renderer.setSize(w, h, false);
         camera.aspect = w / h;
-        camera.fov = camera.aspect < 0.8 ? 62 : 50;
+        camera.fov = trip.fov || (camera.aspect < 0.8 ? 62 : 50);
         camera.updateProjectionMatrix();
     }
 
@@ -468,7 +475,9 @@ export default function createGame(ctx) {
         player.actT -= dt;
         if (player.actT < 0) player.act = "";
         const mv = readMove();
-        if (player.locked) {
+        // Crouched from the trip: stay put until standing.
+        if (trip.rising && trip.sink > 0) trip.sink = Math.max(0, trip.sink - (TRIP_SINK / TRIP_RISE_S) * dt);
+        if (player.locked || trip.sink > 0) {
             player.speed = 0;
             player.vx = player.vz = 0;
             if (mg.match) {
@@ -581,6 +590,37 @@ export default function createGame(ctx) {
             }
         }
         return list;
+    }
+
+    // ----------------------------------------------------------- arrival
+    // The page answers when a lobby trip hands over its last view, and
+    // again when the visitor is revealed. On a direct visit it never does.
+    function followTrip() {
+        call("travel", "arrival")
+            .then((view) => {
+                if (disposed || !view || !view.cameraOffset) return;
+                // Face the lobby's camera with the garden behind, as the
+                // visitor left; the camera keeps looking into the garden.
+                player.heading += Math.PI;
+                const mapped = mapArrivalView(view, { cameraYaw: player.heading, avatarHeight: AVATAR_HEIGHT });
+                const away = Math.hypot(mapped.cameraOffset.x, mapped.cameraOffset.z);
+                const rise = mapped.cameraOffset.y - 1.35; // above the camera's target
+                cam.yaw = player.heading;
+                cam.pitch = Math.atan2(rise, away);
+                cam.dist = Math.hypot(away, rise);
+                cam.eff = null;
+                trip.view = view;
+                trip.fov = mapped.fov;
+                trip.sink = TRIP_SINK;
+                trip.stage = 2;
+                sizeKey = "";
+                return call("travel", "entered").then(() => (trip.rising = true));
+            })
+            .catch(() => {});
+    }
+    function screenName() {
+        if (mg?.match) return mg.match.phase === "results" ? "results" : "match";
+        return state.menu ? "menu" : "arrival";
     }
 
     // ----------------------------------------------------------- camera
@@ -770,6 +810,7 @@ export default function createGame(ctx) {
                 toast("Walk up and press E to pick it up. Eggs hatch quicker when held.");
             } else toast(`Welcome back! ${garden.bloomlings.filter((b) => b.data.stage !== "egg").length} bloomlings missed you.`, "big");
             publish(0, true);
+            followTrip();
         },
         update(seconds) {
             if (disposed || !garden) return;
@@ -780,7 +821,7 @@ export default function createGame(ctx) {
             handleActions();
             target = mg.match ? null : findTarget(garden, player, { bloomlings: () => peerBloomlings(peers) });
             updatePlayer(dt);
-            avatar.root.position.set(player.x, player.y, player.z);
+            avatar.root.position.set(player.x, player.y - trip.sink, player.z);
             avatar.root.rotation.y = player.heading;
             driveAvatar(avatar, dt, { speed: player.speed, air: !player.grounded, act: player.act, holding: !!garden.held });
             avatar.root.updateMatrixWorld(true);
@@ -790,6 +831,8 @@ export default function createGame(ctx) {
             updateMinigames(mg, dt);
             network(dt);
             updateCamera(dt);
+            // Two frames in the lobby's framing, then the page may reveal us.
+            if (trip.stage > 0 && --trip.stage === 0) void call("travel", "staged").catch(() => {});
             const focus = mg.match ? cam.target : player;
             updateWorld(world, dt, focus);
             ambient(fx, dt, { falls: FALLS, night: isNight(world), focus: { x: focus.x, y: focus.y, z: focus.z } });
@@ -838,6 +881,20 @@ export default function createGame(ctx) {
                 offers: state.offers.length,
                 playerX: Math.round(player.x * 10) / 10,
                 playerZ: Math.round(player.z * 10) / 10,
+                // The standard facts (docs/games/good-game.md).
+                screen: screenName(),
+                position: [Math.round(player.x * 100) / 100, Math.round(player.z * 100) / 100],
+                arrival: trip.view
+                    ? describeArrival({
+                          camera: camera.position,
+                          fov: camera.fov,
+                          avatar: player,
+                          avatarForward: { x: Math.sin(player.heading), z: Math.cos(player.heading) },
+                          avatarHeight: AVATAR_HEIGHT,
+                          crouched: trip.sink > 0,
+                          handsEmpty: !garden?.held,
+                      })
+                    : null,
             };
         },
     };

@@ -27,6 +27,7 @@ import {
     setTrail,
     updateFx,
 } from "./fx.js";
+import { exposeFacts } from "./facts.js";
 import { createHost } from "./host.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { clearInput, createInput, readInput } from "./input.js";
@@ -1392,11 +1393,20 @@ function hints() {
 
 function frame() {
     requestAnimationFrame(frame);
-    let dt = Math.min(0.05, clock.getDelta()) * TIME_SCALE;
+    // A slow frame is played as several short steps, so game time keeps up
+    // with the clock (a software GPU draws only a few frames a second).
+    const elapsed = Math.min(0.5, clock.getDelta());
+    const steps = Math.max(1, Math.ceil(elapsed / 0.05));
     const raw = readInput(input);
     handleMenuInput(raw.events);
+    if (!state.engine || !world) return;
+    for (let i = 0; i < steps; i++)
+        step((elapsed / steps) * TIME_SCALE, i ? { ...raw, events: [] } : raw);
+    renderer.render(scene, camera);
+}
+
+function step(dt, raw) {
     const e = state.engine;
-    if (!e || !world) return;
     const live = state.screen === "playing" || state.attract;
     if (state.screen === "playing" && !state.paused) {
         const events = update(e, humanInput(raw), dt);
@@ -1448,7 +1458,6 @@ function frame() {
         e.ball.p,
         e.ballVisible && e.phase !== "idle" && e.phase !== "intro"
     );
-    renderer.render(scene, camera);
 }
 
 // --------------------------------------------------------------- boot
@@ -1561,6 +1570,14 @@ const unlock = () => {
 window.addEventListener("pointerdown", unlock, { once: true });
 window.addEventListener("keydown", unlock, { once: true });
 
+// Facts for pnpm games:check and the game's bot (bot.json).
+exposeFacts(() => ({
+    state,
+    arrive,
+    camera,
+    player: players[0],
+    avatarHeight: ARRIVE_HEIGHT,
+}));
 // Read-only diagnostics for automated checks.
 window.__ace = {
     state,

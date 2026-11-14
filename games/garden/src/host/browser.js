@@ -1,6 +1,7 @@
 import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { exposeInspect } from "@oncyber/game-runtime/bot";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -70,6 +71,16 @@ page.on("net", (data) => {
     room.inbox.push({ from: data.from, json: JSON.stringify(data.data ?? null) });
     if (room.inbox.length > 64) room.inbox.shift();
 });
+
+// A lobby trip: the lobby's last view, then the reveal.
+const defer = () => {
+    let resolve;
+    const promise = new Promise((done) => (resolve = done));
+    return { promise, resolve };
+};
+const trip = { view: defer(), entered: defer() };
+page.on("arrival", (data) => trip.view.resolve(data.view ?? null));
+page.on("entered", () => trip.entered.resolve(true));
 
 const avatars = new Map();
 // services.avatar: only the visitor's avatar and those of players the room
@@ -150,6 +161,12 @@ async function call(capability, operation, value) {
             inbox.push(room.inbox.shift());
         }
         return json({ self: page.selfId, online: !!page.selfId && page.embedded, peers: room.peers, inbox });
+    }
+    if (capability === "travel" && operation === "arrival") return json(await trip.view.promise);
+    if (capability === "travel" && operation === "entered") return trip.entered.promise;
+    if (capability === "travel" && operation === "staged") {
+        page.post("arrival-ready");
+        return true;
     }
     if (capability === "travel" && operation === "lobby") {
         page.exit();
@@ -265,6 +282,8 @@ async function start() {
             get: () => debugHooks.photo,
         });
     }
+    // Facts for pnpm games:check and the game's bot (bot.json).
+    exposeInspect(() => host.session.inspect());
     await host.session.prepare();
     await host.session.enter({
         avatar: { id: identity.id, position: [0, 0, 13], rotation: [0, 1, 0, 0] },

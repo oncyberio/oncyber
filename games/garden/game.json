@@ -1,6 +1,14 @@
 {
   "name": "Bloom Garden",
   "avatar": "vrm",
+  "format": "world",
+  "party": {
+    "1": "Raise your own bloomlings, and race or spar against CPU bloomlings.",
+    "2": "Share one garden; race or spar each other's bloomlings, the rest watch and cheer.",
+    "3": "Share one garden; up to three bloomlings in a race, or two spar while one cheers.",
+    "4": "Share one garden; a four-bloomling race, or sparring in turns with the others cheering.",
+    "5-8": "Share one garden; races take everyone who joins, and anyone not racing can watch and cheer."
+  },
   "runtime": {
     "profile": "portable-v1",
     "version": "1",

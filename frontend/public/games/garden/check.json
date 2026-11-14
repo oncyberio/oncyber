@@ -1,35 +1,37 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T18:08:50.083Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1336737,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-BhU8-Mhm.js",
+      "bytes": 1000282
     }
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:43315/games/garden/assets/index-BhU8-Mhm.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1252,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1252
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 912
       },
       {
         "stage": "lifecycle",
@@ -39,14 +41,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,
@@ -63,8 +65,138 @@
       "offers": 0,
       "playerX": 0,
       "playerZ": 11.4,
+      "screen": "arrival",
+      "position": [
+        0,
+        11.35
+      ],
+      "arrival": null,
       "hostPhase": "entered",
       "hostFrames": 236
     }
+  },
+  "process": {
+    "status": "passed",
+    "checks": [
+      {
+        "id": "brief",
+        "rule": "The brief was written first",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "party",
+        "rule": "Respect the party",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "solo",
+        "rule": "Keep a solo path",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "bot",
+        "rule": "Ship a bot",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "arrival",
+        "rule": "Arrive like a world",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "handoff",
+        "rule": "Match the handoff",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "video",
+        "rule": "Leave a recording for review",
+        "status": "passed",
+        "findings": []
+      }
+    ],
+    "findings": [],
+    "video": {
+      "path": "games/garden/.check/bot.webm",
+      "bytes": 299202,
+      "seconds": 5.3,
+      "chapters": {
+        "arrival": 1.9,
+        "revealed": 1.9,
+        "arrivalDone": 4,
+        "match": 4,
+        "playDone": 4.3,
+        "end": 5.3
+      }
+    },
+    "log": [
+      {
+        "at": 1.9,
+        "event": "revealed",
+        "answered": true,
+        "screen": "arrival",
+        "arrival": {
+          "distance": 4.8,
+          "height": 1.91,
+          "fov": 58,
+          "avatarHeight": 1.62,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        }
+      },
+      {
+        "at": 4,
+        "event": "arrival",
+        "status": "passed"
+      },
+      {
+        "at": 4.3,
+        "event": "play",
+        "status": "passed"
+      },
+      {
+        "at": 5.3,
+        "event": "facts",
+        "facts": {
+          "booted": true,
+          "renderer": "webgpu",
+          "bloomlings": 1,
+          "stage0": "egg",
+          "held": "",
+          "match": "",
+          "matchPhase": "",
+          "menu": "",
+          "avatar": "vrm",
+          "online": false,
+          "peers": 0,
+          "offers": 0,
+          "playerX": -0.1,
+          "playerZ": 11.4,
+          "screen": "arrival",
+          "position": [
+            -0.11,
+            11.36
+          ],
+          "arrival": {
+            "distance": 4.8,
+            "height": 1.91,
+            "fov": 58,
+            "avatarHeight": 1.62,
+            "facingCamera": false,
+            "crouched": false,
+            "handsEmpty": true
+          },
+          "hostPhase": "entered",
+          "hostFrames": 216
+        }
+      }
+    ]
   }
 }

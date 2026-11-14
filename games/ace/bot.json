@@ -1,0 +1,52 @@
+{
+    "version": 1,
+    "query": "games=1&difficulty=rookie",
+    "arrival": [
+        {
+            "hold": "forward",
+            "ms": 700
+        },
+        {
+            "press": "confirm"
+        },
+        {
+            "until": {
+                "screen": "menu"
+            }
+        },
+        {
+            "press": "confirm"
+        },
+        {
+            "until": {
+                "screen": "match"
+            },
+            "timeoutMs": 15000
+        }
+    ],
+    "play": [
+        {
+            "repeat": [
+                {
+                    "hold": "topspin",
+                    "ms": 600
+                },
+                {
+                    "wait": 250
+                }
+            ],
+            "until": {
+                "screen": "results"
+            },
+            "timeoutMs": 300000
+        }
+    ],
+    "leave": [
+        {
+            "press": "right"
+        },
+        {
+            "press": "confirm"
+        }
+    ]
+}

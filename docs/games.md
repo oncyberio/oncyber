@@ -94,17 +94,22 @@ with a party of four; open it in several windows to share the room.
 
 ## The games today
 
-| Game                       | Page                                                                                 | Lifecycle | Check                       |
-| -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------- |
-| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | not yet   | boot only                   |
-| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | boot only                   |
+| Game                       | Page                                                                                 | Lifecycle | Check                                |
+| -------------------------- | ------------------------------------------------------------------------------------ | --------- | ------------------------------------ |
+| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames, process |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | not yet   | boot, process                        |
+| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | boot only                            |
 
 Games without the lifecycle get a boot-only check: they must load, say
 `ready` and throw no page errors for five seconds. Moving Ace and Padel onto
 the lifecycle (and Padel into the sandbox) gives them the full check.
 
 ## Make a game
+
+Read [games/good-game.md](games/good-game.md) first: the rules a game is
+held to, the brief to fill in before building, and the definition of done.
+`pnpm games:new <id>` does steps 1 to 3 below and adds the brief and a bot
+stub; `pnpm games:score` reports which checks each game passes.
 
 1. Copy `games/garden` as a template, or start a Vite project in
    `games/<id>/` that builds into `frontend/public/games/<id>/` and aliases
@@ -131,6 +136,12 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+
+The process stage (`scripts/games/process.mjs`) then holds the game to its
+brief, its party offer and its bot, plays the bot from a lobby arrival in a
+second browser page, and records that run to `games/<id>/.check/bot.webm`
+for a person to watch. Its checks and finding codes are listed in
+[games/good-game.md](games/good-game.md).
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

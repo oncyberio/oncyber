@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { processStage } from "./process.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -182,12 +183,16 @@ async function check() {
         consoleErrors: errors.slice(0, 20),
         run: report,
     };
+    // The process stage: brief, party, bot, arrival, handoff, video.
+    result.process = await processStage({ id, root, manifest, chromium, headed });
+    result.findings.push(...result.process.findings);
+    if (result.process.status !== "passed") result.status = "failed";
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
-    console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
+    console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png` + (result.process.video ? ` · video: ${result.process.video.path}` : ""));
     return { result, files };
 }
 
