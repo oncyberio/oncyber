@@ -148,7 +148,6 @@ failure restores the previous world.
 |---|---|---|
 | [Roblox](https://about.roblox.com/newsroom/2026/04/roblox-studio-going-agentic) | Engine | April 2026: a planning mode, a playtesting agent and a built-in MCP server for outside agents. 44% of its top 1,000 creators use AI tools. |
 | Meta Horizon ([UploadVR](https://www.uploadvr.com/meta-horizon-studio-upgrade-ai-assistant-horizon-worlds/), [RuntimeWire](https://runtimewire.com/article/meta-horizon-create-studio-ai-game-tools)) | Engine | Replacing its Unity runtime with its own engine; its assistant generates worlds, assets and TypeScript. Prompt-to-game waitlist opened September 2026. |
-| Spawn (spawn.co) | Engine | Its own engine and a YAML object format. A git push updates live rooms, and the agent reads room logs. |
 | [YouTube Playables](https://developers.google.com/youtube/gaming/playables/certification/requirements_stability) | Engine-less | No engine named. Limits instead: 30 MiB first bundle, 512 MB heap. |
 | [Discord Activities](https://docs.discord.com/developers/activities/how-activities-work.md) | Engine-less | A web app in an iframe; the SDK talks to Discord over postMessage. |
 | [CrazyGames](https://docs.crazygames.com/requirements/technical/) | Engine-less | Limits on size and on time to gameplay (20 s). |
@@ -157,8 +156,8 @@ failure restores the previous world.
 
 1. Engine platforms keep the engine for the platform's needs (safety, shared
    avatars, one look, every device), not the agent's.
-2. What Roblox and Spawn give their agents is sight: logs, a queryable world,
-   a test player. That needs no engine.
+2. What Roblox gives its agents is sight: logs, a queryable world, a test
+   player. That needs no engine.
 3. Engine-less portals already run at scale on a sandbox, a small SDK and
    measured limits.
 
