@@ -1,11 +1,12 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T15:19:54.567Z",
+  "checkedAt": "2026-11-14T17:52:35.708Z",
   "status": "passed",
+  "scope": "scenario",
   "files": {
-    "count": 5,
-    "bytes": 1334557,
+    "count": 6,
+    "bytes": 1335638,
     "largest": {
       "path": "assets/index-ac7f7IRj.js",
       "bytes": 998102
@@ -13,23 +14,34 @@
   },
   "findings": [],
   "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:46149/games/garden/assets/index-ac7f7IRj.js:1:10430)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
+  "credits": {
+    "thirdParty": 2,
+    "own": 1,
+    "warnings": [
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Lobby locomotion clips: LicenseRef-Oncyber-Lobby-Motion is outside the allow list and nobody has confirmed it. A copy of frontend/public/lobby/native-avatar-motion.json. The lobby's source manifests pin the clips by hash but record no author or licence."
+      }
+    ]
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 279,
+    "bootMs": 1733,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 279
+        "ms": 1733
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 1794
+        "ms": 931
       },
       {
         "stage": "lifecycle",
@@ -39,14 +51,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 6036
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 33.3,
-      "p95Ms": 33.4,
-      "worstMs": 33.5
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
     },
     "inspect": {
       "booted": true,

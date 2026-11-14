@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "game": "ace",
+  "name": "ACE! Tennis",
+  "own": 1,
+  "credits": [
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseName": "Apache License 2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "files": [
+        "assets/basis_transcoder-VXdx5NbI.wasm",
+        "assets/basis_transcoder-o4Hde_L7.js"
+      ],
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures.",
+      "confirmed": true
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-vrm-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    }
+  ]
+}

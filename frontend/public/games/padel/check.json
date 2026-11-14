@@ -1,30 +1,50 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-14T15:30:01.018Z",
+  "checkedAt": "2026-11-14T17:52:52.185Z",
   "status": "passed",
   "scope": "boot",
   "files": {
-    "count": 21,
-    "bytes": 6296957,
+    "count": 24,
+    "bytes": 6310468,
     "largest": {
       "path": "assets/lobby-emotes-8uK82djf.json",
       "bytes": 2000023
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
+  "credits": {
+    "thirdParty": 9,
+    "own": 2,
+    "warnings": [
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Lobby locomotion, emote and transition clips: LicenseRef-Oncyber-Lobby-Motion is outside the allow list and nobody has confirmed it. The lobby's locomotion, emote and transition clips. The lobby's source manifests pin the clips by hash but record no author or licence."
+      },
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Travel sequence clips: LicenseRef-Supplied-Travel-Clips is outside the allow list and nobody has confirmed it. lobby/travel/source-manifest.json says only 'User-supplied FBX files, provided 2026-10-11'. No author or licence is recorded."
+      },
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Tennis motion capture: LicenseRef-Rokoko-Free-Asset-Terms is outside the allow list and nobody has confirmed it. The publisher's page allows personal and commercial use in games; these are its own terms, not an open licence, and no copy of them is kept."
+      },
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "OC Square and OCman avatars: LicenseRef-Oncyber-Permission is outside the allow list and nobody has confirmed it. The avatars' embedded metadata says redistribution prohibited, commercial use disallowed. Oncyber is understood to use them with the creator's permission; no written grant is in the repository."
+      }
+    ]
+  },
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 277,
+    "bootMs": 530,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 277
+        "ms": 530
       }
     ],
     "frames": null,

@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkCredits } from "./credits.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -53,7 +54,7 @@ function listFiles(dir) {
 }
 // What a release is made of: everything the browser can load, not the
 // reports this script writes next to it.
-const REPORTS = new Set(["check.json", "release.json"]);
+const REPORTS = new Set(["check.json", "release.json", "credits.json"]);
 function bundleFiles() {
     if (!existsSync(join(out, "index.html"))) fail(`frontend/public/games/${id}/index.html missing; build first`);
     return listFiles(out)
@@ -127,6 +128,9 @@ function serve() {
 async function check() {
     const files = bundleFiles();
     const scan = staticScan(files);
+    // Asset rights: every shipped file credited, under an allowed licence (credits.mjs).
+    const rights = await checkCredits(id);
+    scan.findings.push(...rights.findings);
     let chromium;
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
@@ -180,12 +184,14 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        credits: { thirdParty: rights.thirdParty, own: rights.own, warnings: rights.warnings },
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
+    for (const warning of rights.warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
     return { result, files };

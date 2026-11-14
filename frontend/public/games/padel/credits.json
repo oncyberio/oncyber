@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "game": "padel",
+  "name": "Glasshouse · Padel",
+  "own": 2,
+  "credits": [
+    {
+      "title": "OC Square and OCman avatars",
+      "kind": "model",
+      "author": "NeonGlitch86 (OC Square); not recorded (OCman)",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md",
+      "license": "LicenseRef-Oncyber-Permission",
+      "licenseName": "Oncyber Permission",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "avatars/square-catalogue.vrm",
+        "avatars/square.vrm"
+      ],
+      "note": "Fallback and NPC avatars. Their embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse these files.",
+      "confirmed": false
+    },
+    {
+      "title": "Anton",
+      "kind": "font",
+      "author": "The Anton Project Authors",
+      "source": "https://github.com/googlefonts/AntonFont",
+      "license": "OFL-1.1",
+      "licenseName": "SIL Open Font License 1.1",
+      "licenseUrl": "https://openfontlicense.org/open-font-license-official-text/",
+      "licenseFile": "fonts/Anton-OFL.txt",
+      "files": [
+        "assets/Anton-Regular-DDTWnLuj.ttf",
+        "fonts/Anton-Regular.ttf"
+      ],
+      "note": null,
+      "confirmed": true
+    },
+    {
+      "title": "Lobby locomotion, emote and transition clips",
+      "kind": "motion",
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "licenseName": "Oncyber Lobby Motion",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "assets/lobby-emotes-8uK82djf.json",
+        "assets/native-motion-DndDcoH7.json",
+        "lobby/travel/core-manifest.json",
+        "lobby/travel/core.0e2fa3a1be67.lcp"
+      ],
+      "note": "Oncyber's lobby motion set. Its source manifests pin each clip by hash but record no author or licence.",
+      "confirmed": false
+    },
+    {
+      "title": "Tennis motion capture",
+      "kind": "motion",
+      "author": "Sam Lazarus for Rokoko",
+      "source": "https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations",
+      "license": "LicenseRef-Rokoko-Free-Asset-Terms",
+      "licenseName": "Rokoko Free Asset Terms",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "assets/tennis-motion-B3dyzj4F.json"
+      ],
+      "note": "Ready, forehand, backhand and serve cut from Tennis_mixamo.fbx, retrieved 2026-10-13. The publisher's page allows personal and commercial use in games.",
+      "confirmed": false
+    },
+    {
+      "title": "Travel sequence clips",
+      "kind": "motion",
+      "author": "Not recorded; supplied to Oncyber as FBX files on 2026-10-11",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/travel/source-manifest.json",
+      "license": "LicenseRef-Supplied-Travel-Clips",
+      "licenseName": "Supplied Travel Clips",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "lobby/travel/manifest.json",
+        "lobby/travel/source-manifest.json",
+        "lobby/travel/travel.f7d646d776ff.lcp"
+      ],
+      "note": "Four clips (attack, crouch down, crouch idle, stand up) retargeted offline; the FBX sources are not distributed.",
+      "confirmed": false
+    },
+    {
+      "title": "Universal Animation Library (idle variants)",
+      "kind": "motion",
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "license": "CC0-1.0",
+      "licenseName": "CC0 1.0 Universal",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "licenseFile": "lobby/travel/CC0-LICENSE.txt",
+      "files": [
+        "lobby/travel/core.0e2fa3a1be67.lcp"
+      ],
+      "note": "Idle variants inside the lobby's core locomotion pack.",
+      "confirmed": true
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseName": "Apache License 2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "files": [
+        "assets/basis_transcoder-VXdx5NbI.wasm",
+        "assets/basis_transcoder-o4Hde_L7.js"
+      ],
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures.",
+      "confirmed": true
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-vrm-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    }
+  ]
+}

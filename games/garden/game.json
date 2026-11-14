@@ -214,5 +214,34 @@
         "touch": "lobby"
       }
     }
-  }
+  },
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.jpg"
+      ],
+      "note": "A capture of the game."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "Lobby locomotion clips",
+      "kind": "motion",
+      "files": [
+        "motion.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "A copy of frontend/public/lobby/native-avatar-motion.json: idle, walk, run, jump and wave. Oncyber's lobby motion set. Its source manifests pin each clip by hash but record no author or licence."
+    }
+  ]
 }

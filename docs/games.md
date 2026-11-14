@@ -110,7 +110,9 @@ the lifecycle (and Padel into the sandbox) gives them the full check.
    `games/<id>/` that builds into `frontend/public/games/<id>/` and aliases
    `@oncyber/game-runtime` to `games/runtime/src` (see the garden's
    `vite.config.js`).
-2. Write `game.json` (`runtime.capabilities`, `assets`, `input`) and a
+2. Write `game.json` (`runtime.capabilities`, `assets`, `input`, and
+   `credits`: no file ships without a declared source and licence, see
+   [games/credits.md](games/credits.md)) and a
    `scenario.json` that proves the game works: actions, waits and
    assertions on `inspect()` keys.
 3. Add the game to `frontend/features/games/catalog.ts`.
@@ -131,6 +133,8 @@ console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. Boot, scenario, lifecycle and frames must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
+Every shipped file must also be credited under an allowed licence
+([games/credits.md](games/credits.md)).
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
