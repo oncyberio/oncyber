@@ -1,6 +1,9 @@
 {
   "name": "Bloom Garden",
   "avatar": "vrm",
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
   "runtime": {
     "profile": "portable-v1",
     "version": "1",

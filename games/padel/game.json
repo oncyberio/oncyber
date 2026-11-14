@@ -1,4 +1,7 @@
 {
   "name": "Glasshouse \u00b7 Padel",
-  "avatar": "vrm"
+  "avatar": "vrm",
+  "network": [
+    "cyber.mypinata.cloud"
+  ]
 }

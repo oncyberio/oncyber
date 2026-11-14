@@ -24,6 +24,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { networkStage } from "./networkCheck.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -39,6 +40,8 @@ if (!existsSync(join(source, "game.json"))) fail(`games/${id}/game.json not foun
 const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
 // Games on the lifecycle play their scenario; others only prove they boot.
 const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
+// The hosts the game declared: written into the build, enforced and watched below.
+let network;
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -108,6 +111,7 @@ addEventListener("message", (event) => {
 function serve() {
     const server = createServer((req, res) => {
         const url = new URL(req.url, "http://localhost");
+        if (network.handle(req, res)) return;
         if (url.pathname === "/") {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness);
@@ -118,13 +122,14 @@ function serve() {
             res.writeHead(404);
             return res.end();
         }
-        res.writeHead(200, { "content-type": TYPES[extname(path)] ?? "application/octet-stream", "access-control-allow-origin": "*" });
+        res.writeHead(200, { "content-type": TYPES[extname(path)] ?? "application/octet-stream", "access-control-allow-origin": "*", ...network.headers });
         res.end(readFileSync(path));
     });
     return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
 }
 
 async function check() {
+    network = networkStage(manifest, out);
     const files = bundleFiles();
     const scan = staticScan(files);
     let chromium;
@@ -145,6 +150,7 @@ async function check() {
             errors.push(String(e.message).slice(0, 500));
             pageErrors.push(String(e.message).slice(0, 500));
         });
+        network.watch(page, server.address().port);
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         const deadline = Date.now() + 180_000;
         while (Date.now() < deadline && !report && !gameError && !(readyAt && !lifecycle)) {
@@ -162,6 +168,7 @@ async function check() {
         await browser.close();
         server.close();
     }
+    scan.findings.push(...network.findings());
     const result = {
         version: 1,
         game: id,
@@ -180,6 +187,7 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        network: network.summary(),
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");

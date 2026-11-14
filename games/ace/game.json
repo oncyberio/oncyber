@@ -1,4 +1,7 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "pfp",
+  "network": [
+    "cyber.mypinata.cloud"
+  ]
 }
