@@ -302,6 +302,11 @@ export const conversationStyles = css`
         color: ${lobby.color.controlInk};
         white-space: pre-wrap;
     }
+    /* Said by Oncyber, not a person: no portrait, a quieter colour. */
+    .chat-system .chat-text {
+        color: #e6c9cd;
+        font-size: ${base.font.size.xs}px;
+    }
     .chat-empty {
         text-shadow: none;
         margin: 4px;

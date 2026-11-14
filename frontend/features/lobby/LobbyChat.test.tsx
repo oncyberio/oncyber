@@ -176,6 +176,21 @@ test("selecting a person shows their portrait in the selector and targets the DM
     expect(social.sendMessage).toHaveBeenLastCalledWith("Hello everyone");
 });
 
+test("a message that can't go out yet is said as a line in the chat", () => {
+    render();
+    openConversation();
+    social.sendMessage.mockReturnValueOnce(false);
+    type("Too fast");
+    submit();
+    const line = container.querySelector("#lobby-chat-log .chat-system");
+    expect(line?.textContent).toBe("Wait a moment before sending again.");
+    expect(container.querySelector(".send-error")).toBeNull();
+    // The draft stays, and the next send clears the notice.
+    expect(input().value).toBe("Too fast");
+    submit();
+    expect(container.querySelector(".chat-system")).toBeNull();
+});
+
 test("global and private message histories stay separate", () => {
     render();
     receive("public", "bob", undefined, "A public message");
