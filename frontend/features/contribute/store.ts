@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 
 /**
  * Contributor mode settings. They live only in this browser: the GitHub
- * token and the AI key are the visitor's own, are sent straight from the
- * browser to GitHub and to the AI provider, and never reach Oncyber's
- * servers.
+ * token and the AI key or ChatGPT token are the visitor's own and are sent
+ * straight from the browser to GitHub and OpenAI. The one exception: a
+ * ChatGPT sign-in code and refresh token pass through Oncyber's
+ * /api/contribute/chatgpt-token route on their way to OpenAI, unstored.
  */
 export type ContributeSettings = {
     githubToken?: string;
     githubLogin?: string;
-    aiProvider?: "openai";
+    /** "chatgpt": signed in with ChatGPT; "openai": an API key. */
+    aiProvider?: "openai" | "chatgpt";
+    /** The API key, or the ChatGPT access token. */
     aiKey?: string;
+    aiRefreshToken?: string;
+    aiExpiresAt?: number;
     aiModel?: string;
     enabled?: boolean;
 };

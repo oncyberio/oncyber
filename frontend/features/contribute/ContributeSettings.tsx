@@ -1,8 +1,17 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { Toggle } from "@features/studio/components/Toggle";
+import {
+    actionButton,
+    brandFoundation,
+    outlineAction,
+    whiteAction,
+} from "@styles/brand";
+import { actionTokens as action } from "@styles/tokens/action";
+import { baseTokens as base } from "@styles/tokens/base";
 import { createGitHub, NEW_TOKEN_URL } from "./github";
 import { providers } from "./assistant";
+import { CHATGPT_CLIENT_ID, signInWithChatGPT } from "./chatgpt";
 import {
     clearContributeSettings,
     useContributeSettings,
@@ -20,9 +29,45 @@ export default function ContributeSettings() {
     const [error, setError] = useState<{ github?: string; ai?: string }>({});
     const [models, setModels] = useState<string[]>([]);
     const [warning, setWarning] = useState("");
+    const [manual, setManual] = useState({ github: false, ai: false });
 
-    async function connectGitHub() {
-        const token = githubToken.trim();
+    async function signInGitHub() {
+        setBusy("github");
+        setError({});
+        try {
+            // Firebase Auth loads only when someone signs in here.
+            const { signInWithGitHub } = await import("./githubSignIn");
+            await connectGitHub(await signInWithGitHub());
+        } catch (cause) {
+            setError({ github: cause.message || "GitHub sign-in failed." });
+            setBusy("");
+        }
+    }
+
+    async function signInChatGPT() {
+        setBusy("ai");
+        setError({});
+        try {
+            const tokens = await signInWithChatGPT();
+            const available = await providers.chatgpt
+                .verify(tokens.accessToken)
+                .catch(() => []);
+            setModels(available);
+            writeContributeSettings({
+                aiProvider: "chatgpt",
+                aiKey: tokens.accessToken,
+                aiRefreshToken: tokens.refreshToken,
+                aiExpiresAt: tokens.expiresAt,
+                aiModel: available[0] || "gpt-5",
+            });
+        } catch (cause) {
+            setError({ ai: cause.message || "ChatGPT sign-in failed." });
+        } finally {
+            setBusy("");
+        }
+    }
+
+    async function connectGitHub(token = githubToken.trim()) {
         if (!token) return;
         setBusy("github");
         setError({});
@@ -60,6 +105,8 @@ export default function ContributeSettings() {
             writeContributeSettings({
                 aiProvider: "openai",
                 aiKey: key,
+                aiRefreshToken: undefined,
+                aiExpiresAt: undefined,
                 aiModel: available[0],
             });
             setAiKey("");
@@ -107,6 +154,28 @@ export default function ContributeSettings() {
                     <p className="connected">
                         Signed in as <strong>@{settings.githubLogin}</strong>
                     </p>
+                ) : !manual.github ? (
+                    <div className="sign-in">
+                        <button
+                            type="button"
+                            className="primary"
+                            disabled={busy === "github"}
+                            onClick={signInGitHub}
+                        >
+                            {busy === "github"
+                                ? "Signing in…"
+                                : "Sign in with GitHub"}
+                        </button>
+                        <button
+                            type="button"
+                            className="link"
+                            onClick={() =>
+                                setManual({ ...manual, github: true })
+                            }
+                        >
+                            Use a token instead
+                        </button>
+                    </div>
                 ) : (
                     <>
                         <p className="hint">
@@ -155,14 +224,21 @@ export default function ContributeSettings() {
 
             <section className="account">
                 <header>
-                    <h4>OpenAI</h4>
+                    <h4>
+                        {settings.aiProvider === "chatgpt"
+                            ? "ChatGPT"
+                            : "OpenAI"}
+                    </h4>
                     {settings.aiKey && (
                         <button
                             type="button"
                             className="link"
                             onClick={() =>
                                 writeContributeSettings({
+                                    aiProvider: undefined,
                                     aiKey: undefined,
+                                    aiRefreshToken: undefined,
+                                    aiExpiresAt: undefined,
                                     aiModel: undefined,
                                 })
                             }
@@ -173,7 +249,11 @@ export default function ContributeSettings() {
                 </header>
                 {settings.aiKey ? (
                     <label className="connected model">
-                        <span>Connected · model</span>
+                        <span>
+                            {settings.aiProvider === "chatgpt"
+                                ? "Your ChatGPT plan · model"
+                                : "API key · model"}
+                        </span>
                         <select
                             value={settings.aiModel}
                             onChange={(event) =>
@@ -187,11 +267,39 @@ export default function ContributeSettings() {
                             ))}
                         </select>
                     </label>
+                ) : !manual.ai ? (
+                    <>
+                        <div className="sign-in">
+                            <button
+                                type="button"
+                                className="primary"
+                                disabled={!CHATGPT_CLIENT_ID || busy === "ai"}
+                                onClick={signInChatGPT}
+                            >
+                                {busy === "ai"
+                                    ? "Signing in…"
+                                    : "Sign in with ChatGPT"}
+                            </button>
+                            <button
+                                type="button"
+                                className="link"
+                                onClick={() =>
+                                    setManual({ ...manual, ai: true })
+                                }
+                            >
+                                Use an API key instead
+                            </button>
+                        </div>
+                        <p className="hint">
+                            {CHATGPT_CLIENT_ID
+                                ? "Runs on your ChatGPT plan. You choose how much of it Oncyber can use."
+                                : "Sign in with ChatGPT is coming soon. For now, use an OpenAI API key."}
+                        </p>
+                    </>
                 ) : (
                     <>
                         <p className="hint">
-                            Paste an API key. A ChatGPT subscription can't be
-                            used by other sites, so usage is billed to your
+                            Paste an OpenAI API key. Usage is billed to your
                             OpenAI account.{" "}
                             <a
                                 href={OPENAI_KEYS_URL}
@@ -233,7 +341,7 @@ export default function ContributeSettings() {
 
             <section className="mode">
                 <div>
-                    <h4>Contributor mode</h4>
+                    <strong>Contributor mode</strong>
                     <p className="hint">
                         {ready
                             ? "Opens the contributor sidebar on every page."
@@ -249,9 +357,9 @@ export default function ContributeSettings() {
             </section>
 
             <p className="privacy">
-                Your token and key stay in this browser. They go straight to
-                GitHub and OpenAI, never to Oncyber. Changes you preview are
-                only visible to you.{" "}
+                Your GitHub and ChatGPT access stays in this browser and is used
+                only to talk to GitHub and OpenAI. Changes you preview are only
+                visible to you.{" "}
                 {(settings.githubToken || settings.aiKey) && (
                     <button
                         type="button"
@@ -266,98 +374,110 @@ export default function ContributeSettings() {
     );
 }
 
+// Account dialog surface: dark panel, brand type, shared actions and fields.
 const Container = styled.div`
+    ${brandFoundation}
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    color: var(--title-color, #fff);
-    font-size: 14px;
-    line-height: 1.5;
+    gap: 24px;
+    color: var(--oc-ink);
     p {
         margin: 0;
     }
-    .lead,
-    .hint,
-    .privacy {
-        color: var(--content-color, #aaa);
+    .lead {
+        color: var(--oc-secondary);
     }
     .hint,
-    .privacy {
+    .privacy,
+    .connected {
+        color: var(--oc-muted);
         font-size: 12px;
+        line-height: 1.5;
     }
-    a {
-        color: var(--title-color, #fff);
-        text-decoration: underline;
-    }
-    code {
-        font-size: 12px;
-    }
-    h4 {
-        margin: 0;
-        font-size: 14px;
+    .connected strong {
+        color: var(--oc-ink);
         font-weight: 500;
     }
-    .account {
+    a,
+    .link {
+        color: var(--oc-secondary);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    a:hover,
+    .link:hover {
+        color: var(--oc-ink);
+    }
+    .link {
+        padding: 0;
+        border: 0;
+        background: none;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    code {
+        font: 11px/1.5 var(--oc-mono);
+    }
+    .account,
+    .mode {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 16px;
-        border: 1px solid var(--border-color, #333);
-        border-radius: 12px;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid var(--oc-line);
     }
     .account header {
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .link {
-        border: 0;
-        padding: 0;
-        background: none;
-        color: var(--content-color, #aaa);
-        font: inherit;
-        font-size: 12px;
-        text-decoration: underline;
-        cursor: pointer;
+    /* Section label: Space Mono, small, muted. */
+    h4 {
+        margin: 0;
+        font: 400 10px/1.5 var(--oc-mono);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--oc-muted);
+    }
+    .sign-in {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .primary {
+        ${actionButton}
+        ${whiteAction}
     }
     .field {
         display: flex;
         gap: 8px;
     }
+    .field button {
+        ${actionButton}
+        ${outlineAction}
+    }
     input,
     select {
         flex: 1;
         min-width: 0;
-        height: 36px;
-        padding: 0 10px;
-        border: 1px solid var(--field-border-color, #333);
-        border-radius: 8px;
-        background: var(--field-bg-color, #111);
-        color: var(--title-color, #fff);
-        font: inherit;
-        font-size: 13px;
+        min-height: ${action.size.minHeight}px;
+        padding: 0 12px;
+        border: 1px solid ${base.color.line.hover};
+        border-radius: var(--oc-radius-control);
+        background: var(--oc-canvas);
+        color: var(--oc-ink);
+        font: 400 14px/1.5 var(--oc-font);
     }
-    .field button {
-        height: 36px;
-        padding: 0 14px;
-        border: 0;
-        border-radius: 8px;
-        background: var(--btn-color, #fff);
-        color: var(--btn-bg-color, #000);
-        font: inherit;
-        font-size: 13px;
-        cursor: pointer;
+    input::placeholder {
+        color: var(--oc-muted);
     }
-    .field button:disabled {
-        opacity: 0.5;
-        cursor: default;
-    }
-    .connected {
-        color: var(--content-color, #aaa);
-    }
-    .connected strong {
-        color: var(--title-color, #fff);
-        font-weight: 500;
+    input:focus-visible,
+    select:focus-visible,
+    .link:focus-visible,
+    a:focus-visible {
+        outline: ${action.state.focusWidth}px solid ${action.state.focusRing};
+        outline-offset: 2px;
     }
     .model {
         display: flex;
@@ -365,13 +485,22 @@ const Container = styled.div`
         gap: 12px;
     }
     .error {
-        color: var(--danger-color, #ff6b6b);
+        color: #ff8f80;
         font-size: 12px;
     }
     .mode {
-        display: flex;
+        flex-direction: row;
         justify-content: space-between;
         align-items: center;
         gap: 16px;
+    }
+    .mode div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .mode strong {
+        font-size: 14px;
+        font-weight: 500;
     }
 `;

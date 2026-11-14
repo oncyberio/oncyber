@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
-import { brandFoundation } from "@styles/brand";
+import {
+    actionButton,
+    blueAction,
+    brandFoundation,
+    outlineAction,
+    pillAction,
+    whiteAction,
+} from "@styles/brand";
+import { actionTokens as action } from "@styles/tokens/action";
+import { baseTokens as base } from "@styles/tokens/base";
+import { landingTokens as landing } from "@styles/tokens/landing";
 import {
     AssistantTurn,
     ChatMessage,
@@ -18,6 +28,8 @@ import {
     describeElement,
 } from "./livePatch";
 import { ContributeSettings, writeContributeSettings } from "./store";
+import { currentAiKey } from "./chatgpt";
+import Icon from "@features/landing-carousel/components/Icon";
 
 type Entry =
     | { kind: "user"; text: string }
@@ -110,8 +122,8 @@ export default function ContributorSidebar({
             position: "fixed",
             pointerEvents: "none",
             zIndex: "2147483646",
-            border: "2px solid #4d7cff",
-            background: "#4d7cff22",
+            border: "2px solid #2567ff",
+            background: "#2567ff1f",
             borderRadius: "4px",
             display: "none",
         });
@@ -192,7 +204,7 @@ export default function ContributorSidebar({
         try {
             turn = await runAssistant({
                 provider,
-                key: settings.aiKey,
+                key: await currentAiKey(settings),
                 model: settings.aiModel || "gpt-5",
                 github,
                 changeset: changeset.current,
@@ -325,12 +337,25 @@ export default function ContributorSidebar({
                         <header>
                             <div>
                                 <h2>Contributor mode</h2>
-                                <small>@{settings.githubLogin}</small>
+                                <small>
+                                    @{settings.githubLogin} ·{" "}
+                                    <button
+                                        type="button"
+                                        className="text-link"
+                                        onClick={() =>
+                                            writeContributeSettings({
+                                                enabled: false,
+                                            })
+                                        }
+                                    >
+                                        Turn off
+                                    </button>
+                                </small>
                             </div>
                             <div className="header-actions">
                                 <button
                                     type="button"
-                                    className="quiet"
+                                    className="quiet icon"
                                     onClick={() =>
                                         setSide(
                                             side === "right" ? "left" : "right"
@@ -339,26 +364,16 @@ export default function ContributorSidebar({
                                     aria-label="Move to the other side"
                                     title="Move to the other side"
                                 >
-                                    ⇆
+                                    <Icon name="swap" size={18} />
                                 </button>
                                 <button
                                     type="button"
-                                    className="quiet"
+                                    className="quiet icon"
                                     onClick={() => setOpen(false)}
                                     aria-label="Hide sidebar"
+                                    title="Hide sidebar"
                                 >
-                                    Hide
-                                </button>
-                                <button
-                                    type="button"
-                                    className="quiet"
-                                    onClick={() =>
-                                        writeContributeSettings({
-                                            enabled: false,
-                                        })
-                                    }
-                                >
-                                    Turn off
+                                    <Icon name="close" size={18} />
                                 </button>
                             </div>
                         </header>
@@ -403,7 +418,7 @@ export default function ContributorSidebar({
                                     />
                                     <button
                                         type="button"
-                                        className="primary"
+                                        className="publish"
                                         disabled={!!prStep || !!step}
                                         onClick={openPullRequest}
                                     >
@@ -478,6 +493,7 @@ export default function ContributorSidebar({
                                     {step ? (
                                         <button
                                             type="button"
+                                            className="quiet"
                                             onClick={() =>
                                                 abort.current?.abort()
                                             }
@@ -560,6 +576,8 @@ function EntryView({
     );
 }
 
+// Landing panel material: brand type and colours, shared action buttons
+// (blue only to publish), dialog fields, 24 px shell.
 const Surface = styled.div`
     ${brandFoundation}
     position: fixed;
@@ -570,8 +588,10 @@ const Surface = styled.div`
     display: flex;
     pointer-events: none;
     color: var(--oc-ink);
-    font-size: 14px;
-    line-height: 1.5;
+    *,
+    & {
+        box-sizing: border-box;
+    }
     &:not([data-open]) {
         top: auto;
     }
@@ -589,24 +609,9 @@ const Surface = styled.div`
     &[data-picking] aside {
         display: none;
     }
-    .pick-hint {
-        pointer-events: auto;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 8px 8px 16px;
-        border: 1px solid var(--oc-line-strong);
-        border-radius: 12px;
-        background: var(--oc-panel);
-        box-shadow: 0 8px 30px #0005;
-        white-space: nowrap;
-    }
-    *,
-    & {
-        box-sizing: border-box;
-    }
     aside,
-    .tab {
+    .tab,
+    .pick-hint {
         pointer-events: auto;
     }
     aside {
@@ -614,84 +619,95 @@ const Surface = styled.div`
         max-width: calc(100vw - 32px);
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
-        border: 1px solid var(--oc-line-strong);
-        border-radius: 16px;
+        border: 1px solid var(--oc-line);
+        border-radius: var(--oc-radius-card);
         background: var(--oc-panel);
-        box-shadow: -8px 12px 40px #0004;
+        box-shadow: ${landing.shadow.card};
         overflow: hidden;
     }
-    button {
+    p {
+        margin: 0;
+    }
+    .primary {
+        ${actionButton}
+        ${whiteAction}
+    }
+    .quiet {
+        ${actionButton}
+        ${outlineAction}
+    }
+    .icon {
+        width: ${action.size.minHeight}px;
+        padding: 0;
+    }
+    .text-link {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--oc-secondary);
         font: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
         cursor: pointer;
     }
-    button:disabled {
-        opacity: 0.5;
-        cursor: default;
+    .text-link:hover {
+        color: var(--oc-ink);
     }
-    .tab,
-    button.primary,
-    button.quiet,
-    form button {
-        height: 32px;
-        padding: 0 12px;
-        border-radius: 8px;
-        font-size: 13px;
+    .text-link:focus-visible {
+        outline: ${action.state.focusWidth}px solid ${action.state.focusRing};
+        outline-offset: 2px;
+    }
+    .publish {
+        ${actionButton}
+        ${blueAction}
     }
     .tab {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        height: 40px;
-        border: 1px solid var(--oc-line-strong);
-        background: var(--oc-panel);
-        color: var(--oc-ink);
+        ${actionButton}
+        ${whiteAction}
+        ${pillAction}
     }
     .count {
         min-width: 20px;
         height: 20px;
+        padding: 0 6px;
         border-radius: 10px;
-        background: var(--oc-accent, #4d7cff);
-        color: #fff;
-        font-size: 11px;
-        display: grid;
-        place-items: center;
+        background: var(--oc-paper-ink);
+        color: var(--oc-paper);
+        font: 400 11px/20px var(--oc-mono);
+        font-variant-numeric: tabular-nums;
+        text-align: center;
     }
-    button.primary,
-    form button[type="submit"] {
-        border: 0;
-        background: var(--oc-ink);
-        color: var(--oc-panel);
-    }
-    button.quiet,
-    form button {
+    .pick-hint {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 8px 8px 8px 20px;
         border: 1px solid var(--oc-line);
-        background: transparent;
+        border-radius: var(--oc-radius-card);
+        background: var(--oc-panel);
+        box-shadow: ${landing.shadow.card};
         color: var(--oc-secondary);
-    }
-    button.quiet:hover {
-        background: var(--oc-hover);
-        color: var(--oc-ink);
-    }
-    button[aria-pressed="true"] {
-        border-color: var(--oc-accent, #4d7cff);
-        color: var(--oc-ink);
+        white-space: nowrap;
     }
     header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        padding: 16px 16px 12px 20px;
+        padding: 20px 20px 16px 24px;
         border-bottom: 1px solid var(--oc-line);
     }
     h2 {
         margin: 0;
         font-size: 16px;
         font-weight: 500;
+        line-height: 1.5;
     }
-    header small {
+    header small,
+    .label {
         color: var(--oc-muted);
-        font: 11px/1.5 var(--oc-mono);
+        font: 400 10px/1.5 var(--oc-mono);
+        letter-spacing: 0.04em;
     }
     .header-actions,
     .actions {
@@ -701,22 +717,24 @@ const Surface = styled.div`
     }
     .log {
         overflow-y: auto;
-        padding: 16px 20px;
+        overscroll-behavior: contain;
+        padding: 20px 24px;
         display: flex;
         flex-direction: column;
         gap: 12px;
         scrollbar-width: thin;
+        scrollbar-color: var(--oc-line-strong) transparent;
     }
     .log p {
-        margin: 0;
         overflow-wrap: anywhere;
     }
     .empty {
-        color: var(--oc-secondary);
         display: flex;
         flex-direction: column;
         gap: 8px;
+        color: var(--oc-ink);
     }
+    .empty p + p,
     .examples {
         color: var(--oc-muted);
         font-size: 12px;
@@ -725,7 +743,7 @@ const Surface = styled.div`
         align-self: flex-end;
         max-width: 85%;
         padding: 8px 12px;
-        border-radius: 12px;
+        border-radius: var(--oc-radius-control);
         background: var(--oc-surface);
         white-space: pre-wrap;
     }
@@ -737,78 +755,88 @@ const Surface = styled.div`
         color: var(--oc-ink);
     }
     .error {
-        color: #ff7a7a;
+        color: #ff8f80;
     }
     .step {
         color: var(--oc-muted);
-        font-size: 12px;
+        font: 400 11px/1.5 var(--oc-mono);
     }
     .proposal {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 12px;
+        gap: 12px;
+        padding: 16px;
         border: 1px solid var(--oc-line);
-        border-radius: 12px;
+        border-radius: 16px;
+        background: var(--oc-canvas);
     }
     .proposal[data-state="undone"] {
         opacity: 0.5;
     }
     .proposal small {
         color: var(--oc-muted);
-        font-size: 12px;
+        font: 400 10px/1.5 var(--oc-mono);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
     }
     details summary {
         cursor: pointer;
         color: var(--oc-muted);
-        font-size: 12px;
+        font: 400 11px/1.5 var(--oc-mono);
     }
     .file {
         margin-top: 8px;
     }
     .path {
-        font: 11px/1.5 var(--oc-mono);
+        font: 400 11px/1.5 var(--oc-mono);
         color: var(--oc-secondary);
         overflow-wrap: anywhere;
     }
     pre {
         margin: 4px 0 0;
-        padding: 8px;
+        padding: 8px 12px;
         max-height: 220px;
         overflow: auto;
-        border-radius: 8px;
-        background: #0006;
-        font: 11px/1.5 var(--oc-mono);
+        border-radius: var(--oc-radius-inset);
+        background: var(--oc-panel);
+        font: 400 11px/1.5 var(--oc-mono);
         white-space: pre;
     }
     footer {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        padding: 12px 16px 16px;
+        gap: 12px;
+        padding: 16px 20px 20px;
         border-top: 1px solid var(--oc-line);
     }
     .pr {
         display: flex;
+        flex-direction: column;
         gap: 8px;
-    }
-    .pr input {
-        flex: 1;
-        min-width: 0;
     }
     input,
     textarea {
-        padding: 8px 10px;
-        border: 1px solid var(--oc-line);
-        border-radius: 8px;
-        background: var(--oc-surface);
+        width: 100%;
+        min-height: ${action.size.minHeight}px;
+        padding: 9px 12px;
+        border: 1px solid ${base.color.line.hover};
+        border-radius: var(--oc-radius-control);
+        background: var(--oc-canvas);
         color: var(--oc-ink);
-        font: inherit;
-        font-size: 13px;
+        font: 400 14px/1.5 var(--oc-font);
+    }
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--oc-muted);
     }
     textarea {
-        width: 100%;
         resize: none;
+    }
+    input:focus-visible,
+    textarea:focus-visible,
+    details summary:focus-visible {
+        outline: ${action.state.focusWidth}px solid ${action.state.focusRing};
+        outline-offset: 2px;
     }
     .picked {
         display: flex;
@@ -819,7 +847,7 @@ const Surface = styled.div`
         color: var(--oc-secondary);
     }
     .picked code {
-        font: 11px/1.5 var(--oc-mono);
+        font: 400 11px/1.5 var(--oc-mono);
         color: var(--oc-ink);
     }
     form {
@@ -830,7 +858,7 @@ const Surface = styled.div`
     form .actions button:first-child {
         margin-right: auto;
     }
-    @media (max-width: 600px) {
+    @media (max-width: ${base.breakpoint.phone}px) {
         top: auto;
         left: 8px;
         right: 8px;
@@ -839,6 +867,7 @@ const Surface = styled.div`
             width: 100%;
             max-width: none;
             max-height: 70dvh;
+            border-radius: 16px;
         }
     }
 `;

@@ -1,6 +1,7 @@
 import type { GitHub } from "./github";
 import { applyEdits, Changeset, isSafePath, SourceEdit } from "./edits";
 import { LivePatch, sanitizePatch } from "./livePatch";
+import { chatgptProvider } from "./chatgpt";
 
 /**
  * The assistant behind contributor mode. It reads Oncyber's source through
@@ -94,6 +95,7 @@ export const openaiProvider: AiProvider = {
 
 export const providers: Record<string, AiProvider> = {
     openai: openaiProvider,
+    chatgpt: chatgptProvider,
 };
 
 export type Proposal = {
