@@ -1,5 +1,11 @@
 import Head from "next/head";
 import { GAMES } from "@features/games/catalog";
+import GameFieldHealth from "@features/games/GameFieldHealth";
+import { gamePause, type GamePause } from "@features/games/gameDisabled";
+import {
+    readFieldHealth,
+    type FieldHealth,
+} from "@features/games/gameHealthSummary";
 
 type Finding = { code: string; message: string };
 type Frames = { medianMs: number; p95Ms: number; worstMs: number };
@@ -15,6 +21,8 @@ type GameStatus = {
         files: { count: number; bytes: number };
         run: { backend: string; bootMs: number; frames: Frames } | null;
     } | null;
+    health: FieldHealth | null;
+    pause: GamePause;
 };
 
 const mib = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MiB`;
@@ -160,6 +168,11 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                 <code>pnpm games:check {game.id}</code>.
                             </p>
                         )}
+                        <GameFieldHealth
+                            health={game.health}
+                            current={game.release?.release ?? null}
+                            pause={game.pause}
+                        />
                     </section>
                 ))}
             </div>
@@ -183,12 +196,15 @@ export async function getServerSideProps() {
             return null;
         }
     };
+    const health = await readFieldHealth(Object.keys(GAMES));
     const games: GameStatus[] = await Promise.all(
         Object.values(GAMES).map(async (game) => ({
             id: game.id,
             title: game.title,
             release: await read(game.id, "release.json"),
             check: await read(game.id, "check.json"),
+            health: health[game.id] ?? null,
+            pause: gamePause(game.id),
         }))
     );
     return { props: { games } };

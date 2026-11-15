@@ -33,6 +33,8 @@ jest.mock("@utils/lobbyGroupContext", () => ({
 // Layers with tests of their own; this file is about the contract.
 jest.mock("./useGameSocial", () => ({ useGameSocial: () => ({}) }));
 jest.mock("./GameChat", () => ({ __esModule: true, default: () => null }));
+// Field health only listens; its release lookup and analytics stay out.
+jest.mock("./gameHealth", () => ({ useGameHealth: () => {} }));
 jest.mock("./GameInputLayer", () => ({
     __esModule: true,
     default: () => null,

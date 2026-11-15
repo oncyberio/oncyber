@@ -28,7 +28,8 @@
     "./pausing": "./src/pausing.ts",
     "./audio": "./src/audio.ts",
     "./audio-browser": "./src/audio-browser.ts",
-    "./saved": "./src/saved.ts"
+    "./saved": "./src/saved.ts",
+    "./health": "./src/health.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

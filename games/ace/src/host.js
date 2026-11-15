@@ -4,6 +4,7 @@ import { deviceAct } from "@oncyber/game-runtime/device-check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { connectGameAudio } from "@oncyber/game-runtime/audio-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
+import { reportHealth } from "@oncyber/game-runtime/health";
 import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
 import { connectPage } from "@oncyber/game-runtime/page";
 import {
@@ -65,6 +66,10 @@ import "./style.css";
 
 const params = new URLSearchParams(location.search);
 const canvas = document.querySelector("#stage");
+// Field health (docs/games/field-health.md): uncaught errors, failed
+// lifecycle stages and frame times, reported to the page from the start,
+// so a failure while loading is reported too. Nothing of the game's content.
+const health = reportHealth();
 // The party's room, for the game (pageRoom.link): who is really there, the
 // host, who dropped, and the real-time channel between members. Listening
 // before the page client, so the roster is read before the game hears
@@ -330,6 +335,7 @@ async function start() {
                 session.tick(Math.max(0, now - last) / 1000);
             } catch (error) {
                 console.error("[ace]", error);
+                health.stageFailed("update", error);
             }
         last = now;
     };
@@ -349,7 +355,7 @@ async function start() {
         window
     );
 
-    await session.prepare();
+    await health.stage("prepare", () => session.prepare());
     // The avatar stage of pnpm games:check asks what the game sees (its
     // party stage asks the game through the link).
     answerInspect(() => session.inspect());
@@ -370,22 +376,24 @@ async function start() {
     });
     page.ready();
     const visit = page.embedded ? await page.enterData() : standInEnter();
-    await session.enter({
-        avatar: {
-            id: identity.id,
-            position: [2.4, 0, COURT.halfLength + 1.2],
-            rotation: [0, 1, 0, 0],
-        },
-        camera: {
-            position: [2.4, 2.3, COURT.halfLength + 6],
-            target: [2.4, 1.25, COURT.halfLength + 1.2],
-            fov: visit.arrival.view?.fov ?? 50,
-            mode: "third-person",
-        },
-        party: [],
-        arrival: visit.arrival,
-        trip: visit.trip,
-    });
+    await health.stage("enter", () =>
+        session.enter({
+            avatar: {
+                id: identity.id,
+                position: [2.4, 0, COURT.halfLength + 1.2],
+                rotation: [0, 1, 0, 0],
+            },
+            camera: {
+                position: [2.4, 2.3, COURT.halfLength + 6],
+                target: [2.4, 1.25, COURT.halfLength + 1.2],
+                fov: visit.arrival.view?.fov ?? 50,
+                mode: "third-person",
+            },
+            party: [],
+            arrival: visit.arrival,
+            trip: visit.trip,
+        })
+    );
     // The trip may have changed while the game was entering.
     if (page.embedded && JSON.stringify(page.trip) !== JSON.stringify(visit.trip))
         session.party(page.trip);

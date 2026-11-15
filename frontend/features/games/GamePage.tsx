@@ -51,6 +51,7 @@ import { GameSoundButton, useGameAudio } from "./GameSound";
 import { attachSavedData, signedInAccount } from "./savedDataBridge";
 import { createRemoteSavedStore } from "./savedDataRemote";
 import { joinedParty, rememberGameParty } from "./gamePartyJoin";
+import { useGameHealth } from "./gameHealth";
 
 const PEER_INTERVAL = 100;
 
@@ -187,6 +188,9 @@ export default function GamePage({ game }: { game: GameEntry }) {
         roster: () => roomFacts.current.roster,
         partyRoom: party && room ? room : null,
     });
+    // What breaks and how fast it runs on real visits (gameHealth.ts): it
+    // only listens, and times the first frame by the loading signal above.
+    useGameHealth(GAME, frame);
     // Chat and voice are the page's: carried from the lobby, in this room.
     const social = useGameSocial({
         game: GAME,

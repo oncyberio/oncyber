@@ -1,5 +1,10 @@
 import { findSharedPageGame } from "./catalog";
 import {
+    fetchGameRelease,
+    resolveGamePause,
+    type GamePause,
+} from "./gameDisabled";
+import {
     gameMessageTypes,
     readGameMessage,
     type GameDialect,
@@ -21,6 +26,9 @@ import {
  * identity (it gets a guest), no room, no saved data, no audio (it never
  * receives a gesture). It cannot be handed to the trip, because a frame
  * does not survive a move between documents.
+ *
+ * A game the kill switch has paused (gameDisabled.ts) is not prepared: the
+ * lobby asks the site first, and loads nothing when it can't tell.
  */
 const GAME_HREF = /^\/games\/([a-z0-9][a-z0-9-]{0,62})\/?$/;
 /** A prepared game stays warm this long before it is prepared again. */
@@ -39,6 +47,26 @@ export function gameDestinationId(href: string, origin: string): string | null {
     if (url.origin !== origin) return null;
     const id = GAME_HREF.exec(url.pathname)?.[1];
     return id && findSharedPageGame(id) ? id : null;
+}
+
+/**
+ * Whether the kill switch lets this game load, as the game page decides it
+ * (`GAMES_DISABLED`, read by /api/games/paused on every request).
+ */
+async function gamePlayable(id: string): Promise<boolean> {
+    const response = await fetch(`/api/games/paused?game=${id}`, {
+        cache: "no-store",
+    });
+    if (!response.ok) return false;
+    const pause = (await response.json()) as GamePause;
+    return (
+        (await resolveGamePause(pause, () => fetchGameRelease(id))) === "play"
+    );
+}
+let playable: (id: string) => boolean | Promise<boolean> = gamePlayable;
+/** For tests: stand in for the site's answer. Null restores it. */
+export function setGamePrepareGate(gate: typeof playable | null) {
+    playable = gate ?? gamePlayable;
 }
 
 let current: { id: string; stop(): void } | null = null;
@@ -87,7 +115,11 @@ export function prepareGameDestination(href: string): boolean {
             frame.contentWindow?.postMessage({ type, ...data }, "*");
     };
     const receive = (event: MessageEvent) => {
-        if (event.source !== frame.contentWindow || event.origin !== "null")
+        if (
+            !frame.contentWindow ||
+            event.source !== frame.contentWindow ||
+            event.origin !== "null"
+        )
             return;
         const message = readGameMessage(event.data?.type, id);
         if (!message) return;
@@ -118,7 +150,21 @@ export function prepareGameDestination(href: string): boolean {
     const timer = setTimeout(stop, PREPARE_TIMEOUT_MS);
     current = session;
     window.addEventListener("message", receive);
-    document.body.appendChild(frame);
+    // Mounted only once the kill switch allows it; preparing is a head
+    // start, so a game that can't be vouched for is left to the trip.
+    const mount = (play: boolean) => {
+        if (current !== session) return;
+        if (play) document.body.appendChild(frame);
+        else stop();
+    };
+    let allowed: boolean | Promise<boolean>;
+    try {
+        allowed = playable(id);
+    } catch {
+        allowed = false;
+    }
+    if (typeof allowed === "boolean") mount(allowed);
+    else void allowed.then(mount, () => mount(false));
     return true;
 }
 

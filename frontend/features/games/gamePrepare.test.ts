@@ -5,6 +5,7 @@ import {
     PREPARE_TIMEOUT_MS,
     prepareGameDestination,
     resetGamePreparation,
+    setGamePrepareGate,
 } from "./gamePrepare";
 
 const origin = window.location.origin;
@@ -27,8 +28,58 @@ function fromGame(frame: HTMLIFrameElement, type: string) {
 beforeEach(() => {
     jest.useFakeTimers();
     resetGamePreparation();
+    // The kill switch allows every game, unless a test says otherwise.
+    setGamePrepareGate(() => true);
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => {
+    jest.useRealTimers();
+    setGamePrepareGate(null);
+    delete (globalThis as any).fetch;
+});
+
+test("a game the kill switch paused is not prepared", async () => {
+    const asked: string[] = [];
+    const answer = (pause: object, release = "rel-1") => {
+        (globalThis as any).fetch = jest.fn(async (url: string) => {
+            asked.push(url);
+            return {
+                ok: true,
+                json: async () =>
+                    url.endsWith("release.json") ? { release } : pause,
+            };
+        });
+        setGamePrepareGate(null);
+        resetGamePreparation();
+    };
+    const settle = async () => {
+        for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+
+    answer({ paused: true, releases: [] });
+    expect(prepareGameDestination("/games/ace")).toBe(true);
+    await settle();
+    expect(asked).toEqual(["/api/games/paused?game=ace"]);
+    expect(frames()).toHaveLength(0);
+    // Nothing is left waiting: the next choice starts afresh.
+    answer({ paused: false, releases: ["rel-1"] });
+    prepareGameDestination("/games/ace");
+    await settle();
+    expect(frames()).toHaveLength(0);
+
+    answer({ paused: false, releases: ["another-release"] });
+    prepareGameDestination("/games/ace");
+    await settle();
+    expect(frames()).toHaveLength(1);
+
+    // The site can't be asked: nothing loads.
+    resetGamePreparation();
+    (globalThis as any).fetch = jest.fn(async () => {
+        throw new Error("offline");
+    });
+    prepareGameDestination("/games/garden");
+    await settle();
+    expect(frames()).toHaveLength(0);
+});
 
 test("only shared-page games on this site are prepared", () => {
     expect(gameDestinationId("/games/ace", origin)).toBe("ace");

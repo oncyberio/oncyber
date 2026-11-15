@@ -180,7 +180,8 @@ The tab's visibility is not a message: the game's own document gets
     greeted in and never sends `enter` or `entered`. The trip's own frame then revalidates
     the scripts and styles from the browser's cache instead of downloading
     them. A frame cannot move between documents, so the trip still boots
-    its own; what carries over is the cache.
+    its own; what carries over is the cache. A game the kill switch has
+    paused is not prepared ([field-health.md](field-health.md)).
 
 ## What the check does
 

@@ -42,6 +42,7 @@ import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./sav
 import { describeProcess, processStage } from "./process.mjs";
 import { GENERATED_THUMBNAIL, listingStage } from "./listing.mjs";
 import { networkStage } from "./networkCheck.mjs";
+import { checkHealth, healthHarness } from "./health-stage.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -142,7 +143,7 @@ ${devicesHarness}
 });
 ${loadingHarness}
 </script>
-<script>${harnessScript(id, visit)}</script>${soundHarness(id)}`;
+<script>${harnessScript(id, visit)}</script>${soundHarness(id)}${healthHarness}`;
 
 function serve() {
     const server = createServer((req, res) => {
@@ -196,7 +197,7 @@ async function check() {
     // Every browser the check opens is watched for requests to hosts the game didn't declare (docs/games/trust.md).
     const launch = async () => network.patrol(await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] }));
     const browser = await launch();
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null, health = { findings: [], summary: null };
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -228,6 +229,8 @@ async function check() {
         if (report) await soundStage(page, report, { required: lifecycle && manifest.runtime.capabilities.includes("audio") });
         // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
         if (report?.status === "passed") loading = await checkLoading(page, { manifest, required: lifecycle }).catch((error) => ({ status: "failed", findings: [{ code: "LOADING_CHECK_ERROR", message: String(error.message).slice(0, 300) }] }));
+        // Field health (docs/games/field-health.md), on the live game: an error thrown after ready reaches the page; a disabled game stays paused.
+        health = await checkHealth(page, { id, manifest, files, ready: Boolean(report || readyAt), prefix: greeted?.prefix });
         // The trip back to the lobby (docs/games/departure.md), on the page the scenario played in: it ends that visit.
         if (report && manifest.departure === "matched") report.stages.push(await checkDeparture({ page, browser, id, prefix: greeted?.prefix, title: manifest.name ?? id, shots: join(source, ".check"), lobbyUrl }));
         // Results the scenario's visit posted, its departure included.
@@ -279,7 +282,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" && !listing?.findings.length ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" && !listing?.findings.length && !health.findings.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -290,6 +293,7 @@ async function check() {
             ...(devices?.blocking ?? []),
             ...saved.findings,
             ...(listing?.findings ?? []),
+            ...health.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
@@ -317,6 +321,7 @@ async function check() {
         devices: devices?.report,
         saved: { status: saved.status, ms: saved.ms, keys: saved.keys, runs: saved.runs },
         listing: listing?.summary ?? null,
+        health: health.summary,
         run: report,
         keys: keys?.report ?? null,
         ...(locomotion ? { locomotion } : {}),

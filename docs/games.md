@@ -358,6 +358,13 @@ Still owed:
 -   The process stage's bot plays alone. A bot for a match between two
     members is the party stage's own (`party.play`), not `bot.json`.
 
+## Field health and the kill switch
+
+Every game calls `reportHealth()` first thing, so uncaught errors, failed
+lifecycle stages and frame times from real visits reach `/dev/games`; and
+`GAMES_DISABLED` pauses a game or one release. Rules, what is collected and
+why: [games/field-health.md](games/field-health.md).
+
 ## Not built yet
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.

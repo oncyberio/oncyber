@@ -51,6 +51,7 @@ export default defineConfig({
             { find: /^@oncyber\/game-runtime\/device-check$/, replacement: `${runtime}/deviceCheck.ts` },
             { find: /^@oncyber\/game-runtime\/device-controls$/, replacement: `${runtime}/deviceControls.ts` },
             { find: /^@oncyber\/game-runtime\/audio-browser$/, replacement: `${runtime}/audio-browser.ts` },
+            { find: /^@oncyber\/game-runtime\/health$/, replacement: `${runtime}/health.ts` },
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/(loading|pausing)$/, replacement: `${runtime}/$1.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },

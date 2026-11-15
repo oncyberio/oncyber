@@ -9,6 +9,7 @@ import { bindDeviceControls } from "@oncyber/game-runtime/device-controls";
 import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
 import { bindPausing, sessionPausing } from "@oncyber/game-runtime/pausing";
 import { exposeInspect } from "@oncyber/game-runtime/bot";
+import { reportHealth } from "@oncyber/game-runtime/health";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -43,6 +44,8 @@ page.hello();
 // Progress while the garden is built, then one first-frame signal
 // (docs/games/loading-and-pausing.md).
 const loading = createLoading({ post: (kind, data) => page.post(kind, data) });
+// Uncaught errors, failed lifecycle stages and frame times, reported to the page.
+const health = reportHealth({ game: "garden" });
 
 // Dev diagnostics for device simulators: ?log posts errors and state.
 const remoteLog = params.has("log")
@@ -306,6 +309,7 @@ async function start() {
         audio: output,
         onError: (error) => {
             console.error("[garden]", error);
+            health.stageFailed("update", error);
             if (/DEVICE_LOST|destroyed/i.test(error?.message || "")) fail("The graphics device was lost. Reload to keep playing.");
         },
     };
@@ -336,12 +340,12 @@ async function start() {
     }
     // Facts for pnpm games:check and the game's bot (bot.json).
     exposeInspect(() => host.session.inspect());
-    await host.session.prepare();
-    await host.session.enter({
+    await health.stage("prepare", () => host.session.prepare());
+    await health.stage("enter", () => host.session.enter({
         avatar: { id: identity.id, position: [0, 0, 13], rotation: [0, 1, 0, 0] },
         camera: { position: [0, 3.5, 20], target: [0, 1.3, 13], fov: 50, mode: "third-person" },
         party: [],
-    });
+    }));
     // The avatar stage of pnpm games:check asks what the game sees.
     answerInspect(() => host.session.inspect());
     // The first frame the visitor can be shown: one update after entering.

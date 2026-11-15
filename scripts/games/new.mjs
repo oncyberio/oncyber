@@ -111,7 +111,7 @@ export function createGame({ root = repo, id, name = id }) {
     );
     edit(at("src/host/browser.js"), (t) =>
         swap(
-            swap(t, '"garden"', `"${id}"`, "src/host/browser.js", 5),
+            swap(t, '"garden"', `"${id}"`, "src/host/browser.js", 6),
             'prefix: "garden:"',
             `prefix: "${id}:"`,
             "src/host/browser.js",
