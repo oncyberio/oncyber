@@ -29,8 +29,8 @@ import {
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
 import {
+    bothForms,
     enterMessage,
-    gameMessageTypes,
     gameTrip,
     readGameDeclaration,
     readGameMessage,
@@ -38,6 +38,8 @@ import {
     type GameDialect,
     type GameRoomMember,
 } from "./gameContract";
+import { useGameSocial } from "./useGameSocial";
+import GameChat from "./GameChat";
 
 const PEER_INTERVAL = 100;
 
@@ -99,21 +101,31 @@ export default function GamePage({ game }: { game: GameEntry }) {
     // with the relay on so its members can run matches between them.
     const [party, setParty] = useState<GameParty | null>(null);
     const partyRef = useRef<GameParty | null>(null);
-    const roomLabel = party ? partyRoomLabel(GAME, party.id) : sharedRoom;
+    // A game with no room of its own still has one for chat and voice; the
+    // game hears nothing of who is in it.
+    const roomLabel = party
+        ? partyRoomLabel(GAME, party.id)
+        : sharedRoom ?? game.socialRoom ?? null;
+    const playsInRoom = !!(party || sharedRoom);
     const relay = party ? true : game.relay;
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [roomState, setRoomState] = useState<GameRoomState | null>(null);
     // The frame's origin is opaque, so no target origin can name it; the
     // message goes to this frame's window only, and carries public fields.
-    const send = useRef((message: object) =>
-        frame.current?.contentWindow?.postMessage(message, "*")
-    );
-    // The form the game greeted with; until then both forms go out.
-    const dialect = useRef<GameDialect | null>(null);
-    const postGame = useRef((kind: string, data: object = {}) => {
-        for (const type of gameMessageTypes(GAME, kind, dialect.current))
-            send.current({ type, ...data });
+    // Every message goes out in both forms (`oncyber:game:<kind>` and
+    // `<id>:<kind>`): a game may mix the contract client with helpers that
+    // still speak its own id, and each ignores the form it doesn't speak.
+    const send = useRef((message: object) => {
+        const target = frame.current?.contentWindow;
+        if (!target) return;
+        for (const form of bothForms(GAME, message as { type?: unknown }))
+            target.postMessage(form, "*");
     });
+    // The form the game greeted with.
+    const dialect = useRef<GameDialect | null>(null);
+    const postGame = useRef((kind: string, data: object = {}) =>
+        send.current({ type: `${GAME}:${kind}`, ...data })
+    );
     const kindOf = (event: MessageEvent) =>
         readGameMessage(event.data?.type, GAME)?.kind;
     // The party as the game sees it: the lobby's members plus the party
@@ -138,6 +150,14 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // Chat and voice are the page's: carried from the lobby, in this room.
+    const social = useGameSocial({
+        game: GAME,
+        send,
+        fromGame,
+        selfName: identity?.name,
+        room,
+    });
     const leave = useRef(() => {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
@@ -408,7 +428,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
         window.addEventListener("message", receive);
         const timer = setInterval(() => {
             const players = gameRoom.samplePeers();
-            postGame.current("peers", { players });
+            if (playsInRoom) postGame.current("peers", { players });
             // In a party's room, the roster is who has arrived.
             if (party) {
                 roomFacts.current.arrived = players;
@@ -424,7 +444,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             setRoomState(null);
             void gameRoom.close();
         };
-    }, [identity, roomLabel, relay]);
+    }, [identity, roomLabel, relay, playsInRoom]);
 
     const voiceLabel =
         roomState?.voiceState === "live"
@@ -533,6 +553,12 @@ export default function GamePage({ game }: { game: GameEntry }) {
                         Lobby
                     </button>
                 </div>
+            )}
+            {ready && !error && roomLabel && (
+                <GameChat
+                    social={social}
+                    onClose={() => frame.current?.focus()}
+                />
             )}
             {roomState?.voiceError && ready && !error && (
                 <p

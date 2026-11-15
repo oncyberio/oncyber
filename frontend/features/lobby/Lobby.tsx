@@ -43,6 +43,7 @@ import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
 import LobbyVoiceRequests from "./LobbyVoiceRequests";
+import { useLobbySocialHandoff } from "@features/games/lobbySocialHandoff";
 import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
@@ -349,6 +350,8 @@ export default function Lobby({
             scale: (loadedAvatar || avatar)?.scale,
         },
     });
+    // A game the visitor travels into continues this chat and voice.
+    useLobbySocialHandoff(journey.frameRef, social);
     const stopFlash = useCallback(
         (nonce?: string) => {
             if (nonce && flashRef.current?.nonce !== nonce) return;

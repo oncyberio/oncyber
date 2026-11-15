@@ -10,7 +10,8 @@
     "./check": "./src/check.ts",
     "./contract": "./src/contract.ts",
     "./manifest": "./src/manifest.ts",
-    "./page": "./src/page.ts"
+    "./page": "./src/page.ts",
+    "./voice": "./src/voice.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

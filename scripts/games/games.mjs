@@ -26,6 +26,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contractFindings, enterFindings, harnessScript } from "./contract-check.mjs";
+import { checkSocial, scanOwnVoice } from "./social-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -142,7 +143,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -166,6 +167,10 @@ async function check() {
         greeted = await page.evaluate(() => window.__contract ?? null);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        await page.close();
+        // Chat and voice: the page's, carried from the lobby (docs/games/voice-chat.md).
+        scan.findings.push(...scanOwnVoice(out));
+        social = await checkSocial({ id, out, browser });
     } finally {
         await browser.close();
         server.close();
@@ -177,7 +182,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -187,7 +192,9 @@ async function check() {
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
             ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
+            ...(social?.status === "failed" ? [{ code: "STAGE_SOCIAL", message: social.error ?? "failed" }] : []),
         ],
+        social,
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),

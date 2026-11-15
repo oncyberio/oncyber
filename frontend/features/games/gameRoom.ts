@@ -2,10 +2,13 @@ import { Client, type Room } from "colyseus.js";
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "@utils/arena/constants";
 import { ColyseusSignaling } from "@utils/voiceChat/ColyseusSignaling";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
-
-// Voice carries a block or two: full volume up close, silent past this.
-const VOICE_FULL = 4;
-const VOICE_RANGE = 60;
+import {
+    isPagePacket,
+    voiceVolume,
+    type GameSocial,
+    type SocialRoom,
+} from "./gameSocial";
+import { VoiceLevels } from "./voiceLevels";
 
 export type RoomIdentity = {
     userId: string;
@@ -63,7 +66,11 @@ const RELAY_INTERVAL = 220;
  * games: it clamps players to ±200 m at walking speed, while game worlds can
  * be kilometres wide and players drive and fly.
  */
-export class GameRoom {
+export class GameRoom implements SocialRoom {
+    /** The page's chat and voice layer: chat on this room goes to it. */
+    social: GameSocial | null = null;
+    private levels = new VoiceLevels();
+    private voiceGain: ((id: string) => number | null) | null = null;
     private room: Room | null = null;
     private relayHandler: GameRelayHandler | null = null;
     private relayAt = 0;
@@ -128,6 +135,17 @@ export class GameRoom {
             }
             this.room = room;
             room.onMessage("chat-channel", (message: any) => {
+                // Chat and room commands are the page's, never the game's.
+                if (
+                    this.social
+                        ? this.social.receive(
+                              message?.from,
+                              message?.data,
+                              message?.server_ts
+                          )
+                        : isPagePacket(message?.data)
+                )
+                    return;
                 if (
                     this.relayHandler &&
                     typeof message?.from === "string" &&
@@ -161,6 +179,8 @@ export class GameRoom {
     /** Broadcast a game packet to everyone else in the room (rate limited). */
     relay(data: unknown) {
         const now = Date.now();
+        // A game can't send chat in the visitor's name (gameSocial.ts).
+        if (isPagePacket(data)) return false;
         if (!this.room || now - this.relayAt < RELAY_INTERVAL) return false;
         this.relayAt = now;
         try {
@@ -238,15 +258,37 @@ export class GameRoom {
 
     private updateVolumes() {
         this.audio.forEach((audio, id) => {
-            const distance = this.distances.get(id) ?? Infinity;
-            audio.volume = Math.max(
-                0,
-                Math.min(
-                    1,
-                    1 - (distance - VOICE_FULL) / (VOICE_RANGE - VOICE_FULL)
-                )
-            );
+            // Where the game placed this player, else their room pose.
+            audio.volume =
+                this.voiceGain?.(id) ??
+                voiceVolume(this.distances.get(id) ?? Infinity);
         });
+    }
+
+    // What the page's chat and voice layer needs (SocialRoom).
+    sendChat(packet: object) {
+        try {
+            this.room?.send("chat-channel", packet);
+            return !!this.room;
+        } catch {
+            return false;
+        }
+    }
+    peerName(id: string) {
+        return decode((this.room?.state as any)?.players?.get?.(id)?.username);
+    }
+    voiceState() {
+        return this.state.voiceState;
+    }
+    goLive = async () => {
+        if (this.state.voiceState !== "live") await this.toggleVoice();
+    };
+    voiceLevels() {
+        return this.levels.levels();
+    }
+    setVoiceGain(gain: ((id: string) => number | null) | null) {
+        this.voiceGain = gain;
+        this.updateVolumes();
     }
 
     private removeAudio(id: string) {
@@ -255,11 +297,12 @@ export class GameRoom {
         audio.pause();
         audio.srcObject = null;
         this.audio.delete(id);
+        this.levels.set(id, null);
     }
 
     /** Join the voice mesh without a microphone, so you hear people nearby. */
     private listening: Promise<void> | null = null;
-    private listen = () => {
+    listen = () => {
         if (!this.room) return Promise.resolve();
         this.listening ||= this.startListening(this.room).catch((error) => {
             this.listening = null;
@@ -280,6 +323,7 @@ export class GameRoom {
             audio.autoplay = true;
             audio.srcObject = stream;
             this.audio.set(user.uid, audio);
+            this.levels.set(user.uid, stream);
             this.updateVolumes();
             void audio.play().catch(() => {
                 this.update({
@@ -331,12 +375,14 @@ export class GameRoom {
                     return;
                 }
                 this.microphone = stream;
+                this.levels.set(room.sessionId, stream);
                 this.voice.publish(stream, "mic");
             }
             this.microphone
                 .getTracks()
                 .forEach((track) => (track.enabled = true));
             this.audio.forEach((audio) => void audio.play().catch(() => {}));
+            this.levels.resume();
             this.update({ voiceState: "live", voiceError: "" });
         } catch (error) {
             if (this.closed) return;
@@ -355,6 +401,7 @@ export class GameRoom {
         this.microphone?.getTracks().forEach((track) => track.stop());
         this.microphone = null;
         Array.from(this.audio.keys()).forEach((id) => this.removeAudio(id));
+        this.levels.dispose();
         this.voice?.leave();
         this.voice = null;
         this.signaling?.dispose();

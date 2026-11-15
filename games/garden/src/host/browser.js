@@ -5,6 +5,7 @@ import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
 import { createHost } from "./host.js";
+import { connectVoice } from "@oncyber/game-runtime/voice";
 import { createAudio, play, setMuted, unlockAudio, updateAudio } from "./audio.js";
 
 // The browser host for Bloom Garden's portable game: it creates the runtime
@@ -57,6 +58,9 @@ window.addEventListener("keydown", unlock, { capture: true });
 window.addEventListener("message", (event) => {
     if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") unlock();
 });
+
+// Chat and voice are the page's. The garden only shows who is talking.
+const voice = connectVoice("garden");
 
 // Peers and inbox from the page's room.
 const room = { peers: [], inbox: [], vouched: new Set() };
@@ -149,7 +153,7 @@ async function call(capability, operation, value) {
             size += next;
             inbox.push(room.inbox.shift());
         }
-        return json({ self: page.selfId, online: !!page.selfId && page.embedded, peers: room.peers, inbox });
+        return json({ self: page.selfId, online: !!page.selfId && page.embedded, peers: room.peers, inbox, talking: voice.talking.slice(0, 33) });
     }
     if (capability === "travel" && operation === "lobby") {
         page.exit();
