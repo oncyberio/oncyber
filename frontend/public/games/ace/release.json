@@ -2,17 +2,17 @@
   "version": 1,
   "game": "ace",
   "name": "ACE! Tennis",
-  "release": "65a6989f4eb6db11",
-  "publishedAt": "2026-11-15T14:35:02.205Z",
+  "release": "c51fb765931f999d",
+  "publishedAt": "2026-11-15T15:21:50.464Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T14:35:02.203Z",
+    "checkedAt": "2026-11-15T15:21:50.462Z",
     "backend": "webgl2",
     "frames": {
       "count": 180,
-      "medianMs": 383.3,
-      "p95Ms": 433.3,
-      "worstMs": 466.7
+      "medianMs": 333.3,
+      "p95Ms": 366.7,
+      "worstMs": 400.1
     }
   },
   "files": [
@@ -37,9 +37,9 @@
       "sha256": "4d1054a11f788f7db23d623454f4a8bb6d00a39ddb919160110800909d6e8375"
     },
     {
-      "path": "assets/index-PPfbWWRg.js",
-      "bytes": 1041792,
-      "sha256": "1d84e7cf098433816841c5d6d569e06ea04a55596f260d0ed81e35d1236aef43"
+      "path": "assets/index-BFXuCz7J.js",
+      "bytes": 1046369,
+      "sha256": "79ce737361cdee76f260791bb48aad03a442b0cd85d20b4c1e22dd27ee3a5bbc"
     },
     {
       "path": "assets/locomotion-DBQJaU7P.json",
@@ -49,7 +49,7 @@
     {
       "path": "index.html",
       "bytes": 13285,
-      "sha256": "db71821407138db7ec8215d034fde8b8a977bd51e1544a747e765601bd85ee77"
+      "sha256": "a9dc42dfabe9fb9d223411712b624c5297c4a4d323e22dd9700a12f0d02e91e4"
     },
     {
       "path": "preview.jpg",

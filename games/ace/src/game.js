@@ -85,6 +85,13 @@ export const pageRoom = {};
  * the page asks for the last frame.
  */
 export const pageDeparture = {};
+// Loading and pausing (docs/games/loading-and-pausing.md): the host redraws
+// on a resize through `redraw()`, even while the game is suspended; asks
+// `versus()` whether another person is playing (their match is never
+// paused) and `soloMatch()` whether a match against the CPU is in play (it
+// stands still while the visitor types; menus and the club don't); and
+// passes on `away(hidden)` when the tab is hidden during a versus match.
+export const pageFrame = {};
 
 export default function createGame(context) {
     const { graphics, services } = context;
@@ -158,6 +165,10 @@ export default function createGame(context) {
     scene.add(kit.group);
     pageRoom.peers = (players) => kit.setPeers(players);
     pageRoom.entered = () => kit.arrival.enter();
+    pageFrame.redraw = () => resize();
+    pageFrame.versus = () => versusLive();
+    pageFrame.soloMatch = () => state.screen === "playing" && !versusLive();
+    pageFrame.away = (hidden) => duel.hidden(hidden);
 
     const size = { w: 0, h: 0 };
     function resize() {
@@ -226,6 +237,8 @@ export default function createGame(context) {
         boot.progress = value;
         $("#boot-fill").style.width = `${Math.round(value * 100)}%`;
         if (text) $("#boot-text").textContent = text;
+        // The page shows the same steps until the first frame.
+        context.loading?.progress(value, $("#boot-text").textContent);
     }
     setBoot(0.1);
 
@@ -1908,13 +1921,11 @@ export default function createGame(context) {
         if (!e || !world) return;
         // A 1 v 1 runs through the duel, whatever menu is open over it.
         const versus = duel.state === "playing" && e === duel.engine;
-        // Input is paused by the page (the visitor types, or its menu is
-        // open): the match and its timers stand still until it resumes.
-        // Not while another person is playing it: their match goes on and
-        // this side's player stands idle.
-        const frozen =
-            state.screen === "playing" && state.inputPaused && !versusLive();
-        if (frozen) dt = 0.0001;
+        // While the visitor types in the page during a match against the
+        // CPU, or the page's menu is open or the tab is hidden with nobody
+        // else playing, the host has suspended the game and no frame runs
+        // (one pause: suspend() below). A match another person is playing
+        // goes on, and this side's player stands idle.
         // Timers run on game time and stop with the pause menu (which
         // opens over a match another person is playing, without stopping it).
         const held = state.screen === "pause" && state.paused;
@@ -1933,19 +1944,15 @@ export default function createGame(context) {
         if (versus) {
             const playing = state.screen === "playing" && !state.inputPaused;
             handleEvents(
-                duel.frame(
-                    playing ? humanInput(raw) : IDLE_INPUT,
-                    dt,
-                    frozen || held
-                )
+                duel.frame(playing ? humanInput(raw) : IDLE_INPUT, dt, held)
             );
         } else {
             // In menus this only keeps the channel alive (a pick, a watch
             // offer).
             duel.frame(IDLE_INPUT, dt);
         }
-        if (versus || frozen) {
-            // The duel moved it, or nothing moves.
+        if (versus) {
+            // The duel moved it.
         } else if (state.screen === "playing" && !state.paused) {
             const events = update(e, humanInput(raw), dt);
             handleEvents(events);
@@ -2116,6 +2123,9 @@ export default function createGame(context) {
                 );
         }
         setBoot(1, "Ready!");
+        // The first frame: the court is on the canvas before the host says
+        // `first-frame` and `ready`.
+        resize();
         booted = true;
     }
 
@@ -2177,11 +2187,15 @@ export default function createGame(context) {
             choosePartyFormat(option);
     });
 
-    // A suspended match waits on the pause menu, sound off.
+    // The one pause (docs/games/loading-and-pausing.md): the host suspends
+    // the game while the tab is hidden or the page has a menu open, and a
+    // match against the CPU also while the visitor types in the page;
+    // never a match another person is playing. Sound off; after a hidden tab the visitor finds the pause
+    // menu and restarts play themselves.
     function suspend() {
         // A hidden tab draws no frames: tell the other player before it stops.
-        duel.hidden(true);
-        if (!config.autoplay) pauseGame();
+        if (document.hidden) duel.hidden(true);
+        if (document.hidden && !config.autoplay) pauseGame();
         sound.chargeStop(audio);
         audio.ctx?.suspend?.();
         const m = state.engine?.match;
@@ -2219,11 +2233,15 @@ export default function createGame(context) {
         delete pageRoom.peers;
         delete pageRoom.entered;
         delete pageDeparture.stage;
+        delete pageFrame.redraw;
+        delete pageFrame.versus;
+        delete pageFrame.soloMatch;
+        delete pageFrame.away;
     }
 
     // The page owns Escape, Enter and M (docs/games/keys-focus.md). While
-    // the visitor types in the page or its menu is open, the match stands
-    // still (frame()).
+    // the visitor types in the page or its menu is open, the game takes no
+    // input, and the host holds a match against the CPU still (suspend()).
     function inputPaused(paused) {
         state.inputPaused = paused;
         if (paused) sound.chargeStop(audio);

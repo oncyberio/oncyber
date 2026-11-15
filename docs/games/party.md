@@ -170,7 +170,9 @@ and write it in `party.dropped`:
     (Ace: "Rejoin your match").
 -   **A tab is hidden**: it draws no frames. Treat it as a drop: say so on
     the channel (`channel.flush()` sends it at once) and ask to rejoin
-    when shown.
+    when shown. The game's pausing calls `away(true)` and `away(false)`
+    for exactly this ([loading-and-pausing.md](loading-and-pausing.md)); the
+    match is not suspended meanwhile.
 
 Ace does all five in `games/ace/src/duel.js` (who runs the match) and
 `games/ace/src/versus.js` (the snapshot); `games/ace/test/duel.test.js`

@@ -34,6 +34,7 @@ import { checkDeparture } from "./departure-check.mjs";
 import { partyCheck } from "./party-check.mjs";
 import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
 import { checkDevices, devicesHarness } from "./devices.mjs";
+import { checkLoading, loadingHarness } from "./loading-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -126,6 +127,7 @@ ${devicesHarness}
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
+${loadingHarness}
 </script>
 <script>${harnessScript(id, visit)}</script>`;
 
@@ -171,7 +173,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -195,6 +197,8 @@ async function check() {
         greeted = await page.evaluate(() => window.__contract ?? null);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
+        if (report?.status === "passed") loading = await checkLoading(page, { manifest, required: lifecycle }).catch((error) => ({ status: "failed", findings: [{ code: "LOADING_CHECK_ERROR", message: String(error.message).slice(0, 300) }] }));
         // The trip back to the lobby (docs/games/departure.md), on the page the scenario played in: it ends that visit.
         if (report && manifest.departure === "matched") report.stages.push(await checkDeparture({ page, browser, id, prefix: greeted?.prefix, title: manifest.name ?? id, shots: join(source, ".check"), lobbyUrl }));
         // Results the scenario's visit posted, its departure included.
@@ -237,7 +241,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -254,7 +258,9 @@ async function check() {
             ...(social?.status === "failed" ? [{ code: "STAGE_SOCIAL", message: social.error ?? "failed" }] : []),
             ...(safeArea?.findings ?? []),
             ...party.findings,
+            ...(loading?.findings ?? []),
         ],
+        loading: loading && { ...loading, findings: undefined },
         social,
         safeArea,
         party: { status: party.status, ms: party.ms, ...party.detail },
@@ -271,6 +277,8 @@ async function check() {
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
+    if (loading) console.log(`  loading: ${loading.status}` + (loading.firstFrameMs != null ? ` · first frame ${loading.firstFrameMs} ms (budget ${loading.firstFrameBudgetMs} ms) · pause ${loading.pause.mode}: menu ${loading.pause.menu}, hidden ${loading.pause.hidden}` : ""));
+    for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);

@@ -66,7 +66,10 @@ Backspace to go back, P for a pause of your own.
 3. On `paused`, stop reading every device (touch, gamepad, mouse), not only
    the keyboard, and let nothing the visitor controls move. Held actions
    have already been released with `action(name, 0)`. A single-player game
-   should also stop its clock (Ace freezes the match). `resumed` comes
+   should also stop its clock: hold the game's one pause for it
+   (`pausing.hold("input")`, [loading-and-pausing.md](loading-and-pausing.md)),
+   as Ace does for a match against the CPU. A match another person is
+   playing is never held. `resumed` comes
    exactly once per pause, however many page surfaces overlapped.
 
 4. Take the pointer lock with `keys.lockPointer(element)`. The binder gives

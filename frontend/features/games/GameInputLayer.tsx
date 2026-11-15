@@ -5,6 +5,7 @@ import {
     type GameKeyIntent,
 } from "./gameInput";
 import { readGameMessage } from "./gameContract";
+import { holdGamePause } from "./gamePause";
 import { readGameStorage, writeGameStorage } from "./gameStorage";
 
 const button = {
@@ -21,7 +22,8 @@ const button = {
 /**
  * Keys and focus for a game page (docs/games/keys-focus.md): the page owns
  * Escape (this world menu), Enter (chat) and M (sound), and the game gets
- * no input while the menu is open or the visitor types in the page.
+ * no input while the menu is open or the visitor types in the page. The
+ * open menu also holds the page's pause (docs/games/loading-and-pausing.md).
  */
 export default function GameInputLayer({
     game,
@@ -108,8 +110,13 @@ export default function GameInputLayer({
     useEffect(() => {
         if (!menu) return;
         host.hold("menu");
+        // The menu also pauses a solo game under it (gamePause.ts).
+        const resume = holdGamePause();
         document.exitPointerLock?.();
-        return () => host.release("menu");
+        return () => {
+            resume();
+            host.release("menu");
+        };
     }, [menu, host]);
 
     if (!menu) return null;

@@ -3,7 +3,13 @@ import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { deviceAct } from "@oncyber/game-runtime/device-check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
+import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
 import { connectPage } from "@oncyber/game-runtime/page";
+import {
+    bindPausing,
+    PAUSE_REASONS,
+    sessionPausing,
+} from "@oncyber/game-runtime/pausing";
 import { createPartyLink } from "@oncyber/game-runtime/partyLink";
 import { createResults } from "@oncyber/game-runtime/results";
 import { connectVoice } from "@oncyber/game-runtime/voice";
@@ -14,6 +20,7 @@ import { COURT } from "./config.js";
 import createGame, {
     debugHooks,
     pageDeparture,
+    pageFrame,
     pageRoom,
     pageSound,
 } from "./game.js";
@@ -33,8 +40,14 @@ import "./style.css";
 // avatar kit (docs/games/avatar-kit.md). The party link reads the room's
 // roster out of the trip and carries the match channel a 1 v 1 is played
 // over (docs/games/party.md). A finished match sends the page its one
-// result (docs/games/results.md). Standalone (vite dev) it plays on
-// localStorage; `?arrive` and `?party=4` stand in for a lobby trip.
+// result (docs/games/results.md). While it prepares it tells the page how
+// far along it is and when its first frame is drawn, it redraws on every
+// resize, and it has one pause: the game is suspended while the tab is
+// hidden or the page has a menu open, and a match against the CPU while
+// the visitor types; a match another person is playing never is
+// (docs/games/loading-and-pausing.md).
+// Standalone (vite dev) it plays on localStorage; `?arrive` and `?party=4`
+// stand in for a lobby trip.
 
 const params = new URLSearchParams(location.search);
 const canvas = document.querySelector("#stage");
@@ -90,7 +103,18 @@ const departure = createDeparture({
         return pageDeparture.stage(reason);
     },
 });
-page.on("departure", (reason) => departure.receive("departure", { reason }));
+// The one pause, once the session exists (start()). Leaving wins over it:
+// the last frame is drawn whatever was holding the game.
+let pausing = null;
+let departing = false;
+page.on("departure", (reason) => {
+    departing = true;
+    for (const held of PAUSE_REASONS) pausing?.release(held);
+    departure.receive("departure", { reason });
+});
+// Loading: progress while the court is built, then one first-frame signal
+// before `ready`.
+const loading = createLoading({ post: (kind, data) => page.post(kind, data) });
 // Match results: the game opens a match and closes it with one report
 // (the `results` service below); the page hears one `result` per match.
 const results = createResults((result) => page.post("result", { result }));
@@ -204,8 +228,32 @@ async function start() {
         graphics,
         services: { identity, asset: () => Promise.reject(new Error("NO_ASSETS")), call, avatar },
         sendUI() {},
+        onProgress: (value, label) => loading.progress(value, label),
         now: () => performance.now(),
     });
+    // The host owns the clock. It stops while a check plays its scenario
+    // (`checking`) and between staging a lobby arrival and the lobby
+    // letting go (`hidden`).
+    let alive = true;
+    let checking = false;
+    let hidden = false;
+    let last = performance.now();
+    // One pause for the three things that can hold the game: a hidden tab
+    // and the page's menu (bindPausing) and the page's input pause while
+    // the visitor types during a match against the CPU (the keys binder,
+    // below). Alone or against the CPU the session is suspended and restored; a match another person is
+    // playing goes on, the other side is told when this tab is hidden, and
+    // the match catches up when it is shown again.
+    pausing = sessionPausing(session, {
+        mode: () =>
+            departing || pageFrame.versus?.() ? "multiplayer" : "solo",
+        away: (away) => pageFrame.away?.(away),
+        onChange: () => {
+            last = performance.now();
+        },
+        onError: (error) => console.error("[ace]", error),
+    });
+    const stopPausing = bindPausing(pausing, { document, window });
     // The keyboard, as the declared actions. The binder hands the page its
     // keys, and stops and resumes the session's input on the page's word.
     const keys = bindSessionKeys(session, {
@@ -213,6 +261,10 @@ async function start() {
         prefix: GAME_MESSAGE_PREFIX,
         input: manifest.runtime.input,
         muted: (muted) => pageSound.muted?.(muted),
+        // A match against the CPU stands still while the visitor types;
+        // the menus and the club go on without input.
+        paused: () => pageFrame.soloMatch?.() && pausing.hold("input"),
+        resumed: () => pausing.release("input"),
     });
     // The mouse, and the on-screen controls and gamepad the bindings declare.
     const devices = bindDevices(session, canvas, manifest.runtime.input);
@@ -221,13 +273,6 @@ async function start() {
         window.__session = session;
     }
 
-    // The host owns the clock. It stops while a check plays its scenario
-    // (`checking`) and between staging a lobby arrival and the lobby
-    // letting go (`hidden`).
-    let alive = true;
-    let checking = false;
-    let hidden = false;
-    let last = performance.now();
     const tick = (now) => {
         if (!alive) return;
         requestAnimationFrame(tick);
@@ -244,10 +289,35 @@ async function start() {
     requestAnimationFrame(tick);
     const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+    // A resize draws at once, paused or not, instead of leaving an empty
+    // canvas until the next animation frame (the game draws its leaving
+    // frame when it is on the way out).
+    const stopRedraw = redrawOnResize(
+        loading,
+        () => {
+            graphics.width = window.innerWidth;
+            graphics.height = window.innerHeight;
+            pageFrame.redraw?.();
+        },
+        window
+    );
+
     await session.prepare();
     // The avatar stage of pnpm games:check asks what the game sees (its
     // party stage asks the game through the link).
     answerInspect(() => session.inspect());
+    // prepare() ends on a drawn frame: once it is on screen say so, then
+    // that the game can be entered. The lobby's reveal (enter, the arrival
+    // frame, `entered`) comes after both. (A tab opened in the background
+    // gets no animation frame: don't wait for one for ever.)
+    await Promise.race([
+        frame(),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+    ]);
+    loading.firstFrame({
+        width: window.innerWidth,
+        height: window.innerHeight,
+    });
     page.ready();
     const visit = page.embedded ? await page.enterData() : standInEnter();
     await session.enter({
@@ -310,14 +380,11 @@ async function start() {
             })
         );
 
-    document.addEventListener("visibilitychange", () => {
-        last = performance.now();
-        if (document.hidden && session.phase === "entered") void session.suspend();
-        else if (!document.hidden && session.phase === "suspended") void session.restore();
-    });
     const dispose = () => {
         if (!alive) return;
         alive = false;
+        stopPausing();
+        stopRedraw();
         keys.dispose();
         devices.dispose();
         hud.dispose();

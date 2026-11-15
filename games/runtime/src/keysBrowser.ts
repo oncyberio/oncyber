@@ -233,7 +233,12 @@ interface KeySession {
 /** For games on the lifecycle: keys drive the session's declared actions. */
 export function bindSessionKeys(
     session: KeySession,
-    options: Omit<PageKeysOptions, "action" | "paused" | "resumed" | "probe"> &
+    /**
+     * `paused` and `resumed` run after the session's input has stopped or
+     * started again: a game whose solo play stands still while the visitor
+     * types holds its one pause there (pausing.ts, reason "input").
+     */
+    options: Omit<PageKeysOptions, "action" | "probe"> &
         Partial<Pick<PageKeysOptions, "probe">>
 ): PageKeys {
     return bindPageKeys({
@@ -242,8 +247,14 @@ export function bindSessionKeys(
         action(name, value) {
             if (session.phase === "entered") session.action(name, value);
         },
-        paused: (reason) => session.setInputPaused(true, reason),
-        resumed: () => session.setInputPaused(false),
+        paused(reason) {
+            session.setInputPaused(true, reason);
+            options.paused?.(reason);
+        },
+        resumed() {
+            session.setInputPaused(false);
+            options.resumed?.();
+        },
     });
 }
 

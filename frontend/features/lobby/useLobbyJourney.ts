@@ -1,4 +1,5 @@
 import { warmDestination } from "./destinationWarmup";
+import { prepareGameDestination } from "@features/games/gamePrepare";
 import { createHostedExperienceLocation } from "@utils/experienceLocation";
 import {
     getLobbyPortalPreview,
@@ -168,6 +169,8 @@ export function useLobbyJourney(initialReturn?: LobbyReturnTransition | null) {
                 // Downloads run off the main thread, so they start now even
                 // though the frame itself waits for the avatar to be seated.
                 warmDestination(selected.href);
+                // A game also prepares in a hidden frame of its own.
+                prepareGameDestination(selected.href);
                 const startedAt = performance.now();
                 const next = lobbyJourneyTransition(current.current, {
                     type: "prepare",

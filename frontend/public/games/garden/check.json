@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T14:36:09.827Z",
+  "checkedAt": "2026-11-15T15:23:18.680Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1371590,
+    "bytes": 1375930,
     "largest": {
-      "path": "assets/index-jKrOzic3.js",
-      "bytes": 1025031
+      "path": "assets/index-BS5Z2TCW.js",
+      "bytes": 1029371
     }
   },
   "avatars": {
@@ -22,7 +22,7 @@
         "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
       }
     ],
-    "ms": 27252,
+    "ms": 30154,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -52,7 +52,7 @@
         "playerX": 0,
         "playerZ": 13,
         "hostPhase": "entered",
-        "hostFrames": 18,
+        "hostFrames": 22,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -61,10 +61,34 @@
     }
   },
   "findings": [],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 1477,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 1435,
+    "progress": {
+      "messages": 4,
+      "labels": [
+        "Planting the island…",
+        "Filling the pond…",
+        "Waking the bloomlings…",
+        "Welcome!"
+      ]
+    },
+    "resize": [],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": [
+      "resize not judged: the canvas reads as blank before any resize"
+    ]
+  },
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3300,
+    "ms": 3131,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -77,9 +101,11 @@
       "gameIsolated": true,
       "gameSent": [
         "hello",
-        "ready",
+        "progress",
         "pose",
-        "storage"
+        "storage",
+        "first-frame",
+        "ready"
       ]
     }
   },
@@ -373,14 +399,14 @@
   },
   "party": {
     "status": "passed",
-    "ms": 1,
+    "ms": 0,
     "options": {},
     "drops": []
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
-    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+    "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
   ],
   "contract": {
     "listed": true,
@@ -393,7 +419,7 @@
     "warnings": [
       {
         "code": "CONTRACT_LEGACY_PREFIX",
-        "message": "src/host/host.js still says \"garden:<kind>\"; use connectPage() from @oncyber/game-runtime/page"
+        "message": "src/host/browser.js, src/host/host.js still says \"garden:<kind>\"; use connectPage() from @oncyber/game-runtime/page"
       },
       {
         "code": "CONTRACT_LEGACY_PREFIX",
@@ -441,24 +467,24 @@
           "buttons": []
         },
         "consoleErrors": [
-          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
-          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "failed",
           "backend": "webgpu",
-          "bootMs": 1440,
+          "bootMs": 1416,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1440
+              "ms": 1416
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 529,
+              "ms": 518,
               "error": "NO_TOUCH_CONTROL:forward"
             },
             {
@@ -470,7 +496,7 @@
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.7,
+            "p95Ms": 16.8,
             "worstMs": 16.8
           },
           "inspect": {
@@ -500,7 +526,7 @@
             "playerX": 0,
             "playerZ": 13,
             "hostPhase": "entered",
-            "hostFrames": 211,
+            "hostFrames": 213,
             "hostArrival": "",
             "hostParty": 0,
             "hostPartyArrived": 0,
@@ -516,24 +542,24 @@
         "scope": "scenario",
         "findings": [],
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "passed",
           "backend": "webgpu",
-          "bootMs": 1541,
+          "bootMs": 1415,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1541
+              "ms": 1415
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 1021
+              "ms": 1036
             },
             {
               "stage": "lifecycle",
@@ -549,7 +575,7 @@
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.7,
+            "p95Ms": 16.8,
             "worstMs": 16.8
           },
           "inspect": {
@@ -579,7 +605,7 @@
             "playerX": 0,
             "playerZ": 11.4,
             "hostPhase": "entered",
-            "hostFrames": 236,
+            "hostFrames": 238,
             "hostArrival": "",
             "hostParty": 0,
             "hostPartyArrived": 0,
@@ -594,17 +620,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1467,
+    "bootMs": 1356,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1467
+        "ms": 1356
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 947
+        "ms": 931
       },
       {
         "stage": "lifecycle",
@@ -619,7 +645,7 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 4
+        "ms": 6
       }
     ],
     "frames": {
@@ -655,7 +681,7 @@
       "playerX": 0,
       "playerZ": 11.4,
       "hostPhase": "entered",
-      "hostFrames": 236,
+      "hostFrames": 238,
       "hostArrival": "",
       "hostParty": 0,
       "hostPartyArrived": 0,

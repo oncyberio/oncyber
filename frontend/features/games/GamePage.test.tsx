@@ -22,6 +22,7 @@ jest.mock("@utils/lobbyDestinationBridge", () => ({
     isLobbyDestination: jest.fn(() => false),
     failLobbyDestination: jest.fn(),
     lobbyDestinationPrepared: jest.fn(),
+    lobbyDestinationProgress: jest.fn(),
     registerLobbyDestinationEntry: jest.fn(() => jest.fn()),
     requestLobbyDestinationBack: jest.fn(),
     waitForLobbyDestinationEntry: jest.fn(() => new Promise(() => {})),
@@ -393,4 +394,45 @@ test("an older build's result is answered in its own prefix", async () => {
         reason: "RESULT_MATCH_ID",
     });
     expect(types().some((t) => t.startsWith("oncyber:game:"))).toBe(false);
+});
+
+test("loading is read in the form the game speaks and a page menu's pause goes out through the page's sender", async () => {
+    const { holdGamePause } = jest.requireActual("./gamePause");
+    await mount();
+    const cover = () =>
+        host.querySelector<HTMLElement>('[data-machine="game-loading"]');
+    expect(cover()?.getAttribute("data-game-overlay")).toBe("loading");
+    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await wait();
+    await fromGame({
+        type: "oncyber:game:progress",
+        value: 0.5,
+        label: "Painting the lines…",
+    });
+    expect(cover()?.dataset.state).toBe("loading");
+    expect(cover()?.textContent).toContain("Painting the lines…");
+    await fromGame({
+        type: "oncyber:game:first-frame",
+        ms: 900,
+        width: 1280,
+        height: 720,
+    });
+    expect(cover()?.dataset.state).toBe("drawn");
+    // The first frame alone does not enter the game: `ready` does.
+    expect(types()).not.toContain("oncyber:game:entered");
+    await fromGame({ type: "oncyber:game:ready" });
+    await wait();
+    expect(types()).toContain("oncyber:game:entered");
+    let release = () => {};
+    await act(async () => void (release = holdGamePause()));
+    expect(last("oncyber:game:pause")).toEqual({
+        type: "oncyber:game:pause",
+        reason: "menu",
+    });
+    await act(async () => release());
+    expect(last("oncyber:game:resume")).toEqual({
+        type: "oncyber:game:resume",
+        reason: "menu",
+    });
+    expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
 });

@@ -97,6 +97,8 @@ export function bindBrowserInput(session: Pick<RuntimeSession, "phase" | "action
 /** Browser adapter requests WebGPU explicitly; WebGL fallback is not a portable qualification. */
 export async function createBrowserSession(factory: GameFactory, options: Omit<RuntimeOptions, "graphics" | "sendUI"> & {
     canvas: HTMLCanvasElement; ui: HTMLIFrameElement; onError(error: Error): void;
+    /** false: the host pauses the session itself (sessionPausing in pausing.ts). */
+    visibility?: boolean;
 }) {
     const gpu = (navigator as any).gpu;
     if (!gpu) throw new Error("WEBGPU_UNAVAILABLE");
@@ -122,7 +124,7 @@ export async function createBrowserSession(factory: GameFactory, options: Omit<R
     const frame = (now: number) => {
         if (!alive) return;
         graphics.width = options.canvas.clientWidth; graphics.height = options.canvas.clientHeight;
-        if (!validating && !held) try { session!.tick((now - last) / 1000); } catch (e) { error(e); }
+        if (!validating && !held) try { session!.tick(Math.max(0, now - last) / 1000); } catch (e) { error(e); }
         last = now; frameId = requestAnimationFrame(frame);
     };
     frameId = requestAnimationFrame(frame);
@@ -132,7 +134,7 @@ export async function createBrowserSession(factory: GameFactory, options: Omit<R
             !document.hidden && session!.phase === "suspended" ? session!.restore() : undefined;
         operation?.catch(error);
     };
-    document.addEventListener("visibilitychange", visibility);
+    if (options.visibility !== false) document.addEventListener("visibilitychange", visibility);
     return { session, device, graphics,
         /** Stops the host clock, for checks that tick the session themselves. */
         hold(paused: boolean) { held = paused; last = performance.now(); },

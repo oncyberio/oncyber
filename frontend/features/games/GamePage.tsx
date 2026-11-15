@@ -45,6 +45,8 @@ import { useGameDeparture } from "./useGameDeparture";
 import { readPartyLeave } from "./gamePartyLeave";
 import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 import { useGameResults } from "./useGameResults";
+import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
+import { useGamePause } from "./gamePause";
 
 const PEER_INTERVAL = 100;
 
@@ -162,6 +164,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // Progress and the first frame (gameLoading.ts): a cover until the game
+    // has drawn. The page's menu pauses a solo game under it (gamePause.ts).
+    const loading = useGameLoading(GAME, frame);
+    useGamePause(GAME, frame, (message) => send.current(message));
     // Match results: validated, recorded and shown by the page.
     const results = useGameResults({
         game: GAME,
@@ -547,6 +553,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     display: "block",
                 }}
             />
+            {!error && <GameLoadingCover state={loading} title={gameName} />}
             {departure.offer}
             {ready && !error && roomLabel && !departure.leaving && (
                 <div

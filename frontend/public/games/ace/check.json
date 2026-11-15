@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T14:35:02.203Z",
+  "checkedAt": "2026-11-15T15:21:50.462Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 8,
-    "bytes": 2303943,
+    "bytes": 2308520,
     "largest": {
-      "path": "assets/index-PPfbWWRg.js",
-      "bytes": 1041792
+      "path": "assets/index-BFXuCz7J.js",
+      "bytes": 1046369
     }
   },
   "avatars": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 16663,
+    "ms": 14334,
     "facts": {
       "arrival": {
         "booted": true,
@@ -97,7 +97,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 21,
+        "hostFrames": 19,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -139,7 +139,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 26,
+        "hostFrames": 23,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -148,10 +148,53 @@
     }
   },
   "findings": [],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 1370,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 420,
+    "progress": {
+      "messages": 3,
+      "labels": [
+        "Painting the lines…",
+        "Warming up…",
+        "Ready!"
+      ]
+    },
+    "resize": [
+      {
+        "width": 900,
+        "height": 620,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 520,
+        "height": 700,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      }
+    ],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": []
+  },
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 11730,
+    "ms": 11818,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -164,6 +207,8 @@
       "gameIsolated": true,
       "gameSent": [
         "hello",
+        "progress",
+        "first-frame",
         "ready",
         "pose",
         "arrival-ready"
@@ -649,7 +694,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 56007,
+    "ms": 56563,
     "options": {
       "1": [
         "solo"
@@ -676,8 +721,8 @@
       {
         "dropped": "guest",
         "packetsPerSecond": {
-          "a": 4.5,
-          "b": 3.6
+          "a": 4.6,
+          "b": 3.5
         },
         "largestPacket": 206,
         "refused": 0,
@@ -692,8 +737,8 @@
       {
         "dropped": "host",
         "packetsPerSecond": {
-          "a": 4.3,
-          "b": 3.5
+          "a": 5,
+          "b": 3.9
         },
         "largestPacket": 206,
         "refused": 0,
@@ -709,9 +754,9 @@
   },
   "results": [
     {
-      "match": "fbed0c1b55df4bfcc39998b7",
+      "match": "4dc5ab5ae1baa438471d1aef",
       "format": "solo",
-      "durationSeconds": 49.9,
+      "durationSeconds": 90.7,
       "teams": [
         {
           "score": 1,
@@ -797,17 +842,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 1635,
+          "bootMs": 2373,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1635
+              "ms": 2373
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 129246
+              "ms": 134631
             },
             {
               "stage": "lifecycle",
@@ -817,18 +862,18 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 66758
+              "ms": 61611
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 366.7,
-            "p95Ms": 433.3,
-            "worstMs": 483.4
+            "medianMs": 349.9,
+            "p95Ms": 383.4,
+            "worstMs": 416.6
           },
           "inspect": {
             "booted": true,
-            "screen": "pause",
+            "screen": "playing",
             "avatarSelf": "stand-in",
             "avatarSelfInFrame": false,
             "avatarOthers": 0,
@@ -847,16 +892,16 @@
             "partyFormat": "tournament",
             "difficulty": "pro",
             "length": 2,
-            "phase": "rally",
+            "phase": "serve",
             "server": 0,
-            "points": "0-0",
+            "points": "0-1",
             "games": "0-0",
             "rally": 0,
             "matchOpen": true,
             "resultsSent": 0,
             "muted": false,
             "position": [
-              0.9,
+              -0.9,
               0,
               12.235
             ],
@@ -882,17 +927,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 1806,
+          "bootMs": 2160,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1806
+              "ms": 2160
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 133264
+              "ms": 137541
             },
             {
               "stage": "lifecycle",
@@ -902,18 +947,18 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 69313
+              "ms": 59798
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 383.3,
-            "p95Ms": 450,
-            "worstMs": 483.4
+            "medianMs": 333.2,
+            "p95Ms": 399.9,
+            "worstMs": 416.6
           },
           "inspect": {
             "booted": true,
-            "screen": "pause",
+            "screen": "playing",
             "avatarSelf": "stand-in",
             "avatarSelfInFrame": false,
             "avatarOthers": 0,
@@ -932,16 +977,16 @@
             "partyFormat": "tournament",
             "difficulty": "pro",
             "length": 2,
-            "phase": "rally",
+            "phase": "serve",
             "server": 0,
-            "points": "0-0",
+            "points": "0-1",
             "games": "0-0",
             "rally": 0,
             "matchOpen": true,
             "resultsSent": 0,
             "muted": false,
             "position": [
-              0.9,
+              -0.9,
               0,
               12.235
             ],
@@ -962,17 +1007,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 1546,
+    "bootMs": 1918,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1546
+        "ms": 1918
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 132940
+        "ms": 130568
       },
       {
         "stage": "lifecycle",
@@ -982,15 +1027,15 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 68119
+        "ms": 59867
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 6959,
+        "ms": 7810,
         "departure": {
-          "answerMs": 1155.4,
-          "frameMs": 375,
+          "answerMs": 1428.7,
+          "frameMs": 380.55,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
@@ -1004,40 +1049,40 @@
               "z": 0
             },
             "avatarRotation": 0,
-            "avatarHeight": 1.951,
+            "avatarHeight": 1.928,
             "fov": 50
           },
           "gameAvatar": {
             "x": 0.506,
-            "top": 0.361,
+            "top": 0.367,
             "bottom": 0.772,
-            "height": 0.411,
+            "height": 0.406,
             "width": 0.106
           },
           "lobbyAvatar": {
             "x": 0.5,
-            "top": 0.346,
+            "top": 0.351,
             "bottom": 0.753,
-            "height": 0.407
+            "height": 0.402
           },
           "frames": [
             {
-              "ms": 43,
+              "ms": 55,
               "phase": "playing",
               "lit": 1
             },
             {
-              "ms": 5353,
+              "ms": 5911,
               "phase": "leaving",
               "lit": 0.02
             },
             {
-              "ms": 6261,
+              "ms": 7027,
               "phase": "last",
               "lit": 0.02
             },
             {
-              "ms": 6823,
+              "ms": 7637,
               "phase": "held",
               "lit": 0.02
             }
@@ -1047,18 +1092,18 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 54180
+        "ms": 94679
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 383.3,
-      "p95Ms": 433.3,
-      "worstMs": 466.7
+      "medianMs": 333.3,
+      "p95Ms": 366.7,
+      "worstMs": 400.1
     },
     "inspect": {
       "booted": true,
-      "screen": "pause",
+      "screen": "playing",
       "avatarSelf": "stand-in",
       "avatarSelfInFrame": false,
       "avatarOthers": 0,
@@ -1077,16 +1122,16 @@
       "partyFormat": "tournament",
       "difficulty": "pro",
       "length": 2,
-      "phase": "rally",
+      "phase": "serve",
       "server": 0,
-      "points": "0-0",
+      "points": "0-1",
       "games": "0-0",
       "rally": 0,
       "matchOpen": true,
       "resultsSent": 0,
       "muted": false,
       "position": [
-        0.9,
+        -0.9,
         0,
         12.235
       ],

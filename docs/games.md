@@ -93,6 +93,12 @@ Leaving has its own four messages (`exit`, `departure`, `departure-staging`,
 walkable arrival state, never from a dead end. See
 [games/departure.md](games/departure.md).
 
+Loading and pausing add `progress`, `first-frame`, `frame`, `pause` and
+`resume`, with four rules every game follows (progress while preparing, a
+first-frame signal, redraw on resize, solo games pause and multiplayer
+matches don't) and one pause for a hidden tab, a page menu and the page's
+input pause: [games/loading-and-pausing.md](games/loading-and-pausing.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
@@ -135,7 +141,7 @@ trip frame by frame:
     departure → `arrival` → the game frames the visitor and answers
     `arrival-ready` → the lobby hides and the game shows → `entered`.
 
-What a game does with it (Ace's `goArrive` in `games/ace/src/main.js` is the
+What a game does with it (Ace's `goArrive` in `games/ace/src/game.js` is the
 reference):
 
 1. Scale the offsets by its own avatar height over `avatarHeight`.
@@ -266,6 +272,11 @@ with the lobby's first.
 Every game also gets the party stage ([games/party.md](games/party.md)): its
 `party` statement in `game.json`, the options it offers by party size, and a
 member dropped mid-match.
+
+The loading stage ([games/loading-and-pausing.md](games/loading-and-pausing.md))
+runs on the live game right after the scenario, before the departure
+stage: time to the first frame, progress before it, no blank canvas on a
+resize, and state held across a page menu and a hidden tab.
 
 Every finished match reports exactly one result
 ([games/results.md](games/results.md)). The check records the results a

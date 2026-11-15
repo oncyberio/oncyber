@@ -23,7 +23,9 @@
     "./results": "./src/results.ts",
     "./devices": "./src/devices.ts",
     "./device-controls": "./src/deviceControls.ts",
-    "./device-check": "./src/deviceCheck.ts"
+    "./device-check": "./src/deviceCheck.ts",
+    "./loading": "./src/loading.ts",
+    "./pausing": "./src/pausing.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"
