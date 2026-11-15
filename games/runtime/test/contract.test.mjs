@@ -182,6 +182,7 @@ test("enter() hands the game the arrival and the trip, and inspect() reports the
         hostArrival: "lobby",
         hostParty: 3,
         hostPartyArrived: 1,
+        hostInputPaused: false,
     });
 });
 

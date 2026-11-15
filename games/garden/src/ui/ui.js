@@ -138,10 +138,8 @@ export function createUI(app) {
             app.lookChanged();
         }
     });
-    nameInput.addEventListener("keydown", (e) => {
-        e.stopPropagation();
-        if (e.key === "Enter") nameInput.blur();
-    });
+    // Enter commits a text field, which fires `change`.
+    nameInput.addEventListener("change", () => nameInput.blur());
     $("#d-call").addEventListener("click", () => app.callOne(ui.detailId));
     ui.refreshDetails = (garden, force) => {
         const b = garden.bloomlings.find((x) => x.data.id === ui.detailId);

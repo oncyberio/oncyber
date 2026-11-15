@@ -38,6 +38,11 @@ import { attachVRM, driveVRM, loadVRM } from "./vrm.js";
 const $ = (s) => document.querySelector(s);
 /** For playtests: the live game, set while one exists. */
 export const debugHooks = {};
+/**
+ * For the host: `muted(muted)` while a game exists. The page's sound switch
+ * arrives through the host's keys binder (docs/games/keys-focus.md).
+ */
+export const pageSound = {};
 
 export default function createGame(context) {
     const { graphics, services } = context;
@@ -159,6 +164,7 @@ export default function createGame(context) {
         camMode: "orbit",
         camT: 0,
         paused: false,
+        inputPaused: false,
         hintPoints: 0,
         rally: 0,
         matchEndAt: 0,
@@ -444,7 +450,7 @@ export default function createGame(context) {
         focusPartyFormat(0);
     }
 
-    // The formats are a keyboard menu too: arrows move, Enter picks.
+    // The formats are a keyboard menu too: arrows move, Space picks.
     function focusPartyFormat(index) {
         const items = [...document.querySelectorAll("#party-formats .pill")];
         if (!items.length) return;
@@ -710,8 +716,9 @@ export default function createGame(context) {
         if (state.screen === "title" || state.screen === "results")
             sound.startMusic(audio, "title");
     };
+    // The first click or tap; the first key does too, when its action
+    // arrives (handleMenuInput).
     on(window, "pointerdown", unlock, { once: true });
-    on(window, "keydown", unlock, { once: true });
 
     function menuNav(name, dir) {
         if (dir === "up" || dir === "left")
@@ -726,7 +733,6 @@ export default function createGame(context) {
 
     function handleMenuInput(events) {
         for (const e of events) {
-            if (e.type === "mute") toggleSound();
             if (e.type === "confirm" || e.type === "shot" || e.type === "nav")
                 sound.unlockAudio(audio);
             const s = state.screen;
@@ -771,7 +777,7 @@ export default function createGame(context) {
                 if (e.type === "confirm") action("start");
                 if (e.type === "back") action("back");
             } else if (s === "arrive") {
-                // Arrows and WASD walk here, so only Enter acts.
+                // Arrows and WASD walk here, so only confirm (Space, J) acts.
                 if (e.type === "confirm") action("play");
             } else if (s === "party") {
                 if (e.type === "nav")
@@ -1467,6 +1473,10 @@ export default function createGame(context) {
         handleMenuInput(raw.events);
         const e = state.engine;
         if (!e || !world) return;
+        // Input is paused by the page (the visitor types, or its menu is
+        // open): the match and its timers stand still until it resumes.
+        const frozen = state.screen === "playing" && state.inputPaused;
+        if (frozen) dt = 0.0001;
         // Timers run on game time and stop with the pause menu.
         if (state.screen !== "pause") now += dt;
         for (const timer of timers.filter((t) => t.at <= now)) {
@@ -1474,7 +1484,9 @@ export default function createGame(context) {
             timer.run();
         }
         const live = state.screen === "playing" || state.attract;
-        if (state.screen === "playing" && !state.paused) {
+        if (frozen) {
+            // Nothing moves.
+        } else if (state.screen === "playing" && !state.paused) {
             const events = update(e, humanInput(raw), dt);
             handleEvents(events);
         } else if (state.attract) {
@@ -1637,7 +1649,22 @@ export default function createGame(context) {
         clearTimeout(bannerTimer);
         renderer.dispose();
         delete debugHooks.game;
+        delete pageSound.muted;
     }
+
+    // The page owns Escape, Enter and M (docs/games/keys-focus.md). While
+    // the visitor types in the page or its menu is open, the match stands
+    // still (frame()).
+    function inputPaused(paused) {
+        state.inputPaused = paused;
+        if (paused) sound.chargeStop(audio);
+    }
+    // The page's sound switch: obey it. The game's own sound button saves
+    // `muted` through the page, so the two stay in step.
+    pageSound.muted = (muted) => {
+        sound.setMuted(audio, muted);
+        refreshSoundLabels();
+    };
 
     /** Facts the checks assert on (scenario.json). */
     function inspect() {
@@ -1663,6 +1690,11 @@ export default function createGame(context) {
             games: playing ? `${m.games[0]}-${m.games[1]}` : "",
             rally: state.rally,
             muted: !!audio.muted,
+            // For the keys check: the visitor's player, and the freeze.
+            position: e?.athletes[0]
+                ? [e.athletes[0].x, 0, e.athletes[0].z]
+                : null,
+            frozen: state.inputPaused,
         };
     }
 
@@ -1688,5 +1720,6 @@ export default function createGame(context) {
         dispose,
         inspect,
         party,
+        inputPaused,
     };
 }

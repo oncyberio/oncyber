@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GAME_CHAT_ATTRIBUTE } from "./gameInput";
 import type { GameSocialView } from "./useGameSocial";
 
 const pill = {
@@ -19,8 +20,11 @@ const pill = {
 export default function GameChat({
     social,
     onClose,
+    openRequest = 0,
 }: {
     social: GameSocialView;
+    /** Changes when the visitor asks for chat with Enter (keys-focus.md). */
+    openRequest?: number;
     /** Give the keyboard back to the game. */
     onClose(): void;
 }) {
@@ -39,6 +43,11 @@ export default function GameChat({
     useEffect(() => {
         if (open) input.current?.focus();
     }, [open]);
+    useEffect(() => {
+        if (!openRequest) return;
+        setOpen(true);
+        input.current?.focus();
+    }, [openRequest]);
     const close = () => {
         setOpen(false);
         onClose();
@@ -128,6 +137,7 @@ export default function GameChat({
                     >
                         <input
                             ref={input}
+                            {...{ [GAME_CHAT_ATTRIBUTE]: "" }}
                             value={draft}
                             maxLength={500}
                             disabled={!connected}

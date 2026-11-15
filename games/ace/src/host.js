@@ -1,16 +1,18 @@
-import { RuntimeSession } from "@oncyber/game-runtime";
-import { bindBrowserInput } from "@oncyber/game-runtime/browser";
+import { GAME_MESSAGE_PREFIX, RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { connectPage } from "@oncyber/game-runtime/page";
 import manifest from "../game.json";
 import scenario from "../scenario.json";
 import { COURT } from "./config.js";
-import createGame, { debugHooks } from "./game.js";
+import createGame, { debugHooks, pageSound } from "./game.js";
 import { bindDevices } from "./input.js";
 import "./style.css";
 
 // The browser host for ACE! Tennis: it runs the game through the lifecycle
-// (WebGL 2 on the page's canvas), binds the devices to the declared actions,
+// (WebGL 2 on the page's canvas), binds the keyboard and the devices to the
+// declared actions (the page owns Escape, Enter and M, and pauses input
+// while the visitor types: docs/games/keys-focus.md),
 // and implements the services the game declares: saved settings, the
 // visitor's avatar bytes and travel back to the lobby, all through the
 // Oncyber game page when embedded. Standalone (vite dev) it plays on
@@ -117,7 +119,14 @@ async function start() {
         sendUI() {},
         now: () => performance.now(),
     });
-    const unbindKeys = bindBrowserInput(session, manifest.runtime);
+    // The keyboard, as the declared actions. The binder hands the page its
+    // keys, and stops and resumes the session's input on the page's word.
+    const keys = bindSessionKeys(session, {
+        game: "ace",
+        prefix: GAME_MESSAGE_PREFIX,
+        input: manifest.runtime.input,
+        muted: (muted) => pageSound.muted?.(muted),
+    });
     const devices = bindDevices(session, canvas, document.querySelector(".touch-pad"));
     if (params.has("qa") || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
         window.__ace = debugHooks;
@@ -209,7 +218,7 @@ async function start() {
     const dispose = () => {
         if (!alive) return;
         alive = false;
-        unbindKeys();
+        keys.dispose();
         devices.dispose();
         page.dispose();
         void session.dispose();

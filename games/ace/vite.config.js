@@ -14,6 +14,10 @@ export default defineConfig({
                 replacement: `${runtime}/$1.ts`,
             },
             {
+                find: /^@oncyber\/game-runtime\/keys-browser$/,
+                replacement: `${runtime}/keysBrowser.ts`,
+            },
+            {
                 find: /^@oncyber\/game-runtime$/,
                 replacement: `${runtime}/index.ts`,
             },

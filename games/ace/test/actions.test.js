@@ -72,7 +72,7 @@ test("cut and topspin together play a drop shot", () => {
     ]);
 });
 
-test("one key can be a shot and a menu action; Escape pauses without backing out", () => {
+test("one key can be a shot and a menu action; a pause doesn't also back out", () => {
     assert.deepEqual(
         types(
             readActions(
@@ -86,8 +86,9 @@ test("one key can be a shot and a menu action; Escape pauses without backing out
         "pause",
     ]);
     assert.deepEqual(types(readActions(context({}, ["back"]), {})), ["back"]);
+    // Sound is the page's switch (docs/games/keys-focus.md): no action mutes.
     assert.deepEqual(
         types(readActions(context({ down: 1 }, ["down", "mute"]), {})),
-        ["mute", "down"]
+        ["down"]
     );
 });

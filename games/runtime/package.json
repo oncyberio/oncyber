@@ -11,7 +11,9 @@
     "./contract": "./src/contract.ts",
     "./manifest": "./src/manifest.ts",
     "./page": "./src/page.ts",
-    "./voice": "./src/voice.ts"
+    "./voice": "./src/voice.ts",
+    "./keys": "./src/keys.ts",
+    "./keys-browser": "./src/keysBrowser.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

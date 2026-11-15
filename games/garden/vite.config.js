@@ -44,6 +44,7 @@ export default defineConfig({
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
             { find: /^@oncyber\/game-runtime\/voice$/, replacement: `${runtime}/voice.ts` },
+            { find: /^@oncyber\/game-runtime\/keys-browser$/, replacement: `${runtime}/keysBrowser.ts` },
             { find: /^@oncyber\/game-runtime$/, replacement: `${runtime}/index.ts` },
         ],
     },

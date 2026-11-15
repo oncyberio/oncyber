@@ -1,18 +1,30 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T18:20:00.065Z",
-  "status": "passed",
+  "checkedAt": "2026-11-15T11:52:32.776Z",
+  "status": "failed",
   "scope": "scenario",
   "files": {
     "count": 6,
-    "bytes": 1809587,
+    "bytes": 1813538,
     "largest": {
-      "path": "assets/index-DIYw8mI3.js",
-      "bytes": 961102
+      "path": "assets/index-DXGTQLhZ.js",
+      "bytes": 965053
     }
   },
-  "findings": [],
+  "findings": [
+    {
+      "code": "STAGE_SOCIAL",
+      "message": "GAME_NOT_READY: the game did not say ready for both visitors"
+    }
+  ],
+  "social": {
+    "stage": "social",
+    "status": "failed",
+    "ms": 120302,
+    "error": "GAME_NOT_READY: the game did not say ready for both visitors",
+    "facts": {}
+  },
   "consoleErrors": [],
   "contract": {
     "listed": true,
@@ -28,17 +40,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 1726,
+    "bootMs": 1551,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1726
+        "ms": 1551
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 132237
+        "ms": 134449
       },
       {
         "stage": "lifecycle",
@@ -48,14 +60,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 69440
+        "ms": 74881
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 383.3,
-      "p95Ms": 466.7,
-      "worstMs": 483.4
+      "medianMs": 416.6,
+      "p95Ms": 483.3,
+      "worstMs": 533.3
     },
     "inspect": {
       "booted": true,
@@ -74,11 +86,46 @@
       "games": "0-0",
       "rally": 0,
       "muted": false,
+      "position": [
+        0.9,
+        0,
+        12.235
+      ],
+      "frozen": false,
       "hostPhase": "entered",
-      "hostFrames": 554,
+      "hostFrames": 555,
       "hostArrival": "lobby",
       "hostParty": 4,
-      "hostPartyArrived": 4
+      "hostPartyArrived": 4,
+      "hostInputPaused": false
     }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 19,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 15,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
   }
 }

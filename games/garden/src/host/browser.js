@@ -1,4 +1,5 @@
-import { bindBrowserInput, browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
+import { browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
+import { bindSessionKeys, relayPageKeys } from "@oncyber/game-runtime/keys-browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import scenario from "../../scenario.json";
@@ -50,11 +51,13 @@ const fail = (message) => {
 // ------------------------------------------------------------- services
 
 const audio = createAudio();
+// What the game believes about sound; the page can say otherwise (bindKeys).
+let gameMuted = false;
+let pageMuted = null;
 // Audio may only start inside a user gesture. A tap in the UI frame also
 // activates this document, so unlock on the UI's first action and on our own.
 const unlock = () => unlockAudio(audio);
 window.addEventListener("pointerdown", unlock, { capture: true });
-window.addEventListener("keydown", unlock, { capture: true });
 window.addEventListener("message", (event) => {
     if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") unlock();
 });
@@ -124,7 +127,10 @@ async function call(capability, operation, value) {
     }
     if (capability === "audio") {
         if (operation === "mute") {
-            setMuted(audio, !!value?.muted);
+            gameMuted = !!value?.muted;
+            // The visitor used the game's own sound button: that stands.
+            if (pageMuted !== gameMuted) pageMuted = null;
+            setMuted(audio, gameMuted);
             page.storage.set("muted", value?.muted ? "1" : "0");
             return true;
         }
@@ -185,7 +191,6 @@ async function createFallbackSession(options) {
             createImageBitmap(new Blob([bytes], { type: mimeType }), { premultiplyAlpha: "none", colorSpaceConversion: "none" }),
     };
     session = new RuntimeSession(options.factory, { ...options, graphics, sendUI: bridge.publish, now: () => performance.now() });
-    const cleanup = bindBrowserInput(session, options.manifest);
     let last = performance.now();
     let alive = true;
     let held = false;
@@ -220,11 +225,45 @@ async function createFallbackSession(options) {
         },
         async dispose() {
             alive = false;
-            cleanup();
             bridge.dispose();
             await session.dispose();
         },
     };
+}
+
+/**
+ * Keys and focus (docs/games/keys-focus.md). Keys reach the session as
+ * declared actions, whichever frame has the focus; Escape, Enter and M go
+ * to the page; the page's pause stops all input; its sound switch wins.
+ */
+function bindKeys(session, input) {
+    // The game owns its sound flag and flips it on the `mute` action, so
+    // ask it to, once it is taking input again.
+    const settle = () => {
+        if (pageMuted === null || pageMuted === gameMuted || session.inputPaused || session.phase !== "entered") return;
+        session.action("mute", 1);
+        setTimeout(() => session.phase === "entered" && session.action("mute", 0), 120);
+    };
+    const keys = bindSessionKeys(session, {
+        game: "garden",
+        input,
+        muted(muted) {
+            pageMuted = muted;
+            setMuted(audio, muted);
+            settle();
+        },
+        probe() {
+            const facts = session.inspect();
+            return { ...facts, position: [facts.playerX, 0, facts.playerZ], muted: audio.muted };
+        },
+    });
+    const stopRelay = relayPageKeys(frame, "garden");
+    const resumed = setInterval(settle, 500);
+    page.on("dispose", () => {
+        clearInterval(resumed);
+        stopRelay();
+        keys.dispose();
+    });
 }
 
 async function start() {
@@ -258,6 +297,7 @@ async function start() {
     }
     if (!host) backend = "webgl2";
     if (!host) host = await createFallbackSession({ ...options, factory: createGame });
+    bindKeys(host.session, options.manifest.input);
     frame.src = "./ui.html";
     // Playtest hooks: with ?qa, or on a local dev server.
     if (params.has("qa") || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {

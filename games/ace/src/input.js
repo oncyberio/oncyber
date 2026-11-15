@@ -1,6 +1,8 @@
 // Mouse, touch and gamepad bound to the declared actions (game.json). The
-// keyboard is bound by the runtime from the manifest. Nothing here knows the
-// game: it only calls session.action(name, value) and session.delta().
+// keyboard is bound by the runtime's page keys binder (host.js), so this
+// file adds no key listeners (docs/games/keys-focus.md). Nothing here knows
+// the game: it only calls session.action(name, value) and session.delta(),
+// which take nothing while the page has paused input.
 
 export function bindDevices(session, canvas, touchRoot) {
     const live = new AbortController();
@@ -119,6 +121,12 @@ export function bindDevices(session, canvas, touchRoot) {
     const padHeld = new Set();
     let stickLive = false;
     const poll = () => {
+        // Paused by the page: read nothing, so a button still down when
+        // input resumes counts as a new press.
+        if (session.inputPaused) {
+            padHeld.clear();
+            return;
+        }
         const now = new Set();
         let ax = 0;
         let ay = 0;

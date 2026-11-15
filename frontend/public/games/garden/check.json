@@ -1,20 +1,42 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-14T18:15:55.233Z",
+  "checkedAt": "2026-11-15T11:56:55.448Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1334557,
+    "bytes": 1349124,
     "largest": {
-      "path": "assets/index-ac7f7IRj.js",
-      "bytes": 998102
+      "path": "assets/index-Cn4brTz_.js",
+      "bytes": 1007160
     }
   },
   "findings": [],
+  "social": {
+    "stage": "social",
+    "status": "passed",
+    "ms": 3420,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "hello",
+        "ready",
+        "pose",
+        "storage"
+      ]
+    }
+  },
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:39583/games/garden/assets/index-ac7f7IRj.js:1:10430)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42859/games/garden/assets/index-Cn4brTz_.js:1:14032)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -40,17 +62,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1489,
+    "bootMs": 1224,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1489
+        "ms": 1224
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 944
+        "ms": 912
       },
       {
         "stage": "lifecycle",
@@ -60,7 +82,7 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3017
+        "ms": 3018
       }
     ],
     "frames": {
@@ -81,11 +103,44 @@
       "avatar": "vrm",
       "online": false,
       "peers": 0,
+      "talking": 0,
       "offers": 0,
       "playerX": 0,
       "playerZ": 11.4,
       "hostPhase": "entered",
-      "hostFrames": 236
+      "hostFrames": 236,
+      "hostArrival": "",
+      "hostParty": 0,
+      "hostPartyArrived": 0,
+      "hostInputPaused": false
     }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 28,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 18,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
   }
 }

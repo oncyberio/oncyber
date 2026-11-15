@@ -107,6 +107,8 @@ export interface PortableGame {
      * party's room or left it. Never called before `enter()`.
      */
     party?(trip: Trip | null): void;
+    /** The visitor is typing in the page or a page menu is open (true), or is back (false). */
+    inputPaused?(paused: boolean, reason: string): void;
 }
 export type GameFactory = (context: GameContext) => PortableGame;
 export interface RuntimeOptions {
@@ -170,6 +172,13 @@ export class RuntimeSession {
     private options: RuntimeOptions;
     /** What the last `enter()` was told about the visit; the checks read it through `inspect()`. */
     private visit: { arrival: string; trip: Trip | null } = { arrival: "", trip: null };
+    /** While true the session takes no actions or deltas (docs/games/keys-focus.md). */
+    inputPaused = false;
+    setInputPaused(paused: boolean, reason = "page") {
+        if (this.inputPaused === paused || this.phase === "disposed" || this.phase === "failed") return;
+        this.inputPaused = paused; this.clearInput();
+        this.game.inputPaused?.(paused, paused ? reason : "");
+    }
     constructor(factory: GameFactory, options: RuntimeOptions) {
         this.options = options;
         for (const key of Object.keys(options.manifest.input)) this.input[key] = this.deltas[key] = 0;
@@ -265,7 +274,7 @@ export class RuntimeSession {
     action(action: string, value = 1) {
         this.assertLive();
         if (!Object.hasOwn(this.input, action) || !Number.isFinite(value) || Math.abs(value) > 1) throw new Error("INPUT_ACTION_INVALID");
-        if (this.phase === "entered") {
+        if (this.phase === "entered" && !this.inputPaused) {
             if (value > 0 && this.input[action] <= 0) this.presses.add(action);
             this.input[action] = value;
         }
@@ -273,7 +282,7 @@ export class RuntimeSession {
     delta(action: string, value: number) {
         this.assertLive();
         if (!Object.hasOwn(this.deltas, action) || !Number.isFinite(value) || Math.abs(value) > 1) throw new Error("INPUT_ACTION_INVALID");
-        if (this.phase === "entered") this.deltas[action] = Math.max(-64, Math.min(64, this.deltas[action] + value));
+        if (this.phase === "entered" && !this.inputPaused) this.deltas[action] = Math.max(-64, Math.min(64, this.deltas[action] + value));
     }
     clearInput() { for (const key of Object.keys(this.input)) this.input[key] = this.deltas[key] = 0; this.presses.clear(); }
     tick(seconds: number) {
@@ -293,7 +302,8 @@ export class RuntimeSession {
         const { arrival, trip } = this.visit;
         return compactJSON({ ...this.game.inspect(), hostPhase: this.phase, hostFrames: this.frames,
             // What enter() was handed: "" when the game's host passed no arrival.
-            hostArrival: arrival, hostParty: trip?.size ?? 0, hostPartyArrived: trip ? trip.arrived.length + 1 : 0 });
+            hostArrival: arrival, hostParty: trip?.size ?? 0, hostPartyArrived: trip ? trip.arrived.length + 1 : 0,
+            hostInputPaused: this.inputPaused });
     }
     dispose(): Promise<void> {
         if (this.stop) return this.stop;
@@ -392,3 +402,5 @@ export class Journey {
         } finally { this.moving = false; }
     }
 }
+
+export * from "./keys.ts";

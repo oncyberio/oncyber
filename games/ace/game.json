@@ -141,7 +141,6 @@
       },
       "confirm": {
         "keyboard": [
-          "Enter",
           "Space",
           "KeyJ"
         ],
@@ -150,7 +149,6 @@
       },
       "back": {
         "keyboard": [
-          "Escape",
           "Backspace",
           "KeyK"
         ],
@@ -158,19 +156,23 @@
       },
       "pause": {
         "keyboard": [
-          "Escape",
           "KeyP"
         ],
         "gamepad": "button-start"
-      },
-      "mute": {
-        "keyboard": [
-          "KeyM"
-        ]
       },
       "lookX": {
         "touch": "drag"
       }
     }
+  },
+  "keysCheck": {
+    "start": [
+      "Space",
+      "Space"
+    ],
+    "ready": {
+      "screen": "playing"
+    },
+    "move": "KeyD"
   }
 }

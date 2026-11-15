@@ -35,9 +35,8 @@ export function readActions({ input, pressed }, memory) {
     memory.shotHeld = shotHeld;
     if (pressed.pause) events.push({ type: "pause" });
     if (pressed.confirm) events.push({ type: "confirm" });
-    // Escape is both; one press pauses, it doesn't also back out of it.
+    // One press that is both pauses, it doesn't also back out of it.
     if (pressed.back && !pressed.pause) events.push({ type: "back" });
-    if (pressed.mute) events.push({ type: "mute" });
     for (const dir of NAV) if (pressed[dir]) events.push({ type: "nav", dir });
     return { x, y, events };
 }

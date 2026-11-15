@@ -14,7 +14,7 @@ third-person framing: `continuity.arrival.view` is the lobby camera, the
 game stands the visitor beside the near baseline with the same camera offset
 and field of view, facing the camera and crouched as the lobby left them.
 The host holds the clock until the lobby lets go, then they stand up. From
-there WASD walks, dragging looks around, and **Play match** (Enter) opens the
+there WASD walks, dragging looks around, and **Play match** (Space) opens the
 match setup. Leaving a match or the setup returns here. A direct visit to
 `/games/ace` opens on the title screen instead.
 
@@ -23,7 +23,7 @@ match setup. Leaving a match or the setup returns here. A direct visit to
 When the visitor arrived with a party (`continuity.trip`, then `party(trip)`
 as members arrive in the party's room), **Play match** opens the party's
 formats first: 1 v 1, 2 v 2, a tournament, or a solo match against the CPU
-(arrows and Enter work too). `game.json` declares the formats by party size;
+(arrows and Space work too). `game.json` declares the formats by party size;
 `src/party.js` offers them and builds the draw, and a test keeps the two in
 step. Head-to-head play is not built yet; the draw is shown, and the solo
 match works. Try it with `?party=4` on the development server, or
@@ -42,7 +42,7 @@ match works. Try it with `?party=4` on the development server, or
   will land.
 - **Serve:** press once to toss, again at the top. Timing sets pace and accuracy.
 - Real tennis scoring (deuce, advantage, faults, lets, net cords), 1, 3 or 5
-  games. **Esc / P** pauses, **M** mutes.
+  games. **P** pauses. Esc (menu), Enter (chat) and M (sound) belong to the page.
 
 ## Code map
 

@@ -32,6 +32,10 @@ jest.mock("@utils/lobbyGroupContext", () => ({
 // Layers with tests of their own; this file is about the contract.
 jest.mock("./useGameSocial", () => ({ useGameSocial: () => ({}) }));
 jest.mock("./GameChat", () => ({ __esModule: true, default: () => null }));
+jest.mock("./GameInputLayer", () => ({
+    __esModule: true,
+    default: () => null,
+}));
 // The party's room: connects at once as "room-me" with whoever `mockPeers` holds.
 let mockPeers: any[] = [];
 jest.mock("./gameRoom", () => ({

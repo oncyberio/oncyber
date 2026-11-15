@@ -40,6 +40,7 @@ import {
 } from "./gameContract";
 import { useGameSocial } from "./useGameSocial";
 import GameChat from "./GameChat";
+import GameInputLayer from "./GameInputLayer";
 
 const PEER_INTERVAL = 100;
 
@@ -160,6 +161,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
         selfName: identity?.name,
         room,
     });
+    // Enter is the page's key for chat (docs/games/keys-focus.md).
+    const [chatRequest, setChatRequest] = useState(0);
     const leave = useRef(() => {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
@@ -559,6 +562,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             {ready && !error && roomLabel && (
                 <GameChat
                     social={social}
+                    openRequest={chatRequest}
                     onClose={() => frame.current?.focus()}
                 />
             )}
@@ -576,6 +580,17 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 >
                     {roomState.voiceError}
                 </p>
+            )}
+            {!error && (
+                <GameInputLayer
+                    game={GAME}
+                    title={gameName}
+                    frame={frame}
+                    send={send.current}
+                    fromGame={fromGame}
+                    onLeave={leave.current}
+                    onChat={() => setChatRequest((n) => n + 1)}
+                />
             )}
             {error && (
                 <div
