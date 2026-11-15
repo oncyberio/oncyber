@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 
 test(
-  "the real avatar visits with native movement, jumps and emotes, then returns cleanly to padel",
+  "a real avatar plays padel: recovery walks, charged footwork and stroke preparation",
   {
     skip:
       typeof nodeModule.registerHooks !== "function" &&
@@ -56,14 +56,14 @@ test(
       THREE.AnimationMixer.prototype.clipAction = originalClipAction;
     });
     const { createPadelAvatar } = await import("./avatars.js");
-    const avatar = await createPadelAvatar();
+    // The site's own texture-free avatar (Node decodes no images), read the
+    // way a match body reads an NPC model.
+    const avatar = await createPadelAvatar({
+      url: new URL("../../../frontend/public/models/pfp.vrm", import.meta.url)
+        .href,
+    });
     t.after(() => avatar.dispose());
     assert.equal(avatar.root.userData.proceduralFallback, false);
-    assert.equal(
-      avatar.travelYawOffset,
-      Math.PI,
-      "VRM0 travel views import the native lobby's raw facing basis"
-    );
     const body = avatar.root.getObjectByName("padel-body");
     const racket = avatar.root.getObjectByName("padel-racket");
     const hips = avatar.root.getObjectByName("Normalized_Hips");
@@ -75,7 +75,6 @@ test(
     const pose = () =>
       bones.map((node) => [node.position.toArray(), node.quaternion.toArray()]);
     const state = {
-      animationMode: "visit",
       x: 2,
       y: 0,
       z: 4,
@@ -91,7 +90,7 @@ test(
       assert.deepEqual(
         avatar.root.position.toArray(),
         [state.x, state.y, state.z],
-        "the visitor controller owns the complete physics root"
+        "the simulation owns the complete physics root"
       );
       assert.ok(Math.abs(avatar.root.rotation.y - state.yaw) < 1e-8);
       assert.ok(
@@ -105,146 +104,6 @@ test(
     const settle = (frames = 70) => {
       for (let i = 0; i < frames; i++) tick();
     };
-    const noPadelWeights = () => {
-      for (const [name, action] of actions)
-        if (name.startsWith("padel-"))
-          assert.equal(
-            action.getEffectiveWeight(),
-            0,
-            `visitors cannot retain ${name}`
-          );
-    };
-    avatar.setFirstPerson(true);
-    assert.equal(body.visible, false);
-    tick(0);
-    assert.equal(
-      body.visible,
-      true,
-      "entering the social world restores the avatar after a first-person match"
-    );
-    assert.equal(racket.visible, false);
-    assert.equal(avatar.root.userData.motion, "idle");
-    noPadelWeights();
-    avatar.setFirstPerson(true);
-    assert.equal(
-      body.visible,
-      true,
-      "a stale match camera request cannot hide a visitor"
-    );
-    const idlePose = pose();
-    for (let i = 0; i < 10; i++) tick(0);
-    assert.deepEqual(
-      pose(),
-      idlePose,
-      "paused visitors must not flash into a bind or athletic pose"
-    );
-
-    // Native travel points in every world direction, including what was the
-    // backpedal direction during a match. This is a free-walking visitor.
-    for (const [speed, yaw] of [
-      [1.4, 0],
-      [2.8, Math.PI / 2],
-      [5.2, Math.PI],
-      [7.4, -Math.PI / 2],
-    ]) {
-      Object.assign(state, {
-        yaw,
-        vx: Math.sin(yaw) * speed,
-        vz: Math.cos(yaw) * speed,
-        action: "run",
-      });
-      for (let i = 0; i < 80; i++) {
-        state.x += state.vx * dt;
-        state.z += state.vz * dt;
-        tick();
-      }
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
-        head.getWorldQuaternion(new THREE.Quaternion())
-      );
-      const travel = new THREE.Vector3(state.vx, 0, state.vz).normalize();
-      forward.y = 0;
-      assert.ok(
-        forward.normalize().dot(travel) > 0.88,
-        "the visitor's actual face should follow travel instead of staying locked to the net"
-      );
-      assert.equal(avatar.root.userData.motion, "locomotion");
-      assert.equal(racket.visible, false);
-      noPadelWeights();
-    }
-    assert.ok(actions.get("sprint:upper").getEffectiveWeight() > 0.99);
-    Object.assign(state, { vx: 0, vz: 0, action: "idle" });
-    settle();
-    const restHipY = hips.position.y;
-    Object.assign(state, {
-      action: "load",
-      actionTime: 0.08,
-      jumpWindup: 0.13,
-    });
-    settle(6);
-    assert.equal(avatar.root.userData.motion, "load");
-    Object.assign(state, {
-      action: "jump",
-      grounded: false,
-      y: 0.8,
-      actionTime: 0.2,
-    });
-    settle(25);
-    assert.equal(avatar.root.userData.motion, "air");
-    assert.ok(
-      Math.abs(hips.position.y - restHipY) < 0.12,
-      "flight cannot add another jump on top of controller height"
-    );
-    const airPose = pose();
-    for (let i = 0; i < 10; i++) tick(0);
-    assert.deepEqual(
-      pose(),
-      airPose,
-      "paused flight must not accumulate hip-height correction"
-    );
-    Object.assign(state, { grounded: true, y: 0, action: "idle" });
-    tick();
-    assert.equal(avatar.root.userData.motion, "landing");
-    settle();
-    assert.equal(avatar.root.userData.motion, "idle");
-
-    assert.equal(await avatar.preloadEmotes(), true);
-    for (const emote of ["WAVE", "HIPHOP", "FLOORSITTING", "DEATH"]) {
-      Object.assign(state, { emote, emoteTime: 4, emoteLoop: false });
-      settle();
-      assert.equal(
-        avatar.root.userData.motion,
-        `emote:${emote === "WAVE" ? "waving" : emote.toLowerCase()}`
-      );
-      noPadelWeights();
-      let floor = Infinity;
-      body.traverse((mesh) => {
-        const positions = mesh.geometry?.getAttribute?.("position");
-        if (!mesh.isMesh || !positions) return;
-        const stride = Math.max(1, Math.ceil(positions.count / 64));
-        for (let i = 0; i < positions.count; i += stride) {
-          const p = mesh
-            .getVertexPosition(i, new THREE.Vector3())
-            .applyMatrix4(mesh.matrixWorld);
-          floor = Math.min(floor, p.y - state.y);
-        }
-      });
-      assert.ok(
-        floor > -0.005,
-        `${emote} should not sink through the floor (${floor})`
-      );
-    }
-    Object.assign(state, { vx: 3, vz: 0, yaw: Math.PI / 2, action: "run" });
-    for (let i = 0; i < 60; i++) {
-      state.x += state.vx * dt;
-      tick();
-    }
-    assert.equal(
-      avatar.root.userData.motion,
-      "locomotion",
-      "movement interrupts a remote or local emote"
-    );
-    assert.equal(actions.get("death:upper").getEffectiveWeight(), 0);
-
     Object.assign(state, {
       animationMode: "match",
       action: "idle",
@@ -259,10 +118,15 @@ test(
     assert.equal(racket.visible, true);
     assert.equal(body.position.y, 0);
     assert.equal(avatar.root.userData.motion, "ready");
-    assert.equal(actions.get("idle:upper").getEffectiveWeight(), 0);
     assert.equal(actions.get("padel-ready:upper").getEffectiveWeight(), 1);
-    for (const name of ["falling", "drop_idle", "death", "hiphop"])
-      assert.equal(actions.get(`${name}:upper`).getEffectiveWeight(), 0);
+    // No lobby jump, emote or travel clip is loaded into a match body.
+    for (const name of ["idle", "falling", "death", "hiphop", "TRAVEL_CROUCH"])
+      assert.equal(actions.has(`${name}:upper`), false);
+    // First person hides the body; leaving it restores the body.
+    avatar.setFirstPerson(true);
+    assert.equal(body.visible, false);
+    avatar.setFirstPerson(false);
+    assert.equal(body.visible, true);
     // Recovery walks face the service formation instead of moonwalking with
     // the live-rally backpedal. Root orientation remains simulation-owned.
     Object.assign(state, { recovering: true, action: "walk", vx: 0, vz: 2.2 });
@@ -431,164 +295,5 @@ test(
     });
     settle(15);
     assert.equal(avatar.root.userData.motion, "forehand-prepare");
-    Object.assign(state, { animationMode: "visit", emote: null });
-    tick(0);
-    assert.equal(
-      avatar.root.userData.motion,
-      "idle",
-      "stale charge or stroke fields must never enter visitor animation"
-    );
-    assert.equal(racket.visible, false);
-    noPadelWeights();
-
-    await Promise.all([avatar.prepareTravel(), avatar.prepareTravel()]);
-    Object.assign(state, {
-      animationMode: "travel",
-      x: 2,
-      y: 0.65,
-      z: -4,
-      yaw: 0.6,
-      vx: 4,
-      vz: 3,
-      action: "jump",
-      grounded: false,
-      travelPose: { name: "TRAVEL_CROUCH_IDLE", time: 0.42 },
-    });
-    tick(0);
-    assert.equal(avatar.root.userData.motion, "travel:TRAVEL_CROUCH_IDLE");
-    assert.equal(racket.visible, false);
-    assert.equal(
-      body.rotation.y,
-      0,
-      "the arrival view owns the exact actor heading"
-    );
-    assert.equal(
-      body.position.y,
-      0,
-      "authored crouching cannot receive another visual height offset"
-    );
-    const heldCrouch = pose();
-    for (let i = 0; i < 20; i++) tick();
-    assert.deepEqual(
-      pose(),
-      heldCrouch,
-      "arrival pose time is externally sampled, not advanced by a second local clock"
-    );
-    const crouchHeight = hips.position.y;
-    assert.ok(
-      crouchHeight < 0.65,
-      "the actual VRM must reach the packed crouch depth even if stale flight fields exist"
-    );
-    assert.ok(
-      Math.abs(hips.position.z) > 0.005,
-      "preserve the source pelvis sway instead of flattening every horizontal travel key"
-    );
-    const cycle = actions.get("TRAVEL_CROUCH_IDLE:upper").getClip().duration;
-    state.travelPose.time += cycle;
-    tick(0);
-    bones.forEach((node, i) => {
-      assert.ok(
-        node.quaternion
-          .toArray()
-          .every((value, j) => Math.abs(value - heldCrouch[i][1][j]) < 1e-7)
-      );
-      assert.ok(
-        node.position.distanceTo(
-          new THREE.Vector3().fromArray(heldCrouch[i][0])
-        ) < 1e-6
-      );
-    });
-    let maxArrivalStep = 0;
-    let preceding = bones.map((node) => node.quaternion.clone());
-    for (let frame = 0; frame <= 71; frame++) {
-      const time = frame / 60;
-      state.travelPose =
-        time < 1
-          ? {
-              name: "TRAVEL_STAND_UP",
-              time,
-              previous: { name: "TRAVEL_CROUCH_IDLE", time: 0.42 },
-              blend: Math.min(1, time / 0.1),
-            }
-          : {
-              name: "IDLE_CC0",
-              time: time - 1,
-              previous: { name: "TRAVEL_STAND_UP", time: 1 },
-              blend: Math.min(1, (time - 1) / 0.18),
-            };
-      tick();
-      for (let i = 0; i < bones.length; i++) {
-        maxArrivalStep = Math.max(
-          maxArrivalStep,
-          bones[i].quaternion.angleTo(preceding[i])
-        );
-        preceding[i].copy(bones[i].quaternion);
-      }
-      assert.equal(body.position.y, 0);
-      const left =
-        avatar.root
-          .getObjectByName("Normalized_LeftFoot")
-          .getWorldPosition(new THREE.Vector3()).y - state.y;
-      const right =
-        avatar.root
-          .getObjectByName("Normalized_RightFoot")
-          .getWorldPosition(new THREE.Vector3()).y - state.y;
-      assert.ok(
-        Math.min(left, right) > -0.02 && Math.min(left, right) < 0.09,
-        "the anchored support foot stays near the source floor through crouch and stand"
-      );
-    }
-    assert.ok(
-      maxArrivalStep < 0.25,
-      `native arrival blends must remain bounded (${maxArrivalStep}rad/frame)`
-    );
-    assert.ok(hips.position.y > crouchHeight + 0.3);
-    assert.equal(actions.get("TRAVEL_STAND_UP:upper").getEffectiveWeight(), 0);
-    assert.equal(actions.get("IDLE_CC0:upper").getEffectiveWeight(), 1);
-    const readyPose = pose();
-    Object.assign(state, {
-      animationMode: "visit",
-      grounded: true,
-      action: "idle",
-      vx: 0,
-      vz: 0,
-      travelReadyIdle: true,
-      travelIdleTime: state.travelPose.time,
-      emote: null,
-      charge: 0,
-    });
-    tick(0);
-    pose().forEach((bone, i) =>
-      bone.forEach((part, j) =>
-        part.forEach((value, k) =>
-          assert.ok(
-            Math.abs(value - readyPose[i][j][k]) < 1e-12,
-            "arrival-to-visitor handoff preserves the displayed ready-idle phase"
-          )
-        )
-      )
-    );
-    settle(360);
-    assert.equal(
-      avatar.root.userData.motion,
-      "travel-ready-idle",
-      "post-arrival ready idle persists while the visitor rests"
-    );
-    Object.assign(state, { vx: 1.4, yaw: Math.PI / 2, y: 0 });
-    for (let i = 0; i < 60; i++) {
-      state.x += state.vx * dt;
-      tick();
-    }
-    Object.assign(state, { vx: 0 });
-    settle();
-    assert.equal(
-      avatar.root.userData.motion,
-      "idle",
-      "first movement permanently releases the arrival idle despite a stale true flag"
-    );
-    assert.equal(actions.get("IDLE_CC0:upper").getEffectiveWeight(), 0);
-    t.diagnostic(
-      `native arrival maximum joint step=${maxArrivalStep.toFixed(3)}rad`
-    );
   }
 );

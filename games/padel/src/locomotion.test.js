@@ -125,7 +125,7 @@ test("real avatar uses planted steps in all four directions with bounded transit
     globalThis.fetch = originalFetch;
   });
   const data = await readFile(
-    new URL("../public/avatars/square.vrm", import.meta.url)
+    new URL("../../../frontend/public/models/pfp.vrm", import.meta.url)
   );
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));

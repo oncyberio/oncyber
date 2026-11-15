@@ -150,7 +150,9 @@ function nativeMaterials(root) {
     if (!retainedTextures.has(texture)) texture.dispose();
 }
 
-async function loadVRM(url, renderer) {
+// `source` is avatar bytes (the visitor's, from the host's avatar service: only
+// avatars the page vouches for) or the URL of a file in this build (the NPCs).
+async function loadVRM(source, renderer) {
   const manager = new THREE.LoadingManager();
   manager.setURLModifier((resource) => {
     if (resource.endsWith("basis_transcoder.js")) return basisScript;
@@ -171,11 +173,13 @@ async function loadVRM(url, renderer) {
   }
   let gltf;
   try {
-    const absolute = new URL(url, window.location.href).href;
-    gltf = await loader.parseAsync(
-      (await bytes(absolute)).slice(0),
-      new URL(".", absolute).href
-    );
+    if (typeof source === "string") {
+      const absolute = new URL(source, window.location.href).href;
+      gltf = await loader.parseAsync(
+        (await bytes(absolute)).slice(0),
+        new URL(".", absolute).href
+      );
+    } else gltf = await loader.parseAsync(source.slice(0), "");
     const vrm = gltf.userData.vrm;
     if (!vrm?.humanoid?.getNormalizedBoneNode("hips"))
       throw new Error("Avatar has no VRM humanoid");
@@ -195,6 +199,16 @@ async function loadVRM(url, renderer) {
   } finally {
     ktx?.dispose();
   }
+}
+
+/**
+ * The visitor's avatar for the avatar kit (its `load`): the same reader and
+ * materials as a match body, so the club and the court show one avatar.
+ */
+export async function loadClubAvatar(avatarBytes, renderer) {
+  const vrm = await loadVRM(avatarBytes, renderer);
+  vrm.dispose = () => VRMUtils.deepDispose(vrm.scene);
+  return vrm;
 }
 
 // A fully articulated, neutral square-head body is still playable offline.
@@ -341,22 +355,31 @@ function makeRacket(index, legacy) {
   return root;
 }
 
-/** Native account avatar, padel capture and a wrist-mounted racket. */
+/**
+ * A match body: an avatar, the padel capture and a wrist-mounted racket.
+ * `bytes` resolves to the visitor's avatar (through the host's avatar
+ * service); `url` is a model in this build, for the NPCs. With neither, or
+ * when both fail, the body is the articulated procedural one. The club's
+ * visitor (arrival, walking, emotes, leaving) is the avatar kit's, not this.
+ */
 export async function createPadelAvatar({
   renderer,
+  bytes: avatarBytes,
   url,
-  fallbackUrl = "./avatars/square.vrm",
   pfp,
   index = 0,
 } = {}) {
   let vrm;
-  for (const candidate of [...new Set([url, fallbackUrl].filter(Boolean))]) {
+  for (const candidate of [avatarBytes, url].filter(Boolean)) {
     try {
-      vrm = await loadVRM(candidate, renderer);
+      vrm = await loadVRM(
+        typeof candidate === "function" ? await candidate() : candidate,
+        renderer
+      );
       break;
     } catch (error) {
       console.warn(
-        "[Padel] Avatar unavailable; trying local body:",
+        "[Padel] Avatar unavailable; trying the next body:",
         error.message
       );
     }
@@ -371,38 +394,6 @@ export async function createPadelAvatar({
   body.add(vrm.scene);
   root.add(body);
   root.updateMatrixWorld(true);
-  const floorProbes = [];
-  vrm.scene.traverse((mesh) => {
-    const position = mesh.geometry?.getAttribute?.("position");
-    if (!mesh.isMesh || !position || !mesh.getVertexPosition) return;
-    const indices = new Set();
-    const stride = Math.max(1, Math.ceil(position.count / 64));
-    for (let i = 0; i < position.count; i += stride) indices.add(i);
-    const extrema = [0, 0, 0, 0, 0, 0];
-    const limits = [
-      Infinity,
-      -Infinity,
-      Infinity,
-      -Infinity,
-      Infinity,
-      -Infinity,
-    ];
-    for (let i = 0; i < position.count; i++) {
-      for (let axis = 0; axis < 3; axis++) {
-        const value = position.getComponent(i, axis);
-        if (value < limits[axis * 2]) {
-          limits[axis * 2] = value;
-          extrema[axis * 2] = i;
-        }
-        if (value > limits[axis * 2 + 1]) {
-          limits[axis * 2 + 1] = value;
-          extrema[axis * 2 + 1] = i;
-        }
-      }
-    }
-    extrema.forEach((index) => indices.add(index));
-    floorProbes.push({ mesh, indices: [...indices] });
-  });
   const bounds = new THREE.Box3().setFromObject(vrm.scene);
   const sourceHeight = bounds.max.y - bounds.min.y;
   vrm.scene.scale.multiplyScalar(
@@ -488,13 +479,11 @@ export async function createPadelAvatar({
     vrm.meta?.metaVersion === "0"
   );
   const actorInverse = new THREE.Matrix4(),
-    inverseQ = new Q(),
-    floorPoint = new THREE.Vector3();
+    inverseQ = new Q();
   let previous = null,
     speed = 0,
     bodyYaw = 0,
     recoveryFacing = false,
-    floorLift = 0,
     animationMode = null,
     animationResetToken,
     needsReset = true,
@@ -506,14 +495,6 @@ export async function createPadelAvatar({
   const avatar = {
     root,
     height: HEIGHT,
-    // Native lobby leaves VRM0 in its original -Z-facing basis; this renderer
-    // rotates it to +Z. Apply once when importing the lobby travel view.
-    travelYawOffset: vrm.meta?.metaVersion === "0" ? Math.PI : 0,
-    preloadEmotes: () => motion?.preloadEmotes() ?? Promise.resolve(false),
-    prepareTravel: () =>
-      motion
-        ? motion.prepareTravel()
-        : Promise.reject(new Error("Travel animation is unavailable.")),
     setFirstPerson(enabled) {
       if (disposed) return;
       enabled = Boolean(enabled) && animationMode === "match";
@@ -539,15 +520,9 @@ export async function createPadelAvatar({
         : index
         ? 0
         : Math.PI;
-      const nextMode =
-        player.animationMode === "travel"
-          ? "travel"
-          : player.animationMode === "visit"
-          ? "visit"
-          : "match";
-      const visiting = nextMode === "visit";
-      const travelling = nextMode === "travel";
-      const sportsEnabled = nextMode === "match";
+      // One mode: this body only plays padel.
+      const nextMode = "match";
+      const sportsEnabled = true;
       const distance = previous
         ? Math.hypot(x - previous.x, z - previous.z)
         : 0;
@@ -566,7 +541,6 @@ export async function createPadelAvatar({
       if (reset) {
         speed = bodyYaw = 0;
         recoveryFacing = false;
-        floorLift = 0;
         clean.forEach((entry, i) => {
           entry.node.position.copy(bind[i].position);
           entry.node.quaternion.copy(bind[i].quaternion);
@@ -620,13 +594,6 @@ export async function createPadelAvatar({
         // belongs to live rallies, not the relaxed walk to the service line.
         turn = Math.atan2(player.vx || 0, player.vz || 0) - yaw;
         turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-      } else if (visiting && speed > 0.25 && (player.grounded ?? y < 0.02)) {
-        // Visitors face their actual travel direction, as in the lobby. The
-        // padel layer's bounded court-facing shuffle only belongs in a match.
-        turn = Math.atan2(player.vx || 0, player.vz || 0) - yaw;
-        turn =
-          Math.atan2(Math.sin(turn), Math.cos(turn)) *
-          THREE.MathUtils.smoothstep(speed, 0.2, 1.2);
       } else if (sportsEnabled && !swinging && !preparing && speed > 0.3) {
         // Backpedal and shuffle at every speed. A fast backward input must
         // never turn the player's entire body away from the rally.
@@ -644,7 +611,6 @@ export async function createPadelAvatar({
             dt * 7.5
           );
       bodyYaw = Math.atan2(Math.sin(bodyYaw), Math.cos(bodyYaw));
-      if (travelling) bodyYaw = 0;
       if (
         recoveryFacing &&
         !recovering &&
@@ -741,34 +707,6 @@ export async function createPadelAvatar({
       }
       vrm.update(dt);
       root.updateMatrixWorld(true);
-      if (
-        visiting &&
-        ["emote:death", "emote:floorsitting", "emote:sitting"].includes(
-          motion?.mode
-        )
-      ) {
-        // Native sitting/lying clips need the same sparse surface correction
-        // as the lobby, since avatars have differently sized heads and clothes.
-        actorInverse.copy(root.matrixWorld).invert();
-        let minimum = Infinity;
-        for (const { mesh, indices } of floorProbes) {
-          for (const index of indices) {
-            mesh.getVertexPosition(index, floorPoint);
-            floorPoint
-              .applyMatrix4(mesh.matrixWorld)
-              .applyMatrix4(actorInverse);
-            minimum = Math.min(minimum, floorPoint.y);
-          }
-        }
-        const needed = Number.isFinite(minimum)
-          ? clamp(0.035 - minimum, 0, 0.4)
-          : 0;
-        floorLift = Math.max(needed, floorLift * Math.exp(-dt * 24));
-      } else floorLift *= Math.exp(-dt * 24);
-      if (visiting && floorLift > 0.001) {
-        body.position.y = floorLift;
-        root.updateMatrixWorld(true);
-      }
       if (rightHand) {
         actorInverse.copy(root.matrixWorld).invert();
         rightHand.getWorldPosition(mount.position).applyMatrix4(actorInverse);
@@ -808,7 +746,6 @@ export async function createPadelAvatar({
         material.dispose();
       }
       retiredMaterials.clear();
-      floorProbes.length = 0;
       root.clear();
     },
   };

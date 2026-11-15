@@ -71,12 +71,12 @@ Generated from each game's `credits` in `games/<id>/game.json` by `pnpm games:cr
 
 | What | Kind | Author | Source | License |
 | --- | --- | --- | --- | --- |
-| OC Square and OCman avatars | model | NeonGlitch86 (OC Square); not recorded (OCman) | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md> | Oncyber Permission; not an open licence, to be confirmed |
+| OC Square avatar | model | NeonGlitch86 | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md> | Oncyber Permission; not an open licence, to be confirmed |
 | Anton | font | The Anton Project Authors | <https://github.com/googlefonts/AntonFont> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`fonts/Anton-OFL.txt`) |
-| Lobby locomotion, emote and transition clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Lobby locomotion and emote clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
 | Tennis motion capture | motion | Sam Lazarus for Rokoko | <https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations> | Rokoko Free Asset Terms; not an open licence, to be confirmed |
-| Travel sequence clips | motion | Not recorded; supplied to Oncyber as FBX files on 2026-10-11 | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/travel/source-manifest.json> | Supplied Travel Clips; not an open licence, to be confirmed |
-| Universal Animation Library (idle variants) | motion | Quaternius | <https://quaternius.com/packs/universalanimationlibrary.html> | [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (`lobby/travel/CC0-LICENSE.txt`) |
 | Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
 | three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
 | three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |

@@ -81,8 +81,8 @@ test("the briefs are twelve, fixed in shape, with ids games:new accepts", () => 
     }
 });
 
-test("Ace and Garden pass the checks that need no browser; Padel shows what is missing", async () => {
-    for (const id of ["ace", "garden"]) {
+test("Ace, Garden and Padel pass the checks that need no browser", async () => {
+    for (const id of ["ace", "garden", "padel"]) {
         const manifest = JSON.parse(read(`games/${id}/game.json`));
         assert.deepEqual(
             await staticFindings({
@@ -93,18 +93,6 @@ test("Ace and Garden pass the checks that need no browser; Padel shows what is m
             id
         );
     }
-    const manifest = JSON.parse(read("games/padel/game.json"));
-    assert.deepEqual(
-        codes(
-            await staticFindings({
-                manifest,
-                files: readGameFiles(join(repo, "games/padel")),
-            })
-        ),
-        // Its party statement was written with the party stage; the brief
-        // and the bot are still owed.
-        ["BOT_MISSING", "BRIEF_MISSING"]
-    );
 });
 
 test("the template brief fails until it is filled in", async () => {

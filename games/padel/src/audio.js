@@ -1,17 +1,23 @@
 const clamp = (value, min = 0, max = 1) =>
   Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
 const MAX_VOICES = 24;
+const BUS_GAIN = 0.42;
+const AMBIENCE_GAIN = 0.012;
 
 /**
- * Dry, layered padel Foley. Everything is generated locally, the AudioContext is
- * created only by unlock(), and every voice disconnects when it ends. There is
- * deliberately no permanent ambience loop or audio work during the social idle.
+ * Dry, layered padel Foley, routed through the SDK's one sound output
+ * (docs/games/sound.md). `sdk` is the session's `context.audio`: its
+ * `context` is the one AudioContext and everything here connects to its
+ * `output`. The page owns volume, mute, the first gesture and silence while
+ * the game is suspended, so this file keeps no mute, creates no context and
+ * never suspends or closes one. Every voice disconnects when it ends. The
+ * only continuous sound is a very quiet open-air bed.
  */
-export function createAudio() {
-  let ctx, bus, limiter, noiseBuffer;
-  let enabled = true,
-    disposed = false,
-    suspended = false;
+export function createAudio(sdk) {
+  const ctx = sdk?.context ?? null;
+  const out = sdk?.output ?? null;
+  let bus, limiter, noiseBuffer, ambience;
+  let disposed = false;
   let lastStep = -Infinity,
     lastWall = -Infinity,
     lastBounce = -Infinity;
@@ -21,8 +27,45 @@ export function createAudio() {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
   };
+  if (ctx && out) {
+    bus = ctx.createGain();
+    bus.gain.value = BUS_GAIN;
+    limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -12;
+    limiter.knee.value = 8;
+    limiter.ratio.value = 4;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.12;
+    bus.connect(limiter);
+    limiter.connect(out);
+    noiseBuffer = ctx.createBuffer(
+      1,
+      Math.ceil(ctx.sampleRate * 0.6),
+      ctx.sampleRate
+    );
+    const samples = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i++) samples[i] = random() * 2 - 1;
+    // The club's open air: looped noise under a low filter, well below the
+    // Foley. It is scheduled once and is silent until the page starts sound.
+    const source = ctx.createBufferSource(),
+      filter = ctx.createBiquadFilter(),
+      amp = ctx.createGain();
+    source.buffer = noiseBuffer;
+    source.loop = true;
+    filter.type = "lowpass";
+    filter.frequency.value = 420;
+    filter.Q.value = 0.3;
+    amp.gain.value = AMBIENCE_GAIN;
+    source.connect(filter);
+    filter.connect(amp);
+    amp.connect(out);
+    source.start();
+    ambience = { source, nodes: [source, filter, amp] };
+  }
+  // Scheduling is skipped while nothing would be heard (muted, suspended or
+  // before the first gesture); `audible` is absent on a bare test double.
   const ready = () =>
-    enabled && !disposed && !suspended && ctx?.state === "running";
+    !disposed && !!bus && ctx.state === "running" && sdk.audible !== false;
 
   function removeVoice(voice) {
     if (!voices.delete(voice)) return;
@@ -45,34 +88,6 @@ export function createAudio() {
     voices.add(voice);
     source.onended = () => removeVoice(voice);
     return voice;
-  }
-  function unlock() {
-    if (disposed || !enabled) return;
-    const Audio =
-      globalThis.window?.AudioContext || globalThis.window?.webkitAudioContext;
-    if (!Audio) return;
-    if (!ctx) {
-      ctx = new Audio({ latencyHint: "interactive" });
-      bus = ctx.createGain();
-      limiter = ctx.createDynamicsCompressor();
-      limiter.threshold.value = -12;
-      limiter.knee.value = 8;
-      limiter.ratio.value = 4;
-      limiter.attack.value = 0.003;
-      limiter.release.value = 0.12;
-      bus.connect(limiter);
-      limiter.connect(ctx.destination);
-      noiseBuffer = ctx.createBuffer(
-        1,
-        Math.ceil(ctx.sampleRate * 0.6),
-        ctx.sampleRate
-      );
-      const samples = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < samples.length; i++) samples[i] = random() * 2 - 1;
-    }
-    suspended = false;
-    bus.gain.setTargetAtTime(0.42, ctx.currentTime, 0.015);
-    ctx.resume().catch(() => {});
   }
   function envelope(amp, time, gain, length, attack = 0.002) {
     amp.gain.setValueAtTime(0.0001, time);
@@ -159,26 +174,10 @@ export function createAudio() {
       tone(2450, 2380, 0.07, 0.024);
     }
   }
-  function setEnabled(value) {
-    enabled = !!value;
-    if (bus && ctx)
-      bus.gain.setTargetAtTime(enabled ? 0.42 : 0, ctx.currentTime, 0.015);
-    if (!enabled) clearVoices();
-    return enabled;
-  }
   return {
-    get enabled() {
-      return enabled;
-    },
-    get unlocked() {
-      return !!ctx;
-    },
-    unlock,
-    setEnabled,
-    toggle() {
-      setEnabled(!enabled);
-      if (enabled) unlock();
-      return enabled;
+    /** Active one-shot voices, for diagnostics and tests. */
+    get voices() {
+      return voices.size;
     },
     hit,
     smash(power = 1) {
@@ -218,18 +217,22 @@ export function createAudio() {
       tone(base * 1.25, base * 1.25, 0.19, 0.07, "sine", 0.085);
       tone(base * 1.5, base * 1.5, 0.25, 0.075, "sine", 0.17);
     },
-    suspend() {
-      suspended = true;
-      clearVoices();
-      ctx?.suspend().catch(() => {});
-    },
+    /** The game was suspended or left a match: drop what is still ringing. */
+    quiet: clearVoices,
     dispose() {
       if (disposed) return;
       disposed = true;
       clearVoices();
+      if (ambience) {
+        try {
+          ambience.source.stop();
+        } catch {
+          /* never started */
+        }
+        for (const node of ambience.nodes) node.disconnect();
+      }
       bus?.disconnect();
       limiter?.disconnect();
-      ctx?.close().catch(() => {});
       noiseBuffer = undefined;
     },
   };

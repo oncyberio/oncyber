@@ -3,7 +3,7 @@
   "avatar": "vrm",
   "listing": {
     "tagline": "doubles padel with NPC partners",
-    "description": "Walk the club, then play doubles with an NPC partner.",
+    "description": "Walk the club as your avatar, then play doubles on a glass court with an NPC partner against two NPC opponents.",
     "thumbnail": "preview.jpg",
     "players": {
       "min": 1,
@@ -15,17 +15,28 @@
     ]
   },
   "page": {
-    "ownPage": true
+    "room": "oncyber-padel-club-v2",
+    "crowdLabel": "at the club",
+    "controls": {
+      "top": 14
+    }
   },
   "network": [
     "cyber.mypinata.cloud"
   ],
+  "format": "match",
+  "devices": [
+    "desktop",
+    "gamepad"
+  ],
   "avatars": {
-    "others": "other",
-    "why": "Padel draws players as avatars with its own code on its own page, which this check cannot drive; it moves to the avatar kit with the shared game page.",
-    "arrival": "none",
-    "arrivalWhy": "Padel plays its own travel reveal on its own page, not the shared page's arrival message."
+    "others": "avatar",
+    "arrival": "pose"
   },
+  "arrival": {
+    "walkable": true
+  },
+  "locomotion": "lobby",
   "party": {
     "sizes": [
       1,
@@ -34,7 +45,7 @@
     "formats": [
       {
         "id": "doubles",
-        "label": "Your own doubles match",
+        "label": "Doubles with NPCs",
         "sizes": [
           1,
           2,
@@ -48,18 +59,212 @@
       }
     ],
     "solo": "doubles",
-    "shared": "Padel is one player with an NPC partner against two NPCs. Party members share the club and each plays their own match.",
+    "shared": "Padel is one visitor with an NPC partner against two NPCs: there is no match between people yet. Party members share the club, see each other walk it, and each plays their own match.",
     "late": "Arrives in the club and starts their own match when they like.",
     "dropped": "Nothing changes for the others: every match is local to its player.",
-    "extra": "No seats to run out of: each member plays their own match."
+    "extra": "No seats to run out of: each member plays their own match.",
+    "note": "NPC doubles only. Playing doubles between party members is not built."
+  },
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game.js",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "avatar",
+      "results",
+      "storage",
+      "travel"
+    ],
+    "assets": [],
+    "input": {
+      "up": {
+        "keyboard": [
+          "KeyW"
+        ],
+        "touch": "stick-up",
+        "gamepad": [
+          "left-stick-up",
+          "dpad-up"
+        ]
+      },
+      "down": {
+        "keyboard": [
+          "KeyS"
+        ],
+        "touch": "stick-down",
+        "gamepad": [
+          "left-stick-down",
+          "dpad-down"
+        ]
+      },
+      "left": {
+        "keyboard": [
+          "KeyA"
+        ],
+        "touch": "stick-left",
+        "gamepad": [
+          "left-stick-left",
+          "dpad-left"
+        ]
+      },
+      "right": {
+        "keyboard": [
+          "KeyD"
+        ],
+        "touch": "stick-right",
+        "gamepad": [
+          "left-stick-right",
+          "dpad-right"
+        ]
+      },
+      "aimUp": {
+        "keyboard": [
+          "ArrowUp"
+        ],
+        "gamepad": "right-stick-up"
+      },
+      "aimDown": {
+        "keyboard": [
+          "ArrowDown"
+        ],
+        "gamepad": "right-stick-down"
+      },
+      "aimLeft": {
+        "keyboard": [
+          "ArrowLeft"
+        ],
+        "gamepad": "right-stick-left"
+      },
+      "aimRight": {
+        "keyboard": [
+          "ArrowRight"
+        ],
+        "gamepad": "right-stick-right"
+      },
+      "hit": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "button:Hit",
+        "gamepad": "button-a"
+      },
+      "lob": {
+        "keyboard": [
+          "KeyK"
+        ],
+        "touch": "button:Lob",
+        "gamepad": "button-y"
+      },
+      "power": {
+        "keyboard": [
+          "KeyF"
+        ],
+        "touch": "button:Power",
+        "gamepad": [
+          "button-x",
+          "right-bumper"
+        ]
+      },
+      "confirm": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "button:OK",
+        "gamepad": "button-a"
+      },
+      "back": {
+        "keyboard": [
+          "Backspace"
+        ],
+        "gamepad": "button-b"
+      },
+      "pause": {
+        "keyboard": [
+          "KeyP"
+        ],
+        "touch": "button:Pause",
+        "gamepad": "button-start"
+      },
+      "view": {
+        "keyboard": [
+          "KeyC"
+        ],
+        "gamepad": "button-select"
+      },
+      "run": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "button:Run",
+        "gamepad": [
+          "right-trigger",
+          "left-stick-press"
+        ]
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "button:Jump",
+        "gamepad": "button-x"
+      },
+      "lookX": {
+        "touch": "drag"
+      },
+      "lookY": {
+        "touch": "drag"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ]
+      },
+      "dance": {
+        "keyboard": [
+          "KeyB"
+        ]
+      },
+      "sit": {
+        "keyboard": [
+          "KeyV"
+        ]
+      }
+    }
   },
   "keysCheck": {
-    "legacy": true
+    "start": [],
+    "ready": {
+      "screen": "arrival"
+    },
+    "move": "KeyW"
   },
-  "devices": [
-    "desktop"
-  ],
-  "health": "none",
+  "departure": "matched",
+  "results": {
+    "match": "autoplay&points=2",
+    "timeoutSeconds": 300
+  },
+  "saved": {
+    "settings": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 256,
+      "sample": {
+        "difficulty": "competitive",
+        "graphics": "balanced",
+        "camera": "courtside"
+      }
+    }
+  },
   "credits": [
     {
       "origin": "own",
@@ -113,43 +318,40 @@
       "licenseFile": "fonts/Anton-OFL.txt"
     },
     {
-      "title": "Universal Animation Library (idle variants)",
-      "kind": "motion",
+      "title": "Space Grotesk",
+      "kind": "font",
       "files": [
-        "lobby/travel/core.*.lcp"
+        "assets/SpaceGrotesk-*.woff2"
       ],
-      "author": "Quaternius",
-      "source": "https://quaternius.com/packs/universalanimationlibrary.html",
-      "license": "CC0-1.0",
-      "licenseFile": "lobby/travel/CC0-LICENSE.txt",
-      "note": "Idle variants inside the lobby's core locomotion pack."
+      "author": "The Space Grotesk Project Authors",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
     },
     {
-      "title": "Lobby locomotion, emote and transition clips",
+      "title": "Space Mono",
+      "kind": "font",
+      "files": [
+        "assets/SpaceMono-*.woff2"
+      ],
+      "author": "The Space Mono Project Authors",
+      "source": "https://github.com/googlefonts/spacemono",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+      "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Lobby locomotion and emote clips",
       "kind": "motion",
       "files": [
-        "assets/lobby-emotes-*.json",
-        "assets/native-motion-*.json",
-        "lobby/travel/core.*.lcp",
-        "lobby/travel/core-manifest.json"
+        "assets/locomotion-*.json",
+        "assets/emotes-*.json"
       ],
       "author": "Not recorded; Oncyber's lobby motion set",
       "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
       "license": "LicenseRef-Oncyber-Lobby-Motion",
-      "note": "Oncyber's lobby motion set. Its source manifests pin each clip by hash but record no author or licence."
-    },
-    {
-      "title": "Travel sequence clips",
-      "kind": "motion",
-      "files": [
-        "lobby/travel/travel.*.lcp",
-        "lobby/travel/manifest.json",
-        "lobby/travel/source-manifest.json"
-      ],
-      "author": "Not recorded; supplied to Oncyber as FBX files on 2026-10-11",
-      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/travel/source-manifest.json",
-      "license": "LicenseRef-Supplied-Travel-Clips",
-      "note": "Four clips (attack, crouch down, crouch idle, stand up) retargeted offline; the FBX sources are not distributed."
+      "note": "Bundled from Oncyber's avatar kit (games/kits/avatar/motion): a copy of frontend/public/lobby/native-avatar-motion.json, used for walking the club and for the walk and run on court, and four emotes (hip hop, moonwalk, praying, sitting) from native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence; nothing in the repository records where the emotes came from."
     },
     {
       "title": "Tennis motion capture",
@@ -163,16 +365,15 @@
       "note": "Ready, forehand, backhand and serve cut from Tennis_mixamo.fbx, retrieved 2026-10-13. The publisher's page allows personal and commercial use in games."
     },
     {
-      "title": "OC Square and OCman avatars",
+      "title": "OC Square avatar",
       "kind": "model",
       "files": [
-        "avatars/square-catalogue.vrm",
-        "avatars/square.vrm"
+        "avatars/square-catalogue.vrm"
       ],
-      "author": "NeonGlitch86 (OC Square); not recorded (OCman)",
+      "author": "NeonGlitch86",
       "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md",
       "license": "LicenseRef-Oncyber-Permission",
-      "note": "Fallback and NPC avatars. Their embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse these files."
+      "note": "The three NPC players' body. Its embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse this file."
     }
   ]
 }

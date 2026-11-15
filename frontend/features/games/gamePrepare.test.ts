@@ -149,8 +149,8 @@ test("only shared-page games on this site are prepared", () => {
     expect(
         gameDestinationId(`${origin}/games/garden/?from=lobby`, origin)
     ).toBe("garden");
-    // Padel has its own page; a space is not a game.
-    expect(gameDestinationId("/games/padel", origin)).toBeNull();
+    expect(gameDestinationId("/games/padel", origin)).toBe("padel");
+    // A space is not a game.
     expect(gameDestinationId("/games/unknown", origin)).toBeNull();
     expect(gameDestinationId("/someone/space", origin)).toBeNull();
     expect(

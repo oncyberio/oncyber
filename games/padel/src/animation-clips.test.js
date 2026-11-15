@@ -28,8 +28,9 @@ test("padel strokes retarget on the real avatar, preserve the physics root, and 
     globalThis.fetch = originalFetch;
     THREE.AnimationMixer.prototype.clipAction = originalAction;
   });
+  // The site's own texture-free avatar: Padel bundles no fallback avatar.
   const data = await readFile(
-    new URL("../public/avatars/square.vrm", import.meta.url)
+    new URL("../../../frontend/public/models/pfp.vrm", import.meta.url)
   );
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));
@@ -284,7 +285,7 @@ test("short preparation steps plant the supporting foot without moving or stretc
     globalThis.fetch = originalFetch;
   });
   const data = await readFile(
-    new URL("../public/avatars/square.vrm", import.meta.url)
+    new URL("../../../frontend/public/models/pfp.vrm", import.meta.url)
   );
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));
@@ -409,7 +410,7 @@ test("forgiving contacts add a restrained reach and recover cleanly on the real 
     globalThis.fetch = originalFetch;
   });
   const data = await readFile(
-    new URL("../public/avatars/square.vrm", import.meta.url)
+    new URL("../../../frontend/public/models/pfp.vrm", import.meta.url)
   );
   const loader = new GLTFLoader();
   loader.register((parser) => new VRMLoaderPlugin(parser));

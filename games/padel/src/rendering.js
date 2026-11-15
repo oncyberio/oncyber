@@ -35,9 +35,9 @@ export function createCourtRenderer(renderer) {
     useSmoothing = true,
     disposed = false;
   return {
-    resize(width, height, mode, deviceRatio) {
+    resize(width, height, mode, deviceRatio, scale = 1) {
       if (disposed) return profile;
-      profile = graphicsProfile(mode, width, height, deviceRatio);
+      profile = graphicsProfile(mode, width, height, deviceRatio, scale);
       const samples = supportedSamples(availableSamples, profile.samples);
       if (sceneTarget.samples !== samples) {
         sceneTarget.dispose();

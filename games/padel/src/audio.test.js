@@ -2,8 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createAudio } from "./audio.js";
 
-function audioHarness(t) {
-  const original = globalThis.window;
+function audioHarness() {
   const contexts = [];
   const param = () => ({
     value: 0,
@@ -43,6 +42,7 @@ function audioHarness(t) {
         frequency: param(),
         sourceType: type,
         stopped: false,
+        loop: false,
         start() {},
         stop(time) {
           if (time === undefined) {
@@ -104,76 +104,93 @@ function audioHarness(t) {
       return Promise.resolve();
     }
   }
-  globalThis.window = { AudioContext };
-  t.after(() => {
-    if (original === undefined) delete globalThis.window;
-    else globalThis.window = original;
-  });
-  return contexts;
+  // The SDK's output as the game sees it (context.audio): one context, one
+  // node to connect to, and whether anything would be heard.
+  const context = new AudioContext();
+  const sdk = { context, output: node(), audible: true };
+  return { context, sdk, start: () => (context.state = "running") };
 }
+// The open-air bed is the first source; the tests count Foley voices.
+const foley = (context) => context.sources.slice(1);
 
-test("sound defaults on but constructs no audio context before explicit gesture unlock", (t) => {
-  const contexts = audioHarness(t);
-  const sound = createAudio();
-  assert.equal(sound.enabled, true);
+test("the graph is built on the SDK output at once, and nothing is scheduled before sound starts", () => {
+  const { context, sdk, start } = audioHarness();
+  const sound = createAudio(sdk);
+  // No context of its own, no private mute.
+  assert.equal("enabled" in sound, false);
+  assert.equal("toggle" in sound, false);
+  assert.equal(context.sources.length, 1, "only the open-air bed");
+  assert.equal(context.sources[0].loop, true);
   sound.hit(1);
   sound.smash(1);
   sound.wall("glass");
   sound.point();
-  assert.equal(contexts.length, 0);
-  assert.equal(sound.unlocked, false);
-  sound.unlock();
-  assert.equal(contexts.length, 1);
-  assert.equal(sound.unlocked, true);
+  assert.equal(foley(context).length, 0);
+  assert.equal(context.resumes, 0, "the page starts sound, not the game");
+  start();
   sound.hit(0.8);
-  assert.equal(contexts[0].sources.length, 4);
+  assert.equal(foley(context).length, 4);
   sound.dispose();
 });
 
-test("dense collisions are bounded and mute disconnects all active voices", (t) => {
-  const contexts = audioHarness(t);
-  const sound = createAudio();
-  sound.unlock();
-  const context = contexts[0];
+test("without Web Audio every call is a no-op", () => {
+  const sound = createAudio({ context: null, output: null });
+  sound.hit(1);
+  sound.step(1);
+  sound.quiet();
+  sound.dispose();
+  assert.equal(sound.voices, 0);
+});
+
+test("dense collisions are bounded; page mute stops scheduling and quiet() disconnects every voice", () => {
+  const { context, sdk, start } = audioHarness();
+  const sound = createAudio(sdk);
+  start();
   for (let i = 0; i < 80; i++) {
     context.currentTime += 0.05;
     i % 3 ? sound.hit(0.9) : sound.smash(1);
     sound.wall(i % 2 ? "glass" : "fence", 1);
   }
-  const active = context.sources.filter((source) => !source.disconnected);
+  const active = foley(context).filter((source) => !source.disconnected);
   assert.equal(active.length, 24);
+  assert.equal(sound.voices, 24);
   assert.ok(context.sources.some((source) => source.stopped));
-  assert.equal(sound.toggle(), false);
+  sound.quiet();
   assert.equal(
-    context.sources.filter((source) => !source.disconnected).length,
+    foley(context).filter((source) => !source.disconnected).length,
     0
   );
+  // The page muted the game (or suspended it): nothing new is scheduled.
+  sdk.audible = false;
   const count = context.sources.length;
   sound.smash(1);
   sound.hit(1);
   sound.bounce();
   sound.point();
   assert.equal(context.sources.length, count);
+  sdk.audible = true;
+  sound.hit(1);
+  assert.ok(context.sources.length > count);
   sound.dispose();
 });
 
-test("glass and fence have distinct timbres, collision and shoe spam are throttled", (t) => {
-  const contexts = audioHarness(t);
-  const sound = createAudio();
-  sound.unlock();
-  const context = contexts[0];
+test("glass and fence have distinct timbres, collision and shoe spam are throttled", () => {
+  const { context, sdk, start } = audioHarness();
+  const sound = createAudio(sdk);
+  start();
   sound.wall("glass", 0.5);
-  const glassTones = context.sources.filter(
+  const glassTones = foley(context).filter(
     (source) => source.sourceType === "tone"
   ).length;
   assert.equal(glassTones, 3);
   sound.wall("fence", 0.5);
-  assert.equal(context.sources.length, 4);
+  assert.equal(foley(context).length, 4);
   context.currentTime += 0.1;
   sound.wall("fence", 0.5);
   assert.equal(
-    context.sources.slice(4).filter((source) => source.sourceType === "tone")
-      .length,
+    foley(context)
+      .slice(4)
+      .filter((source) => source.sourceType === "tone").length,
     1
   );
   const beforeStep = context.sources.length;
@@ -186,36 +203,31 @@ test("glass and fence have distinct timbres, collision and shoe spam are throttl
   sound.dispose();
 });
 
-test("ended voices clean up; suspension and disposal are idempotent and block sound", (t) => {
-  const contexts = audioHarness(t);
-  const sound = createAudio();
-  sound.unlock();
-  const context = contexts[0];
+test("ended voices clean up; disposal is idempotent, blocks sound and leaves the SDK's context alone", () => {
+  const { context, sdk, start } = audioHarness();
+  const sound = createAudio(sdk);
+  start();
   sound.hit();
-  for (const source of context.sources) source.finish();
-  assert.ok(context.sources.every((source) => source.disconnected));
-  sound.suspend();
+  for (const source of foley(context)) source.finish();
+  assert.ok(foley(context).every((source) => source.disconnected));
   const count = context.sources.length;
-  sound.hit();
-  sound.point();
-  assert.equal(context.sources.length, count);
-  sound.unlock();
   sound.serve();
   assert.ok(context.sources.length > count);
   sound.dispose();
   sound.dispose();
-  sound.unlock();
+  const after = context.sources.length;
   sound.hit();
-  assert.equal(context.state, "closed");
-  assert.equal(contexts.length, 1);
+  assert.equal(context.sources.length, after);
+  // Suspending, resuming and closing the context are the SDK's.
+  assert.equal(context.state, "running");
+  assert.equal(context.resumes, 0);
   assert.ok(context.sources.every((source) => source.disconnected));
 });
 
-test("diminishing dead-ball bounces fade both Foley layers while normal rally impact stays unchanged", (t) => {
-  const contexts = audioHarness(t);
-  const sound = createAudio();
-  sound.unlock();
-  const context = contexts[0];
+test("diminishing dead-ball bounces fade both Foley layers while normal rally impact stays unchanged", () => {
+  const { context, sdk, start } = audioHarness();
+  const sound = createAudio(sdk);
+  start();
   const peaks = [];
   for (const power of [0.5, 0.25, 0.1, 0.01]) {
     context.currentTime += 0.1;

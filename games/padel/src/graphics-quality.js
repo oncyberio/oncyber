@@ -19,7 +19,17 @@ export const GRAPHICS = Object.freeze({
   }),
 });
 
-export function graphicsProfile(mode, width, height, deviceRatio = 1) {
+/**
+ * `scale` shrinks the drawing buffer below one pixel per CSS pixel, for the
+ * checks that are not about pixels (the host passes it; 1 for a visitor).
+ */
+export function graphicsProfile(
+  mode,
+  width,
+  height,
+  deviceRatio = 1,
+  scale = 1
+) {
   const name = mode === "balanced" ? "balanced" : "high";
   const settings = GRAPHICS[name];
   const w = Math.max(1, Number.isFinite(width) ? width : 1);
@@ -28,11 +38,12 @@ export function graphicsProfile(mode, width, height, deviceRatio = 1) {
   return {
     ...settings,
     name,
-    pixelRatio: Math.min(
-      dpr,
-      settings.pixelRatio,
-      Math.sqrt(settings.pixelBudget / (w * h))
-    ),
+    pixelRatio:
+      Math.min(
+        dpr,
+        settings.pixelRatio,
+        Math.sqrt(settings.pixelBudget / (w * h))
+      ) * (scale > 0 && scale < 1 ? scale : 1),
   };
 }
 

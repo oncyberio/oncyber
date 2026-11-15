@@ -78,13 +78,7 @@
         {
             "game": "padel",
             "license": "LicenseRef-Oncyber-Lobby-Motion",
-            "reason": "The lobby's locomotion, emote and transition clips. The lobby's source manifests pin the clips by hash but record no author or licence.",
-            "confirmedBy": null
-        },
-        {
-            "game": "padel",
-            "license": "LicenseRef-Supplied-Travel-Clips",
-            "reason": "lobby/travel/source-manifest.json says only 'User-supplied FBX files, provided 2026-10-11'. No author or licence is recorded.",
+            "reason": "The avatar kit's copies of frontend/public/lobby/native-avatar-motion.json and four clips of native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence, and nothing in the repository records where the emotes came from.",
             "confirmedBy": null
         },
         {
@@ -96,7 +90,7 @@
         {
             "game": "padel",
             "license": "LicenseRef-Oncyber-Permission",
-            "reason": "The avatars' embedded metadata says redistribution prohibited, commercial use disallowed. Oncyber is understood to use them with the creator's permission; no written grant is in the repository.",
+            "reason": "The avatar's embedded metadata says redistribution prohibited, commercial use disallowed. Oncyber is understood to use it with the creator's permission; no written grant is in the repository.",
             "confirmedBy": null
         }
     ]

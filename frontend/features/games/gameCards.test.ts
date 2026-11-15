@@ -70,7 +70,13 @@ describe("game cards", () => {
             crowdLabel: "in the garden",
             controlsStyle: { top: 14, left: "auto", right: 16 },
         });
-        expect(findGame("padel").ownPage).toBe(true);
+        // Every game runs on the shared page.
+        expect(findGame("padel")).toMatchObject({
+            room: "oncyber-padel-club-v2",
+            relay: false,
+            crowdLabel: "at the club",
+        });
+        expect(findGame("padel").ownPage).toBeUndefined();
         expect(findGame("ace").room).toBeNull();
     });
 });

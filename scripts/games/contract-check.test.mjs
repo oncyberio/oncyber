@@ -214,7 +214,7 @@ test("after the run, enter() must have received the staged visit", () => {
     );
 });
 
-test("in this repository: Ace and Garden meet the contract, Padel doesn't yet", () => {
+test("in this repository: Ace, Garden and Padel meet the contract", () => {
     const read = (id) =>
         contractFindings({
             root: repo,
@@ -229,6 +229,7 @@ test("in this repository: Ace and Garden meet the contract, Padel doesn't yet", 
     assert.deepEqual(read("ace").warnings, []);
     assert.deepEqual(read("ace").visit, { arrival: "lobby", party: 4 });
     assert.deepEqual(read("garden").findings, []);
-    assert.ok(codes(read("padel")).includes("CONTRACT_NO_LIFECYCLE"));
-    assert.ok(codes(read("padel")).includes("CONTRACT_NO_SCENARIO"));
+    assert.deepEqual(read("padel").findings, []);
+    assert.deepEqual(read("padel").warnings, []);
+    assert.deepEqual(read("padel").visit, { arrival: "lobby", party: 2 });
 });

@@ -1,51 +1,14 @@
 import * as THREE from "three";
 import { courtMovement } from "./locomotion.js";
-import {
-  loadTravelAnimationPack,
-  TRAVEL_POSE_NAMES,
-  travelAnimationLoops,
-} from "./travel-animation-pack.js";
-
-const NATIVE_URL = new URL(
-  "./anim/native-motion.json",
-  import.meta.url
-);
-const TENNIS_URL = new URL("./anim/tennis-motion.json", import.meta.url);
-const EMOTES_URL = new URL(
-  "./anim/lobby-emotes.json",
+// Court gait (walk and run) is the lobby's own motion, from the avatar kit's
+// copy of it (games/kits/avatar/motion): Padel bundles no lobby clips.
+const LOCOMOTION_URL = new URL(
+  "../../kits/avatar/motion/locomotion.json",
   import.meta.url
 );
 let packPromise;
-let emotePack;
-export const LOBBY_EMOTES = Object.freeze([
-  "WAVING",
-  "HIPHOP",
-  "MOONWALK",
-  "TECHNO",
-  "SHUFFLING",
-  "CHAABI",
-  "CHAABI2",
-  "SEXY",
-  "DEATH",
-  "PRAYING",
-  "WANNAROCK",
-  "CRIP",
-  "SITTING",
-  "FLOORSITTING",
-  "SITTALKING",
-]);
-const emoteNames = new Set([
-  ...LOBBY_EMOTES.map((name) => name.toLowerCase()),
-  "hand_raising",
-]);
-const holdEmotes = new Set(["death", "sitting", "floorsitting"]);
+const TENNIS_URL = new URL("./anim/tennis-motion.json", import.meta.url);
 const SOURCE_HIPS_HEIGHT = 96.74480000054845;
-const playerAnimationMode = (player) =>
-  player.animationMode === "travel"
-    ? "travel"
-    : player.animationMode === "visit"
-    ? "visit"
-    : "match";
 const clamp = THREE.MathUtils.clamp;
 const smooth = (a, b, t) => THREE.MathUtils.smoothstep(t, a, b);
 const lerp = THREE.MathUtils.lerp;
@@ -171,13 +134,21 @@ function retarget(
 /** One mixer per player. Upper and lower clips blend independently during a run. */
 export async function createPadelMotion(vrm) {
   packPromise ||= Promise.all(
-    [NATIVE_URL, TENNIS_URL].map(async (url) => {
+    [LOCOMOTION_URL, TENNIS_URL].map(async (url) => {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Padel motion: ${response.status}`);
       return response.json();
     })
   );
-  const [native, capture] = await packPromise;
+  const [lobby, capture] = await packPromise;
+  // The lobby's set has no sprint: its run cycle, driven faster by the same
+  // stride phase, stands in for one.
+  const native = [
+    lobby.WALK,
+    lobby.RUN,
+    { ...lobby.RUN, name: "sprint" },
+  ].filter((clip) => clip?.tracks);
+  if (native.length !== 3) throw new Error("Padel motion: gait clips missing");
   // Preserve original motion provenance; map capture names only at runtime.
   const clips = capture.clips.map((entry) => ({
     ...entry,
@@ -248,50 +219,7 @@ export async function createPadelMotion(vrm) {
     wasPreparing = false,
     wasActive = false,
     snap = true,
-    disposed = false,
-    currentMode = null,
-    airTime = 0,
-    landTime = 10,
-    wasAirborne = false,
-    wasLoading = false,
-    jumpClip = "jump_idle",
-    activeEmote = null,
-    emoteClock = 0,
-    emotesLoading = null,
-    travelPreparation = null,
-    travelReady = false,
-    readyIdleHeld = false,
-    readyIdleRequested = false;
-  function prepareTravel() {
-    return (travelPreparation ||= loadTravelAnimationPack()
-      .then(({ clips }) => {
-        if (disposed) throw new Error("Travel avatar was disposed.");
-        for (const clip of Object.values(clips))
-          add(clip, SOURCE_HIPS_HEIGHT, true);
-        travelReady = true;
-      })
-      .catch((error) => {
-        travelPreparation = null;
-        throw error;
-      }));
-  }
-  function ensureEmotes() {
-    emotesLoading ||= (emotePack ||= fetch(EMOTES_URL).then((response) => {
-      if (!response.ok) throw new Error(`Lobby emotes: ${response.status}`);
-      return response.json();
-    }))
-      .then((clips) => {
-        if (disposed) return false;
-        for (const clip of clips) add(clip, SOURCE_HIPS_HEIGHT);
-        return true;
-      })
-      .catch((error) => {
-        if (!disposed)
-          console.warn("[Padel] Lobby emotes unavailable:", error.message);
-        return false;
-      });
-    return emotesLoading;
-  }
+    disposed = false;
   function set(name, lower, weight, seconds, loop = false) {
     const entry = actions.get(`${name}:${lower ? "lower" : "upper"}`);
     if (!entry) return;
@@ -301,7 +229,7 @@ export async function createPadelMotion(vrm) {
       ? ((seconds % duration) + duration) % duration
       : clamp(seconds, 0, duration - 0.00001);
   }
-  function reset(player = {}) {
+  function reset() {
     if (disposed) return;
     mixer.stopAllAction();
     for (const entry of actions.values()) {
@@ -317,13 +245,6 @@ export async function createPadelMotion(vrm) {
     manualStrokeAge = 0;
     selectedStroke = "forehand";
     wasPreparing = wasActive = false;
-    currentMode = playerAnimationMode(player);
-    airTime = emoteClock = 0;
-    landTime = 10;
-    wasAirborne = wasLoading = false;
-    jumpClip = "jump_idle";
-    activeEmote = null;
-    readyIdleHeld = readyIdleRequested = false;
     sampledHipsY = hips.position.y;
     snap = true;
   }
@@ -344,192 +265,16 @@ export async function createPadelMotion(vrm) {
     mixer.update(0);
     sampledHipsY = hips.position.y;
   }
-  function visit(dt, player, speed, distance) {
-    const airborne =
-      typeof player.grounded === "boolean"
-        ? !player.grounded
-        : Number(player.y) > 0.015;
-    const loading = player.action === "load";
-    const gaitSpeed = clamp(Number(speed) || 0, 0, 8);
-    if (loading && !wasLoading) {
-      jumpClip = gaitSpeed > 2.5 ? "jump_running" : "jump_idle";
-      landTime = 10;
-    }
-    if (airborne && !wasAirborne) {
-      airTime = wasLoading ? 0.1 : 0;
-      jumpClip = gaitSpeed > 2.5 ? "jump_running" : "jump_idle";
-      landTime = 10;
-    }
-    if (!airborne && wasAirborne) landTime = 0;
-    if (airborne) airTime += dt;
-    landTime += dt;
-    const walking = 1 - smooth(1.6, 3.7, gaitSpeed);
-    const sprint = smooth(5.2, 7.4, gaitSpeed);
-    const moving = smooth(0.1, 0.65, gaitSpeed);
-    if (player.travelReadyIdle === true && !readyIdleRequested) {
-      readyIdleHeld = true;
-      idleTime =
-        (Number.isFinite(player.travelIdleTime)
-          ? Math.max(0, player.travelIdleTime)
-          : 0) + dt;
-    }
-    readyIdleRequested = player.travelReadyIdle === true;
-    if (
-      !readyIdleRequested ||
-      airborne ||
-      loading ||
-      gaitSpeed > 0.04 ||
-      Math.hypot(Number(player.vx) || 0, Number(player.vz) || 0) > 0.04 ||
-      (typeof player.emote === "string" && player.emote.length > 0)
-    )
-      readyIdleHeld = false;
-    const stride = lerp(lerp(1.5, 2.5, 1 - walking), 2.8, sprint);
-    phase = (phase + Math.min(distance, 0.5) / stride) % 1;
-    const whole = (name, weight, time, loop = false) => {
-      set(name, false, weight, time, loop);
-      set(name, true, weight, time, loop);
-    };
-    const duration = (name) =>
-      actions.get(`${name}:upper`).action.getClip().duration;
-    const idleClip = readyIdleHeld && travelReady ? "IDLE_CC0" : "idle";
-    whole(idleClip, 1 - moving, idleTime, true);
-    whole("walk", moving * walking, phase * duration("walk"), true);
-    whole(
-      "run",
-      moving * (1 - walking) * (1 - sprint),
-      phase * duration("run"),
-      true
-    );
-    whole(
-      "sprint",
-      moving * (1 - walking) * sprint,
-      phase * duration("sprint"),
-      true
-    );
-    mode =
-      moving > 0.5
-        ? "locomotion"
-        : readyIdleHeld
-        ? "travel-ready-idle"
-        : "idle";
-    if (loading || airborne) {
-      for (const entry of actions.values()) entry.target = 0;
-      const fall = airborne ? smooth(0.22, 0.38, airTime) : 0;
-      const time = loading
-        ? clamp(Number(player.actionTime) || 0, 0, 0.1)
-        : airTime + 0.1;
-      whole(jumpClip, 1 - fall, time);
-      whole("falling", fall, Math.max(0, airTime - 0.24), true);
-      mode = loading ? "load" : "air";
-    } else if (landTime < 0.55) {
-      const name = gaitSpeed > 2.4 ? "drop_running" : "drop_idle";
-      const weight =
-        1 - smooth(duration(name) * 0.55, duration(name), landTime);
-      for (const entry of actions.values()) entry.target *= 1 - weight;
-      whole(name, weight, landTime);
-      mode = "landing";
-    }
-    let emote =
-      typeof player.emote === "string" ? player.emote.toLowerCase() : null;
-    if (emote === "wave") emote = "waving";
-    if (emote === "cheer") emote = "hand_raising";
-    if (airborne || loading || gaitSpeed > 0.3 || !emoteNames.has(emote))
-      emote = null;
-    if (emote !== activeEmote) {
-      activeEmote = emote;
-      emoteClock = 0;
-    }
-    if (activeEmote) {
-      if (!actions.has(`${activeEmote}:upper`)) ensureEmotes();
-      emoteClock += dt;
-      if (actions.has(`${activeEmote}:upper`)) {
-        for (const entry of actions.values()) entry.target = 0;
-        const elapsed = Number.isFinite(player.emoteTime)
-          ? Math.max(0, player.emoteTime)
-          : emoteClock;
-        whole(
-          activeEmote,
-          1,
-          elapsed,
-          !holdEmotes.has(activeEmote) && player.emoteLoop !== false
-        );
-        mode = `emote:${activeEmote}`;
-      }
-    }
-    sample(snap ? 1 : 1 - Math.exp(-dt * (loading || airborne ? 24 : 16)));
-    snap = false;
-    if (airborne)
-      hips.position.y = lerp(
-        sampledHipsY,
-        restHipsY,
-        smooth(0.04, 0.2, airTime)
-      );
-    wasAirborne = airborne;
-    wasLoading = loading;
-  }
-  function travel(player) {
-    if (!travelReady) {
-      // The host awaits prepareTravel before revealing. A premature update
-      // still displays a safe native idle rather than exposing a bind pose.
-      set("idle", false, 1, 0, true);
-      set("idle", true, 1, 0, true);
-      sample(1);
-      mode = "travel-loading";
-      return;
-    }
-    const pose = player.travelPose || { name: "TRAVEL_CROUCH_IDLE", time: 0 };
-    const name = TRAVEL_POSE_NAMES.has(pose.name)
-      ? pose.name
-      : "TRAVEL_CROUCH_IDLE";
-    const previous = TRAVEL_POSE_NAMES.has(pose.previous?.name)
-      ? pose.previous
-      : null;
-    const blend =
-      previous && Number.isFinite(pose.blend) ? clamp(pose.blend, 0, 1) : 1;
-    const apply = (clip, time, weight) => {
-      const seconds = Number.isFinite(time) ? Math.max(0, time) : 0;
-      for (const lower of [false, true]) {
-        set(clip, lower, weight, seconds, travelAnimationLoops(clip));
-        // Native travel clamps one-shots to the exact final authored frame.
-        if (!travelAnimationLoops(clip)) {
-          const entry = actions.get(`${clip}:${lower ? "lower" : "upper"}`);
-          entry.action.time = Math.min(
-            seconds,
-            entry.action.getClip().duration
-          );
-        }
-      }
-    };
-    if (previous && previous.name !== name)
-      apply(previous.name, previous.time, 1 - blend);
-    apply(name, pose.time, previous?.name === name ? 1 : blend);
-    // External elapsed time and blend are authoritative: no second smoothing
-    // clock, airborne correction, gait adjustment, or extra vertical offset.
-    sample(1);
-    snap = false;
-    mode = `travel:${name}`;
-  }
   return {
     get mode() {
       return mode;
     },
     reset,
-    preloadEmotes: ensureEmotes,
-    prepareTravel,
     update(dt, player = {}, speed = 0, distance = 0) {
       if (disposed) return;
       dt = clamp(Number.isFinite(dt) ? dt : 0, 0, 0.05);
-      if (currentMode !== playerAnimationMode(player)) reset(player);
       idleTime += dt;
       for (const entry of actions.values()) entry.target = 0;
-      if (currentMode === "travel") {
-        travel(player);
-        return;
-      }
-      if (currentMode === "visit") {
-        visit(dt, player, speed, distance);
-        return;
-      }
       phase =
         (phase +
           Math.min(distance, 0.4) / lerp(1.5, 2.8, smooth(1.5, 6.5, speed))) %
