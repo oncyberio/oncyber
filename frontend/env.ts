@@ -68,6 +68,8 @@ export const nodeEnv = {
             : "https://api.opensea.io/wyvern/v1",
 
     BASE_RPC: process.env.NEXT_PUBLIC_BASE_RPC || "https://mainnet.base.org",
+    SHAPE_RPC:
+        process.env.NEXT_PUBLIC_SHAPE_RPC || "https://mainnet.shape.network",
     ETH_RPC,
     POLYGON_RPC: process.env.NEXT_PUBLIC_POLYGON_RPC || "https://polygon-rpc.com",
 
