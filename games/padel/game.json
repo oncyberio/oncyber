@@ -4,7 +4,6 @@
   "listing": {
     "tagline": "doubles padel with NPC partners",
     "description": "Walk the club as your avatar, then play doubles on a glass court with an NPC partner against two NPC opponents.",
-    "thumbnail": "preview.jpg",
     "players": {
       "min": 1,
       "max": 1
@@ -269,10 +268,9 @@
     {
       "origin": "own",
       "files": [
-        "preview.jpg",
         "preview.svg"
       ],
-      "note": "A capture of the game and its drawn card."
+      "note": "The game's drawn card."
     },
     {
       "title": "three.js",
