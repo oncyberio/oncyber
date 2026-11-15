@@ -36,6 +36,7 @@ import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
 import { checkDevices, devicesHarness } from "./devices.mjs";
 import { checkLoading, loadingHarness } from "./loading-check.mjs";
 import { locomotionStage } from "./locomotion-check.mjs";
+import { scanUiKit } from "./ui-kit-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -179,7 +180,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] };
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -201,6 +202,7 @@ async function check() {
             report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
         greeted = await page.evaluate(() => window.__contract ?? null);
+        ui = await scanUiKit(page);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
         // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
@@ -278,6 +280,9 @@ async function check() {
         social,
         safeArea,
         party: { status: party.status, ms: party.ms, ...party.detail },
+        // Advice that never blocks: menu screens that don't use the UI kit.
+        warnings: ui.warnings,
+        ui: { screens: ui.screens },
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         ...(reported?.ran ? { results: reported.results } : {}),
@@ -296,7 +301,7 @@ async function check() {
     for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
-    for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
+    for (const warning of [...warnings, ...result.warnings]) console.log(`  warning ${warning.code}: ${warning.message}`);
     for (const line of devices?.lines ?? []) console.log(line);
     if (locomotion) console.log(`  locomotion: ${locomotion.status}` + (locomotion.metres != null ? ` · walked ${locomotion.metres} m in ${locomotion.seconds} s (the lobby: ${locomotion.lobbyMetres} m)` : ""));
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);

@@ -655,15 +655,18 @@ export default function createGame(context) {
         state.partyOffers = partyOffers();
         const list = $("#party-formats");
         list.replaceChildren(
-            ...formats.map((format, index) => {
+            ...formats.map((format) => {
                 const button = document.createElement("button");
-                button.className = `pill${index === 0 ? " big" : ""}`;
+                button.className = "oui-list__item";
                 button.dataset.format = format.id;
-                const label = document.createElement("span");
-                label.textContent = format.label;
-                const blurb = document.createElement("small");
+                button.setAttribute("aria-pressed", "false");
+                const body = document.createElement("span");
+                body.className = "oui-list__body";
+                const blurb = document.createElement("span");
+                blurb.className = "oui-list__meta";
                 blurb.textContent = format.blurb;
-                button.append(label, blurb);
+                body.append(format.label, blurb);
+                button.append(body);
                 return button;
             })
         );
@@ -674,13 +677,17 @@ export default function createGame(context) {
         focusPartyFormat(0);
     }
 
-    // The formats are a keyboard menu too: arrows move, Space picks.
+    // The formats are a keyboard menu too: arrows move, Space picks. The
+    // kit draws its focus ring on data-oui-focus.
+    const partyItems = () => [
+        ...document.querySelectorAll("#party-formats [data-format]"),
+    ];
     function focusPartyFormat(index) {
-        const items = [...document.querySelectorAll("#party-formats .pill")];
+        const items = partyItems();
         if (!items.length) return;
         state.partyIndex = (index + items.length) % items.length;
         items.forEach((b, i) =>
-            b.classList.toggle("focus", i === state.partyIndex)
+            b.toggleAttribute("data-oui-focus", i === state.partyIndex)
         );
     }
 
@@ -706,18 +713,16 @@ export default function createGame(context) {
         box.replaceChildren(
             ...lineup.rounds.flatMap((round) => {
                 const title = document.createElement("h3");
+                title.className = "oui-label";
                 title.textContent = round.name;
                 return [
                     title,
                     ...round.matches.map(([a, b]) => {
                         const line = document.createElement("p");
-                        const versus = document.createElement("i");
-                        versus.textContent = "v";
-                        line.append(
-                            sideLabel(a, lineup.rounds),
-                            versus,
-                            sideLabel(b, lineup.rounds)
-                        );
+                        const left = sideLabel(a, lineup.rounds);
+                        const right = sideLabel(b, lineup.rounds);
+                        line.className = "oui-text";
+                        line.textContent = `${left} v ${right}`;
                         return line;
                     }),
                 ];
@@ -739,7 +744,10 @@ export default function createGame(context) {
             );
             duel.want(settings.games);
         } else partyNote(PARTY_NOTE);
-        const items = [...document.querySelectorAll("#party-formats .pill")];
+        const items = partyItems();
+        items.forEach((b) =>
+            b.setAttribute("aria-pressed", String(b.dataset.format === format))
+        );
         focusPartyFormat(items.findIndex((b) => b.dataset.format === format));
     }
 
@@ -947,11 +955,13 @@ export default function createGame(context) {
         }`;
         $("#foe-blurb").textContent = foe.blurb;
         $("#foe-face").style.backgroundImage = `url(${portrait(foe.palette)})`;
-        document
-            .querySelectorAll("#setup .field")
-            .forEach((f, i) =>
-                f.classList.toggle("focus", i === state.setupField)
-            );
+        // Arrow-key focus: the kit draws its ring on data-oui-focus.
+        [
+            ...document.querySelectorAll("#setup .choice"),
+            document.querySelector("#setup .go"),
+        ].forEach((el, i) =>
+            el.toggleAttribute("data-oui-focus", i === state.setupField)
+        );
         save("settings", JSON.stringify(settings));
     }
 
@@ -1217,9 +1227,6 @@ export default function createGame(context) {
                     }
                     sound.sfxUI(audio, "move");
                     refreshSetup();
-                    document
-                        .querySelector("#setup .go")
-                        .classList.toggle("focus", state.setupField === 2);
                 }
                 if (e.type === "confirm") action("start");
                 if (e.type === "back") action("back");
@@ -1236,9 +1243,7 @@ export default function createGame(context) {
                             (e.dir === "up" || e.dir === "left" ? -1 : 1)
                     );
                 if (e.type === "confirm")
-                    document
-                        .querySelectorAll("#party-formats .pill")
-                        [state.partyIndex]?.click();
+                    partyItems()[state.partyIndex]?.click();
                 if (e.type === "back") action("back");
             } else if (s === "howto") {
                 if (e.type === "confirm" || e.type === "back") action("back");

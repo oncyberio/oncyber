@@ -53,6 +53,15 @@ export default defineConfig({
                 find: /^@oncyber\/kit-locomotion$/,
                 replacement: resolve("../kits/locomotion/src/index.ts"),
             },
+            // Oncyber's optional UI kit for menus (games/kits/ui).
+            {
+                find: /^@oncyber\/game-ui\/(.*)$/,
+                replacement: `${resolve("../kits/ui")}/$1`,
+            },
+            {
+                find: /^@oncyber\/game-ui$/,
+                replacement: resolve("../kits/ui/src/index.ts"),
+            },
             {
                 find: /^@oncyber\/avatar-kit\/page$/,
                 replacement: `${kit}/src/page.ts`,

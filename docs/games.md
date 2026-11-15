@@ -24,6 +24,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
 | `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
+| `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
 
 ## The lifecycle
 
@@ -288,6 +289,9 @@ Every finished match reports exactly one result
 game posts and fails on an invalid or repeated one; a game whose
 `game.json` has a `results` block also has to finish a match during the
 check and send exactly one.
+
+Menu screens that use none of the UI kit's classes are listed as a warning
+(`UI_KIT_UNUSED`), which doesn't block either.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

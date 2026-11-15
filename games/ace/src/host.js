@@ -26,6 +26,9 @@ import createGame, {
 } from "./game.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
+// Oncyber's UI kit first, so Ace's own styles can sit on top of it.
+import "@oncyber/game-ui/fonts.css";
+import "@oncyber/game-ui/oncyber-ui.css";
 import "./style.css";
 
 // The browser host for ACE! Tennis: it runs the game through the lifecycle

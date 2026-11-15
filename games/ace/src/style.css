@@ -438,69 +438,11 @@ body.hud-measure .screen:not(.show) * {
         opacity: 0;
     }
 }
-.field {
-    margin-bottom: 16px;
-}
-.label {
-    display: block;
-    margin: 0 0 8px 4px;
-    font-family: var(--black);
-    font-size: 13px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: #6a6f8c;
-}
-.choice {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
-    gap: 8px;
-    padding: 6px;
-    border: 4px solid var(--ink);
-    border-radius: 18px;
-    background: #e9eefb;
-}
-.choice button {
-    border: 0;
-    border-radius: 12px;
-    padding: 11px 6px;
-    background: transparent;
-    font-family: var(--black);
-    font-size: 17px;
-    transition: background 0.15s, transform 0.2s var(--bounce);
-}
-.choice button[aria-pressed="true"] {
-    background: var(--yellow);
-    box-shadow: 0 3px 0 var(--ink);
-    transform: translateY(-2px);
-}
-.field.focus .choice {
-    outline: 4px solid var(--sky);
-    outline-offset: 3px;
-}
 .row {
     display: flex;
     gap: 14px;
     justify-content: center;
     margin-top: 18px;
-}
-.foe {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: linear-gradient(90deg, #eef3ff, #fff);
-    border: 3px dashed #b9c5e8;
-}
-.foe b {
-    display: block;
-    font-family: var(--black);
-    font-size: 22px;
-}
-.foe span {
-    color: #5b617f;
-    font-size: 15px;
 }
 .foe-face,
 .sb-face,
@@ -1124,59 +1066,13 @@ body:has(.oncyber-controls) .hint {
     justify-content: center;
 }
 
-/* Party formats: who arrived together and what they can play. */
-.party-names {
-    margin: 0 0 14px;
-    font-family: var(--body);
-    font-weight: 700;
-    color: #5b6078;
-    text-align: center;
+/* Party formats and match setup are drawn with the Oncyber UI kit
+   (games/kits/ui); only their size and the portrait are Ace's own. */
+.ace-sheet {
+    width: min(420px, 100%);
 }
-.party-formats {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 14px;
-}
-.party-formats .pill {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-.party-formats .pill small {
-    font-family: var(--body);
-    font-weight: 600;
-    font-size: 12px;
-    opacity: 0.7;
-}
-.party-lineup {
-    margin: 0 0 12px;
-    padding: 12px 14px;
-    border: 3px dashed #c6cbe6;
-    border-radius: 16px;
-    font-family: var(--body);
-    font-weight: 700;
-}
-.party-lineup h3 {
-    margin: 8px 0 4px;
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #5b6078;
-}
-.party-lineup h3:first-child {
-    margin-top: 0;
-}
-.party-lineup p {
-    margin: 2px 0;
-}
-.party-lineup i {
-    font-style: normal;
-    opacity: 0.55;
-    padding: 0 6px;
-}
-.party-note {
+/* The note under a result keeps the card's own type. */
+.result-note {
     margin: 0 0 14px;
     font-family: var(--body);
     font-size: 13px;
@@ -1184,11 +1080,18 @@ body:has(.oncyber-controls) .hint {
     text-align: center;
     max-width: 380px;
 }
+.ace-sheet .foe-face {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--oui-line);
+}
 
 /* ---------- safe area ---------- */
 
-/* A card never grows past the safe area; it scrolls inside it instead. */
-.card {
+/* A card or a kit sheet never grows past the safe area; it scrolls inside
+   it instead. */
+.card,
+.ace-sheet {
     max-height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
