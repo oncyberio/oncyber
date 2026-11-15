@@ -86,7 +86,7 @@ const OBJKT_COLLECTION_URL_PREFIX = "https://objkt.com/collection/";
 const icons: Record<NftSource, string> = {
     ethereum: "/v2/icons/ethereum.svg",
     base: "/v2/icons/base.svg",
-    shape: "",
+    shape: "/v2/icons/shape.svg",
     tezos: "/v2/icons/tezos.svg",
     counterparty: "/v2/icons/counterparty.svg",
     mycollections: "",
