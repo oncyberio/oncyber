@@ -77,8 +77,8 @@ listening if they were listening. The lobby turns its own voice off at the
 reveal, so a microphone is never live in two places.
 
 Chat and voice run in one room: the party's (`oncyber-<game>-party-<trip>`)
-for a party, else the game's `room`, else its `socialRoom` from
-`catalog.ts`. A `socialRoom` is for games with no multiplayer of their own
+for a party, else the game's `room`, else its `socialRoom` (both from
+`page` in `game.json`, [listing.md](listing.md)). A `socialRoom` is for games with no multiplayer of their own
 (Ace): visitors can talk, and the game is told nothing about who is there.
 Chat uses the same message as spaces and the lobby (`chat-channel`,
 `{ type: "MESSAGE", text }`), at most one a second.

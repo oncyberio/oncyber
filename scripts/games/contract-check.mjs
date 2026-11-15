@@ -21,13 +21,17 @@ const KINDS =
 
 /** A game the site offers: it has an entry in the catalog. */
 export function isListed(root, id) {
-    const catalog = join(root, "frontend/features/games/catalog.ts");
-    return (
-        existsSync(catalog) &&
-        new RegExp(`\\bid:\\s*["']${id}["']`).test(
-            readFileSync(catalog, "utf8")
-        )
-    );
+    // The entries are generated from the manifests (docs/games/listing.md);
+    // catalog.ts is read too for a tree from before that.
+    return ["catalog.generated.ts", "catalog.ts"].some((name) => {
+        const catalog = join(root, "frontend/features/games", name);
+        return (
+            existsSync(catalog) &&
+            new RegExp(`\\bid["']?:\\s*["']${id}["']`).test(
+                readFileSync(catalog, "utf8")
+            )
+        );
+    });
 }
 
 function sourceFiles(dir) {

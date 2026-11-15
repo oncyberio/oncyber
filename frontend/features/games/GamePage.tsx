@@ -50,6 +50,7 @@ import { useGamePause } from "./gamePause";
 import { GameSoundButton, useGameAudio } from "./GameSound";
 import { attachSavedData, signedInAccount } from "./savedDataBridge";
 import { createRemoteSavedStore } from "./savedDataRemote";
+import { joinedParty, rememberGameParty } from "./gamePartyJoin";
 
 const PEER_INTERVAL = 100;
 
@@ -245,6 +246,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
         const announceParty = (next: GameParty | null) => {
             partyRef.current = next;
             setParty(next);
+            // So the lobby can offer the way back in (gamePartyJoin.ts).
+            if (next) rememberGameParty(GAME, next.id);
             announceTrip.current();
         };
         // The page's part of the lifecycle's enter() data, once per visit:
@@ -258,6 +261,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
         };
         announceParty(
             gameParty(readLobbyGroupCohort()) ??
+                joinedParty(window.location.search) ??
                 developmentParty(window.location.search)
         );
         const deliverIdentity = () => {
@@ -310,7 +314,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     | { peers?: unknown }
                     | undefined;
                 // The trip's final view carries the members the lobby showed.
-                if (partyRef.current && view?.peers) {
+                if (partyRef.current && !partyRef.current.late && view?.peers) {
                     const next = gameParty(partyRef.current.id, view.peers);
                     if (next) announceParty(next);
                 }

@@ -130,9 +130,16 @@ function fakeRepo() {
         join(repo, "frontend/features/games/savedData.declared.json"),
         join(root, "frontend/features/games/savedData.declared.json")
     );
+    // The catalog is generated from the manifests (docs/games/listing.md),
+    // so a listed game is one with a manifest: Ace's stands in for it.
+    mkdirSync(join(root, "games/ace"), { recursive: true });
     cpSync(
-        join(repo, "frontend/features/games/catalog.ts"),
-        join(root, "frontend/features/games/catalog.ts")
+        join(repo, "games/ace/game.json"),
+        join(root, "games/ace/game.json")
+    );
+    cpSync(
+        join(repo, "frontend/features/games/catalog.generated.ts"),
+        join(root, "frontend/features/games/catalog.generated.ts")
     );
     return root;
 }
@@ -206,8 +213,11 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
         )
     );
     assert.match(
-        readFileSync(join(root, "frontend/features/games/catalog.ts"), "utf8"),
-        /"brief-sumo": \{\n        id: "brief-sumo",\n        title: "Sumo Ring",/
+        readFileSync(
+            join(root, "frontend/features/games/catalog.generated.ts"),
+            "utf8"
+        ),
+        /"brief-sumo": \{\n        "id": "brief-sumo",\n        "title": "Sumo Ring",\n        "tagline": "a new game",/
     );
     // Not done until the agent does the work: the brief, the bot and what
     // the party statement says. (The copy keeps the garden's formats, so
@@ -226,9 +236,14 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
         /already exists/
     );
     assert.throws(() => createGame({ root, id: "Bad Id" }), /lowercase/);
-    assert.throws(
-        () => createGame({ root, id: "ace" }),
-        /already in the catalog/
+    // A listed game is never scaffolded over, and stays in the catalog.
+    assert.throws(() => createGame({ root, id: "ace" }), /already exists/);
+    assert.match(
+        readFileSync(
+            join(root, "frontend/features/games/catalog.generated.ts"),
+            "utf8"
+        ),
+        /"id": "ace"/
     );
 });
 

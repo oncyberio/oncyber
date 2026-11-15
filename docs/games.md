@@ -25,6 +25,7 @@ where `GAMES_PREVIEW=1` is set.
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
 | `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
 | `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
+| `docs/games/listing.md`           | What a game's listing must contain, and what the lobby shows from it.               |
 
 ## The lifecycle
 
@@ -175,7 +176,10 @@ A lobby group that travels together shares one trip id. The page reads it
 in `enter()` (`continuity.trip`) and again through `party(trip)` when it
 changes: the members the lobby named, the room's name, the visitor's room id
 and who has arrived (ids every member sees the same way), plus `net` packets
-between them.
+between them. Someone who opens `/games/<id>?join=<party id>` after the party
+(the "Your party is here" card in Explore) joins the same room and gets the
+same trip, with no members named by the lobby: the roster names them
+([games/listing.md](games/listing.md)).
 
 When one member starts the trip back to the lobby, the others are offered
 to follow ([games/departure.md](games/departure.md)).
@@ -233,7 +237,8 @@ and a scenario stub, and declares the game's saved keys to the page;
    `inspect()` keys, [games/contract.md](games/contract.md)) and a
    `bot.json` that plays it through the keyboard
    ([games/good-game.md](games/good-game.md)).
-3. Add the game to `frontend/features/games/catalog.ts`.
+3. Write the `listing` in `game.json` and run `pnpm games:catalog`, which
+   adds the game to the site's catalog ([games/listing.md](games/listing.md)).
 4. Open `/games/<id>` on the dev server.
 
 ## Devices

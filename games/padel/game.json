@@ -1,6 +1,22 @@
 {
   "name": "Glasshouse · Padel",
   "avatar": "vrm",
+  "listing": {
+    "tagline": "doubles padel with NPC partners",
+    "description": "Walk the club, then play doubles with an NPC partner.",
+    "thumbnail": "preview.jpg",
+    "players": {
+      "min": 1,
+      "max": 1
+    },
+    "tags": [
+      "sports",
+      "club"
+    ]
+  },
+  "page": {
+    "ownPage": true
+  },
   "avatars": {
     "others": "other",
     "why": "Padel draws players as avatars with its own code on its own page, which this check cannot drive; it moves to the avatar kit with the shared game page.",
@@ -36,5 +52,8 @@
   },
   "keysCheck": {
     "legacy": true
-  }
+  },
+  "devices": [
+    "desktop"
+  ]
 }

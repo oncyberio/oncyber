@@ -7,8 +7,9 @@
 // Writes games/<id>/ (a copy of games/garden, renamed), games/<id>/BRIEF.md
 // (from games/BRIEF.md), bot.json and scenario.json stubs, a game.json whose
 // party statement is still to write, the game's saved keys in
-// frontend/features/games/savedData.declared.json, and an entry in
-// frontend/features/games/catalog.ts.
+// frontend/features/games/savedData.declared.json, and a listing whose
+// entry goes into the generated catalog
+// (frontend/features/games/catalog.generated.ts, docs/games/listing.md).
 // The new game passes the contract, keys and manifest checks as it is (it
 // is the garden, renamed) and fails `pnpm games:check <id>` on its brief,
 // its party statement and its bot until they are written: that is the
@@ -16,6 +17,12 @@
 import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+    CATALOG_PATH,
+    buildCatalog,
+    readManifests,
+    renderCatalog,
+} from "./listing.mjs";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SKIP = new Set([
@@ -51,9 +58,12 @@ export function createGame({ root = repo, id, name = id }) {
         throw new Error("the name is plain text");
     const template = join(root, "games/garden");
     const target = join(root, "games", id);
-    const catalog = join(root, "frontend/features/games/catalog.ts");
+    const catalog = join(root, CATALOG_PATH);
     if (existsSync(target)) throw new Error(`games/${id} already exists`);
-    if (new RegExp(`^    ${id}: \\{`, "m").test(readFileSync(catalog, "utf8")))
+    if (
+        existsSync(catalog) &&
+        new RegExp(`\\bid"?: "${id}"`).test(readFileSync(catalog, "utf8"))
+    )
         throw new Error(`${id} is already in the catalog`);
 
     cpSync(template, target, {
@@ -126,6 +136,15 @@ export function createGame({ root = repo, id, name = id }) {
             {
                 ...manifest,
                 name,
+                // The card is the new game's own: no shared room, and the
+                // check takes its thumbnail (docs/games/listing.md).
+                listing: {
+                    tagline: "a new game",
+                    description: `${name}: a new game made from Bloom Garden. Say here what the player does.`,
+                    players: { min: 1, max: 1 },
+                    tags: ["new"],
+                },
+                page: {},
                 format: "match",
                 party: {
                     ...manifest.party,
@@ -190,16 +209,8 @@ export function createGame({ root = repo, id, name = id }) {
             "```sh\nnpm ci\nnpm run dev                 # standalone, with live reload\n" +
             `pnpm games:publish ${id}    # from the repository root: build, check, release\n\`\`\`\n`
     );
-    edit(catalog, (t) =>
-        swap(
-            t,
-            "\n};\n\nexport function findGame",
-            `\n    ${
-                JSON.stringify(id).includes("-") ? JSON.stringify(id) : id
-            }: {\n        id: "${id}",\n        title: "${name}",\n        tagline: "a new game",\n        room: null,\n        relay: false,\n        crowdLabel: "",\n    },\n};\n\nexport function findGame`,
-            "catalog.ts"
-        )
-    );
+    // The site's catalog is generated from the manifests.
+    writeFileSync(catalog, renderCatalog(buildCatalog(readManifests(root))));
     return {
         target,
         files: ["BRIEF.md", "game.json", "bot.json", "scenario.json"],

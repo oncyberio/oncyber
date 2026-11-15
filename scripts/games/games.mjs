@@ -40,6 +40,7 @@ import { scanUiKit } from "./ui-kit-check.mjs";
 import { soundHarness, soundStage } from "./sound-check.mjs";
 import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
 import { describeProcess, processStage } from "./process.mjs";
+import { GENERATED_THUMBNAIL, listingStage } from "./listing.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -78,7 +79,7 @@ function listFiles(dir) {
 }
 // What a release is made of: everything the browser can load, not the
 // reports this script writes next to it.
-const REPORTS = new Set(["check.json", "release.json"]);
+const REPORTS = new Set(["check.json", "release.json", GENERATED_THUMBNAIL]);
 function bundleFiles() {
     if (!existsSync(join(out, "index.html"))) fail(`frontend/public/games/${id}/index.html missing; build first`);
     return listFiles(out)
@@ -189,7 +190,7 @@ async function check() {
     const errors = [], pageErrors = [];
     const launch = () => chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
     const browser = await launch();
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] };
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -214,6 +215,8 @@ async function check() {
         ui = await scanUiKit(page);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // The listing: its fields, and the card's thumbnail from this run (listing.mjs).
+        listing = await listingStage({ root, out, manifest, page, booted: report?.status === "passed" && !gameError, retake: command === "publish" || flags.includes("--thumbnail") });
         // Sound (docs/games/sound.md), on the live game the scenario played in: the page's part of the sound channel, asserted on the output's facts.
         if (report) await soundStage(page, report, { required: lifecycle && manifest.runtime.capabilities.includes("audio") });
         // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
@@ -269,7 +272,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" && !listing?.findings.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -279,6 +282,7 @@ async function check() {
             ...avatars.findings,
             ...(devices?.blocking ?? []),
             ...saved.findings,
+            ...(listing?.findings ?? []),
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
@@ -305,6 +309,7 @@ async function check() {
         contract: { listed: contract.listed, prefix: greeted?.prefix ?? null, version: greeted?.version ?? null, visit: contract.visit, warnings },
         devices: devices?.report,
         saved: { status: saved.status, ms: saved.ms, keys: saved.keys, runs: saved.runs },
+        listing: listing?.summary ?? null,
         run: report,
         keys: keys?.report ?? null,
         ...(locomotion ? { locomotion } : {}),

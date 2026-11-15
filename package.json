@@ -17,6 +17,7 @@
         "world": "node scripts/world-cli.mjs",
         "games:check": "node scripts/games/games.mjs check",
         "games:publish": "node scripts/games/games.mjs publish",
+        "games:catalog": "node scripts/games/catalog.mjs",
         "games:new": "node scripts/games/new.mjs",
         "games:score": "node scripts/games/score.mjs",
         "games:test": "node --experimental-strip-types --test games/runtime/test/*.test.mjs games/kits/locomotion/test/*.test.mjs games/kits/ui/test/*.test.mjs scripts/games/*.test.mjs scripts/games/test/*.test.mjs",

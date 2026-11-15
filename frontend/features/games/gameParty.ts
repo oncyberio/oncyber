@@ -19,6 +19,11 @@ export interface GameParty {
     size: number;
     /** The other members the lobby showed on the way in. */
     members: GamePartyMember[];
+    /**
+     * Arrived by a join link after the party (gamePartyJoin.ts): nobody is
+     * listed, and the room's roster says who is there.
+     */
+    late?: boolean;
 }
 
 const COHORT = /^[A-Za-z0-9_-]{16,80}$/;

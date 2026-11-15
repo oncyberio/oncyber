@@ -1,6 +1,30 @@
 {
   "name": "Bloom Garden",
   "avatar": "vrm",
+  "listing": {
+    "tagline": "raise bloomlings with other players",
+    "description": "Hatch a bloomling, feed it, pet it and watch it grow up. Race and bump with other players' bloomlings.",
+    "thumbnail": "preview.jpg",
+    "players": {
+      "min": 1,
+      "max": 32
+    },
+    "tags": [
+      "pets",
+      "social",
+      "cozy"
+    ]
+  },
+  "page": {
+    "room": "oncyber-bloom-garden-v1",
+    "relay": true,
+    "crowdLabel": "in the garden",
+    "controls": {
+      "top": 14,
+      "left": "auto",
+      "right": 16
+    }
+  },
   "format": "world",
   "avatars": {
     "others": "avatar",

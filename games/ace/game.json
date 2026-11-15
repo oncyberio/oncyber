@@ -1,6 +1,26 @@
 {
   "name": "ACE! Tennis",
   "avatar": "vrm",
+  "listing": {
+    "tagline": "an arcade tennis match",
+    "description": "Charge it up, time it right, hear the crowd go wild. Play the house solo, or bring a party for 1 v 1, doubles or a tournament.",
+    "players": {
+      "min": 1,
+      "max": 8
+    },
+    "tags": [
+      "sports",
+      "arcade",
+      "party"
+    ]
+  },
+  "page": {
+    "socialRoom": "oncyber-ace-social-v1",
+    "crowdLabel": "at the courts",
+    "controls": {
+      "top": 14
+    }
+  },
   "format": "match",
   "devices": [
     "desktop",

@@ -85,7 +85,7 @@ Overview of games: [../games.md](../games.md).
 | `CONTRACT_ENTER_ARRIVAL`, `CONTRACT_ENTER_PARTY` | The page sent a visit and `enter()` didn't receive it.                      |
 | `CONTRACT_LEGACY_PREFIX` (warning)               | The source or the build still says `<id>:<kind>`.                           |
 
-A game is listed when `frontend/features/games/catalog.ts` has its id. A
+A game is listed when the generated catalog (`frontend/features/games/catalog.generated.ts`, from its `listing`) has its id. A
 game that isn't listed still gets the boot-only check. The last two
 `CONTRACT_ENTER_*` findings come from `inspect()`: the runtime adds
 `hostArrival`, `hostParty` and `hostPartyArrived`, what `enter()` was handed,

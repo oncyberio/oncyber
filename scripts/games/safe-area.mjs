@@ -151,7 +151,9 @@ export async function checkSafeArea({ browser, origin, id, shots }) {
         readSafeInsets,
         sameInsets,
     } = await import("../../games/runtime/src/safe-area.ts");
-    const { GAMES } = await import("../../frontend/features/games/catalog.ts");
+    const { GAMES } = await import(
+        "../../frontend/features/games/catalog.generated.ts"
+    );
     const entry = Object.hasOwn(GAMES, id) ? GAMES[id] : null;
     if (entry?.ownPage)
         return {
