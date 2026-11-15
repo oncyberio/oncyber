@@ -46,6 +46,14 @@ export const GAMES: Record<string, GameEntry> = {
         crowdLabel: "",
         ownPage: true,
     },
+    skyhoop: {
+        id: "skyhoop",
+        title: "Skyhoop",
+        tagline: "broom ball in the bowl",
+        room: null,
+        relay: false,
+        crowdLabel: "",
+    },
     ace: {
         id: "ace",
         title: "ACE! Tennis",

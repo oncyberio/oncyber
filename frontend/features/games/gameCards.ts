@@ -5,6 +5,7 @@ const DESCRIPTIONS: Record<string, string> = {
     garden: "Hatch a bloomling, feed it, pet it and watch it grow up. Race and bump with other players' bloomlings.",
     ace: "Charge it up, time it right, hear the crowd go wild.",
     padel: "Walk the club, then play doubles with an NPC partner.",
+    skyhoop: "Mount a broom and fly for the hoops. Dodge the Bolts, chase the Wisp.",
 };
 
 function card(game: GameEntry): LandingCard {

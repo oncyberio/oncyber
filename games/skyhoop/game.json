@@ -1,0 +1,182 @@
+{
+  "name": "Skyhoop",
+  "avatar": "vrm",
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game/game.js",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "assets",
+      "audio",
+      "avatar",
+      "travel"
+    ],
+    "assets": [
+      "public/motion.json"
+    ],
+    "input": {
+      "forward": {
+        "keyboard": [
+          "KeyW",
+          "ArrowUp"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-up"
+      },
+      "backward": {
+        "keyboard": [
+          "KeyS",
+          "ArrowDown"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-down"
+      },
+      "left": {
+        "keyboard": [
+          "KeyA",
+          "ArrowLeft"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-left"
+      },
+      "right": {
+        "keyboard": [
+          "KeyD",
+          "ArrowRight"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-right"
+      },
+      "moveX": {
+        "touch": "stick",
+        "gamepad": "left-stick-x"
+      },
+      "moveY": {
+        "touch": "stick",
+        "gamepad": "left-stick-y"
+      },
+      "up": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "rise",
+        "gamepad": "button-a"
+      },
+      "down": {
+        "keyboard": [
+          "KeyC",
+          "ControlLeft"
+        ],
+        "touch": "dive",
+        "gamepad": "left-trigger"
+      },
+      "boost": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "boost",
+        "gamepad": "left-stick-press"
+      },
+      "shoot": {
+        "keyboard": [
+          "KeyJ"
+        ],
+        "touch": "throw",
+        "gamepad": "right-trigger"
+      },
+      "pass": {
+        "keyboard": [
+          "KeyK",
+          "KeyF"
+        ],
+        "touch": "pass",
+        "gamepad": "button-x"
+      },
+      "roll": {
+        "keyboard": [
+          "KeyQ"
+        ],
+        "touch": "roll",
+        "gamepad": "button-b"
+      },
+      "swap": {
+        "keyboard": [
+          "Tab"
+        ],
+        "touch": "swap",
+        "gamepad": "button-y"
+      },
+      "interact": {
+        "keyboard": [
+          "KeyE",
+          "Enter"
+        ],
+        "touch": "mount",
+        "gamepad": "button-a"
+      },
+      "difficulty": {
+        "keyboard": [
+          "KeyV"
+        ],
+        "touch": "menu"
+      },
+      "back": {
+        "keyboard": [
+          "Escape",
+          "KeyP"
+        ],
+        "touch": "menu",
+        "gamepad": "button-start"
+      },
+      "resume": {
+        "touch": "menu"
+      },
+      "again": {
+        "keyboard": [
+          "KeyR"
+        ],
+        "touch": "menu"
+      },
+      "leave": {
+        "touch": "menu"
+      },
+      "exit": {
+        "touch": "lobby"
+      },
+      "help": {
+        "keyboard": [
+          "KeyH"
+        ],
+        "touch": "help"
+      },
+      "mute": {
+        "keyboard": [
+          "KeyM"
+        ],
+        "touch": "sound"
+      },
+      "lookX": {
+        "touch": "drag",
+        "gamepad": "right-stick-x"
+      },
+      "lookY": {
+        "touch": "drag",
+        "gamepad": "right-stick-y"
+      },
+      "lookStickX": {
+        "gamepad": "right-stick-x"
+      },
+      "lookStickY": {
+        "gamepad": "right-stick-y"
+      }
+    }
+  }
+}

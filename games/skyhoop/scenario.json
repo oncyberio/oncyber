@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "steps": [
+    {
+      "type": "wait",
+      "frames": 30
+    },
+    {
+      "type": "assert",
+      "key": "booted",
+      "equals": true
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "arrive"
+    },
+    {
+      "type": "assert",
+      "key": "riders",
+      "equals": 14
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 1
+    },
+    {
+      "type": "wait",
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 0
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "match"
+    },
+    {
+      "type": "assert",
+      "key": "phase",
+      "equals": "kickoff"
+    },
+    {
+      "type": "action",
+      "action": "forward",
+      "value": 1
+    },
+    {
+      "type": "waitUntil",
+      "key": "phase",
+      "equals": "play",
+      "maxFrames": 400
+    },
+    {
+      "type": "wait",
+      "frames": 60
+    },
+    {
+      "type": "action",
+      "action": "forward",
+      "value": 0
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "match"
+    }
+  ]
+}

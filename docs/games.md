@@ -156,6 +156,7 @@ with a party of four; open it in several windows to share the room.
 | Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
 | ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | not yet   | boot only                   |
 | Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | boot only                   |
+| Skyhoop (`skyhoop`)        | shared `GamePage`, sandboxed, no room (bots)                                         | yes       | scenario, lifecycle, frames |
 
 Games without the lifecycle get a boot-only check: they must load, say
 `ready` and throw no page errors for five seconds. Moving Ace and Padel onto
