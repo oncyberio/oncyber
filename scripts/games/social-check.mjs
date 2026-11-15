@@ -20,6 +20,7 @@ import { stripTypeScriptTypes } from "node:module";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { GAME_MESSAGE_PREFIX } from "../../games/runtime/src/contract.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -64,6 +65,9 @@ const visitorPage = (
     title
 ) => `<!doctype html><meta charset="utf-8"><title>${title}</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
+<script>window.GAME_MESSAGE_PREFIX = ${JSON.stringify(
+    GAME_MESSAGE_PREFIX
+)};</script>
 <script type="module" src="/social/visitor.js"></script>`;
 
 export function serveSocialCheck(id, out) {

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T11:52:32.776Z",
-  "status": "failed",
+  "checkedAt": "2026-11-15T12:16:30.546Z",
+  "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 6,
@@ -12,18 +12,27 @@
       "bytes": 965053
     }
   },
-  "findings": [
-    {
-      "code": "STAGE_SOCIAL",
-      "message": "GAME_NOT_READY: the game did not say ready for both visitors"
-    }
-  ],
+  "findings": [],
   "social": {
     "stage": "social",
-    "status": "failed",
-    "ms": 120302,
-    "error": "GAME_NOT_READY: the game did not say ready for both visitors",
-    "facts": {}
+    "status": "passed",
+    "ms": 11503,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "hello",
+        "ready",
+        "arrival-ready"
+      ]
+    }
   },
   "consoleErrors": [],
   "contract": {
@@ -40,17 +49,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 1551,
+    "bootMs": 1673,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1551
+        "ms": 1673
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 134449
+        "ms": 139284
       },
       {
         "stage": "lifecycle",
@@ -60,14 +69,14 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 74881
+        "ms": 69695
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 416.6,
-      "p95Ms": 483.3,
-      "worstMs": 533.3
+      "medianMs": 383.4,
+      "p95Ms": 450,
+      "worstMs": 483.3
     },
     "inspect": {
       "booted": true,
@@ -93,7 +102,7 @@
       ],
       "frozen": false,
       "hostPhase": "entered",
-      "hostFrames": 555,
+      "hostFrames": 554,
       "hostArrival": "lobby",
       "hostParty": 4,
       "hostPartyArrived": 4,
@@ -107,7 +116,7 @@
     "steps": [
       {
         "step": "play",
-        "delivered": 2,
+        "delivered": 4,
         "moved": true
       },
       {

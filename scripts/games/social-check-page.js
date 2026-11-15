@@ -105,10 +105,24 @@ function joinRoom(label) {
 }
 
 // --- the game frame, in the site's sandbox -------------------------------
+// The one contract (docs/games/contract.md): every game says
+// oncyber:game:<kind>; a build from before it says <id>:<kind>. Each message
+// goes out in the form the game greeted in, as GamePage's send does.
+const CONTRACT = window.GAME_MESSAGE_PREFIX;
+const LEGACY = `${GAME}:`;
+let prefix = LEGACY;
+const kindOf = (type) =>
+    typeof type !== "string"
+        ? ""
+        : type.startsWith(CONTRACT)
+        ? type.slice(CONTRACT.length)
+        : type.startsWith(LEGACY)
+        ? type.slice(LEGACY.length)
+        : "";
 const posted = [];
 let frame = null;
 function toGame(kind, data = {}) {
-    const message = { type: `${GAME}:${kind}`, ...data };
+    const message = { type: prefix + kind, ...data };
     posted.push(message);
     frame?.contentWindow?.postMessage(message, "*");
 }
@@ -150,12 +164,12 @@ const visitor = {
         addEventListener("message", (event) => {
             if (event.source !== frame.contentWindow) return;
             const type = event.data?.type;
-            if (typeof type !== "string" || !type.startsWith(`${GAME}:`))
-                return;
-            const kind = type.slice(GAME.length + 1);
+            const kind = kindOf(type);
+            if (!kind) return;
             visitor.fromGame.push(kind);
             if (kind === "hello" && !visitor.greeted) {
                 visitor.greeted = true;
+                prefix = type.startsWith(CONTRACT) ? CONTRACT : LEGACY;
                 toGame("identity", {
                     name,
                     pfp: "",
@@ -163,6 +177,13 @@ const visitor = {
                     storage: {},
                 });
                 toGame("party", { party: null });
+                // A contract game waits for its visit: a trip from the
+                // lobby, alone.
+                if (prefix === CONTRACT)
+                    toGame("enter", {
+                        arrival: { from: "lobby", view: null },
+                        trip: null,
+                    });
             } else if (kind === "ready" && !visitor.ready) {
                 visitor.ready = true;
                 toGame("entered");
@@ -205,9 +226,7 @@ const visitor = {
             lobbyVoice: lobby.voiceState,
             relayed: room?.relayed ?? [],
             postedKinds: [
-                ...new Set(
-                    posted.map((message) => message.type.slice(GAME.length + 1))
-                ),
+                ...new Set(posted.map((message) => kindOf(message.type))),
             ],
             posted: JSON.stringify(posted),
             fromGame: [...new Set(visitor.fromGame)],
