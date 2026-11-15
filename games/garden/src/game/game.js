@@ -1,4 +1,5 @@
 import * as THREE from "three/webgpu";
+import { drawProbe } from "@oncyber/avatar-kit/probe";
 import { createSound, play } from "./sound.js";
 import { CARRY_OFFSET, attachVRM, createAvatar, driveAvatar, loadMotion, loadVRM } from "./avatar.js";
 import { ambient, createFx, dust, hearts, splash, updateFx } from "./fx.js";
@@ -204,6 +205,35 @@ export default function createGame(ctx) {
         }
         await attachVRM(av, vrm);
         return true;
+    }
+
+    // What the avatar check asks (docs/games/avatar-kit.md): is the visitor a
+    // body, and is everyone else drawn, as their own avatar? A probe per
+    // player marks the bodies the renderer actually drew.
+    const probes = new Map();
+    function avatarFacts() {
+        const others = peers ? [...peers.players.values()] : [];
+        for (const id of [...probes.keys()]) if (id !== "self" && !peers?.players.has(id)) probes.delete(id);
+        const drawn = (id, av) => {
+            if (!av) return false;
+            const probe = probes.get(id) || probes.set(id, drawProbe()).get(id);
+            const was = probe.take();
+            probe.watch(av.root);
+            return was;
+        };
+        const shown = others.filter((p) => drawn(p.id, p.av));
+        return {
+            avatarSelf: avatar?.rig ? "vrm" : avatar ? "stand-in" : "none",
+            avatarSelfInFrame: drawn("self", avatar),
+            avatarOthers: others.length,
+            avatarOthersDrawn: shown.length,
+            avatarOthersVrm: shown.filter((p) => p.av.rig).length,
+            avatarArrival: "none",
+            avatarFacingCamera: false,
+            avatarHandsEmpty: !garden?.held,
+            avatarTalking: peers ? talkingCount(peers) : 0,
+            avatarEmote: "",
+        };
     }
 
     // Peers load one or two at a time.
@@ -838,6 +868,7 @@ export default function createGame(ctx) {
                 online: net.online,
                 peers: peers ? peers.players.size : 0,
                 talking: peers ? talkingCount(peers) : 0,
+                ...avatarFacts(),
                 offers: state.offers.length,
                 playerX: Math.round(player.x * 10) / 10,
                 playerZ: Math.round(player.z * 10) / 10,

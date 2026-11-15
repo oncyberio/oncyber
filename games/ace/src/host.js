@@ -2,10 +2,12 @@ import { GAME_MESSAGE_PREFIX, RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { connectPage } from "@oncyber/game-runtime/page";
+import { connectVoice } from "@oncyber/game-runtime/voice";
+import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
 import scenario from "../scenario.json";
 import { COURT } from "./config.js";
-import createGame, { debugHooks, pageSound } from "./game.js";
+import createGame, { debugHooks, pageRoom, pageSound } from "./game.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
 import "./style.css";
@@ -15,8 +17,10 @@ import "./style.css";
 // declared actions (the page owns Escape, Enter and M, and pauses input
 // while the visitor types: docs/games/keys-focus.md),
 // and implements the services the game declares: saved settings, the
-// visitor's avatar bytes and travel back to the lobby, all through the
-// Oncyber game page when embedded. Standalone (vite dev) it plays on
+// avatar bytes of the visitor and of the players in their party's room, and
+// travel back to the lobby, all through the Oncyber game page when embedded.
+// The room's players, their poses and who is talking go to the game's
+// avatar kit (docs/games/avatar-kit.md). Standalone (vite dev) it plays on
 // localStorage; `?arrive` and `?party=4` stand in for a lobby trip.
 
 const params = new URLSearchParams(location.search);
@@ -34,6 +38,24 @@ const page = connectPage({
 // with the insets.
 const hud = createHud(() => debugHooks.game?.state.screen ?? "boot");
 debugHooks.inspect = hud.inspect;
+// The party's room for the avatar kit: the page's `peers` (poses, names,
+// avatars), with who is talking from the page's voice (docs/games/voice-chat.md).
+// The game tells the room where the visitor stands.
+const voice = connectVoice(GAME_MESSAGE_PREFIX.slice(0, -1));
+const vouched = new Set();
+page.on("peers", (players) => {
+    for (const p of players)
+        for (const ref of [p.vrm, p.avatarUrl])
+            if (typeof ref === "string" && ref && ref.length <= 2048)
+                vouched.add(ref);
+    pageRoom.peers?.(
+        players.map((p) => ({
+            ...p,
+            talking: p.talking === true || voice.isTalking(p.id),
+        }))
+    );
+});
+pageRoom.pose = (pose) => page.pose(pose);
 page.hello();
 
 const AVATAR_MAX = 32 * 1024 * 1024;
@@ -59,9 +81,11 @@ async function call(capability, operation, value) {
     throw new Error("HOST_SERVICE_UNAVAILABLE");
 }
 
-// Only the visitor's own avatar, size-capped here and by the runtime.
+// Only avatars the page vouches for: the visitor's own and those of the
+// players it announced in the room. Size-capped here and by the runtime.
 async function avatar(ref, signal) {
-    if (ref !== identity.avatar) throw new Error("AVATAR_NOT_VOUCHED");
+    if (ref !== identity.avatar && !vouched.has(ref))
+        throw new Error("AVATAR_NOT_VOUCHED");
     const response = await fetch(ref, { signal });
     if (!response.ok) throw new Error(`AVATAR_HTTP_${response.status}`);
     const bytes = await response.arrayBuffer();
@@ -164,6 +188,8 @@ async function start() {
     const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
     await session.prepare();
+    // The avatar stage of pnpm games:check asks what the game sees.
+    answerInspect(() => session.inspect());
     page.ready();
     const visit = page.embedded ? await page.enterData() : standInEnter();
     await session.enter({
@@ -187,7 +213,8 @@ async function start() {
         session.party(page.trip);
     page.on("party", (trip) => session.party(trip));
     // Two frames in the arrival framing, then stand still until the lobby
-    // has revealed the game: the visitor stands up in view, not behind it.
+    // has revealed the game: the visitor stands up in view, not behind it
+    // (the kit holds the arrival crouch until `entered`).
     await frame();
     await frame();
     if (visit.arrival.from === "lobby" && !page.revealed) {
@@ -195,13 +222,14 @@ async function start() {
         page.on("revealed", () => {
             hidden = false;
             last = performance.now();
+            pageRoom.entered?.();
         });
-    }
+    } else pageRoom.entered?.();
     page.arrivalReady();
 
     // pnpm games:check opens the game with ?check: play the scenario,
     // measure frames and report to the check page.
-    if (params.has("check"))
+    if (params.has("check") && params.get("check") !== "avatars")
         postCheckReport(
             await runCheck({
                 session,
@@ -227,6 +255,8 @@ async function start() {
         keys.dispose();
         devices.dispose();
         hud.dispose();
+        voice.dispose();
+        delete pageRoom.pose;
         page.dispose();
         void session.dispose();
     };

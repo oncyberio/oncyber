@@ -1,22 +1,151 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T12:31:43.818Z",
+  "checkedAt": "2026-11-15T12:43:07.040Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
-    "count": 6,
-    "bytes": 1818118,
+    "count": 8,
+    "bytes": 2262074,
     "largest": {
-      "path": "assets/index-DN-0o3O3.js",
-      "bytes": 968112
+      "path": "assets/index-DFfYuBPS.js",
+      "bytes": 999945
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [],
+    "ms": 14915,
+    "facts": {
+      "arrival": {
+        "booted": true,
+        "screen": "arrive",
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 0,
+        "avatarOthersVrm": 0,
+        "avatarArrival": "crouched",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "arrival": "lobby",
+        "standing": false,
+        "walked": false,
+        "partySize": 2,
+        "partyFormats": "singles,cpu",
+        "partyFormat": "",
+        "difficulty": "pro",
+        "length": 2,
+        "phase": "idle",
+        "server": 0,
+        "points": "0-0",
+        "games": "0-0",
+        "rally": 0,
+        "muted": false,
+        "position": [
+          2.4,
+          0,
+          13.084999999999999
+        ],
+        "frozen": false,
+        "hostPhase": "entered",
+        "hostFrames": 2,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      },
+      "entered": {
+        "booted": true,
+        "screen": "arrive",
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "arrival": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "partyFormats": "singles,cpu",
+        "partyFormat": "",
+        "difficulty": "pro",
+        "length": 2,
+        "phase": "idle",
+        "server": 0,
+        "points": "0-0",
+        "games": "0-0",
+        "rally": 0,
+        "muted": false,
+        "position": [
+          2.4,
+          0,
+          13.084999999999999
+        ],
+        "frozen": false,
+        "hostPhase": "entered",
+        "hostFrames": 19,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      },
+      "others": {
+        "booted": true,
+        "screen": "arrive",
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "arrival": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "partyFormats": "singles,cpu",
+        "partyFormat": "",
+        "difficulty": "pro",
+        "length": 2,
+        "phase": "idle",
+        "server": 0,
+        "points": "0-0",
+        "games": "0-0",
+        "rally": 0,
+        "muted": false,
+        "position": [
+          2.4,
+          0,
+          13.084999999999999
+        ],
+        "frozen": false,
+        "hostPhase": "entered",
+        "hostFrames": 24,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      }
     }
   },
   "findings": [],
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 13315,
+    "ms": 12833,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -30,6 +159,7 @@
       "gameSent": [
         "hello",
         "ready",
+        "pose",
         "arrival-ready"
       ]
     }
@@ -442,17 +572,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 2063,
+    "bootMs": 1711,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 2063
+        "ms": 1711
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 140007
+        "ms": 137535
       },
       {
         "stage": "lifecycle",
@@ -462,18 +592,28 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 72185
+        "ms": 65333
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 400,
-      "p95Ms": 450,
-      "worstMs": 533.3
+      "medianMs": 366.6,
+      "p95Ms": 416.7,
+      "worstMs": 433.4
     },
     "inspect": {
       "booted": true,
       "screen": "pause",
+      "avatarSelf": "stand-in",
+      "avatarSelfInFrame": false,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "standing",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": false,
+      "avatarTalking": 0,
+      "avatarEmote": "",
       "arrival": "lobby",
       "standing": true,
       "walked": true,
@@ -495,7 +635,7 @@
       ],
       "frozen": false,
       "hostPhase": "entered",
-      "hostFrames": 555,
+      "hostFrames": 560,
       "hostArrival": "lobby",
       "hostParty": 4,
       "hostPartyArrived": 4,
@@ -509,12 +649,12 @@
     "steps": [
       {
         "step": "play",
-        "delivered": 4,
+        "delivered": 2,
         "moved": true
       },
       {
         "step": "typing",
-        "chat": 15,
+        "chat": 18,
         "delivered": 0,
         "moved": false
       },

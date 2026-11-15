@@ -27,7 +27,10 @@ import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
-import { attachVRM, driveVRM, loadVRM } from "./vrm.js";
+import { attachVRM, avatarTextures, driveVRM } from "./vrm.js";
+import { arrivalFraming, createAvatarKit, loadVRM } from "@oncyber/avatar-kit";
+import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
 
 // ACE! Tennis as a lifecycle game (docs/games.md): the host prepares it,
 // enters it with how the visitor arrived and who came along, and owns the
@@ -43,6 +46,14 @@ export const debugHooks = {};
  * arrives through the host's keys binder (docs/games/keys-focus.md).
  */
 export const pageSound = {};
+/**
+ * The party's room, between the host and the game while a game exists
+ * (docs/games/avatar-kit.md). The game sets `peers(players)` (the page's
+ * `peers` list: poses, names, avatars, who is talking) and `entered()` (the
+ * lobby let go: stand up). The host sets `pose(pose)`, which tells the room
+ * where the visitor stands.
+ */
+export const pageRoom = {};
 
 export default function createGame(context) {
     const { graphics, services } = context;
@@ -81,6 +92,31 @@ export default function createGame(context) {
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0xcfeaff, 90, 320);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 900);
+
+    // ---------------------------------------------------------------- avatars
+    // The avatar kit shows the visitor and the rest of their party as their
+    // Oncyber avatars, with the lobby's motion, and stages the arrival pose.
+    // Avatar bytes come only through the host's avatar service: the
+    // visitor's own and the players in the party's room.
+    const ARRIVE_HEIGHT = 1.75;
+    const json = (url) => () => fetch(url, { signal }).then((r) => r.json());
+    let avatarKtx = null;
+    const kit = createAvatarKit({
+        services,
+        motion: json(locomotionUrl),
+        emotes: json(emotesUrl),
+        load: (bytes) =>
+            loadVRM(bytes, { ktx2: (avatarKtx ??= avatarTextures(renderer)) }),
+        height: ARRIVE_HEIGHT,
+        // Ace's forward is -z; the kit's avatars face +z.
+        heading: Math.PI,
+        // The toy player is the visitor's body until their avatar loads.
+        standIn: false,
+        signal,
+    });
+    scene.add(kit.group);
+    pageRoom.peers = (players) => kit.setPeers(players);
+    pageRoom.entered = () => kit.arrival.enter();
 
     const size = { w: 0, h: 0 };
     function resize() {
@@ -185,7 +221,6 @@ export default function createGame(context) {
         zMin: 0.7, // the near half; the net is not a door
         zMax: COURT.halfLength + 2.6,
     };
-    const ARRIVE_HEIGHT = 1.75;
     const arrive = {
         came: false, // this visit started as a lobby trip
         offset: new THREE.Vector3(0, 2.3, 4.8),
@@ -194,13 +229,11 @@ export default function createGame(context) {
         camYaw: 0,
         faceYaw: 0,
         drag: null,
-        // The lobby hands the visitor over crouched; they stand up once the
-        // host's clock runs (it is held until the lobby lets go).
-        sink: 0,
         walked: 0,
+        poseAt: 0,
     };
+    // How far the toy player (no avatar) sinks in the kit's arrival crouch.
     const ARRIVE_SINK = 0.42;
-    const ARRIVE_RISE_S = 0.7;
     resize();
 
     function buildScene() {
@@ -210,6 +243,9 @@ export default function createGame(context) {
         const human = createCharacter(PALETTES[0]);
         const cpu = createCharacter(CPU_ROSTER[settings.difficulty].palette);
         scene.add(human.root, cpu.root);
+        // The kit's avatar faces +z; the character's forward is -z.
+        kit.self.root.rotation.y = Math.PI;
+        human.root.add(kit.self.root);
         players = [human, cpu];
         umpire = createCharacter({
             shirt: 0x1d2b4f,
@@ -285,25 +321,16 @@ export default function createGame(context) {
         sound.setCrowd(audio, 0.5);
     }
 
-    /** Rotate a lobby offset (relative to the avatar's feet) into court space. */
+    /**
+     * The lobby's camera around the visitor, in court space. The kit gives it
+     * in the avatar's frame (facing +z), which is the court's when the visitor
+     * stands with their back to the net.
+     */
     function mapArrival(view) {
-        // Turn the lobby's formation so its camera looks down the court at the
-        // net: the lobby camera sits at angle r + PI around the avatar.
-        const turn = Math.PI - view.avatarRotation;
-        const cos = Math.cos(turn);
-        const sin = Math.sin(turn);
-        const scale = ARRIVE_HEIGHT / view.avatarHeight;
-        const map = (v, out) =>
-            out.set(
-                (v.x * cos + v.z * sin) * scale,
-                v.y * scale,
-                (-v.x * sin + v.z * cos) * scale
-            );
-        map(view.cameraOffset, arrive.offset);
-        map(view.cameraTargetOffset, arrive.look);
-        // A camera at the avatar's feet or inside it is not a usable view.
-        if (arrive.offset.length() < 0.6) arrive.offset.set(0, 2.3, 4.8);
-        arrive.fov = view.fov;
+        const framing = arrivalFraming(view, ARRIVE_HEIGHT);
+        arrive.offset.fromArray(framing.offset);
+        arrive.look.fromArray(framing.look);
+        arrive.fov = framing.fov;
     }
 
     function goArrive(view) {
@@ -326,9 +353,12 @@ export default function createGame(context) {
         me.x = ARRIVE_SPOT.x;
         me.z = ARRIVE_SPOT.z;
         players[0].yaw = arrive.faceYaw;
-        // No racket in hand while walking around the club.
+        // The arrival pose: crouched as the lobby left them (when it sent
+        // its view), facing its camera, and no racket in hand around the
+        // club. They stand up when the lobby lets go (pageRoom.entered).
         players[0].racket.visible = false;
-        arrive.sink = view ? ARRIVE_SINK : 0;
+        kit.arrival.stage(view);
+        kit.emote("");
         state.camMode = "arrive";
         resize();
         placeArrivalCamera();
@@ -344,12 +374,6 @@ export default function createGame(context) {
     function goHome() {
         if (arrive.came) goArrive(null);
         else goTitle();
-    }
-
-    // Ease the stand-up: quick off the floor, gentle at the top.
-    function smoothSink() {
-        const t = arrive.sink / ARRIVE_SINK;
-        return ARRIVE_SINK * t * t * (3 - 2 * t);
     }
 
     function placeArrivalCamera() {
@@ -368,13 +392,9 @@ export default function createGame(context) {
 
     function updateArrive(raw, dt) {
         const me = state.engine.athletes[0];
-        if (arrive.sink > 0)
-            arrive.sink = Math.max(
-                0,
-                arrive.sink - (ARRIVE_SINK / ARRIVE_RISE_S) * dt
-            );
-        // Stay put until standing.
-        if (arrive.sink > 0) raw = { ...raw, x: 0, y: 0 };
+        // Stay put until standing (the kit stands the avatar up on `entered`).
+        const crouched = kit.arrival.crouch > 0;
+        if (crouched) raw = { ...raw, x: 0, y: 0 };
         // Dragging on the court looks around (the declared `lookX` action).
         arrive.camYaw -= context.deltas.lookX * 0.6;
         // Walk relative to where the camera looks.
@@ -409,6 +429,27 @@ export default function createGame(context) {
                 Math.cos(want - arrive.faceYaw)
             );
             arrive.faceYaw += delta;
+        }
+        // Emotes around the club (declared actions): wave while held, dance,
+        // sit; walking ends them.
+        if (!crouched) {
+            if (context.pressed.wave) kit.self.motion = { wave: true };
+            else if (context.pressed.dance) kit.emote("HIPHOP");
+            else if (context.pressed.sit) kit.emote("SITTING");
+            if (kit.self.motion.wave && !(context.input.wave > 0))
+                kit.self.motion = {};
+        }
+        // The lobby's motion: walk and run by speed; moving ends an emote.
+        const pace = Math.hypot(me.vx, me.vz);
+        if (len > 0.05 || !(kit.self.motion.emote || kit.self.motion.wave))
+            kit.self.motion = { speed: pace };
+        // Tell the party's room where the visitor stands, ten times a second.
+        const at = performance.now();
+        if (at - arrive.poseAt > 100) {
+            arrive.poseAt = at;
+            pageRoom.pose?.(
+                kit.pose({ x: me.x, y: 0, z: me.z }, players[0].yaw)
+            );
         }
     }
 
@@ -534,6 +575,7 @@ export default function createGame(context) {
     function startAttract() {
         state.attract = true;
         if (players) players[0].racket.visible = true;
+        kit.arrival.fillHands();
         state.engine = createEngine({
             difficulty: "pro",
             games: 99,
@@ -550,6 +592,7 @@ export default function createGame(context) {
         setCpuLook(settings.difficulty);
         state.attract = false;
         players[0].racket.visible = true;
+        kit.arrival.fillHands();
         state.engine = createEngine({
             difficulty: settings.difficulty,
             games: settings.games,
@@ -1392,10 +1435,20 @@ export default function createGame(context) {
                 headYaw: 0,
                 mood,
                 ...(i === 0 && state.camMode === "arrive"
-                    ? { faceYaw: arrive.faceYaw, sink: smoothSink() }
+                    ? {
+                          faceYaw: arrive.faceYaw,
+                          sink: kit.arrival.crouch * ARRIVE_SINK,
+                      }
                     : {}),
             });
-            if (ch.rig) driveVRM(ch, dt);
+            // Around the club the kit animates the visitor's avatar with the
+            // lobby's clips; in a match the tennis pose drives it.
+            const clubWalk = i === 0 && state.camMode === "arrive";
+            if (i === 0 && ch.rig && kit.self.manual !== !clubWalk) {
+                kit.self.manual = !clubWalk;
+                kit.self.rest();
+            }
+            if (ch.rig && !clubWalk) driveVRM(ch, dt);
         }
         // Umpire watches the ball.
         if (umpire) {
@@ -1526,6 +1579,10 @@ export default function createGame(context) {
         updateServeGauge(dt);
         hints();
         updateCamera(dt);
+        // The rest of the party stands around the club, not on a live court.
+        kit.group.visible =
+            state.screen === "arrive" || state.screen === "party";
+        kit.update(dt, camera);
         updateWorld(world, dt, e.ball.p);
         if (e.phase === "toss" || e.phase === "serve" || e.phase === "setup")
             resetTrail(fx);
@@ -1571,24 +1628,17 @@ export default function createGame(context) {
         // Play as the visitor's own avatar; the toy body is the fallback.
         if (services.identity.avatar) {
             setBoot(0.93, "Suiting up…");
-            try {
-                const bytes = await Promise.race([
-                    services.avatar(services.identity.avatar, signal),
-                    new Promise((_, reject) =>
-                        setTimeout(
-                            () => reject(new Error("avatar timeout")),
-                            20000
-                        )
-                    ),
-                ]);
-                attachVRM(players[0], await loadVRM(bytes, renderer));
+            const loaded = await Promise.race([
+                kit.loadSelf(),
+                new Promise((r) => setTimeout(() => r(false), 20000)),
+            ]);
+            if (loaded) {
+                attachVRM(players[0], kit.self);
                 renderer.compile(scene, camera);
-            } catch (err) {
+            } else
                 console.warn(
-                    "ACE: avatar unavailable, using the default player",
-                    err
+                    "ACE: avatar unavailable, using the default player"
                 );
-            }
         }
         setBoot(1, "Ready!");
         booted = true;
@@ -1647,9 +1697,13 @@ export default function createGame(context) {
         timers.length = 0;
         clearTimeout(calloutTimer);
         clearTimeout(bannerTimer);
+        kit.dispose();
+        avatarKtx?.dispose();
         renderer.dispose();
         delete debugHooks.game;
         delete pageSound.muted;
+        delete pageRoom.peers;
+        delete pageRoom.entered;
     }
 
     // The page owns Escape, Enter and M (docs/games/keys-focus.md). While
@@ -1671,11 +1725,23 @@ export default function createGame(context) {
         const e = state.engine;
         const m = e?.match;
         const playing = !!m && !state.attract;
+        const facts = kit.inspect();
         return {
             booted,
             screen: state.screen,
+            // For the avatar check (docs/games/avatar-kit.md). The toy player
+            // stands in until (or unless) the avatar loads.
+            ...facts,
+            avatarSelf:
+                facts.avatarSelf === "none" ? "stand-in" : facts.avatarSelf,
+            avatarSelfInFrame:
+                facts.avatarSelf === "none"
+                    ? state.camMode === "arrive"
+                    : facts.avatarSelfInFrame,
+            avatarHandsEmpty:
+                facts.avatarHandsEmpty && !players?.[0].racket.visible,
             arrival: arrive.came ? "lobby" : "direct",
-            standing: arrive.sink === 0,
+            standing: kit.arrival.crouch === 0,
             walked: arrive.walked > 0.5,
             partySize: trip ? partyPlayers().length : 1,
             partyFormats: partyFormats(trip ? partyPlayers().length : 1)

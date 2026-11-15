@@ -1,6 +1,12 @@
 {
   "name": "Glasshouse · Padel",
   "avatar": "vrm",
+  "avatars": {
+    "others": "other",
+    "why": "Padel draws players as avatars with its own code on its own page, which this check cannot drive; it moves to the avatar kit with the shared game page.",
+    "arrival": "none",
+    "arrivalWhy": "Padel plays its own travel reveal on its own page, not the shared page's arrival message."
+  },
   "keysCheck": {
     "legacy": true
   }

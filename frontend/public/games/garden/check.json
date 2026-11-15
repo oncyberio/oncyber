@@ -1,22 +1,70 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T12:26:31.877Z",
+  "checkedAt": "2026-11-15T12:44:20.809Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1355724,
+    "bytes": 1357224,
     "largest": {
-      "path": "assets/index-B2hL5Frq.js",
-      "bytes": 1010000
+      "path": "assets/index-B24e1UNN.js",
+      "bytes": 1011338
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [
+      {
+        "check": "arrival",
+        "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
+      }
+    ],
+    "ms": 25667,
+    "query": "&webgl",
+    "facts": {
+      "others": {
+        "booted": true,
+        "renderer": "webgl2",
+        "bloomlings": 1,
+        "stage0": "egg",
+        "held": "",
+        "match": "",
+        "matchPhase": "",
+        "menu": "",
+        "avatar": "vrm",
+        "online": true,
+        "peers": 1,
+        "talking": 0,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "none",
+        "avatarFacingCamera": false,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 0,
+        "avatarEmote": "",
+        "offers": 0,
+        "playerX": 0,
+        "playerZ": 13,
+        "hostPhase": "entered",
+        "hostFrames": 20,
+        "hostArrival": "",
+        "hostParty": 0,
+        "hostPartyArrived": 0,
+        "hostInputPaused": false
+      }
     }
   },
   "findings": [],
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3375,
+    "ms": 3419,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -324,7 +372,7 @@
     "findings": []
   },
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42427/games/garden/assets/index-B2hL5Frq.js:1:14065)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:38489/games/garden/assets/index-B24e1UNN.js:1:14065)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -350,17 +398,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1733,
+    "bootMs": 1604,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1733
+        "ms": 1604
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 920
+        "ms": 906
       },
       {
         "stage": "lifecycle",
@@ -376,7 +424,7 @@
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.8,
+      "p95Ms": 16.7,
       "worstMs": 16.8
     },
     "inspect": {
@@ -392,6 +440,16 @@
       "online": false,
       "peers": 0,
       "talking": 0,
+      "avatarSelf": "vrm",
+      "avatarSelfInFrame": false,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "none",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": true,
+      "avatarTalking": 0,
+      "avatarEmote": "",
       "offers": 0,
       "playerX": 0,
       "playerZ": 11.4,

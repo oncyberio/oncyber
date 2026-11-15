@@ -46,3 +46,6 @@ server/.env
 
 #samsy's three refactoring
 frontend/components/_3DExhibit-v2/three
+
+# the lobby's animation clips, copied byte for byte (npm run motion)
+games/kits/avatar/motion

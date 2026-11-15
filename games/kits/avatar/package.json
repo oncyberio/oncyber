@@ -1,0 +1,27 @@
+{
+    "name": "@oncyber/avatar-kit",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Optional avatar kit for three.js games: Oncyber avatars for the visitor and other players, the lobby's animations, name tags, a talking indicator, emotes and the arrival pose. A game bundles it; the lifecycle runtime never imports it.",
+    "exports": {
+        ".": "./src/index.ts",
+        "./facts": "./src/facts.js",
+        "./page": "./src/page.ts",
+        "./probe": "./src/probe.js",
+        "./motion/locomotion.json": "./motion/locomotion.json",
+        "./motion/emotes.json": "./motion/emotes.json"
+    },
+    "scripts": {
+        "test": "node --experimental-strip-types --test test/*.test.mjs",
+        "motion": "node scripts/sync-motion.mjs"
+    },
+    "peerDependencies": {
+        "@pixiv/three-vrm": "^3.0.0",
+        "three": ">=0.170.0"
+    },
+    "devDependencies": {
+        "@pixiv/three-vrm": "3.5.5",
+        "three": "0.180.0"
+    }
+}

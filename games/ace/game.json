@@ -1,6 +1,10 @@
 {
   "name": "ACE! Tennis",
   "avatar": "vrm",
+  "avatars": {
+    "others": "avatar",
+    "arrival": "pose"
+  },
   "arrival": {
     "walkable": true
   },
@@ -162,6 +166,21 @@
       },
       "lookX": {
         "touch": "drag"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ]
+      },
+      "dance": {
+        "keyboard": [
+          "KeyB"
+        ]
+      },
+      "sit": {
+        "keyboard": [
+          "KeyV"
+        ]
       }
     }
   },

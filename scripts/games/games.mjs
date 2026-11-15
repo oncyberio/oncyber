@@ -29,6 +29,7 @@ import { contractFindings, enterFindings, harnessScript } from "./contract-check
 import { checkSocial, scanOwnVoice } from "./social-check.mjs";
 import { runKeysCheck } from "./keysCheck.mjs";
 import { checkSafeArea, describeSafeArea } from "./safe-area.mjs";
+import { avatarStage } from "./avatar-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -186,16 +187,20 @@ async function check() {
     const entry = enterFindings({ id, contract: greeted, visit: contract.visit, report });
     scan.findings.push(...entry.findings);
     const warnings = [...contract.warnings, ...entry.warnings];
+    // Other people as their Oncyber avatars, and the arrival pose (docs/games/avatar-kit.md).
+    const avatars = await avatarStage({ id, manifest, source, out, chromium, headed });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" ? "passed" : "failed",
+        status: report?.status === "passed" && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
+        avatars,
         findings: [
             ...scan.findings,
+            ...avatars.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
@@ -220,6 +225,7 @@ async function check() {
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
+    for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
     return { result, files };
 }

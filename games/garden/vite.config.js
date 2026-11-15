@@ -7,6 +7,9 @@ import { defineConfig } from "vite";
 // scripts/build-ui.mjs, so its sandboxed (opaque-origin) frame loads nothing.
 // The game lifecycle runtime is TypeScript source in games/runtime.
 const runtime = resolve("../runtime/src");
+// Renderer-free parts of the optional avatar kit: the check's inspect answer
+// and the draw probe. The garden draws avatars with its own DOM-free reader.
+const avatarKit = resolve("../kits/avatar/src");
 
 // Standalone dev serves the lobby's files from the frontend's public folder.
 const lobbyFiles = {
@@ -42,6 +45,8 @@ export default defineConfig({
     resolve: {
         alias: [
             { find: /^@oncyber\/game-runtime\/safe-area$/, replacement: `${runtime}/safe-area.ts` },
+            { find: /^@oncyber\/avatar-kit\/page$/, replacement: `${avatarKit}/page.ts` },
+            { find: /^@oncyber\/avatar-kit\/probe$/, replacement: `${avatarKit}/probe.js` },
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
             { find: /^@oncyber\/game-runtime\/voice$/, replacement: `${runtime}/voice.ts` },
