@@ -236,7 +236,9 @@ and a scenario stub, and declares the game's saved keys to the page;
    `@oncyber/game-runtime` to `games/runtime/src` (see the garden's
    `vite.config.js`).
 2. Write `game.json` (`format`, `arrival`, `party`, `devices`, `avatars`,
-   `saved`, `runtime.capabilities`, `assets`, `input`), a `scenario.json`
+   `saved`, `runtime.capabilities`, `assets`, `input`, and `credits`: no
+   file ships without a declared source and licence, see
+   [games/credits.md](games/credits.md)), a `scenario.json`
    that proves the game works (actions, waits and assertions on
    `inspect()` keys, [games/contract.md](games/contract.md)) and a
    `bot.json` that plays it through the keyboard
@@ -329,6 +331,9 @@ is off by default because the game then draws at full size.
 Every stage in order, with its finding codes, is the table under "Done" in
 [games/good-game.md](games/good-game.md); `pnpm games:score <id>` prints
 the last report against it.
+
+Every shipped file must also be credited under an allowed licence
+([games/credits.md](games/credits.md)).
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

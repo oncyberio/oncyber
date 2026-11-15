@@ -29,7 +29,8 @@
     "./audio": "./src/audio.ts",
     "./audio-browser": "./src/audio-browser.ts",
     "./saved": "./src/saved.ts",
-    "./health": "./src/health.ts"
+    "./health": "./src/health.ts",
+    "./credits": "./src/credits.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

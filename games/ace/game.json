@@ -302,5 +302,81 @@
         "matches": 1
       }
     }
-  }
+  },
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.jpg"
+      ],
+      "note": "A capture of the game."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "package": "@pixiv/three-vrm",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseFile": "licenses/three-vrm-MIT.txt"
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "files": [
+        "assets/basis_transcoder-*.js",
+        "assets/basis_transcoder-*.wasm"
+      ],
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures."
+    },
+    {
+      "title": "Space Grotesk",
+      "kind": "font",
+      "files": [
+        "assets/SpaceGrotesk-*.woff2"
+      ],
+      "author": "The Space Grotesk Project Authors",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Space Mono",
+      "kind": "font",
+      "files": [
+        "assets/SpaceMono-*.woff2"
+      ],
+      "author": "The Space Mono Project Authors",
+      "source": "https://github.com/googlefonts/spacemono",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+      "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Lobby locomotion and emote clips",
+      "kind": "motion",
+      "files": [
+        "assets/locomotion-*.json",
+        "assets/emotes-*.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "Bundled from Oncyber's avatar kit (games/kits/avatar/motion): a copy of frontend/public/lobby/native-avatar-motion.json and four emotes (hip hop, moonwalk, praying, sitting) from native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence; nothing in the repository records where the emotes came from."
+    }
+  ]
 }

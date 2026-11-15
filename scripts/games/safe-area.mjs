@@ -32,10 +32,11 @@ const css = (style) =>
         .join(";");
 
 /**
- * The stand-in page. The two overlays copy the placement and box of the real
+ * The stand-in page. The overlays copy the placement and box of the real
  * ones: the controls group in GamePage.tsx (with the game's `controlsStyle`
- * from the catalog) and LobbyConversationSurface.tsx, collapsed, as it sits
- * over a game a party travelled to. Keep them in step with those files.
+ * from the catalog), LobbyConversationSurface.tsx, collapsed, as it sits
+ * over a game a party travelled to, and the Credits button
+ * (GameCredits.tsx). Keep them in step with those files.
  */
 export function safeAreaHarness(id, controlsStyle) {
     const pill =
@@ -59,6 +60,7 @@ iframe{border:0;width:100%;height:100%;display:block}
 <span style="padding:0 10px;opacity:0.85">8 in your party</span><button style="${pill}">Mic off</button><button style="${pill}">Sound on</button><button style="${pill}">Lobby</button>
 </div>
 <div id="party-chat" data-game-overlay="party-chat"><button>Your parties</button></div>
+<button data-game-overlay="credits" data-game-overlay-edge="bottom" style="position:absolute;right:12px;bottom:10px;border:0;border-radius:999px;padding:6px 10px;font:500 11px/1 Inter,system-ui,sans-serif;color:rgba(255,255,255,0.7);background:rgba(10,12,18,0.45)">Credits</button>
 </main>
 <script>
 const frame = document.getElementById("game");
@@ -97,7 +99,9 @@ const measure = (page) =>
             overlays: [...document.querySelectorAll("[data-game-overlay]")].map(
                 (element) => {
                     const rect = element.getBoundingClientRect();
+                    const edge = element.getAttribute("data-game-overlay-edge");
                     return {
+                        ...(edge ? { edge } : {}),
                         id: element.getAttribute("data-game-overlay"),
                         x: round(rect.left - box.left),
                         y: round(rect.top - box.top),

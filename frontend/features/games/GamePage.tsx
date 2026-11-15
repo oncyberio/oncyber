@@ -19,6 +19,7 @@ import {
 } from "./gameIdentity";
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
+import GameCredits from "./GameCredits";
 import { readGameStorage, writeGameStorage } from "./gameStorage";
 import {
     developmentParty,
@@ -668,6 +669,13 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 <GameChat
                     social={social}
                     openRequest={chatRequest}
+                    onClose={() => frame.current?.focus()}
+                />
+            )}
+            {ready && !error && (
+                <GameCredits
+                    game={GAME}
+                    title={game.title}
                     onClose={() => frame.current?.focus()}
                 />
             )}

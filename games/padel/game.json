@@ -59,5 +59,120 @@
   "devices": [
     "desktop"
   ],
-  "health": "none"
+  "health": "none",
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.jpg",
+        "preview.svg"
+      ],
+      "note": "A capture of the game and its drawn card."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "package": "@pixiv/three-vrm",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseFile": "licenses/three-vrm-MIT.txt"
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "files": [
+        "assets/basis_transcoder-*.js",
+        "assets/basis_transcoder-*.wasm"
+      ],
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures."
+    },
+    {
+      "title": "Anton",
+      "kind": "font",
+      "files": [
+        "fonts/Anton-Regular.ttf",
+        "assets/Anton-Regular-*.ttf"
+      ],
+      "author": "The Anton Project Authors",
+      "source": "https://github.com/googlefonts/AntonFont",
+      "license": "OFL-1.1",
+      "licenseFile": "fonts/Anton-OFL.txt"
+    },
+    {
+      "title": "Universal Animation Library (idle variants)",
+      "kind": "motion",
+      "files": [
+        "lobby/travel/core.*.lcp"
+      ],
+      "author": "Quaternius",
+      "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+      "license": "CC0-1.0",
+      "licenseFile": "lobby/travel/CC0-LICENSE.txt",
+      "note": "Idle variants inside the lobby's core locomotion pack."
+    },
+    {
+      "title": "Lobby locomotion, emote and transition clips",
+      "kind": "motion",
+      "files": [
+        "assets/lobby-emotes-*.json",
+        "assets/native-motion-*.json",
+        "lobby/travel/core.*.lcp",
+        "lobby/travel/core-manifest.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "Oncyber's lobby motion set. Its source manifests pin each clip by hash but record no author or licence."
+    },
+    {
+      "title": "Travel sequence clips",
+      "kind": "motion",
+      "files": [
+        "lobby/travel/travel.*.lcp",
+        "lobby/travel/manifest.json",
+        "lobby/travel/source-manifest.json"
+      ],
+      "author": "Not recorded; supplied to Oncyber as FBX files on 2026-10-11",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/travel/source-manifest.json",
+      "license": "LicenseRef-Supplied-Travel-Clips",
+      "note": "Four clips (attack, crouch down, crouch idle, stand up) retargeted offline; the FBX sources are not distributed."
+    },
+    {
+      "title": "Tennis motion capture",
+      "kind": "motion",
+      "files": [
+        "assets/tennis-motion-*.json"
+      ],
+      "author": "Sam Lazarus for Rokoko",
+      "source": "https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations",
+      "license": "LicenseRef-Rokoko-Free-Asset-Terms",
+      "note": "Ready, forehand, backhand and serve cut from Tennis_mixamo.fbx, retrieved 2026-10-13. The publisher's page allows personal and commercial use in games."
+    },
+    {
+      "title": "OC Square and OCman avatars",
+      "kind": "model",
+      "files": [
+        "avatars/square-catalogue.vrm",
+        "avatars/square.vrm"
+      ],
+      "author": "NeonGlitch86 (OC Square); not recorded (OCman)",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md",
+      "license": "LicenseRef-Oncyber-Permission",
+      "note": "Fallback and NPC avatars. Their embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse these files."
+    }
+  ]
 }

@@ -1,0 +1,103 @@
+{
+    "about": "The licences a game may ship third-party files under. pnpm games:check fails on any other licence. `text: true` means the licence asks for its text or copyright notice to travel with the file, so the credit must name a `licenseFile` that is in the build. Rules: docs/games/credits.md.",
+    "allowed": {
+        "CC0-1.0": {
+            "name": "CC0 1.0 Universal",
+            "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "text": false
+        },
+        "Unlicense": {
+            "name": "The Unlicense",
+            "url": "https://unlicense.org/",
+            "text": false
+        },
+        "0BSD": {
+            "name": "BSD Zero Clause License",
+            "url": "https://opensource.org/license/0bsd",
+            "text": false
+        },
+        "MIT-0": {
+            "name": "MIT No Attribution",
+            "url": "https://opensource.org/license/mit-0",
+            "text": false
+        },
+        "MIT": {
+            "name": "MIT License",
+            "url": "https://opensource.org/license/mit",
+            "text": true
+        },
+        "ISC": {
+            "name": "ISC License",
+            "url": "https://opensource.org/license/isc-license-txt",
+            "text": true
+        },
+        "BSD-2-Clause": {
+            "name": "BSD 2-Clause License",
+            "url": "https://opensource.org/license/bsd-2-clause",
+            "text": true
+        },
+        "BSD-3-Clause": {
+            "name": "BSD 3-Clause License",
+            "url": "https://opensource.org/license/bsd-3-clause",
+            "text": true
+        },
+        "Zlib": {
+            "name": "zlib License",
+            "url": "https://opensource.org/license/zlib",
+            "text": true
+        },
+        "Apache-2.0": {
+            "name": "Apache License 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0",
+            "text": true
+        },
+        "OFL-1.1": {
+            "name": "SIL Open Font License 1.1",
+            "url": "https://openfontlicense.org/open-font-license-official-text/",
+            "text": true
+        },
+        "CC-BY-4.0": {
+            "name": "Creative Commons Attribution 4.0",
+            "url": "https://creativecommons.org/licenses/by/4.0/",
+            "text": false
+        }
+    },
+    "exceptions": [
+        {
+            "game": "ace",
+            "license": "LicenseRef-Oncyber-Lobby-Motion",
+            "reason": "The avatar kit's copies of frontend/public/lobby/native-avatar-motion.json and four clips of native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence, and nothing in the repository records where the emotes came from.",
+            "confirmedBy": null
+        },
+        {
+            "game": "garden",
+            "license": "LicenseRef-Oncyber-Lobby-Motion",
+            "reason": "A copy of frontend/public/lobby/native-avatar-motion.json. The lobby's source manifests pin the clips by hash but record no author or licence.",
+            "confirmedBy": null
+        },
+        {
+            "game": "padel",
+            "license": "LicenseRef-Oncyber-Lobby-Motion",
+            "reason": "The lobby's locomotion, emote and transition clips. The lobby's source manifests pin the clips by hash but record no author or licence.",
+            "confirmedBy": null
+        },
+        {
+            "game": "padel",
+            "license": "LicenseRef-Supplied-Travel-Clips",
+            "reason": "lobby/travel/source-manifest.json says only 'User-supplied FBX files, provided 2026-10-11'. No author or licence is recorded.",
+            "confirmedBy": null
+        },
+        {
+            "game": "padel",
+            "license": "LicenseRef-Rokoko-Free-Asset-Terms",
+            "reason": "The publisher's page allows personal and commercial use in games; these are its own terms, not an open licence, and no copy of them is kept.",
+            "confirmedBy": null
+        },
+        {
+            "game": "padel",
+            "license": "LicenseRef-Oncyber-Permission",
+            "reason": "The avatars' embedded metadata says redistribution prohibited, commercial use disallowed. Oncyber is understood to use them with the creator's permission; no written grant is in the repository.",
+            "confirmedBy": null
+        }
+    ]
+}

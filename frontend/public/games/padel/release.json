@@ -2,11 +2,11 @@
   "version": 1,
   "game": "padel",
   "name": "Glasshouse · Padel",
-  "release": "d37fd3adbd439815",
-  "publishedAt": "2026-11-14T15:30:01.018Z",
+  "release": "d17d3b07b2c6a7c1",
+  "publishedAt": "2026-11-14T17:52:52.186Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-14T15:30:01.018Z",
+    "checkedAt": "2026-11-14T17:52:52.185Z",
     "backend": "unknown",
     "frames": null
   },
@@ -75,6 +75,21 @@
       "path": "index.html",
       "bytes": 10936,
       "sha256": "90cbf4e791fb371747670877c228922c4178036f9a217f710874c8081d5f3b6a"
+    },
+    {
+      "path": "licenses/basis-universal-Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "licenses/three-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+    },
+    {
+      "path": "licenses/three-vrm-MIT.txt",
+      "bytes": 1072,
+      "sha256": "279ec82987aec7e72ecb9850bb704a87e352d577bc7581454c30f3551a88ea92"
     },
     {
       "path": "lobby/travel/CC0-LICENSE.txt",

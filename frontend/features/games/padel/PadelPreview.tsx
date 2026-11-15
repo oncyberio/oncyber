@@ -25,6 +25,7 @@ import {
     type LobbyDestinationEntryOptions,
     type LobbyTravelView,
 } from "@features/lobby/lobbyJourneyProtocol";
+import GameCredits from "../GameCredits";
 import PadelSocial from "./PadelSocial";
 import {
     createPadelHostEnvelope,
@@ -621,6 +622,13 @@ export default function PadelPreview() {
                     display: "block",
                 }}
             />
+            {ready && revealed && alive && !error && (
+                <GameCredits
+                    game="padel"
+                    title="Glasshouse · Padel"
+                    onClose={focusGame}
+                />
+            )}
             {!hostOwned &&
                 ready &&
                 revealed &&

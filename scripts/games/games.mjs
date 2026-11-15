@@ -43,6 +43,7 @@ import { describeProcess, processStage } from "./process.mjs";
 import { GENERATED_THUMBNAIL, listingStage } from "./listing.mjs";
 import { networkStage } from "./networkCheck.mjs";
 import { checkHealth, healthHarness } from "./health-stage.mjs";
+import { checkCredits } from "./credits.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -83,7 +84,7 @@ function listFiles(dir) {
 }
 // What a release is made of: everything the browser can load, not the
 // reports this script writes next to it.
-const REPORTS = new Set(["check.json", "release.json", GENERATED_THUMBNAIL]);
+const REPORTS = new Set(["check.json", "release.json", "credits.json", GENERATED_THUMBNAIL]);
 function bundleFiles() {
     if (!existsSync(join(out, "index.html"))) fail(`frontend/public/games/${id}/index.html missing; build first`);
     return listFiles(out)
@@ -186,6 +187,9 @@ async function check() {
     const scan = staticScan(files);
     scan.findings.push(...contract.findings);
     scan.findings.push(...(await savedStaticFindings({ id, manifest })));
+    // Asset rights: every shipped file credited, under an allowed licence (credits.mjs).
+    const rights = await checkCredits(id);
+    scan.findings.push(...rights.findings);
     let chromium;
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
@@ -322,6 +326,7 @@ async function check() {
         saved: { status: saved.status, ms: saved.ms, keys: saved.keys, runs: saved.runs },
         listing: listing?.summary ?? null,
         health: health.summary,
+        credits: { thirdParty: rights.thirdParty, own: rights.own, warnings: rights.warnings },
         run: report,
         keys: keys?.report ?? null,
         ...(locomotion ? { locomotion } : {}),
@@ -346,6 +351,7 @@ async function check() {
     for (const warning of [...warnings, ...result.warnings]) console.log(`  warning ${warning.code}: ${warning.message}`);
     for (const line of devices?.lines ?? []) console.log(line);
     if (locomotion) console.log(`  locomotion: ${locomotion.status}` + (locomotion.metres != null ? ` · walked ${locomotion.metres} m in ${locomotion.seconds} s (the lobby: ${locomotion.lobbyMetres} m)` : ""));
+    for (const warning of rights.warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png` + (result.process.video ? ` · video: ${result.process.video.path}` : ""));

@@ -22,6 +22,7 @@
         "games:score": "node scripts/games/score.mjs",
         "games:test": "node --experimental-strip-types --test games/runtime/test/*.test.mjs games/kits/locomotion/test/*.test.mjs games/kits/ui/test/*.test.mjs scripts/games/*.test.mjs scripts/games/test/*.test.mjs",
         "games:ui": "node games/kits/ui/scripts/generate.mjs",
+        "games:credits": "node scripts/games/credits.mjs",
         "prepare": "husky install"
     },
     "repository": {
