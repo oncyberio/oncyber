@@ -67,6 +67,16 @@ Generated from each game's `credits` in `games/<id>/game.json` by `pnpm games:cr
 | Lobby locomotion clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
 | three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
 
+### Lantern Tag (`games/lantern-tag/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
+| three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
 ### Glasshouse · Padel (`games/padel/`)
 
 | What | Kind | Author | Source | License |
