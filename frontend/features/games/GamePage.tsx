@@ -1,5 +1,4 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import {
     resolveLobbyAvatar,
@@ -42,6 +41,8 @@ import { useGameSocial } from "./useGameSocial";
 import GameChat from "./GameChat";
 import GameInputLayer from "./GameInputLayer";
 import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./safeArea";
+import { useGameDeparture } from "./useGameDeparture";
+import { readPartyLeave } from "./gamePartyLeave";
 
 const PEER_INTERVAL = 100;
 
@@ -92,7 +93,6 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const title = `${game.title} · ${game.tagline}`;
     const { userData, user, authenticated, isAnonymous } =
         useContext(UserContext);
-    const router = useRouter();
     const profile = useRef({ userData, user, authenticated, isAnonymous });
     profile.current = { userData, user, authenticated, isAnonymous };
     const frame = useRef<HTMLIFrameElement>(null);
@@ -164,10 +164,17 @@ export default function GamePage({ game }: { game: GameEntry }) {
     });
     // Enter is the page's key for chat (docs/games/keys-focus.md).
     const [chatRequest, setChatRequest] = useState(0);
-    const leave = useRef(() => {
-        document.exitPointerLock?.();
-        if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
+    // Every way out asks the game for its last frame first (gameDeparture.ts).
+    const departure = useGameDeparture({
+        game: GAME,
+        frame,
+        post: (kind, data) => postGame.current(kind, data),
+        ready,
+        room,
+        inParty: !!party,
+        name: identity?.name || "Someone",
     });
+    const leave = useRef(departure.leave);
 
     // The game keeps its HUD clear of whatever this page floats over it.
     useEffect(
@@ -277,7 +284,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
         const unregister = registerLobbyDestinationEntry(
             async () => {},
             disposeGame,
-            { prepareReveal: stageArrival }
+            { prepareReveal: stageArrival, depart: departure.depart }
         );
         if (inJourney) {
             void waitForLobbyDestinationEntry(entryLifetime.signal)
@@ -425,8 +432,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
             roomLabel
         );
         if (relay)
-            gameRoom.onRelay((from, data) =>
-                postGame.current("net", { from, data })
+            gameRoom.onRelay(
+                (from, data) =>
+                    departure.relayed(from, data) ||
+                    postGame.current("net", { from, data })
             );
         setRoom(gameRoom);
         void gameRoom.connect();
@@ -434,7 +443,9 @@ export default function GamePage({ game }: { game: GameEntry }) {
             if (!fromGame(event)) return;
             const kind = kindOf(event);
             if (relay && kind === "net") {
-                gameRoom.relay(event.data.data);
+                // Party notices are the page's to send, not the game's.
+                if (!readPartyLeave(event.data.data))
+                    gameRoom.relay(event.data.data);
                 return;
             }
             if (kind !== "pose") return;
@@ -498,7 +509,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     display: "block",
                 }}
             />
-            {ready && !error && roomLabel && (
+            {departure.offer}
+            {ready && !error && roomLabel && !departure.leaving && (
                 <div
                     role="group"
                     aria-label="Game social controls"

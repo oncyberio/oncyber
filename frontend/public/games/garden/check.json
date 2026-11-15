@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T12:44:20.809Z",
+  "checkedAt": "2026-11-15T12:58:43.068Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
@@ -22,7 +22,7 @@
         "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
       }
     ],
-    "ms": 25667,
+    "ms": 28787,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -64,7 +64,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3419,
+    "ms": 3644,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -372,7 +372,7 @@
     "findings": []
   },
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:38489/games/garden/assets/index-B24e1UNN.js:1:14065)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42811/games/garden/assets/index-B24e1UNN.js:1:14065)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -398,17 +398,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1604,
+    "bootMs": 1535,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1604
+        "ms": 1535
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 906
+        "ms": 918
       },
       {
         "stage": "lifecycle",
@@ -418,7 +418,7 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3017
+        "ms": 3016
       }
     ],
     "frames": {

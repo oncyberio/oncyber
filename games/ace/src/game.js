@@ -23,6 +23,13 @@ import {
 } from "./fx.js";
 import { tripPlayers } from "@oncyber/game-runtime";
 import { readActions } from "./actions.js";
+import {
+    arrivalShot,
+    createBlackout,
+    fadeAt,
+    FADE_S,
+    visibleHeight,
+} from "./departure.js";
 import { buildLineup, partyFormats, sideLabel } from "./party.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
@@ -54,6 +61,13 @@ export const pageSound = {};
  * where the visitor stands.
  */
 export const pageRoom = {};
+/**
+ * Leaving for the lobby (docs/games/departure.md). The game sets
+ * `stage(reason)`: it stands the visitor courtside, fades the court to black
+ * around them and resolves with the shot on screen. The host runs it when
+ * the page asks for the last frame.
+ */
+export const pageDeparture = {};
 
 export default function createGame(context) {
     const { graphics, services } = context;
@@ -135,7 +149,9 @@ export default function createGame(context) {
         camera.updateProjectionMatrix();
         // Resizing clears the canvas; redraw now instead of showing an empty
         // frame until the next animation frame.
-        if (world) renderer.render(scene, camera);
+        if (!world) return;
+        if (leaving.active) renderLeaving();
+        else renderer.render(scene, camera);
     }
 
     const CPU_ROSTER = {
@@ -234,6 +250,9 @@ export default function createGame(context) {
     };
     // How far the toy player (no avatar) sinks in the kit's arrival crouch.
     const ARRIVE_SINK = 0.42;
+    // Leaving for the lobby: stood courtside while the world fades to black.
+    const leaving = { active: false, from: 0, staged: null };
+    const blackout = createBlackout(renderer, scene);
     resize();
 
     function buildScene() {
@@ -394,9 +413,11 @@ export default function createGame(context) {
         const me = state.engine.athletes[0];
         // Stay put until standing (the kit stands the avatar up on `entered`).
         const crouched = kit.arrival.crouch > 0;
-        if (crouched) raw = { ...raw, x: 0, y: 0 };
+        // Nor while leaving: the last frame holds still.
+        const still = crouched || leaving.active;
+        if (still) raw = { ...raw, x: 0, y: 0 };
         // Dragging on the court looks around (the declared `lookX` action).
-        arrive.camYaw -= context.deltas.lookX * 0.6;
+        if (!leaving.active) arrive.camYaw -= context.deltas.lookX * 0.6;
         // Walk relative to where the camera looks.
         const dirX = camLook.x - camPos.x;
         const dirZ = camLook.z - camPos.z;
@@ -432,7 +453,7 @@ export default function createGame(context) {
         }
         // Emotes around the club (declared actions): wave while held, dance,
         // sit; walking ends them.
-        if (!crouched) {
+        if (!still) {
             if (context.pressed.wave) kit.self.motion = { wave: true };
             else if (context.pressed.dance) kit.emote("HIPHOP");
             else if (context.pressed.sit) kit.emote("SITTING");
@@ -1523,7 +1544,7 @@ export default function createGame(context) {
         let dt = Math.min(0.05, seconds) * config.slow;
         if (graphics.width !== size.w || graphics.height !== size.h) resize();
         const raw = readActions(context, actions);
-        handleMenuInput(raw.events);
+        if (!leaving.active) handleMenuInput(raw.events);
         const e = state.engine;
         if (!e || !world) return;
         // Input is paused by the page (the visitor types, or its menu is
@@ -1593,8 +1614,68 @@ export default function createGame(context) {
             e.ball.p,
             e.ballVisible && e.phase !== "idle" && e.phase !== "intro"
         );
-        renderer.render(scene, camera);
+        if (leaving.active) renderLeaving();
+        else renderer.render(scene, camera);
     }
+
+    // -------------------------------------------------------------- departure
+    // The way back to the lobby always starts courtside, in the walkable
+    // arrival state, whatever screen the visitor left from: the mirror of
+    // goArrive, on the same kit state. The kit's arrival is stood up with
+    // empty hands, the camera is the kit's arrival framing around the
+    // visitor, and the view handed to the page is read back from them.
+
+    function stageDeparture() {
+        if (!booted) throw new Error("ACE_NOT_READY");
+        if (state.screen !== "arrive") goArrive(null);
+        // Standing and still, even when leaving before the arrival crouch
+        // has risen; no emote either.
+        if (kit.arrival.crouch > 0) kit.arrival.stage(null);
+        kit.emote("");
+        const me = state.engine.athletes[0];
+        me.vx = me.vz = 0;
+        state.shake = 0;
+        leaving.active = true;
+        // Wall-clock time: the fade must end on time on a slow device too.
+        leaving.from =
+            performance.now() -
+            (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+                ? FADE_S * 1000
+                : 0);
+        show();
+        document.body.classList.add("leaving");
+        sound.setCrowd(audio, 0);
+        return new Promise((resolve) => (leaving.staged = resolve));
+    }
+
+    /** What is on screen in the arrival state, for the lobby to open on. */
+    function departureShot() {
+        const me = state.engine.athletes[0];
+        // Where the visitor stands and faces: the pose the party's room gets.
+        const pose = kit.pose({ x: me.x, y: 0, z: me.z }, players[0].yaw);
+        return arrivalShot({
+            cameraPosition: state.cam.pos,
+            cameraLook: state.cam.look,
+            fov: camera.fov,
+            feet: pose,
+            faceYaw: pose.h,
+            // The kit scales an avatar to its height; the toy player that
+            // stands in for one is measured.
+            height:
+                kit.self.kind === "vrm"
+                    ? kit.self.height
+                    : visibleHeight(players[0].root, kit.self.height),
+        });
+    }
+
+    function renderLeaving() {
+        const fade = fadeAt((performance.now() - leaving.from) / 1000);
+        blackout.render(camera, players[0].root, fade);
+        if (fade < 1 || !leaving.staged) return;
+        leaving.staged(departureShot());
+        leaving.staged = null;
+    }
+    pageDeparture.stage = stageDeparture;
 
     // --------------------------------------------------------------- lifecycle
 
@@ -1704,6 +1785,7 @@ export default function createGame(context) {
         delete pageSound.muted;
         delete pageRoom.peers;
         delete pageRoom.entered;
+        delete pageDeparture.stage;
     }
 
     // The page owns Escape, Enter and M (docs/games/keys-focus.md). While
@@ -1772,6 +1854,7 @@ export default function createGame(context) {
             return state.engine;
         },
         action,
+        leaving,
         set timeScale(v) {
             config.slow = v;
         },

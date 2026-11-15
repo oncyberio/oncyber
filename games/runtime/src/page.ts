@@ -48,6 +48,8 @@ type Events = {
     net: { from: string; data: unknown };
     self: string;
     revealed: void;
+    /** The page asks for the last frame: see departure.ts. */
+    departure: "self" | "party";
     dispose: void;
 };
 
@@ -145,6 +147,8 @@ export function connectPage(options: PageOptions) {
         } else if (kind === "entered") {
             revealed = true;
             fire("revealed", undefined);
+        } else if (kind === "departure") {
+            fire("departure", data.reason === "party" ? "party" : "self");
         } else if (kind === "dispose") fire("dispose", undefined);
     };
     win.addEventListener("message", receive);
@@ -227,6 +231,10 @@ export function connectPage(options: PageOptions) {
         },
         exit() {
             post("exit");
+        },
+        /** One message of another kind, for the runtime's helpers (createDeparture's `post`). */
+        post(kind: string, data?: object) {
+            post(kind, data);
         },
         pose(pose: object) {
             post("pose", pose);

@@ -86,6 +86,11 @@ Chat and voice are the page's: a game never builds its own. It may send
 `voice` (poses for spatial voice) and it receives `talking`. See
 [games/voice-chat.md](games/voice-chat.md).
 
+Leaving has its own four messages (`exit`, `departure`, `departure-staging`,
+`departure-ready`) and one rule: exit always returns to the lobby, from the
+walkable arrival state, never from a dead end. See
+[games/departure.md](games/departure.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
@@ -162,6 +167,9 @@ changes: the members the lobby named, the room's name, the visitor's room id
 and who has arrived (ids every member sees the same way), plus `net` packets
 between them.
 
+When one member starts the trip back to the lobby, the others are offered
+to follow ([games/departure.md](games/departure.md)).
+
 What a game does with it is the game's choice. Ace offers formats by party
 size (`games/ace/src/party.js`): 1 v 1 for two, 2 v 2 or a tournament for
 four, a round robin for three, a knockout for five to eight, and always a
@@ -230,6 +238,11 @@ key listeners and types in the page's chat during play; it must pass too.
 The check also runs an avatar stage with a party of two: other people are
 drawn as their Oncyber avatars and the visitor arrives in the arrival pose,
 unless `game.json` says why not. See [games/avatar-kit.md](games/avatar-kit.md).
+
+A game that declares `"departure": "matched"` must also pass the departure
+stage ([games/departure.md](games/departure.md)): right after the scenario,
+the check plays the page's part of leaving and compares the last game frame
+with the lobby's first.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

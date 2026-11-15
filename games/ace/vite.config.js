@@ -25,6 +25,10 @@ export default defineConfig({
                 replacement: `${runtime}/safe-area.ts`,
             },
             {
+                find: /^@oncyber\/game-runtime\/departure$/,
+                replacement: `${runtime}/departure.ts`,
+            },
+            {
                 find: /^@oncyber\/game-runtime\/voice$/,
                 replacement: `${runtime}/voice.ts`,
             },

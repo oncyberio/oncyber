@@ -1,13 +1,19 @@
 import { GAME_MESSAGE_PREFIX, RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
+import { createDeparture } from "@oncyber/game-runtime/departure";
 import { connectPage } from "@oncyber/game-runtime/page";
 import { connectVoice } from "@oncyber/game-runtime/voice";
 import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
 import scenario from "../scenario.json";
 import { COURT } from "./config.js";
-import createGame, { debugHooks, pageRoom, pageSound } from "./game.js";
+import createGame, {
+    debugHooks,
+    pageDeparture,
+    pageRoom,
+    pageSound,
+} from "./game.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
 import "./style.css";
@@ -18,7 +24,8 @@ import "./style.css";
 // while the visitor types: docs/games/keys-focus.md),
 // and implements the services the game declares: saved settings, the
 // avatar bytes of the visitor and of the players in their party's room, and
-// travel back to the lobby, all through the Oncyber game page when embedded.
+// travel back to the lobby (through the departure: docs/games/departure.md),
+// all through the Oncyber game page when embedded.
 // The room's players, their poses and who is talking go to the game's
 // avatar kit (docs/games/avatar-kit.md). Standalone (vite dev) it plays on
 // localStorage; `?arrive` and `?party=4` stand in for a lobby trip.
@@ -56,6 +63,17 @@ page.on("peers", (players) => {
     );
 });
 pageRoom.pose = (pose) => page.pose(pose);
+// Leaving (docs/games/departure.md): every way out asks the page to start
+// the trip back; the page then asks for the last frame, which the game
+// stages courtside (pageDeparture in game.js).
+const departure = createDeparture({
+    post: (kind, data) => page.post(kind, data),
+    stage(reason) {
+        if (!pageDeparture.stage) throw new Error("ACE_NOT_READY");
+        return pageDeparture.stage(reason);
+    },
+});
+page.on("departure", (reason) => departure.receive("departure", { reason }));
 page.hello();
 
 const AVATAR_MAX = 32 * 1024 * 1024;
@@ -75,7 +93,7 @@ async function call(capability, operation, value) {
         if (operation === "set") return page.storage.set(value?.key, value?.value);
     }
     if (capability === "travel" && operation === "lobby") {
-        page.exit();
+        departure.leave();
         return true;
     }
     throw new Error("HOST_SERVICE_UNAVAILABLE");

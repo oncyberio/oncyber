@@ -14,7 +14,8 @@
     "./voice": "./src/voice.ts",
     "./keys": "./src/keys.ts",
     "./keys-browser": "./src/keysBrowser.ts",
-    "./safe-area": "./src/safe-area.ts"
+    "./safe-area": "./src/safe-area.ts",
+    "./departure": "./src/departure.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

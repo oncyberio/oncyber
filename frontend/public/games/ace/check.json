@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T12:43:07.040Z",
+  "checkedAt": "2026-11-15T12:57:32.666Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 8,
-    "bytes": 2262074,
+    "bytes": 2267343,
     "largest": {
-      "path": "assets/index-DFfYuBPS.js",
-      "bytes": 999945
+      "path": "assets/index-Cu-wmcap.js",
+      "bytes": 1005131
     }
   },
   "avatars": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 14915,
+    "ms": 17184,
     "facts": {
       "arrival": {
         "booted": true,
@@ -93,7 +93,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 19,
+        "hostFrames": 21,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -133,7 +133,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 24,
+        "hostFrames": 26,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -145,7 +145,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 12833,
+    "ms": 15233,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -572,17 +572,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 1711,
+    "bootMs": 2126,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1711
+        "ms": 2126
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 137535
+        "ms": 138502
       },
       {
         "stage": "lifecycle",
@@ -592,14 +592,74 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 65333
+        "ms": 70824
+      },
+      {
+        "stage": "departure",
+        "status": "passed",
+        "ms": 9378,
+        "departure": {
+          "answerMs": 1442.4,
+          "frameMs": 477.767,
+          "lobbyFrame": "projected",
+          "view": {
+            "cameraOffset": {
+              "x": 0,
+              "y": 2.3,
+              "z": 4.8
+            },
+            "cameraTargetOffset": {
+              "x": 0,
+              "y": 1.25,
+              "z": 0
+            },
+            "avatarRotation": 0,
+            "avatarHeight": 1.951,
+            "fov": 50
+          },
+          "gameAvatar": {
+            "x": 0.506,
+            "top": 0.361,
+            "bottom": 0.772,
+            "height": 0.411,
+            "width": 0.106
+          },
+          "lobbyAvatar": {
+            "x": 0.5,
+            "top": 0.346,
+            "bottom": 0.753,
+            "height": 0.407
+          },
+          "frames": [
+            {
+              "ms": 51,
+              "phase": "playing",
+              "lit": 1
+            },
+            {
+              "ms": 7484,
+              "phase": "leaving",
+              "lit": 0.02
+            },
+            {
+              "ms": 8620,
+              "phase": "last",
+              "lit": 0.02
+            },
+            {
+              "ms": 9206,
+              "phase": "held",
+              "lit": 0.02
+            }
+          ]
+        }
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 366.6,
-      "p95Ms": 416.7,
-      "worstMs": 433.4
+      "medianMs": 399.9,
+      "p95Ms": 450,
+      "worstMs": 483.3
     },
     "inspect": {
       "booted": true,
@@ -644,12 +704,12 @@
   },
   "keys": {
     "status": "passed",
-    "scanned": 20,
+    "scanned": 21,
     "warnings": [],
     "steps": [
       {
         "step": "play",
-        "delivered": 2,
+        "delivered": 4,
         "moved": true
       },
       {

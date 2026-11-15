@@ -18,6 +18,17 @@ there WASD walks, dragging looks around, and **Play match** (Space) opens the
 match setup. Leaving a match or the setup returns here. A direct visit to
 `/games/ace` opens on the title screen instead.
 
+## Leaving for the lobby
+
+Every way out (the Lobby buttons, the pause menu, a party member leaving)
+goes through `departure.leave()` in `src/host.js` or the page's `departure`
+message. The game returns the visitor courtside in the avatar kit's arrival
+state (standing, empty hands, the arrival framing), hides the interface,
+fades the court to black around the lit avatar (`src/departure.js`) and
+answers `departure-ready` with the view on screen, read back from that same
+kit state; the lobby opens on the same frame. See
+`docs/games/departure.md`.
+
 ## Parties
 
 When the visitor arrived with a party (`continuity.trip`, then `party(trip)`
