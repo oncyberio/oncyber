@@ -38,10 +38,8 @@ import { LOBBY_MIC_BITRATE } from "@utils/voiceChat/sdp";
 // A dedicated CyberRoom: matchmaking, presence, chat and voice all share it.
 export const LOBBY_ROOM = "oncyber-lobby-v1";
 /** Deployment-owned native rooms; never accept a room key from an iframe. */
-export const NATIVE_SOCIAL_ROOMS: Readonly<Record<string, string>> = {
-    // Glasshouse Padel's club (features/games/padel).
-    "padel-club": "oncyber-padel-club-v1",
-};
+// None today: a game's room is its page's (features/games, `page.room`).
+export const NATIVE_SOCIAL_ROOMS: Readonly<Record<string, string>> = {};
 export type NativeSocialSpace = string;
 const GUEST_AVATAR = LOBBY_GUEST_PORTRAIT;
 const MAX_MESSAGES = 60;
