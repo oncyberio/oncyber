@@ -158,8 +158,9 @@ and exposes no walker fails.
 
 ## Today
 
-| Game   | Walks                                          | `locomotion` |
-| ------ | ---------------------------------------------- | ------------ |
-| Ace    | Courtside after arrival, with the kit          | `lobby`      |
-| Garden | Its own controller (5.2 m/s; Shift slows down) | not declared |
-| Padel  | In its club, with the kit                      | `lobby`      |
+| Game        | Walks                                                  | `locomotion` |
+| ----------- | ------------------------------------------------------ | ------------ |
+| Ace         | Courtside after arrival, with the kit                  | `lobby`      |
+| Garden      | Its own controller (5.2 m/s; Shift slows down)         | not declared |
+| Padel       | In its club, with the kit                              | `lobby`      |
+| Lantern Tag | Its courtyard, before and during a round, with the kit | `lobby`      |

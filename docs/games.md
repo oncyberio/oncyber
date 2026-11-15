@@ -211,11 +211,12 @@ with a party of four; open it in several windows to share the room.
 
 ## The games today
 
-| Game                       | Page                                                                 | Lifecycle | Check                                                     |
-| -------------------------- | -------------------------------------------------------------------- | --------- | --------------------------------------------------------- |
-| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                  | yes       | every stage but departure and locomotion; phone unclaimed |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room | yes       | every stage                                               |
-| Glasshouse Padel (`padel`) | shared `GamePage`, sandboxed, a shared club room (no relay)          | yes       | every stage; phone unclaimed                              |
+| Game                        | Page                                                                     | Lifecycle | Check                                                     |
+| --------------------------- | ------------------------------------------------------------------------ | --------- | --------------------------------------------------------- |
+| Bloom Garden (`garden`)     | shared `GamePage`, sandboxed, shared room and relay                      | yes       | every stage but departure and locomotion; phone unclaimed |
+| ACE! Tennis (`ace`)         | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room     | yes       | every stage                                               |
+| Glasshouse Padel (`padel`)  | shared `GamePage`, sandboxed, a shared club room (no relay)              | yes       | every stage; phone unclaimed                              |
+| Lantern Tag (`lantern-tag`) | shared `GamePage`, sandboxed, no room alone; one round in a party's room | yes       | every stage                                               |
 
 A listed game without the lifecycle or a scenario fails the check
 (`CONTRACT_NO_LIFECYCLE`, `CONTRACT_NO_SCENARIO`). Padel was the third game
