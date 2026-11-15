@@ -1,10 +1,11 @@
 {
   "name": "Bloom Garden",
   "avatar": "vrm",
+  "format": "world",
   "avatars": {
     "others": "avatar",
     "arrival": "none",
-    "arrivalWhy": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
+    "arrivalWhy": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
   },
   "arrival": {
     "walkable": true

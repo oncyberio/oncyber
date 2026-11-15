@@ -8,6 +8,7 @@ import { deviceAct } from "@oncyber/game-runtime/device-check";
 import { bindDeviceControls } from "@oncyber/game-runtime/device-controls";
 import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
 import { bindPausing, sessionPausing } from "@oncyber/game-runtime/pausing";
+import { exposeInspect } from "@oncyber/game-runtime/bot";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -94,6 +95,16 @@ page.on("net", (data) => {
     if (room.inbox.length > 64) room.inbox.shift();
 });
 
+// A lobby trip: the lobby's last view, then the reveal.
+const defer = () => {
+    let resolve;
+    const promise = new Promise((done) => (resolve = done));
+    return { promise, resolve };
+};
+const trip = { view: defer(), entered: defer() };
+page.on("arrival", (data) => trip.view.resolve(data.view ?? null));
+page.on("entered", () => trip.entered.resolve(true));
+
 const avatars = new Map();
 // services.avatar: only the visitor's avatar and those of players the room
 // announced; fetched once, size-capped by us and by the runtime.
@@ -177,6 +188,12 @@ async function call(capability, operation, value) {
             results.abandon();
             return true;
         }
+    }
+    if (capability === "travel" && operation === "arrival") return json(await trip.view.promise);
+    if (capability === "travel" && operation === "entered") return trip.entered.promise;
+    if (capability === "travel" && operation === "staged") {
+        page.post("arrival-ready");
+        return true;
     }
     if (capability === "travel" && operation === "lobby") {
         page.exit();
@@ -317,6 +334,8 @@ async function start() {
             get: () => debugHooks.photo,
         });
     }
+    // Facts for pnpm games:check and the game's bot (bot.json).
+    exposeInspect(() => host.session.inspect());
     await host.session.prepare();
     await host.session.enter({
         avatar: { id: identity.id, position: [0, 0, 13], rotation: [0, 1, 0, 0] },
@@ -330,8 +349,9 @@ async function start() {
     loading.firstFrame({ width: innerWidth, height: innerHeight });
     page.ready();
     // A resize draws at once instead of waiting for the next animation frame.
-    // The avatar and saved-data stages ask their own questions instead.
-    const scenarioCheck = params.has("check") && !["avatars", "saved"].includes(params.get("check"));
+    // The avatar and saved-data stages ask their own questions instead, and
+    // the process stage plays bot.json through the keyboard.
+    const scenarioCheck = params.has("check") && !["avatars", "saved", "process"].includes(params.get("check"));
     let checking = scenarioCheck;
     redrawOnResize(
         loading,

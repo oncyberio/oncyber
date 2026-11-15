@@ -116,21 +116,11 @@ because the opaque frame loads them in CORS mode.
 
 ## What a good game does
 
-Four rules, in order. Each came from a game getting it wrong; the "SDK and
-checks still owed" section lists what would make them automatic.
-
-1. **Arrive like a world.** A game opened from the lobby starts in a
-   walkable third-person view of its place, in the framing the visitor had
-   in the lobby. "Start the game" is a choice from there. Title screens are
-   for direct visits only, and leaving a match or a menu returns to the
-   arrival, not to a title.
-2. **Match the handoff.** The first frame the visitor sees must continue
-   the lobby's last one: same camera, same avatar place and size, same pose.
-   No frame without the avatar, and no pop.
-3. **Respect the party.** A game says what it offers for one, two, three,
-   four and five to eight players, changes its options when a party
-   arrives, and builds the same teams or bracket on every member's screen.
-4. **Keep a solo path.** Whatever the party, one person can always play.
+The rules a game is held to, the brief to fill in before building and the
+definition of done are one page: [games/good-game.md](games/good-game.md)
+(served in the app at `/docs/good-game`). In short: arrive like a world,
+match the handoff, respect the party, keep a solo path, ship a bot; done
+is `pnpm games:check <id>` passing.
 
 ## Arriving from the lobby
 
@@ -212,11 +202,11 @@ with a party of four; open it in several windows to share the room.
 
 ## The games today
 
-| Game                       | Page                                                                                 | Lifecycle | Check                       |
-| -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------- |
-| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room                 | yes       | scenario, lifecycle, frames |
-| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | fails: no lifecycle         |
+| Game                       | Page                                                                                 | Lifecycle | Check                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------------------------------------- |
+| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | every stage but departure and locomotion; phone unclaimed |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room                 | yes       | every stage                                               |
+| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | fails: no lifecycle, no brief, no bot                     |
 
 A listed game without the lifecycle or a scenario fails the check
 (`CONTRACT_NO_LIFECYCLE`, `CONTRACT_NO_SCENARIO`), so Padel can't be
@@ -227,14 +217,22 @@ still greets with `garden:hello`; it keeps working and the check warns.
 
 ## Make a game
 
+Read [games/good-game.md](games/good-game.md) first: the rules a game is
+held to, the brief to fill in before building, and the definition of done.
+`pnpm games:new <id>` does steps 1 to 3 below, adds the brief, a bot stub
+and a scenario stub, and declares the game's saved keys to the page;
+`pnpm games:score` reports which checks each game passes.
+
 1. Copy `games/garden` as a template, or start a Vite project in
    `games/<id>/` that builds into `frontend/public/games/<id>/` and aliases
    `@oncyber/game-runtime` to `games/runtime/src` (see the garden's
    `vite.config.js`).
-2. Write `game.json` (`arrival`, `party`, `runtime.capabilities`, `assets`,
-   `input`) and a `scenario.json` that proves the game works: actions,
-   waits and assertions on `inspect()` keys
-   ([games/contract.md](games/contract.md)).
+2. Write `game.json` (`format`, `arrival`, `party`, `devices`, `avatars`,
+   `saved`, `runtime.capabilities`, `assets`, `input`), a `scenario.json`
+   that proves the game works (actions, waits and assertions on
+   `inspect()` keys, [games/contract.md](games/contract.md)) and a
+   `bot.json` that plays it through the keyboard
+   ([games/good-game.md](games/good-game.md)).
 3. Add the game to `frontend/features/games/catalog.ts`.
 4. Open `/games/<id>` on the dev server.
 
@@ -306,6 +304,23 @@ Menu screens that use none of the UI kit's classes are listed as a warning
 A `sound` stage follows ([games/sound.md](games/sound.md)): boot-only games
 that use the SDK's sound output get it too.
 
+A game that declares `saved` keys gets the saved-data stage
+([games/saved-data.md](games/saved-data.md)) after the party stage: each key
+is saved through the game, reloaded and read back, and the game is booted
+with old, unreadable and future-version saves.
+
+The process stage (`scripts/games/process.mjs`) runs last. It holds the
+game to its brief, its party statement and its bot, then plays `bot.json`
+through the keyboard on a visit of its own: a lobby arrival, a match to its
+result, and back to the arrival. `--video` (or `GAMES_CHECK_VIDEO=1`) also
+records that run to `games/<id>/.check/bot.webm` for a person to watch; it
+is off by default because the game then draws at full size.
+`node scripts/games/process.mjs <id>` runs the stage alone.
+
+Every stage in order, with its finding codes, is the table under "Done" in
+[games/good-game.md](games/good-game.md); `pnpm games:score <id>` prints
+the last report against it.
+
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
 
@@ -316,44 +331,23 @@ game renders slowly; `GAMES_CHECK_TIMEOUT_S=600` waits longer for the report.
 
 ## SDK and checks still owed
 
-Each line is something a game does by hand today, or a rule nothing
-enforces yet.
+What the first version of this list asked for is delivered: `enter()`
+carries the lobby's view and the trip, the locomotion kit has the arrival
+helper, the avatar kit the arrival pose, the page waits for a first-frame
+signal, `game.json` declares `arrival` and `party`, and the check has the
+arrival, handoff and party stages ([games/good-game.md](games/good-game.md)).
+Still owed:
 
-**Lifecycle and runtime (`games/runtime`)**
-
--   `enter(continuity)` should carry the lobby's real view and the party.
-    The type has `avatar`, `camera` and `party`, but the page fills none of
-    it: the view and the party travel as the `arrival` and `party` messages,
-    which only Ace reads.
--   An arrival helper: lobby view in, camera position, look target and
-    field of view out, in the game's own space, facing a direction the game
-    picks.
--   An avatar arrival pose in an avatar kit: crouched and facing the camera
-    at the handoff, standing up on `entered`.
--   A "first frame ready" signal the page waits for before revealing,
-    instead of each game counting frames.
--   A `party` object on the context: trip id, members, who has arrived,
-    and the party's room.
-
-**Manifest (`game.json`)**
-
--   `arrival`: whether the game has a walkable arrival.
--   `party`: the sizes and formats it supports.
-
-**Checks (`pnpm games:check`)**
-
--   Arrival: open the game with a lobby view; fail a menu-only start or an
-    ignored camera.
--   Handoff: compare the lobby's last frame with the game's first (avatar
-    position and size) and flag any frame without the avatar. Done by hand
-    so far, with a frame recorder.
--   Party: open the game with `?party=2` and `?party=4`; fail if its
-    options don't change, or if no solo option remains.
--   The full check for Ace and Padel, once they are on the lifecycle.
-
-**Games**
-
--   Bloom Garden and Padel don't use `arrival` or `party` yet.
+-   **Padel** is not on the lifecycle or in the sandbox, and has no brief
+    and no bot; it fails the check until it is.
+-   **Bloom Garden** still speaks `garden:<kind>` (it should move to
+    `connectPage()` and read the visit from `enter()`), has no matched
+    departure, does not claim the phone, and draws its avatars, arrival
+    pose and menus with its own code instead of the kits.
+-   **Ace** shows the draw for doubles and tournaments; playing them
+    through is not built.
+-   The process stage's bot plays alone. A bot for a match between two
+    members is the party stage's own (`party.play`), not `bot.json`.
 
 ## Not built yet
 

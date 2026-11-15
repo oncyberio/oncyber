@@ -43,6 +43,7 @@ import {
     versusMatchReport,
 } from "./result.js";
 import { pointLabel } from "./rules.js";
+import { describeArrival } from "@oncyber/game-runtime/arrival";
 import {
     DEFAULT_SETTINGS,
     readFormat,
@@ -2366,6 +2367,28 @@ export default function createGame(context) {
             avatarHandsEmpty:
                 facts.avatarHandsEmpty && !players?.[0].racket.visible,
             arrival: arrive.came ? "lobby" : "direct",
+            // Courtside, for the handoff check: the arrival as it is drawn
+            // this frame (docs/games/good-game.md).
+            handoff:
+                state.screen === "arrive" && e?.athletes[0]
+                    ? describeArrival({
+                          camera: camera.position,
+                          fov: camera.fov,
+                          avatar: {
+                              x: e.athletes[0].x,
+                              y: 0,
+                              z: e.athletes[0].z,
+                          },
+                          // A player faces -z at yaw 0.
+                          avatarForward: {
+                              x: -Math.sin(players[0].yaw),
+                              z: -Math.cos(players[0].yaw),
+                          },
+                          avatarHeight: ARRIVE_HEIGHT,
+                          crouched: kit.arrival.crouch > 0,
+                          handsEmpty: !players[0].racket.visible,
+                      })
+                    : null,
             standing: kit.arrival.crouch === 0,
             walked: arrive.walked > 0.5,
             partySize: trip ? partyPlayers().length : 1,

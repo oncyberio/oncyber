@@ -25,6 +25,7 @@ import createGame, {
     pageFrame,
     pageRoom,
 } from "./game.js";
+import { exposeFacts } from "./facts.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
 import { MIGRATE } from "./saved.js";
@@ -261,7 +262,10 @@ async function start() {
         pixelRatio:
             ["party", "results", "locomotion", "saved"].includes(
                 params.get("check")
-            )
+            ) ||
+            // The process check's bot plays at keyboard speed: small,
+            // unless its run is being recorded for a person to watch.
+            (params.get("check") === "process" && !params.has("video"))
                 ? 0.3
                 : Math.min(window.devicePixelRatio || 1, 2),
     };
@@ -349,6 +353,9 @@ async function start() {
     // The avatar stage of pnpm games:check asks what the game sees (its
     // party stage asks the game through the link).
     answerInspect(() => session.inspect());
+    // The standard facts, for the game's bot (bot.json) and the process
+    // checks that read them (docs/games/good-game.md).
+    exposeFacts(() => session.inspect());
     // prepare() ends on a drawn frame: once it is on screen say so, then
     // that the game can be entered. The lobby's reveal (enter, the arrival
     // frame, `entered`) comes after both. (A tab opened in the background
@@ -402,12 +409,18 @@ async function start() {
     // measure frames and report to the check page (its avatar and party
     // stages ask their own questions instead, its results stage has the
     // game's bot play a match to the end, its locomotion stage walks
-    // the visitor itself, and its saved-data stage saves and reads).
+    // the visitor itself, its saved-data stage saves and reads, and its
+    // process stage plays bot.json through the keyboard).
     if (
         params.has("check") &&
-        !["avatars", "party", "results", "locomotion", "saved"].includes(
-            params.get("check")
-        )
+        ![
+            "avatars",
+            "party",
+            "results",
+            "locomotion",
+            "saved",
+            "process",
+        ].includes(params.get("check"))
     )
         postCheckReport(
             await runCheck({

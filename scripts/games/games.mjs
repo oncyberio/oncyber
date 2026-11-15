@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Check and publish the games in games/<id>.
 //
-//   node scripts/games/games.mjs check <id> [--headed]
-//   node scripts/games/games.mjs publish <id> [--headed]
+//   node scripts/games/games.mjs check <id> [--headed] [--video]
+//   node scripts/games/games.mjs publish <id> [--headed] [--video]
 //
 // check   Serves frontend/public/games/<id>/ on a loopback port, opens it in
 //         the same sandboxed frame the site uses, with ?check. The game plays
@@ -39,15 +39,18 @@ import { locomotionStage } from "./locomotion-check.mjs";
 import { scanUiKit } from "./ui-kit-check.mjs";
 import { soundHarness, soundStage } from "./sound-check.mjs";
 import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
+import { describeProcess, processStage } from "./process.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
 const headed = flags.includes("--headed");
+// Record the bot's run in the process stage (off by default: it is slow).
+const video = flags.includes("--video") || process.env.GAMES_CHECK_VIDEO === "1";
 // --lobby <url>: record the lobby's first frame from a running app (departure-check.mjs).
 const lobbyUrl = flags.includes("--lobby") ? flags[flags.indexOf("--lobby") + 1] : null;
 
 if (!["check", "publish"].includes(command) || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(id ?? "")) {
-    console.error("usage: games.mjs check|publish <id> [--headed] [--lobby <url>]");
+    console.error("usage: games.mjs check|publish <id> [--headed] [--video] [--lobby <url>]");
     process.exit(2);
 }
 const source = join(root, "games", id);
@@ -306,6 +309,10 @@ async function check() {
         keys: keys?.report ?? null,
         ...(locomotion ? { locomotion } : {}),
     };
+    // The process stage, last: brief, offer, solo, bot, arrival, handoff, video.
+    result.process = await processStage({ id, root, manifest, chromium, headed, video });
+    result.findings.push(...result.process.findings);
+    if (result.process.status !== "passed") result.status = "failed";
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
@@ -313,13 +320,14 @@ async function check() {
     for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     if (saved.keys) console.log(`  saved data: ${saved.status} · ${saved.keys} key(s), ${saved.runs.length} boots`);
+    console.log(`  ${describeProcess(result.process)}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of [...warnings, ...result.warnings]) console.log(`  warning ${warning.code}: ${warning.message}`);
     for (const line of devices?.lines ?? []) console.log(line);
     if (locomotion) console.log(`  locomotion: ${locomotion.status}` + (locomotion.metres != null ? ` · walked ${locomotion.metres} m in ${locomotion.seconds} s (the lobby: ${locomotion.lobbyMetres} m)` : ""));
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
-    console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
+    console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png` + (result.process.video ? ` · video: ${result.process.video.path}` : ""));
     return { result, files };
 }
 

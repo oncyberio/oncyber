@@ -156,6 +156,18 @@ files sit side by side. New files should be TypeScript.
 5. Fill in `.github/pull_request_template.md`: what changed, how you checked
    it, any setup or data migration it needs.
 
+### Corrections
+
+A correction from a person is not done until it exists as a docs line, an
+SDK helper and a check. Fixing the one game they were looking at is the
+start: write the rule where the next agent will read it (for games,
+[docs/games/good-game.md](docs/games/good-game.md)), put the right behaviour
+in a helper so it is the easy path (`games/runtime/src/`, or a kit in
+`games/kits/`), and add a check
+that fails without it (`pnpm games:check`). Then prove the check on the game
+that was corrected. Building a game starts from that page and its brief
+(`pnpm games:new <id>`); done is `pnpm games:check <id>` passing.
+
 Formatting is Prettier: four spaces, 80 columns. Format the files you change,
 not the whole repository.
 

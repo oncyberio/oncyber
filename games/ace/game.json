@@ -1,6 +1,7 @@
 {
   "name": "ACE! Tennis",
   "avatar": "vrm",
+  "format": "match",
   "devices": [
     "desktop",
     "phone",
