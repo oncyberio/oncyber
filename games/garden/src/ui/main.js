@@ -1,6 +1,7 @@
 import { connectUI } from "@oncyber/game-runtime/browser";
 import { bindPageKeys } from "@oncyber/game-runtime/keys-browser";
 import manifest from "../../game.json";
+import { answerHudRequests, hudRects, watchSafeArea } from "@oncyber/game-runtime/safe-area";
 import "./style.css";
 
 // Bloom Garden's UI: an HTML page in its own sandbox (or a native WebView).
@@ -12,6 +13,22 @@ const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const MOOD = { heart: "💗", swirl: "💧", zzz: "💤", alert: "❗", question: "❓", away: "🏁", ball: "", none: "" };
 const ORD = ["1st", "2nd", "3rd", "4th"];
+
+// The host relays the Oncyber page's safe-area insets; style.css keeps the
+// HUD inside them (--oncyber-safe-*). The check asks where the HUD is: the
+// `hud-measure` class lays the hidden panels out for that one reading.
+const safeArea = watchSafeArea();
+answerHudRequests(
+    () => {
+        document.body.classList.add("hud-measure");
+        try {
+            return { hud: hudRects() };
+        } finally {
+            document.body.classList.remove("hud-measure");
+        }
+    },
+    { insets: () => safeArea.insets }
+);
 
 let state = null;
 const ui = connectUI((value) => {

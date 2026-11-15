@@ -59,6 +59,8 @@ export const GAMES: Record<string, GameEntry> = {
         socialRoom: "oncyber-ace-social-v1",
         relay: false,
         crowdLabel: "at the courts",
+        // Ace lays its HUD out below the page's safe-area band.
+        controlsStyle: { top: 14 },
     },
 };
 

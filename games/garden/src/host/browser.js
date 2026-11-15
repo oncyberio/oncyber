@@ -2,6 +2,7 @@ import { browserUI, createBrowserSession } from "@oncyber/game-runtime/browser";
 import { bindSessionKeys, relayPageKeys } from "@oncyber/game-runtime/keys-browser";
 import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { answerHudRequests, requestHud, watchSafeArea } from "@oncyber/game-runtime/safe-area";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -24,6 +25,10 @@ const canvas = document.querySelector("#world");
 const frame = document.querySelector("#game-ui");
 const notice = document.querySelector("#notice");
 const page = createHost();
+// The page's safe-area insets go on to the UI frame, which draws the HUD
+// and reports where it is (docs/games/safe-area.md).
+const safeArea = watchSafeArea({ game: "garden", relay: [frame] });
+answerHudRequests(async () => ({ hud: await requestHud(frame) }), { insets: () => safeArea.insets });
 page.hello();
 
 // Dev diagnostics for device simulators: ?log posts errors and state.

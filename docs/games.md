@@ -79,6 +79,7 @@ still answered in that form ([games/contract.md](games/contract.md)):
 | game        | `arrival-ready`            | The game has framed the visitor as the lobby left them (the page waits 1.5 s at most, and not at all for a game that declared `arrival.walkable: false`).                          |
 | page        | `arrival`                  | Old builds only: `{ view }`, the lobby's third-person camera. Contract games get it in `enter`.                                                                                    |
 | game / page | `key`, `input`, `muted`    | Keys and focus: the page owns Escape, Enter and M, and pauses the game's input while the visitor types or a page menu is open. See [games/keys-focus.md](games/keys-focus.md).     |
+| page        | `safe-area`                | `{ insets, width, height }`: how far in the page's controls and chat reach, in CSS pixels, on `hello`, `ready` and every change ([games/safe-area.md](games/safe-area.md)).        |
 
 Chat and voice are the page's: a game never builds its own. It may send
 `voice` (poses for spatial voice) and it receives `talking`. See
@@ -143,6 +144,12 @@ reference):
    camera 5 m behind the visitor must not end up outside the place.
 7. Redraw at once after a resize. Resizing clears the canvas, and waiting
    for the next animation frame shows an empty one.
+
+## Screen space
+
+The page floats its controls and chat over the frame. Keep the HUD and menus
+inside the safe-area insets it sends, and report where they are so the check
+can prove it: [games/safe-area.md](games/safe-area.md).
 
 ## Parties
 
@@ -210,8 +217,10 @@ measures 180 frames. The script adds the bundle's size and declared files,
 console errors and a screenshot (`games/<id>/.check/screenshot.png`), and
 writes `check.json`. A `social` stage then sends two visitors from a lobby
 into the game and checks their chat and voice came with them
-([games/voice-chat.md](games/voice-chat.md)). Boot, scenario, lifecycle,
-frames and social must pass, and
+([games/voice-chat.md](games/voice-chat.md)). A safe-area stage reopens the
+game under the page's overlays at desktop and phone sizes and fails if the
+HUD sits under one ([games/safe-area.md](games/safe-area.md)).
+Boot, scenario, lifecycle, frames, social and safe area must pass, and
 the bundle must stay under 30 MiB with every declared file present. Console
 errors are listed but don't block, since games load avatars from the network.
 The keys stage (`scripts/games/keysCheck.mjs`) then scans the source for raw

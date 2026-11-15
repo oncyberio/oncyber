@@ -18,6 +18,10 @@ export default defineConfig({
                 replacement: `${runtime}/keysBrowser.ts`,
             },
             {
+                find: /^@oncyber\/game-runtime\/safe-area$/,
+                replacement: `${runtime}/safe-area.ts`,
+            },
+            {
                 find: /^@oncyber\/game-runtime$/,
                 replacement: `${runtime}/index.ts`,
             },

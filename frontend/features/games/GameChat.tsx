@@ -59,6 +59,7 @@ export default function GameChat({
         <section
             className="game-chat"
             aria-label="Chat"
+            data-game-overlay="chat"
             style={{
                 position: "absolute",
                 left: 20,

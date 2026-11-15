@@ -36,6 +36,10 @@ jest.mock("./GameInputLayer", () => ({
     __esModule: true,
     default: () => null,
 }));
+jest.mock("./safeArea", () => ({
+    bridgeGameSafeArea: () => () => undefined,
+    CONTROLS_PLACEMENT: {},
+}));
 // The party's room: connects at once as "room-me" with whoever `mockPeers` holds.
 let mockPeers: any[] = [];
 jest.mock("./gameRoom", () => ({

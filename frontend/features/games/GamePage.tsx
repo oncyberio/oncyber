@@ -41,6 +41,7 @@ import {
 import { useGameSocial } from "./useGameSocial";
 import GameChat from "./GameChat";
 import GameInputLayer from "./GameInputLayer";
+import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./safeArea";
 
 const PEER_INTERVAL = 100;
 
@@ -167,6 +168,16 @@ export default function GamePage({ game }: { game: GameEntry }) {
         document.exitPointerLock?.();
         if (!requestLobbyDestinationBack()) void router.push("/?lobby=1");
     });
+
+    // The game keeps its HUD clear of whatever this page floats over it.
+    useEffect(
+        () =>
+            bridgeGameSafeArea(frame.current, GAME, {
+                post: (kind, data) => postGame.current(kind, data),
+                kindOf: (data: any) => readGameMessage(data?.type, GAME)?.kind,
+            }),
+        []
+    );
 
     // Lifecycle and identity: the game says hello, gets the identity, then says ready.
     useEffect(() => {
@@ -491,10 +502,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 <div
                     role="group"
                     aria-label="Game social controls"
+                    data-game-overlay="controls"
                     style={{
                         position: "absolute",
-                        top: 84,
-                        left: 20,
+                        ...CONTROLS_PLACEMENT,
                         ...controlsStyle,
                         display: "flex",
                         alignItems: "center",
@@ -569,6 +580,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             {roomState?.voiceError && ready && !error && (
                 <p
                     role="status"
+                    data-game-overlay="voice-error"
                     style={{
                         position: "absolute",
                         top: 132,

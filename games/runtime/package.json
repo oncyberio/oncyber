@@ -13,7 +13,8 @@
     "./page": "./src/page.ts",
     "./voice": "./src/voice.ts",
     "./keys": "./src/keys.ts",
-    "./keys-browser": "./src/keysBrowser.ts"
+    "./keys-browser": "./src/keysBrowser.ts",
+    "./safe-area": "./src/safe-area.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

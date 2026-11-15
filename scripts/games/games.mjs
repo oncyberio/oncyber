@@ -28,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { contractFindings, enterFindings, harnessScript } from "./contract-check.mjs";
 import { checkSocial, scanOwnVoice } from "./social-check.mjs";
 import { runKeysCheck } from "./keysCheck.mjs";
+import { checkSafeArea, describeSafeArea } from "./safe-area.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -144,7 +145,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -176,6 +177,8 @@ async function check() {
         // Keys and focus (docs/games/keys-focus.md): source scan, then typing in the page's chat during play.
         keys = await runKeysCheck({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, manifest });
         scan.findings.push(...keys.findings);
+        // The HUD must stay clear of what the page floats over the game.
+        if (report && !gameError) safeArea = await checkSafeArea({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, shots: join(source, ".check") });
     } finally {
         await browser.close();
         server.close();
@@ -187,7 +190,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) ? "passed" : "failed",
+        status: report?.status === "passed" && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -198,8 +201,10 @@ async function check() {
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
             ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
             ...(social?.status === "failed" ? [{ code: "STAGE_SOCIAL", message: social.error ?? "failed" }] : []),
+            ...(safeArea?.findings ?? []),
         ],
         social,
+        safeArea,
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
@@ -211,6 +216,7 @@ async function check() {
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
+    for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);

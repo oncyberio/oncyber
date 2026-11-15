@@ -6,6 +6,7 @@ import manifest from "../game.json";
 import scenario from "../scenario.json";
 import { COURT } from "./config.js";
 import createGame, { debugHooks, pageSound } from "./game.js";
+import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
 import "./style.css";
 
@@ -28,6 +29,11 @@ const page = connectPage({
     storageNamespace: "ace",
     identityTimeoutMs: 1500,
 });
+// Safe-area insets from the page, and where the HUD is for the checks
+// (docs/games/safe-area.md). Listening before hello: the page answers it
+// with the insets.
+const hud = createHud(() => debugHooks.game?.state.screen ?? "boot");
+debugHooks.inspect = hud.inspect;
 page.hello();
 
 const AVATAR_MAX = 32 * 1024 * 1024;
@@ -220,6 +226,7 @@ async function start() {
         alive = false;
         keys.dispose();
         devices.dispose();
+        hud.dispose();
         page.dispose();
         void session.dispose();
     };

@@ -1,22 +1,22 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T11:56:55.448Z",
+  "checkedAt": "2026-11-15T12:26:31.877Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1349124,
+    "bytes": 1355724,
     "largest": {
-      "path": "assets/index-Cn4brTz_.js",
-      "bytes": 1007160
+      "path": "assets/index-B2hL5Frq.js",
+      "bytes": 1010000
     }
   },
   "findings": [],
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3420,
+    "ms": 3375,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -35,8 +35,296 @@
       ]
     }
   },
+  "safeArea": {
+    "status": "passed",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 985.8,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 24,
+            "y": 658,
+            "width": 340,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 242.5,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 14,
+            "y": 119,
+            "width": 172,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 380,
+            "y": 71,
+            "width": 520,
+            "height": 87
+          },
+          {
+            "id": "corner-buttons",
+            "x": 1172,
+            "y": 600,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 200,
+            "y": 119,
+            "width": 300,
+            "height": 209
+          },
+          {
+            "id": "menu-card",
+            "x": 420,
+            "y": 245,
+            "width": 440,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 612,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 1136,
+            "y": 514,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 260,
+            "y": 75,
+            "width": 760,
+            "height": 563
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 95.8,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 782,
+            "width": 280,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 209.3,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 12,
+            "y": 714,
+            "width": 208,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 16,
+            "y": 71,
+            "width": 358,
+            "height": 124
+          },
+          {
+            "id": "corner-buttons",
+            "x": 282,
+            "y": 724,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 12,
+            "y": 119,
+            "width": 366,
+            "height": 209
+          },
+          {
+            "id": "menu-card",
+            "x": 16,
+            "y": 307,
+            "width": 358,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 167,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 246,
+            "y": 638,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 16,
+            "y": 75,
+            "width": 358,
+            "height": 687
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone-landscape",
+        "width": 844,
+        "height": 390,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 549.8,
+            "y": 14,
+            "width": 278.2,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 328,
+            "width": 340,
+            "height": 42
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 242.5,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 14,
+            "y": 119,
+            "width": 172,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 162,
+            "y": 71,
+            "width": 520,
+            "height": 87
+          },
+          {
+            "id": "corner-buttons",
+            "x": 736,
+            "y": 270,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 200,
+            "y": 119,
+            "width": 300,
+            "height": 193
+          },
+          {
+            "id": "menu-card",
+            "x": 202,
+            "y": 80,
+            "width": 440,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 394,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 700,
+            "y": 184,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 42,
+            "y": 75,
+            "width": 760,
+            "height": 233
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      }
+    ],
+    "findings": []
+  },
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42859/games/garden/assets/index-Cn4brTz_.js:1:14032)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42427/games/garden/assets/index-B2hL5Frq.js:1:14065)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -62,17 +350,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1224,
+    "bootMs": 1733,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1224
+        "ms": 1733
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 912
+        "ms": 920
       },
       {
         "stage": "lifecycle",
@@ -82,13 +370,13 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3018
+        "ms": 3017
       }
     ],
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.7,
+      "p95Ms": 16.8,
       "worstMs": 16.8
     },
     "inspect": {

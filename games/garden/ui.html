@@ -21,15 +21,15 @@
         </div>
 
         <div id="hud" class="hud" hidden>
-            <div class="brand">
+            <div class="brand" data-hud="brand">
                 <span class="logo small"><span>Bloom</span><b>Garden</b></span>
                 <span class="clock" id="clock" title="Time of day"></span>
             </div>
-            <div class="roster" id="roster" aria-label="Your bloomlings"></div>
-            <div class="prompt" id="prompt" aria-live="polite"></div>
-            <div class="toasts" id="toasts" aria-live="polite"></div>
-            <div class="offers" id="offers"></div>
-            <div class="corner-buttons">
+            <div class="roster" id="roster" data-hud="roster" aria-label="Your bloomlings"></div>
+            <div class="prompt" id="prompt" data-hud="prompt" aria-live="polite"></div>
+            <div class="toasts" id="toasts" data-hud="toasts" aria-live="polite"></div>
+            <div class="offers" id="offers" data-hud="offers"></div>
+            <div class="corner-buttons" data-hud="corner-buttons">
                 <button class="chip" id="btn-help" aria-label="Controls">
                     ?
                 </button>
@@ -40,7 +40,7 @@
             </div>
         </div>
 
-        <aside id="details" class="panel" hidden aria-label="Bloomling details">
+        <aside id="details" class="panel" data-hud="details" hidden aria-label="Bloomling details">
             <button class="close" data-close aria-label="Close">×</button>
             <div class="details-head">
                 <div class="portrait" id="d-portrait"></div>
@@ -63,7 +63,7 @@
         </aside>
 
         <div id="menu" class="screen modal">
-            <div class="card">
+            <div class="card" data-hud="menu-card">
                 <h2 id="menu-title">Bloom Dash</h2>
                 <p id="menu-blurb" class="blurb"></p>
                 <div class="field">
@@ -86,11 +86,11 @@
         </div>
 
         <div id="match" class="hud match" hidden>
-            <div class="match-top">
+            <div class="match-top" data-hud="match-top">
                 <b id="m-title"></b>
                 <span id="m-timer"></span>
             </div>
-            <div class="standings" id="m-standings"></div>
+            <div class="standings" id="m-standings" data-hud="standings"></div>
             <div class="bout-bars" id="m-bout">
                 <div class="hp left">
                     <span id="m-n0"></span>
@@ -107,7 +107,7 @@
                 </div>
                 <span>Cheer in the gold for a super bump!</span>
             </div>
-            <button class="cheer" id="m-cheer">
+            <button class="cheer" id="m-cheer" data-hud="cheer">
                 <span>Cheer!</span><small>C / Space</small
                 ><i id="m-cheer-cd"></i>
             </button>
@@ -137,7 +137,7 @@
         </div>
 
         <div id="help" class="screen modal">
-            <div class="card wide">
+            <div class="card wide" data-hud="help-card">
                 <h2>Looking after bloomlings</h2>
                 <div class="howto-grid">
                     <div class="tip">
@@ -217,7 +217,7 @@
 
         <div class="touch-pad" aria-hidden="true">
             <div class="touch-stick"><div class="touch-knob"></div></div>
-            <div class="touch-buttons">
+            <div class="touch-buttons" data-hud="touch-buttons">
                 <button data-act="throw" class="t-throw">Throw</button>
                 <button data-act="pet" class="t-pet">Pet</button>
                 <button data-act="jump" class="t-jump">Jump</button>

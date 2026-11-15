@@ -19,6 +19,7 @@ const result = await build({
     alias: {
         "@oncyber/game-runtime/browser": `${runtime}/browser.ts`,
         "@oncyber/game-runtime/keys-browser": `${runtime}/keysBrowser.ts`,
+        "@oncyber/game-runtime/safe-area": `${runtime}/safe-area.ts`,
     },
 });
 const js = result.outputFiles.find((f) => f.path.endsWith(".js")).text;
