@@ -14,7 +14,8 @@ import manifest from "../../game.json";
 import { createHost } from "./host.js";
 import { connectVoice } from "@oncyber/game-runtime/voice";
 import { createResults } from "@oncyber/game-runtime/results";
-import { createAudio, play, setMuted, unlockAudio, updateAudio } from "./audio.js";
+import { connectGameAudio } from "@oncyber/game-runtime/audio-browser";
+import { createAudio, play, updateAudio } from "./audio.js";
 
 // The browser host for Bloom Garden's portable game: it creates the runtime
 // session (WebGPU; a WebGL 2 fallback for older browsers only), mounts the UI
@@ -66,20 +67,19 @@ const fail = (message) => {
 
 // ------------------------------------------------------------- services
 
-const audio = createAudio();
-// What the game believes about sound; the page can say otherwise (bindKeys).
-let gameMuted = false;
-let pageMuted = null;
-// Audio may only start inside a user gesture. A tap in the UI frame also
-// activates this document, so unlock on the UI's first action and on our own.
-const unlock = () => unlockAudio(audio);
-window.addEventListener("pointerdown", unlock, { capture: true });
+// Sound goes through the runtime's output: the page owns volume and mute,
+// and the output starts on the first gesture here or on the page.
+const output = connectGameAudio("garden");
+const audio = createAudio(output);
+// A tap in the UI frame also activates this document.
 window.addEventListener("message", (event) => {
-    if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") unlock();
+    if (event.source === frame.contentWindow && event.data?.type === "oncyber:action") void output.unlock();
 });
 
-// Chat and voice are the page's. The garden only shows who is talking.
+// Chat and voice are the page's. The garden only shows who is talking,
+// and is lowered while someone else is (docs/games/sound.md).
 const voice = connectVoice("garden");
+voice.onTalking((ids, self) => output.setTalking(ids.length > (self ? 1 : 0)));
 
 // Peers and inbox from the page's room.
 const room = { peers: [], inbox: [], vouched: new Set() };
@@ -143,11 +143,8 @@ async function call(capability, operation, value) {
     }
     if (capability === "audio") {
         if (operation === "mute") {
-            gameMuted = !!value?.muted;
-            // The visitor used the game's own sound button: that stands.
-            if (pageMuted !== gameMuted) pageMuted = null;
-            setMuted(audio, gameMuted);
-            page.storage.set("muted", value?.muted ? "1" : "0");
+            // The game asks; the page owns the setting and answers the output.
+            output.requestMuted(!!value?.muted);
             return true;
         }
         if (operation === "update") {
@@ -259,33 +256,20 @@ async function createFallbackSession(options) {
 /**
  * Keys and focus (docs/games/keys-focus.md). Keys reach the session as
  * declared actions, whichever frame has the focus; Escape, Enter and M go
- * to the page; the page's pause stops all input; its sound switch wins.
+ * to the page; the page's pause stops all input. The page's sound switch
+ * reaches the game on the sound channel (docs/games/sound.md).
  */
 function bindKeys(session, input) {
-    // The game owns its sound flag and flips it on the `mute` action, so
-    // ask it to, once it is taking input again.
-    const settle = () => {
-        if (pageMuted === null || pageMuted === gameMuted || session.inputPaused || session.phase !== "entered") return;
-        session.action("mute", 1);
-        setTimeout(() => session.phase === "entered" && session.action("mute", 0), 120);
-    };
     const keys = bindSessionKeys(session, {
         game: "garden",
         input,
-        muted(muted) {
-            pageMuted = muted;
-            setMuted(audio, muted);
-            settle();
-        },
         probe() {
             const facts = session.inspect();
-            return { ...facts, position: [facts.playerX, 0, facts.playerZ], muted: audio.muted };
+            return { ...facts, position: [facts.playerX, 0, facts.playerZ], muted: output.muted };
         },
     });
     const stopRelay = relayPageKeys(frame, "garden");
-    const resumed = setInterval(settle, 500);
     page.on("dispose", () => {
-        clearInterval(resumed);
         stopRelay();
         keys.dispose();
     });
@@ -293,7 +277,6 @@ function bindKeys(session, input) {
 
 async function start() {
     const who = await page.resolveIdentity();
-    audio.muted = page.storage.get("muted") === "1";
     identity = {
         id: "local-visitor",
         name: who.name || "You",
@@ -307,6 +290,7 @@ async function start() {
         onProgress: (value, label) => loading.progress(value, label),
         // Pausing is sessionPausing's job, below.
         visibility: false,
+        audio: output,
         onError: (error) => {
             console.error("[garden]", error);
             if (/DEVICE_LOST|destroyed/i.test(error?.message || "")) fail("The graphics device was lost. Reload to keep playing.");
@@ -399,6 +383,7 @@ async function start() {
     if (remoteLog) setInterval(() => remoteLog(`state ${JSON.stringify(host.session.inspect())}`), 3000);
     const dispose = () => {
         unbindPausing();
+        output.dispose();
         void host.dispose();
     };
     page.on("dispose", dispose);

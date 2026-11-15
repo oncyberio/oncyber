@@ -33,6 +33,10 @@ export default defineConfig({
                 replacement: `${runtime}/departure.ts`,
             },
             {
+                find: /^@oncyber\/game-runtime\/audio-browser$/,
+                replacement: `${runtime}/audio-browser.ts`,
+            },
+            {
                 find: /^@oncyber\/game-runtime\/voice$/,
                 replacement: `${runtime}/voice.ts`,
             },

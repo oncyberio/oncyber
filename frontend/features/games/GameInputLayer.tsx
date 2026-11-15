@@ -6,7 +6,7 @@ import {
 } from "./gameInput";
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
-import { readGameStorage, writeGameStorage } from "./gameStorage";
+import { soundStore } from "./gameAudio";
 
 const button = {
     border: 0,
@@ -61,14 +61,13 @@ export default function GameInputLayer({
             }),
         [game]
     );
-    const applyMuted = (next: boolean) => {
-        setMuted(next);
-        host.setMuted(next);
-        writeGameStorage(game, "muted", next ? "1" : "0");
-    };
+    // Sound is the page's one setting (gameAudio.ts): M and the menu's
+    // button change it, and the game hears it on the sound channel.
+    const applyMuted = (next: boolean) =>
+        void soundStore().set({ muted: next });
     intent.current = (next) => {
         if (next === "menu") setMenu((open) => !open);
-        else if (next === "mute") applyMuted(!host.muted);
+        else if (next === "mute") applyMuted(!soundStore().get().muted);
         else if (!menu) {
             onChat?.();
             focusGameChat(document);
@@ -76,9 +75,14 @@ export default function GameInputLayer({
     };
 
     useEffect(() => {
-        const saved = readGameStorage(game).muted === "1";
-        setMuted(saved);
-        host.setMuted(saved);
+        // A build from before the sound channel still hears `muted`.
+        const mirror = (tell: boolean) => {
+            const { muted } = soundStore().get();
+            setMuted(muted);
+            host.setMuted(muted, tell);
+        };
+        mirror(false);
+        const unsubscribe = soundStore().subscribe(() => mirror(true));
         const receive = (event: MessageEvent) => {
             if (!fromGame(event)) return;
             const data = event.data;
@@ -86,11 +90,6 @@ export default function GameInputLayer({
             if (host.receive(kind, data)) return;
             // The game just loaded: tell it where things stand.
             if (kind === "ready") host.sync();
-            // The game's own sound button keeps the page's state in step.
-            else if (kind === "storage" && data.key === "muted") {
-                setMuted(data.value === "1");
-                host.setMuted(data.value === "1", false);
-            }
         };
         window.addEventListener("message", receive);
         const stops = [host.watch(document)];
@@ -103,6 +102,7 @@ export default function GameInputLayer({
         }
         return () => {
             window.removeEventListener("message", receive);
+            unsubscribe();
             stops.forEach((stop) => stop());
         };
     }, [host]);

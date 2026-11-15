@@ -30,7 +30,10 @@ export interface PageKeysOptions {
     /** Input paused: every held action was already released with `action(name, 0)`. */
     paused?(reason: string): void;
     resumed?(): void;
-    /** The page turned sound off or on. */
+    /**
+     * The page turned sound off or on. Only for a build from before the
+     * sound output (audio.ts), which hears the same setting as `audio`.
+     */
     muted?(muted: boolean): void;
     /** Facts for checks, e.g. `{ position: [x, y, z] }`. */
     probe?(): unknown;

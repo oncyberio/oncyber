@@ -37,6 +37,7 @@ import { checkDevices, devicesHarness } from "./devices.mjs";
 import { checkLoading, loadingHarness } from "./loading-check.mjs";
 import { locomotionStage } from "./locomotion-check.mjs";
 import { scanUiKit } from "./ui-kit-check.mjs";
+import { soundHarness, soundStage } from "./sound-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -111,7 +112,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 const harness = (query, visit) => `<!doctype html><meta charset="utf-8"><title>check</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/games/${id}/index.html?check${query}"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad; autoplay" src="/games/${id}/index.html?check${query}"></iframe>
 <script>
 const frame = document.getElementById("game");
 addEventListener("message", (event) => {
@@ -131,7 +132,7 @@ ${devicesHarness}
 });
 ${loadingHarness}
 </script>
-<script>${harnessScript(id, visit)}</script>`;
+<script>${harnessScript(id, visit)}</script>${soundHarness(id)}`;
 
 function serve() {
     const server = createServer((req, res) => {
@@ -205,6 +206,8 @@ async function check() {
         ui = await scanUiKit(page);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
+        // Sound (docs/games/sound.md), on the live game the scenario played in: the page's part of the sound channel, asserted on the output's facts.
+        if (report) await soundStage(page, report, { required: lifecycle && manifest.runtime.capabilities.includes("audio") });
         // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
         if (report?.status === "passed") loading = await checkLoading(page, { manifest, required: lifecycle }).catch((error) => ({ status: "failed", findings: [{ code: "LOADING_CHECK_ERROR", message: String(error.message).slice(0, 300) }] }));
         // The trip back to the lobby (docs/games/departure.md), on the page the scenario played in: it ends that visit.

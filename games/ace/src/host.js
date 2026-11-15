@@ -2,6 +2,7 @@ import { GAME_MESSAGE_PREFIX, RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { deviceAct } from "@oncyber/game-runtime/device-check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
+import { connectGameAudio } from "@oncyber/game-runtime/audio-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
 import { createLoading, redrawOnResize } from "@oncyber/game-runtime/loading";
 import { connectPage } from "@oncyber/game-runtime/page";
@@ -22,7 +23,6 @@ import createGame, {
     pageDeparture,
     pageFrame,
     pageRoom,
-    pageSound,
 } from "./game.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
@@ -49,6 +49,10 @@ import "./style.css";
 // hidden or the page has a menu open, and a match against the CPU while
 // the visitor types; a match another person is playing never is
 // (docs/games/loading-and-pausing.md).
+// Sound goes through the runtime's one output (docs/games/sound.md): the
+// page owns volume, mute and the first gesture, the game is lowered while
+// someone in the room talks, and it is silent while the session is
+// suspended (so a match another person is playing keeps its sound).
 // Standalone (vite dev) it plays on localStorage; `?arrive` and `?party=4`
 // stand in for a lobby trip.
 
@@ -63,7 +67,7 @@ pageRoom.link = link;
 const page = connectPage({
     arrival: manifest.arrival,
     party: manifest.party,
-    storageKeys: ["settings", "muted"],
+    storageKeys: ["settings"],
     storageMax: 64 * 1024,
     storageNamespace: "ace",
     identityTimeoutMs: 1500,
@@ -77,6 +81,13 @@ debugHooks.inspect = hud.inspect;
 // avatars), with who is talking from the page's voice (docs/games/voice-chat.md).
 // The game tells the room where the visitor stands.
 const voice = connectVoice(GAME_MESSAGE_PREFIX.slice(0, -1));
+// The game's one sound output, created before hello: the page answers it
+// with the visitor's volume and mute. The same voice lowers the game while
+// someone else in the room is talking.
+const sound = connectGameAudio();
+voice.onTalking((ids, self) =>
+    sound.setTalking(ids.length > (self ? 1 : 0))
+);
 const vouched = new Set();
 page.on("peers", (players) => {
     for (const p of players)
@@ -233,6 +244,8 @@ async function start() {
         services: { identity, asset: () => Promise.reject(new Error("NO_ASSETS")), call, avatar },
         sendUI() {},
         onProgress: (value, label) => loading.progress(value, label),
+        // Silenced on suspend, back on restore, its facts in inspect().
+        audio: sound,
         now: () => performance.now(),
     });
     // The host owns the clock. It stops while a check plays its scenario
@@ -264,7 +277,6 @@ async function start() {
         game: "ace",
         prefix: GAME_MESSAGE_PREFIX,
         input: manifest.runtime.input,
-        muted: (muted) => pageSound.muted?.(muted),
         // A match against the CPU stands still while the visitor types;
         // the menus and the club go on without input.
         paused: () => pageFrame.soloMatch?.() && pausing.hold("input"),

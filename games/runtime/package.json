@@ -25,7 +25,9 @@
     "./device-controls": "./src/deviceControls.ts",
     "./device-check": "./src/deviceCheck.ts",
     "./loading": "./src/loading.ts",
-    "./pausing": "./src/pausing.ts"
+    "./pausing": "./src/pausing.ts",
+    "./audio": "./src/audio.ts",
+    "./audio-browser": "./src/audio-browser.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

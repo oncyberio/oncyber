@@ -4,7 +4,8 @@
  * values per game in its own localStorage and hands them over with the
  * visitor's identity.
  */
-export const GAME_STORAGE_KEYS = ["save", "settings", "muted"] as const;
+// Sound is not here: mute and volume are the page's own setting (gameAudio.ts).
+export const GAME_STORAGE_KEYS = ["save", "settings"] as const;
 export type GameStorageKey = (typeof GAME_STORAGE_KEYS)[number];
 export const GAME_STORAGE_MAX = 256 * 1024;
 

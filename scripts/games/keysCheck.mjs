@@ -158,7 +158,13 @@ const host = (window.__host = createGameInputHost({
         if (intent === "menu") {
             keys.menu = !keys.menu;
             if (keys.menu) host.hold("menu"); else host.release("menu");
-        } else if (intent === "mute") host.setMuted(!host.muted);
+        } else if (intent === "mute") {
+            // As the page does (GameInputLayer, GameSound): the sound
+            // channel carries the setting (docs/games/sound.md); the muted
+            // message is what a build from before it hears.
+            host.setMuted(!host.muted);
+            send({ type: game + ":audio", muted: host.muted });
+        }
         else if (!keys.menu) focusGameChat(document);
     },
 }));

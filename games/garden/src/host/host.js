@@ -7,7 +7,7 @@
 const PREFIX = "garden:";
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
 // Values the page keeps for this game, by key. Small strings only.
-const STORAGE_KEYS = new Set(["save", "muted"]);
+const STORAGE_KEYS = new Set(["save"]);
 const STORAGE_MAX = 256 * 1024;
 
 export function createHost() {

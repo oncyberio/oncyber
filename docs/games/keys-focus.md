@@ -49,7 +49,6 @@ Backspace to go back, P for a pause of your own.
         action(name, value) {}, // a declared action went down (1) or up (0)
         paused(reason) {}, // "typing", "menu", ...: stop taking input
         resumed() {},
-        muted(muted) {}, // the page's sound switch: obey it
         probe: () => ({ position: [x, y, z] }), // facts for the check
     });
     ```
@@ -84,8 +83,8 @@ Backspace to go back, P for a pause of your own.
     or a helper that does the same, anywhere in the game's source.
 -   `element.requestPointerLock()` or `navigator.keyboard.lock()`.
 -   A sound key, a menu on Escape, or anything on Enter. Keep a sound
-    _button_ if you like: save `muted` through the page's storage and the
-    page's switch follows it.
+    _button_ if you like: it asks the page through the game's sound output
+    (`audio.requestMuted`, [sound.md](sound.md)).
 -   A text field that needs a key listener. `change` fires when the visitor
     presses Enter in a field.
 
@@ -103,8 +102,8 @@ Backspace to go back, P for a pause of your own.
     the element marked `data-game-chat`. In a text
     field the keys are text, except Escape, which leaves the field and
     gives the game its focus back.
--   Keeps the sound switch in the page's saved values (`muted`) and tells
-    the game.
+-   M changes the page's one sound setting (`gameAudio.ts`); the game hears
+    it on the sound channel ([sound.md](sound.md)).
 
 Messages, after the prefix (`oncyber:game:` for a game on the one contract,
 `<id>:` for an older build; the page answers in the form the game greeted
@@ -114,7 +113,7 @@ in, see [contract.md](contract.md)):
 | ---- | ------------- | --------------------------------------------------------------- |
 | game | `key`         | `{ code }`: a reserved key was pressed while the game had focus |
 | page | `input`       | `{ paused, reason }`: stop or resume all input                  |
-| page | `muted`       | `{ muted }`                                                     |
+| page | `muted`       | `{ muted }`: only for a build from before [sound.md](sound.md)  |
 | page | `input-probe` | Checks only: asks for `input-state`                             |
 | game | `input-state` | `{ paused, reason, held, delivered, locked, probe }`            |
 

@@ -56,7 +56,7 @@ iframe{border:0;width:100%;height:100%;display:block}
         position: "absolute",
         ...controlsStyle,
     })};display:flex;align-items:center;gap:8px;padding:6px;border-radius:999px;background:rgba(10,12,18,0.72);font:600 13px/1 Inter,system-ui,sans-serif;white-space:nowrap">
-<span style="padding:0 10px;opacity:0.85">8 in your party</span><button style="${pill}">Mic off</button><button style="${pill}">Lobby</button>
+<span style="padding:0 10px;opacity:0.85">8 in your party</span><button style="${pill}">Mic off</button><button style="${pill}">Sound on</button><button style="${pill}">Lobby</button>
 </div>
 <div id="party-chat" data-game-overlay="party-chat"><button>Your parties</button></div>
 </main>

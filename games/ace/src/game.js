@@ -71,11 +71,6 @@ const $ = (s) => document.querySelector(s);
 /** For playtests: the live game, set while one exists. */
 export const debugHooks = {};
 /**
- * For the host: `muted(muted)` while a game exists. The page's sound switch
- * arrives through the host's keys binder (docs/games/keys-focus.md).
- */
-export const pageSound = {};
-/**
  * The party's room, between the host and the game while a game exists
  * (docs/games/avatar-kit.md). The game sets `peers(players)` (the page's
  * `peers` list: poses, names, avatars, who is talking) and `entered()` (the
@@ -105,7 +100,7 @@ export default function createGame(context) {
     const on = (target, type, listener, options) =>
         target.addEventListener(type, listener, { ...options, signal });
     // Saved values and options from the host, read once in prepare().
-    const saved = { settings: null, muted: null };
+    const saved = { settings: null };
     const config = {
         difficulty: null,
         games: null,
@@ -229,10 +224,13 @@ export default function createGame(context) {
         }
         applySettings({ difficulty: config.difficulty });
         applySettings({ games: config.games });
-        audio.muted = saved.muted === "1";
     }
 
-    const audio = sound.createAudio();
+    // Sound goes through the runtime's output (docs/games/sound.md): the
+    // page owns volume, mute and the first gesture; the session silences it
+    // on suspend.
+    const output = context.audio;
+    const audio = sound.createAudio(output);
 
     // --------------------------------------------------------------- scene
 
@@ -1063,22 +1061,21 @@ export default function createGame(context) {
         sound.sfxUI(audio, "ok");
     }
 
+    // The Sound buttons ask the page; its answer updates the labels.
     function toggleSound() {
-        sound.unlockAudio(audio);
-        sound.setMuted(audio, !audio.muted);
-        save("muted", audio.muted ? "1" : "0");
-        refreshSoundLabels();
+        output.requestMuted(!output.muted);
         sound.sfxUI(audio, "ok");
     }
     function refreshSoundLabels() {
-        $("#sound-label").textContent = audio.muted ? "Off" : "On";
+        $("#sound-label").textContent = output.muted ? "Off" : "On";
         for (const el of document.querySelectorAll(".sound-label"))
-            el.textContent = audio.muted ? "Off" : "On";
+            el.textContent = output.muted ? "Off" : "On";
     }
+    const stopSoundLabels = output.onChange(refreshSoundLabels);
     refreshSoundLabels();
 
     function action(name) {
-        sound.unlockAudio(audio);
+        void output.unlock();
         switch (name) {
             case "play":
                 sound.sfxUI(audio, "ok");
@@ -1148,13 +1145,13 @@ export default function createGame(context) {
         if (b) action(b.dataset.action);
         const format = e.target.closest("#party-formats [data-format]");
         if (format) {
-            sound.unlockAudio(audio);
+            void output.unlock();
             sound.sfxUI(audio, "ok");
             choosePartyFormat(format.dataset.format);
         }
         const choice = e.target.closest(".choice button");
         if (choice) {
-            sound.unlockAudio(audio);
+            void output.unlock();
             sound.sfxUI(audio, "move");
             if (choice.parentElement.id === "opt-difficulty")
                 settings.difficulty = choice.dataset.value;
@@ -1163,19 +1160,10 @@ export default function createGame(context) {
         }
     });
     on($("#pause-btn"), "click", () => {
-        sound.unlockAudio(audio);
+        void output.unlock();
         pauseGame();
     });
     on($("#lobby"), "click", leave);
-    // First interaction anywhere unlocks audio (browsers require a gesture).
-    const unlock = () => {
-        sound.unlockAudio(audio);
-        if (state.screen === "title" || state.screen === "results")
-            sound.startMusic(audio, "title");
-    };
-    // The first click or tap; the first key does too, when its action
-    // arrives (handleMenuInput).
-    on(window, "pointerdown", unlock, { once: true });
 
     function menuNav(name, dir) {
         if (dir === "up" || dir === "left")
@@ -1191,7 +1179,7 @@ export default function createGame(context) {
     function handleMenuInput(events) {
         for (const e of events) {
             if (e.type === "confirm" || e.type === "shot" || e.type === "nav")
-                sound.unlockAudio(audio);
+                void output.unlock();
             const s = state.screen;
             if (s === "title" || s === "pause" || s === "results") {
                 if (e.type === "nav") menuNav(s, e.dir);
@@ -2148,7 +2136,6 @@ export default function createGame(context) {
         Object.assign(config, (await call("config", null)) || {});
         saved.settings =
             (await call("get", { key: "settings" }))?.value ?? null;
-        saved.muted = (await call("get", { key: "muted" }))?.value ?? null;
         loadSettings();
         refreshSoundLabels();
         // The party check runs two copies side by side on a software
@@ -2253,12 +2240,11 @@ export default function createGame(context) {
         if (document.hidden) duel.hidden(true);
         if (document.hidden && !config.autoplay) pauseGame();
         sound.chargeStop(audio);
-        audio.ctx?.suspend?.();
         const m = state.engine?.match;
         return {
             screen: state.screen,
             settings: { ...settings },
-            muted: !!audio.muted,
+            muted: output.muted,
             score:
                 m && !state.attract
                     ? { games: [...m.games], points: [...m.points] }
@@ -2270,11 +2256,11 @@ export default function createGame(context) {
     // settings and starts from where the visitor would be standing.
     function restore(snapshot) {
         applySettings(snapshot?.settings);
-        audio.ctx?.resume?.();
         duel.hidden(false);
     }
 
     function dispose() {
+        stopSoundLabels();
         sound.stopAudio(audio);
         timers.length = 0;
         clearTimeout(calloutTimer);
@@ -2285,7 +2271,6 @@ export default function createGame(context) {
         avatarKtx?.dispose();
         renderer.dispose();
         delete debugHooks.game;
-        delete pageSound.muted;
         delete pageRoom.peers;
         delete pageRoom.entered;
         delete pageDeparture.stage;
@@ -2302,12 +2287,6 @@ export default function createGame(context) {
         state.inputPaused = paused;
         if (paused) sound.chargeStop(audio);
     }
-    // The page's sound switch: obey it. The game's own sound button saves
-    // `muted` through the page, so the two stay in step.
-    pageSound.muted = (muted) => {
-        sound.setMuted(audio, muted);
-        refreshSoundLabels();
-    };
 
     /** Facts the checks assert on (scenario.json). */
     function inspect() {
@@ -2346,7 +2325,7 @@ export default function createGame(context) {
             rally: state.rally,
             // For the results check: `results.inspect()` as the game sees it.
             ...matchResults.inspect(),
-            muted: !!audio.muted,
+            muted: output.muted,
             // For the keys check: the visitor's player, and the freeze.
             position: e?.athletes[0]
                 ? [e.athletes[0].x, 0, e.athletes[0].z]

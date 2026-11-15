@@ -8,8 +8,8 @@
         />
         <meta name="theme-color" content="#2f7bff" />
         <title>ACE! Tennis — Oncyber</title>
-      <script type="module" crossorigin src="./assets/index-DZ5CQ6yn.js"></script>
-      <link rel="stylesheet" crossorigin href="./assets/index-COds5g6U.css">
+      <script type="module" crossorigin src="./assets/index-B1Zu6b5W.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-CS7X-iGW.css">
     </head>
     <body>
         <canvas
@@ -89,48 +89,76 @@
                 <span class="key">Space</span> jump · drag to look
             </p>
         </div>
+        <!-- Menus that are about Oncyber, not the court, use the UI kit
+             (games/kits/ui): who you came with, and the match setup. -->
         <div id="party" class="screen">
-            <div class="card" data-hud="party-card">
-                <h2 id="party-title">Your party</h2>
-                <p class="party-names" id="party-names"></p>
-                <div class="party-formats" id="party-formats"></div>
-                <div class="party-lineup" id="party-lineup" hidden></div>
-                <p class="party-note" id="party-note" hidden></p>
-                <div class="row">
-                    <button class="pill ghost" data-action="back">Back</button>
+            <div class="oui oui-panel ace-sheet" data-hud="party-card">
+                <div class="oui-stack oui-stack--tight">
+                    <h2 class="oui-title" id="party-title">Your party</h2>
+                    <p class="oui-text" id="party-names"></p>
+                </div>
+                <div
+                    class="oui-list"
+                    id="party-formats"
+                    role="group"
+                    aria-label="Format"
+                ></div>
+                <div class="oui-stack oui-stack--tight" id="party-lineup" hidden></div>
+                <p
+                    class="oui-text oui-text--small"
+                    id="party-note"
+                    hidden
+                ></p>
+                <div class="oui-actions">
+                    <button class="oui-button" data-action="back">Back</button>
                 </div>
             </div>
         </div>
         <div id="setup" class="screen">
-            <div class="card" data-hud="setup-card">
-                <h2>Match setup</h2>
-                <div class="field">
-                    <span class="label">Opponent</span>
-                    <div class="choice" id="opt-difficulty">
+            <div class="oui oui-panel ace-sheet" data-hud="setup-card">
+                <h2 class="oui-title">Match setup</h2>
+                <div class="oui-stack oui-stack--tight field">
+                    <span class="oui-label" id="label-difficulty">Opponent</span>
+                    <div
+                        class="oui-segmented choice"
+                        id="opt-difficulty"
+                        role="group"
+                        aria-labelledby="label-difficulty"
+                    >
                         <button data-value="rookie">Rookie</button>
                         <button data-value="pro">Pro</button>
                         <button data-value="ace">Ace</button>
                     </div>
                 </div>
-                <div class="field">
-                    <span class="label">Length</span>
-                    <div class="choice" id="opt-games">
+                <div class="oui-stack oui-stack--tight field">
+                    <span class="oui-label" id="label-games">Length</span>
+                    <div
+                        class="oui-segmented choice"
+                        id="opt-games"
+                        role="group"
+                        aria-labelledby="label-games"
+                    >
                         <button data-value="1">1 game</button>
                         <button data-value="2">Best of 3</button>
                         <button data-value="3">Best of 5</button>
                     </div>
                 </div>
-                <div class="foe" id="foe-card">
+                <div class="oui-list__item" id="foe-card">
                     <div class="foe-face" id="foe-face"></div>
-                    <div>
-                        <b id="foe-name">Marta</b
-                        ><span id="foe-blurb">Steady from the baseline.</span>
-                    </div>
+                    <span class="oui-list__body">
+                        <span id="foe-name">Marta</span>
+                        <span class="oui-list__meta" id="foe-blurb"
+                            >Steady from the baseline.</span
+                        >
+                    </span>
                 </div>
-                <div class="row">
-                    <button class="pill ghost" data-action="back">Back</button>
-                    <button class="pill big go" data-action="start">
-                        Let's play!
+                <div class="oui-actions">
+                    <button class="oui-button" data-action="back">Back</button>
+                    <button
+                        class="oui-button oui-button--white go"
+                        data-action="start"
+                    >
+                        Let's play
                     </button>
                 </div>
             </div>
@@ -305,7 +333,7 @@
                 <h2 id="result-title">You win!</h2>
                 <p class="result-score" id="result-score">2 – 1</p>
                 <div class="stats" id="stats"></div>
-                <p class="party-note" id="result-note"></p>
+                <p class="result-note" id="result-note"></p>
                 <nav class="menu row" id="results-menu">
                     <button class="pill big go" data-action="rematch">
                         Rematch

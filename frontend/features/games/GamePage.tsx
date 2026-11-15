@@ -47,6 +47,7 @@ import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 import { useGameResults } from "./useGameResults";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
 import { useGamePause } from "./gamePause";
+import { GameSoundButton, useGameAudio } from "./GameSound";
 
 const PEER_INTERVAL = 100;
 
@@ -189,6 +190,14 @@ export default function GamePage({ game }: { game: GameEntry }) {
         fromGame,
         selfName: identity?.name,
         room,
+    });
+    // Sound (docs/games/sound.md): the page's one setting, the first
+    // gesture, and the game lowered while someone else in the room talks.
+    useGameAudio({
+        game: GAME,
+        fromGame,
+        send: (message) => send.current(message),
+        speaking: !!social.state?.talking?.some((id) => id !== room?.sessionId),
     });
     // Enter is the page's key for chat (docs/games/keys-focus.md).
     const [chatRequest, setChatRequest] = useState(0);
@@ -545,7 +554,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 title={title}
                 sandbox={GAME_SANDBOX}
                 referrerPolicy="no-referrer"
-                allow="gamepad"
+                allow="gamepad; autoplay"
                 style={{
                     width: "100%",
                     height: "100%",
@@ -610,6 +619,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                             ? "Mic on"
                             : "Mic off"}
                     </button>
+                    <GameSoundButton onDone={() => frame.current?.focus()} />
                     <button
                         type="button"
                         onClick={() => leave.current()}

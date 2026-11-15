@@ -96,6 +96,8 @@ export interface GameContext {
     ui: { publish(value: Json): void };
     /** Call during prepare(): 0..1 and a short label the page shows while it waits. See loading.ts. */
     loading: { progress(value: number, label?: string): void };
+    /** The game's sound output (audio.ts), when the host has one. */
+    audio?: RuntimeOptions["audio"];
 }
 export interface PortableGame {
     prepare(): Promise<void>;
@@ -122,6 +124,8 @@ export interface RuntimeOptions {
     sendUI(value: Json): void;
     /** Where `context.loading.progress` goes; the browser host posts it to the page. */
     onProgress?(value: number, label?: string): void;
+    /** Sound output (audio.ts): silenced on suspend, back on restore, its facts in inspect(). */
+    audio?: { suspend(): void; restore(): void; inspect(): object };
     now?: () => number;
     timeoutMs?: number;
 }
@@ -215,7 +219,7 @@ export class RuntimeSession {
                 return options.services.call(capability, operation, compactJSON(value), signal).then(v => compactJSON(v));
             },
         };
-        this.game = factory({ graphics: options.graphics, services, signal: this.lifetime.signal,
+        this.game = factory({ graphics: options.graphics, services, audio: options.audio, signal: this.lifetime.signal,
             ui: { publish: value => { this.assertLive(); this.pendingUI = compactJSON(value); } },
             loading: { progress: (value, label) => { if (this.phase === "preparing") options.onProgress?.(value, label); } },
             // Getters make the action state read-only to game code.
@@ -270,13 +274,13 @@ export class RuntimeSession {
     }
     suspend() { return this.serial(async () => {
         if (this.phase !== "entered") throw new Error("RUNTIME_PHASE");
-        this.phase = "suspended"; this.clearInput();
+        this.phase = "suspended"; this.clearInput(); this.options.audio?.suspend();
         this.saved = compactJSON(await this.bounded(() => this.game.suspend()), 65536);
     }); }
     restore() { return this.serial(async () => {
         if (this.phase !== "suspended") throw new Error("RUNTIME_PHASE");
         await this.bounded(() => this.game.restore(compactJSON(this.saved, 65536)));
-        this.phase = "entered";
+        this.phase = "entered"; this.options.audio?.restore();
     }); }
     action(action: string, value = 1) {
         this.assertLive();
@@ -307,7 +311,7 @@ export class RuntimeSession {
     }
     inspect() {
         const { arrival, trip } = this.visit;
-        return compactJSON({ ...this.game.inspect(), hostPhase: this.phase, hostFrames: this.frames,
+        return compactJSON({ ...this.game.inspect(), ...this.options.audio?.inspect(), hostPhase: this.phase, hostFrames: this.frames,
             // What enter() was handed: "" when the game's host passed no arrival.
             hostArrival: arrival, hostParty: trip?.size ?? 0, hostPartyArrived: trip ? trip.arrived.length + 1 : 0,
             hostInputPaused: this.inputPaused });

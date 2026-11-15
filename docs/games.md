@@ -73,7 +73,7 @@ still answered in that form ([games/contract.md](games/contract.md)):
 | game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                   |
 | page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                    |
 | game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                            |
-| game        | `storage`                  | `{ key, value }`: save one value (`save`, `settings` or `muted`, strings up to 256 KiB).                                                                                           |
+| game        | `storage`                  | `{ key, value }`: save one value (`save` or `settings`, strings up to 256 KiB).                                                                                                    |
 | game        | `pose`                     | The player's pose for the shared room.                                                                                                                                             |
 | page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                     |
 | page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                  |
@@ -100,6 +100,10 @@ Loading and pausing add `progress`, `first-frame`, `frame`, `pause` and
 first-frame signal, redraw on resize, solo games pause and multiplayer
 matches don't) and one pause for a hidden tab, a page menu and the page's
 input pause: [games/loading-and-pausing.md](games/loading-and-pausing.md).
+
+Sound has its own messages (`audio`, `audio-state`) and one rule: route all
+sound through the SDK's output; never keep a private mute. See
+[games/sound.md](games/sound.md).
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -292,6 +296,9 @@ check and send exactly one.
 
 Menu screens that use none of the UI kit's classes are listed as a warning
 (`UI_KIT_UNUSED`), which doesn't block either.
+
+A `sound` stage follows ([games/sound.md](games/sound.md)): boot-only games
+that use the SDK's sound output get it too.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

@@ -2,11 +2,11 @@
   "version": 1,
   "game": "garden",
   "name": "Bloom Garden",
-  "release": "48f98c5797cb592c",
-  "publishedAt": "2026-11-15T16:00:40.777Z",
+  "release": "6c3331e6635b7501",
+  "publishedAt": "2026-11-15T16:16:58.104Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T16:00:40.776Z",
+    "checkedAt": "2026-11-15T16:16:58.103Z",
     "backend": "webgpu",
     "frames": {
       "count": 180,
@@ -17,14 +17,14 @@
   },
   "files": [
     {
-      "path": "assets/index-BS5Z2TCW.js",
-      "bytes": 1029371,
-      "sha256": "f0af4e4577b71d5864663fb84222ef40eeb73dbc5aebda566ef3966c514636d0"
+      "path": "assets/index-DE0TtWWP.js",
+      "bytes": 1033198,
+      "sha256": "6919328d49ffd77f6d5256616013b5fd8be7ff714c0ebf548f15bd5fc5e7879d"
     },
     {
       "path": "index.html",
       "bytes": 1200,
-      "sha256": "14cfa46227de09842ecaf2be5c68f685777cb079164234c69ddea15137672cfa"
+      "sha256": "55d721a72e3a68cae37dc9cec8504017fdaf0b17fdcf33e464e032daffd66724"
     },
     {
       "path": "motion.json",

@@ -2,10 +2,8 @@
    frontend/styles/tokens/ and src/elements.css. Do not edit; change the
    tokens or the template and run `pnpm games:ui`. */
 :root {
-    --oui-font: "Oncyber Sans", "Aeonik", "SpaceGrotesk",
-        "SpaceGrotesk Fallback", "Helvetica Neue", Arial, sans-serif;
-    --oui-font-mono: "Oncyber Mono", "SpaceMono Fallback", "SFMono-Regular",
-        monospace;
+    --oui-font: "Oncyber Sans", "Aeonik", "SpaceGrotesk", "SpaceGrotesk Fallback", "Helvetica Neue", Arial, sans-serif;
+    --oui-font-mono: "Oncyber Mono", "SpaceMono Fallback", "SFMono-Regular", monospace;
     --oui-text-micro: 10px;
     --oui-text-xs: 11px;
     --oui-text-sm: 12px;
@@ -29,13 +27,7 @@
     --oui-line-selected: #ffffff99;
     --oui-glass-fallback: #16191f;
     --oui-glass-tint: rgba(10, 13, 18, 0.66);
-    --oui-glass-sheen: linear-gradient(
-        135deg,
-        #ffffff0e,
-        #ffffff02 38%,
-        transparent 62%,
-        #bddbff08
-    );
+    --oui-glass-sheen: linear-gradient(135deg, #ffffff0e, #ffffff02 38%, transparent 62%, #bddbff08);
     --oui-glass-blur: 4px;
     --oui-glass-shadow: 0 6px 18px #00000030;
     --oui-notice: #15181eed;
@@ -73,12 +65,7 @@
     --oui-outline-hover-border: #fff;
     --oui-outline-pressed-fill: #ffffff24;
     --oui-blue-ink: #fff;
-    --oui-blue-fill: linear-gradient(
-        180deg,
-        #3975ff 0%,
-        #2567ff 52%,
-        #1854e8 100%
-    );
+    --oui-blue-fill: linear-gradient(180deg, #3975ff 0%, #2567ff 52%, #1854e8 100%);
     --oui-blue-shadow: inset 0 1px 0 #ffffff33, 0 2px 8px #2567ff26;
     --oui-disabled-opacity: 0.45;
     --oui-touch-target: 44px;
