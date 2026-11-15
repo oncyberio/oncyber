@@ -29,8 +29,8 @@ import {
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
 import {
-    bothForms,
     enterMessage,
+    gameMessageTypes,
     gameTrip,
     readGameDeclaration,
     readGameMessage,
@@ -112,17 +112,19 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const [roomState, setRoomState] = useState<GameRoomState | null>(null);
     // The frame's origin is opaque, so no target origin can name it; the
     // message goes to this frame's window only, and carries public fields.
-    // Every message goes out in both forms (`oncyber:game:<kind>` and
-    // `<id>:<kind>`): a game may mix the contract client with helpers that
-    // still speak its own id, and each ignores the form it doesn't speak.
+    // The form the game greeted with; until then both forms go out.
+    const dialect = useRef<GameDialect | null>(null);
+    // The one way out to the game. A message typed `<id>:<kind>` (how the
+    // page's helpers name kinds) goes out in the form the game speaks, so a
+    // contract game only ever hears `oncyber:game:<kind>`.
     const send = useRef((message: object) => {
         const target = frame.current?.contentWindow;
         if (!target) return;
-        for (const form of bothForms(GAME, message as { type?: unknown }))
-            target.postMessage(form, "*");
+        const kind = readGameMessage((message as any)?.type, GAME)?.kind;
+        if (!kind) return target.postMessage(message, "*");
+        for (const type of gameMessageTypes(GAME, kind, dialect.current))
+            target.postMessage({ ...message, type }, "*");
     });
-    // The form the game greeted with.
-    const dialect = useRef<GameDialect | null>(null);
     const postGame = useRef((kind: string, data: object = {}) =>
         send.current({ type: `${GAME}:${kind}`, ...data })
     );

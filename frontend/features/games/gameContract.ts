@@ -55,23 +55,6 @@ export function gameMessageTypes(
         : [contract, legacy];
 }
 
-/**
- * A message for the game in both forms. A game hears only the prefix it
- * speaks and ignores the other, so the page never has to know which helper
- * inside a game uses which.
- */
-export function bothForms<T extends { type?: unknown }>(
-    gameId: string,
-    message: T
-): T[] {
-    const kind = readGameMessage(message?.type, gameId)?.kind;
-    if (!kind) return [message];
-    return [
-        { ...message, type: GAME_MESSAGE_PREFIX + kind },
-        { ...message, type: `${gameId}:${kind}` },
-    ];
-}
-
 /** What a contract game says about itself in `hello` (from its game.json). */
 export interface GameDeclaration {
     contract: number;
