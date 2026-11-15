@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T17:13:47.915Z",
+  "checkedAt": "2026-11-15T18:03:32.548Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
-    "count": 5,
-    "bytes": 1386695,
+    "count": 6,
+    "bytes": 1390235,
     "largest": {
-      "path": "assets/index-fN2eY5AK.js",
-      "bytes": 1039901
+      "path": "assets/index-gr7fYcGP.js",
+      "bytes": 1042897
     }
   },
   "avatars": {
@@ -22,7 +22,7 @@
         "why": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
       }
     ],
-    "ms": 35376,
+    "ms": 34288,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -68,7 +68,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 24,
+        "hostFrames": 23,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -79,9 +79,9 @@
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1791,
+    "firstFrameMs": 1756,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 1757,
+    "gameFirstFrameMs": 1721,
     "progress": {
       "messages": 4,
       "labels": [
@@ -104,7 +104,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 5712,
+    "ms": 5900,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -122,7 +122,8 @@
         "saved",
         "pose",
         "first-frame",
-        "ready"
+        "ready",
+        "health"
       ]
     }
   },
@@ -452,8 +453,8 @@
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:46837/games/garden/assets/index-fN2eY5AK.js:21:18313)",
-    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+    "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
   ],
   "contract": {
     "listed": true,
@@ -514,30 +515,30 @@
           "buttons": []
         },
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:46837/games/garden/assets/index-fN2eY5AK.js:21:18313)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "failed",
           "backend": "webgpu",
-          "bootMs": 1408,
+          "bootMs": 1636,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1408
+              "ms": 1636
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 521,
+              "ms": 536,
               "error": "NO_TOUCH_CONTROL:forward"
             },
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 3010
+              "ms": 3011
             }
           ],
           "frames": {
@@ -605,24 +606,24 @@
         "scope": "scenario",
         "findings": [],
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:46837/games/garden/assets/index-fN2eY5AK.js:21:18313)",
-          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
         ],
         "run": {
           "version": 1,
           "status": "passed",
           "backend": "webgpu",
-          "bootMs": 1734,
+          "bootMs": 1584,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1734
+              "ms": 1584
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 1022
+              "ms": 1012
             },
             {
               "stage": "lifecycle",
@@ -638,7 +639,7 @@
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.8,
+            "p95Ms": 16.7,
             "worstMs": 16.8
           },
           "inspect": {
@@ -697,25 +698,25 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 9183,
+    "ms": 9377,
     "keys": 1,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 1987,
+        "ms": 1859,
         "requests": 4
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 1826,
+        "ms": 1801,
         "requests": 3
       },
       {
         "run": "old saves (1 of 1)",
         "booted": true,
-        "ms": 1732,
+        "ms": 1874,
         "outcomes": {
           "save": "migrated"
         },
@@ -724,7 +725,7 @@
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 1724,
+        "ms": 1896,
         "outcomes": {
           "save": "reset"
         },
@@ -733,7 +734,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 1733,
+        "ms": 1764,
         "outcomes": {
           "save": "reset"
         },
@@ -741,21 +742,44 @@
       }
     ]
   },
+  "listing": {
+    "thumbnail": "preview.jpg",
+    "thumbnailTaken": false,
+    "players": {
+      "min": 1,
+      "max": 32
+    },
+    "partySizes": [],
+    "devices": [
+      "desktop",
+      "gamepad"
+    ],
+    "tags": [
+      "pets",
+      "social",
+      "cozy"
+    ]
+  },
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1629,
+    "bootMs": 1609,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1629
+        "ms": 1609
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 904
+        "ms": 925
       },
       {
         "stage": "lifecycle",
@@ -770,7 +794,7 @@
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 1599,
+        "ms": 1499,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -779,9 +803,9 @@
           "audioVolume": 1,
           "audioDucked": false,
           "audioSuspended": false,
-          "audioGain": 0.96,
-          "audioInput": 0.0422,
-          "audioLevel": 0.0403
+          "audioGain": 0.961,
+          "audioInput": 0.0517,
+          "audioLevel": 0.0497
         }
       },
       {
@@ -793,7 +817,7 @@
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.8,
+      "p95Ms": 16.7,
       "worstMs": 16.8
     },
     "inspect": {
@@ -925,7 +949,7 @@
     "video": null,
     "log": [
       {
-        "at": 1.6,
+        "at": 2,
         "event": "revealed",
         "answered": true,
         "screen": "arrival",
@@ -940,17 +964,17 @@
         }
       },
       {
-        "at": 3.7,
+        "at": 4.1,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 4,
+        "at": 4.4,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 5,
+        "at": 5.4,
         "event": "facts",
         "facts": {
           "booted": true,
@@ -977,11 +1001,11 @@
           "avatarEmote": "",
           "offers": 0,
           "playerX": -0.1,
-          "playerZ": 11.4,
+          "playerZ": 11.5,
           "screen": "arrival",
           "position": [
             -0.1,
-            11.44
+            11.53
           ],
           "arrival": {
             "distance": 4.8,
@@ -1000,16 +1024,24 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 1,
-          "audioInput": 0.0424,
-          "audioLevel": 0.0424,
+          "audioInput": 0.0475,
+          "audioLevel": 0.0475,
           "hostPhase": "entered",
-          "hostFrames": 211,
+          "hostFrames": 212,
           "hostArrival": "",
           "hostParty": 0,
           "hostPartyArrived": 0,
           "hostInputPaused": false
         }
       }
+    ]
+  },
+  "network": {
+    "hosts": [
+      "cyber.mypinata.cloud"
+    ],
+    "requested": [
+      "cyber.mypinata.cloud"
     ]
   }
 }

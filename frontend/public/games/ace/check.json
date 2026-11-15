@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T17:28:58.564Z",
+  "checkedAt": "2026-11-15T18:19:19.367Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
-    "count": 11,
-    "bytes": 2440487,
+    "count": 12,
+    "bytes": 2443568,
     "largest": {
-      "path": "assets/index-wRLTZKfW.js",
-      "bytes": 1065072
+      "path": "assets/index-DEde1qxS.js",
+      "bytes": 1068066
     }
   },
   "avatars": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 17560,
+    "ms": 20482,
     "facts": {
       "arrival": {
         "booted": true,
@@ -135,7 +135,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 18,
+        "hostFrames": 21,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -196,7 +196,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 22,
+        "hostFrames": 26,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -207,9 +207,9 @@
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1290,
+    "firstFrameMs": 1539,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 437,
+    "gameFirstFrameMs": 463,
     "progress": {
       "messages": 3,
       "labels": [
@@ -251,7 +251,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 16201,
+    "ms": 17370,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -781,7 +781,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 64749,
+    "ms": 68318,
     "options": {
       "1": [
         "solo"
@@ -808,8 +808,8 @@
       {
         "dropped": "guest",
         "packetsPerSecond": {
-          "a": 4.3,
-          "b": 3.4
+          "a": 4.8,
+          "b": 3.7
         },
         "largestPacket": 206,
         "refused": 0,
@@ -824,8 +824,8 @@
       {
         "dropped": "host",
         "packetsPerSecond": {
-          "a": 4.1,
-          "b": 3.3
+          "a": 4.2,
+          "b": 3.4
         },
         "largestPacket": 206,
         "refused": 0,
@@ -881,9 +881,9 @@
   },
   "results": [
     {
-      "match": "e03e8e91979b11412ebb0f0d",
+      "match": "02f1e96c94d4cd9fa8126999",
       "format": "solo",
-      "durationSeconds": 57.4,
+      "durationSeconds": 65.5,
       "teams": [
         {
           "score": 1,
@@ -971,17 +971,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2841,
+          "bootMs": 2592,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2841
+              "ms": 2592
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 131948
+              "ms": 134883
             },
             {
               "stage": "lifecycle",
@@ -991,14 +991,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 60694
+              "ms": 64084
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 333.3,
-            "p95Ms": 383.3,
-            "worstMs": 400
+            "medianMs": 350,
+            "p95Ms": 400,
+            "worstMs": 516.6
           },
           "inspect": {
             "booted": true,
@@ -1067,17 +1067,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2467,
+          "bootMs": 2826,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2467
+              "ms": 2826
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 135611
+              "ms": 129045
             },
             {
               "stage": "lifecycle",
@@ -1087,14 +1087,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 62795
+              "ms": 61495
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 350,
-            "p95Ms": 383.4,
-            "worstMs": 400
+            "medianMs": 333.4,
+            "p95Ms": 399.9,
+            "worstMs": 433.4
           },
           "inspect": {
             "booted": true,
@@ -1140,8 +1140,8 @@
             "audioDucked": false,
             "audioSuspended": false,
             "audioGain": 1,
-            "audioInput": 0.0098,
-            "audioLevel": 0.0098,
+            "audioInput": 0.0095,
+            "audioLevel": 0.0095,
             "hostPhase": "entered",
             "hostFrames": 560,
             "hostArrival": "lobby",
@@ -1156,25 +1156,25 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 21652,
+    "ms": 21738,
     "keys": 3,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 1735,
+        "ms": 2118,
         "requests": 10
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 1967,
+        "ms": 2003,
         "requests": 5
       },
       {
         "run": "old saves (1 of 1)",
         "booted": true,
-        "ms": 2140,
+        "ms": 2171,
         "outcomes": {
           "settings": "migrated",
           "tally": "empty"
@@ -1184,7 +1184,7 @@
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 2296,
+        "ms": 2008,
         "outcomes": {
           "settings": "reset",
           "tally": "reset",
@@ -1195,7 +1195,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 2152,
+        "ms": 2032,
         "outcomes": {
           "settings": "reset",
           "tally": "reset",
@@ -1205,21 +1205,53 @@
       }
     ]
   },
+  "listing": {
+    "thumbnail": "thumbnail.jpg",
+    "thumbnailTaken": true,
+    "players": {
+      "min": 1,
+      "max": 8
+    },
+    "partySizes": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "devices": [
+      "desktop",
+      "phone",
+      "gamepad"
+    ],
+    "tags": [
+      "sports",
+      "arcade",
+      "party"
+    ]
+  },
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 2201,
+    "bootMs": 2568,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 2201
+        "ms": 2568
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 134445
+        "ms": 139995
       },
       {
         "stage": "lifecycle",
@@ -1229,12 +1261,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 63161
+        "ms": 65007
       },
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 10005,
+        "ms": 11014,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -1243,18 +1275,18 @@
           "audioVolume": 1,
           "audioDucked": false,
           "audioSuspended": false,
-          "audioGain": 0.985,
-          "audioInput": 0.0106,
-          "audioLevel": 0.0104
+          "audioGain": 0.989,
+          "audioInput": 0.0095,
+          "audioLevel": 0.0094
         }
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 7781,
+        "ms": 7320,
         "departure": {
-          "answerMs": 1150.7,
-          "frameMs": 383.317,
+          "answerMs": 1333.9,
+          "frameMs": 372.2,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
@@ -1268,40 +1300,40 @@
               "z": 0
             },
             "avatarRotation": 0,
-            "avatarHeight": 1.942,
+            "avatarHeight": 1.931,
             "fov": 58
           },
           "gameAvatar": {
             "x": 0.506,
-            "top": 0.372,
+            "top": 0.378,
             "bottom": 0.711,
-            "height": 0.339,
+            "height": 0.333,
             "width": 0.088
           },
           "lobbyAvatar": {
             "x": 0.5,
-            "top": 0.355,
+            "top": 0.358,
             "bottom": 0.695,
-            "height": 0.34
+            "height": 0.338
           },
           "frames": [
             {
-              "ms": 58,
+              "ms": 39,
               "phase": "playing",
               "lit": 1
             },
             {
-              "ms": 6161,
+              "ms": 5555,
               "phase": "leaving",
               "lit": 0.015
             },
             {
-              "ms": 7027,
+              "ms": 6553,
               "phase": "last",
               "lit": 0.015
             },
             {
-              "ms": 7600,
+              "ms": 7144,
               "phase": "held",
               "lit": 0.015
             }
@@ -1311,14 +1343,14 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 60503
+        "ms": 68481
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 350,
-      "p95Ms": 383.4,
-      "worstMs": 416.7
+      "medianMs": 366.6,
+      "p95Ms": 400,
+      "worstMs": 450
     },
     "inspect": {
       "booted": true,
@@ -1344,14 +1376,14 @@
       "length": 2,
       "phase": "serve",
       "server": 0,
-      "points": "0-0",
+      "points": "0-1",
       "games": "0-0",
       "rally": 0,
       "matchOpen": true,
       "resultsSent": 0,
       "muted": false,
       "position": [
-        0.9,
+        -0.9,
         0,
         12.235
       ],
@@ -1364,8 +1396,8 @@
       "audioDucked": false,
       "audioSuspended": false,
       "audioGain": 1,
-      "audioInput": 0.0087,
-      "audioLevel": 0.0087,
+      "audioInput": 0.0091,
+      "audioLevel": 0.0091,
       "hostPhase": "entered",
       "hostFrames": 560,
       "hostArrival": "lobby",
@@ -1381,7 +1413,7 @@
     "steps": [
       {
         "step": "play",
-        "delivered": 2,
+        "delivered": 4,
         "moved": true
       },
       {
@@ -1405,7 +1437,7 @@
   "locomotion": {
     "status": "passed",
     "seconds": 2.05,
-    "wallSeconds": 9.165,
+    "wallSeconds": 9.139,
     "metres": 5.764,
     "lobbyMetres": 5.764,
     "tolerance": 0.05
@@ -1461,7 +1493,7 @@
     "video": null,
     "log": [
       {
-        "at": 2.3,
+        "at": 2.2,
         "event": "revealed",
         "answered": true,
         "screen": "arrival",
@@ -1476,22 +1508,22 @@
         }
       },
       {
-        "at": 10.3,
+        "at": 10.1,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 96,
+        "at": 101,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 98.6,
+        "at": 103.5,
         "event": "leave",
         "status": "passed"
       },
       {
-        "at": 99.8,
+        "at": 104.7,
         "event": "facts",
         "facts": {
           "booted": true,
@@ -1516,7 +1548,7 @@
           "server": 0,
           "points": "0-0",
           "games": "0-0",
-          "rally": 1,
+          "rally": 3,
           "matchOpen": false,
           "resultsSent": 1,
           "muted": false,
@@ -1529,10 +1561,10 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 1,
-          "audioInput": 0.0522,
-          "audioLevel": 0.0522,
+          "audioInput": 0.034,
+          "audioLevel": 0.034,
           "hostPhase": "entered",
-          "hostFrames": 534,
+          "hostFrames": 514,
           "hostArrival": "lobby",
           "hostParty": 0,
           "hostPartyArrived": 0,
@@ -1561,5 +1593,11 @@
         }
       }
     ]
+  },
+  "network": {
+    "hosts": [
+      "cyber.mypinata.cloud"
+    ],
+    "requested": []
   }
 }
