@@ -17,7 +17,7 @@
         "world": "node scripts/world-cli.mjs",
         "games:check": "node scripts/games/games.mjs check",
         "games:publish": "node scripts/games/games.mjs publish",
-        "games:test": "node --experimental-strip-types --test games/runtime/test/*.test.mjs scripts/games/*.test.mjs",
+        "games:test": "node --experimental-strip-types --test games/runtime/test/*.test.mjs games/kits/locomotion/test/*.test.mjs scripts/games/*.test.mjs",
         "prepare": "husky install"
     },
     "repository": {

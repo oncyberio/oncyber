@@ -35,6 +35,7 @@ import { partyCheck } from "./party-check.mjs";
 import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
 import { checkDevices, devicesHarness } from "./devices.mjs";
 import { checkLoading, loadingHarness } from "./loading-check.mjs";
+import { locomotionStage } from "./locomotion-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -143,6 +144,11 @@ function serve() {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness(`=results${results.query}`, { arrival: "direct", party: 0 }));
         }
+        // The locomotion stage's own visit: straight in, alone; the stage asks the game to start walking.
+        if (url.pathname === "/locomotion") {
+            res.writeHead(200, { "content-type": "text/html" });
+            return res.end(harness("=locomotion", { arrival: "direct", party: 0 }));
+        }
         // The device profiles' visits: the scenario's own visit again, on a phone and with a gamepad.
         if (url.pathname === "/devices/phone" || url.pathname === "/devices/gamepad") {
             res.writeHead(200, { "content-type": "text/html" });
@@ -173,7 +179,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -226,6 +232,13 @@ async function check() {
         if (report && !gameError) safeArea = await checkSafeArea({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, shots: join(source, ".check") });
         // The same scenario on a phone and with a gamepad (docs/games/devices.md): one more visit of the check page each, the real controls pressed.
         if (report) devices = await checkDevices({ browser, port: server.address().port, id, manifest, source, lifecycle, desktop: report });
+        // Games that walk like the lobby (docs/games/locomotion.md): one more visit of the check page, straight in and alone, forward held for two seconds.
+        if (report && manifest.locomotion === "lobby") {
+            const walk = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+            await walk.goto(`http://127.0.0.1:${server.address().port}/locomotion`);
+            locomotion = await locomotionStage(walk, manifest);
+            await walk.close();
+        }
     } finally {
         await browser.close();
         server.close();
@@ -241,7 +254,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -259,6 +272,7 @@ async function check() {
             ...(safeArea?.findings ?? []),
             ...party.findings,
             ...(loading?.findings ?? []),
+            ...(locomotion?.status === "failed" ? [{ code: "STAGE_LOCOMOTION", message: locomotion.error }] : []),
         ],
         loading: loading && { ...loading, findings: undefined },
         social,
@@ -273,6 +287,7 @@ async function check() {
         devices: devices?.report,
         run: report,
         keys: keys?.report ?? null,
+        ...(locomotion ? { locomotion } : {}),
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
@@ -283,6 +298,7 @@ async function check() {
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     for (const line of devices?.lines ?? []) console.log(line);
+    if (locomotion) console.log(`  locomotion: ${locomotion.status}` + (locomotion.metres != null ? ` · walked ${locomotion.metres} m in ${locomotion.seconds} s (the lobby: ${locomotion.lobbyMetres} m)` : ""));
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);

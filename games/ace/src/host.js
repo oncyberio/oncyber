@@ -216,10 +216,11 @@ async function start() {
         canvas,
         width: window.innerWidth,
         height: window.innerHeight,
-        // The party check is about who plays whom and the results check
-        // about how a match ends, not pixels: draw small.
+        // The party check is about who plays whom, the results check
+        // about how a match ends and the locomotion check about how far a
+        // walk goes, not pixels: draw small.
         pixelRatio:
-            ["party", "results"].includes(params.get("check"))
+            ["party", "results", "locomotion"].includes(params.get("check"))
                 ? 0.3
                 : Math.min(window.devicePixelRatio || 1, 2),
     };
@@ -357,11 +358,14 @@ async function start() {
 
     // pnpm games:check opens the game with ?check: play the scenario,
     // measure frames and report to the check page (its avatar and party
-    // stages ask their own questions instead, and its results stage has
-    // the game's bot play a match to the end).
+    // stages ask their own questions instead, its results stage has the
+    // game's bot play a match to the end, and its locomotion stage walks
+    // the visitor itself).
     if (
         params.has("check") &&
-        !["avatars", "party", "results"].includes(params.get("check"))
+        !["avatars", "party", "results", "locomotion"].includes(
+            params.get("check")
+        )
     )
         postCheckReport(
             await runCheck({

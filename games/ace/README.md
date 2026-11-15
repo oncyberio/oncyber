@@ -10,24 +10,33 @@ Open `/games/ace` on the local frontend (`pnpm dev:frontend`). It is hidden unti
 
 Ace runs through the lifecycle (`docs/games/contract.md`). `enter()` says
 how the visitor arrived. A lobby trip ends courtside in the lobby's own
-third-person framing: `continuity.arrival.view` is the lobby camera, the
-game stands the visitor beside the near baseline with the same camera offset
-and field of view, facing the camera and crouched as the lobby left them.
-The host holds the clock until the lobby lets go, then they stand up. From
-there WASD walks, dragging looks around, and **Play match** (Space) opens the
-match setup. Leaving a match or the setup returns here. A direct visit to
-`/games/ace` opens on the title screen instead.
+third-person framing: `continuity.arrival.view` is the lobby camera, and the
+locomotion kit's `arrival` helper (the one place that turns it into a camera
+here) stands the visitor beside the near baseline with the same camera
+offset and field of view, facing the camera and crouched as the lobby left
+them. The host holds the clock until the lobby lets go, then they stand up.
+From there the visitor moves as in the lobby, through the locomotion kit
+(`games/kits/locomotion`, see
+[docs/games/locomotion.md](../../docs/games/locomotion.md)): WASD walks,
+Shift runs, Space jumps, dragging looks around, at the lobby's pace and with
+its camera. They are declared actions like the rest (`run`, `jump`, `lookX`,
+`lookY` in `game.json`), so the touch stick, the Run and Jump buttons and a
+gamepad drive the same walk. `game.json` says `"locomotion": "lobby"`, so
+`pnpm games:check ace` holds forward for two seconds and fails if the
+distance is not the lobby's. **Play match** (J, OK, or A on a gamepad) opens
+the match setup. Leaving a match or the setup returns here. A direct visit
+to `/games/ace` opens on the title screen instead.
 
 ## Leaving for the lobby
 
 Every way out (the Lobby buttons, the pause menu, a party member leaving)
 goes through `departure.leave()` in `src/host.js` or the page's `departure`
 message. The game returns the visitor courtside in the avatar kit's arrival
-state (standing, empty hands, the arrival framing), hides the interface,
-fades the court to black around the lit avatar (`src/departure.js`) and
-answers `departure-ready` with the view on screen, read back from that same
-kit state; the lobby opens on the same frame. See
-`docs/games/departure.md`.
+state (standing, on the ground, empty hands, the arrival framing), hides the
+interface, fades the court to black around the lit avatar
+(`src/departure.js`) and answers `departure-ready` with the view on screen,
+read back from that same kit state and the camera `arrival` placed; the
+lobby opens on the same frame. See `docs/games/departure.md`.
 
 ## Parties
 

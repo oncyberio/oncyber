@@ -17,6 +17,7 @@ where `GAMES_PREVIEW=1` is set.
 | `docs/games/`                     | One page of rules per area of the contract, written for coding agents.              |
 | `games/<id>/`                     | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project. |
 | `games/kits/avatar/`              | Optional avatar kit for three.js games: [games/avatar-kit.md](games/avatar-kit.md). |
+| `games/kits/locomotion/`          | Optional kit to walk like the lobby: [games/locomotion.md](games/locomotion.md).    |
 | `frontend/public/games/<id>/`     | The published build, plus `release.json` and `check.json`. Committed.               |
 | `frontend/features/games/`        | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
@@ -277,6 +278,10 @@ The loading stage ([games/loading-and-pausing.md](games/loading-and-pausing.md))
 runs on the live game right after the scenario, before the departure
 stage: time to the first frame, progress before it, no blank canvas on a
 resize, and state held across a page menu and a hidden tab.
+
+A game that says `"locomotion": "lobby"` gets the locomotion stage
+([games/locomotion.md](games/locomotion.md)) on a visit of its own: forward
+held for two seconds must cover the lobby's distance.
 
 Every finished match reports exactly one result
 ([games/results.md](games/results.md)). The check records the results a

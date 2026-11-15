@@ -13,6 +13,7 @@
   "arrival": {
     "walkable": true
   },
+  "locomotion": "lobby",
   "party": {
     "sizes": [
       1,
@@ -188,7 +189,28 @@
         "touch": "button:Pause",
         "gamepad": "button-start"
       },
+      "run": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "button:Run",
+        "gamepad": [
+          "right-trigger",
+          "left-stick-press"
+        ]
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "button:Jump",
+        "gamepad": "button-x"
+      },
       "lookX": {
+        "touch": "drag"
+      },
+      "lookY": {
         "touch": "drag"
       },
       "wave": {

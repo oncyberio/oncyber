@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T15:21:50.462Z",
+  "checkedAt": "2026-11-15T15:59:22.096Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 8,
-    "bytes": 2308520,
+    "bytes": 2316075,
     "largest": {
-      "path": "assets/index-BFXuCz7J.js",
-      "bytes": 1046369
+      "path": "assets/index-DZ5CQ6yn.js",
+      "bytes": 1053501
     }
   },
   "avatars": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 14334,
+    "ms": 14681,
     "facts": {
       "arrival": {
         "booted": true,
@@ -97,7 +97,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 19,
+        "hostFrames": 18,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -150,9 +150,9 @@
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1370,
+    "firstFrameMs": 1202,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 420,
+    "gameFirstFrameMs": 391,
     "progress": {
       "messages": 3,
       "labels": [
@@ -194,7 +194,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 11818,
+    "ms": 13130,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -398,7 +398,7 @@
           {
             "id": "arrive-menu",
             "x": 0,
-            "y": 384,
+            "y": 367,
             "width": 390,
             "height": 143
           },
@@ -513,6 +513,20 @@
             "y": 63,
             "width": 52,
             "height": 52
+          },
+          {
+            "id": "control-run",
+            "x": 310,
+            "y": 448,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-jump",
+            "x": 236,
+            "y": 448,
+            "width": 64,
+            "height": 64
           }
         ],
         "overlaps": [],
@@ -684,6 +698,20 @@
             "y": 63,
             "width": 52,
             "height": 52
+          },
+          {
+            "id": "control-run",
+            "x": 764,
+            "y": 68,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-jump",
+            "x": 690,
+            "y": 68,
+            "width": 64,
+            "height": 64
           }
         ],
         "overlaps": [],
@@ -694,7 +722,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 56563,
+    "ms": 53756,
     "options": {
       "1": [
         "solo"
@@ -722,7 +750,7 @@
         "dropped": "guest",
         "packetsPerSecond": {
           "a": 4.6,
-          "b": 3.5
+          "b": 3.7
         },
         "largestPacket": 206,
         "refused": 0,
@@ -737,8 +765,8 @@
       {
         "dropped": "host",
         "packetsPerSecond": {
-          "a": 5,
-          "b": 3.9
+          "a": 5.3,
+          "b": 4.3
         },
         "largestPacket": 206,
         "refused": 0,
@@ -754,9 +782,9 @@
   },
   "results": [
     {
-      "match": "4dc5ab5ae1baa438471d1aef",
+      "match": "2a2dfaf8d460f2cfe3f4f0e9",
       "format": "solo",
-      "durationSeconds": 90.7,
+      "durationSeconds": 64.2,
       "teams": [
         {
           "score": 1,
@@ -802,7 +830,7 @@
     "notes": [
       {
         "code": "TOUCH_CUSTOM",
-        "message": "1 action(s) name touch controls the runtime does not draw (lookX); the game's UI page must provide them"
+        "message": "2 action(s) name touch controls the runtime does not draw (lookX, lookY); the game's UI page must provide them"
       }
     ],
     "profiles": {
@@ -834,7 +862,9 @@
             "lob",
             "drop",
             "confirm",
-            "pause"
+            "pause",
+            "run",
+            "jump"
           ]
         },
         "consoleErrors": [],
@@ -842,17 +872,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2373,
+          "bootMs": 2851,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2373
+              "ms": 2851
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 134631
+              "ms": 131549
             },
             {
               "stage": "lifecycle",
@@ -862,14 +892,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 61611
+              "ms": 63169
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 349.9,
-            "p95Ms": 383.4,
-            "worstMs": 416.6
+            "medianMs": 350,
+            "p95Ms": 416.6,
+            "worstMs": 466.6
           },
           "inspect": {
             "booted": true,
@@ -927,17 +957,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2160,
+          "bootMs": 2295,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2160
+              "ms": 2295
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 137541
+              "ms": 132685
             },
             {
               "stage": "lifecycle",
@@ -947,14 +977,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 59798
+              "ms": 62875
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 333.2,
-            "p95Ms": 399.9,
-            "worstMs": 416.6
+            "medianMs": 349.9,
+            "p95Ms": 400,
+            "worstMs": 449.9
           },
           "inspect": {
             "booted": true,
@@ -1007,17 +1037,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 1918,
+    "bootMs": 2058,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1918
+        "ms": 2058
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 130568
+        "ms": 131388
       },
       {
         "stage": "lifecycle",
@@ -1027,64 +1057,64 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 59867
+        "ms": 62178
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 7810,
+        "ms": 6923,
         "departure": {
-          "answerMs": 1428.7,
-          "frameMs": 380.55,
+          "answerMs": 1186.1,
+          "frameMs": 352.767,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
               "x": 0,
-              "y": 2.3,
-              "z": 4.8
+              "y": 2.51,
+              "z": 4.672
             },
             "cameraTargetOffset": {
               "x": 0,
-              "y": 1.25,
+              "y": 1.167,
               "z": 0
             },
             "avatarRotation": 0,
-            "avatarHeight": 1.928,
-            "fov": 50
+            "avatarHeight": 1.929,
+            "fov": 58
           },
           "gameAvatar": {
             "x": 0.506,
-            "top": 0.367,
-            "bottom": 0.772,
-            "height": 0.406,
-            "width": 0.106
+            "top": 0.378,
+            "bottom": 0.711,
+            "height": 0.333,
+            "width": 0.088
           },
           "lobbyAvatar": {
             "x": 0.5,
-            "top": 0.351,
-            "bottom": 0.753,
-            "height": 0.402
+            "top": 0.358,
+            "bottom": 0.695,
+            "height": 0.337
           },
           "frames": [
             {
-              "ms": 55,
+              "ms": 47,
               "phase": "playing",
               "lit": 1
             },
             {
-              "ms": 5911,
+              "ms": 5296,
               "phase": "leaving",
-              "lit": 0.02
+              "lit": 0.015
             },
             {
-              "ms": 7027,
+              "ms": 6231,
               "phase": "last",
-              "lit": 0.02
+              "lit": 0.015
             },
             {
-              "ms": 7637,
+              "ms": 6779,
               "phase": "held",
-              "lit": 0.02
+              "lit": 0.015
             }
           ]
         }
@@ -1092,14 +1122,14 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 94679
+        "ms": 68066
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 333.3,
-      "p95Ms": 366.7,
-      "worstMs": 400.1
+      "medianMs": 350,
+      "p95Ms": 400,
+      "worstMs": 416.7
     },
     "inspect": {
       "booted": true,
@@ -1171,5 +1201,13 @@
         "moved": true
       }
     ]
+  },
+  "locomotion": {
+    "status": "passed",
+    "seconds": 2.05,
+    "wallSeconds": 8.738,
+    "metres": 5.764,
+    "lobbyMetres": 5.764,
+    "tolerance": 0.05
   }
 }

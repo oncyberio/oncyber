@@ -91,6 +91,12 @@ What it does:
 -   **Arrival pose.** `kit.arrival` holds the crouch until `entered`, then
     stands the avatar up in 0.7 s. Call `kit.arrival.fillHands()` when the
     game hands the visitor something.
+-   **Arrival camera.** One helper turns the lobby's view into a camera in
+    the game's space: `arrival` in the locomotion kit
+    ([locomotion.md](locomotion.md)). `arrivalFraming` is that helper asked
+    for an avatar at the origin facing +z, for a game that only needs the
+    framing. A game whose visitor then walks calls `arrival` itself and
+    keeps the follow camera it returns (Ace does); don't compute it twice.
 -   **A game that poses the rig itself** (Ace's tennis swing) sets
     `kit.self.manual = true` while it does, after `kit.self.rest()`.
 

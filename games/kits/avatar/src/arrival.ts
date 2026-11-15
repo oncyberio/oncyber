@@ -5,6 +5,8 @@
  * makes the trip look like one continuous shot. Pure state: no renderer.
  */
 
+import { arrival as lobbyArrival } from "../../locomotion/src/arrival.ts";
+
 export interface ArrivalView {
     /** The lobby camera, relative to the avatar's feet. */
     cameraOffset: { x: number; y: number; z: number };
@@ -65,35 +67,36 @@ const DEFAULT_FRAMING: ArrivalFraming = {
  * The lobby's camera in the avatar's frame, scaled to the game's avatar
  * height. The lobby camera sits in front of the avatar, so with the avatar
  * facing +z the camera comes out on the +z side: the visitor faces it.
+ *
+ * The turn itself is the locomotion kit's `arrival` helper
+ * (games/kits/locomotion), the one place that maps a lobby view into a
+ * game: this asks it for an avatar at the origin facing +z. A game that
+ * also walks like the lobby calls `arrival` directly and gets its follow
+ * camera too (Ace does).
  */
 export function arrivalFraming(
     view: ArrivalView | null,
     height: number
 ): ArrivalFraming {
-    if (!view)
-        return {
-            ...DEFAULT_FRAMING,
-            offset: [...DEFAULT_FRAMING.offset],
-            look: [...DEFAULT_FRAMING.look],
-        };
-    const turn = Math.PI - view.avatarRotation;
-    const cos = Math.cos(turn),
-        sin = Math.sin(turn);
-    const scale = height / view.avatarHeight;
-    const map = (v: {
-        x: number;
-        y: number;
-        z: number;
-    }): [number, number, number] => [
-        (v.x * cos + v.z * sin) * scale,
-        v.y * scale,
-        (-v.x * sin + v.z * cos) * scale,
-    ];
-    const offset = map(view.cameraOffset);
-    // A camera at the avatar's feet or inside it is not a usable view.
-    if (Math.hypot(...offset) < 0.6)
-        return { ...DEFAULT_FRAMING, fov: view.fov };
-    return { offset, look: map(view.cameraTargetOffset), fov: view.fov };
+    const fallback = (fov = DEFAULT_FRAMING.fov): ArrivalFraming => ({
+        offset: [...DEFAULT_FRAMING.offset],
+        look: [...DEFAULT_FRAMING.look],
+        fov,
+    });
+    if (!view) return fallback();
+    // The helper's headings have 0 facing -z; +z is half a turn.
+    const staged = lobbyArrival(view, {
+        at: { x: 0, z: 0 },
+        facing: 0,
+        avatarFacing: Math.PI,
+        avatarHeight: height,
+    });
+    const { position: p, target: t } = staged;
+    // No lobby framing came out of it, or a camera at the avatar's feet or
+    // inside it: not a usable view.
+    if (staged.camera.fov === null || Math.hypot(p.x, p.y, p.z) < 0.6)
+        return fallback(view.fov);
+    return { offset: [p.x, p.y, p.z], look: [t.x, t.y, t.z], fov: staged.fov };
 }
 
 /** Heading (radians about +y, 0 faces +z) that turns something at `from` toward `to`. */

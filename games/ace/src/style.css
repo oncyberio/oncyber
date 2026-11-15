@@ -988,7 +988,7 @@ body.hud-measure .screen:not(.show) * {
    game.json (docs/games/devices.md); it keeps them inside the safe area and
    marks them data-hud. These rules dress them and choose what shows: the
    stick everywhere (it walks, and steps through menus), the shot buttons
-   and Pause during play, OK in menus. */
+   and Pause during play, OK in menus, Run and Jump courtside. */
 .oncyber-controls {
     font-family: var(--black);
 }
@@ -1012,8 +1012,14 @@ body:has(#boot.show) .oncyber-controls {
 }
 body.playing
     .oncyber-controls
-    [data-oncyber-action]:not([data-oncyber-action="confirm"]),
+    [data-oncyber-action]:not(
+        [data-oncyber-action="confirm"],
+        [data-oncyber-action="run"],
+        [data-oncyber-action="jump"]
+    ),
 body:not(.playing) .oncyber-controls [data-oncyber-action="confirm"],
+body:has(#arrive.show) .oncyber-controls [data-oncyber-action="run"],
+body:has(#arrive.show) .oncyber-controls [data-oncyber-action="jump"],
 body:has(#pause.show) .oncyber-controls [data-oncyber-action="pause"],
 body.hud-measure .oncyber-controls [data-oncyber-action] {
     display: block;
@@ -1035,6 +1041,12 @@ body.hud-measure .oncyber-controls [data-oncyber-action] {
 }
 .oncyber-controls [data-oncyber-action="topspin"] {
     background: #ff8a7a;
+}
+.oncyber-controls [data-oncyber-action="jump"] {
+    background: var(--yellow);
+}
+.oncyber-controls [data-oncyber-action="run"] {
+    background: #fff;
 }
 .oncyber-controls [data-oncyber-action="lob"] {
     background: var(--yellow);

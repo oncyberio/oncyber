@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T15:23:18.680Z",
+  "checkedAt": "2026-11-15T16:00:40.776Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
@@ -22,7 +22,7 @@
         "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
       }
     ],
-    "ms": 30154,
+    "ms": 29554,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -63,9 +63,9 @@
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1477,
+    "firstFrameMs": 1563,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 1435,
+    "gameFirstFrameMs": 1533,
     "progress": {
       "messages": 4,
       "labels": [
@@ -88,7 +88,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3131,
+    "ms": 3714,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -405,8 +405,8 @@
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
-    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:33281/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
     "listed": true,
@@ -467,30 +467,30 @@
           "buttons": []
         },
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33281/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "failed",
           "backend": "webgpu",
-          "bootMs": 1416,
+          "bootMs": 1624,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1416
+              "ms": 1624
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 518,
+              "ms": 529,
               "error": "NO_TOUCH_CONTROL:forward"
             },
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 3008
+              "ms": 3006
             }
           ],
           "frames": {
@@ -542,24 +542,24 @@
         "scope": "scenario",
         "findings": [],
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:39619/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33281/games/garden/assets/index-BS5Z2TCW.js:21:18146)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "passed",
           "backend": "webgpu",
-          "bootMs": 1415,
+          "bootMs": 1393,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1415
+              "ms": 1393
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 1036
+              "ms": 1041
             },
             {
               "stage": "lifecycle",
@@ -620,17 +620,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1356,
+    "bootMs": 1454,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1356
+        "ms": 1454
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 931
+        "ms": 918
       },
       {
         "stage": "lifecycle",
@@ -645,13 +645,13 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 6
+        "ms": 4
       }
     ],
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.8,
+      "p95Ms": 16.7,
       "worstMs": 16.8
     },
     "inspect": {

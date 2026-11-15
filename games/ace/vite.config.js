@@ -48,6 +48,11 @@ export default defineConfig({
                 find: /^@oncyber\/game-runtime$/,
                 replacement: `${runtime}/index.ts`,
             },
+            // The locomotion kit is TypeScript source in games/kits too.
+            {
+                find: /^@oncyber\/kit-locomotion$/,
+                replacement: resolve("../kits/locomotion/src/index.ts"),
+            },
             {
                 find: /^@oncyber\/avatar-kit\/page$/,
                 replacement: `${kit}/src/page.ts`,

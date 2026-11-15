@@ -23,22 +23,32 @@ export function bindDevices(session, canvas, input) {
         }
     };
 
-    // Mouse: left regular, right cut, middle lob. Dragging looks around.
+    // Mouse: left regular, right cut, middle lob. Dragging looks around
+    // (the game turns it into the lobby's camera drag while walking).
     const mouseShots = ["flat", "lob", "slice"];
     let drag = null;
     on(canvas, "mousedown", (e) => set(mouseShots[e.button] ?? "flat", 1));
     on(window, "mouseup", () => mouseShots.forEach((shot) => set(shot, 0)));
     on(canvas, "contextmenu", (e) => e.preventDefault());
-    on(canvas, "pointerdown", (e) => (drag = { id: e.pointerId, x: e.clientX }));
-    on(window, "pointermove", (e) => {
-        if (drag?.id !== e.pointerId) return;
-        const moved = (e.clientX - drag.x) / 100;
-        drag.x = e.clientX;
+    // The drag is the declared `lookX` / `lookY`, in hundreds of pixels.
+    const look = (action, pixels) => {
         try {
-            session.delta("lookX", Math.max(-1, Math.min(1, moved)));
+            session.delta(action, Math.max(-1, Math.min(1, pixels / 100)));
         } catch {
             /* not entered yet, or disposed */
         }
+    };
+    on(
+        canvas,
+        "pointerdown",
+        (e) => (drag = { id: e.pointerId, x: e.clientX, y: e.clientY })
+    );
+    on(window, "pointermove", (e) => {
+        if (drag?.id !== e.pointerId) return;
+        look("lookX", e.clientX - drag.x);
+        look("lookY", e.clientY - drag.y);
+        drag.x = e.clientX;
+        drag.y = e.clientY;
     });
     const endDrag = () => (drag = null);
     on(window, "pointerup", endDrag);
