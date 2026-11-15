@@ -247,6 +247,7 @@ export async function partyCheck({
     out,
     source,
     headed = false,
+    network = null,
 }) {
     const started = Date.now();
     const findings = partyStatement(manifest);
@@ -276,6 +277,9 @@ export async function partyCheck({
         channel: process.env.PW_CHANNEL || undefined,
         args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"],
     });
+    // The game's files under its declared network policy (networkCheck.mjs).
+    network?.guard(server);
+    network?.patrol(browser);
     const url = `http://127.0.0.1:${server.address().port}/`;
     const partyId = "check-party-0123456789";
 

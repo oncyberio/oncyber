@@ -1,11 +1,20 @@
 import { z } from "zod";
+import {
+    canonicalOutcome,
+    judgePartyResult,
+    type Outcome,
+    type PartyVerdict,
+    type ResultReport,
+} from "./resultTrust";
 
 /**
  * Match results on the page side. A game sends `<id>:result` when a match
  * ends (games/runtime/src/results.ts); the page validates it here with the
  * same rules, records it for a signed-in visitor through the games RPC and
  * shows it to the party. A result is one browser's word, so it is stored and
- * shown as unverified. See docs/games/results.md.
+ * shown as unverified, unless it is a match between members of a party and
+ * every one of them reported the same outcome (`judgeMatchResult`). See
+ * docs/games/results.md and docs/games/trust.md.
  */
 const trimmed = (max: number, code: string) =>
     z
@@ -192,12 +201,90 @@ export class GameResultLedger {
 }
 
 /**
+ * What every member's browser must say alike for a match to be agreed: the
+ * match, its format, each side's score and players by id, and the winner.
+ * Names, who "self" is and the duration are each browser's own.
+ */
+export function resultOutcome(result: GameResult): Outcome {
+    return {
+        match: result.match,
+        format: result.format,
+        teams: result.teams.map((team) => ({
+            score: team.score,
+            players: team.players.map((player) => player.id),
+        })),
+        winner: result.winner,
+    };
+}
+
+/** The people who played a match (not its CPU sides), by the result's ids. */
+export const resultMembers = (result: GameResult) =>
+    result.teams
+        .flatMap((team) => team.players)
+        .filter((player) => player.kind !== "cpu")
+        .map((player) => player.id);
+
+/**
+ * How far a result can be trusted (resultTrust.ts). A match one person
+ * played is "solo". A match between people is judged against the party
+ * room's roster: its players must be members by the ids the room gave them,
+ * the visitor's own side must be the visitor, and it is "agreed" only when
+ * every player's browser reported the same outcome under the same match id.
+ *
+ * @param roster the room's roster (`self` and the members' ids), from the
+ *   room server; null outside a party
+ * @param reports what the other members' pages sent, by roster id
+ */
+export function judgeMatchResult(
+    result: GameResult,
+    roster: { self: string; members: ReadonlyArray<{ id: string }> } | null,
+    reports: readonly ResultReport[]
+): PartyVerdict {
+    const members = resultMembers(result);
+    if (members.length < 2) return judgePartyResult(members, []);
+    const self = result.teams
+        .flatMap((team) => team.players)
+        .find((player) => player.kind === "self").id;
+    const known = new Set(roster?.members.map((member) => member.id));
+    // Not the room's people: nobody else's report can stand behind it.
+    if (
+        !roster?.self ||
+        self !== roster.self ||
+        !members.every((id) => known.has(id))
+    )
+        return judgePartyResult(members, []);
+    return judgePartyResult(members, [
+        { member: self, outcome: resultOutcome(result) },
+        ...reports.filter((report) => report.member !== self),
+    ]);
+}
+
+/**
  * The packet a page sends through the party's room so the other members see
- * the result too. It is a page-to-page message: it never reaches a game.
+ * the result too, and can compare it with their own (`outcome`). It is a
+ * page-to-page message: it never reaches a game.
  */
 const PARTY_RESULT = "oncyber:party-result";
-export function partyResultPacket(summary: GameResultSummary) {
-    return { type: PARTY_RESULT, summary };
+export function partyResultPacket(
+    summary: GameResultSummary,
+    outcome?: Outcome
+) {
+    return {
+        type: PARTY_RESULT,
+        summary,
+        ...(outcome === undefined ? {} : { outcome }),
+    };
+}
+/** The outcome a member's page reported with its summary, or null. */
+export function readPartyResultOutcome(data: unknown): Outcome | null {
+    const packet = data as { type?: unknown; outcome?: unknown };
+    if (packet?.type !== PARTY_RESULT || packet.outcome === undefined)
+        return null;
+    try {
+        return JSON.parse(canonicalOutcome(packet.outcome)) as Outcome;
+    } catch {
+        return null;
+    }
 }
 const line = (value: unknown, max: number) =>
     typeof value === "string" && value.trim() ? value.trim().slice(0, max) : "";

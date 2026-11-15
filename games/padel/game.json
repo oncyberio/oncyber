@@ -17,6 +17,9 @@
   "page": {
     "ownPage": true
   },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
   "avatars": {
     "others": "other",
     "why": "Padel draws players as avatars with its own code on its own page, which this check cannot drive; it moves to the avatar kit with the shared game page.",

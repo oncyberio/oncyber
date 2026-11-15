@@ -5,14 +5,29 @@ import type { GameRoom } from "./gameRoom";
 import {
     GameResultLedger,
     isPartyResultPacket,
+    judgeMatchResult,
     partyResultPacket,
+    readPartyResultOutcome,
     readPartyResultPacket,
+    resultMembers,
+    resultOutcome,
     summarizeGameResult,
+    type GameResult,
     type GameResultSummary,
     withSelfName,
 } from "./gameResults";
+import {
+    leaderboardEligible,
+    type Outcome,
+    type PartyVerdict,
+    type ResultReport,
+} from "./resultTrust";
 
 const CARD_MS = 9000;
+/** How long a match between members waits for the others' reports. */
+export const AGREE_WAIT_MS = 5000;
+const AGREE_POLL_MS = 100;
+const REPORTED_MATCHES = 64;
 
 interface Standing {
     name: string;
@@ -33,6 +48,12 @@ interface Card {
  * it for a signed-in visitor, passes a summary to the party's room and
  * shows a short card. Answers the game with `result-status` through the
  * page's one sender, in the form the game speaks.
+ *
+ * A match between members of a party is reported by each of their pages
+ * under one match id. The pages pass their outcome through the party's
+ * room, and a result every player reported alike is "party-agreed"
+ * (resultTrust.ts): only those count for the leaderboard. A match one
+ * person played stays unverified.
  */
 export function useGameResults(options: {
     game: string;
@@ -46,12 +67,19 @@ export function useGameResults(options: {
     selfName: () => string | undefined;
     /** The party's room, when the visitor is in one with the relay on. */
     partyRoom: GameRoom | null;
+    /** The party room's roster, from the room server; null outside a party. */
+    roster?: () => {
+        self: string;
+        members: ReadonlyArray<{ id: string; session: string }>;
+    } | null;
 }) {
     const { game } = options;
     const live = useRef(options);
     live.current = options;
     const [card, setCard] = useState<Card | null>(null);
     const shown = useRef(new Set<string>());
+    // What the other members' pages reported, by match id.
+    const reports = useRef(new Map<string, ResultReport[]>());
 
     useEffect(() => {
         if (!card) return;
@@ -71,15 +99,45 @@ export function useGameResults(options: {
                 reason,
             });
         // The relay is rate limited and shared with the game's own packets.
-        const tellParty = (summary: GameResultSummary, tries = 12) => {
+        const tellParty = (
+            summary: GameResultSummary,
+            outcome: Outcome,
+            tries = 12
+        ) => {
             const room = live.current.partyRoom;
             if (disposed || !room || tries < 1) return;
-            if (room.relay(partyResultPacket(summary))) return;
+            if (room.relay(partyResultPacket(summary, outcome))) return;
             const timer = setTimeout(() => {
                 timers.delete(timer);
-                tellParty(summary, tries - 1);
+                tellParty(summary, outcome, tries - 1);
             }, 250);
             timers.add(timer);
+        };
+        const judge = (result: GameResult) =>
+            judgeMatchResult(
+                result,
+                live.current.roster?.() ?? null,
+                reports.current.get(result.match) ?? []
+            );
+        // A match between members: give their pages a moment to report.
+        const settled = async (result: GameResult): Promise<PartyVerdict> => {
+            const deadline = Date.now() + AGREE_WAIT_MS;
+            for (;;) {
+                const verdict = judge(result);
+                if (
+                    verdict.status !== "incomplete" ||
+                    disposed ||
+                    Date.now() >= deadline
+                )
+                    return verdict;
+                await new Promise<void>((done) => {
+                    const timer = setTimeout(() => {
+                        timers.delete(timer);
+                        done();
+                    }, AGREE_POLL_MS);
+                    timers.add(timer);
+                });
+            }
         };
         const receive = async (event: MessageEvent) => {
             if (
@@ -100,7 +158,8 @@ export function useGameResults(options: {
             const summary = summarizeGameResult(result);
             shown.current.add(summary.match);
             const base: Card = { summary, from: "self", note: "", board: [] };
-            tellParty(summary);
+            // The outcome as the game named it, before the page's own name.
+            tellParty(summary, resultOutcome(accepted.result));
             if (!live.current.signedIn()) {
                 setCard({ ...base, note: "Sign in to keep your results" });
                 status(result.match, "unrecorded", "SIGNED_OUT");
@@ -108,7 +167,17 @@ export function useGameResults(options: {
             }
             setCard({ ...base, note: "Saving…" });
             try {
-                const saved = await GamesService.reportResult({ game, result });
+                const verdict =
+                    resultMembers(result).length > 1
+                        ? await settled(result)
+                        : judge(result);
+                if (disposed) return;
+                const agreed = leaderboardEligible(verdict.trust);
+                const saved = await GamesService.reportResult({
+                    game,
+                    result,
+                    ...(agreed ? { agreedBy: verdict.members } : {}),
+                });
                 const { entries } = await GamesService.leaderboard({
                     game,
                 }).catch(() => ({ entries: [] as Standing[] }));
@@ -117,9 +186,11 @@ export function useGameResults(options: {
                     current?.summary.match === summary.match
                         ? {
                               ...base,
-                              note: saved.recorded
-                                  ? "Saved · unverified"
-                                  : "Not saved",
+                              note: !saved.recorded
+                                  ? "Not saved"
+                                  : agreed
+                                  ? "Saved · agreed by your party"
+                                  : "Saved · unverified",
                               board: entries.slice(0, 5),
                           }
                         : current
@@ -152,9 +223,22 @@ export function useGameResults(options: {
      * A packet from the party's room. Returns true when it was a page's
      * result packet, which must not be handed to the game.
      */
-    const fromParty = useCallback((data: unknown) => {
+    const fromParty = useCallback((data: unknown, from = "") => {
         if (!isPartyResultPacket(data)) return false;
         const summary = readPartyResultPacket(data);
+        // The sender is who the room says it is, never who the packet says.
+        const member = live.current
+            .roster?.()
+            ?.members.find((m) => from && m.session === from)?.id;
+        const outcome = readPartyResultOutcome(data);
+        if (summary && member && outcome !== null) {
+            const all = reports.current;
+            if (!all.has(summary.match) && all.size >= REPORTED_MATCHES)
+                all.delete(all.keys().next().value);
+            const said = all.get(summary.match) ?? [];
+            if (said.length < 16) said.push({ member, outcome });
+            all.set(summary.match, said);
+        }
         if (summary && !shown.current.has(summary.match)) {
             shown.current.add(summary.match);
             // Never over the visitor's own result.

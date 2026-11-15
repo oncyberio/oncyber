@@ -25,6 +25,9 @@
       "right": 16
     }
   },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
   "format": "world",
   "avatars": {
     "others": "avatar",

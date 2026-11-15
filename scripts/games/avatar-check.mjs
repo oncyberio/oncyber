@@ -168,6 +168,7 @@ export async function avatarStage({
     out,
     chromium,
     headed = false,
+    network = null,
 }) {
     const rule = readAvatarRule(manifest);
     const findings = rule.problems.map((message) => ({
@@ -196,6 +197,9 @@ export async function avatarStage({
         channel: process.env.PW_CHANNEL || undefined,
         args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"],
     });
+    // The game's files under its declared network policy (networkCheck.mjs).
+    network?.guard(server);
+    network?.patrol(browser);
     const facts = {};
     const started = Date.now();
     let deviceLost = false;

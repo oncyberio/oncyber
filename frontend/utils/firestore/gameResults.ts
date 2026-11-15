@@ -4,6 +4,10 @@ import {
     type GameResult,
     type GameResultOutcome,
 } from "@features/games/gameResults";
+import {
+    leaderboardEligible,
+    type ResultTrust,
+} from "@features/games/resultTrust";
 
 /**
  * Where match results live. Two small collections per game:
@@ -15,6 +19,11 @@ import {
  * add to its own results and standing. A result is one browser's word:
  * `verified` is false on both documents until something else decides which
  * results count. Other players named in a result are text, never accounts.
+ *
+ * Each result carries a trust level (features/games/resultTrust.ts). Only
+ * results a whole party agreed on count for the leaderboard: they add to
+ * the standing's `rankedPlayed` and `rankedWins`, which is what the
+ * leaderboard lists. A solo result is kept and never ranked.
  */
 const MIN_SECONDS_BETWEEN_RESULTS = 5;
 
@@ -31,7 +40,8 @@ export async function recordGameResult(
     userId: string,
     game: string,
     result: GameResult,
-    now = Date.now()
+    now = Date.now(),
+    trust: ResultTrust = "solo-unverified"
 ): Promise<{
     recorded: boolean;
     reason?: "duplicate" | "too-soon";
@@ -84,16 +94,27 @@ export async function recordGameResult(
             wins: (before?.wins ?? 0) + (outcome === "win" ? 1 : 0),
             verified: false,
         };
+        const ranked = leaderboardEligible(trust);
         tx.set(matchRef, {
             game,
             reporter: userId,
             ...result,
             outcome,
             verified: false,
+            trust,
             source: "browser",
             createdAt: now,
         });
-        tx.set(standingRef, { ...next, userId, game, updatedAt: now });
+        tx.set(standingRef, {
+            ...next,
+            rankedPlayed: (before?.rankedPlayed ?? 0) + (ranked ? 1 : 0),
+            rankedWins:
+                (before?.rankedWins ?? 0) +
+                (ranked && outcome === "win" ? 1 : 0),
+            userId,
+            game,
+            updatedAt: now,
+        });
         return { recorded: true, outcome, standing: next };
     });
 }
@@ -104,16 +125,18 @@ export async function readGameLeaderboard(
 ): Promise<GameStanding[]> {
     const snapshot = await gameDoc(game)
         .collection("standings")
-        .orderBy("wins", "desc")
+        .orderBy("rankedWins", "desc")
         .limit(limit)
         .get();
-    return snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
+    // Only results a party agreed on are ranked: a standing with none of
+    // them is not listed, and the totals shown are those results.
+    return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data) => Number(data.rankedPlayed) > 0)
+        .map((data) => ({
             name: String(data.name ?? "Player").slice(0, 24),
-            played: Number(data.played) || 0,
-            wins: Number(data.wins) || 0,
+            played: Number(data.rankedPlayed) || 0,
+            wins: Number(data.rankedWins) || 0,
             verified: data.verified === true,
-        };
-    });
+        }));
 }

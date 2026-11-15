@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { siteOrigin } = require("./utils/siteOrigin");
+const { gameNetworkHeaders } = require("./features/games/networkPolicy");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
 // rather than shipping a site that cannot sign anyone in.
@@ -288,6 +289,11 @@ const nextConfig = {
             source: "/games/:id/:path*",
             headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
         });
+        // A game reaches its own files and the hosts it declared, nothing
+        // else (features/games/networkPolicy.js, docs/games/trust.md).
+        headers.push(
+            ...gameNetworkHeaders(path.join(__dirname, "public/games"), fs)
+        );
 
         // Browser caching for static files under public/ (Next already serves
         // /_next/static, where the engine and three.js chunks live, as

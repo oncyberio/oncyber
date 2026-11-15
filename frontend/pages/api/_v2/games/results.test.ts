@@ -157,24 +157,95 @@ test("unknown games, hidden games and missing sessions write nothing", async () 
     expect(mockDocs.size).toBe(0);
 });
 
-test("the leaderboard lists names and totals by wins", async () => {
+// A 1 v 1 as each of its two players' browsers reports it (room ids m1, m2).
+const versus = (self: "m1" | "m2", match = "versus-one") => ({
+    match,
+    format: "singles",
+    durationSeconds: 90,
+    teams: [
+        {
+            score: 2,
+            players: [
+                {
+                    id: "m1",
+                    name: "Ada",
+                    kind: self === "m1" ? "self" : "peer",
+                },
+            ],
+        },
+        {
+            score: 1,
+            players: [
+                { id: "m2", name: "Bo", kind: self === "m2" ? "self" : "peer" },
+            ],
+        },
+    ],
+    winner: 0,
+});
+
+test("the leaderboard lists names and totals by wins, from agreed results only", async () => {
+    // Solo results are kept, never ranked.
     await recordGameResult("user-a", "ace", valid as any, 1);
-    await recordGameResult("user-b", "ace", { ...valid, winner: 1 } as any, 1);
-    await recordGameResult(
-        "user-a",
-        "ace",
-        { ...valid, match: "match-two" } as any,
-        99999
-    );
-    const board = await (GamesService as any).leaderboard.call(
-        {},
-        { game: "ace" }
-    );
-    expect(board).toEqual({
+    await recordGameResult("user-c", "ace", valid as any, 1);
+    const board = () =>
+        (GamesService as any).leaderboard.call({}, { game: "ace" });
+    expect(await board()).toEqual({ game: "ace", entries: [] });
+
+    // A match both players' pages agreed on counts for both.
+    const agreedBy = ["m1", "m2"];
+    expect(
+        await report("user-a", {
+            game: "ace",
+            result: versus("m1"),
+            agreedBy,
+        })
+    ).toMatchObject({ recorded: true, outcome: "win" });
+    await report("user-b", { game: "ace", result: versus("m2"), agreedBy });
+    expect(
+        mockDocs.get("gameResults/ace/matches/user-a_versus-one")
+    ).toMatchObject({ trust: "party-agreed", verified: false });
+    expect(mockDocs.get("gameResults/ace/standings/user-a")).toMatchObject({
+        played: 2,
+        wins: 2,
+        rankedPlayed: 1,
+        rankedWins: 1,
+    });
+    expect(await board()).toEqual({
         game: "ace",
         entries: [
-            { name: "Ada", played: 2, wins: 2, verified: false },
-            { name: "Ada", played: 1, wins: 0, verified: false },
+            { name: "Ada", played: 1, wins: 1, verified: false },
+            { name: "Bo", played: 1, wins: 0, verified: false },
         ],
     });
+});
+
+test("agreement is taken only for the people the result says played", async () => {
+    const trustOf = async (user: string, input: Record<string, unknown>) => {
+        await report(user, { game: "ace", ...input });
+        const match = (input.result as { match: string }).match;
+        return mockDocs.get(`gameResults/ace/matches/${user}_${match}`).trust;
+    };
+    // A solo match can't be agreed, whatever the page says.
+    expect(
+        await trustOf("user-a", { result: valid, agreedBy: ["self", "x"] })
+    ).toBe("solo-unverified");
+    // Not every player, or someone who didn't play.
+    expect(
+        await trustOf("user-b", { result: versus("m1"), agreedBy: ["m1"] })
+    ).toBe("solo-unverified");
+    expect(
+        await trustOf("user-c", {
+            result: versus("m1"),
+            agreedBy: ["m1", "m2", "m3"],
+        })
+    ).toBe("solo-unverified");
+    expect(await trustOf("user-d", { result: versus("m1") })).toBe(
+        "solo-unverified"
+    );
+    expect(
+        await trustOf("user-e", {
+            result: versus("m1"),
+            agreedBy: ["m2", "m1"],
+        })
+    ).toBe("party-agreed");
 });

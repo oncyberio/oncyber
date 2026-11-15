@@ -21,6 +21,9 @@
       "top": 14
     }
   },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
   "format": "match",
   "devices": [
     "desktop",

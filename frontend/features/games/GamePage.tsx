@@ -184,6 +184,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     profile.current.user?.id
             ),
         selfName: () => identity?.name,
+        roster: () => roomFacts.current.roster,
         partyRoom: party && room ? room : null,
     });
     // Chat and voice are the page's: carried from the lobby, in this room.
@@ -495,7 +496,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             gameRoom.onRelay(
                 (from, data) =>
                     departure.relayed(from, data) ||
-                    results.fromParty(data) ||
+                    results.fromParty(data, from) ||
                     postGame.current("net", { from, data })
             );
         // A party's room also carries its roster and the match channel. The

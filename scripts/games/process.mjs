@@ -259,6 +259,7 @@ async function play({
     chromium,
     headed,
     record,
+    network = null,
 }) {
     const { lobbyArrivalView, handoffFindings } = await runtimeModule(
         "arrival"
@@ -288,6 +289,9 @@ async function play({
         channel: process.env.PW_CHANNEL || undefined,
         args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"],
     });
+    // The game's files under its declared network policy (networkCheck.mjs).
+    network?.guard(server);
+    network?.patrol(browser);
     const size = { width: 1280, height: 720 };
     const context = await browser.newContext({
         viewport: size,
@@ -574,6 +578,7 @@ export async function processStage({
     chromium,
     headed = false,
     video = false,
+    network = null,
 }) {
     const source = join(root, "games", id);
     const out = join(root, "frontend/public/games", id);
@@ -591,6 +596,7 @@ export async function processStage({
             chromium,
             headed,
             record: video,
+            network,
         });
         findings.push(...run.findings);
         // The brief's promise about inspect() is held against the live game.

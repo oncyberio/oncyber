@@ -115,6 +115,10 @@ Garden have.
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
+A game reaches only its own files and the hosts in its `game.json`
+`network` list, and a result counts for a leaderboard only when the whole
+party reported the same one. Both rules: [games/trust.md](games/trust.md).
+
 ## What a good game does
 
 The rules a game is held to, the brief to fill in before building and the

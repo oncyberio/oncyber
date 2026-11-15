@@ -269,7 +269,13 @@ function serve(id, out) {
  * `{ status, ms, keys, runs, findings }`; a game that declares nothing
  * passes without opening a browser.
  */
-export async function runSavedDataStage({ id, manifest, out, launch }) {
+export async function runSavedDataStage({
+    id,
+    manifest,
+    out,
+    launch,
+    network = null,
+}) {
     const started = Date.now();
     const { readSavedDeclarations, readSavedRequest, createLocalSavedStore } =
         await rules();
@@ -346,6 +352,9 @@ export async function runSavedDataStage({ id, manifest, out, launch }) {
 
     const server = await serve(id, out);
     const browser = await launch();
+    // The game's files under its declared network policy (networkCheck.mjs).
+    network?.guard(server);
+    network?.patrol(browser);
     const pageErrors = [];
     try {
         const page = await browser.newPage({

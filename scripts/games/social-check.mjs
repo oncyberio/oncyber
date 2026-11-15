@@ -126,7 +126,13 @@ export function serveSocialCheck(id, out) {
  * Runs the stage in `browser` (a Playwright browser). Resolves with
  * `{ stage: "social", status, ms, error?, facts }`; never throws.
  */
-export async function checkSocial({ id, out, browser, timeoutMs = 120_000 }) {
+export async function checkSocial({
+    id,
+    out,
+    browser,
+    timeoutMs = 120_000,
+    network = null,
+}) {
     const started = Date.now();
     const facts = {};
     const pageErrors = [];
@@ -142,6 +148,8 @@ export async function checkSocial({ id, out, browser, timeoutMs = 120_000 }) {
     };
     try {
         server = await serveSocialCheck(id, out);
+        // The game's files under its declared network policy (networkCheck.mjs).
+        network?.guard(server);
         const base = `http://127.0.0.1:${server.address().port}`;
         // One context: its pages share the BroadcastChannel rooms.
         context = await browser.newContext({

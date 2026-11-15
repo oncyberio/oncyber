@@ -41,6 +41,7 @@ import { soundHarness, soundStage } from "./sound-check.mjs";
 import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
 import { describeProcess, processStage } from "./process.mjs";
 import { GENERATED_THUMBNAIL, listingStage } from "./listing.mjs";
+import { networkStage } from "./networkCheck.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -65,6 +66,8 @@ const contract = contractFindings({ root, id, manifest });
 
 // Match results: what the run must report (docs/games/results.md).
 const results = resultsPlan(manifest);
+// The hosts the game declared: written into the build, enforced and watched below.
+let network;
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -144,6 +147,7 @@ ${loadingHarness}
 function serve() {
     const server = createServer((req, res) => {
         const url = new URL(req.url, "http://localhost");
+        if (network.handle(req, res)) return;
         if (url.pathname === "/") {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness("", contract.visit));
@@ -169,13 +173,14 @@ function serve() {
             res.writeHead(404);
             return res.end();
         }
-        res.writeHead(200, { "content-type": TYPES[extname(path)] ?? "application/octet-stream", "access-control-allow-origin": "*" });
+        res.writeHead(200, { "content-type": TYPES[extname(path)] ?? "application/octet-stream", "access-control-allow-origin": "*", ...network.headers });
         res.end(readFileSync(path));
     });
     return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
 }
 
 async function check() {
+    network = networkStage(manifest, out);
     const files = bundleFiles();
     const scan = staticScan(files);
     scan.findings.push(...contract.findings);
@@ -188,7 +193,8 @@ async function check() {
     }
     const server = await serve();
     const errors = [], pageErrors = [];
-    const launch = () => chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
+    // Every browser the check opens is watched for requests to hosts the game didn't declare (docs/games/trust.md).
+    const launch = async () => network.patrol(await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] }));
     const browser = await launch();
     let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null;
     const started = Date.now();
@@ -199,6 +205,7 @@ async function check() {
             errors.push(String(e.message).slice(0, 500));
             pageErrors.push(String(e.message).slice(0, 500));
         });
+        network.watch(page, server.address().port);
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         // Software rendering (no GPU) can need longer: GAMES_CHECK_TIMEOUT_S.
         const deadline = Date.now() + (Number(process.env.GAMES_CHECK_TIMEOUT_S) || 180) * 1000;
@@ -240,7 +247,7 @@ async function check() {
         }
         // Chat and voice: the page's, carried from the lobby (docs/games/voice-chat.md).
         scan.findings.push(...scanOwnVoice(out));
-        social = await checkSocial({ id, out, browser });
+        social = await checkSocial({ id, out, browser, network });
         // Keys and focus (docs/games/keys-focus.md): source scan, then typing in the page's chat during play.
         keys = await runKeysCheck({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, manifest });
         scan.findings.push(...keys.findings);
@@ -263,11 +270,11 @@ async function check() {
     scan.findings.push(...entry.findings);
     const warnings = [...contract.warnings, ...entry.warnings];
     // Other people as their Oncyber avatars, and the arrival pose (docs/games/avatar-kit.md).
-    const avatars = await avatarStage({ id, manifest, source, out, chromium, headed });
+    const avatars = await avatarStage({ id, manifest, source, out, chromium, headed, network });
     // What the game offers a party, and that a dropped member doesn't stop it.
-    const party = await partyCheck({ id, manifest, out, source, headed });
+    const party = await partyCheck({ id, manifest, out, source, headed, network });
     // Saved data: save, reload, read back; then boot against old saves.
-    const saved = await runSavedDataStage({ id, manifest, out, launch });
+    const saved = await runSavedDataStage({ id, manifest, out, launch, network });
     const result = {
         version: 1,
         game: id,
@@ -315,9 +322,13 @@ async function check() {
         ...(locomotion ? { locomotion } : {}),
     };
     // The process stage, last: brief, offer, solo, bot, arrival, handoff, video.
-    result.process = await processStage({ id, root, manifest, chromium, headed, video });
+    result.process = await processStage({ id, root, manifest, chromium, headed, video, network });
     result.findings.push(...result.process.findings);
     if (result.process.status !== "passed") result.status = "failed";
+    // The network (docs/games/trust.md), once every stage has run: the declaration, and any request any of them made to a host it doesn't list.
+    result.network = network.summary();
+    result.findings.push(...network.findings());
+    if (network.findings().length) result.status = "failed";
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));

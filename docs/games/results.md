@@ -7,7 +7,9 @@ A result says who played, on which sides, the score, who won, what was
 played and how long it took. The page validates it, records it for a
 signed-in visitor, shows a short card, and passes a one-line summary to the
 visitor's party. A result is one browser's word: it is stored and shown as
-**unverified**. Which results count is decided elsewhere.
+**unverified**, unless it is a match between members of a party and every
+player's page reported the same outcome: that one is **agreed by the
+party**, and only those count for the leaderboard ([trust.md](trust.md)).
 
 ## Report from a game
 
@@ -87,16 +89,28 @@ visitor it calls the `games` RPC (`frontend/pages/api/_v2/games/`):
     seconds apart are refused. Other players in a result are stored as
     text and credit no account.
 -   `leaderboard({ game })` is public: the top ten standings by wins, as
-    `{ name, played, wins, verified }`.
+    `{ name, played, wins, verified }`, counting only results the whole
+    party agreed on (below). A match against the CPU is kept and never
+    ranked.
+
+**Agreed results.** A match between members of a party is reported by each
+player's page under the same match id. The page sends its outcome with the
+summary through the party's room and compares it with what the other
+players' pages sent (`judgeMatchResult` in `gameResults.ts`, on
+`resultTrust.ts`; rules in [trust.md](trust.md)). When every player
+reported the same outcome the result is recorded as `party-agreed` and its
+card says "agreed by your party"; anything else, and every solo match, is
+`solo-unverified`. The page waits up to five seconds for the other reports
+before recording, so `result-status` for such a match can take that long.
 
 Both answer only where game pages do (development, or `GAMES_PREVIEW=1`).
 
 Firestore, per game:
 
-| Document                                    | Fields                                                                                                                      |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `gameResults/<game>/matches/<user>_<match>` | the result, plus `game`, `reporter`, `outcome` (`win`, `loss`, `draw`), `verified: false`, `source: "browser"`, `createdAt` |
-| `gameResults/<game>/standings/<user>`       | `userId`, `game`, `name`, `played`, `wins`, `verified: false`, `updatedAt`                                                  |
+| Document                                    | Fields                                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `gameResults/<game>/matches/<user>_<match>` | the result, plus `game`, `reporter`, `outcome` (`win`, `loss`, `draw`), `verified: false`, `trust`, `source: "browser"`, `createdAt` |
+| `gameResults/<game>/standings/<user>`       | `userId`, `game`, `name`, `played`, `wins`, `rankedPlayed`, `rankedWins` (agreed results only), `verified: false`, `updatedAt`       |
 
 A guest's result is shown but not kept. The card ("Ada beat Rally · 2 – 1",
 then the game's top players) shows for nine seconds; the visitor appears
@@ -128,7 +142,8 @@ spoke.
 
 ## Not built yet
 
--   Verification: results from every browser in a match share a match id,
-    so they can be compared, but nothing compares them yet.
+-   Server-side verification: the pages of a match compare their reports
+    and the server takes the reporting page's verdict; it does not yet
+    compare the members' stored records itself ([trust.md](trust.md)).
 -   A leaderboard outside the result card (a page or a lobby panel).
 -   Results for guests.

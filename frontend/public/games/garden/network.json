@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "hosts": [
+    "cyber.mypinata.cloud"
+  ],
+  "inlineScripts": [
+    "sha256-v1fZaV6SGhdWEIqVL+ILtNwG16fr5qNqFvQOqAMZpUk="
+  ]
+}
