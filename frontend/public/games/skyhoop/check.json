@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "game": "skyhoop",
+  "checkedAt": "2026-11-15T22:39:57.767Z",
+  "status": "passed",
+  "scope": "scenario",
+  "files": {
+    "count": 4,
+    "bytes": 1155213,
+    "largest": {
+      "path": "assets/index-BVv-YuIV.js",
+      "bytes": 933213
+    }
+  },
+  "findings": [],
+  "consoleErrors": [
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed",
+    "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+  ],
+  "run": {
+    "version": 1,
+    "status": "passed",
+    "backend": "webgpu",
+    "bootMs": 3514,
+    "stages": [
+      {
+        "stage": "boot",
+        "status": "passed",
+        "ms": 3514
+      },
+      {
+        "stage": "scenario",
+        "status": "passed",
+        "ms": 15445
+      },
+      {
+        "stage": "lifecycle",
+        "status": "passed",
+        "ms": 0
+      },
+      {
+        "stage": "frames",
+        "status": "passed",
+        "ms": 3017
+      }
+    ],
+    "frames": {
+      "count": 180,
+      "medianMs": 16.7,
+      "p95Ms": 16.7,
+      "worstMs": 16.8
+    },
+    "inspect": {
+      "booted": true,
+      "screen": "match",
+      "renderer": "webgpu",
+      "avatar": "figure",
+      "crowd": 11966,
+      "riders": 14,
+      "role": "runner",
+      "playerY": 31.7,
+      "holding": false,
+      "phase": "play",
+      "clock": 356,
+      "score": "0-0",
+      "holder": 3,
+      "wisp": false,
+      "winner": -1,
+      "distanceToComet": 141,
+      "hostPhase": "entered",
+      "hostFrames": 544
+    }
+  }
+}
