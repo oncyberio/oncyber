@@ -106,7 +106,12 @@ is read back from the camera it placed.
 -   `scale` is game units per lobby metre (avatar height / 1.8). Pace, jump
     and camera distance all scale with it.
 -   The kit has no collisions. `constrain(state)` is where the game clamps
-    `x` and `z` to its walls; the ground height is the game's to add.
+    `x` and `z` to its walls; the ground height is the game's to add. It is
+    handed the state after a step and nothing else, so for thin walls (a
+    pane of glass, a net) the game remembers the last position itself and
+    sweeps from it; `advance` also calls it on the pose it draws, which is a
+    copy, not `walker.state` (Padel: `createClubConstraint` in
+    `games/padel/src/club.js`).
 -   `walker.speed()` is in lobby metres per second; `GAIT.walk` (1.6) and
     `GAIT.run` (4.5) are the speeds the lobby's clips are authored at.
 -   A game with its own touch stick calls `controls.setStick(strafe, forward)`.
@@ -157,4 +162,4 @@ and exposes no walker fails.
 | ------ | ---------------------------------------------- | ------------ |
 | Ace    | Courtside after arrival, with the kit          | `lobby`      |
 | Garden | Its own controller (5.2 m/s; Shift slows down) | not declared |
-| Padel  | No free walk                                   | not declared |
+| Padel  | In its club, with the kit                      | `lobby`      |

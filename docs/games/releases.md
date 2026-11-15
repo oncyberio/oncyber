@@ -174,9 +174,6 @@ A plain IPFS gateway sends neither a per-release policy nor, always, CORS.
 A gateway used for production needs a proxy or a domain in front of it that
 adds the policy from each release's `network.json` (decision 2 below).
 
-Glasshouse Padel has its own page with a same-origin frame and keeps
-loading its committed build until it moves into the sandbox.
-
 ## The check
 
 `pnpm games:check <id>` runs a `hosted` stage after the browser check and

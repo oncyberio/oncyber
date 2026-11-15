@@ -34,7 +34,7 @@ corrupt"` is fine; the save itself is not.
    access for analytics, and the page already has the numbers below.
 6. `pnpm games:check <id>` fails with `HEALTH_ERROR_NOT_RECORDED` when
    rule 1 is missing. A game with its own page that reports nothing says
-   so in `game.json` (`"health": "none"`, Padel today).
+   so in `game.json` (`"health": "none"`; no game does today).
 
 Alias `@oncyber/game-runtime/health` to `games/runtime/src/health.ts` in
 the game's Vite config, as Ace and the garden do.

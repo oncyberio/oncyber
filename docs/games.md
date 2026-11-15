@@ -211,15 +211,16 @@ with a party of four; open it in several windows to share the room.
 
 ## The games today
 
-| Game                       | Page                                                                                 | Lifecycle | Check                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------------------------------------- |
-| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | every stage but departure and locomotion; phone unclaimed |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room                 | yes       | every stage                                               |
-| Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | fails: no lifecycle, no brief, no bot                     |
+| Game                       | Page                                                                 | Lifecycle | Check                                                     |
+| -------------------------- | -------------------------------------------------------------------- | --------- | --------------------------------------------------------- |
+| Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                  | yes       | every stage but departure and locomotion; phone unclaimed |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room | yes       | every stage                                               |
+| Glasshouse Padel (`padel`) | shared `GamePage`, sandboxed, a shared club room (no relay)          | yes       | every stage; phone unclaimed                              |
 
 A listed game without the lifecycle or a scenario fails the check
-(`CONTRACT_NO_LIFECYCLE`, `CONTRACT_NO_SCENARIO`), so Padel can't be
-published again until it moves onto the lifecycle (and into the sandbox).
+(`CONTRACT_NO_LIFECYCLE`, `CONTRACT_NO_SCENARIO`). Padel was the third game
+moved onto the lifecycle and the shared page; what its own page did that
+the shared page does not is listed under "SDK and checks still owed".
 A game that isn't in the catalog gets a boot-only check: it must load, say
 `ready` and throw no page errors for five seconds. Garden's published build
 still greets with `garden:hello`; it keeps working and the check warns.
@@ -360,8 +361,18 @@ signal, `game.json` declares `arrival` and `party`, and the check has the
 arrival, handoff and party stages ([games/good-game.md](games/good-game.md)).
 Still owed:
 
--   **Padel** is not on the lifecycle or in the sandbox, and has no brief
-    and no bot; it fails the check until it is.
+-   **Padel** plays NPC doubles only (no match between people), does not
+    claim the phone, and keeps its own bodies on court: the avatar kit
+    cannot play a game's own motion capture on its rig.
+-   **What Padel's own page did that the shared page does not**: an avatar
+    picker and a live avatar change during the visit; the lobby's emote
+    panel and its 1 to 9 shortcuts (a game gets the kit's four emotes on
+    keys it declares itself); a way for the page to ask the game to open
+    something (its Play and Settings buttons) and for the game to tell the
+    page it is in a match so the page gets out of the way; the lobby's
+    world reveal and dissolve around an arriving or leaving avatar; a
+    Reconnect button when the room drops; and click-to-walk, which needs a
+    pointer position no declared action can carry.
 -   **Bloom Garden** still speaks `garden:<kind>` (it should move to
     `connectPage()` and read the visit from `enter()`), has no matched
     departure, does not claim the phone, and draws its avatars, arrival

@@ -144,11 +144,17 @@ Tell the browser half how to reach play, in `game.json`:
 `start` is keys to press from the first screen, `ready` is what `probe()`
 must report before the test begins, `move` is a key that moves the player.
 With `move` set, the check also fails if that key does not move the player
-in play, since then it would prove nothing.
+in play, since then it would prove nothing. The key is held several times
+(before typing, as focus leaves, after resuming), so pick a place and a
+direction with room: Padel's server stands in a box a few metres wide and
+ran into its edge, so its check walks the club instead
+(`"ready": { "screen": "arrival" }, "move": "KeyW"`). A walker keeps gliding
+after its keys are let go: stop it dead in `inputPaused`
+(`walker.place({})`), or the visitor slides while they type.
 
 `"keysCheck": { "legacy": true }` lists the scan's findings as warnings and
 skips the browser half. It is for a game that still runs on a page of its
-own (Padel); a game on the shared `GamePage` must not use it.
+own (none today); a game on the shared `GamePage` must not use it.
 
 Tests: `pnpm games:test` (runtime and the check, including a fixture game
 that breaks the rule on purpose) and

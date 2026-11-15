@@ -86,8 +86,11 @@ the game greeted in, and asserts on the output's `inspect()` facts:
 | `SOUND_BYPASS`        | A node was connected to a destination, or a media element played. |
 
 So a game with sound must be making some within a few seconds of loading
-(music, an ambient bed). A game that never answers is reported as `skipped`
-unless it declares `audio`; a silent game is fine.
+(music, an ambient bed). Every later step reads the level at one moment
+too, so short one-shot sounds alone do not pass, however many there are:
+Padel, whose sound is all Foley, added a very quiet open-air bed for this.
+A game that never answers is reported as `skipped` unless it declares
+`audio`; a silent game is fine.
 
 The stage has its own test against small fixture games, in headless
 Chromium: `node --test scripts/games/sound-check.test.mjs`.

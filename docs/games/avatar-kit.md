@@ -104,6 +104,16 @@ A game with its own avatar code (Garden's DOM-free reader) can keep it: pass
 `load` to the kit, or report the same facts itself with `drawProbe()`
 (`@oncyber/avatar-kit/probe`) as Garden does.
 
+Not built: a way to play a game's own clips on the kit's rig. `addClips`
+takes lobby clips only, so a game with its own motion either poses the
+bones by hand (`manual`, Ace) or keeps separate bodies for play and loads
+the visitor's avatar a second time from the same bytes (Padel's match
+bodies, `games/padel/src/avatars.js`). The kit also has no avatar for an
+NPC, and its stand-in body has near-black legs that the departure stage
+cannot tell from the black frame; the check's main visit sends no avatar,
+so a game that shows the stand-in there fails `DEPARTURE_MISMATCH` (Padel
+gives a visitor without an avatar its house avatar instead).
+
 ## The check
 
 `pnpm games:check <id>` runs an avatar stage
