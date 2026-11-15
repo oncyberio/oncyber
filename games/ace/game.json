@@ -1,4 +1,176 @@
 {
   "name": "ACE! Tennis",
-  "avatar": "pfp"
+  "avatar": "vrm",
+  "arrival": {
+    "walkable": true
+  },
+  "party": {
+    "sizes": [
+      1,
+      8
+    ],
+    "formats": [
+      {
+        "id": "singles",
+        "label": "1 v 1",
+        "sizes": [
+          2
+        ]
+      },
+      {
+        "id": "doubles",
+        "label": "2 v 2",
+        "sizes": [
+          4
+        ]
+      },
+      {
+        "id": "tournament",
+        "label": "Tournament",
+        "sizes": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "id": "cpu",
+        "label": "Solo vs CPU",
+        "sizes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ]
+  },
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game.js",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "avatar",
+      "storage",
+      "travel"
+    ],
+    "assets": [],
+    "input": {
+      "up": {
+        "keyboard": [
+          "KeyW",
+          "ArrowUp"
+        ],
+        "gamepad": "dpad-up"
+      },
+      "down": {
+        "keyboard": [
+          "KeyS",
+          "ArrowDown"
+        ],
+        "gamepad": "dpad-down"
+      },
+      "left": {
+        "keyboard": [
+          "KeyA",
+          "ArrowLeft"
+        ],
+        "gamepad": "dpad-left"
+      },
+      "right": {
+        "keyboard": [
+          "KeyD",
+          "ArrowRight"
+        ],
+        "gamepad": "dpad-right"
+      },
+      "moveX": {
+        "touch": "stick",
+        "gamepad": "left-stick-x"
+      },
+      "moveY": {
+        "touch": "stick",
+        "gamepad": "left-stick-y"
+      },
+      "flat": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "hit",
+        "gamepad": "button-a"
+      },
+      "topspin": {
+        "keyboard": [
+          "KeyK"
+        ],
+        "touch": "top",
+        "gamepad": "button-x"
+      },
+      "slice": {
+        "keyboard": [
+          "KeyH"
+        ],
+        "touch": "cut",
+        "gamepad": "button-b"
+      },
+      "lob": {
+        "keyboard": [
+          "KeyU"
+        ],
+        "touch": "lob",
+        "gamepad": "button-y"
+      },
+      "drop": {
+        "touch": "drop",
+        "gamepad": "left-bumper"
+      },
+      "confirm": {
+        "keyboard": [
+          "Enter",
+          "Space",
+          "KeyJ"
+        ],
+        "touch": "hit",
+        "gamepad": "button-a"
+      },
+      "back": {
+        "keyboard": [
+          "Escape",
+          "Backspace",
+          "KeyK"
+        ],
+        "gamepad": "button-b"
+      },
+      "pause": {
+        "keyboard": [
+          "Escape",
+          "KeyP"
+        ],
+        "gamepad": "button-start"
+      },
+      "mute": {
+        "keyboard": [
+          "KeyM"
+        ]
+      },
+      "lookX": {
+        "touch": "drag"
+      }
+    }
+  }
 }

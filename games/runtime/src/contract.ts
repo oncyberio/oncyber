@@ -1,0 +1,210 @@
+/**
+ * The one contract between a game and the page that hosts it: what a visit
+ * hands to `enter()` (how the visitor arrived, and with whom), and the one
+ * message prefix both sides speak. Pure data and readers: no DOM, usable in
+ * the game, the page's tests and the check script. See docs/games/contract.md.
+ *
+ * `frontend/features/games/gameContract.ts` is the page's half; a test in
+ * games/runtime/test/contract.test.mjs keeps the two in step.
+ */
+
+/** Raised when the messages or the enter data change shape. */
+export const CONTRACT_VERSION = 2;
+
+/** Every game message is `oncyber:game:<kind>`, whatever the game's id. */
+export const GAME_MESSAGE_PREFIX = "oncyber:game:";
+
+/** Games built before contract 2 say `<id>:<kind>`; the page still answers them. */
+export const legacyMessagePrefix = (gameId: string) => `${gameId}:`;
+
+/**
+ * The kind of a game message, or null when `type` isn't one. With `gameId`,
+ * the game's old `<id>:<kind>` form is read too.
+ */
+export function gameMessageKind(type: unknown, gameId?: string): string | null {
+    if (typeof type !== "string") return null;
+    for (const prefix of gameId
+        ? [GAME_MESSAGE_PREFIX, legacyMessagePrefix(gameId)]
+        : [GAME_MESSAGE_PREFIX])
+        if (
+            type.startsWith(prefix) &&
+            /^[a-z][a-z-]{0,31}$/.test(type.slice(prefix.length))
+        )
+            return type.slice(prefix.length);
+    return null;
+}
+
+export interface Offset {
+    x: number;
+    y: number;
+    z: number;
+}
+/**
+ * The lobby's last third-person frame, relative to the avatar's feet, so a
+ * game can stand the visitor in the same framing before it is revealed.
+ */
+export interface ArrivalView {
+    cameraOffset: Offset;
+    cameraTargetOffset: Offset;
+    /** Radians, the avatar's facing in the lobby. */
+    avatarRotation: number;
+    /** Metres; 1.8 when the lobby didn't say. */
+    avatarHeight: number;
+    /** Vertical field of view in degrees. */
+    fov: number;
+    cameraMode: "first-person" | "third-person";
+}
+export interface Arrival {
+    /** `lobby`: travelled here and is revealed in place. `direct`: opened the game's page. */
+    from: "lobby" | "direct";
+    /** Null on a direct visit, or when the lobby sent no camera. */
+    view: ArrivalView | null;
+}
+/** Public presentation fields only. A hint for matchmaking, never proof of who someone is. */
+export interface TripMember {
+    id: string;
+    name: string;
+    pfp: string;
+    avatarUrl: string;
+}
+/** The party a visitor travelled with. */
+export interface Trip {
+    /** Same for every member of this trip. Seed shared draws with it. */
+    id: string;
+    /** The party's own room; `self`, `arrived` and relayed packets come from it. */
+    room: string;
+    /** Members including the visitor, two to eight. */
+    size: number;
+    /** The other members the lobby named on the way in (lobby ids). */
+    members: TripMember[];
+    /** The visitor's id in the party room; empty until the room connects. */
+    self: string;
+    /**
+     * The other members now in the party room (room ids, the same on every
+     * member's screen). Once this isn't empty it is who actually arrived.
+     */
+    arrived: TripMember[];
+}
+/** What the page sends as `enter`: the part of `enter()`'s data only it knows. */
+export interface EnterData {
+    arrival: Arrival;
+    trip: Trip | null;
+}
+
+export const DIRECT_ENTER: EnterData = Object.freeze({
+    arrival: Object.freeze({ from: "direct", view: null }) as Arrival,
+    trip: null,
+});
+
+const MAX_OTHERS = 7;
+const text = (value: unknown, max: number) =>
+    typeof value === "string" ? value.trim().slice(0, max) : "";
+const offset = (v: any): Offset | null =>
+    v &&
+    [v.x, v.y, v.z].every(
+        (n: unknown) =>
+            typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1000
+    )
+        ? { x: v.x, y: v.y, z: v.z }
+        : null;
+
+/** A bounded copy of an arrival view; null when malformed. */
+export function readArrivalView(value: any): ArrivalView | null {
+    const cameraOffset = offset(value?.cameraOffset),
+        cameraTargetOffset = offset(value?.cameraTargetOffset);
+    if (!cameraOffset || !cameraTargetOffset) return null;
+    if (
+        typeof value.avatarRotation !== "number" ||
+        !Number.isFinite(value.avatarRotation) ||
+        Math.abs(value.avatarRotation) > 1e6
+    )
+        return null;
+    if (!(typeof value.fov === "number" && value.fov > 5 && value.fov < 150))
+        return null;
+    return {
+        cameraOffset,
+        cameraTargetOffset,
+        avatarRotation: value.avatarRotation,
+        avatarHeight:
+            typeof value.avatarHeight === "number" &&
+            value.avatarHeight >= 0.2 &&
+            value.avatarHeight <= 10
+                ? value.avatarHeight
+                : 1.8,
+        fov: value.fov,
+        cameraMode:
+            value.cameraMode === "first-person"
+                ? "first-person"
+                : "third-person",
+    };
+}
+
+function readMembers(value: unknown): TripMember[] {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set<string>();
+    const members: TripMember[] = [];
+    for (const item of value.slice(0, 32)) {
+        const id = text(item?.id, 64);
+        if (!id || seen.has(id) || members.length >= MAX_OTHERS) continue;
+        seen.add(id);
+        members.push({
+            id,
+            name: text(item?.name, 24) || "Player",
+            pfp: text(item?.pfp, 2048),
+            avatarUrl: text(item?.avatarUrl, 2048),
+        });
+    }
+    return members;
+}
+
+/** A bounded copy of a trip; null when alone or malformed. */
+export function readTrip(value: any): Trip | null {
+    const id = text(value?.id, 96);
+    if (!id) return null;
+    const members = readMembers(value.members),
+        arrived = readMembers(value.arrived);
+    const size = Number.isInteger(value.size)
+        ? Math.max(2, Math.min(MAX_OTHERS + 1, value.size))
+        : 0;
+    return {
+        id,
+        room: text(value.room, 160),
+        size: Math.max(size, members.length + 1, arrived.length + 1, 2),
+        members,
+        self: text(value.self, 64),
+        arrived,
+    };
+}
+
+/** Never throws: anything malformed reads as a direct, solo visit. */
+export function readEnterData(value: any): EnterData {
+    const from = value?.arrival?.from === "lobby" ? "lobby" : "direct";
+    return {
+        arrival: {
+            from,
+            view: from === "lobby" ? readArrivalView(value.arrival.view) : null,
+        },
+        trip: readTrip(value?.trip),
+    };
+}
+
+/**
+ * Everyone in the party, the visitor first, with ids every member agrees
+ * on when possible: the party room's ids once anyone else has arrived,
+ * until then the members the lobby named.
+ */
+export function tripPlayers(
+    trip: Trip | null,
+    me: { name: string }
+): Array<{ id: string; name: string }> {
+    if (!trip) return [{ id: "self", name: me.name }];
+    if (trip.self && trip.arrived.length)
+        return [
+            { id: trip.self, name: me.name },
+            ...trip.arrived.map(({ id, name }) => ({ id, name })),
+        ];
+    return [
+        { id: "self", name: me.name },
+        ...trip.members.map(({ id, name }) => ({ id, name })),
+    ];
+}

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-14T15:30:01.018Z",
-  "status": "passed",
+  "checkedAt": "2026-11-14T17:59:49.894Z",
+  "status": "failed",
   "scope": "boot",
   "files": {
     "count": 21,
@@ -12,19 +12,53 @@
       "bytes": 2000023
     }
   },
-  "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  "findings": [
+    {
+      "code": "MANIFEST_INVALID",
+      "message": "arrival is required: { \"walkable\": true | false }"
+    },
+    {
+      "code": "MANIFEST_INVALID",
+      "message": "party is required: { \"sizes\": [min, max], \"formats\": [...] }"
+    },
+    {
+      "code": "CONTRACT_NO_LIFECYCLE",
+      "message": "games/padel/game.json has no \"runtime\" block: a listed game runs through the lifecycle (docs/games/contract.md)"
+    },
+    {
+      "code": "CONTRACT_NO_SCENARIO",
+      "message": "games/padel/scenario.json is missing: a listed game proves it works with a scenario"
+    }
   ],
+  "consoleErrors": [],
+  "contract": {
+    "listed": true,
+    "prefix": "padel:",
+    "version": 1,
+    "visit": {
+      "arrival": "direct",
+      "party": 0
+    },
+    "warnings": [
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "src/main.js still says \"padel:<kind>\"; use connectPage() from @oncyber/game-runtime/page"
+      },
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "the build greets with \"padel:hello\"; rebuild it on connectPage() to speak \"oncyber:game:\""
+      }
+    ]
+  },
   "run": {
     "status": "passed",
     "backend": "unknown",
-    "bootMs": 277,
+    "bootMs": 514,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 277
+        "ms": 514
       }
     ],
     "frames": null,

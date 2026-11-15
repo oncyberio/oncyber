@@ -28,6 +28,16 @@ import {
     type GameParty,
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
+import {
+    enterMessage,
+    gameMessageTypes,
+    gameTrip,
+    readGameDeclaration,
+    readGameMessage,
+    tripKey,
+    type GameDialect,
+    type GameRoomMember,
+} from "./gameContract";
 
 const PEER_INTERVAL = 100;
 
@@ -63,7 +73,9 @@ const GAME_SANDBOX = "allow-scripts allow-pointer-lock";
 /**
  * A game from public/games/<id> in a sandboxed frame. The page owns identity,
  * the shared room, voice and the game's saved values; the game renders
- * everything, avatars included. Messages are `<id>:<kind>` on both sides.
+ * everything, avatars included. Messages are `oncyber:game:<kind>` on both
+ * sides (docs/games/contract.md); a build from before that still says
+ * `<id>:<kind>` and is answered the same way.
  */
 export default function GamePage({ game }: { game: GameEntry }) {
     const {
@@ -96,6 +108,33 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const send = useRef((message: object) =>
         frame.current?.contentWindow?.postMessage(message, "*")
     );
+    // The form the game greeted with; until then both forms go out.
+    const dialect = useRef<GameDialect | null>(null);
+    const postGame = useRef((kind: string, data: object = {}) => {
+        for (const type of gameMessageTypes(GAME, kind, dialect.current))
+            send.current({ type, ...data });
+    });
+    const kindOf = (event: MessageEvent) =>
+        readGameMessage(event.data?.type, GAME)?.kind;
+    // The party as the game sees it: the lobby's members plus the party
+    // room's facts (the visitor's room id, who has arrived).
+    const roomFacts = useRef({ self: "", arrived: [] as GameRoomMember[] });
+    const sentIdentityRef = useRef(false);
+    const tripNow = () =>
+        gameTrip(
+            partyRef.current,
+            partyRef.current ? partyRoomLabel(GAME, partyRef.current.id) : "",
+            roomFacts.current.self,
+            roomFacts.current.arrived
+        );
+    const lastTrip = useRef("");
+    const announceTrip = useRef((force = false) => {
+        const trip = tripNow();
+        if (!sentIdentityRef.current) return;
+        if (!force && tripKey(trip) === lastTrip.current) return;
+        lastTrip.current = tripKey(trip);
+        postGame.current("party", { party: trip });
+    });
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
@@ -109,6 +148,9 @@ export default function GamePage({ game }: { game: GameEntry }) {
         let disposed = false;
         let greeted = false;
         let sentIdentity = false;
+        let sentEnter = false;
+        // What a contract game declared in hello; null waits as before.
+        let walkable: boolean | null = null;
         let prepared = false;
         let failed = false;
         let approved: GameIdentity | null = null;
@@ -117,12 +159,20 @@ export default function GamePage({ game }: { game: GameEntry }) {
         let announcedEntry = false;
         let focusFrame = 0;
         const entryLifetime = new AbortController();
-        const post = (type: string, data: object = {}) =>
-            send.current({ type: `${GAME}:${type}`, ...data });
+        const post = postGame.current;
         const announceParty = (next: GameParty | null) => {
             partyRef.current = next;
             setParty(next);
-            if (sentIdentity) post("party", { party: next });
+            announceTrip.current();
+        };
+        // The page's part of the lifecycle's enter() data, once per visit:
+        // with the identity on a direct visit, with the lobby's final view
+        // on a trip.
+        const sendEnter = (view?: unknown) => {
+            if (sentEnter || !sentIdentity || dialect.current === "legacy")
+                return;
+            sentEnter = true;
+            post("enter", enterMessage(inJourney, view, tripNow()));
         };
         announceParty(
             gameParty(readLobbyGroupCohort()) ??
@@ -130,12 +180,13 @@ export default function GamePage({ game }: { game: GameEntry }) {
         );
         const deliverIdentity = () => {
             if (!disposed && greeted && approved && !sentIdentity) {
-                sentIdentity = true;
+                sentIdentity = sentIdentityRef.current = true;
                 post("identity", {
                     ...approved,
                     storage: readGameStorage(GAME),
                 });
-                post("party", { party: partyRef.current });
+                announceTrip.current(true);
+                if (!inJourney) sendEnter();
                 setIdentity(approved);
             }
         };
@@ -147,6 +198,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 focusFrame = 0;
                 if (disposed || failed || entryLifetime.signal.aborted) return;
                 frame.current?.focus();
+                sendEnter();
                 post("entered");
             });
         };
@@ -158,9 +210,10 @@ export default function GamePage({ game }: { game: GameEntry }) {
             post("dispose");
         };
         // Just before the lobby reveals the game it sends its final
-        // third-person view. The game may stand the visitor in the same
-        // framing (`arrival`) and answer `arrival-ready`; games that don't
-        // know the message are revealed as they are after a short wait.
+        // third-person view. The game gets it in `enter` (`arrival` for
+        // older builds), may stand the visitor in the same framing and
+        // answers `arrival-ready`. Games that declared they aren't walkable
+        // are revealed at once; silent ones after a short wait.
         let arrivalStaged: (() => void) | null = null;
         const stageArrival = (options: { travelView?: unknown }) =>
             new Promise<void>((resolve) => {
@@ -179,7 +232,11 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     const next = gameParty(partyRef.current.id, view.peers);
                     if (next) announceParty(next);
                 }
-                post("arrival", { view: view ?? null });
+                sendEnter(view);
+                if (dialect.current !== "contract")
+                    post("arrival", { view: view ?? null });
+                if (dialect.current === "contract" && walkable === false)
+                    done();
             });
         const unregister = registerLobbyDestinationEntry(
             async () => {},
@@ -216,23 +273,27 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 return;
             }
             if (!fromGame(event)) return;
-            const type = event.data?.type;
-            if (type === `${GAME}:arrival-ready`) {
+            const message = readGameMessage(event.data?.type, GAME);
+            const type = message?.kind;
+            if (type === "arrival-ready") {
                 arrivalStaged?.();
-            } else if (type === `${GAME}:storage`) {
+            } else if (type === "storage") {
                 writeGameStorage(GAME, event.data.key, event.data.value);
-            } else if (type === `${GAME}:hello`) {
+            } else if (type === "hello") {
                 greeted = true;
+                dialect.current = message.dialect;
+                if (message.dialect === "contract")
+                    walkable = readGameDeclaration(event.data).walkable;
                 deliverIdentity();
-            } else if (type === `${GAME}:ready` && !prepared && !failed) {
+            } else if (type === "ready" && !prepared && !failed) {
                 prepared = true;
                 clearTimeout(watchdog);
                 setReady(true);
                 lobbyDestinationPrepared();
                 announceEntry();
-            } else if (type === `${GAME}:exit` && greeted) {
+            } else if (type === "exit" && greeted) {
                 leave.current();
-            } else if (type === `${GAME}:error` && greeted && !prepared) {
+            } else if (type === "error" && greeted && !prepared) {
                 fail(
                     `${gameName} couldn’t load. It needs a browser with WebGPU or WebGL 2.`,
                     `${GAME}-load-failed`
@@ -317,7 +378,11 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     const id = gameRoom.sessionId;
                     if (id && id !== introduced) {
                         introduced = id;
-                        send.current({ type: `${GAME}:self`, id });
+                        postGame.current("self", { id });
+                        if (party) {
+                            roomFacts.current.self = id;
+                            announceTrip.current();
+                        }
                     }
                 }
             },
@@ -325,33 +390,36 @@ export default function GamePage({ game }: { game: GameEntry }) {
         );
         if (relay)
             gameRoom.onRelay((from, data) =>
-                send.current({ type: `${GAME}:net`, from, data })
+                postGame.current("net", { from, data })
             );
         setRoom(gameRoom);
         void gameRoom.connect();
         const receive = (event: MessageEvent) => {
             if (!fromGame(event)) return;
-            if (relay && event.data?.type === `${GAME}:net`) {
+            const kind = kindOf(event);
+            if (relay && kind === "net") {
                 gameRoom.relay(event.data.data);
                 return;
             }
-            if (event.data?.type !== `${GAME}:pose`) return;
+            if (kind !== "pose") return;
             const pose = readPose(event.data);
             if (pose) gameRoom.setPose(pose);
         };
         window.addEventListener("message", receive);
-        const timer = setInterval(
-            () =>
-                send.current({
-                    type: `${GAME}:peers`,
-                    players: gameRoom.samplePeers(),
-                }),
-            PEER_INTERVAL
-        );
+        const timer = setInterval(() => {
+            const players = gameRoom.samplePeers();
+            postGame.current("peers", { players });
+            // In a party's room, the roster is who has arrived.
+            if (party) {
+                roomFacts.current.arrived = players;
+                announceTrip.current();
+            }
+        }, PEER_INTERVAL);
         return () => {
             clearInterval(timer);
             window.removeEventListener("message", receive);
-            send.current({ type: `${GAME}:peers`, players: [] });
+            postGame.current("peers", { players: [] });
+            roomFacts.current = { self: "", arrived: [] };
             setRoom(null);
             setRoomState(null);
             void gameRoom.close();

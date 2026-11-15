@@ -1,34 +1,84 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-14T16:29:14.043Z",
+  "checkedAt": "2026-11-14T18:20:00.065Z",
   "status": "passed",
-  "scope": "boot",
+  "scope": "scenario",
   "files": {
     "count": 6,
-    "bytes": 1793057,
+    "bytes": 1809587,
     "largest": {
-      "path": "assets/index-BU5Tm5Rq.js",
-      "bytes": 944572
+      "path": "assets/index-DIYw8mI3.js",
+      "bytes": 961102
     }
   },
   "findings": [],
-  "consoleErrors": [
-    "Failed to load resource: the server responded with a status of 404 (Not Found)"
-  ],
+  "consoleErrors": [],
+  "contract": {
+    "listed": true,
+    "prefix": "oncyber:game:",
+    "version": 2,
+    "visit": {
+      "arrival": "lobby",
+      "party": 4
+    },
+    "warnings": []
+  },
   "run": {
+    "version": 1,
     "status": "passed",
-    "backend": "unknown",
-    "bootMs": 168,
+    "backend": "webgl2",
+    "bootMs": 1726,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 168
+        "ms": 1726
+      },
+      {
+        "stage": "scenario",
+        "status": "passed",
+        "ms": 132237
+      },
+      {
+        "stage": "lifecycle",
+        "status": "passed",
+        "ms": 0
+      },
+      {
+        "stage": "frames",
+        "status": "passed",
+        "ms": 69440
       }
     ],
-    "frames": null,
-    "inspect": null,
-    "bootOnly": true
+    "frames": {
+      "count": 180,
+      "medianMs": 383.3,
+      "p95Ms": 466.7,
+      "worstMs": 483.4
+    },
+    "inspect": {
+      "booted": true,
+      "screen": "pause",
+      "arrival": "lobby",
+      "standing": true,
+      "walked": true,
+      "partySize": 4,
+      "partyFormats": "doubles,tournament,cpu",
+      "partyFormat": "tournament",
+      "difficulty": "pro",
+      "length": 2,
+      "phase": "rally",
+      "server": 0,
+      "points": "0-0",
+      "games": "0-0",
+      "rally": 0,
+      "muted": false,
+      "hostPhase": "entered",
+      "hostFrames": 554,
+      "hostArrival": "lobby",
+      "hostParty": 4,
+      "hostPartyArrived": 4
+    }
   }
 }

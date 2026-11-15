@@ -23,12 +23,30 @@ export interface GameManifest {
     input: Record<string, InputBinding>;
 }
 
+// Shared types by area. Add an area as its own file and re-export it here,
+// one line per file, so index.ts stays the single import for games.
+export * from "./contract.ts";
+export * from "./manifest.ts";
+import { readArrivalView, readTrip, type Arrival, type Trip } from "./contract.ts";
+
 export type Json = null | string | number | boolean | Json[] | { [key: string]: Json };
 export type Vec3 = [number, number, number];
+/**
+ * What `enter()` receives. `avatar`, `camera` and `party` are poses in the
+ * game's own space, chosen by the game's host. `arrival` and `trip` are the
+ * page's facts about this visit (contract.ts); a host that has no page (a
+ * test, a standalone build) leaves them out and the game treats that as a
+ * direct, solo visit.
+ */
 export interface Continuity {
     avatar: { id: string; asset?: string; position: Vec3; rotation: [number, number, number, number] };
     camera: { position: Vec3; target: Vec3; fov: number; mode: string };
+    /** Where companions stand at hand-over, for visual continuity only. */
     party: Array<{ id: string; position: Vec3; rotation: [number, number, number, number] }>;
+    /** How the visitor got here, with the lobby's last camera when it travelled. */
+    arrival?: Arrival;
+    /** Who travelled together, and the party's room; null when alone. */
+    trip?: Trip | null;
 }
 export type Phase = "created" | "preparing" | "ready" | "entered" | "suspended" | "failed" | "disposed";
 export interface GraphicsSurface {
@@ -50,7 +68,7 @@ export interface GraphicsSurface {
     }>;
 }
 export interface HostServices {
-    identity: { id: string; name: string; avatar?: string };
+    identity: { id: string; name: string; avatar?: string; pfp?: string };
     /** Only this release's declared files; host resolves paths and validates hashes. */
     asset(path: string, signal: AbortSignal): Promise<ArrayBuffer>;
     /** Permission-checked operations. Raw host credentials never enter game code or its UI. */
@@ -84,6 +102,11 @@ export interface PortableGame {
     dispose(): Promise<void> | void;
     /** Game-specific scenario assertions; independent host checks still always run. */
     inspect(): Record<string, Json>;
+    /**
+     * Optional. The trip changed after `enter()`: a member arrived in the
+     * party's room or left it. Never called before `enter()`.
+     */
+    party?(trip: Trip | null): void;
 }
 export type GameFactory = (context: GameContext) => PortableGame;
 export interface RuntimeOptions {
@@ -145,6 +168,8 @@ export class RuntimeSession {
     private pendingUI: Json | undefined;
     private stop?: Promise<void>;
     private options: RuntimeOptions;
+    /** What the last `enter()` was told about the visit; the checks read it through `inspect()`. */
+    private visit: { arrival: string; trip: Trip | null } = { arrival: "", trip: null };
     constructor(factory: GameFactory, options: RuntimeOptions) {
         this.options = options;
         for (const key of Object.keys(options.manifest.input)) this.input[key] = this.deltas[key] = 0;
@@ -212,9 +237,21 @@ export class RuntimeSession {
     enter(continuity: Continuity) { return this.serial(async () => {
         if (this.phase !== "ready") throw new Error("RUNTIME_PHASE");
         // A copy prevents a world from modifying the trusted travel snapshot.
-        await this.bounded(() => this.game.enter(JSON.parse(JSON.stringify(continuity))));
+        const copy: Continuity = JSON.parse(JSON.stringify(continuity));
+        if (copy.arrival) copy.arrival = copy.arrival.from === "lobby"
+            ? { from: "lobby", view: readArrivalView(copy.arrival.view) } : { from: "direct", view: null };
+        if (copy.trip !== undefined) copy.trip = readTrip(copy.trip);
+        this.visit = { arrival: copy.arrival?.from ?? "", trip: copy.trip ?? null };
+        await this.bounded(() => this.game.enter(copy));
         this.phase = "entered";
     }); }
+    /** The host's news that the trip changed. Ignored until the game has entered. */
+    party(trip: Trip | null) {
+        this.assertLive();
+        if (this.phase !== "entered" && this.phase !== "suspended") return;
+        this.visit.trip = readTrip(trip);
+        this.game.party?.(readTrip(trip));
+    }
     suspend() { return this.serial(async () => {
         if (this.phase !== "entered") throw new Error("RUNTIME_PHASE");
         this.phase = "suspended"; this.clearInput();
@@ -252,7 +289,12 @@ export class RuntimeSession {
             }
         } catch (error) { this.phase = "failed"; this.lifetime.abort(); throw error; }
     }
-    inspect() { return compactJSON({ ...this.game.inspect(), hostPhase: this.phase, hostFrames: this.frames }); }
+    inspect() {
+        const { arrival, trip } = this.visit;
+        return compactJSON({ ...this.game.inspect(), hostPhase: this.phase, hostFrames: this.frames,
+            // What enter() was handed: "" when the game's host passed no arrival.
+            hostArrival: arrival, hostParty: trip?.size ?? 0, hostPartyArrived: trip ? trip.arrived.length + 1 : 0 });
+    }
     dispose(): Promise<void> {
         if (this.stop) return this.stop;
         this.lifetime.abort(); this.clearInput(); this.phase = "disposed"; this.pendingUI = undefined;
@@ -273,6 +315,11 @@ export class RuntimeSession {
 
 export interface Scenario {
     version: 1;
+    /**
+     * The visit the check stages before the steps run. Defaults: a lobby
+     * arrival when game.json says `arrival.walkable`, else direct; no party.
+     */
+    enter?: { arrival?: "lobby" | "direct"; party?: number };
     steps: Array<{ type: "action"; action: string; value?: number } |
         { type: "wait"; frames: number } |
         { type: "waitUntil"; key: string; equals: string | number | boolean; maxFrames: number } |

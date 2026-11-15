@@ -17,6 +17,7 @@
 // Needs Playwright with Chromium (`npm i -g playwright && npx playwright
 // install chromium`, or set NODE_PATH to a node_modules that has it).
 // PW_CHANNEL=chrome uses the installed Chrome instead (a real GPU).
+// GAMES_CHECK_TIMEOUT_S=600 waits longer for the report (default 180).
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -24,6 +25,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contractFindings, enterFindings, harnessScript } from "./contract-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -37,8 +39,10 @@ const source = join(root, "games", id);
 const out = join(root, "frontend/public/games", id);
 if (!existsSync(join(source, "game.json"))) fail(`games/${id}/game.json not found`);
 const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
-// Games on the lifecycle play their scenario; others only prove they boot.
+// Games on the lifecycle play their scenario; others only prove they boot,
+// which passes only for a game the catalog doesn't list (contract-check.mjs).
 const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
+const contract = contractFindings({ root, id, manifest });
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -103,7 +107,8 @@ addEventListener("message", (event) => {
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
-</script>`;
+</script>
+<script>${harnessScript(id, contract.visit)}</script>`;
 
 function serve() {
     const server = createServer((req, res) => {
@@ -127,6 +132,7 @@ function serve() {
 async function check() {
     const files = bundleFiles();
     const scan = staticScan(files);
+    scan.findings.push(...contract.findings);
     let chromium;
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
@@ -136,7 +142,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null;
+    let report = null, gameError = null, readyAt = null, greeted = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -146,7 +152,8 @@ async function check() {
             pageErrors.push(String(e.message).slice(0, 500));
         });
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
-        const deadline = Date.now() + 180_000;
+        // Software rendering (no GPU) can need longer: GAMES_CHECK_TIMEOUT_S.
+        const deadline = Date.now() + (Number(process.env.GAMES_CHECK_TIMEOUT_S) || 180) * 1000;
         while (Date.now() < deadline && !report && !gameError && !(readyAt && !lifecycle)) {
             await page.waitForTimeout(500);
             ({ report, gameError, readyAt } = await page.evaluate(() => ({ report: window.__report ?? null, gameError: window.__gameError ?? null, readyAt: window.__readyAt ?? null })));
@@ -156,12 +163,16 @@ async function check() {
             await page.waitForTimeout(5000);
             report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
+        greeted = await page.evaluate(() => window.__contract ?? null);
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
     } finally {
         await browser.close();
         server.close();
     }
+    const entry = enterFindings({ id, contract: greeted, visit: contract.visit, report });
+    scan.findings.push(...entry.findings);
+    const warnings = [...contract.warnings, ...entry.warnings];
     const result = {
         version: 1,
         game: id,
@@ -180,12 +191,15 @@ async function check() {
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),
+        // The one contract: the form the build greeted in and the visit staged.
+        contract: { listed: contract.listed, prefix: greeted?.prefix ?? null, version: greeted?.version ?? null, visit: contract.visit, warnings },
         run: report,
     };
     writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
+    for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
     return { result, files };

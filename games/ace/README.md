@@ -8,22 +8,26 @@ Open `/games/ace` on the local frontend (`pnpm dev:frontend`). It is hidden unti
 
 ## Arriving from the lobby
 
-A lobby trip ends courtside in the lobby's own third-person framing: the page
-sends the lobby camera (`ace:arrival`), the game stands the visitor beside the
-near baseline with the same camera offset and field of view, facing the
-camera and crouched as the lobby left them, then standing up, and answers
-`ace:arrival-ready`. From there WASD walks, dragging looks around, and
-**Play match** (Enter) opens the match setup. Leaving a match or the setup
-returns here. A direct visit to `/games/ace` opens on the title screen instead.
+Ace runs through the lifecycle (`docs/games/contract.md`). `enter()` says
+how the visitor arrived. A lobby trip ends courtside in the lobby's own
+third-person framing: `continuity.arrival.view` is the lobby camera, the
+game stands the visitor beside the near baseline with the same camera offset
+and field of view, facing the camera and crouched as the lobby left them.
+The host holds the clock until the lobby lets go, then they stand up. From
+there WASD walks, dragging looks around, and **Play match** (Enter) opens the
+match setup. Leaving a match or the setup returns here. A direct visit to
+`/games/ace` opens on the title screen instead.
 
 ## Parties
 
-When the visitor arrived with a party (`ace:party`, then the party room's
-`ace:self` and `ace:peers`), **Play match** opens the party's formats first:
-1 v 1, 2 v 2, a tournament, or a solo match against the CPU. `src/party.js`
-decides the formats and builds the draw. Head-to-head play is not built yet;
-the draw is shown, and the solo match works. Try it with `?party=4` on the
-development server.
+When the visitor arrived with a party (`continuity.trip`, then `party(trip)`
+as members arrive in the party's room), **Play match** opens the party's
+formats first: 1 v 1, 2 v 2, a tournament, or a solo match against the CPU
+(arrows and Enter work too). `game.json` declares the formats by party size;
+`src/party.js` offers them and builds the draw, and a test keeps the two in
+step. Head-to-head play is not built yet; the draw is shown, and the solo
+match works. Try it with `?party=4` on the development server, or
+`?arrive&party=4` on the game's own dev server (`npm run dev`).
 
 ## How it plays
 
@@ -54,8 +58,10 @@ development server.
 | `src/world.js` | Stadium, crowd, sky and props |
 | `src/fx.js` | Particles, trail, shadow, markers, rings |
 | `src/audio.js` | All sound and music, synthesized with Web Audio |
-| `src/main.js` | Screens, HUD, camera and the frame loop |
-| `src/host.js` | Embedding: the Oncyber game page (`ace:*` messages, saved settings) or standalone |
+| `src/game.js` | The lifecycle game: screens, HUD, camera, one frame per `update()` |
+| `src/host.js` | The browser host: runs the lifecycle, the page bridge, saved settings, the check |
+| `src/actions.js` | The declared input actions read as moves, shots and menu events |
+| `src/input.js` | Mouse, touch and gamepad bound to the declared actions |
 
 Everything is procedural: no meshes, textures or samples to license. Text uses
 system fonts.
