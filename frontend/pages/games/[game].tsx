@@ -1,6 +1,7 @@
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import GamePage from "@features/games/GamePage";
+import GameDeviceGate from "@features/games/GameDeviceGate";
 import GamePauseGate from "@features/games/GamePauseGate";
 import {
     gamePause,
@@ -31,9 +32,11 @@ export default function GameRoute({
                 <title>{`${game.title} · Oncyber`}</title>
                 <meta name="robots" content="noindex,nofollow" />
             </Head>
-            <GamePauseGate game={game.id} title={game.title} pause={pause}>
-                <GamePage game={game} frame={frame} />
-            </GamePauseGate>
+            <GameDeviceGate game={game}>
+                <GamePauseGate game={game.id} title={game.title} pause={pause}>
+                    <GamePage game={game} frame={frame} />
+                </GamePauseGate>
+            </GameDeviceGate>
         </>
     );
 }

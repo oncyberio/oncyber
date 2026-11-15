@@ -156,6 +156,20 @@ Common findings:
 | `scripts/games/devices.mjs`           | The device stage of `games:check`                         |
 | `games/runtime/test/devices.test.mjs` | Tests                                                     |
 
+## What the site does with it
+
+The site offers a game only on devices it lists
+(`frontend/features/games/gameDevices.ts`). A phone or tablet needs `phone`;
+a desktop needs `desktop`. On a device a game doesn't list:
+
+-   the lobby's Explore panel leaves its card out;
+-   the lobby doesn't prepare it ahead of a trip;
+-   its page shows "isn't on phones yet" and a way back, and never loads the
+    game's files (`GameDeviceGate.tsx`).
+
+So a game reaches phones by adding `phone` to `devices`, which the check
+only accepts once the phone run passes.
+
 ## Today
 
 Ace declares all three devices and passes all three. Its stick shows on

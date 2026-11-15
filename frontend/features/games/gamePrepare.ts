@@ -1,4 +1,5 @@
 import { findSharedPageGame } from "./catalog";
+import { gameOnDevice } from "./gameDevices";
 import {
     fetchGameRelease,
     resolveGamePause,
@@ -128,6 +129,8 @@ export function prepareGameDestination(href: string): boolean {
     if ((navigator as any).connection?.saveData === true) return false;
     const id = gameDestinationId(href, window.location.origin);
     if (!id) return false;
+    // A game this device can't play is never loaded (gameDevices.ts).
+    if (!gameOnDevice(findSharedPageGame(id))) return false;
     if (current?.id === id) return true;
     const last = prepared.get(id);
     if (last != null && performance.now() - last < PREPARE_AGAIN_AFTER_MS)

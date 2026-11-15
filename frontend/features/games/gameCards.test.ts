@@ -22,6 +22,14 @@ describe("game cards", () => {
         expect(ace.tags).toEqual(expect.arrayContaining(["game", "sports"]));
     });
 
+    it("leaves out games the visitor's device can't play", () => {
+        const ids = (device: any) =>
+            gameCards("", null, [], undefined, device).map((card) => card.id);
+        expect(ids("phone")).toContain("game-ace");
+        expect(ids("phone")).not.toContain("game-garden");
+        expect(ids("desktop")).toContain("game-garden");
+    });
+
     it("searches titles, taglines and tags", () => {
         expect(gameCards("tennis").map((card) => card.id)).toEqual([
             "game-ace",

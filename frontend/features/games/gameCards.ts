@@ -8,6 +8,8 @@ import {
     type GamePresence,
 } from "./gamePresence";
 import { partyJoinHref, rememberedGameParties } from "./gamePartyJoin";
+import { gameOnDevice } from "./gameDevices";
+import { gameDevice, type GameDevice } from "./gameHealth";
 
 /** "1 player", "1 to 8 players". */
 export function playersLabel({ min, max }: GameEntry["players"]): string {
@@ -67,15 +69,19 @@ function matches(game: GameEntry, query: string) {
  * Cards for every catalogued game matching `query`. With presence, each
  * card says how many are playing, and a game where one of the visitor's own
  * parties (`ownPartyIds`) is playing gets a second card, first, that joins it.
+ * With `device`, games that don't support it are left out
+ * (docs/games/devices.md).
  */
 export function gameCards(
     query = "",
     presence: Record<string, GamePresence> | null = null,
     ownPartyIds: readonly string[] = [],
-    games: GameEntry[] = Object.values(GAMES)
+    games: GameEntry[] = Object.values(GAMES),
+    device: GameDevice | null = null
 ): LandingCard[] {
     return games
         .filter((game) => matches(game, query))
+        .filter((game) => !device || gameOnDevice(game, device))
         .flatMap((game) => {
             const party = joinableParty(presence?.[game.id], ownPartyIds);
             return [
@@ -107,11 +113,17 @@ export function useGameCards(
     return useMemo(
         () =>
             listed
-                ? gameCards(query, presence, [
-                      ...own.split(",").filter(Boolean),
-                      ...rememberedGameParties(),
-                  ])
+                ? gameCards(
+                      query,
+                      presence,
+                      [
+                          ...own.split(",").filter(Boolean),
+                          ...rememberedGameParties(),
+                      ],
+                      games,
+                      gameDevice()
+                  )
                 : [],
-        [listed, query, presence, own]
+        [listed, query, presence, own, games]
     );
 }
