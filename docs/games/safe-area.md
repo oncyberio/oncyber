@@ -12,6 +12,8 @@ edge they reach.
 full-screen backdrops fill the frame; anything a player reads or presses
 (score, buttons, prompts, menu cards, touch controls) stays inside. Add your
 own margin on top: the insets end exactly where the overlays do.
+The runtime's on-screen stick and buttons ([devices.md](devices.md)) keep to
+the insets on their own and report themselves as HUD.
 
 Don't hard-code where the page's controls are, and don't assume the insets
 are fixed: they change when the window resizes, a phone turns, or an overlay
@@ -35,7 +37,7 @@ until the page speaks and when the game runs on its own:
     top: calc(var(--oncyber-safe-top, 0px) + 8px);
     left: calc(var(--oncyber-safe-left, 0px) + 8px);
 }
-.touch-buttons {
+.prompt {
     right: calc(var(--oncyber-safe-right, 0px) + 12px);
     bottom: calc(var(--oncyber-safe-bottom, 0px) + 12px);
 }

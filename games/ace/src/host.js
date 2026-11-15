@@ -1,5 +1,6 @@
 import { GAME_MESSAGE_PREFIX, RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
+import { deviceAct } from "@oncyber/game-runtime/device-check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
 import { connectPage } from "@oncyber/game-runtime/page";
@@ -213,7 +214,8 @@ async function start() {
         input: manifest.runtime.input,
         muted: (muted) => pageSound.muted?.(muted),
     });
-    const devices = bindDevices(session, canvas, document.querySelector(".touch-pad"));
+    // The mouse, and the on-screen controls and gamepad the bindings declare.
+    const devices = bindDevices(session, canvas, manifest.runtime.input);
     if (params.has("qa") || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
         window.__ace = debugHooks;
         window.__session = session;
@@ -231,7 +233,6 @@ async function start() {
         requestAnimationFrame(tick);
         graphics.width = window.innerWidth;
         graphics.height = window.innerHeight;
-        devices.poll();
         if (!checking && !hidden)
             try {
                 session.tick(Math.max(0, now - last) / 1000);
@@ -303,6 +304,9 @@ async function start() {
                     checking = paused;
                     last = performance.now();
                 },
+                // ?check=phone and ?check=gamepad press the real controls
+                // (docs/games/devices.md).
+                act: deviceAct(session),
             })
         );
 

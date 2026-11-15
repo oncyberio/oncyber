@@ -2,11 +2,11 @@
   "version": 1,
   "game": "garden",
   "name": "Bloom Garden",
-  "release": "d84b17ed3699f048",
-  "publishedAt": "2026-11-15T13:45:46.033Z",
+  "release": "e81f56e22a6ae3c8",
+  "publishedAt": "2026-11-15T14:36:09.828Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T13:45:46.033Z",
+    "checkedAt": "2026-11-15T14:36:09.827Z",
     "backend": "webgpu",
     "frames": {
       "count": 180,
@@ -17,14 +17,14 @@
   },
   "files": [
     {
-      "path": "assets/index-CH_ZoYvg.js",
-      "bytes": 1015826,
-      "sha256": "255604529201ba105b471245dfc07e2546df396512346a1825a7ee3da5623496"
+      "path": "assets/index-jKrOzic3.js",
+      "bytes": 1025031,
+      "sha256": "373728e2c95b1c4dcf595aee5f386c0979bda74202d6a7f985858388d14a8af7"
     },
     {
       "path": "index.html",
       "bytes": 1200,
-      "sha256": "549b23490e79de53cff68406c850b148e0b96d66ab0e887c6960b78ec1db4024"
+      "sha256": "f45e5ace6304e873db9f3811c7c4458160d666d8414e07ca48274d6661c09690"
     },
     {
       "path": "motion.json",
@@ -38,8 +38,8 @@
     },
     {
       "path": "ui.html",
-      "bytes": 45996,
-      "sha256": "abb340cab57c3a223b08c460f832fd9755c1ed50d4040fc0b141880cd8cb3684"
+      "bytes": 46026,
+      "sha256": "208a5bc86b1dea07c71db2fc29329dbd73271be715115566699aa34a19739223"
     }
   ]
 }

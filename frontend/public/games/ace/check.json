@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-15T13:52:57.450Z",
+  "checkedAt": "2026-11-15T14:35:02.203Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 8,
-    "bytes": 2296802,
+    "bytes": 2303943,
     "largest": {
-      "path": "assets/index-C80Pu8ox.js",
-      "bytes": 1034682
+      "path": "assets/index-PPfbWWRg.js",
+      "bytes": 1041792
     }
   },
   "avatars": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 15943,
+    "ms": 16663,
     "facts": {
       "arrival": {
         "booted": true,
@@ -139,7 +139,7 @@
         ],
         "frozen": false,
         "hostPhase": "entered",
-        "hostFrames": 25,
+        "hostFrames": 26,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -151,7 +151,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 11721,
+    "ms": 11730,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -339,35 +339,35 @@
           {
             "id": "title-logo",
             "x": 81.7,
-            "y": 201.8,
+            "y": 109.8,
             "width": 226.7,
             "height": 86.4
           },
           {
             "id": "title-menu",
             "x": 35.1,
-            "y": 349.2,
+            "y": 257.2,
             "width": 319.8,
             "height": 215
           },
           {
             "id": "arrive-menu",
             "x": 0,
-            "y": 552,
+            "y": 384,
             "width": 390,
             "height": 143
           },
           {
             "id": "party-card",
             "x": 15.6,
-            "y": 320,
+            "y": 228,
             "width": 358.8,
             "height": 197
           },
           {
             "id": "setup-card",
             "x": 15.6,
-            "y": 151,
+            "y": 59,
             "width": 358.8,
             "height": 535
           },
@@ -376,7 +376,7 @@
             "x": 11.7,
             "y": 55,
             "width": 366.6,
-            "height": 727
+            "height": 543
           },
           {
             "id": "scoreboard",
@@ -384,13 +384,6 @@
             "y": 63,
             "width": 228,
             "height": 99
-          },
-          {
-            "id": "pause",
-            "x": 330,
-            "y": 63,
-            "width": 44,
-            "height": 44
           },
           {
             "id": "rally",
@@ -409,23 +402,72 @@
           {
             "id": "pause-card",
             "x": 15.6,
-            "y": 178.5,
+            "y": 86.5,
             "width": 358.8,
             "height": 480
           },
           {
             "id": "results-card",
             "x": 15.6,
-            "y": 262,
+            "y": 170,
             "width": 358.8,
             "height": 313
           },
           {
-            "id": "touch-buttons",
-            "x": 132,
-            "y": 606,
-            "width": 238,
-            "height": 164
+            "id": "control-stick",
+            "x": 16,
+            "y": 626,
+            "width": 148,
+            "height": 148
+          },
+          {
+            "id": "control-flat",
+            "x": 290,
+            "y": 690,
+            "width": 84,
+            "height": 84
+          },
+          {
+            "id": "control-topspin",
+            "x": 216,
+            "y": 690,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-slice",
+            "x": 310,
+            "y": 616,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-lob",
+            "x": 236,
+            "y": 616,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-drop",
+            "x": 310,
+            "y": 522,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-confirm",
+            "x": 216,
+            "y": 522,
+            "width": 84,
+            "height": 84
+          },
+          {
+            "id": "control-pause",
+            "x": 322,
+            "y": 63,
+            "width": 52,
+            "height": 52
           }
         ],
         "overlaps": [],
@@ -481,10 +523,10 @@
           },
           {
             "id": "arrive-menu",
-            "x": 148.5,
-            "y": 170,
-            "width": 547.1,
-            "height": 71
+            "x": 172,
+            "y": 98,
+            "width": 500,
+            "height": 143
           },
           {
             "id": "party-card",
@@ -515,13 +557,6 @@
             "height": 99
           },
           {
-            "id": "pause",
-            "x": 784,
-            "y": 63,
-            "width": 44,
-            "height": 44
-          },
-          {
             "id": "rally",
             "x": 369.1,
             "y": 67,
@@ -550,11 +585,60 @@
             "height": 273
           },
           {
-            "id": "touch-buttons",
-            "x": 586,
-            "y": 152,
-            "width": 238,
-            "height": 164
+            "id": "control-stick",
+            "x": 16,
+            "y": 172,
+            "width": 148,
+            "height": 148
+          },
+          {
+            "id": "control-flat",
+            "x": 744,
+            "y": 236,
+            "width": 84,
+            "height": 84
+          },
+          {
+            "id": "control-topspin",
+            "x": 670,
+            "y": 236,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-slice",
+            "x": 596,
+            "y": 236,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-lob",
+            "x": 764,
+            "y": 142,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-drop",
+            "x": 690,
+            "y": 142,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-confirm",
+            "x": 596,
+            "y": 142,
+            "width": 84,
+            "height": 84
+          },
+          {
+            "id": "control-pause",
+            "x": 776,
+            "y": 63,
+            "width": 52,
+            "height": 52
           }
         ],
         "overlaps": [],
@@ -565,7 +649,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 55170,
+    "ms": 56007,
     "options": {
       "1": [
         "solo"
@@ -592,8 +676,8 @@
       {
         "dropped": "guest",
         "packetsPerSecond": {
-          "a": 4.3,
-          "b": 3.5
+          "a": 4.5,
+          "b": 3.6
         },
         "largestPacket": 206,
         "refused": 0,
@@ -608,8 +692,8 @@
       {
         "dropped": "host",
         "packetsPerSecond": {
-          "a": 5.7,
-          "b": 4.8
+          "a": 4.3,
+          "b": 3.5
         },
         "largestPacket": 206,
         "refused": 0,
@@ -625,9 +709,9 @@
   },
   "results": [
     {
-      "match": "4850117802f1fd6ca1932ce7",
+      "match": "fbed0c1b55df4bfcc39998b7",
       "format": "solo",
-      "durationSeconds": 54.7,
+      "durationSeconds": 49.9,
       "teams": [
         {
           "score": 1,
@@ -664,21 +748,231 @@
     },
     "warnings": []
   },
+  "devices": {
+    "declared": [
+      "desktop",
+      "phone",
+      "gamepad"
+    ],
+    "notes": [
+      {
+        "code": "TOUCH_CUSTOM",
+        "message": "1 action(s) name touch controls the runtime does not draw (lookX); the game's UI page must provide them"
+      }
+    ],
+    "profiles": {
+      "desktop": {
+        "status": "passed",
+        "input": "keyboard",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "claimed": true
+      },
+      "phone": {
+        "status": "passed",
+        "input": "touch",
+        "viewport": "412 x 839",
+        "emulates": "Pixel 7",
+        "scope": "scenario",
+        "findings": [],
+        "controls": {
+          "stick": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ],
+          "buttons": [
+            "flat",
+            "topspin",
+            "slice",
+            "lob",
+            "drop",
+            "confirm",
+            "pause"
+          ]
+        },
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgl2",
+          "bootMs": 1635,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1635
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 129246
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 66758
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 366.7,
+            "p95Ms": 433.3,
+            "worstMs": 483.4
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "pause",
+            "avatarSelf": "stand-in",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": false,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "arrival": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 4,
+            "partyFormats": "doubles,tournament,solo",
+            "partyFormat": "tournament",
+            "difficulty": "pro",
+            "length": 2,
+            "phase": "rally",
+            "server": 0,
+            "points": "0-0",
+            "games": "0-0",
+            "rally": 0,
+            "matchOpen": true,
+            "resultsSent": 0,
+            "muted": false,
+            "position": [
+              0.9,
+              0,
+              12.235
+            ],
+            "frozen": false,
+            "hostPhase": "entered",
+            "hostFrames": 560,
+            "hostArrival": "lobby",
+            "hostParty": 4,
+            "hostPartyArrived": 4,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      },
+      "gamepad": {
+        "status": "passed",
+        "input": "gamepad",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "findings": [],
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgl2",
+          "bootMs": 1806,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1806
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 133264
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 69313
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 383.3,
+            "p95Ms": 450,
+            "worstMs": 483.4
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "pause",
+            "avatarSelf": "stand-in",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": false,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "arrival": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 4,
+            "partyFormats": "doubles,tournament,solo",
+            "partyFormat": "tournament",
+            "difficulty": "pro",
+            "length": 2,
+            "phase": "rally",
+            "server": 0,
+            "points": "0-0",
+            "games": "0-0",
+            "rally": 0,
+            "matchOpen": true,
+            "resultsSent": 0,
+            "muted": false,
+            "position": [
+              0.9,
+              0,
+              12.235
+            ],
+            "frozen": false,
+            "hostPhase": "entered",
+            "hostFrames": 560,
+            "hostArrival": "lobby",
+            "hostParty": 4,
+            "hostPartyArrived": 4,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      }
+    }
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 2059,
+    "bootMs": 1546,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 2059
+        "ms": 1546
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 137131
+        "ms": 132940
       },
       {
         "stage": "lifecycle",
@@ -688,15 +982,15 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 63393
+        "ms": 68119
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 7534,
+        "ms": 6959,
         "departure": {
-          "answerMs": 1280.8,
-          "frameMs": 369.433,
+          "answerMs": 1155.4,
+          "frameMs": 375,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
@@ -728,22 +1022,22 @@
           },
           "frames": [
             {
-              "ms": 41,
+              "ms": 43,
               "phase": "playing",
               "lit": 1
             },
             {
-              "ms": 5801,
+              "ms": 5353,
               "phase": "leaving",
               "lit": 0.02
             },
             {
-              "ms": 6790,
+              "ms": 6261,
               "phase": "last",
               "lit": 0.02
             },
             {
-              "ms": 7373,
+              "ms": 6823,
               "phase": "held",
               "lit": 0.02
             }
@@ -753,14 +1047,14 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 58355
+        "ms": 54180
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 350,
-      "p95Ms": 400.1,
-      "worstMs": 433.4
+      "medianMs": 383.3,
+      "p95Ms": 433.3,
+      "worstMs": 466.7
     },
     "inspect": {
       "booted": true,

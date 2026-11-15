@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
-// The runtime (the lifecycle, and the shared party, roster and match-channel
-// modules) is TypeScript source in games/runtime; the game bundles what it
-// imports.
+// The runtime (the lifecycle, the shared party, roster and match-channel
+// modules, and the on-screen controls and gamepad mapping built from
+// game.json) is TypeScript source in games/runtime; the game bundles what
+// it imports.
 const runtime = resolve("../runtime/src");
 // The optional avatar kit is TypeScript source in games/kits/avatar; the game
 // bundles it and supplies three.js, so there is one copy of each.
@@ -34,6 +35,14 @@ export default defineConfig({
             {
                 find: /^@oncyber\/game-runtime\/voice$/,
                 replacement: `${runtime}/voice.ts`,
+            },
+            {
+                find: /^@oncyber\/game-runtime\/device-controls$/,
+                replacement: `${runtime}/deviceControls.ts`,
+            },
+            {
+                find: /^@oncyber\/game-runtime\/device-check$/,
+                replacement: `${runtime}/deviceCheck.ts`,
             },
             {
                 find: /^@oncyber\/game-runtime$/,

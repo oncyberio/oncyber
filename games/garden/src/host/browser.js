@@ -4,6 +4,8 @@ import { RuntimeSession } from "@oncyber/game-runtime";
 import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { answerHudRequests, requestHud, watchSafeArea } from "@oncyber/game-runtime/safe-area";
 import { answerInspect } from "@oncyber/avatar-kit/page";
+import { deviceAct } from "@oncyber/game-runtime/device-check";
+import { bindDeviceControls } from "@oncyber/game-runtime/device-controls";
 import scenario from "../../scenario.json";
 import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
@@ -208,6 +210,9 @@ async function createFallbackSession(options) {
             createImageBitmap(new Blob([bytes], { type: mimeType }), { premultiplyAlpha: "none", colorSpaceConversion: "none" }),
     };
     session = new RuntimeSession(options.factory, { ...options, graphics, sendUI: bridge.publish, now: () => performance.now() });
+    // The gamepad mapping the manifest declares (docs/games/devices.md);
+    // createBrowserSession binds it itself on the WebGPU path.
+    const devices = bindDeviceControls(session, options.manifest.input);
     let last = performance.now();
     let alive = true;
     let held = false;
@@ -242,6 +247,7 @@ async function createFallbackSession(options) {
         },
         async dispose() {
             alive = false;
+            devices.dispose();
             bridge.dispose();
             await session.dispose();
         },
@@ -345,6 +351,8 @@ async function start() {
             bootMs: performance.now() - bootStart,
             frame: () => new Promise((resolve) => requestAnimationFrame(resolve)),
             pauseHostClock: (paused) => host.hold(paused),
+            // ?check=phone and ?check=gamepad press the real controls.
+            act: deviceAct(host.session),
         });
         postCheckReport(report);
     }

@@ -1,3 +1,4 @@
+import { bindDeviceControls } from "./deviceControls.ts";
 import { RuntimeSession, compactJSON, runScenario, type Scenario, type GameFactory, type RuntimeOptions, type Json } from "./index.ts";
 
 /** UI is an opaque-origin sandbox. This channel does not carry host chat, credentials or permissions. */
@@ -76,7 +77,9 @@ export function connectUI(onState: (value: Json) => void) {
         dispose() { window.removeEventListener("message", receive); document.removeEventListener("message", receive as EventListener); },
     };
 }
-export function bindBrowserInput(session: RuntimeSession, manifest: RuntimeOptions["manifest"]) {
+/** Keyboard, plus the touch controls and gamepad mapping the bindings declare (deviceControls.ts). */
+export function bindBrowserInput(session: Pick<RuntimeSession, "phase" | "action" | "clearInput">, manifest: Pick<RuntimeOptions["manifest"], "input">) {
+    const devices = bindDeviceControls(session, manifest.input);
     const keys = new Map<string, string[]>();
     for (const [action, binding] of Object.entries(manifest.input)) for (const key of binding.keyboard ?? [])
         keys.set(key, [...(keys.get(key) ?? []), action]);
@@ -89,7 +92,7 @@ export function bindBrowserInput(session: RuntimeSession, manifest: RuntimeOptio
     };
     const blur = () => session.clearInput();
     window.addEventListener("keydown", key); window.addEventListener("keyup", key); window.addEventListener("blur", blur);
-    return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", key); window.removeEventListener("blur", blur); };
+    return () => { devices.dispose(); window.removeEventListener("keydown", key); window.removeEventListener("keyup", key); window.removeEventListener("blur", blur); };
 }
 /** Browser adapter requests WebGPU explicitly; WebGL fallback is not a portable qualification. */
 export async function createBrowserSession(factory: GameFactory, options: Omit<RuntimeOptions, "graphics" | "sendUI"> & {

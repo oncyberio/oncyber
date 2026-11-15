@@ -55,6 +55,8 @@ export async function runCheck(options: {
     frame: () => Promise<number>;
     pauseHostClock(paused: boolean): void;
     frames?: number;
+    /** Presses each scenario action on a real device control (deviceCheck.ts). */
+    act?: (action: string, value: number) => Promise<void> | void;
 }): Promise<CheckReport> {
     const { session, scenario, frame } = options;
     const stages: CheckStage[] = [{ stage: "boot", status: session.phase === "entered" ? "passed" : "failed", ms: Math.round(options.bootMs) }];
@@ -72,7 +74,7 @@ export async function runCheck(options: {
         options.pauseHostClock(true);
         // runScenario also suspends, checks that suspended games don't
         // advance, restores and checks the game plays again.
-        await timed("scenario", () => runScenario(session, scenario, () => frame().then(() => undefined)));
+        await timed("scenario", () => runScenario(session, scenario, () => frame().then(() => undefined), options.act));
         if (stages[1].status === "passed") stages.push({ stage: "lifecycle", status: "passed", ms: 0 });
         options.pauseHostClock(false);
         await timed("frames", async () => {

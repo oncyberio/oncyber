@@ -43,12 +43,34 @@ test("every action the reader uses is declared in game.json", () => {
         assert.ok(names.includes(action), `${action} is not declared`);
 });
 
-test("keys make a unit move vector; a deflected stick wins", () => {
+test("keys make a unit move vector; a stick leans by degrees", () => {
     const keys = readActions(context({ up: 1, right: 1 }), {});
     assert.ok(Math.abs(Math.hypot(keys.x, keys.y) - 1) < 1e-9);
     assert.ok(keys.x > 0 && keys.y > 0);
-    const stick = readActions(context({ up: 1, moveX: -0.5, moveY: 0 }), {});
+    // The on-screen stick and a gamepad's feed the same four actions.
+    const stick = readActions(context({ left: 0.5 }), {});
     assert.deepEqual([stick.x, stick.y], [-0.5, 0]);
+});
+
+test("a direction steps a menu once per press or per lean past half way", () => {
+    const memory = {};
+    assert.deepEqual(
+        types(readActions(context({ down: 1 }, ["down"]), memory)),
+        ["down"]
+    );
+    assert.deepEqual(types(readActions(context({ down: 1 }), memory)), []);
+    assert.deepEqual(types(readActions(context(), memory)), []);
+    // A slight lean walks; it doesn't move the focus.
+    assert.deepEqual(
+        types(readActions(context({ up: 0.2 }, ["up"]), memory)),
+        []
+    );
+    assert.deepEqual(types(readActions(context({ up: 0.8 }), memory)), ["up"]);
+    assert.deepEqual(types(readActions(context({ up: 1 }), memory)), []);
+    // A tap that began and ended inside one frame.
+    assert.deepEqual(types(readActions(context({}, ["left"]), memory)), [
+        "left",
+    ]);
 });
 
 test("a press is a shot, letting go of every shot is a release", () => {

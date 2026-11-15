@@ -8,8 +8,10 @@
 /** One declared input action and its default bindings. */
 export interface InputBinding {
     keyboard?: string[];
+    /** `stick-up|down|left|right|x|y`, `button` or `button:Label`; see devices.ts. */
     touch?: string;
-    gamepad?: string;
+    /** Standard-mapping names such as `button-a` or `left-stick-x`; see devices.ts. */
+    gamepad?: string | string[];
 }
 /** The `runtime` block of a game's game.json. */
 export interface GameManifest {
@@ -336,12 +338,14 @@ export interface Scenario {
         { type: "assert"; key: string; equals: string | number | boolean }>;
 }
 /** Runs the creator flow plus mandatory host-owned lifecycle assertions. */
-export async function runScenario(session: RuntimeSession, scenario: Scenario, frame: () => Promise<void>): Promise<void> {
+export async function runScenario(session: RuntimeSession, scenario: Scenario, frame: () => Promise<void>,
+    /** How an action step reaches the game; device checks press real controls here. */
+    act: (action: string, value: number) => Promise<void> | void = (action, value) => session.action(action, value)): Promise<void> {
     if (session.phase !== "entered") throw new Error("RUNTIME_NOT_READY");
     if (scenario.version !== 1 || !Array.isArray(scenario.steps) || scenario.steps.length < 1 || scenario.steps.length > 128)
         throw new Error("SCENARIO_INVALID");
     for (const step of scenario.steps) {
-        if (step.type === "action") session.action(step.action, step.value ?? 1);
+        if (step.type === "action") await act(step.action, step.value ?? 1);
         else if (step.type === "wait") {
             if (!Number.isInteger(step.frames) || step.frames < 1 || step.frames > 600) throw new Error("SCENARIO_INVALID");
             for (let i = 0; i < step.frames; i++) { session.tick(1 / 60); await frame(); }

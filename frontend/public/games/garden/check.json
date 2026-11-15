@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T13:45:46.033Z",
+  "checkedAt": "2026-11-15T14:36:09.827Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1362355,
+    "bytes": 1371590,
     "largest": {
-      "path": "assets/index-CH_ZoYvg.js",
-      "bytes": 1015826
+      "path": "assets/index-jKrOzic3.js",
+      "bytes": 1025031
     }
   },
   "avatars": {
@@ -22,7 +22,7 @@
         "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
       }
     ],
-    "ms": 27841,
+    "ms": 27252,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -52,7 +52,7 @@
         "playerX": 0,
         "playerZ": 13,
         "hostPhase": "entered",
-        "hostFrames": 20,
+        "hostFrames": 18,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -64,7 +64,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3056,
+    "ms": 3300,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -373,13 +373,13 @@
   },
   "party": {
     "status": "passed",
-    "ms": 0,
+    "ms": 1,
     "options": {},
     "drops": []
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:45553/games/garden/assets/index-CH_ZoYvg.js:1:14994)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -401,21 +401,210 @@
       }
     ]
   },
+  "devices": {
+    "declared": [
+      "desktop",
+      "gamepad"
+    ],
+    "notes": [
+      {
+        "code": "TOUCH_CUSTOM",
+        "message": "37 action(s) name touch controls the runtime does not draw (forward, backward, left, right, moveX, moveY, ...); the game's UI page must provide them"
+      },
+      {
+        "code": "DEVICE_CODE",
+        "message": "src/ui/main.js:77 reads touch or gamepad input directly (3 lines); declare a binding in game.json instead"
+      }
+    ],
+    "profiles": {
+      "desktop": {
+        "status": "passed",
+        "input": "keyboard",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "claimed": true
+      },
+      "phone": {
+        "status": "failed",
+        "input": "touch",
+        "viewport": "412 x 839",
+        "emulates": "Pixel 7",
+        "scope": "scenario",
+        "findings": [
+          {
+            "code": "STAGE_SCENARIO",
+            "message": "NO_TOUCH_CONTROL:forward"
+          }
+        ],
+        "controls": {
+          "stick": [],
+          "buttons": []
+        },
+        "consoleErrors": [
+          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+        ],
+        "run": {
+          "version": 1,
+          "status": "failed",
+          "backend": "webgpu",
+          "bootMs": 1440,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1440
+            },
+            {
+              "stage": "scenario",
+              "status": "failed",
+              "ms": 529,
+              "error": "NO_TOUCH_CONTROL:forward"
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 3008
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 16.7,
+            "p95Ms": 16.7,
+            "worstMs": 16.8
+          },
+          "inspect": {
+            "booted": true,
+            "renderer": "webgpu",
+            "bloomlings": 1,
+            "stage0": "egg",
+            "held": "",
+            "match": "",
+            "matchPhase": "",
+            "menu": "",
+            "avatar": "vrm",
+            "online": false,
+            "peers": 0,
+            "talking": 0,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "none",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "offers": 0,
+            "playerX": 0,
+            "playerZ": 13,
+            "hostPhase": "entered",
+            "hostFrames": 211,
+            "hostArrival": "",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": false
+      },
+      "gamepad": {
+        "status": "passed",
+        "input": "gamepad",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "findings": [],
+        "consoleErrors": [
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:34649/games/garden/assets/index-jKrOzic3.js:21:18046)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+        ],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgpu",
+          "bootMs": 1541,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1541
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 1021
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 3017
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 16.7,
+            "p95Ms": 16.7,
+            "worstMs": 16.8
+          },
+          "inspect": {
+            "booted": true,
+            "renderer": "webgpu",
+            "bloomlings": 1,
+            "stage0": "egg",
+            "held": "",
+            "match": "",
+            "matchPhase": "",
+            "menu": "",
+            "avatar": "vrm",
+            "online": false,
+            "peers": 0,
+            "talking": 0,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "none",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "offers": 0,
+            "playerX": 0,
+            "playerZ": 11.4,
+            "hostPhase": "entered",
+            "hostFrames": 236,
+            "hostArrival": "",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      }
+    }
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1527,
+    "bootMs": 1467,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1527
+        "ms": 1467
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 936
+        "ms": 947
       },
       {
         "stage": "lifecycle",
@@ -425,12 +614,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3018
+        "ms": 3017
       },
       {
         "stage": "results",
         "status": "passed",
-        "ms": 2
+        "ms": 4
       }
     ],
     "frames": {

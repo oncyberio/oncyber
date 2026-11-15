@@ -1,6 +1,11 @@
 {
   "name": "ACE! Tennis",
   "avatar": "vrm",
+  "devices": [
+    "desktop",
+    "phone",
+    "gamepad"
+  ],
   "avatars": {
     "others": "avatar",
     "arrival": "pose"
@@ -86,76 +91,87 @@
           "KeyW",
           "ArrowUp"
         ],
-        "gamepad": "dpad-up"
+        "touch": "stick-up",
+        "gamepad": [
+          "left-stick-up",
+          "dpad-up"
+        ]
       },
       "down": {
         "keyboard": [
           "KeyS",
           "ArrowDown"
         ],
-        "gamepad": "dpad-down"
+        "touch": "stick-down",
+        "gamepad": [
+          "left-stick-down",
+          "dpad-down"
+        ]
       },
       "left": {
         "keyboard": [
           "KeyA",
           "ArrowLeft"
         ],
-        "gamepad": "dpad-left"
+        "touch": "stick-left",
+        "gamepad": [
+          "left-stick-left",
+          "dpad-left"
+        ]
       },
       "right": {
         "keyboard": [
           "KeyD",
           "ArrowRight"
         ],
-        "gamepad": "dpad-right"
-      },
-      "moveX": {
-        "touch": "stick",
-        "gamepad": "left-stick-x"
-      },
-      "moveY": {
-        "touch": "stick",
-        "gamepad": "left-stick-y"
+        "touch": "stick-right",
+        "gamepad": [
+          "left-stick-right",
+          "dpad-right"
+        ]
       },
       "flat": {
         "keyboard": [
           "KeyJ",
           "Space"
         ],
-        "touch": "hit",
+        "touch": "button:Hit",
         "gamepad": "button-a"
       },
       "topspin": {
         "keyboard": [
           "KeyK"
         ],
-        "touch": "top",
+        "touch": "button:Top",
         "gamepad": "button-x"
       },
       "slice": {
         "keyboard": [
           "KeyH"
         ],
-        "touch": "cut",
+        "touch": "button:Cut",
         "gamepad": "button-b"
       },
       "lob": {
         "keyboard": [
           "KeyU"
         ],
-        "touch": "lob",
+        "touch": "button:Lob",
         "gamepad": "button-y"
       },
       "drop": {
-        "touch": "drop",
-        "gamepad": "left-bumper"
+        "touch": "button:Drop",
+        "gamepad": [
+          "left-bumper",
+          "right-bumper"
+        ]
       },
       "confirm": {
         "keyboard": [
           "Space",
           "KeyJ"
         ],
-        "touch": "hit",
+        "touch": "button:OK",
         "gamepad": "button-a"
       },
       "back": {
@@ -169,6 +185,7 @@
         "keyboard": [
           "KeyP"
         ],
+        "touch": "button:Pause",
         "gamepad": "button-start"
       },
       "lookX": {

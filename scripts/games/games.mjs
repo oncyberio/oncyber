@@ -33,6 +33,7 @@ import { avatarStage } from "./avatar-check.mjs";
 import { checkDeparture } from "./departure-check.mjs";
 import { partyCheck } from "./party-check.mjs";
 import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
+import { checkDevices, devicesHarness } from "./devices.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -105,8 +106,9 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 // the page bridge that answers hello with a test identity. `query` follows
 // "?check" in the game's URL; `visit` is the visit the page stages.
 const harness = (query, visit) => `<!doctype html><meta charset="utf-8"><title>check</title>
-<style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check${query}"></iframe>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/games/${id}/index.html?check${query}"></iframe>
 <script>
 const frame = document.getElementById("game");
 addEventListener("message", (event) => {
@@ -120,6 +122,7 @@ addEventListener("message", (event) => {
         frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
     }
 ${resultsHarness}
+${devicesHarness}
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
@@ -137,6 +140,11 @@ function serve() {
         if (url.pathname === "/results") {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness(`=results${results.query}`, { arrival: "direct", party: 0 }));
+        }
+        // The device profiles' visits: the scenario's own visit again, on a phone and with a gamepad.
+        if (url.pathname === "/devices/phone" || url.pathname === "/devices/gamepad") {
+            res.writeHead(200, { "content-type": "text/html" });
+            return res.end(harness(`=${url.pathname.slice("/devices/".length)}`, contract.visit));
         }
         const prefix = `/games/${id}/`;
         const path = resolve(out, `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`);
@@ -163,7 +171,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -212,6 +220,8 @@ async function check() {
         scan.findings.push(...keys.findings);
         // The HUD must stay clear of what the page floats over the game.
         if (report && !gameError) safeArea = await checkSafeArea({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, shots: join(source, ".check") });
+        // The same scenario on a phone and with a gamepad (docs/games/devices.md): one more visit of the check page each, the real controls pressed.
+        if (report) devices = await checkDevices({ browser, port: server.address().port, id, manifest, source, lifecycle, desktop: report });
     } finally {
         await browser.close();
         server.close();
@@ -227,7 +237,7 @@ async function check() {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -235,6 +245,7 @@ async function check() {
         findings: [
             ...scan.findings,
             ...avatars.findings,
+            ...(devices?.blocking ?? []),
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
@@ -253,6 +264,7 @@ async function check() {
         consoleErrors: errors.slice(0, 20),
         // The one contract: the form the build greeted in and the visit staged.
         contract: { listed: contract.listed, prefix: greeted?.prefix ?? null, version: greeted?.version ?? null, visit: contract.visit, warnings },
+        devices: devices?.report,
         run: report,
         keys: keys?.report ?? null,
     };
@@ -262,6 +274,7 @@ async function check() {
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
+    for (const line of devices?.lines ?? []) console.log(line);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
     console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png`);
