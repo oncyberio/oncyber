@@ -5,6 +5,12 @@ import {
     type GamePause,
 } from "./gameDisabled";
 import {
+    committedFrame,
+    frameBase,
+    releaseBase,
+    type GameFrame,
+} from "./gameRelease";
+import {
     gameMessageTypes,
     readGameMessage,
     type GameDialect,
@@ -28,7 +34,10 @@ import {
  * does not survive a move between documents.
  *
  * A game the kill switch has paused (gameDisabled.ts) is not prepared: the
- * lobby asks the site first, and loads nothing when it can't tell.
+ * lobby asks the site first, and loads nothing when it can't tell. The same
+ * answer says where the game's frame loads from (gameRelease.ts): the
+ * hosted release its pointer names, or the committed build, exactly as the
+ * game page will load it, so the files prepared are the files played.
  */
 const GAME_HREF = /^\/games\/([a-z0-9][a-z0-9-]{0,62})\/?$/;
 /** A prepared game stays warm this long before it is prepared again. */
@@ -49,21 +58,53 @@ export function gameDestinationId(href: string, origin: string): string | null {
     return id && findSharedPageGame(id) ? id : null;
 }
 
+/** The frame the site named, if it is one the game page would load too. */
+function preparedFrame(id: string, frame: unknown): GameFrame {
+    const named = frame as GameFrame | null;
+    if (
+        named?.source === "hosted" &&
+        typeof named.src === "string" &&
+        typeof named.release === "string"
+    ) {
+        const base = releaseBase(
+            id,
+            named.release,
+            frameBase(id, named),
+            process.env.NODE_ENV === "development"
+        );
+        if (base && named.src === `${base}index.html`)
+            return { src: named.src, release: named.release, source: "hosted" };
+    }
+    return committedFrame(id);
+}
+
+/** False: don't load the game. True: the committed build. A frame: that one. */
+type PrepareAnswer = boolean | GameFrame;
+
 /**
  * Whether the kill switch lets this game load, as the game page decides it
- * (`GAMES_DISABLED`, read by /api/games/paused on every request).
+ * (`GAMES_DISABLED`, read by /api/games/paused on every request), and the
+ * frame the game's pointer names.
  */
-async function gamePlayable(id: string): Promise<boolean> {
+async function gamePlayable(id: string): Promise<PrepareAnswer> {
     const response = await fetch(`/api/games/paused?game=${id}`, {
         cache: "no-store",
     });
     if (!response.ok) return false;
-    const pause = (await response.json()) as GamePause;
-    return (
-        (await resolveGamePause(pause, () => fetchGameRelease(id))) === "play"
-    );
+    const answer = (await response.json()) as GamePause & { frame?: unknown };
+    const frame = preparedFrame(id, answer.frame);
+    // A hosted release was decided by the site, by the pointer's id; the
+    // committed build's id is in its release.json.
+    const play =
+        (await resolveGamePause(answer, () =>
+            frame.release
+                ? Promise.resolve(frame.release)
+                : fetchGameRelease(id)
+        )) === "play";
+    return play && frame;
 }
-let playable: (id: string) => boolean | Promise<boolean> = gamePlayable;
+let playable: (id: string) => PrepareAnswer | Promise<PrepareAnswer> =
+    gamePlayable;
 /** For tests: stand in for the site's answer. Null restores it. */
 export function setGamePrepareGate(gate: typeof playable | null) {
     playable = gate ?? gamePlayable;
@@ -94,7 +135,7 @@ export function prepareGameDestination(href: string): boolean {
     current?.stop();
 
     const frame = document.createElement("iframe");
-    frame.src = `/games/${id}/index.html?prepare`;
+    // The address is set when the site has answered (`mount`, below).
     // The game page's sandbox, without pointer lock: nobody plays this one.
     frame.setAttribute("sandbox", "allow-scripts");
     frame.setAttribute("referrerpolicy", "no-referrer");
@@ -152,19 +193,23 @@ export function prepareGameDestination(href: string): boolean {
     window.addEventListener("message", receive);
     // Mounted only once the kill switch allows it; preparing is a head
     // start, so a game that can't be vouched for is left to the trip.
-    const mount = (play: boolean) => {
+    const mount = (play: PrepareAnswer) => {
         if (current !== session) return;
-        if (play) document.body.appendChild(frame);
-        else stop();
+        if (!play) return stop();
+        const from = play === true ? committedFrame(id) : play;
+        frame.src = `${from.src}?prepare`;
+        if (from.release) frame.setAttribute("data-release", from.release);
+        document.body.appendChild(frame);
     };
-    let allowed: boolean | Promise<boolean>;
+    let allowed: PrepareAnswer | Promise<PrepareAnswer>;
     try {
         allowed = playable(id);
     } catch {
         allowed = false;
     }
-    if (typeof allowed === "boolean") mount(allowed);
-    else void allowed.then(mount, () => mount(false));
+    if (allowed instanceof Promise)
+        void allowed.then(mount, () => mount(false));
+    else mount(allowed);
     return true;
 }
 

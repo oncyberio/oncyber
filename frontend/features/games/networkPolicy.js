@@ -130,6 +130,28 @@ function gameContentSecurityPolicy(hosts, options = {}) {
     return directives.map((directive) => directive.join(" ")).join("; ");
 }
 
+/** What a release opened on its own (not in the page's frame) still runs under. */
+const RELEASE_SANDBOX = "sandbox allow-scripts allow-pointer-lock";
+
+/**
+ * The policy a host of releases must send with every file of a release
+ * (docs/games/releases.md): the game's own policy, from the `network.json`
+ * the release carries, and a sandbox, so a release opened directly in a tab
+ * gets no origin of the host's either. A release with no `network.json`, or
+ * a malformed one, reaches only its own files.
+ *
+ * @param {unknown} published the release's parsed network.json, or null
+ * @param {{ reportUri?: string }} [options]
+ */
+function releaseContentSecurityPolicy(published, options = {}) {
+    const declared = /** @type {any} */ (published);
+    const { hosts, errors } = readNetwork(declared?.hosts);
+    return `${gameContentSecurityPolicy(errors.length ? [] : hosts, {
+        ...options,
+        inlineScripts: readInlineScripts(declared?.inlineScripts),
+    })}; ${RELEASE_SANDBOX}`;
+}
+
 /**
  * Header rules for next.config.js: every file of every published game gets a
  * policy. A game with no network.json (or a broken one) reaches only its own
@@ -188,4 +210,6 @@ module.exports = {
     hostDeclared,
     gameContentSecurityPolicy,
     gameNetworkHeaders,
+    RELEASE_SANDBOX,
+    releaseContentSecurityPolicy,
 };

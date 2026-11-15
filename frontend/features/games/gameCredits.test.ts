@@ -102,3 +102,18 @@ test("a missing credits.json is not an error", async () => {
         (await loadGameCredits("ace", undefined, found))?.credits
     ).toHaveLength(1);
 });
+
+test("a hosted release's credits and licence texts come from the release", async () => {
+    const base = "https://gateway.example/ipfs/bafybeigdyrzt/";
+    const asked: string[] = [];
+    const hosted = (async (url: string) => {
+        asked.push(url);
+        return {
+            ok: true,
+            json: async () => ({ version: 1, own: 0, credits: [anton] }),
+        };
+    }) as unknown as typeof fetch;
+    const credits = await loadGameCredits("ace", undefined, hosted, base);
+    expect(asked).toEqual([`${base}credits.json`]);
+    expect(credits?.credits[0].licenseHref).toBe(`${base}fonts/Anton-OFL.txt`);
+});

@@ -8,7 +8,9 @@
  * release of the garden, so publishing a fixed release brings the game back
  * without touching the variable. The game page reads the list before it
  * mounts the game's frame and shows "this game is paused" instead
- * (docs/games/field-health.md).
+ * (docs/games/field-health.md). The release id is the one the page is about
+ * to load: the pointer's for a hosted release (docs/games/releases.md,
+ * `pauseForRelease`), `release.json`'s for the committed build.
  *
  * This file imports nothing, so `pnpm games:check` runs the same decision.
  */
@@ -50,6 +52,23 @@ export function gamePause(
     return {
         paused: entries.some((entry) => entry.release === null),
         releases: entries.flatMap((entry) => entry.release ?? []),
+    };
+}
+
+/**
+ * The answer for a visit whose release id is already known: a hosted
+ * release, named by the game's pointer. A listed release is paused outright;
+ * any other leaves nothing for the page to look up. With no id (the
+ * committed build) the answer is unchanged and the page reads `release.json`.
+ */
+export function pauseForRelease(
+    pause: GamePause,
+    release: string | null | undefined
+): GamePause {
+    if (pause.paused || !release) return pause;
+    return {
+        paused: pause.releases.includes(release.toLowerCase()),
+        releases: [],
     };
 }
 

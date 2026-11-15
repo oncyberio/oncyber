@@ -121,8 +121,14 @@ The switch lives in `frontend/features/games/gameDisabled.ts`
 (`gamePause.ts` is the page menu's pause of a running game, a different
 thing).
 
-To stop a game for certain, pause its id: a release-level pause needs the
-page to read `release.json`, and if that fails the game plays. Changing
+A game loaded from a hosted release ([releases.md](releases.md)) is
+stopped the same way: the release id is the one the game's pointer names,
+the site decides before anything loads, and the lobby's preparation gets
+the same answer. Health events from such a visit carry that id.
+
+To stop a game for certain, pause its id: for the committed build a
+release-level pause needs the page to read `release.json`, and if that
+fails the game plays. Changing
 the variable on the hosting provider takes effect when the deployment
 picks up new environment values (on Vercel, a redeploy).
 

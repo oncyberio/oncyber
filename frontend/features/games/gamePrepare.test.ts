@@ -81,6 +81,69 @@ test("a game the kill switch paused is not prepared", async () => {
     expect(frames()).toHaveLength(0);
 });
 
+test("the hidden frame loads the release the game's pointer names", async () => {
+    const release = "0800022feca2d8ba";
+    const hosted = {
+        src: `/api/games/releases/ace/${release}/index.html`,
+        release,
+        source: "hosted",
+    };
+    const settle = async () => {
+        for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+    const asked: string[] = [];
+    const answer = (body: object) => {
+        (globalThis as any).fetch = jest.fn(async (url: string) => {
+            asked.push(url);
+            return { ok: true, json: async () => body };
+        });
+        setGamePrepareGate(null);
+        resetGamePreparation();
+        asked.length = 0;
+    };
+
+    // The same frame the game page gets, from the same answer.
+    answer({ paused: false, releases: [], frame: hosted });
+    prepareGameDestination("/games/ace");
+    await settle();
+    expect(frames()[0].getAttribute("src")).toBe(`${hosted.src}?prepare`);
+    expect(frames()[0].getAttribute("data-release")).toBe(release);
+    // Its id came with the answer: release.json is not read.
+    expect(asked).toEqual(["/api/games/paused?game=ace"]);
+
+    // The kill switch stops a hosted release: the site said so.
+    answer({ paused: true, releases: [], frame: hosted });
+    prepareGameDestination("/games/ace");
+    await settle();
+    expect(frames()).toHaveLength(0);
+
+    // An address the game page would refuse is not loaded here either.
+    for (const src of [
+        "https://elsewhere.example/ace/index.html?x",
+        `/api/games/releases/garden/${release}/index.html`,
+        "javascript:alert(1)",
+    ]) {
+        answer({ paused: false, releases: [], frame: { ...hosted, src } });
+        prepareGameDestination("/games/ace");
+        await settle();
+        expect(frames()[0].getAttribute("src")).toBe(
+            "/games/ace/index.html?prepare"
+        );
+    }
+
+    // No pointer: the committed build, as before.
+    answer({
+        paused: false,
+        releases: [],
+        frame: { src: "/games/ace/index.html", release: null },
+    });
+    prepareGameDestination("/games/ace");
+    await settle();
+    expect(frames()[0].getAttribute("src")).toBe(
+        "/games/ace/index.html?prepare"
+    );
+});
+
 test("only shared-page games on this site are prepared", () => {
     expect(gameDestinationId("/games/ace", origin)).toBe("ace");
     expect(

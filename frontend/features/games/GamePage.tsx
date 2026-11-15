@@ -20,6 +20,7 @@ import {
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
 import GameCredits from "./GameCredits";
+import { frameBase, type GameFrame } from "./gameRelease";
 import { readGameStorage, writeGameStorage } from "./gameStorage";
 import {
     developmentParty,
@@ -92,7 +93,14 @@ const GAME_SANDBOX = "allow-scripts allow-pointer-lock";
  * sides (docs/games/contract.md); a build from before that still says
  * `<id>:<kind>` and is answered the same way.
  */
-export default function GamePage({ game }: { game: GameEntry }) {
+export default function GamePage({
+    game,
+    frame: gameFrame,
+}: {
+    game: GameEntry;
+    /** Where the frame loads from; the committed build when not given. */
+    frame?: GameFrame;
+}) {
     const {
         id: GAME,
         room: sharedRoom,
@@ -191,7 +199,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
     });
     // What breaks and how fast it runs on real visits (gameHealth.ts): it
     // only listens, and times the first frame by the loading signal above.
-    useGameHealth(GAME, frame);
+    useGameHealth(GAME, frame, gameFrame?.release);
     // Chat and voice are the page's: carried from the lobby, in this room.
     const social = useGameSocial({
         game: GAME,
@@ -578,7 +586,8 @@ export default function GamePage({ game }: { game: GameEntry }) {
         >
             <iframe
                 ref={frame}
-                src={`/games/${GAME}/index.html`}
+                src={gameFrame?.src ?? `/games/${GAME}/index.html`}
+                data-release={gameFrame?.release ?? undefined}
                 title={title}
                 sandbox={GAME_SANDBOX}
                 referrerPolicy="no-referrer"
@@ -676,6 +685,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 <GameCredits
                     game={GAME}
                     title={game.title}
+                    base={frameBase(GAME, gameFrame)}
                     onClose={() => frame.current?.focus()}
                 />
             )}

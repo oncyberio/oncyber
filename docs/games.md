@@ -26,6 +26,7 @@ where `GAMES_PREVIEW=1` is set.
 | `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
 | `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
 | `docs/games/listing.md`           | What a game's listing must contain, and what the lobby shows from it.               |
+| `scripts/games/releases/`         | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
 
 ## The lifecycle
 
@@ -338,6 +339,13 @@ Every shipped file must also be credited under an allowed licence
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
 
+Publishing also stores the release outside the repository. The page keeps
+loading the committed build until a person points the game at a stored
+release (`pnpm games:release point <id>`); from then on the page loads from
+the pointer, and a publish moves it. Rollback, drafts, backends, what a
+release host must send and the `hosted` check stage:
+[games/releases.md](games/releases.md).
+
 It needs Playwright and Chromium. `PW_CHANNEL=chrome` uses the installed
 Chrome and its GPU; `--headed` shows the window. Headless frame times follow
 the headless browser's frame rate, not the game's. Without a GPU a WebGL
@@ -373,6 +381,8 @@ why: [games/field-health.md](games/field-health.md).
 ## Not built yet
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.
--   Hosted releases: publishing is a commit today, not an upload.
+-   Hosted releases in production: built and checked with the local
+    backend, and no game is switched to one; the decisions left are in
+    [games/releases.md](games/releases.md).
 -   A headset profile for the check (phone and gamepad: [games/devices.md](games/devices.md)).
 -   Games in the lobby's Explore panel outside the development server.

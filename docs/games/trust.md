@@ -51,6 +51,12 @@ receive anything the game sends it.
 | `frontend/next.config.js`                  | Serves the policy on every file under `/games/<id>/`. A game with no `network.json`, or a malformed one, gets its own files only.                                                                                           |
 | `scripts/games/networkCheck.mjs`           | The check serves the build with the same policy and fails on `NETWORK_DECLARATION` (missing or malformed list), `NETWORK_UNDECLARED` (a request to a host not in the list) and `POLICY_BLOCKED` (eval, an injected script). |
 
+A game loaded from a hosted release gets the same policy from the
+release's host, built from the `network.json` inside the release; a host
+that does not send it is never pointed at, and the check's hosted stage
+runs the game under it ([releases.md](releases.md), "What a host must
+send").
+
 The policy covers the whole check, not only the scenario: every stage's
 server serves the game's files with it and every browser a stage opens is
 watched (`guard` and `patrol` in `networkCheck.mjs`), so the social, keys,

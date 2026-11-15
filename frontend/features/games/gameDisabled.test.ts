@@ -2,10 +2,38 @@ import {
     fetchGameRelease,
     gamePause,
     parseDisabledGames,
+    pauseForRelease,
     resolveGamePause,
 } from "./gameDisabled";
 
 describe("the games kill switch", () => {
+    it("stops a hosted release by the id its pointer names", async () => {
+        const env = { GAMES_DISABLED: "garden@0800022feca2d8ba, ace" };
+        // Listed: paused outright, with nothing left to look up.
+        const listed = pauseForRelease(
+            gamePause("garden", env),
+            "0800022feca2d8ba"
+        );
+        expect(listed).toEqual({ paused: true, releases: [] });
+        // Another release of the same game plays, without reading a file.
+        const other = pauseForRelease(
+            gamePause("garden", env),
+            "2eeece2736f516c3"
+        );
+        expect(other).toEqual({ paused: false, releases: [] });
+        const read = jest.fn(async () => "0800022feca2d8ba");
+        expect(await resolveGamePause(other, read)).toBe("play");
+        expect(read).not.toHaveBeenCalled();
+        // A whole-game pause covers every release, hosted or not.
+        expect(
+            pauseForRelease(gamePause("ace", env), "2eeece2736f516c3").paused
+        ).toBe(true);
+        // The committed build (no id yet): unchanged, read from release.json.
+        expect(pauseForRelease(gamePause("garden", env), null)).toEqual(
+            gamePause("garden", env)
+        );
+    });
+
     it("reads game ids and game@release entries, and drops the rest", () => {
         expect(
             parseDisabledGames(

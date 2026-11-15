@@ -40,10 +40,13 @@ import { scanUiKit } from "./ui-kit-check.mjs";
 import { soundHarness, soundStage } from "./sound-check.mjs";
 import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
 import { describeProcess, processStage } from "./process.mjs";
-import { GENERATED_THUMBNAIL, listingStage } from "./listing.mjs";
-import { networkStage } from "./networkCheck.mjs";
+import { listingStage } from "./listing.mjs";
+import { networkStage, REPORT_PATH } from "./networkCheck.mjs";
 import { checkHealth, healthHarness } from "./health-stage.mjs";
 import { checkCredits } from "./credits.mjs";
+import { hostedReleaseStage } from "./releases/stage.mjs";
+import { publishRelease, releaseTarget } from "./releases/publish.mjs";
+import { RELEASE_REPORTS } from "./releases/storage.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -83,8 +86,10 @@ function listFiles(dir) {
     });
 }
 // What a release is made of: everything the browser can load, not the
-// reports this script writes next to it.
-const REPORTS = new Set(["check.json", "release.json", "credits.json", GENERATED_THUMBNAIL]);
+// reports this script writes next to it (releases/storage.mjs says which,
+// and why). network.json and credits.json are written before the listing
+// and are part of the release.
+const REPORTS = RELEASE_REPORTS;
 function bundleFiles() {
     if (!existsSync(join(out, "index.html"))) fail(`frontend/public/games/${id}/index.html missing; build first`);
     return listFiles(out)
@@ -183,12 +188,12 @@ function serve() {
 
 async function check() {
     network = networkStage(manifest, out);
+    // Asset rights: every shipped file credited, under an allowed licence (credits.mjs). Before the files are listed: the credits.json it writes is one of the release's files.
+    const rights = existsSync(join(out, "index.html")) ? await checkCredits(id) : null;
     const files = bundleFiles();
     const scan = staticScan(files);
     scan.findings.push(...contract.findings);
     scan.findings.push(...(await savedStaticFindings({ id, manifest })));
-    // Asset rights: every shipped file credited, under an allowed licence (credits.mjs).
-    const rights = await checkCredits(id);
     scan.findings.push(...rights.findings);
     let chromium;
     try {
@@ -282,17 +287,21 @@ async function check() {
     const party = await partyCheck({ id, manifest, out, source, headed, network });
     // Saved data: save, reload, read back; then boot against old saves.
     const saved = await runSavedDataStage({ id, manifest, out, launch, network });
+    // The build must also work from a release address, not only this folder, under the same network policy.
+    const hosted = await hostedReleaseStage({ id, out, files, chromium, headed, network, reportUri: REPORT_PATH });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" && !listing?.findings.length && !health.findings.length ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" && !listing?.findings.length && !health.findings.length && !hosted.findings.length ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
         avatars,
+        hosted: hosted.summary,
         findings: [
             ...scan.findings,
+            ...hosted.findings,
             ...avatars.findings,
             ...(devices?.blocking ?? []),
             ...saved.findings,
@@ -376,5 +385,9 @@ if (command === "publish") {
     };
     writeFileSync(join(out, "release.json"), JSON.stringify(release, null, 2) + "\n");
     console.log(`${id}: published release ${version} (${files.length} files). Commit frontend/public/games/${id}.`);
+    // Hosted release: store the checked files. The pointer moves only for a game a person already switched to hosted releases (docs/games/releases.md); otherwise the page keeps loading the committed build.
+    const target = releaseTarget();
+    const { entry, pointed } = await publishRelease({ game: id, dir: out, files, ...target });
+    console.log(`${id}: release ${entry.release} stored (${entry.backend}) at ${entry.base}; ` + (pointed ? `the page now loads it (pointer: ${relative(root, target.pointers)})` : `the page still loads the committed build. Switch with: pnpm games:release point ${id}`));
 }
 process.exit(result.status === "passed" ? 0 : 1);

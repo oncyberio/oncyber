@@ -18,10 +18,13 @@ const linkStyle = { color: "#fff", textUnderlineOffset: 3 };
 export default function GameCredits({
     game,
     title,
+    base,
     onClose,
 }: {
     game: string;
     title: string;
+    /** The folder the game's frame loads from; the committed build's when not given. */
+    base?: string;
     /** Called when the panel closes, e.g. to give the game its focus back. */
     onClose?: () => void;
 }) {
@@ -31,11 +34,13 @@ export default function GameCredits({
 
     useEffect(() => {
         const controller = new AbortController();
-        void loadGameCredits(game, controller.signal).then((loaded) => {
-            if (!controller.signal.aborted) setCredits(loaded);
-        });
+        void loadGameCredits(game, controller.signal, undefined, base).then(
+            (loaded) => {
+                if (!controller.signal.aborted) setCredits(loaded);
+            }
+        );
         return () => controller.abort();
-    }, [game]);
+    }, [game, base]);
 
     const close = () => {
         setOpen(false);

@@ -239,7 +239,13 @@ export function sendGameHealth(event: GameHealthEvent) {
  */
 export function useGameHealth(
     game: string,
-    frame: RefObject<HTMLIFrameElement>
+    frame: RefObject<HTMLIFrameElement>,
+    /**
+     * The id of the hosted release the frame shows, from the game's pointer
+     * (gameRelease.ts). Without one the frame is the committed build, whose
+     * id is in its release.json.
+     */
+    hostedRelease?: string | null
 ) {
     useEffect(() => {
         const health = createGameHealth({
@@ -251,9 +257,11 @@ export function useGameHealth(
             }),
         });
         let current = true;
-        void fetchGameRelease(game).then(
-            (release) => current && health.setRelease(release)
-        );
+        if (hostedRelease) health.setRelease(hostedRelease);
+        else
+            void fetchGameRelease(game).then(
+                (release) => current && health.setRelease(release)
+            );
         const timeout = setTimeout(
             () => health.loadFailed("timeout"),
             LOAD_TIMEOUT_MS

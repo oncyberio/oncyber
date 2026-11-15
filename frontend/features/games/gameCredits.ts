@@ -1,7 +1,10 @@
 /**
  * Credits for a game: the third-party files it ships, read from the
- * `credits.json` that `pnpm games:check` writes beside the build from the
+ * `credits.json` that `pnpm games:check` writes into the build from the
  * game's `game.json`. The page shows them; the game cannot change them.
+ * The file is one of the release's files, so the page reads it from where
+ * the frame loads (`base`: the committed build, or a hosted release,
+ * docs/games/releases.md) and shows the credits of the build on screen.
  * See docs/games/credits.md.
  */
 export interface GameCredit {
@@ -51,19 +54,20 @@ function httpsUrl(value: unknown): string | null {
 }
 
 /** A licence text inside the game's own folder, never anywhere else. */
-function licenseFileHref(game: string, value: unknown): string | null {
+function licenseFileHref(base: string, value: unknown): string | null {
     if (typeof value !== "string" || !value) return null;
     const parts = value.split("/");
     if (parts.some((part) => !part || part === "." || part === ".."))
         return null;
     if (/[\\?#\0]/.test(value)) return null;
-    return `/games/${game}/${parts.map(encodeURIComponent).join("/")}`;
+    return `${base}${parts.map(encodeURIComponent).join("/")}`;
 }
 
 /** Read a fetched credits.json. Anything malformed gives null, not a crash. */
 export function parseGameCredits(
     game: string,
-    value: unknown
+    value: unknown,
+    base = `/games/${game}/`
 ): GameCredits | null {
     const data = value as {
         version?: unknown;
@@ -84,7 +88,7 @@ export function parseGameCredits(
             source: httpsUrl(entry.source),
             licenseName: text(entry.licenseName, 80) || text(entry.license, 80),
             licenseHref:
-                licenseFileHref(game, entry.licenseFile) ??
+                licenseFileHref(base, entry.licenseFile) ??
                 httpsUrl(entry.licenseUrl),
             note: text(entry.note, 400) || null,
             confirmed: entry.confirmed === true,
@@ -112,17 +116,15 @@ export function groupGameCredits(
 export async function loadGameCredits(
     game: string,
     signal?: AbortSignal,
-    fetcher?: typeof fetch
+    fetcher?: typeof fetch,
+    base = `/games/${game}/`
 ): Promise<GameCredits | null> {
     try {
-        const response = await (fetcher ?? fetch)(
-            `/games/${game}/credits.json`,
-            {
-                signal,
-            }
-        );
+        const response = await (fetcher ?? fetch)(`${base}credits.json`, {
+            signal,
+        });
         if (!response.ok) return null;
-        return parseGameCredits(game, await response.json());
+        return parseGameCredits(game, await response.json(), base);
     } catch {
         return null;
     }

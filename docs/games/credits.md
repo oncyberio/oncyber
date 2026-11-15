@@ -95,7 +95,10 @@ rule; they are a list of open questions, not a precedent.
 
 ## Where credits show up
 
--   `frontend/public/games/<id>/credits.json`, written by the check.
+-   `frontend/public/games/<id>/credits.json`, written by the check. It is
+    one of the release's files ([releases.md](releases.md)): the page reads
+    it from wherever the game's frame loads, so a hosted release shows its
+    own credits and licence texts.
 -   The **Credits** button on the game's page
     (`frontend/features/games/GameCredits.tsx`). The page owns it, so a game
     cannot hide or change its credits.

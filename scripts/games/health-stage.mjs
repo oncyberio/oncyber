@@ -51,7 +51,9 @@ export function pauseDecisions(id, release) {
         unset: "",
     };
     const code = `
-        import { gamePause, resolveGamePause } from ${JSON.stringify(module)};
+        import { gamePause, pauseForRelease, resolveGamePause } from ${JSON.stringify(
+            module
+        )};
         const out = {};
         for (const [name, value] of Object.entries(${JSON.stringify(cases)})) {
             let read = false;
@@ -61,7 +63,15 @@ export function pauseDecisions(id, release) {
                 async () => { read = true; return ${JSON.stringify(
                     release
                 )}; });
-            out[name] = { decision, read };
+            // The same release loaded from a hosted address: its id comes
+            // from the game's pointer, so nothing is left to read.
+            let hostedRead = false;
+            const hosted = await resolveGamePause(
+                pauseForRelease(gamePause(${JSON.stringify(
+                    id
+                )}, { GAMES_DISABLED: value }), ${JSON.stringify(release)}),
+                async () => { hostedRead = true; return null; });
+            out[name] = { decision, read, hosted, hostedRead };
         }
         console.log(JSON.stringify(out));`;
     return JSON.parse(
@@ -139,6 +149,14 @@ export async function checkHealth(
         );
         // Pausing a whole game must not wait on reading its release.
         if (d.byGame?.read) wrong.push("byGame read the release");
+        // A hosted release (docs/games/releases.md) stops the same way,
+        // decided from the pointer's id alone.
+        for (const name of Object.keys(expected)) {
+            if (d[name]?.hosted !== expected[name])
+                wrong.push(`${name} (hosted release)`);
+            if (d[name]?.hostedRead)
+                wrong.push(`${name} (hosted release) read release.json`);
+        }
         summary.paused = wrong.length === 0;
         if (wrong.length)
             findings.push({
