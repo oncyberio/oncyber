@@ -29,6 +29,9 @@ jest.mock("@utils/lobbyDestinationBridge", () => ({
 jest.mock("@utils/lobbyGroupContext", () => ({
     readLobbyGroupCohort: jest.fn(),
 }));
+// Layers with tests of their own; this file is about the contract.
+jest.mock("./useGameSocial", () => ({ useGameSocial: () => ({}) }));
+jest.mock("./GameChat", () => ({ __esModule: true, default: () => null }));
 // The party's room: connects at once as "room-me" with whoever `mockPeers` holds.
 let mockPeers: any[] = [];
 jest.mock("./gameRoom", () => ({
@@ -37,6 +40,12 @@ jest.mock("./gameRoom", () => ({
         mockState: (state: any) => void;
         constructor(_who: unknown, mockState: (state: any) => void) {
             this.mockState = mockState;
+            // The page's other layers (chat, voice, results...) call room
+            // methods this test doesn't care about: they do nothing here.
+            const nothing = () => undefined;
+            return new Proxy(this, {
+                get: (room, key) => (key in room ? room[key] : nothing),
+            });
         }
         async connect() {
             this.mockState({
