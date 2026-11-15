@@ -13,6 +13,7 @@ import {
 } from "@oncyber/game-runtime/pausing";
 import { createPartyLink } from "@oncyber/game-runtime/partyLink";
 import { createResults } from "@oncyber/game-runtime/results";
+import { connectSavedData } from "@oncyber/game-runtime/saved";
 import { connectVoice } from "@oncyber/game-runtime/voice";
 import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
@@ -26,6 +27,7 @@ import createGame, {
 } from "./game.js";
 import { createHud } from "./hud.js";
 import { bindDevices } from "./input.js";
+import { MIGRATE } from "./saved.js";
 // Oncyber's UI kit first, so Ace's own styles can sit on top of it.
 import "@oncyber/game-ui/fonts.css";
 import "@oncyber/game-ui/oncyber-ui.css";
@@ -53,6 +55,10 @@ import "./style.css";
 // page owns volume, mute and the first gesture, the game is lowered while
 // someone in the room talks, and it is silent while the session is
 // suspended (so a match another person is playing keeps its sound).
+// What the game saves are the keys game.json declares (`saved`): the page
+// keeps them, per visitor, per party for the trip or for everyone, and the
+// game reads and writes them through the `storage` service
+// (docs/games/saved-data.md).
 // Standalone (vite dev) it plays on localStorage; `?arrive` and `?party=4`
 // stand in for a lobby trip.
 
@@ -67,8 +73,9 @@ pageRoom.link = link;
 const page = connectPage({
     arrival: manifest.arrival,
     party: manifest.party,
-    storageKeys: ["settings"],
-    storageMax: 64 * 1024,
+    // Saved values go through the declared keys below, not the page's
+    // older string storage.
+    storageKeys: [],
     storageNamespace: "ace",
     identityTimeoutMs: 1500,
 });
@@ -132,6 +139,14 @@ const loading = createLoading({ post: (kind, data) => page.post(kind, data) });
 // Match results: the game opens a match and closes it with one report
 // (the `results` service below); the page hears one `result` per match.
 const results = createResults((result) => page.post("result", { result }));
+// Saved data: the keys game.json declares, kept by the page. Listening
+// before hello; under ?check it also answers the saved-data stage's probes.
+const saved = connectSavedData({
+    namespace: "ace",
+    declared: manifest.saved,
+    migrate: MIGRATE,
+    timeoutMs: 2500,
+});
 page.hello();
 
 const AVATAR_MAX = 32 * 1024 * 1024;
@@ -151,8 +166,18 @@ async function call(capability, operation, value) {
                 slow: Number(params.get("slow")) || 1,
                 lobby: page.embedded,
             };
-        if (operation === "get") return { value: page.storage.get(value?.key) };
-        if (operation === "set") return page.storage.set(value?.key, value?.value);
+        // A read is { value, revision, outcome }: value is null when
+        // nothing usable is saved. A write to a shared key names the
+        // revision it read (`ifRevision`) and can lose with "conflict".
+        if (operation === "get") return saved.get(value?.key);
+        if (operation === "set")
+            return saved.set(
+                value?.key,
+                value?.value,
+                Number.isInteger(value?.ifRevision)
+                    ? { ifRevision: value.ifRevision }
+                    : {}
+            );
     }
     if (capability === "results") {
         // A 1 v 1 passes the id both browsers share; a solo match gets its own.
@@ -234,7 +259,9 @@ async function start() {
         // about how a match ends and the locomotion check about how far a
         // walk goes, not pixels: draw small.
         pixelRatio:
-            ["party", "results", "locomotion"].includes(params.get("check"))
+            ["party", "results", "locomotion", "saved"].includes(
+                params.get("check")
+            )
                 ? 0.3
                 : Math.min(window.devicePixelRatio || 1, 2),
     };
@@ -374,11 +401,11 @@ async function start() {
     // pnpm games:check opens the game with ?check: play the scenario,
     // measure frames and report to the check page (its avatar and party
     // stages ask their own questions instead, its results stage has the
-    // game's bot play a match to the end, and its locomotion stage walks
-    // the visitor itself).
+    // game's bot play a match to the end, its locomotion stage walks
+    // the visitor itself, and its saved-data stage saves and reads).
     if (
         params.has("check") &&
-        !["avatars", "party", "results", "locomotion"].includes(
+        !["avatars", "party", "results", "locomotion", "saved"].includes(
             params.get("check")
         )
     )
@@ -409,6 +436,7 @@ async function start() {
         hud.dispose();
         voice.dispose();
         link.dispose();
+        saved.dispose();
         delete pageRoom.pose;
         delete pageRoom.link;
         page.dispose();

@@ -105,6 +105,12 @@ Sound has its own messages (`audio`, `audio-state`) and one rule: route all
 sound through the SDK's output; never keep a private mute. See
 [games/sound.md](games/sound.md).
 
+Saved data has its own messages (`saved`, `saved-result`) and rule:
+declare every key in `game.json`; saved values are plain JSON with a
+version. See [games/saved-data.md](games/saved-data.md). The fixed
+`storage` keys above remain for games that have not moved yet; Ace and
+Garden have.
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 

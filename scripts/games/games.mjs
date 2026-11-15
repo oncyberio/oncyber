@@ -38,6 +38,7 @@ import { checkLoading, loadingHarness } from "./loading-check.mjs";
 import { locomotionStage } from "./locomotion-check.mjs";
 import { scanUiKit } from "./ui-kit-check.mjs";
 import { soundHarness, soundStage } from "./sound-check.mjs";
+import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -115,8 +116,10 @@ const harness = (query, visit) => `<!doctype html><meta charset="utf-8"><title>c
 <iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad; autoplay" src="/games/${id}/index.html?check${query}"></iframe>
 <script>
 const frame = document.getElementById("game");
+${savedFreshVisitor}
 addEventListener("message", (event) => {
     if (event.source !== frame.contentWindow) return;
+    savedFreshVisitor(event, frame);
     const type = event.data && event.data.type;
     if (type === "oncyber:check-report") window.__report = event.data.report;
     // The game's messages by kind, for stages that play the page's part.
@@ -172,6 +175,7 @@ async function check() {
     const files = bundleFiles();
     const scan = staticScan(files);
     scan.findings.push(...contract.findings);
+    scan.findings.push(...(await savedStaticFindings({ id, manifest })));
     let chromium;
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
@@ -180,7 +184,8 @@ async function check() {
     }
     const server = await serve();
     const errors = [], pageErrors = [];
-    const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
+    const launch = () => chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
+    const browser = await launch();
     let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] };
     const started = Date.now();
     try {
@@ -255,11 +260,13 @@ async function check() {
     const avatars = await avatarStage({ id, manifest, source, out, chromium, headed });
     // What the game offers a party, and that a dropped member doesn't stop it.
     const party = await partyCheck({ id, manifest, out, source, headed });
+    // Saved data: save, reload, read back; then boot against old saves.
+    const saved = await runSavedDataStage({ id, manifest, out, launch });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" && !devices?.blocking.length && loading?.status !== "failed" && locomotion?.status !== "failed" && saved.status === "passed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -268,6 +275,7 @@ async function check() {
             ...scan.findings,
             ...avatars.findings,
             ...(devices?.blocking ?? []),
+            ...saved.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
             ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
@@ -293,6 +301,7 @@ async function check() {
         // The one contract: the form the build greeted in and the visit staged.
         contract: { listed: contract.listed, prefix: greeted?.prefix ?? null, version: greeted?.version ?? null, visit: contract.visit, warnings },
         devices: devices?.report,
+        saved: { status: saved.status, ms: saved.ms, keys: saved.keys, runs: saved.runs },
         run: report,
         keys: keys?.report ?? null,
         ...(locomotion ? { locomotion } : {}),
@@ -303,6 +312,7 @@ async function check() {
     if (loading) console.log(`  loading: ${loading.status}` + (loading.firstFrameMs != null ? ` · first frame ${loading.firstFrameMs} ms (budget ${loading.firstFrameBudgetMs} ms) · pause ${loading.pause.mode}: menu ${loading.pause.menu}, hidden ${loading.pause.hidden}` : ""));
     for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
+    if (saved.keys) console.log(`  saved data: ${saved.status} · ${saved.keys} key(s), ${saved.runs.length} boots`);
     for (const finding of result.findings) console.log(`  ${finding.code}: ${finding.message}`);
     for (const warning of [...warnings, ...result.warnings]) console.log(`  warning ${warning.code}: ${warning.message}`);
     for (const line of devices?.lines ?? []) console.log(line);

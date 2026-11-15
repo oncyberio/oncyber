@@ -244,5 +244,39 @@
   "results": {
     "match": "autoplay&games=1&difficulty=rookie&slow=3",
     "timeoutSeconds": 240
+  },
+  "saved": {
+    "settings": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 256,
+      "sample": {
+        "difficulty": "rookie",
+        "games": 3
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"difficulty\":\"ace\",\"games\":1}",
+          "expect": "migrated"
+        }
+      ]
+    },
+    "format": {
+      "scope": "party",
+      "stateVersion": 1,
+      "maxBytes": 128,
+      "sample": {
+        "format": "singles"
+      }
+    },
+    "tally": {
+      "scope": "game",
+      "stateVersion": 1,
+      "maxBytes": 64,
+      "sample": {
+        "matches": 1
+      }
+    }
   }
 }

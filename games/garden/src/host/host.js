@@ -4,17 +4,26 @@
 // sees public presentation fields, peer poses, relayed garden packets and its
 // own saved values. Standalone (vite dev) it plays offline on localStorage.
 
+import { connectSavedData } from "../../../runtime/src/saved.ts";
+import manifest from "../../game.json";
+
 const PREFIX = "garden:";
 const DEFAULT_IDENTITY = { name: "You", pfp: "", avatarUrl: "" };
-// Values the page keeps for this game, by key. Small strings only.
-const STORAGE_KEYS = new Set(["save"]);
-const STORAGE_MAX = 256 * 1024;
+
+// Saves from before keys were declared (stateVersion 0) are the raw strings
+// the page kept: the save as JSON text.
+export const MIGRATE = {
+    save: (old, from) => {
+        if (from !== 0 || typeof old !== "string") return undefined;
+        const data = JSON.parse(old);
+        return data && Array.isArray(data.list) ? data : undefined;
+    },
+};
 
 export function createHost() {
     const embedded = window.parent !== window;
     const listeners = new Map();
     const host = { embedded, identity: null, selfId: "", readyPosted: false };
-    const stored = new Map();
     const fire = (type, value) =>
         (listeners.get(type) || []).forEach((listener) => listener(value));
     const post = (type, data = {}) => {
@@ -44,11 +53,6 @@ export function createHost() {
                 pfp: text(event.data.pfp, 2048),
                 avatarUrl: text(event.data.avatarUrl, 2048),
             };
-            const saved = event.data.storage;
-            if (saved && typeof saved === "object")
-                for (const key of STORAGE_KEYS)
-                    if (typeof saved[key] === "string" && saved[key].length <= STORAGE_MAX)
-                        stored.set(key, saved[key]);
             clearInterval(helloTimer);
             if (host.readyPosted) post("ready");
         } else if (kind === "self") {
@@ -62,32 +66,14 @@ export function createHost() {
         listeners.get(type).push(listener);
     };
     host.post = post;
-    // Saved values: the page's storage when embedded, localStorage standalone.
-    host.storage = {
-        get(key) {
-            if (!STORAGE_KEYS.has(key)) return null;
-            if (embedded) return stored.get(key) ?? null;
-            try {
-                return localStorage.getItem(`bloom-garden:${key}`);
-            } catch {
-                return null;
-            }
-        },
-        set(key, value) {
-            if (!STORAGE_KEYS.has(key) || typeof value !== "string" || value.length > STORAGE_MAX) return false;
-            if (embedded) {
-                stored.set(key, value);
-                post("storage", { key, value });
-                return true;
-            }
-            try {
-                localStorage.setItem(`bloom-garden:${key}`, value);
-                return true;
-            } catch {
-                return false;
-            }
-        },
-    };
+    // Saved values (declared in game.json): the page keeps them when
+    // embedded, localStorage standalone. See docs/games/saved-data.md.
+    host.saved = connectSavedData({
+        prefix: PREFIX,
+        declared: manifest.saved,
+        migrate: MIGRATE,
+        timeoutMs: 2500,
+    });
     // The page may attach its listener after this frame loads, so keep
     // greeting until it answers with an identity.
     host.hello = () => {
@@ -121,6 +107,7 @@ export function createHost() {
             );
         });
     host.dispose = () => {
+        host.saved.dispose();
         clearInterval(helloTimer);
         window.removeEventListener("message", onMessage);
     };

@@ -47,6 +47,12 @@ jest.mock("@api/games/_api", () => ({
     __esModule: true,
     default: { reportResult: jest.fn(), leaderboard: jest.fn() },
 }));
+// Saved data: the bridge is real; the server store's RPC client needs a
+// bundler. The visitor here is signed out, so only the browser is used.
+jest.mock("@api/gameSaved/_api", () => ({
+    __esModule: true,
+    default: { savedRead: jest.fn(), savedWrite: jest.fn() },
+}));
 // The seat key needs the browser's crypto and storage; the bridge is real.
 jest.mock("./gameMatch", () => ({
     ...jest.requireActual("./gameMatch"),

@@ -43,6 +43,13 @@ import {
     versusMatchReport,
 } from "./result.js";
 import { pointLabel } from "./rules.js";
+import {
+    DEFAULT_SETTINGS,
+    readFormat,
+    readSettings,
+    readTally,
+    updateSaved,
+} from "./saved.js";
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
 import { attachVRM, avatarTextures, driveVRM } from "./vrm.js";
@@ -99,8 +106,9 @@ export default function createGame(context) {
     const signal = context.signal;
     const on = (target, type, listener, options) =>
         target.addEventListener(type, listener, { ...options, signal });
-    // Saved values and options from the host, read once in prepare().
-    const saved = { settings: null };
+    // Options from the host, read once in prepare(). What the game saves
+    // are the keys game.json declares (saved.js): the host's `storage`
+    // service reads and writes them through the page.
     const config = {
         difficulty: null,
         games: null,
@@ -109,10 +117,8 @@ export default function createGame(context) {
         check: false,
         partyCheck: false,
     };
-    const save = (key, value) =>
-        void services
-            .call("storage", "set", { key, value }, signal)
-            .catch(() => {});
+    const storage = (operation, value) =>
+        services.call("storage", operation, value, signal).catch(() => null);
     // Who travelled here together (contract.ts); null alone.
     let trip = null;
     // The party's room: its roster (the trip's, with what changed) and the
@@ -209,21 +215,42 @@ export default function createGame(context) {
         },
     };
 
-    const settings = { difficulty: "pro", games: 2 };
+    const settings = { ...DEFAULT_SETTINGS };
+    // Anything that isn't a setting leaves what is there in place.
     function applySettings(value) {
-        if (DIFFICULTY[value?.difficulty])
-            settings.difficulty = value.difficulty;
-        if ([1, 2, 3].includes(value?.games)) settings.games = value.games;
+        Object.assign(settings, readSettings(value, settings));
     }
-    // Saved settings come from the host's storage; its options win.
-    function loadSettings() {
-        try {
-            applySettings(JSON.parse(saved.settings || "{}"));
-        } catch {
-            /* malformed */
-        }
+    // What the visitor saved comes from the page (the `settings` key); a
+    // missing, unreadable or reset save leaves the defaults. The host's
+    // options win, and are not saved unless the visitor changes something.
+    let keptSettings = "";
+    function loadSettings(saved) {
+        applySettings(saved);
         applySettings({ difficulty: config.difficulty });
         applySettings({ games: config.games });
+        keptSettings = JSON.stringify(settings);
+    }
+    function saveSettings() {
+        const next = JSON.stringify(settings);
+        if (next === keptSettings) return;
+        keptSettings = next;
+        void storage("set", { key: "settings", value: { ...settings } });
+    }
+    // Matches finished by everyone who plays here (the game-wide `tally`
+    // key), shown on the title.
+    function showTally(matches) {
+        const line = $("#club-tally");
+        line.hidden = matches < 1;
+        line.textContent = `${matches.toLocaleString("en")} ${
+            matches === 1 ? "match" : "matches"
+        } played at the club`;
+    }
+    // Several people finish matches at once: read, add one, write, and
+    // try again on what the other wrote if their write landed first.
+    function countMatch() {
+        void updateSaved(storage, "tally", (tally) => ({
+            matches: readTally(tally) + 1,
+        })).then((tally) => tally && showTally(readTally(tally)));
     }
 
     // Sound goes through the runtime's output (docs/games/sound.md): the
@@ -439,6 +466,9 @@ export default function createGame(context) {
         startAttract();
         sound.startMusic(audio, "title");
         sound.setCrowd(audio, 0.5);
+        void storage("get", { key: "tally" }).then((read) =>
+            showTally(readTally(read?.value))
+        );
     }
 
     function goArrive(view) {
@@ -673,7 +703,30 @@ export default function createGame(context) {
         state.partyFormat = null;
         state.partyIndex = 0;
         focusPartyFormat(0);
+        // What a party member already picked for this trip (the `format`
+        // key, kept under the trip's id). A draw is shown; 1 v 1 is only
+        // pointed at, because picking it is this visitor's word that they
+        // are ready to play.
+        const asked = trip?.id;
+        void storage("get", { key: "format" }).then((read) => {
+            const picked = readFormat(read?.value);
+            if (
+                state.screen !== "party" ||
+                state.partyFormat ||
+                trip?.id !== asked ||
+                !LINEUP_FORMATS.includes(picked) ||
+                !partyOptions().some((format) => format.id === picked)
+            )
+                return;
+            if (picked === "singles")
+                focusPartyFormat(
+                    partyItems().findIndex((b) => b.dataset.format === picked)
+                );
+            else choosePartyFormat(picked, false);
+        });
     }
+    // The formats a party plays together; the pick is shared for the trip.
+    const LINEUP_FORMATS = ["singles", "doubles", "tournament"];
 
     // The formats are a keyboard menu too: arrows move, Space picks. The
     // kit draws its focus ring on data-oui-focus.
@@ -696,7 +749,7 @@ export default function createGame(context) {
         $("#party-note").hidden = !text;
     }
 
-    function choosePartyFormat(format) {
+    function choosePartyFormat(format, remember = true) {
         if (format !== "singles") duel.cancel();
         if (format === "solo") return goSetup();
         if (format === "watch" || format === "rejoin") {
@@ -706,6 +759,10 @@ export default function createGame(context) {
         const everyone = partyPlayers();
         const lineup = buildLineup(format, everyone, trip.id);
         if (!lineup) return;
+        // Shared by the party for the trip: the last pick wins, and is
+        // never written over a pick this browser has not read.
+        if (remember && state.partyFormat !== format)
+            void updateSaved(storage, "format", () => ({ format }));
         state.partyFormat = format;
         const box = $("#party-lineup");
         box.replaceChildren(
@@ -960,7 +1017,7 @@ export default function createGame(context) {
         ].forEach((el, i) =>
             el.toggleAttribute("data-oui-focus", i === state.setupField)
         );
-        save("settings", JSON.stringify(settings));
+        saveSettings();
     }
 
     function startAttract() {
@@ -1514,6 +1571,10 @@ export default function createGame(context) {
                         break;
                     }
                     const won = e.winner === 0;
+                    // One count per match: a 1 v 1 is counted by the
+                    // side that runs it, not by both or by a watcher.
+                    if (!state.versus || duel.role === "authority")
+                        countMatch();
                     after(0.9, () => {
                         callout(
                             won ? "GAME, SET & MATCH!" : "MATCH OVER",
@@ -1979,7 +2040,7 @@ export default function createGame(context) {
             const format = state.partyFormat;
             goParty();
             if (format && partyOptions().some((f) => f.id === format))
-                choosePartyFormat(format);
+                choosePartyFormat(format, false);
         }
         if (versus) {
             const playing = state.screen === "playing" && !state.inputPaused;
@@ -2122,6 +2183,8 @@ export default function createGame(context) {
     // --------------------------------------------------------------- lifecycle
 
     async function prepare() {
+        // Asked first, so the page answers while the fonts load.
+        const savedSettings = storage("get", { key: "settings" });
         const fonts = document.fonts
             ? Promise.race([
                   document.fonts.load('900 40px "Arial Black"'),
@@ -2129,14 +2192,8 @@ export default function createGame(context) {
               ])
             : null;
         await fonts;
-        const call = (operation, value) =>
-            services
-                .call("storage", operation, value, signal)
-                .catch(() => null);
-        Object.assign(config, (await call("config", null)) || {});
-        saved.settings =
-            (await call("get", { key: "settings" }))?.value ?? null;
-        loadSettings();
+        Object.assign(config, (await storage("config", null)) || {});
+        loadSettings((await savedSettings)?.value);
         refreshSoundLabels();
         // The party check runs two copies side by side on a software
         // renderer and is about who plays whom, not pixels: no shadows.
@@ -2190,7 +2247,7 @@ export default function createGame(context) {
         const format = state.partyFormat;
         goParty();
         if (format && partyOptions().some((f) => f.id === format))
-            choosePartyFormat(format);
+            choosePartyFormat(format, false);
     }
 
     // What `pnpm games:check` asks about party play (docs/games/party.md).

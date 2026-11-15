@@ -274,5 +274,24 @@
   "keysCheck": {
     "move": "KeyW"
   },
-  "results": true
+  "results": true,
+  "saved": {
+    "save": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 262144,
+      "sample": {
+        "v": 1,
+        "saved": 1,
+        "list": []
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"v\":1,\"saved\":1,\"list\":[]}",
+          "expect": "migrated"
+        }
+      ]
+    }
+  }
 }

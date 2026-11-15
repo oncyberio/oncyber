@@ -130,15 +130,11 @@ async function call(capability, operation, value) {
                 grow: Number(params.get("grow")) || null,
                 fast: Number(params.get("fast")) || null,
             };
-        if (operation === "load") {
-            try {
-                return { data: JSON.parse(page.storage.get("save") || "null") };
-            } catch {
-                return { data: null };
-            }
-        }
+        // A missing, unreadable or reset save is null: a fresh garden.
+        if (operation === "load") return { data: (await page.saved.get("save")).value };
         if (operation === "save") {
-            return page.storage.set("save", JSON.stringify(value?.data ?? null));
+            if (!value?.data) return false;
+            return (await page.saved.set("save", value.data)).ok;
         }
     }
     if (capability === "audio") {
@@ -334,7 +330,9 @@ async function start() {
     loading.firstFrame({ width: innerWidth, height: innerHeight });
     page.ready();
     // A resize draws at once instead of waiting for the next animation frame.
-    let checking = params.has("check") && params.get("check") !== "avatars";
+    // The avatar and saved-data stages ask their own questions instead.
+    const scenarioCheck = params.has("check") && !["avatars", "saved"].includes(params.get("check"));
+    let checking = scenarioCheck;
     redrawOnResize(
         loading,
         () => {
@@ -366,7 +364,7 @@ async function start() {
     const unbindPausing = bindPausing(pausing, { prefix: "garden:", document, window });
     // pnpm games:check opens the game with ?check: play the scenario, measure
     // frames and report to the check page.
-    if (params.has("check") && params.get("check") !== "avatars") {
+    if (scenarioCheck) {
         const report = await runCheck({
             session: host.session,
             scenario,

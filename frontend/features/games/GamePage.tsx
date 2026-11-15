@@ -48,6 +48,8 @@ import { useGameResults } from "./useGameResults";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
 import { useGamePause } from "./gamePause";
 import { GameSoundButton, useGameAudio } from "./GameSound";
+import { attachSavedData, signedInAccount } from "./savedDataBridge";
+import { createRemoteSavedStore } from "./savedDataRemote";
 
 const PEER_INTERVAL = 100;
 
@@ -431,6 +433,22 @@ export default function GamePage({ game }: { game: GameEntry }) {
             unregister();
         };
     }, []);
+
+    // Saved data: the keys the game declared (docs/games/saved-data.md).
+    useEffect(
+        () =>
+            attachSavedData({
+                game: GAME,
+                remote: createRemoteSavedStore(),
+                fromGame,
+                send: (message) => send.current(message),
+                account: () => signedInAccount(profile.current),
+                // A party's values are kept under the trip's id: the same
+                // id the game reads from the trip in `enter` and `party`.
+                party: () => tripNow()?.id ?? null,
+            }),
+        []
+    );
 
     // One shared room per visit, joined with the identity the game shows.
     useEffect(() => {

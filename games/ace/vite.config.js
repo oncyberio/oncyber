@@ -17,7 +17,7 @@ export default defineConfig({
     resolve: {
         alias: [
             {
-                find: /^@oncyber\/game-runtime\/(browser|check|page|party|roster|match|partyLink|results|loading|pausing)$/,
+                find: /^@oncyber\/game-runtime\/(browser|check|page|party|roster|match|partyLink|results|loading|pausing|saved)$/,
                 replacement: `${runtime}/$1.ts`,
             },
             {
