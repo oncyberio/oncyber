@@ -1,7 +1,10 @@
 import { isCollectionOwner } from "./collections";
+import { isOwnerOfEtherumNft } from "@utils/ethereumAssets";
 
 const mockProviderUrls: string[] = [];
 const mockBalanceOf = jest.fn();
+const mockQueryFilter = jest.fn();
+const mockBalanceOfBatch = jest.fn();
 
 jest.mock("ethers", () => ({
     ethers: {
@@ -11,7 +14,12 @@ jest.mock("ethers", () => ({
                 return { url };
             }),
         },
-        Contract: jest.fn(() => ({ balanceOf: mockBalanceOf })),
+        Contract: jest.fn(() => ({
+            balanceOf: mockBalanceOf,
+            filters: { TransferSingle: jest.fn(() => "filter") },
+            queryFilter: mockQueryFilter,
+            balanceOfBatch: mockBalanceOfBatch,
+        })),
     },
 }));
 jest.mock("@env", () => ({
@@ -35,6 +43,9 @@ const collection = {
 beforeEach(() => {
     mockProviderUrls.length = 0;
     mockBalanceOf.mockReset();
+    mockQueryFilter.mockReset();
+    mockBalanceOfBatch.mockReset();
+    (isOwnerOfEtherumNft as jest.Mock).mockReset();
 });
 
 test.each([
@@ -71,4 +82,50 @@ test("unknown chains are rejected without an RPC call", async () => {
     });
     expect(result.success).toBe(false);
     expect(mockProviderUrls).toEqual([]);
+});
+
+const erc1155 = {
+    ...collection,
+    type: "ERC1155",
+    blockchain: "shape" as const,
+};
+
+test("ERC-1155 ownership is read on-chain when the RPC allows the scan", async () => {
+    mockQueryFilter.mockResolvedValue([{ args: { id: 7 } }]);
+    mockBalanceOfBatch.mockResolvedValue([{ gt: () => true }]);
+    const result = await isCollectionOwner(wallet, erc1155);
+    expect(mockBalanceOfBatch).toHaveBeenCalledWith([wallet], [7]);
+    expect(result).toEqual({ success: true, value: true });
+    expect(isOwnerOfEtherumNft).not.toHaveBeenCalled();
+});
+
+test("ERC-1155 falls back to OpenSea when the RPC refuses the log scan", async () => {
+    mockQueryFilter.mockRejectedValue(
+        new Error("query exceeds max block range 10000")
+    );
+    (isOwnerOfEtherumNft as jest.Mock).mockResolvedValue({
+        success: true,
+        value: true,
+    });
+    const result = await isCollectionOwner(wallet, erc1155);
+    expect(isOwnerOfEtherumNft).toHaveBeenCalledWith(wallet, {
+        slug: "some-collection",
+        blockchain: "shape",
+    });
+    expect(result).toEqual({ success: true, value: true });
+});
+
+test("without a slug a refused log scan is reported, not guessed", async () => {
+    mockQueryFilter.mockRejectedValue(
+        new Error("query exceeds max block range 10000")
+    );
+    const result = await isCollectionOwner(wallet, {
+        ...erc1155,
+        slug: undefined,
+    });
+    expect(result).toEqual({
+        success: false,
+        error: "query exceeds max block range 10000",
+    });
+    expect(isOwnerOfEtherumNft).not.toHaveBeenCalled();
 });

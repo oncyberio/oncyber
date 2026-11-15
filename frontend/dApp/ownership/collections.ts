@@ -82,7 +82,17 @@ async function ETH_isCollectionOwner(
 
         let ids = [];
 
-        let ts = await contract.queryFilter(filter);
+        let ts;
+
+        try {
+            ts = await contract.queryFilter(filter);
+        } catch (err) {
+            // Finding the wallet's token ids scans the chain's whole
+            // history, which public RPCs refuse (Shape's allows 10,000
+            // blocks per query). Ask OpenSea when we know the collection.
+            if (!slug) throw err;
+            return isOwnerOfEtherumNft(walletId, { slug, blockchain });
+        }
 
         ts.forEach((t) => {
             ids.push(t.args.id);
@@ -141,11 +151,11 @@ export async function isCollectionOwner(
 
     try {
         if (Object.prototype.hasOwnProperty.call(EVM_RPC, blockchain)) {
-            return ETH_isCollectionOwner(walletId, collection);
+            return await ETH_isCollectionOwner(walletId, collection);
         } else if (blockchain === "tezos") {
-            return TEZOS_isCollectionOwner(walletId, collection);
+            return await TEZOS_isCollectionOwner(walletId, collection);
         } else if (blockchain === "solana") {
-            return SOLANA_isCollectionOwner(walletId, collection);
+            return await SOLANA_isCollectionOwner(walletId, collection);
         } else {
             return Failure("Invalid blockchain param " + blockchain);
         }
