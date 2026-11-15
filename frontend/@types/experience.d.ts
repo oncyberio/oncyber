@@ -126,7 +126,13 @@ export interface CollectionData {
     name?: string;
     address?: string;
     image?: string;
-    blockchain: "ethereum" | "tezos" | "counterparty" | "solana" | "base";
+    blockchain:
+        | "ethereum"
+        | "tezos"
+        | "counterparty"
+        | "solana"
+        | "base"
+        | "shape";
     verified?: boolean;
     type?: string;
 }

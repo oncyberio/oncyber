@@ -75,3 +75,16 @@ test("maps Polygon to OpenSea's matic chain for media recovery", async () => {
     expect(get.mock.calls[0][0]).toContain("/chain/matic/");
     expect(res.status).toHaveBeenCalledWith(200);
 });
+
+test("accepts Shape and passes its OpenSea slug through unchanged", async () => {
+    get.mockResolvedValue({
+        data: { nft: { image_url: "https://i2c.seadn.io/shape.png" } },
+    });
+    const res = response();
+    await handler(
+        { method: "GET", query: { ...query, chain: "shape" } } as any,
+        res
+    );
+    expect(get.mock.calls[0][0]).toContain("/chain/shape/");
+    expect(res.status).toHaveBeenCalledWith(200);
+});

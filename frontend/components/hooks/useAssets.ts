@@ -36,6 +36,7 @@ export type AssetRepository =
     | "avalanche"
     | "zora"
     | "base"
+    | "shape"
     | "bsc"
     | "poap"
     | "autograph";
@@ -50,6 +51,7 @@ export const OPENSEA_CHAINS = [
     "avalanche",
     "zora",
     "base",
+    "shape",
     "bsc",
 ];
 

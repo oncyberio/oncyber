@@ -36,6 +36,11 @@ export const ethProviderOpts: Array<ProviderOpt> = [
         value: "base",
     },
     {
+        title: "Shape (OS API)",
+        disabled: false,
+        value: "shape",
+    },
+    {
         title: "Zora (OS API)",
         disabled: false,
         value: "zora",

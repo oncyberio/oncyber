@@ -49,6 +49,7 @@ const OPEN_SEA_CHAIN_SLUGS = new Set([
     "avalanche",
     "zora",
     "base",
+    "shape",
     "optimism",
 ]);
 
