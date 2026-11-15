@@ -1,12 +1,12 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T18:03:32.548Z",
+  "checkedAt": "2026-11-15T18:44:26.171Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
-    "count": 6,
-    "bytes": 1390235,
+    "count": 8,
+    "bytes": 1393209,
     "largest": {
       "path": "assets/index-gr7fYcGP.js",
       "bytes": 1042897
@@ -22,7 +22,7 @@
         "why": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
       }
     ],
-    "ms": 34288,
+    "ms": 30707,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -68,7 +68,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 23,
+        "hostFrames": 20,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -76,12 +76,21 @@
       }
     }
   },
+  "hosted": {
+    "status": "passed",
+    "backend": "local",
+    "release": "6d68663cf8a6589a",
+    "files": 8,
+    "verified": 8,
+    "bootMs": 4364,
+    "ms": 4523
+  },
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1756,
+    "firstFrameMs": 1781,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 1721,
+    "gameFirstFrameMs": 1752,
     "progress": {
       "messages": 4,
       "labels": [
@@ -104,7 +113,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 5900,
+    "ms": 5820,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -154,6 +163,14 @@
             "y": 658,
             "width": 340,
             "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 1210.3,
+            "y": 687,
+            "width": 57.7,
+            "height": 23
           }
         ],
         "hud": [
@@ -248,6 +265,14 @@
             "y": 782,
             "width": 280,
             "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 320.3,
+            "y": 811,
+            "width": 57.7,
+            "height": 23
           }
         ],
         "hud": [
@@ -342,6 +367,14 @@
             "y": 328,
             "width": 340,
             "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 774.3,
+            "y": 357,
+            "width": 57.7,
+            "height": 23
           }
         ],
         "hud": [
@@ -453,8 +486,8 @@
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
-    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
     "listed": true,
@@ -515,36 +548,36 @@
           "buttons": []
         },
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "failed",
           "backend": "webgpu",
-          "bootMs": 1636,
+          "bootMs": 1539,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1636
+              "ms": 1539
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 536,
+              "ms": 524,
               "error": "NO_TOUCH_CONTROL:forward"
             },
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 3011
+              "ms": 3010
             }
           ],
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.8,
+            "p95Ms": 16.7,
             "worstMs": 16.8
           },
           "inspect": {
@@ -606,24 +639,24 @@
         "scope": "scenario",
         "findings": [],
         "consoleErrors": [
-          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:33449/games/garden/assets/index-gr7fYcGP.js:21:18313)",
-          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "passed",
           "backend": "webgpu",
-          "bootMs": 1584,
+          "bootMs": 1645,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1584
+              "ms": 1645
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 1012
+              "ms": 1024
             },
             {
               "stage": "lifecycle",
@@ -639,7 +672,7 @@
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.7,
+            "p95Ms": 16.8,
             "worstMs": 16.8
           },
           "inspect": {
@@ -698,25 +731,25 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 9377,
+    "ms": 7887,
     "keys": 1,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 1859,
+        "ms": 1991,
         "requests": 4
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 1801,
+        "ms": 1489,
         "requests": 3
       },
       {
         "run": "old saves (1 of 1)",
         "booted": true,
-        "ms": 1874,
+        "ms": 1427,
         "outcomes": {
           "save": "migrated"
         },
@@ -725,7 +758,7 @@
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 1896,
+        "ms": 1441,
         "outcomes": {
           "save": "reset"
         },
@@ -734,7 +767,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 1764,
+        "ms": 1368,
         "outcomes": {
           "save": "reset"
         },
@@ -765,21 +798,31 @@
     "errorRecorded": true,
     "paused": true
   },
+  "credits": {
+    "thirdParty": 2,
+    "own": 1,
+    "warnings": [
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Lobby locomotion clips: LicenseRef-Oncyber-Lobby-Motion is outside the allow list and nobody has confirmed it. A copy of frontend/public/lobby/native-avatar-motion.json. The lobby's source manifests pin the clips by hash but record no author or licence."
+      }
+    ]
+  },
   "run": {
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1609,
+    "bootMs": 1634,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1609
+        "ms": 1634
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 925
+        "ms": 911
       },
       {
         "stage": "lifecycle",
@@ -789,12 +832,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3017
+        "ms": 3016
       },
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 1499,
+        "ms": 1521,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -804,20 +847,20 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 0.961,
-          "audioInput": 0.0517,
-          "audioLevel": 0.0497
+          "audioInput": 0.0467,
+          "audioLevel": 0.0448
         }
       },
       {
         "stage": "results",
         "status": "passed",
-        "ms": 2
+        "ms": 3
       }
     ],
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.7,
+      "p95Ms": 16.8,
       "worstMs": 16.8
     },
     "inspect": {
@@ -949,7 +992,7 @@
     "video": null,
     "log": [
       {
-        "at": 2,
+        "at": 1.9,
         "event": "revealed",
         "answered": true,
         "screen": "arrival",
@@ -964,17 +1007,17 @@
         }
       },
       {
-        "at": 4.1,
+        "at": 4,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 4.4,
+        "at": 4.3,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 5.4,
+        "at": 5.3,
         "event": "facts",
         "facts": {
           "booted": true,
@@ -1001,11 +1044,11 @@
           "avatarEmote": "",
           "offers": 0,
           "playerX": -0.1,
-          "playerZ": 11.5,
+          "playerZ": 11.4,
           "screen": "arrival",
           "position": [
             -0.1,
-            11.53
+            11.44
           ],
           "arrival": {
             "distance": 4.8,
@@ -1024,10 +1067,10 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 1,
-          "audioInput": 0.0475,
-          "audioLevel": 0.0475,
+          "audioInput": 0.0459,
+          "audioLevel": 0.0459,
           "hostPhase": "entered",
-          "hostFrames": 212,
+          "hostFrames": 213,
           "hostArrival": "",
           "hostParty": 0,
           "hostPartyArrived": 0,

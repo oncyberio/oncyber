@@ -2,17 +2,17 @@
   "version": 1,
   "game": "ace",
   "name": "ACE! Tennis",
-  "release": "c0893cfabf4f19df",
-  "publishedAt": "2026-11-15T18:21:04.330Z",
+  "release": "d9c1ad91f60f9e43",
+  "publishedAt": "2026-11-15T19:01:54.142Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T18:19:19.367Z",
+    "checkedAt": "2026-11-15T18:59:57.814Z",
     "backend": "webgl2",
     "frames": {
       "count": 180,
-      "medianMs": 366.6,
-      "p95Ms": 400,
-      "worstMs": 450
+      "medianMs": 333.4,
+      "p95Ms": 383.4,
+      "worstMs": 433.4
     }
   },
   "files": [
@@ -62,9 +62,39 @@
       "sha256": "fc8945b1d6aedd912ac78000c421cc8c735a07128502d07b491cd164c42718c2"
     },
     {
+      "path": "credits.json",
+      "bytes": 3631,
+      "sha256": "5828c5e54406937738571c915f7b5c17e68d17be549e16c0169cacb63fa74b6b"
+    },
+    {
       "path": "index.html",
       "bytes": 14666,
       "sha256": "07ec45788adb33ada5b9df44bd02a4a1ab6885010a333b7310ade8e78bd91390"
+    },
+    {
+      "path": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "bytes": 4402,
+      "sha256": "c6dec685825f73b18c20926fddc65e8315642e12986f15db0699170940a09efc"
+    },
+    {
+      "path": "licenses/SpaceMono-OFL-1.1.txt",
+      "bytes": 4392,
+      "sha256": "8e4ee42b2553e1e01504e61cb0d46d148cd8c9e5eacaa3622a7df2d4f2955b9f"
+    },
+    {
+      "path": "licenses/basis-universal-Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "licenses/three-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+    },
+    {
+      "path": "licenses/three-vrm-MIT.txt",
+      "bytes": 1072,
+      "sha256": "279ec82987aec7e72ecb9850bb704a87e352d577bc7581454c30f3551a88ea92"
     },
     {
       "path": "network.json",

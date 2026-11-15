@@ -2,16 +2,16 @@
   "version": 1,
   "game": "garden",
   "name": "Bloom Garden",
-  "release": "32d43a1dd21b4526",
-  "publishedAt": "2026-11-15T18:03:38.058Z",
+  "release": "6d68663cf8a6589a",
+  "publishedAt": "2026-11-15T18:44:31.598Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T18:03:32.548Z",
+    "checkedAt": "2026-11-15T18:44:26.171Z",
     "backend": "webgpu",
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.7,
+      "p95Ms": 16.8,
       "worstMs": 16.8
     }
   },
@@ -22,9 +22,19 @@
       "sha256": "e211562093d94a4bd1763320e2cf48bf799499ff2c2823482277fdbe2b4574bc"
     },
     {
+      "path": "credits.json",
+      "bytes": 1172,
+      "sha256": "229528df9dec7af8c94452be6d6b8c38ddf55d0c487526308a11480d3fe2c473"
+    },
+    {
       "path": "index.html",
       "bytes": 1200,
       "sha256": "b46561114721a0e734e8923ce601a17d5f656b41a9ac32ec79e7b08f540d2b90"
+    },
+    {
+      "path": "licenses/three-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
     },
     {
       "path": "motion.json",
@@ -34,7 +44,7 @@
     {
       "path": "network.json",
       "bytes": 148,
-      "sha256": "ee2d558217a117175285b8c6988b8be35160538633a976e3f68417fddc4776b3"
+      "sha256": "f596de9955d2d79206aac638e8016e8ccf8de25963c86ad5eba85492b6026af0"
     },
     {
       "path": "preview.jpg",
@@ -43,8 +53,8 @@
     },
     {
       "path": "ui.html",
-      "bytes": 46657,
-      "sha256": "c242b8b7f3bdb94e53f67e1c79794a8012fb7263607fc5abde02d9efbef896fa"
+      "bytes": 47378,
+      "sha256": "747ce028d9393f501080bc1c67e12dfdd9121c8bd6b2ec39c5dad15acd94ffd9"
     }
   ]
 }
