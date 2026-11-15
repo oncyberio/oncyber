@@ -32,6 +32,7 @@ import { checkSafeArea, describeSafeArea } from "./safe-area.mjs";
 import { avatarStage } from "./avatar-check.mjs";
 import { checkDeparture } from "./departure-check.mjs";
 import { partyCheck } from "./party-check.mjs";
+import { resultsHarness, resultsPlan, resultsStage } from "./results-stage.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -51,6 +52,9 @@ const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
 // which passes only for a game the catalog doesn't list (contract-check.mjs).
 const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
 const contract = contractFindings({ root, id, manifest });
+
+// Match results: what the run must report (docs/games/results.md).
+const results = resultsPlan(manifest);
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -98,10 +102,11 @@ function staticScan(files) {
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".jpg": "image/jpeg", ".png": "image/png", ".css": "text/css", ".wasm": "application/wasm", ".glb": "model/gltf-binary", ".vrm": "model/gltf-binary" };
 
 // The page the game sees: the same sandbox as the site, and a stand-in for
-// the page bridge that answers hello with a test identity.
-const harness = `<!doctype html><meta charset="utf-8"><title>check</title>
+// the page bridge that answers hello with a test identity. `query` follows
+// "?check" in the game's URL; `visit` is the visit the page stages.
+const harness = (query, visit) => `<!doctype html><meta charset="utf-8"><title>check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check${query}"></iframe>
 <script>
 const frame = document.getElementById("game");
 addEventListener("message", (event) => {
@@ -114,18 +119,24 @@ addEventListener("message", (event) => {
         const prefix = type.slice(0, -"hello".length);
         frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
     }
+${resultsHarness}
     if (typeof type === "string" && type.endsWith(":ready")) window.__readyAt = window.__readyAt || performance.now();
     if (typeof type === "string" && type.endsWith(":error")) window.__gameError = String(event.data.message || "error");
 });
 </script>
-<script>${harnessScript(id, contract.visit)}</script>`;
+<script>${harnessScript(id, visit)}</script>`;
 
 function serve() {
     const server = createServer((req, res) => {
         const url = new URL(req.url, "http://localhost");
         if (url.pathname === "/") {
             res.writeHead(200, { "content-type": "text/html" });
-            return res.end(harness);
+            return res.end(harness("", contract.visit));
+        }
+        // The results stage's own visit: straight in, alone, and the game's bot plays the match game.json names to the end.
+        if (url.pathname === "/results") {
+            res.writeHead(200, { "content-type": "text/html" });
+            return res.end(harness(`=results${results.query}`, { arrival: "direct", party: 0 }));
         }
         const prefix = `/games/${id}/`;
         const path = resolve(out, `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`);
@@ -152,7 +163,7 @@ async function check() {
     const server = await serve();
     const errors = [], pageErrors = [];
     const browser = await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] });
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null;
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -178,8 +189,21 @@ async function check() {
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
         // The trip back to the lobby (docs/games/departure.md), on the page the scenario played in: it ends that visit.
         if (report && manifest.departure === "matched") report.stages.push(await checkDeparture({ page, browser, id, prefix: greeted?.prefix, title: manifest.name ?? id, shots: join(source, ".check"), lobbyUrl }));
+        // Results the scenario's visit posted, its departure included.
+        const posted = report ? await page.evaluate(() => window.__results ?? []) : [];
         page.removeAllListeners();
         await page.close();
+        // Every finished match reports exactly one result (docs/games/results.md): what that visit posted, then the match game.json says the check can finish, on a visit of its own.
+        if (report) {
+            const match = results.query ? await browser.newPage({ viewport: { width: 1280, height: 720 } }) : null;
+            if (match) await match.goto(`http://127.0.0.1:${server.address().port}/results`);
+            reported = await resultsStage(match, results, posted);
+            await match?.close();
+            if (reported.ran) {
+                report.stages.push(reported.stage);
+                if (reported.stage.status === "failed") report.status = "failed";
+            }
+        }
         // Chat and voice: the page's, carried from the lobby (docs/games/voice-chat.md).
         scan.findings.push(...scanOwnVoice(out));
         social = await checkSocial({ id, out, browser });
@@ -212,9 +236,10 @@ async function check() {
             ...scan.findings,
             ...avatars.findings,
             ...(gameError ? [{ code: "GAME_FAILED", message: gameError }] : []),
+            ...(reported?.findings ?? []),
             ...(report?.bootOnly ? pageErrors.map((message) => ({ code: "PAGE_ERROR", message })) : []),
             ...(!report && !gameError ? [{ code: "CHECK_TIMEOUT", message: `no report after ${Math.round((Date.now() - started) / 1000)} s` }] : []),
-            ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
+            ...(report?.stages ?? []).filter((s) => s.status === "failed" && s.stage !== "results").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
             ...(social?.status === "failed" ? [{ code: "STAGE_SOCIAL", message: social.error ?? "failed" }] : []),
             ...(safeArea?.findings ?? []),
             ...party.findings,
@@ -224,6 +249,7 @@ async function check() {
         party: { status: party.status, ms: party.ms, ...party.detail },
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
+        ...(reported?.ran ? { results: reported.results } : {}),
         consoleErrors: errors.slice(0, 20),
         // The one contract: the form the build greeted in and the visit staged.
         contract: { listed: contract.listed, prefix: greeted?.prefix ?? null, version: greeted?.version ?? null, visit: contract.visit, warnings },

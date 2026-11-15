@@ -4,6 +4,7 @@ import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
 import { connectPage } from "@oncyber/game-runtime/page";
 import { createPartyLink } from "@oncyber/game-runtime/partyLink";
+import { createResults } from "@oncyber/game-runtime/results";
 import { connectVoice } from "@oncyber/game-runtime/voice";
 import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
@@ -30,7 +31,8 @@ import "./style.css";
 // The room's players, their poses and who is talking go to the game's
 // avatar kit (docs/games/avatar-kit.md). The party link reads the room's
 // roster out of the trip and carries the match channel a 1 v 1 is played
-// over (docs/games/party.md). Standalone (vite dev) it plays on
+// over (docs/games/party.md). A finished match sends the page its one
+// result (docs/games/results.md). Standalone (vite dev) it plays on
 // localStorage; `?arrive` and `?party=4` stand in for a lobby trip.
 
 const params = new URLSearchParams(location.search);
@@ -88,6 +90,9 @@ const departure = createDeparture({
     },
 });
 page.on("departure", (reason) => departure.receive("departure", { reason }));
+// Match results: the game opens a match and closes it with one report
+// (the `results` service below); the page hears one `result` per match.
+const results = createResults((result) => page.post("result", { result }));
 page.hello();
 
 const AVATAR_MAX = 32 * 1024 * 1024;
@@ -109,6 +114,15 @@ async function call(capability, operation, value) {
             };
         if (operation === "get") return { value: page.storage.get(value?.key) };
         if (operation === "set") return page.storage.set(value?.key, value?.value);
+    }
+    if (capability === "results") {
+        // A 1 v 1 passes the id both browsers share; a solo match gets its own.
+        if (operation === "begin") return results.begin(value?.match || undefined);
+        if (operation === "report") return results.report(value).match;
+        if (operation === "abandon") {
+            results.abandon();
+            return true;
+        }
     }
     if (capability === "travel" && operation === "lobby") {
         departure.leave();
@@ -177,9 +191,10 @@ async function start() {
         canvas,
         width: window.innerWidth,
         height: window.innerHeight,
-        // The party check is about who plays whom, not pixels: draw small.
+        // The party check is about who plays whom and the results check
+        // about how a match ends, not pixels: draw small.
         pixelRatio:
-            params.get("check") === "party"
+            ["party", "results"].includes(params.get("check"))
                 ? 0.3
                 : Math.min(window.devicePixelRatio || 1, 2),
     };
@@ -271,10 +286,11 @@ async function start() {
 
     // pnpm games:check opens the game with ?check: play the scenario,
     // measure frames and report to the check page (its avatar and party
-    // stages ask their own questions instead).
+    // stages ask their own questions instead, and its results stage has
+    // the game's bot play a match to the end).
     if (
         params.has("check") &&
-        !["avatars", "party"].includes(params.get("check"))
+        !["avatars", "party", "results"].includes(params.get("check"))
     )
         postCheckReport(
             await runCheck({

@@ -1,15 +1,15 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-15T13:27:52.014Z",
+  "checkedAt": "2026-11-15T13:45:46.033Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
     "count": 5,
-    "bytes": 1358775,
+    "bytes": 1362355,
     "largest": {
-      "path": "assets/index-dIt3xEua.js",
-      "bytes": 1012267
+      "path": "assets/index-CH_ZoYvg.js",
+      "bytes": 1015826
     }
   },
   "avatars": {
@@ -22,7 +22,7 @@
         "why": "The garden enters through the lifecycle at a fixed spot and does not handle the page's arrival message yet."
       }
     ],
-    "ms": 30834,
+    "ms": 27841,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -52,7 +52,7 @@
         "playerX": 0,
         "playerZ": 13,
         "hostPhase": "entered",
-        "hostFrames": 21,
+        "hostFrames": 20,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -64,7 +64,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 3684,
+    "ms": 3056,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -373,12 +373,13 @@
   },
   "party": {
     "status": "passed",
-    "ms": 1,
+    "ms": 0,
     "options": {},
     "drops": []
   },
+  "results": [],
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:33963/games/garden/assets/index-dIt3xEua.js:1:14994)",
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:45553/games/garden/assets/index-CH_ZoYvg.js:1:14994)",
     "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
   ],
   "contract": {
@@ -404,12 +405,12 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1731,
+    "bootMs": 1527,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1731
+        "ms": 1527
       },
       {
         "stage": "scenario",
@@ -424,7 +425,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 3017
+        "ms": 3018
+      },
+      {
+        "stage": "results",
+        "status": "passed",
+        "ms": 2
       }
     ],
     "frames": {
@@ -469,7 +475,7 @@
   },
   "keys": {
     "status": "passed",
-    "scanned": 28,
+    "scanned": 29,
     "warnings": [],
     "steps": [
       {

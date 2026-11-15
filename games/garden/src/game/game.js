@@ -175,6 +175,9 @@ export default function createGame(ctx) {
             fast: config.fast,
             saved: config.saved,
             storage: (data) => void call("storage", "save", { data }).catch(() => {}),
+            // Match results: begin, then one report (or abandon) per match.
+            results: (operation, value = null) =>
+                void call("results", operation, value).catch((error) => console.warn("garden: result", error)),
             selfId: () => net.self,
             online: () => net.online,
             send: (ev) => garden.events.push(ev),
@@ -747,6 +750,8 @@ export default function createGame(ctx) {
             photo: null,
             teleport: (x, z) => teleport(x, z, heightAt(x, z)),
             setTime: (t) => (world.timeOfDay = t),
+            // Enter a bloomling in a race or a bout without the menus.
+            openMatch: (kind, tier, b) => openMatch(mg, kind, tier, b),
             spawn: async (patch = {}) => {
                 const { addBloomling } = await import("./garden.js");
                 const { newEgg } = await import("./sim.js");

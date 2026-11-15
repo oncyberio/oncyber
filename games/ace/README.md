@@ -62,6 +62,16 @@ on the game's own dev server (`npm run dev`); play 1 v 1 with
 `NEXT_PUBLIC_ARENA_URL=http://localhost:2567`). The rule every game follows
 for parties: [docs/games/party.md](../../docs/games/party.md).
 
+## Results
+
+Every finished match reports one result (`src/result.js`, the host's
+`results` service): a match against the CPU as `solo`, a 1 v 1 as `singles`
+with both members by their room ids, under the match id both browsers
+share (`duel.match`, sent with the match's `start`). A match left from the
+pause menu or only watched reports nothing. `pnpm games:check ace` has the
+bot play a one-game match to the end and requires that one result
+(`results` in `game.json`). See `docs/games/results.md`.
+
 ## How it plays
 
 - **Move** with WASD / arrows / left stick / the touch stick. Near the ball you
@@ -95,6 +105,7 @@ for parties: [docs/games/party.md](../../docs/games/party.md).
 | `src/host.js` | The browser host: runs the lifecycle, the page bridge, saved settings, the check |
 | `src/actions.js` | The declared input actions read as moves, shots and menu events |
 | `src/input.js` | Mouse, touch and gamepad bound to the declared actions |
+| `src/result.js` | The one result a finished match reports |
 
 Everything is procedural: no meshes, textures or samples to license. Text uses
 system fonts.

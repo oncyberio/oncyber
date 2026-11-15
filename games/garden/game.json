@@ -55,6 +55,7 @@
       "audio",
       "avatar",
       "network",
+      "results",
       "storage",
       "travel"
     ],
@@ -268,5 +269,6 @@
   },
   "keysCheck": {
     "move": "KeyW"
-  }
+  },
+  "results": true
 }

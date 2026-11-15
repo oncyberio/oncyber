@@ -75,6 +75,7 @@
     },
     "capabilities": [
       "avatar",
+      "results",
       "storage",
       "travel"
     ],
@@ -200,5 +201,9 @@
     },
     "move": "KeyD"
   },
-  "departure": "matched"
+  "departure": "matched",
+  "results": {
+    "match": "autoplay&games=1&difficulty=rookie&slow=3",
+    "timeoutSeconds": 240
+  }
 }

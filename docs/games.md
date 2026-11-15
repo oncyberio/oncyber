@@ -82,6 +82,7 @@ still answered in that form ([games/contract.md](games/contract.md)):
 | page        | `arrival`                  | Old builds only: `{ view }`, the lobby's third-person camera. Contract games get it in `enter`.                                                                                    |
 | game / page | `key`, `input`, `muted`    | Keys and focus: the page owns Escape, Enter and M, and pauses the game's input while the visitor types or a page menu is open. See [games/keys-focus.md](games/keys-focus.md).     |
 | page        | `safe-area`                | `{ insets, width, height }`: how far in the page's controls and chat reach, in CSS pixels, on `hello`, `ready` and every change ([games/safe-area.md](games/safe-area.md)).        |
+| game        | `result`                   | A match ended: `{ result }`, exactly one per finished match. The page answers `result-status`. See [games/results.md](games/results.md).                                           |
 
 Chat and voice are the page's: a game never builds its own. It may send
 `voice` (poses for spatial voice) and it receives `talking`. See
@@ -257,6 +258,12 @@ with the lobby's first.
 Every game also gets the party stage ([games/party.md](games/party.md)): its
 `party` statement in `game.json`, the options it offers by party size, and a
 member dropped mid-match.
+
+Every finished match reports exactly one result
+([games/results.md](games/results.md)). The check records the results a
+game posts and fails on an invalid or repeated one; a game whose
+`game.json` has a `results` block also has to finish a match during the
+check and send exactly one.
 
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.

@@ -9,6 +9,7 @@ import createGame, { debugHooks } from "../game/game.js";
 import manifest from "../../game.json";
 import { createHost } from "./host.js";
 import { connectVoice } from "@oncyber/game-runtime/voice";
+import { createResults } from "@oncyber/game-runtime/results";
 import { createAudio, play, setMuted, unlockAudio, updateAudio } from "./audio.js";
 
 // The browser host for Bloom Garden's portable game: it creates the runtime
@@ -30,6 +31,8 @@ const page = createHost();
 // and reports where it is (docs/games/safe-area.md).
 const safeArea = watchSafeArea({ game: "garden", relay: [frame] });
 answerHudRequests(async () => ({ hud: await requestHud(frame) }), { insets: () => safeArea.insets });
+// Match results go to the page: one `garden:result` per finished match.
+const results = createResults((result) => page.post("result", { result }));
 page.hello();
 
 // Dev diagnostics for device simulators: ?log posts errors and state.
@@ -166,6 +169,14 @@ async function call(capability, operation, value) {
             inbox.push(room.inbox.shift());
         }
         return json({ self: page.selfId, online: !!page.selfId && page.embedded, peers: room.peers, inbox, talking: voice.talking.slice(0, 33) });
+    }
+    if (capability === "results") {
+        if (operation === "begin") return results.begin(String(value?.match ?? ""));
+        if (operation === "report") return results.report(value).match;
+        if (operation === "abandon") {
+            results.abandon();
+            return true;
+        }
     }
     if (capability === "travel" && operation === "lobby") {
         page.exit();

@@ -19,7 +19,8 @@
     "./party": "./src/party.ts",
     "./roster": "./src/roster.ts",
     "./match": "./src/match.ts",
-    "./partyLink": "./src/partyLink.ts"
+    "./partyLink": "./src/partyLink.ts",
+    "./results": "./src/results.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

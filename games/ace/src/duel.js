@@ -28,7 +28,9 @@ import {
 //
 // Packets (all `{ t, n }`, n = match number): want, start, s (snapshot),
 // ev (events), in / press / release (the guest's input), rejoin, away,
-// bye, live. No DOM here; game.js draws what `duel.engine` holds.
+// bye, live. `start` and `live` also carry `m`, the match's id for its
+// result (docs/games/results.md): the authority makes it and both sides
+// report under it. No DOM here; game.js draws what `duel.engine` holds.
 
 const WANT_EVERY = 1000;
 const WANT_FRESH = 3500;
@@ -38,6 +40,14 @@ const REJOIN_FOR = 12000;
 /** A games-to-win count off the wire, or `fallback`. */
 const gamesOf = (g, fallback) =>
     Number.isInteger(g) && g >= 1 && g <= 9 ? g : fallback;
+/** A match id off the wire (the result rules' shape), or null. */
+const matchIdOf = (m) =>
+    typeof m === "string" && /^[A-Za-z0-9_-]{6,64}$/.test(m) ? m : null;
+const newMatchId = () =>
+    `ace-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)
+        .padEnd(8, "0")}`;
 
 /**
  * @param link  createPartyLink(...) from the game runtime
@@ -61,6 +71,8 @@ export function createDuel({
         foe: "",
         games: 2,
         n: 0,
+        /** The match's id for its result, the same on both sides; null when unknown. */
+        match: null,
         /** The CPU is holding the other player's place. */
         standIn: false,
         /** Someone else's match seen on the channel: { from, players, at }. */
@@ -109,7 +121,8 @@ export function createDuel({
         const players = [self(), other.id];
         if (pick(link.roster, players) !== self()) return; // their start is coming
         duel.n = Math.max(duel.n, theirs.n || 0) + 1;
-        send("start", { g: duel.games, p: players });
+        duel.match = newMatchId();
+        send("start", { g: duel.games, p: players, m: duel.match });
         begin("authority", players, duel.games, false);
     }
 
@@ -171,7 +184,12 @@ export function createDuel({
         rejoinUntil = 0;
         send(
             "start",
-            { g: duel.games, p: [self(), duel.foe], resume: true },
+            {
+                g: duel.games,
+                p: [self(), duel.foe],
+                m: duel.match,
+                resume: true,
+            },
             duel.foe
         );
         hooks.note(`${nameOf(duel.foe)} is back`);
@@ -184,6 +202,7 @@ export function createDuel({
         duel.standIn = false;
         duel.games = gamesOf(d.g, duel.games);
         duel.n = d.n || duel.n;
+        duel.match = matchIdOf(d.m) ?? duel.match;
         adopted = false;
         gone = false;
         rejoinUntil = 0;
@@ -239,6 +258,7 @@ export function createDuel({
     duel.watch = () => {
         if (!duel.live || duel.state === "playing") return false;
         duel.n = duel.live.n;
+        duel.match = null;
         begin("watch", duel.live.players, 2, false);
         authority = duel.live.from;
         return true;
@@ -246,8 +266,9 @@ export function createDuel({
     /** Back after a reload: take this member's side of their match again. */
     duel.rejoin = () => {
         if (!duel.mine || duel.state === "playing") return false;
-        const { from, n } = duel.mine;
+        const { from, n, m } = duel.mine;
         duel.n = n;
+        duel.match = m;
         duel.mine = null;
         begin("guest", [from, self()], duel.games, false);
         send("rejoin", {}, from);
@@ -339,12 +360,15 @@ export function createDuel({
                     if (fromFoe && (rejoinUntil || d.resume)) yieldTo(from, d);
                     else if (!fromFoe || from < self()) {
                         duel.n = d.n | 0;
+                        duel.match = matchIdOf(d.m);
                         begin("guest", d.p, gamesOf(d.g, 2), false);
                     }
                 } else if (playing && fromFoe && d.resume) {
                     if (authority !== from) yieldTo(from, d);
+                    else duel.match = matchIdOf(d.m) ?? duel.match;
                 } else if (duel.state === "waiting") {
                     duel.n = d.n | 0;
+                    duel.match = matchIdOf(d.m);
                     begin("guest", d.p, gamesOf(d.g, 2), false);
                 }
                 break;
@@ -430,7 +454,12 @@ export function createDuel({
             case "live":
                 if (playing || !Array.isArray(d.p)) break;
                 if (d.p.includes(self()))
-                    duel.mine = { from, n: d.n | 0, at: now() };
+                    duel.mine = {
+                        from,
+                        n: d.n | 0,
+                        m: matchIdOf(d.m),
+                        at: now(),
+                    };
                 else
                     duel.live = {
                         from,
@@ -485,7 +514,7 @@ export function createDuel({
                 }
                 if (time - liveAt >= LIVE_EVERY) {
                     liveAt = time;
-                    send("live", { p: duel.players });
+                    send("live", { p: duel.players, m: duel.match });
                 }
                 if (rejoinUntil) {
                     if (time > rejoinUntil) rejoinUntil = 0;

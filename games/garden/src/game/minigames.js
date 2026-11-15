@@ -38,6 +38,8 @@ import { ACTS } from "./garden.js";
 // and streams snapshots in its garden packets; everyone else (racers and
 // spectators) draws those and sends cheers back. Alone, you just host.
 
+import { matchReport, resultMatchId } from "./result.js";
+
 export const TIERS = {
     race: [
         { id: "sprout", label: "Sprout Cup", level: 1 },
@@ -233,6 +235,8 @@ function startSim(m) {
 function enterCountdown(mg) {
     const m = mg.match;
     m.phase = "countdown";
+    // The match is on: every browser in it opens the same match id.
+    mg.ctx.results?.("begin", { match: resultMatchId(m.id) });
     // The race opens with a fly-over of the course; the dojo with a swoop.
     m.countTotal = m.kind === "race" ? 7.7 : 5;
     m.countT = m.countTotal;
@@ -274,6 +278,8 @@ function buildViews(mg) {
 export function leaveMatch(mg) {
     const m = mg.match;
     if (!m) return;
+    // Left before the end: this match reports nothing.
+    if (m.phase !== "results") mg.ctx.results?.("abandon");
     if (m.host && m.phase === "lobby" && mg.ctx.online())
         mg.ctx.send({ k: "m-cancel", id: m.id });
     for (const v of m.views) disposeBloomling(v.view);
@@ -293,6 +299,10 @@ function finish(mg, result) {
         m.mine >= 0
             ? m.mine
             : m.entrants.findIndex((e) => e.o === ctx.selfId() && e.o);
+    // The one result for this match; a spectator reports nothing.
+    const report = matchReport(m, mine);
+    if (report) ctx.results?.("report", report);
+    else ctx.results?.("abandon");
     const b = m.myBloomling;
     let won = false;
     if (m.kind === "race") {

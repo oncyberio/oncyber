@@ -17,6 +17,9 @@ import {
     EMPTY_INPUT,
 } from "../src/engine.js";
 import { createDuel } from "../src/duel.js";
+import { createMatchResults, versusMatchReport } from "../src/result.js";
+import { createResults } from "../../runtime/src/results.ts";
+import { partyFormats } from "../../runtime/src/party.ts";
 import {
     applySnapshot,
     applyStats,
@@ -66,7 +69,18 @@ function room() {
             notes: [],
             starts: [],
             over: 0,
+            // What this member's page would hear (docs/games/results.md).
+            results: [],
         };
+        // The host's `results` service and the game's use of it (game.js).
+        const reporter = createResults((result) => seat.results.push(result));
+        seat.reporter = createMatchResults(async (operation, value) => {
+            if (operation === "begin")
+                return reporter.begin(value.match || undefined);
+            if (operation === "report") return reporter.report(value).match;
+            reporter.abandon();
+            return true;
+        });
         const link = {
             roster: readRoster(null),
             on: (type, f) => (listeners[type] ??= []).push(f),
@@ -109,7 +123,10 @@ function room() {
             pick: matchAuthority,
             now: () => time,
             hooks: {
-                start: (info) => seat.starts.push(info),
+                start: (info) => {
+                    seat.starts.push(info);
+                    seat.reporter.versus(info, seat.duel.match);
+                },
                 note: (text) => seat.notes.push(text),
                 over: () => seat.over++,
             },
@@ -145,11 +162,26 @@ function room() {
             let events = 0;
             for (let f = 0; f < seconds * 60; f++) {
                 time += 1000 / 60;
-                for (const seat of who)
+                for (const seat of who) {
                     events += seat.duel.frame(
                         seat.duel.state === "playing" ? bot(seat) : EMPTY_INPUT,
                         1 / 60
                     ).length;
+                    const { duel } = seat;
+                    if (duel.state === "playing")
+                        seat.reporter.settle(duel.engine.match, () =>
+                            versusMatchReport({
+                                format: partyFormats(2)[0].id,
+                                match: duel.engine.match,
+                                players: duel.players,
+                                selfId: duel.players.find(
+                                    (id) => id !== duel.foe
+                                ),
+                                nameOf: (id) =>
+                                    seats.find((s) => s.id === id)?.name,
+                            })
+                        );
+                }
             }
             return events;
         },
@@ -562,4 +594,113 @@ test("packets from another member are checked before they touch the game", () =>
         faults: 3,
     });
     assert.equal(view.match.longestRally, 0);
+});
+
+// Every finished match reports exactly one result (docs/games/results.md).
+function playOut(party, a, b, who) {
+    for (let s = 0; s < 900 && a.duel.engine.match.winner === null; s += 5)
+        party.run(5, who);
+    assert.notEqual(a.duel.engine.match.winner, null, "the match ended");
+    party.run(3, who);
+}
+
+test("a 1 v 1 played to the end reports one result from each side, the same match", () => {
+    const party = room();
+    const a = party.join("a");
+    const b = party.join("b");
+    a.duel.want(1);
+    b.duel.want(1);
+    party.run(1.5);
+    assert.match(a.duel.match, /^[A-Za-z0-9_-]{6,64}$/);
+    assert.equal(b.duel.match, a.duel.match, "both sides hold the match's id");
+    playOut(party, a, b);
+    assert.equal(a.results.length, 1);
+    assert.equal(b.results.length, 1);
+    const [mine] = a.results;
+    const [theirs] = b.results;
+    assert.equal(mine.match, a.duel.match);
+    assert.equal(theirs.match, mine.match);
+    assert.equal(mine.format, "singles");
+    assert.equal(theirs.format, "singles");
+    // Both players by their room ids, in the same order on both pages.
+    const seen = (r) => r.teams.map((t) => [t.players[0].id, t.score]);
+    assert.deepEqual(seen(mine), [
+        ["a", a.duel.engine.match.games[0]],
+        ["b", a.duel.engine.match.games[1]],
+    ]);
+    assert.deepEqual(seen(theirs), seen(mine));
+    assert.equal(theirs.winner, mine.winner);
+    assert.equal(mine.winner, a.duel.engine.match.winner);
+    assert.deepEqual(
+        [mine, theirs].map((r) => r.teams.map((t) => t.players[0].kind)),
+        [
+            ["self", "peer"],
+            ["peer", "self"],
+        ]
+    );
+    // A rematch is a new match with its own id and its own one result.
+    a.duel.want(1);
+    b.duel.want(1);
+    party.run(1.5);
+    assert.notEqual(a.duel.match, mine.match);
+    playOut(party, a, b);
+    assert.equal(a.results.length, 2);
+    assert.equal(b.results.length, 2);
+    assert.equal(a.results[1].match, b.results[1].match);
+});
+
+test("a match that changes hands still reports once, under the same id", () => {
+    const party = room();
+    const a = party.join("a");
+    const b = party.join("b");
+    a.duel.want(1);
+    b.duel.want(1);
+    party.run(8);
+    const id = a.duel.match;
+    // The host drops; the guest takes the match over, then the host returns.
+    party.drop(a);
+    party.run(4, [b]);
+    assert.equal(b.duel.role, "authority");
+    party.reconnect(a);
+    party.run(2.5);
+    assert.equal(a.duel.role, "guest");
+    assert.equal(a.duel.match, id);
+    assert.equal(b.duel.match, id);
+    playOut(party, a, b);
+    assert.deepEqual(
+        [a.results, b.results].map((r) => r.map((x) => x.match)),
+        [[id], [id]]
+    );
+    assert.equal(a.results[0].winner, b.results[0].winner);
+});
+
+test("a player who reloads rejoins under the match's id; walking away reports nothing", () => {
+    const party = room();
+    const a = party.join("a");
+    const b = party.join("b");
+    a.duel.want(1);
+    b.duel.want(1);
+    party.run(6);
+    const id = a.duel.match;
+    party.drop(b);
+    party.run(2, [a]);
+    const again = party.reload(b);
+    party.run(2);
+    assert.equal(again.duel.rejoin(), true);
+    assert.equal(again.duel.match, id);
+    party.run(2.5);
+    // They walk away for good: nothing from them; the one who stayed
+    // finishes against the CPU and reports the match once.
+    again.duel.leave();
+    again.reporter.abandon();
+    playOut(party, a, again, [a]);
+    assert.deepEqual(again.results, []);
+    assert.deepEqual(
+        a.results.map((r) => r.match),
+        [id]
+    );
+    assert.deepEqual(
+        a.results[0].teams.map((t) => t.players[0].id),
+        ["a", "b"]
+    );
 });

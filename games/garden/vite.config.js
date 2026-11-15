@@ -47,6 +47,7 @@ export default defineConfig({
             { find: /^@oncyber\/game-runtime\/safe-area$/, replacement: `${runtime}/safe-area.ts` },
             { find: /^@oncyber\/avatar-kit\/page$/, replacement: `${avatarKit}/page.ts` },
             { find: /^@oncyber\/avatar-kit\/probe$/, replacement: `${avatarKit}/probe.js` },
+            { find: /^@oncyber\/game-runtime\/results$/, replacement: `${runtime}/results.ts` },
             { find: /^@oncyber\/game-runtime\/check$/, replacement: `${runtime}/check.ts` },
             { find: /^@oncyber\/game-runtime\/browser$/, replacement: `${runtime}/browser.ts` },
             { find: /^@oncyber\/game-runtime\/voice$/, replacement: `${runtime}/voice.ts` },

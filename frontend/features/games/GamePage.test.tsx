@@ -40,6 +40,12 @@ jest.mock("./safeArea", () => ({
     bridgeGameSafeArea: () => () => undefined,
     CONTROLS_PLACEMENT: {},
 }));
+// Match results: the hook is real; its RPC client needs a bundler. The
+// visitor here is signed out, so nothing is recorded.
+jest.mock("@api/games/_api", () => ({
+    __esModule: true,
+    default: { reportResult: jest.fn(), leaderboard: jest.fn() },
+}));
 // The seat key needs the browser's crypto and storage; the bridge is real.
 jest.mock("./gameMatch", () => ({
     ...jest.requireActual("./gameMatch"),
@@ -143,6 +149,7 @@ beforeEach(() => {
     (registerLobbyDestinationEntry as jest.Mock).mockClear();
 });
 afterEach(async () => {
+    jest.restoreAllMocks();
     await act(async () => root.unmount());
     host.remove();
 });
@@ -330,4 +337,60 @@ test("a game that isn't walkable is revealed without waiting", async () => {
     await wait(0);
     expect(staged).toBe(true);
     expect(last("oncyber:game:enter").arrival.from).toBe("lobby");
+});
+
+test("a result is read in the form the game speaks and answered through the page's sender", async () => {
+    const result = {
+        match: "ace-0123456789",
+        format: "singles",
+        durationSeconds: 61.5,
+        teams: [
+            {
+                score: 2,
+                players: [{ id: "room-a", name: "Ada", kind: "peer" }],
+            },
+            {
+                score: 1,
+                players: [{ id: "room-me", name: "Me", kind: "self" }],
+            },
+        ],
+        winner: 0,
+    };
+    // The page logs each result it refuses.
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await mount();
+    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await wait();
+    await fromGame({ type: "oncyber:game:ready" });
+    await wait();
+    await fromGame({ type: "oncyber:game:result", result });
+    await wait();
+    expect(last("oncyber:game:result-status")).toMatchObject({
+        match: result.match,
+        status: "unrecorded",
+        reason: "SIGNED_OUT",
+    });
+    // The card floats over the game: the safe area measures it.
+    const card = host.querySelector("[data-game-result]");
+    expect(card?.getAttribute("data-game-overlay")).toBe("result");
+    expect(card?.textContent).toContain("Ada");
+    // The same match again is refused: one result per match.
+    await fromGame({ type: "oncyber:game:result", result });
+    await wait();
+    expect(last("oncyber:game:result-status").status).toBe("rejected");
+    expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
+});
+
+test("an older build's result is answered in its own prefix", async () => {
+    jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    await mount("garden");
+    await fromGame({ type: "garden:hello" });
+    await wait();
+    await fromGame({ type: "garden:result", result: { match: "nope" } });
+    await wait();
+    expect(last("garden:result-status")).toMatchObject({
+        status: "rejected",
+        reason: "RESULT_MATCH_ID",
+    });
+    expect(types().some((t) => t.startsWith("oncyber:game:"))).toBe(false);
 });

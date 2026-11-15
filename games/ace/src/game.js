@@ -37,6 +37,11 @@ import {
 } from "@oncyber/game-runtime/party";
 import { matchAuthority } from "@oncyber/game-runtime/roster";
 import { createDuel } from "./duel.js";
+import {
+    cpuMatchReport,
+    createMatchResults,
+    versusMatchReport,
+} from "./result.js";
 import { pointLabel } from "./rules.js";
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
@@ -417,6 +422,8 @@ export default function createGame(context) {
         if (view) mapArrival(view);
         // Courtside is not a match: a 1 v 1 left this way goes to the CPU.
         if (duel.state === "playing") duel.leave();
+        // Nor is it a finished one: a match left for it reports nothing.
+        matchResults.abandon();
         state.versus = null;
         arrive.came = true;
         arrive.camYaw = 0;
@@ -683,6 +690,44 @@ export default function createGame(context) {
         focusPartyFormat(items.findIndex((b) => b.dataset.format === format));
     }
 
+    // ------------------------------------------------ results (result.js)
+    // Every finished match reports exactly one result
+    // (docs/games/results.md): a match opens when it starts, closes with
+    // one report when it has a winner, and reports nothing when it is left
+    // first. The host's `results` service holds the reporter. Format ids
+    // are the shared party formats'.
+    const FORMAT = {
+        solo: partyFormats(1).find((f) => f.solo).id,
+        singles: partyFormats(2)[0].id,
+    };
+    const matchResults = createMatchResults((operation, value) =>
+        services.call("results", operation, value, signal)
+    );
+    /** Once per frame: the open match has a winner, so send its one result. */
+    const settleResult = () =>
+        !state.attract &&
+        matchResults.settle(state.engine?.match, () =>
+            // Room ids from the roster, so every member's page sees the
+            // same players.
+            state.versus
+                ? versusMatchReport({
+                      format: FORMAT.singles,
+                      match: state.engine.match,
+                      players: duel.players,
+                      // This side's seat in the match, even while offline.
+                      selfId: duel.players.find((id) => id !== duel.foe),
+                      nameOf: memberName,
+                  })
+                : cpuMatchReport({
+                      format: FORMAT.solo,
+                      match: state.engine.match,
+                      name: state.identity.name,
+                      selfId: link.roster.self,
+                      foe: CPU_ROSTER[settings.difficulty].name,
+                      difficulty: settings.difficulty,
+                  })
+        );
+
     // --------------------------------------------------- 1 v 1 (duel.js)
 
     const duel = createDuel({
@@ -758,6 +803,8 @@ export default function createGame(context) {
         state.attract = false;
         state.paused = false;
         state.engine = duel.engine;
+        // A player's match opens under the id both sides share.
+        matchResults.versus({ role, resume }, duel.match);
         players[0].racket.visible = true;
         kit.arrival.fillHands();
         actions.shotHeld = false;
@@ -857,6 +904,8 @@ export default function createGame(context) {
 
     function startAttract() {
         if (duel.state === "playing") duel.leave();
+        // Back at the title: a match left unfinished reports nothing.
+        matchResults.abandon();
         state.versus = null;
         state.attract = true;
         if (players) players[0].racket.visible = true;
@@ -886,6 +935,7 @@ export default function createGame(context) {
             seed: (Math.random() * 1e9) | 0,
         });
         startMatch(state.engine);
+        matchResults.begin();
         state.engine.phase = "intro";
         state.rally = 0;
         state.hintPoints = 0;
@@ -1914,6 +1964,7 @@ export default function createGame(context) {
             for (const a of e.athletes) a.stateTime += dt;
         }
         if (held) dt = 0.0001;
+        settleResult();
         if (
             state.matchEndAt &&
             now > state.matchEndAt &&
@@ -2219,6 +2270,8 @@ export default function createGame(context) {
             points: playing ? `${m.points[0]}-${m.points[1]}` : "",
             games: playing ? `${m.games[0]}-${m.games[1]}` : "",
             rally: state.rally,
+            // For the results check: `results.inspect()` as the game sees it.
+            ...matchResults.inspect(),
             muted: !!audio.muted,
             // For the keys check: the visitor's player, and the freeze.
             position: e?.athletes[0]

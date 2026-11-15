@@ -44,6 +44,7 @@ import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./safeArea";
 import { useGameDeparture } from "./useGameDeparture";
 import { readPartyLeave } from "./gamePartyLeave";
 import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
+import { useGameResults } from "./useGameResults";
 
 const PEER_INTERVAL = 100;
 
@@ -161,6 +162,20 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const fromGame = (event: MessageEvent) =>
         event.source === frame.current?.contentWindow &&
         event.origin === "null";
+    // Match results: validated, recorded and shown by the page.
+    const results = useGameResults({
+        game: GAME,
+        fromGame,
+        send: (message) => send.current(message),
+        signedIn: () =>
+            Boolean(
+                profile.current.authenticated &&
+                    !profile.current.isAnonymous &&
+                    profile.current.user?.id
+            ),
+        selfName: () => identity?.name,
+        partyRoom: party && room ? room : null,
+    });
     // Chat and voice are the page's: carried from the lobby, in this room.
     const social = useGameSocial({
         game: GAME,
@@ -443,6 +458,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             gameRoom.onRelay(
                 (from, data) =>
                     departure.relayed(from, data) ||
+                    results.fromParty(data) ||
                     postGame.current("net", { from, data })
             );
         // A party's room also carries its roster and the match channel. The
@@ -638,6 +654,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     onChat={() => setChatRequest((n) => n + 1)}
                 />
             )}
+            {ready && !error && results.card}
             {error && (
                 <div
                     role="status"
