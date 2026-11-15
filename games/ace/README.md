@@ -32,13 +32,35 @@ kit state; the lobby opens on the same frame. See
 ## Parties
 
 When the visitor arrived with a party (`continuity.trip`, then `party(trip)`
-as members arrive in the party's room), **Play match** opens the party's
-formats first: 1 v 1, 2 v 2, a tournament, or a solo match against the CPU
-(arrows and Space work too). `game.json` declares the formats by party size;
-`src/party.js` offers them and builds the draw, and a test keeps the two in
-step. Head-to-head play is not built yet; the draw is shown, and the solo
-match works. Try it with `?party=4` on the development server, or
-`?arrive&party=4` on the game's own dev server (`npm run dev`).
+as members arrive in the party's room; the room's roster is `trip.roster`),
+**Play match** opens the party's formats first: 1 v 1, 2 v 2, a
+tournament, or a solo match against the CPU (arrows and Space work too).
+`game.json` declares the formats by party size; the formats and the seeded
+draw come from the game runtime (`games/runtime/src/party.ts`), and a test
+there keeps the two in step.
+
+**1 v 1 is played between the two members.** Both pick it; the party's host
+runs the engine and the other plays as its guest over the room's match
+channel, each seeing themselves on the near half.
+
+-   `src/duel.js`: who runs the match and what happens when someone comes or
+    goes. A player who drops, hides the tab or leaves is replaced by the CPU and
+    the match goes on; if they were running it, the other player takes it over
+    and the point is replayed. Coming back (a reconnect, or **Rejoin your match**
+    after a reload) returns their side with the score kept. A third member can
+    **Watch**.
+-   `src/versus.js`: the engine packed into a snapshot about thirty times a
+    second, the guest's view rebuilt from it, and the guest's input on the way
+    back.
+-   `test/duel.test.js` plays whole matches through an in-memory room.
+
+Doubles and tournaments show the draw; playing them through is not built yet.
+Try the menu with `?party=4` on the development server, or `?arrive&party=4`
+on the game's own dev server (`npm run dev`); play 1 v 1 with
+`/games/ace?party=2` in two windows on the development server
+(the room needs `multiplayer/` running: `npm --prefix multiplayer start`,
+`NEXT_PUBLIC_ARENA_URL=http://localhost:2567`). The rule every game follows
+for parties: [docs/games/party.md](../../docs/games/party.md).
 
 ## How it plays
 

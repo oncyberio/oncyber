@@ -97,6 +97,14 @@ export function createEngine({
         plan: null,
         planAt: 0,
         landing: null, // predicted first bounce of a ball coming at the human
+        // 1 v 1: a person steers the far athlete. { input } in the shape of
+        // EMPTY_INPUT, with `move` in world axes; null leaves it to the CPU.
+        rival: null,
+        plans: [null, null],
+        planAts: [0, 0],
+        landings: [null, null],
+        serveShots: [null, null],
+        serveGauges: [null, null],
         tossAt: 0,
         cpuTossAt: 0,
         serveAim: 0,
@@ -126,6 +134,7 @@ export function setupPoint(engine) {
     engine.rallyHits = 0;
     engine.pendingVerdict = null;
     engine.landing = null;
+    engine.landings = [null, null];
     engine.ballVisible = true;
     engine.stillTime = 0;
     const server = engine.athletes[m.server];
@@ -390,34 +399,36 @@ function resolveDead(engine) {
     setPhase(engine, "between");
 }
 
-/** Human footwork with a gentle magnet toward the planned contact spot. */
-function driveHuman(engine, input, dt) {
-    const ath = engine.athletes[0];
+/** A person's footwork with a gentle magnet toward the planned contact spot. */
+function driveHuman(engine, who, input, dt) {
+    const ath = engine.athletes[who];
     const ball = engine.ball;
     const coming =
         engine.phase === "rally" &&
         incoming(ath, ball) &&
-        engine.rally.lastHitter === 1;
-    if (coming && engine.time >= engine.planAt) {
+        engine.rally.lastHitter === other(who);
+    if (coming && engine.time >= engine.planAts[who]) {
         const prediction = predict(ball, 3, 3);
-        engine.plan = findIntercept(ath, ball, prediction, {
+        engine.plans[who] = findIntercept(ath, ball, prediction, {
             speed: PLAYER.speed,
             allowVolley: true,
             mustBounce: engine.rally.serving,
         });
-        engine.planAt = engine.time + 0.12;
+        engine.planAts[who] = engine.time + 0.12;
         const b = prediction.bounces[0];
-        engine.landing =
-            b && b.z > 0
-                ? { x: b.x, z: b.z, t: engine.time + b.t }
-                : engine.landing;
+        if (b && b.z * ath.side > 0)
+            engine.landings[who] = { x: b.x, z: b.z, t: engine.time + b.t };
     }
-    if (!coming) engine.plan = null;
+    if (!coming) engine.plans[who] = null;
+    if (who === 0) {
+        engine.plan = engine.plans[0];
+        engine.landing = engine.landings[0];
+    }
     const charging = !!ath.pending;
     const maxSpeed = PLAYER.speed * (charging ? PLAYER.chargeSpeed + 0.2 : 1);
     let wx = input.move.x;
     let wz = input.move.z;
-    const plan = engine.plan;
+    const plan = engine.plans[who];
     if (plan && coming) {
         const toPlan = Math.hypot(plan.standX - ath.x, plan.standZ - ath.z);
         const pull = seek(ath, plan.standX, plan.standZ, maxSpeed);
@@ -445,26 +456,35 @@ export function update(engine, input, dt) {
     const steps = Math.max(1, Math.round(dt / STEP));
     const sub = dt / steps;
     // Edge-triggered input applies once per frame.
-    handlePress(engine, input);
-    handleRelease(engine, input);
+    if (!engine.autoBrain) {
+        handlePress(engine, 0, input);
+        handleRelease(engine, 0, input);
+    }
+    if (engine.rival) {
+        const theirs = engine.rival.input;
+        handlePress(engine, 1, theirs);
+        handleRelease(engine, 1, theirs);
+        theirs.press = null;
+        theirs.release = false;
+        theirs.gauge = null;
+    }
     for (let i = 0; i < steps; i++) tick(engine, input, sub);
     return engine.events;
 }
 
-function handlePress(engine, input) {
+function handlePress(engine, who, input) {
     const press = input.press;
-    if (engine.autoBrain) return;
     if (!press) return;
     const m = engine.match;
-    const human = engine.athletes[0];
-    if (engine.phase === "serve" && m.server === 0) {
+    const human = engine.athletes[who];
+    if (engine.phase === "serve" && m.server === who) {
         // Hold to toss; the gauge over the player fills with the ball.
-        engine.humanServeShot = press;
+        engine.serveShots[who] = press;
         toss(engine);
         return;
     }
-    if (engine.phase === "toss" && m.server === 0) {
-        humanServe(engine, press, input.aim.x);
+    if (engine.phase === "toss" && m.server === who) {
+        humanServe(engine, who, press, input.aim.x, input.gauge);
         return;
     }
     if (
@@ -478,28 +498,42 @@ function handlePress(engine, input) {
             human.pending = { shot: press, at: engine.time };
             human.state = "charge";
             human.stateTime = 0;
-            emit(engine, "charge", { who: 0, shot: press });
+            emit(engine, "charge", { who, shot: press });
         } else if (human.pending.shot !== press) {
             // Changing your mind keeps the charge.
             human.pending.shot = press;
-            emit(engine, "charge", { who: 0, shot: press, change: true });
+            emit(engine, "charge", { who, shot: press, change: true });
         }
     }
 }
 
 /** Letting go of the button strikes the serve at the gauge's current level. */
-function handleRelease(engine, input) {
-    if (!input.release || engine.autoBrain) return;
-    if (engine.phase !== "toss" || engine.match.server !== 0) return;
-    humanServe(engine, engine.humanServeShot, input.aim.x);
+function handleRelease(engine, who, input) {
+    if (!input.release) return;
+    if (engine.phase !== "toss" || engine.match.server !== who) return;
+    humanServe(engine, who, engine.serveShots[who], input.aim.x, input.gauge);
 }
 
-function humanServe(engine, shot, aimX) {
+/**
+ * `seen` is the gauge level a remote player let go at on their own screen,
+ * so the trip to this engine doesn't cost them their timing.
+ */
+function humanServe(engine, who, shot, aimX, seen) {
     if (engine.ball.p.y < 1.45) return;
     const t = engine.time - engine.tossAt;
-    const quality = serveGaugeAt(t);
-    engine.serveGauge = quality;
-    serveHit(engine, shot, quality, aimX, 0.35 + quality * 0.65);
+    const quality =
+        typeof seen === "number" && seen >= 0 && seen <= 1
+            ? seen
+            : serveGaugeAt(t);
+    engine.serveGauges[who] = quality;
+    if (who === 0) engine.serveGauge = quality;
+    serveHit(engine, shot || "flat", quality, aimX, 0.35 + quality * 0.65);
+}
+
+/** The input steering an athlete, or null when the CPU has it. */
+function pilot(engine, who, input) {
+    if (who === 0) return engine.autoBrain ? null : input;
+    return engine.rival ? engine.rival.input : null;
 }
 
 function tick(engine, input, dt) {
@@ -522,6 +556,7 @@ function tick(engine, input, dt) {
         a.look.z = ball.p.z;
     }
     engine.humanAim = input.aim;
+    if (engine.rival) cpu.aim = engine.rival.input.aim;
 
     switch (engine.phase) {
         case "setup":
@@ -530,16 +565,17 @@ function tick(engine, input, dt) {
             break;
         case "serve": {
             const server = engine.athletes[m.server];
-            if (m.server === 0 && !engine.autoBrain) {
+            const steering = pilot(engine, m.server, input);
+            if (steering) {
                 // Slide along the baseline to pick a serving angle.
                 const sx = serverXSign(m);
-                steer(human, input.move.x, 0, 3.2, dt);
+                steer(server, steering.move.x, 0, 3.2, dt);
                 const lo = 0.15;
                 const hi = 3.2;
-                const ax = Math.abs(human.x);
-                if (Math.sign(human.x) !== sx || ax < lo) human.x = sx * lo;
-                if (ax > hi) human.x = sx * hi;
-                human.z = human.side * (COURT.halfLength + 0.35);
+                const ax = Math.abs(server.x);
+                if (Math.sign(server.x) !== sx || ax < lo) server.x = sx * lo;
+                if (ax > hi) server.x = sx * hi;
+                server.z = server.side * (COURT.halfLength + 0.35);
             } else {
                 if (!engine.cpuTossAt)
                     engine.cpuTossAt = engine.time + 0.7 + engine.rng() * 0.6;
@@ -553,7 +589,7 @@ function tick(engine, input, dt) {
             const server = engine.athletes[m.server];
             stepBall(ball, dt);
             const t = engine.time - engine.tossAt;
-            const auto = m.server === 1 || engine.autoBrain;
+            const auto = !pilot(engine, m.server, input);
             if (auto) {
                 const brain = m.server === 1 ? engine.brain : engine.autoBrain;
                 if (!engine.cpuServeAt) {
@@ -668,16 +704,22 @@ function rallyTick(engine, input, dt) {
         !(engine.rally.serving && ball.bounces === 0);
     engine.brain.mustBounce = engine.rally.serving;
     if (engine.autoBrain) engine.autoBrain.mustBounce = engine.rally.serving;
-    const think = thinkCPU(
-        engine.brain,
-        cpu,
-        human,
-        ball,
-        engine.hitCount,
-        engine.time,
-        dt,
-        true
-    );
+    if (engine.rival) {
+        personRally(engine, 1, engine.rival.input, dt);
+        if (engine.phase !== "rally") return;
+    }
+    const think = engine.rival
+        ? { wantSwing: false }
+        : thinkCPU(
+              engine.brain,
+              cpu,
+              human,
+              ball,
+              engine.hitCount,
+              engine.time,
+              dt,
+              true
+          );
     if (think.wantSwing && canHitCpu) {
         const info = contact(cpu, ball, engine.difficulty.reach);
         if (info) {
@@ -753,7 +795,17 @@ function rallyTick(engine, input, dt) {
         }
         return;
     }
-    driveHuman(engine, input, dt);
+    personRally(engine, 0, input, dt);
+}
+
+/** One person's rally step: footwork, the armed strike, or a whiff. */
+function personRally(engine, who, input, dt) {
+    const human = engine.athletes[who];
+    const ball = engine.ball;
+    const canHitHuman =
+        engine.rally.lastHitter === other(who) &&
+        !(engine.rally.serving && ball.bounces === 0);
+    driveHuman(engine, who, input, dt);
     if (human.pending && canHitHuman) {
         const info = contact(human, ball, PLAYER.reach);
         if (info) {
@@ -788,7 +840,7 @@ function rallyTick(engine, input, dt) {
                 t: 0,
                 grade: "miss",
             };
-            emit(engine, "whiff", { who: 0 });
+            emit(engine, "whiff", { who });
         }
     }
 }

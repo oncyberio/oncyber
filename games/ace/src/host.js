@@ -3,6 +3,7 @@ import { postCheckReport, runCheck } from "@oncyber/game-runtime/check";
 import { bindSessionKeys } from "@oncyber/game-runtime/keys-browser";
 import { createDeparture } from "@oncyber/game-runtime/departure";
 import { connectPage } from "@oncyber/game-runtime/page";
+import { createPartyLink } from "@oncyber/game-runtime/partyLink";
 import { connectVoice } from "@oncyber/game-runtime/voice";
 import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
@@ -27,11 +28,19 @@ import "./style.css";
 // travel back to the lobby (through the departure: docs/games/departure.md),
 // all through the Oncyber game page when embedded.
 // The room's players, their poses and who is talking go to the game's
-// avatar kit (docs/games/avatar-kit.md). Standalone (vite dev) it plays on
+// avatar kit (docs/games/avatar-kit.md). The party link reads the room's
+// roster out of the trip and carries the match channel a 1 v 1 is played
+// over (docs/games/party.md). Standalone (vite dev) it plays on
 // localStorage; `?arrive` and `?party=4` stand in for a lobby trip.
 
 const params = new URLSearchParams(location.search);
 const canvas = document.querySelector("#stage");
+// The party's room, for the game (pageRoom.link): who is really there, the
+// host, who dropped, and the real-time channel between members. Listening
+// before the page client, so the roster is read before the game hears
+// `party(trip)` for the same message.
+const link = createPartyLink();
+pageRoom.link = link;
 const page = connectPage({
     arrival: manifest.arrival,
     party: manifest.party,
@@ -63,6 +72,11 @@ page.on("peers", (players) => {
     );
 });
 pageRoom.pose = (pose) => page.pose(pose);
+// A 1 v 1 draws the other player as their avatar: the room named it.
+link.on("roster", (roster) => {
+    for (const member of roster.members)
+        if (member.avatarUrl) vouched.add(member.avatarUrl);
+});
 // Leaving (docs/games/departure.md): every way out asks the page to start
 // the trip back; the page then asks for the last frame, which the game
 // stages courtside (pageDeparture in game.js).
@@ -86,6 +100,10 @@ async function call(capability, operation, value) {
                 difficulty: params.get("difficulty"),
                 games: Number(params.get("games")) || null,
                 autoplay: params.has("autoplay"),
+                // Under pnpm games:check nobody is at the keyboard; its
+                // party stage runs two copies side by side.
+                check: params.has("check"),
+                partyCheck: params.get("check") === "party",
                 slow: Number(params.get("slow")) || 1,
                 lobby: page.embedded,
             };
@@ -134,6 +152,7 @@ function standInEnter() {
                       size,
                       self: "",
                       arrived: [],
+                      roster: null,
                       members: Array.from({ length: size - 1 }, (_, i) => ({
                           id: `dev-${i + 2}`,
                           name: `Player ${i + 2}`,
@@ -158,7 +177,11 @@ async function start() {
         canvas,
         width: window.innerWidth,
         height: window.innerHeight,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        // The party check is about who plays whom, not pixels: draw small.
+        pixelRatio:
+            params.get("check") === "party"
+                ? 0.3
+                : Math.min(window.devicePixelRatio || 1, 2),
     };
     const session = new RuntimeSession(createGame, {
         manifest: manifest.runtime,
@@ -206,7 +229,8 @@ async function start() {
     const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
     await session.prepare();
-    // The avatar stage of pnpm games:check asks what the game sees.
+    // The avatar stage of pnpm games:check asks what the game sees (its
+    // party stage asks the game through the link).
     answerInspect(() => session.inspect());
     page.ready();
     const visit = page.embedded ? await page.enterData() : standInEnter();
@@ -246,8 +270,12 @@ async function start() {
     page.arrivalReady();
 
     // pnpm games:check opens the game with ?check: play the scenario,
-    // measure frames and report to the check page.
-    if (params.has("check") && params.get("check") !== "avatars")
+    // measure frames and report to the check page (its avatar and party
+    // stages ask their own questions instead).
+    if (
+        params.has("check") &&
+        !["avatars", "party"].includes(params.get("check"))
+    )
         postCheckReport(
             await runCheck({
                 session,
@@ -274,7 +302,9 @@ async function start() {
         devices.dispose();
         hud.dispose();
         voice.dispose();
+        link.dispose();
         delete pageRoom.pose;
+        delete pageRoom.link;
         page.dispose();
         void session.dispose();
     };

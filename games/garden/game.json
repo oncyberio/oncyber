@@ -29,7 +29,12 @@
           8
         ]
       }
-    ]
+    ],
+    "solo": "garden",
+    "shared": "Everyone on the island plays the same garden whatever the party's size; a party gets an island of its own.",
+    "late": "Arrives on the island as it is. Can join a mini game while its gate is open, or watch one under way.",
+    "dropped": "Their avatar and bloomlings leave the island; their save is kept by the page and returns with them. A mini game they were hosting is not handed to another member yet.",
+    "extra": "Mini games seat four racers or two fighters; everyone else watches and cheers. Empty spots get CPU rivals, so one member can always play."
   },
   "runtime": {
     "profile": "portable-v1",

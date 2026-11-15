@@ -22,6 +22,7 @@ where `GAMES_PREVIEW=1` is set.
 | `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
 
 ## The lifecycle
 
@@ -170,13 +171,22 @@ between them.
 When one member starts the trip back to the lobby, the others are offered
 to follow ([games/departure.md](games/departure.md)).
 
-What a game does with it is the game's choice. Ace offers formats by party
-size (`games/ace/src/party.js`): 1 v 1 for two, 2 v 2 or a tournament for
-four, a round robin for three, a knockout for five to eight, and always a
-solo match against the CPU. The draw is seeded by the party id and sorted by
-room id, so it is the same on every member's screen. Playing each other is
-not built yet: it needs a real-time match channel (the relay carries about
-five packets a second per player, enough for turn state, not for a rally).
+A party's room also has a **roster** (members in arrival order, the host,
+seats, who dropped and may come back), which rides in the same trip as
+`trip.roster`, and a **real-time match channel** (`match`: about thirty
+small packets a second per member, limits enforced by the server), which
+the relay's five packets a second can't be. The runtime has the game's side of both, plus the shared formats
+and seeded draws (`games/runtime/src/partyLink.ts`, `roster.ts`, `match.ts`,
+`party.ts`).
+
+The rule for every game: state in `game.json` what a party of 1, 2, 3, 4
+and 5 to 8 is offered, always with a solo option, and what late, dropped
+and extra players get; `games:check` holds the game to it and drops a
+member mid-match. All of it, with the API: [games/party.md](games/party.md).
+
+Ace plays 1 v 1 between two party members this way (`games/ace/src/duel.js`):
+the CPU takes over a dropped player's side, and a third member can watch.
+Its doubles and tournaments show the seeded draw and are not played yet.
 
 On the development server, `/games/<id>?party=4` stands in for arriving
 with a party of four; open it in several windows to share the room.
@@ -186,7 +196,7 @@ with a party of four; open it in several windows to share the room.
 | Game                       | Page                                                                                 | Lifecycle | Check                       |
 | -------------------------- | ------------------------------------------------------------------------------------ | --------- | --------------------------- |
 | Bloom Garden (`garden`)    | shared `GamePage`, sandboxed, shared room and relay                                  | yes       | scenario, lifecycle, frames |
-| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room (CPU match)                                    | yes       | scenario, lifecycle, frames |
+| ACE! Tennis (`ace`)        | shared `GamePage`, sandboxed, no room alone; 1 v 1 in a party's room                 | yes       | scenario, lifecycle, frames |
 | Glasshouse Padel (`padel`) | its own page (`pages/games/padel.tsx`) with the club social layer, same-origin frame | not yet   | fails: no lifecycle         |
 
 A listed game without the lifecycle or a scenario fails the check
@@ -244,6 +254,10 @@ stage ([games/departure.md](games/departure.md)): right after the scenario,
 the check plays the page's part of leaving and compares the last game frame
 with the lobby's first.
 
+Every game also gets the party stage ([games/party.md](games/party.md)): its
+`party` statement in `game.json`, the options it offers by party size, and a
+member dropped mid-match.
+
 A release is the set of files whose hashes make up its `release` id. Commit
 `frontend/public/games/<id>` to ship it.
 
@@ -272,12 +286,6 @@ enforces yet.
     instead of each game counting frames.
 -   A `party` object on the context: trip id, members, who has arrived,
     and the party's room.
--   Shared format and draw helpers (1 v 1, teams, round robin, knockout),
-    seeded so every member builds the same bracket. They live in
-    `games/ace/src/party.js` today.
--   A real-time match channel. The relay carries about five packets a
-    second per player: enough for turns and lobbies, not for a rally. Until
-    it exists, party formats can be drawn but not played.
 
 **Manifest (`game.json`)**
 

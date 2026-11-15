@@ -23,8 +23,10 @@ Overview of games: [../games.md](../games.md).
       `"lobby"`, `view` is the lobby's last third-person camera relative to
       the avatar's feet (or null): stand the visitor in that framing.
     - `continuity.trip` is null alone, else
-      `{ id, room, size, members, self, arrived }`. `members` are the others
-      the lobby named; `arrived` are the others now in the party's room.
+      `{ id, room, size, members, self, arrived, roster }`. `members` are
+      the others the lobby named; `arrived` are the others now in the
+      party's room; `roster` is the room's own list once it has sent one
+      (arrival order, the host, seats, who dropped: [party.md](party.md)).
       `tripPlayers(trip, me)` gives one list with ids every member agrees on.
       Seed anything shared with `trip.id`.
     - Implement the optional `party(trip)` to hear when someone arrives or
@@ -43,8 +45,10 @@ Overview of games: [../games.md](../games.md).
         "sizes": [1, 8],
         "formats": [
             { "id": "singles", "label": "1 v 1", "sizes": [2] },
-            { "id": "cpu", "label": "Solo vs CPU", "sizes": [1, 2, 3, 4, 5, 6, 7, 8] }
-        ]
+            { "id": "solo", "label": "Solo vs CPU", "sizes": [1, 2, 3, 4, 5, 6, 7, 8] }
+        ],
+        "solo": "solo",
+        "late": "...", "dropped": "...", "extra": "..."
     }
     ```
 
@@ -53,8 +57,10 @@ Overview of games: [../games.md](../games.md).
     for `arrivalReady()`. `false` means the game opens on its own screen and
     is revealed at once. `party.sizes` is `[min, max]` within 1 to 8, and
     every size in it needs at least one format. Offer exactly the declared
-    formats for a party's size (test it, as `games/ace/test/party.test.js`
-    does).
+    formats for a party's size (test it, as
+    `games/runtime/test/party-statement.test.mjs` does for Ace). The same
+    block states the party rule's answers (`solo`, `late`, `dropped`,
+    `extra`, and `play` or `shared`): [party.md](party.md).
 
 6. **Write `scenario.json`** with at least one assertion, using declared
    actions only. Its optional `enter` stages the visit the check sends:
@@ -99,7 +105,9 @@ All are `oncyber:game:<kind>`. The page answers a build that greets with
 | page | `enter`                    | `{ arrival, trip }` for `enter()`. With `identity` on a direct visit; just before the reveal on a trip. |
 | game | `arrival-ready`            | The arrival frame is drawn.                                                                             |
 | page | `entered`                  | The game is revealed. Hold the clock from `arrival-ready` until this on a lobby trip.                   |
-| page | `party`                    | `{ party: trip }`: the trip changed (members named, someone arrived or left).                           |
+| page | `party`                    | `{ party: trip }`: the trip changed (members named, someone arrived or left, the roster changed).       |
+| both | `match`                    | The party room's real-time channel: `{ data, to? }` from the game, `{ from, data }` to it.              |
+| page | `match-limit`              | `{ dropped }`: packets of this game's that broke the channel's limits.                                  |
 | page | `self`, `peers`, `net`     | The room: the visitor's room id, everyone else, relayed packets.                                        |
 | game | `pose`, `net`, `storage`   | The visitor's pose, a packet for the room, a value to save.                                             |
 | both | `exit`, `error`, `dispose` | Back to the lobby, failed to load, the visit is over.                                                   |

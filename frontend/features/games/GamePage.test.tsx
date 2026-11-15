@@ -40,8 +40,21 @@ jest.mock("./safeArea", () => ({
     bridgeGameSafeArea: () => () => undefined,
     CONTROLS_PLACEMENT: {},
 }));
+// The seat key needs the browser's crypto and storage; the bridge is real.
+jest.mock("./gameMatch", () => ({
+    ...jest.requireActual("./gameMatch"),
+    matchSeatKey: () => "seat-key-0123456789abcdef",
+}));
 // The party's room: connects at once as "room-me" with whoever `mockPeers` holds.
 let mockPeers: any[] = [];
+// Its roster and match channel, as the page's match bridge sees the room.
+const mockMatchRoom = {
+    handlers: {} as Record<string, (message: any) => void>,
+    onMessage(type: string, handler: (message: any) => void) {
+        this.handlers[type] = handler;
+    },
+    send: jest.fn(),
+};
 jest.mock("./gameRoom", () => ({
     GameRoom: class {
         sessionId = "room-me";
@@ -60,6 +73,7 @@ jest.mock("./gameRoom", () => ({
                 status: "connected",
                 players: mockPeers.length + 1,
             });
+            (this as any).onRoom?.(mockMatchRoom);
         }
         onRelay() {}
         relay() {}
@@ -253,6 +267,49 @@ test("a lobby trip enters with the lobby's view and the party, then hears who ar
     expect(sent.filter((m) => m.type === "oncyber:game:party").length).toBe(
         parties
     );
+
+    // The room's roster is part of the same trip, not a message of its own.
+    const member = (id: string, order: number) => ({
+        id,
+        session: `room-${id}`,
+        name: id,
+        seat: "player",
+        state: "here",
+        order,
+    });
+    await act(async () =>
+        mockMatchRoom.handlers["game-roster"]({
+            self: "m-me",
+            host: "m-ada",
+            members: [member("m-ada", 1), member("m-me", 2)],
+        })
+    );
+    expect(last("oncyber:game:party").party).toMatchObject({
+        self: "room-me",
+        roster: {
+            self: "m-me",
+            host: "m-ada",
+            online: true,
+            members: [{ id: "m-ada" }, { id: "m-me" }],
+        },
+    });
+    expect(types()).not.toContain("oncyber:game:roster");
+    expect(types()).not.toContain("ace:roster");
+
+    // The match channel, both ways, in the one prefix.
+    await fromGame({ type: "oncyber:game:match", data: [1, 0, { x: 1 }] });
+    expect(mockMatchRoom.send).toHaveBeenCalledWith("game-match", {
+        data: [1, 0, { x: 1 }],
+    });
+    await act(async () =>
+        mockMatchRoom.handlers["game-match"](["m-ada", [4, 1, { t: "hit" }]])
+    );
+    expect(last("oncyber:game:match")).toEqual({
+        type: "oncyber:game:match",
+        from: "m-ada",
+        data: [4, 1, { t: "hit" }],
+    });
+    expect(types()).not.toContain("ace:match");
 });
 
 test("a game that isn't walkable is revealed without waiting", async () => {

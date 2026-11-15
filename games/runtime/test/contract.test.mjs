@@ -125,6 +125,51 @@ test("players use the party room's ids once someone else has arrived", () => {
     ]);
 });
 
+test("the trip carries the room's roster, and players use its ids once it is there", () => {
+    const me = { name: "Me" };
+    assert.equal(readTrip(trip).roster, null);
+    assert.equal(readTrip({ ...trip, roster: { members: "x" } }).roster, null);
+    const member = (id, order, seat = "player") => ({
+        id,
+        session: `s-${id}`,
+        name: id.toUpperCase(),
+        seat,
+        order,
+    });
+    const live = readTrip({
+        ...trip,
+        self: "s-m2",
+        arrived: [{ id: "s-m1", name: "Ada" }],
+        roster: {
+            self: "m2",
+            host: "m1",
+            members: [
+                member("m1", 1),
+                member("m2", 2),
+                member("m3", 3, "spectator"),
+            ],
+        },
+    });
+    assert.equal(live.roster.host, "m1");
+    assert.equal(live.roster.members[0].state, "here");
+    // Member ids (they survive a reconnect), the visitor first, seats only.
+    assert.deepEqual(tripPlayers(live, me), [
+        { id: "m2", name: "Me" },
+        { id: "m1", name: "M1" },
+    ]);
+    // Alone on the roster so far: the room's ids still decide.
+    const early = readTrip({
+        ...trip,
+        self: "s-m2",
+        arrived: [{ id: "s-m1", name: "Ada" }],
+        roster: { self: "m2", host: "m2", members: [member("m2", 1)] },
+    });
+    assert.deepEqual(
+        tripPlayers(early, me).map((p) => p.id),
+        ["s-m2", "s-m1"]
+    );
+});
+
 function session(game) {
     return new RuntimeSession(
         () => ({

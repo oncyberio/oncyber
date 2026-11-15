@@ -43,6 +43,7 @@ import GameInputLayer from "./GameInputLayer";
 import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./safeArea";
 import { useGameDeparture } from "./useGameDeparture";
 import { readPartyLeave } from "./gamePartyLeave";
+import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 
 const PEER_INTERVAL = 100;
 
@@ -133,15 +134,21 @@ export default function GamePage({ game }: { game: GameEntry }) {
     const kindOf = (event: MessageEvent) =>
         readGameMessage(event.data?.type, GAME)?.kind;
     // The party as the game sees it: the lobby's members plus the party
-    // room's facts (the visitor's room id, who has arrived).
-    const roomFacts = useRef({ self: "", arrived: [] as GameRoomMember[] });
+    // room's facts (the visitor's room id, who has arrived, and the room's
+    // roster: arrival order, the host, seats, who dropped).
+    const roomFacts = useRef({
+        self: "",
+        arrived: [] as GameRoomMember[],
+        roster: null as PageRoster | null,
+    });
     const sentIdentityRef = useRef(false);
     const tripNow = () =>
         gameTrip(
             partyRef.current,
             partyRef.current ? partyRoomLabel(GAME, partyRef.current.id) : "",
             roomFacts.current.self,
-            roomFacts.current.arrived
+            roomFacts.current.arrived,
+            roomFacts.current.roster
         );
     const lastTrip = useRef("");
     const announceTrip = useRef((force = false) => {
@@ -413,6 +420,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
                 name: identity.name,
                 pfp: identity.pfp,
                 avatarUrl: identity.avatarUrl,
+                matchKey: party ? matchSeatKey() : undefined,
             },
             (state) => {
                 setRoomState(state);
@@ -437,11 +445,25 @@ export default function GamePage({ game }: { game: GameEntry }) {
                     departure.relayed(from, data) ||
                     postGame.current("net", { from, data })
             );
+        // A party's room also carries its roster and the match channel. The
+        // roster is part of the trip: the game hears it through `party`.
+        const match = party
+            ? new MatchBridge((kind, data) => {
+                  if (kind !== "roster") return postGame.current(kind, data);
+                  roomFacts.current.roster = (data as any).roster ?? null;
+                  announceTrip.current();
+              })
+            : null;
+        gameRoom.onRoom = (joined) => match?.attach(joined);
         setRoom(gameRoom);
         void gameRoom.connect();
         const receive = (event: MessageEvent) => {
             if (!fromGame(event)) return;
             const kind = kindOf(event);
+            if (match && kind === "match") {
+                match.send(event.data);
+                return;
+            }
             if (relay && kind === "net") {
                 // Party notices are the page's to send, not the game's.
                 if (!readPartyLeave(event.data.data))
@@ -466,7 +488,7 @@ export default function GamePage({ game }: { game: GameEntry }) {
             clearInterval(timer);
             window.removeEventListener("message", receive);
             postGame.current("peers", { players: [] });
-            roomFacts.current = { self: "", arrived: [] };
+            roomFacts.current = { self: "", arrived: [], roster: null };
             setRoom(null);
             setRoomState(null);
             void gameRoom.close();

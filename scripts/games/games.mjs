@@ -31,6 +31,7 @@ import { runKeysCheck } from "./keysCheck.mjs";
 import { checkSafeArea, describeSafeArea } from "./safe-area.mjs";
 import { avatarStage } from "./avatar-check.mjs";
 import { checkDeparture } from "./departure-check.mjs";
+import { partyCheck } from "./party-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -196,11 +197,13 @@ async function check() {
     const warnings = [...contract.warnings, ...entry.warnings];
     // Other people as their Oncyber avatars, and the arrival pose (docs/games/avatar-kit.md).
     const avatars = await avatarStage({ id, manifest, source, out, chromium, headed });
+    // What the game offers a party, and that a dropped member doesn't stop it.
+    const party = await partyCheck({ id, manifest, out, source, headed });
     const result = {
         version: 1,
         game: id,
         checkedAt: new Date().toISOString(),
-        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" ? "passed" : "failed",
+        status: report?.status === "passed" && report.stages.every((s) => s.status === "passed") && social?.status === "passed" && !gameError && !scan.findings.length && !(report.bootOnly && pageErrors.length) && safeArea?.status !== "failed" && avatars.status === "passed" && party.status !== "failed" ? "passed" : "failed",
         // Boot only: the game doesn't implement the lifecycle, so no scenario ran.
         scope: lifecycle ? "scenario" : "boot",
         files: { count: scan.files, bytes: scan.bytes, largest: scan.largest },
@@ -214,9 +217,11 @@ async function check() {
             ...(report?.stages ?? []).filter((s) => s.status === "failed").map((s) => ({ code: `STAGE_${s.stage.toUpperCase()}`, message: s.error ?? "failed" })),
             ...(social?.status === "failed" ? [{ code: "STAGE_SOCIAL", message: social.error ?? "failed" }] : []),
             ...(safeArea?.findings ?? []),
+            ...party.findings,
         ],
         social,
         safeArea,
+        party: { status: party.status, ms: party.ms, ...party.detail },
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
         consoleErrors: errors.slice(0, 20),

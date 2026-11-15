@@ -81,6 +81,7 @@ test("a trip adds the party room, the visitor's room id and who arrived", () => 
         room: "oncyber-ace-party-x",
         self: "",
         arrived: [],
+        roster: null,
     });
     const live = gameTrip(party, "oncyber-ace-party-x", "s2", [
         { id: "s9", name: "Bo", pfp: "", vrm: "/b.vrm" },
@@ -103,6 +104,42 @@ test("a trip adds the party room, the visitor's room id and who arrived", () => 
         )
     );
     expect(tripKey(null)).toBe("");
+});
+
+test("the room's roster rides in the trip, and a change to it is a new trip", () => {
+    const member = (id: string, order: number, state: "here" | "away") => ({
+        id,
+        session: state === "here" ? `s-${id}` : "",
+        name: id,
+        pfp: "",
+        avatarUrl: "",
+        seat: "player" as const,
+        state,
+        order,
+    });
+    const roster = {
+        self: "m1",
+        host: "m1",
+        online: true,
+        members: [member("m1", 1, "here"), member("m2", 2, "here")],
+    };
+    const trip = gameTrip(party, "oncyber-ace-party-x", "s-m1", [], roster);
+    expect(trip.roster).toEqual(roster);
+    expect(tripKey(trip)).not.toEqual(
+        tripKey(gameTrip(party, "oncyber-ace-party-x", "s-m1", []))
+    );
+    const dropped = {
+        ...roster,
+        members: [member("m1", 1, "here"), member("m2", 2, "away")],
+    };
+    expect(tripKey(trip)).not.toEqual(
+        tripKey(gameTrip(party, "oncyber-ace-party-x", "s-m1", [], dropped))
+    );
+    expect(tripKey(trip)).toEqual(
+        tripKey(
+            gameTrip(party, "oncyber-ace-party-x", "s-m1", [], { ...roster })
+        )
+    );
 });
 
 test("enter says how the visitor arrived", () => {

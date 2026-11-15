@@ -15,7 +15,11 @@
     "./keys": "./src/keys.ts",
     "./keys-browser": "./src/keysBrowser.ts",
     "./safe-area": "./src/safe-area.ts",
-    "./departure": "./src/departure.ts"
+    "./departure": "./src/departure.ts",
+    "./party": "./src/party.ts",
+    "./roster": "./src/roster.ts",
+    "./match": "./src/match.ts",
+    "./partyLink": "./src/partyLink.ts"
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.mjs"

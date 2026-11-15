@@ -17,6 +17,8 @@ export type RoomIdentity = {
     pfp: string;
     avatarUrl: string;
     token?: string;
+    /** Party rooms: lets this page take its seat back after a drop. */
+    matchKey?: string;
 };
 
 /** Mirrors the game's pose message: active entity position, heading, mode*8+anim. */
@@ -63,6 +65,10 @@ const decode = (value: unknown) => {
 export type GameRelayHandler = (from: string, data: unknown) => void;
 // The room drops chat-channel messages past 15 per 3 s per sender.
 const RELAY_INTERVAL = 220;
+// A dropped connection is retried at these delays, then every 8 s.
+const RECONNECT_DELAYS = [500, 1000, 2000, 4000, 8000];
+// The room closed this session because the same page joined again.
+const REPLACED = 4001;
 
 /**
  * One shared native `cyber` room per game. The crowd lobby room can't host
@@ -78,6 +84,10 @@ export class GameRoom implements SocialRoom {
     private relayHandler: GameRelayHandler | null = null;
     private relayAt = 0;
     private closed = false;
+    private attempts = 0;
+    private retry: ReturnType<typeof setTimeout> | null = null;
+    /** Told each time the room connects (and null when it is lost). */
+    onRoom: ((room: Room | null) => void) | null = null;
     private pose: GamePose = { x: 0, y: 0, z: 0, h: 0, a: 0 };
     private last = new Map<string, string>();
     private voice: WebRTCClient | null = null;
@@ -117,6 +127,7 @@ export class GameRoom implements SocialRoom {
                     avatar: this.identity.pfp,
                     VRM: this.identity.avatarUrl,
                     token: this.identity.token || "",
+                    matchKey: this.identity.matchKey,
                     position: {
                         x: String(this.pose.x),
                         y: String(this.pose.y),
@@ -157,9 +168,11 @@ export class GameRoom implements SocialRoom {
                 )
                     this.relayHandler(message.from, message.data);
             });
-            room.onLeave(() => {
-                if (this.room === room) this.update({ status: "error" });
+            room.onLeave((code) => {
+                if (this.room === room) this.lost(code !== REPLACED);
             });
+            this.attempts = 0;
+            this.onRoom?.(room);
             this.sendPose();
             this.update({ status: "connected" });
             void this.listen().catch((error) =>
@@ -167,8 +180,40 @@ export class GameRoom implements SocialRoom {
             );
         } catch (error) {
             console.warn("[game room] room:", error);
-            this.update({ status: "error" });
+            // A first join that fails stays failed; a rejoin keeps trying.
+            if (this.attempts) this.lost(true);
+            else this.update({ status: "error" });
         }
+    }
+
+    /** The connection dropped: tear down voice and join again shortly. */
+    private lost(rejoin: boolean) {
+        if (this.closed) return;
+        this.room = null;
+        this.onRoom?.(null);
+        Array.from(this.audio.keys()).forEach((id) => this.removeAudio(id));
+        this.voice?.leave();
+        this.voice = null;
+        this.signaling?.dispose();
+        this.signaling = null;
+        this.listening = null;
+        this.microphone?.getTracks().forEach((track) => track.stop());
+        this.microphone = null;
+        this.last.clear();
+        if (!rejoin) {
+            this.update({ status: "error", voiceState: "off" });
+            return;
+        }
+        this.update({ status: "connecting", voiceState: "off" });
+        const delay =
+            RECONNECT_DELAYS[
+                Math.min(this.attempts, RECONNECT_DELAYS.length - 1)
+            ];
+        this.attempts += 1;
+        this.retry = setTimeout(() => {
+            this.retry = null;
+            if (!this.closed) void this.connect();
+        }, delay);
     }
 
     /** This client's id in the room, as other players see it. */
@@ -405,6 +450,7 @@ export class GameRoom implements SocialRoom {
 
     async close() {
         this.closed = true;
+        if (this.retry) clearTimeout(this.retry);
         this.microphone?.getTracks().forEach((track) => track.stop());
         this.microphone = null;
         Array.from(this.audio.keys()).forEach((id) => this.removeAudio(id));

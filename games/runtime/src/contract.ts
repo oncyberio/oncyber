@@ -7,6 +7,7 @@
  * `frontend/features/games/gameContract.ts` is the page's half; a test in
  * games/runtime/test/contract.test.mjs keeps the two in step.
  */
+import { readRoster, type Roster } from "./roster.ts";
 
 /** Raised when the messages or the enter data change shape. */
 export const CONTRACT_VERSION = 2;
@@ -84,6 +85,12 @@ export interface Trip {
      * member's screen). Once this isn't empty it is who actually arrived.
      */
     arrived: TripMember[];
+    /**
+     * The party room's roster, once the room has sent one: members in
+     * arrival order with ids that survive a reconnect, the host, seats and
+     * who dropped (roster.ts, docs/games/party.md). Null until then.
+     */
+    roster: Roster | null;
 }
 /** What the page sends as `enter`: the part of `enter()`'s data only it knows. */
 export interface EnterData {
@@ -163,6 +170,7 @@ export function readTrip(value: any): Trip | null {
     if (!id) return null;
     const members = readMembers(value.members),
         arrived = readMembers(value.arrived);
+    const roster = value.roster ? readRoster(value.roster) : null;
     const size = Number.isInteger(value.size)
         ? Math.max(2, Math.min(MAX_OTHERS + 1, value.size))
         : 0;
@@ -173,6 +181,7 @@ export function readTrip(value: any): Trip | null {
         members,
         self: text(value.self, 64),
         arrived,
+        roster: roster?.members.length ? roster : null,
     };
 }
 
@@ -190,14 +199,27 @@ export function readEnterData(value: any): EnterData {
 
 /**
  * Everyone in the party, the visitor first, with ids every member agrees
- * on when possible: the party room's ids once anyone else has arrived,
- * until then the members the lobby named.
+ * on when possible: the roster's player seats once the party's room has
+ * sent it (ids that survive a reconnect), else the party room's ids once
+ * anyone else has arrived, until then the members the lobby named.
  */
 export function tripPlayers(
     trip: Trip | null,
     me: { name: string }
 ): Array<{ id: string; name: string }> {
     if (!trip) return [{ id: "self", name: me.name }];
+    const self = trip.roster?.self;
+    const seated =
+        trip.roster?.members.filter((m) => m.seat === "player") ?? [];
+    if (self && seated.length > 1)
+        return [
+            ...seated
+                .filter((m) => m.id === self)
+                .map(({ id }) => ({ id, name: me.name })),
+            ...seated
+                .filter((m) => m.id !== self)
+                .map(({ id, name }) => ({ id, name })),
+        ];
     if (trip.self && trip.arrived.length)
         return [
             { id: trip.self, name: me.name },

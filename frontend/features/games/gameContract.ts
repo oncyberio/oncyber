@@ -6,6 +6,7 @@
  * state the same prefix and version.
  */
 import type { GameParty, GamePartyMember } from "./gameParty";
+import type { PageRoster } from "./gameMatch";
 
 export const CONTRACT_VERSION = 2;
 /** Every game message is `oncyber:game:<kind>`, whatever the game's id. */
@@ -129,20 +130,26 @@ export interface GameTrip extends GameParty {
     self: string;
     /** The other members in the room now, by room id. */
     arrived: GamePartyMember[];
+    /**
+     * The room's roster once it has sent one: arrival order, the host,
+     * seats, who dropped (docs/games/party.md). Null until then.
+     */
+    roster: PageRoster | null;
 }
 
 export function gameTrip(
     party: GameParty | null,
     room: string,
     self = "",
-    peers: GameRoomMember[] = []
+    peers: GameRoomMember[] = [],
+    roster: PageRoster | null = null
 ): GameTrip | null {
     if (!party) return null;
     const arrived = peers
         .slice(0, 7)
         .map(({ id, name, pfp, vrm }) => ({ id, name, pfp, avatarUrl: vrm }))
         .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-    return { ...party, room, self, arrived };
+    return { ...party, room, self, arrived, roster };
 }
 
 /** Changes only when a game would see a different trip. */
@@ -154,6 +161,8 @@ export const tripKey = (trip: GameTrip | null) =>
               ...trip.members.map((m) => `${m.id}:${m.name}`),
               "|",
               ...trip.arrived.map((m) => `${m.id}:${m.name}`),
+              "|",
+              trip.roster ? JSON.stringify(trip.roster) : "",
           ].join(",")
         : "";
 
