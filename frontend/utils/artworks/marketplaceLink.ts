@@ -71,7 +71,8 @@ function knownPermalink(url?: string): MarketplaceLink | null {
 /**
  * Where the artwork can be bought or browsed: OpenSea for EVM chains, objkt
  * for Tezos, Magic Eden for Solana. Returns null when there is no marketplace
- * page we can point to (POAPs, Nifty Gateway, Counterparty, uploads).
+ * page we can point to (POAPs, Counterparty, uploads, and artworks from
+ * marketplaces that have shut down, such as Nifty Gateway).
  */
 export function marketplaceLink(
     asset?: LinkAsset | null

@@ -60,7 +60,7 @@ export function flashWallets(account: {
     return candidates.filter((wallet): wallet is string => {
         if (
             typeof wallet !== "string" ||
-            !/^(?:0x[0-9a-f]{40}|(?:tz[1-4]|KT1)[1-9A-HJ-NP-Za-km-z]{33}|[1-9A-HJ-NP-Za-km-z]{32,44}|[^\s@]{1,100}@(niftygateway|counterparty))$/i.test(
+            !/^(?:0x[0-9a-f]{40}|(?:tz[1-4]|KT1)[1-9A-HJ-NP-Za-km-z]{33}|[1-9A-HJ-NP-Za-km-z]{32,44}|[^\s@]{1,100}@counterparty)$/i.test(
                 wallet
             )
         )

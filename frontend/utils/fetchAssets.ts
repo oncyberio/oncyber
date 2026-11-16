@@ -24,7 +24,6 @@ import {
     fetchCreatedNftPortAssets,
     fetchNftPortAssetById,
 } from "./nftPortAssets";
-import { fetchCreatedNiftyAssets, fetchOwnedNiftyAssets } from "./niftyAssets";
 import { fetchChainAssetById } from "./polygonAssets";
 import {
     fetchCreatedTezosAssets,
@@ -51,8 +50,6 @@ export async function fetchCreatedAssets(
             return fetchCreatedEthereumAssets(creatorId);
         case "tezos":
             return fetchCreatedTezosAssets(creatorId);
-        case "niftygateway":
-            return fetchCreatedNiftyAssets(creatorId);
         case "solana":
             throw new Error("Unavailable at the moment");
         // return fetchCreatedSolanaAssets(creatorId);
@@ -73,8 +70,6 @@ export async function fetchOwnedAssets(ownerId: string, page: any) {
             );
         case "tezos":
             return fetchOwnedTezosAssets(ownerId, page);
-        case "niftygateway":
-            return fetchOwnedNiftyAssets(ownerId, page);
         case "solana":
             return fetchOwnedChainAssets("solana", ownerId, page);
         // return fetchOwnedSolanaAssets(ownerId, page);

@@ -2,7 +2,6 @@ const ethUtil = require("ethereumjs-util");
 
 import { auth } from "@utils/firebaseAdmin";
 
-import { verify } from "@utils/middlewares/authMiddleware";
 
 import { ethers } from "ethers";
 
@@ -191,14 +190,6 @@ export async function validateSig({ sig, owner, req }) {
 
             // The token must belong to the account being signed in to.
             isValid = !!firebaseUser?.uid && firebaseUser.uid === owner;
-        } catch (err) {
-            throw new Error("Invalid token");
-        }
-    } else if (sig.type === "niftygateway") {
-        try {
-            // An existing Oncyber token, and only for the account it names.
-            const user = await verify(sig.sig);
-            return typeof user === "string" && user.toLowerCase() === owner?.toLowerCase();
         } catch (err) {
             throw new Error("Invalid token");
         }

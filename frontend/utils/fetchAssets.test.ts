@@ -16,7 +16,6 @@ jest.mock("./polygonAssets", () => ({
 }));
 jest.mock("./autographAssets", () => ({ fetchAutographAssetById: jest.fn() }));
 jest.mock("./nftPortAssets", () => ({ fetchNftPortAssetById: jest.fn() }));
-jest.mock("./niftyAssets", () => ({}));
 jest.mock("./tezosAssets", () => ({ fetchTezosAssetById: jest.fn() }));
 jest.mock("./counterpartyAssets", () => ({
     fetchCounterPartyAssetById: jest.fn(),

@@ -616,8 +616,7 @@ export const ArtworkInfoProvider: React.FC<ArtworkInfoProps> = ({
                 url.includes("rarible") ||
                 url.includes("bitski") ||
                 url.includes("superrare") ||
-                url.includes("hic") ||
-                url.includes("niftygateway"))
+                url.includes("hic"))
             ? url.split("://")[1].split(".")[0]
             : false;
     };
@@ -642,11 +641,6 @@ export const ArtworkInfoProvider: React.FC<ArtworkInfoProps> = ({
 
         if (isExternal(asset?.external_link)) {
             link = asset?.external_link;
-
-            if (artwork?.addedBy?.split?.("@")[0] == "daviddrebin")
-                link = `https://niftygateway.com/collections/daviddrebin`;
-            else if (link.includes("niftygateway"))
-                link = `https://niftygateway.com/itemdetail/secondary/${asset?.contract_address}/${asset?.token_id}`;
         }
 
         window.open(
