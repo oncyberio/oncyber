@@ -18,6 +18,7 @@ import { nodeEnv } from "@env";
 import React, { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { Wallet } from "@solana/wallet-adapter-react";
+import { siteUrl } from "@utils/siteUrl";
 
 export type EthereumProvider =
     | "metamask"
@@ -276,7 +277,7 @@ export async function connectCoinbaseMobile(): Promise<EthereumConnection> {
 
     const walletLink = new WalletLink.default({
         appName: "Cyber",
-        appLogoUrl: "https://oncyber.io/images/logo-black.png",
+        appLogoUrl: siteUrl("/images/logo-black.png"),
         darkMode: false,
     });
     let eth = walletLink.makeWeb3Provider(

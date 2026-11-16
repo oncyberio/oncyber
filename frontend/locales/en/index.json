@@ -358,6 +358,7 @@
     "EXIT_EDIT_MODE": "Exit Edit Mode",
     "CLICK_TO_LOOK_AROUND": "Click to Look around",
     "LOCKED_GATING": "Locked by token gating",
+    "LOCKED_PASSWORD": "Locked by password",
     "WALK_WITH": "Walk with",
     "JUMP_WITH_THE": "Jump with",
     "RUN_WITH": "Run with",

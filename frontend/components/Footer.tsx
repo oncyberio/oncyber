@@ -23,7 +23,7 @@ export default function Footer({ isLight = false }: { isLight?: boolean }) {
                     <img className="invertColor" src="../images/logo.png" />
                     <p>
                         Powered by{" "}
-                        <Logo href="https://oncyber.io">
+                        <Logo href="/">
                             <span className="pixelated">on</span>cyber
                         </Logo>
                     </p>

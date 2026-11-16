@@ -78,7 +78,7 @@ export default function CustomLinkExhibit({
 
 export const getServerSideProps = BasicServerSideProps(
     async (
-        { params, query, req, resolvedUrl }: GetServerSidePropsContext,
+        { params, query, req, res, resolvedUrl }: GetServerSidePropsContext,
         user,
         token,
         prefetched: Promise<ExhibitPageData> | undefined
@@ -101,6 +101,8 @@ export const getServerSideProps = BasicServerSideProps(
                     };
                 }
 
+                // No such profile: a real 404, not a page that says so.
+                res.statusCode = 404;
                 return {
                     // props: {
                     isProfile: true,
@@ -125,6 +127,9 @@ export const getServerSideProps = BasicServerSideProps(
             (await fetchExhibitData(params.slug as string, "slug", query));
 
         let gatingError = null;
+
+        // The page shows "not found" (see CustomLinkExhibit): a real 404.
+        if (!data.experience?.editors) res.statusCode = 404;
 
         if (data.experience) {
             // solo mode should be cheked server side for safety

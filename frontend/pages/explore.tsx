@@ -3,7 +3,6 @@ import Icon from "../components/Icon";
 import { useRouter } from "next/router";
 import Tabs from "../components/explore/Tabs";
 import styled, { css } from "styled-components";
-import { nodeEnv } from "@env";
 import RadUser from "../components/explore/RadUser";
 import { useContext, useEffect, useState } from "react";
 import ExhibitsLayout from "../components/layouts/exhibits";
@@ -183,19 +182,6 @@ export default function Explores() {
             </Container>
         </ExhibitsLayout>
     );
-}
-
-export async function getServerSideProps() {
-    const endpoint = `${nodeEnv.PUBLIC_API}/api/exhibit?type=FETCH_ALL_EXHIBITS&destination=&isActive=most-visited`;
-    const response = await fetch(endpoint);
-    const initialExhibits = await response.json();
-    return {
-        props: {
-            fallback: {
-                [endpoint]: initialExhibits,
-            },
-        },
-    };
 }
 
 const Container = styled.div`

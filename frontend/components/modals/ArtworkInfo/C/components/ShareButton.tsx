@@ -3,6 +3,7 @@ import ShareIcon from "@components/Icons/ShareIcon";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { formatLocation, parseLocation } from "@utils/js";
 import { CSSProperties, useState } from "react";
+import { siteUrl } from "@utils/siteUrl";
 import { experienceControl } from "@features/content-host/experienceChrome";
 import styled, { css } from "styled-components";
 import { IconButton } from "@ui/components/IconButton.tsx";
@@ -10,8 +11,6 @@ import { IconButton } from "@ui/components/IconButton.tsx";
 import { useArtworkInfo } from "./ArtworkContext";
 import { ShareDropdown, ShareType } from "./ShareDropdown";
 import { useCyberTheme } from "@components/context/ThemeProvider";
-
-const HOST = "https://oncyber.io";
 
 function shareTwitter(link: string) {
     const params = new URLSearchParams();
@@ -74,7 +73,7 @@ export function ShareButton({
                 "coords",
                 formatLocation(coords.position, coords.rotation.y)
             );
-            const url = `${HOST}${window.location.pathname}?${params}`;
+            const url = siteUrl(`${window.location.pathname}?${params}`);
 
             if (type === ShareType.Twitter) {
                 shareTwitter(url);
@@ -116,7 +115,7 @@ export function ShareButton({
                 }
             } else if (type === ShareType.Embed) {
                 try {
-                    const embedCode = `<iframe width=100% height=100% src="http://oncyber.io/lotfi0?coords=-0.37x2.88x-13.27x1.68"></iframe>`;
+                    const embedCode = `<iframe width="100%" height="100%" src="${url}" allow="fullscreen; xr-spatial-tracking; autoplay" style="border: 0"></iframe>`;
 
                     await navigator.clipboard.writeText(embedCode);
                     setFeedback("embed code copied!");

@@ -363,6 +363,7 @@
     "CLICK_TO_LOOK_AROUND": "둘러보기 클릭",
     "FREELY": "자유로이",
     "LOCKED_GATING": "토큰 게이팅으로 잠김 ",
+    "LOCKED_PASSWORD": "비밀번호로 잠김",
     "DETAILS_HINT": "상세",
     "CONTROL_HINT": "조작",
     "ACTIVITY_TITLE": "활동",

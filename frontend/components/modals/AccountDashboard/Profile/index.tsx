@@ -27,6 +27,10 @@ import { Input } from "@components/forms/Input";
 import { StyledWrapper } from "@ui/components/Input/styles";
 import { baseTokens as base } from "@styles/tokens";
 import LinkedAccountSelector from "../LinkAccount/LinkedAccountSelector";
+import { SITE_DISPLAY_HOST, siteUrl } from "@utils/siteUrl";
+
+// A pasted profile link, from any of the site's domains.
+const PROFILE_LINK_PREFIX = /^(https?:\/\/)?(www\.)?oncyber\.(io|com)\/@/;
 
 const ITEMS_COUNT = 5;
 
@@ -433,12 +437,12 @@ export default function Profile() {
                     <Input
                         hasError={!!usernameError}
                         placeholder={user?.id?.slice?.(0, 12) + "..."}
-                        staticText="oncyber.io/@"
+                        staticText={`${SITE_DISPLAY_HOST}/@`}
                         value={username || ""}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => {
                             const value = e.target.value
                                 .toLowerCase()
-                                .replaceAll("oncyber.io/@", "")
+                                .replace(PROFILE_LINK_PREFIX, "")
                                 .replace(/[^a-zA-Z0-9-_]+/, "");
 
                             // Disallow invalid URI characters (only A-Z a-z 0-9 - _ . ! ~ * ' ( ) are accepted)
@@ -464,7 +468,7 @@ export default function Profile() {
                         <LinkStatus
                             status={usernameStatus}
                             link={
-                                "https://oncyber.io/@" +
+                                siteUrl("/@") +
                                 (username || user?.id?.toLowerCase?.())
                             }
                             onCopy={() => {

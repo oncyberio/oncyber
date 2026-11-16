@@ -35,6 +35,8 @@ import { isSupportedRuntime } from "@utils/runtimeKind";
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
+import { spaceUrl } from "@utils/siteUrl";
+import { spaceShareImage } from "@utils/spaceShareImage";
 
 const EmbeddedExperience = dynamic(() => import("@features/content-host/EmbeddedExperience"), { ssr: false });
 
@@ -215,19 +217,14 @@ function NativeExhibit({
         [setExperience, setDestination, router]
     );
 
-    // lower res version for twitter etc.
-    if (
-        experience?.info?.cHeroImg &&
-        !experience.info.cHeroImg.includes("/upload/c_scale,w_700/")
-    ) {
-        var splitted = experience.info.cHeroImg.split("/upload/");
-        experience.info.cHeroImg =
-            splitted[0] + "/upload/c_scale,w_700/" + splitted[1];
-    }
-
     if (!experience || !destination) {
         return <Error statusCode={404} />;
     }
+
+    // The address search engines and link previews should credit for this
+    // space, whichever URL (old domain, /spaces/<id>, /ja/...) was opened.
+    const canonicalUrl = spaceUrl(experience);
+    const shareImage = spaceShareImage(experience, destination);
 
     if (gatingError?.type === "other-error") {
         return <Error statusCode={500} />;
@@ -301,16 +298,9 @@ function NativeExhibit({
                     property="og:description"
                     content={experience.info.description || finalDescriptionSEO}
                 />
-                <meta
-                    key="ogImage"
-                    property="og:image"
-                    content={
-                        experience?.info?.heroImg ||
-                        experience?.info?.cHeroImg ||
-                        destination?.image ||
-                        "https://oncyber.io/images/thumbnail.png"
-                    }
-                />
+                <link key="canonical" rel="canonical" href={canonicalUrl} />
+                <meta key="ogUrl" property="og:url" content={canonicalUrl} />
+                <meta key="ogImage" property="og:image" content={shareImage} />
 
                 <meta
                     key="twitterTitle"
@@ -323,12 +313,7 @@ function NativeExhibit({
                 <meta
                     key="twitterImage"
                     name="twitter:image"
-                    content={
-                        experience?.info?.heroImg ||
-                        experience?.info?.cHeroImg ||
-                        destination?.image ||
-                        "https://oncyber.io/images/thumbnail.png"
-                    }
+                    content={shareImage}
                 />
                 <meta
                     key="twitterCard"
@@ -397,6 +382,9 @@ export const getServerSideProps = AuthServerSidePropsLite(
             data.dest =
                 (data.experience && rooms[data.experience?.info.room]) || null;
         }
+
+        // The page shows "not found": say so to search engines too.
+        if (!data.experience || !data.dest) res.statusCode = 404;
 
         return {
             ...data,

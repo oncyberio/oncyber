@@ -6,8 +6,10 @@ import { getExhibitByCustomLink, getPublicUserExhibits } from "@utils/saveToDb";
 
 export type ExhibitStatus = "owned" | "collab" | "search";
 
+// Space links from any of the site's domains (oncyber.com, the older
+// oncyber.io, with or without www) and its preview deployments.
 const cyberOriginRe =
-    /^(?:(?:http|https)\:\/\/)?(?:oncyber\.io|oncyber\.vercel\.app|cyber-art-git-(?:\S*)-oncyber\.vercel\.app)\/(\S+)/;
+    /^(?:(?:http|https)\:\/\/)?(?:(?:www\.)?oncyber\.(?:com|io)|oncyber\.vercel\.app|cyber-art-git-(?:\S*)-oncyber\.vercel\.app)\/(\S+)/;
 
 function isSpaceLink(s: string) {
     //

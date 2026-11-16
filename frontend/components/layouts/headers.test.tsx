@@ -149,10 +149,12 @@ test("the preview image URL is absolute for each deployment", () => {
     expect(
         siteOrigin({
             VERCEL_ENV: "production",
-            VERCEL_PROJECT_PRODUCTION_URL: "oncyber.io",
+            VERCEL_PROJECT_PRODUCTION_URL: "www.oncyber.com",
         })
-    ).toBe("https://oncyber.io");
-    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe("https://oncyber.io");
+    ).toBe("https://www.oncyber.com");
+    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe(
+        "https://www.oncyber.com"
+    );
     expect(
         siteOrigin({
             VERCEL_ENV: "preview",
