@@ -28,6 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -C frontend exec jest --ci
       - run: pnpm -C frontend test:scripts
+      # Fails when interface code gains colours that are not design tokens.
+      - run: pnpm -C frontend check:tokens
 
   types:
     name: Type check (no new errors)

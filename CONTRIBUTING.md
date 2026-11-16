@@ -41,8 +41,14 @@ The frontend's shared lobby lives in `frontend/features/lobby`. The native
 scene runtime lives in `frontend/components/_3DExhibit-v2`. Prefer extending
 shared behavior over introducing a second implementation.
 
-For UI work, follow [the brand guide](docs/brand/README.md). The repository uses
-four-space indentation and an 80-character formatting width. Format the files
+Interface changes must be built on Oncyber's design system: take colours,
+type, spacing and motion from the tokens in `frontend/styles/tokens/`, use the
+shared buttons and panels, and follow [the brand guide](docs/brand/README.md).
+This holds for coding agents too; [AGENTS.md](AGENTS.md#interface) has the
+rules, and `pnpm -C frontend check:tokens` fails a change that writes its own
+colours.
+
+The repository uses four-space indentation and an 80-character formatting width. Format the files
 you changed; avoid unrelated formatting across the repository.
 
 ## Validate the change
