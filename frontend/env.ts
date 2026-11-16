@@ -40,14 +40,6 @@ export const nodeEnv = {
             ? "https://api.reservoir.tools"
             : "https://api.reservoir.tools",
 
-    // Nifty Gateway
-    NIFTYGATEWAY_TOKEN_URL: "https://api.niftygateway.com/oauth2/token/",
-    NIFTYGATEWAY_REDIRECT_URI:
-        process.env.NODE_ENV === "development"
-            ? "http://localhost:3000/api/niftygateway"
-            : "https://oncyber.io/api/niftygateway",
-    NIFTYGATEWAY_API_V1: "https://api.niftygateway.com/v1",
-    NIFTYGATEWAY_AUTH_URL: "https://niftygateway.com/authorize",
     // Solana RPC. Owned/created NFT listings need an RPC with the Metaplex DAS
     // API (for example Helius or Triton); the public endpoint only covers
     // basic account reads.
@@ -102,7 +94,6 @@ export const nodeEnv = {
     // firebase
     ...firebaseConfig,
 
-    NIFTYGATEWAY_CLIENT_ID: process.env.NEXT_PUBLIC_NIFTYGATEWAY_CLIENT_ID,
     OPENSEA_X_API_KEY: process.env.OPENSEA_X_API_KEY,
     RESERVOIR_API_KEY: process.env.NEXT_PUBLIC_RESERVOIR_API_KEY,
     YOUTUBE_API_KEY_SEARCH: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY,

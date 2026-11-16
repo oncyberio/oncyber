@@ -89,7 +89,8 @@ describe("marketplaceLink", () => {
         ).toBeNull();
         expect(
             marketplaceLink({
-                blockchain: "niftygateway",
+                // Artworks added before Nifty Gateway shut down keep this tag.
+                blockchain: "niftygateway" as any,
                 openSeaLink: "https://niftygateway.com/x",
             })
         ).toBeNull();

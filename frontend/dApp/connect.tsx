@@ -31,13 +31,7 @@ export type TezosProvider = "tezos";
 
 export type SolanaProvider = "solana";
 
-export type NiftyProvider = "niftygateway";
-
-export type Provider =
-    | EthereumProvider
-    | TezosProvider
-    | SolanaProvider
-    | NiftyProvider;
+export type Provider = EthereumProvider | TezosProvider | SolanaProvider;
 
 export interface EthereumConnection {
     type: "ethereum";
@@ -65,15 +59,6 @@ export interface SolanaConnection {
     walletId: string;
 }
 
-export interface NiftyConnection {
-    type: "niftygateway";
-    provider: "niftygateway";
-    walletId: string;
-    token: string;
-    name: string;
-    profilePicUrl: string;
-}
-
 export interface CounterpartyConnection {
     type: "counterparty";
     walletId: string;
@@ -84,10 +69,7 @@ export type SignedConnection =
     | TezosConnection
     | SolanaConnection;
 
-export type WalletConnection =
-    | SignedConnection
-    | NiftyConnection
-    | CounterpartyConnection;
+export type WalletConnection = SignedConnection | CounterpartyConnection;
 
 /** The ethers provider of an Ethereum wallet connection, or null. */
 export function getEthersProvider(
@@ -407,58 +389,6 @@ export async function connectTezos(
     };
 }
 
-export async function connectNifty(): Promise<NiftyConnection> {
-    return new Promise((resolve, reject) => {
-        let queryParams = {
-            scope: "profile:read",
-            client_id: nodeEnv.NIFTYGATEWAY_CLIENT_ID,
-            redirect_uri: nodeEnv.NIFTYGATEWAY_REDIRECT_URI,
-            response_type: "code",
-            response_mode: "query",
-        };
-        let queryParamsUrl = Object.keys(queryParams)
-            .map((key) => {
-                return `${key}=${queryParams[key]}`;
-            })
-            .join("&");
-        let popup = window.open(
-            `${nodeEnv.NIFTYGATEWAY_AUTH_URL}/?${queryParamsUrl}`,
-            "Connect",
-            "popup=yes,location=no"
-        );
-        if (popup) {
-            let onNiftyTabConnect = (ev) => {
-                if (ev.key != "nifty-connect") return; // ignore other keys
-                var userData = JSON.parse(ev.newValue);
-                window.removeEventListener("storage", onNiftyTabConnect);
-                popup.close();
-                console.log(userData);
-                if (!userData.username) {
-                    reject(
-                        userData.error === "no-token"
-                            ? {
-                                  message: "Authentication aborted",
-                                  code: "wallet/request-rejected",
-                              }
-                            : { message: "Failed to authenticate" }
-                    );
-                } else {
-                    console.log("[NIFTY!!!]", userData);
-                    resolve({
-                        type: "niftygateway",
-                        provider: "niftygateway",
-                        walletId: userData.owner,
-                        token: userData.token,
-                        name: userData.username,
-                        profilePicUrl: userData.profilePicUrl,
-                    });
-                }
-            };
-            window.addEventListener("storage", onNiftyTabConnect);
-        }
-    });
-}
-
 interface PhantomWindow extends Window {
     solana?: SolanaWallet;
 }
@@ -619,8 +549,6 @@ export const connectors: {
         ? () => Promise<TezosConnection>
         : Key extends EthereumProvider
         ? () => Promise<EthereumConnection>
-        : Key extends NiftyProvider
-        ? () => Promise<NiftyConnection>
         : () => Promise<SolanaConnection>;
 } = {
     metamask: connectMetamask,
@@ -630,7 +558,6 @@ export const connectors: {
     bitski: connectBitski,
     tezos: connectTezos,
     solana: connectSolana,
-    niftygateway: connectNifty,
 };
 
 type BlockchainConnection<B extends Blockchain> = B extends "ethereum"
@@ -639,8 +566,6 @@ type BlockchainConnection<B extends Blockchain> = B extends "ethereum"
     ? TezosConnection
     : B extends "solana"
     ? SolanaConnection
-    : B extends "niftygateway"
-    ? NiftyConnection
     : never;
 
 export function connectDefault(blockchain: Blockchain) {
@@ -648,7 +573,6 @@ export function connectDefault(blockchain: Blockchain) {
         if (blockchain === "ethereum") return connectMetamask();
         if (blockchain === "tezos") return connectTezos();
         if (blockchain === "solana") return connectSolana();
-        if (blockchain === "niftygateway") return connectNifty();
     } catch (err) {
         console.error(err);
         return null;

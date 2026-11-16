@@ -115,7 +115,7 @@ test("offers only wallets that can pay, and no way to sign in", () => {
     const all = buttons().join(" | ");
     expect(all).toContain("Fortmatic");
     expect(all).toContain("Bitski");
-    expect(all).not.toMatch(/Tezos|Solana|Nifty|Google|Twitter|Email/);
+    expect(all).not.toMatch(/Tezos|Solana|Google|Twitter|Email/);
     expect(container.textContent).toContain(
         "Paying doesn’t change the account you’re signed in with."
     );
