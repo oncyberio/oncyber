@@ -52,7 +52,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
     if (![port, wsBase, wtBase].every((n) => Number.isInteger(n) && n >= 1 && n <= 65535) || wsBase + workerCount - 1 > 65535 || !Number.isSafeInteger(detailThreshold) || detailThreshold < 1 || detailThreshold > 100000) throw new Error("Invalid world port or detail threshold");
     const loopback = ["127.0.0.1", "localhost", "::1"].includes(bind);
     if (options.testMode && !loopback) throw new Error("Test mode requires loopback bind");
-    const origins = options.origins || ["http://localhost:13000", "http://127.0.0.1:13000", "https://oncyber.io", "https://www.oncyber.io"];
+    const origins = options.origins || ["http://localhost:13000", "http://127.0.0.1:13000", "https://www.oncyber.com", "https://oncyber.com", "https://oncyber.io", "https://www.oncyber.io"];
     const shared = createSharedWorld(capacity),
         state = new SharedWorld(shared),
         workers: Worker[] = [],

@@ -202,7 +202,7 @@ const config = {
         jwt: process.env.PINATA_JWT_KEY,
         externalUrlBase:
             process.env.PINATA_EXTERNAL_URL_BASE ||
-            "https://oncyber.io/destinations/",
+            "https://www.oncyber.com/destinations/",
     },
     biconomyApiKey:
         process.env.NEXT_PUBLIC_BICONOMY_API_KEY,

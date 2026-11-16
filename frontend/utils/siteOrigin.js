@@ -5,7 +5,9 @@
 /** @param {Record<string, string | undefined>} [env] */
 function siteOrigin(env = process.env) {
     if (env.VERCEL_ENV === "production")
-        return `https://${env.VERCEL_PROJECT_PRODUCTION_URL || "oncyber.io"}`;
+        return `https://${
+            env.VERCEL_PROJECT_PRODUCTION_URL || "www.oncyber.com"
+        }`;
     const host = env.VERCEL_BRANCH_URL || env.VERCEL_URL;
     return host ? `https://${host}` : "http://localhost:13000";
 }

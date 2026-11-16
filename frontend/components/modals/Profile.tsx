@@ -30,6 +30,10 @@ import { isEthereumAddress } from "@utils/getAddrType";
 import { LegacyCloudinaryNextImage } from "@components/CloudinaryNextImage";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { IS_MOBILE } from "@components/_3DExhibit-v2/three/constants";
+import { SITE_DISPLAY_HOST, siteUrl } from "@utils/siteUrl";
+
+// A pasted profile link, from any of the site's domains.
+const PROFILE_LINK_PREFIX = /^(https?:\/\/)?(www\.)?oncyber\.(io|com)\/@/;
 
 const ITEMS_COUNT = 5;
 
@@ -524,13 +528,13 @@ const Profile = ({ isShowing, toggle, handleSettings }) => {
                         <Input
                             hasError={!!usernameError}
                             placeholder={user?.id?.slice?.(0, 12) + "..."}
-                            staticText="oncyber.io/@"
+                            staticText={`${SITE_DISPLAY_HOST}/@`}
                             value={username || ""}
                             maxLength={18}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => {
                                 const value = e.target.value
                                     .toLowerCase()
-                                    .replaceAll("oncyber.io/@", "")
+                                    .replace(PROFILE_LINK_PREFIX, "")
                                     .replace(/[^a-zA-Z0-9-_]+/, "");
 
                                 // Disallow invalid URI characters (only A-Z a-z 0-9 - _ . ! ~ * ' ( ) are accepted)
@@ -556,7 +560,7 @@ const Profile = ({ isShowing, toggle, handleSettings }) => {
                             <LinkStatus
                                 status={usernameStatus}
                                 link={
-                                    "https://oncyber.io/@" +
+                                    siteUrl("/@") +
                                     (username || user?.id?.toLowerCase?.())
                                 }
                                 onCopy={() => {

@@ -1,10 +1,12 @@
-import { Euler, Vector3 } from 'three';
+import { Vector3 } from 'three';
 
 import { CAPSULE_RADIUS, USER_HEIGHT } from '../constants';
 
 import Players from '../factory/player';
 
 import { CoordsReference } from './spaceutils';
+
+import { spawnCameraRotation } from './spawnRotation';
 
 export function getUserInitialPositions(roomParameters) {
 
@@ -33,11 +35,7 @@ export function getUserInitialPositions(roomParameters) {
             y,
             initialPlayerPosition?.z || 0,
         ),
-        cameraRot: new Euler(
-            initialPlayerRotation?.x || 0,
-            initialPlayerRotation?.y || 0,
-            initialPlayerRotation?.z || 0,
-        )
+        cameraRot: spawnCameraRotation(initialPlayerRotation)
     }
 }
 

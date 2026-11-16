@@ -90,7 +90,8 @@ export const nodeEnv = {
             : process.env.NODE_ENV === "development"
             ? process.env.NEXT_PUBLIC_API || "http://localhost:3000"
             : process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
-            ? "https://oncyber.io"
+            ? // On the server: the production domain, from next.config.js.
+              process.env.NEXT_PUBLIC_SITE_ORIGIN || "https://www.oncyber.com"
             : process.env.NEXT_PUBLIC_DEV_API ||
               `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`,
     GIT_BRANCH_PREVIEW_URL:

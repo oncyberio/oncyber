@@ -9,6 +9,7 @@ import { Footer } from "./styles/Footer";
 import { LinkStatus, LinkStatusProps } from "./shared/LinkStatus";
 import { Header, HeaderInfo } from "./styles/Header";
 import { Input } from "./shared/Input";
+import { spaceUrl } from "@utils/siteUrl";
 
 export interface SpacePublishedProps {
     exhibit: Experience;
@@ -20,9 +21,7 @@ export function SpacePublished({ exhibit, onGoBack }: SpacePublishedProps) {
     const [linkStatus, setLinkStatus] =
         useState<LinkStatusProps["status"]>("copy");
 
-    const link = `https://oncyber.io/${
-        exhibit?.info?.customLink || `spaces/${exhibit.id}`
-    }`;
+    const link = spaceUrl(exhibit);
 
     const onCopyLink = () => {
         setLinkStatus("success");

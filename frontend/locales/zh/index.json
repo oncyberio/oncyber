@@ -362,6 +362,7 @@
     "CLICK_TO_LOOK_AROUND": "点击环顾四周",
     "FREELY": "自由地",
     "LOCKED_GATING": "被令牌门控锁定",
+    "LOCKED_PASSWORD": "已被密码锁定",
     "DETAILS_HINT": "详情",
     "CONTROL_HINT": "控制",
     "ACTIVITY_TITLE": "动态",

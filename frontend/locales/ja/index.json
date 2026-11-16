@@ -365,6 +365,7 @@
     "CLICK_TO_LOOK_AROUND": "クリックして見る",
     "FREELY": "自由に",
     "LOCKED_GATING": "トークンゲーティングによってロックされています",
+    "LOCKED_PASSWORD": "パスワードでロックされています",
     "DETAILS_HINT": "詳細",
     "CONTROL_HINT": "操作",
     "ACTIVITY_TITLE": "アクティビティ",

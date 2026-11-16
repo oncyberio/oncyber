@@ -8,6 +8,7 @@ import { useStudioMenu } from "../context/StudioContext";
 import { useCustomLinkEditor } from "../context/useCustomLinkEditor";
 import { CustomLinkEdit } from "../SpaceSettings/Forms/shared/CustomLinkEdit";
 import { LinkStatus } from "./LinkStatus";
+import { spaceUrl } from "@utils/siteUrl";
 
 export function SpaceLink() {
     //
@@ -18,13 +19,9 @@ export function SpaceLink() {
 
     const [isCopying, setCopying] = useState(false);
 
-    const slug = exhibit.info.customLink;
-
     const editBtnRef = useRef(null);
 
-    const link = slug
-        ? `https://oncyber.io/${slug}`
-        : `https://oncyber.io/spaces/${exhibit.id}`;
+    const link = spaceUrl(exhibit);
 
     const handleCopy = useEventCallback(() => {
         //

@@ -9,6 +9,7 @@ import { mainnet } from "@wagmi/core/chains";
 import { WalletConnectConnector } from "@wagmi/core/connectors/walletConnect";
 import { w3mProvider } from "@web3modal/ethereum";
 import { delay } from "@utils/js";
+import { SITE_ORIGIN, siteUrl } from "@utils/siteUrl";
 
 const chains = [mainnet];
 
@@ -75,8 +76,8 @@ function getWalletConnectConnector() {
                 url:
                     typeof window !== "undefined"
                         ? window.location.origin
-                        : "https://oncyber.io",
-                icons: ["https://oncyber.io/images/logo-black.png"],
+                        : SITE_ORIGIN,
+                icons: [siteUrl("/images/logo-black.png")],
             },
             qrModalOptions: {
                 themeMode: "light",
