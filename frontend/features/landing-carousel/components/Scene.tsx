@@ -81,6 +81,11 @@ interface Props {
      * while the grid moves each rides above its own section.
      */
     sectionLabels?: Partial<Record<GridSection, string>>;
+    /**
+     * Keep the labels out of the first view: they show once the grid has
+     * scrolled and go again when it is back at its start.
+     */
+    sectionLabelsOnScroll?: boolean;
     /** How many items a section holds in all, shown beside its label. */
     sectionCounts?: Partial<Record<GridSection, number>>;
     /**
@@ -131,9 +136,12 @@ export default function Scene({
     error,
     loadMore,
     sectionLabels,
+    sectionLabelsOnScroll = false,
     sectionCounts,
     sectionFilter,
 }: Props) {
+    const labelsOnScroll = useRef(sectionLabelsOnScroll);
+    labelsOnScroll.current = sectionLabelsOnScroll;
     const blocked = useRef(interactionsBlocked);
     blocked.current = interactionsBlocked;
     const transition = useCardTransition(
@@ -519,6 +527,9 @@ export default function Scene({
             lastMove: -Infinity,
             lastTime: performance.now(),
             progress: NaN,
+            // A click on a label scrolls the grid for the visitor: the
+            // labels stay together until they move it themselves.
+            held: false,
         };
         function placeSectionSwitch(progress: number) {
             const sections = switchSections(layout, cards);
@@ -537,6 +548,7 @@ export default function Scene({
             };
             // Apart while the grid moves, together again once it rests.
             const moved =
+                !separation.held &&
                 !Number.isNaN(separation.progress) &&
                 Math.abs(progress - separation.progress) > 0.0005;
             separation.progress = progress;
@@ -640,13 +652,19 @@ export default function Scene({
                 )}px,${snap(left.y)}px,0) translateY(-100%)`;
                 menu.style.visibility = "visible";
             }
+            // Where asked, the first view has no labels: they fade in over
+            // the first part of a column and out again on the way back.
+            const shown = labelsOnScroll.current
+                ? Math.min(1, Math.max(0, progress / 0.25))
+                : 1;
             placed.forEach((item, index) => {
                 const element = switchItems.current[index];
                 if (!element) return;
+                element.style.opacity = String(shown);
                 element.style.transform = `translate3d(${snap(item.x)}px,${snap(
                     item.y
                 )}px,0) translateY(-100%)`;
-                element.style.visibility = "visible";
+                element.style.visibility = shown > 0.01 ? "visible" : "hidden";
                 element.setAttribute("aria-pressed", String(index === current));
             });
         }
@@ -772,10 +790,12 @@ export default function Scene({
         /** A jump by pointer: the next arrow key starts from where it lands. */
         function jumpTo(column: number) {
             keyboardSelection = null;
+            separation.held = true;
             goTo(column);
         }
         function step(direction: number) {
             keyboardSelection = null;
+            separation.held = false;
             goTo(
                 adjacentColumn(
                     requestedColumn ??
@@ -795,6 +815,7 @@ export default function Scene({
                 return;
             event.preventDefault();
             keyboardSelection = null;
+            separation.held = false;
             const unit =
                 event.deltaMode === 1
                     ? 16
@@ -926,6 +947,7 @@ export default function Scene({
                 return;
             suppressClick.current = false;
             keyboardSelection = null;
+            separation.held = false;
             clearTimeout(wheelEndTimer);
             scroller.beginDrag();
             drag = {
@@ -1562,6 +1584,11 @@ const SectionSwitch = styled.div`
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        /* It rests over the cards that fade out behind it: a soft shadow
+           keeps it readable there. */
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.55);
+        box-shadow: 0 0 18px 14px rgba(0, 0, 0, 0.55);
     }
     .filter-list .switch-item {
         position: relative;

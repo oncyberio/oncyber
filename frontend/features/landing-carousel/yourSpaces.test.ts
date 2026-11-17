@@ -30,20 +30,34 @@ const space = (id: string, extra: any = {}) =>
 const spaces = Array.from({ length: 12 }, (_, index) => space(`s${index}`));
 
 describe("Create's own spaces", () => {
-    it("stops at eight, newest first, and ends with a card for the rest", () => {
+    it("stops at nine, newest first, and ends with a card for the rest", () => {
         const cards = createSpaceCards(spaces, "", false);
         expect(cards).toHaveLength(SPACES_SHOWN + 1);
         expect(cards[0].spaceId).toBe("s11");
         const last = cards[cards.length - 1];
         expect(last.id).toBe(SHOW_ALL_SPACES_ID);
-        expect(last.title).toBe("+4 more");
+        expect(last.title).toBe("+3 more");
         expect(last.buildStatus).toBe("Show all 12 spaces");
         expect(cards.every((card) => card.section === "spaces")).toBe(true);
     });
 
-    it("shows nine spaces whole, since they fill the same cells", () => {
-        const cards = createSpaceCards(spaces.slice(0, 9), "", false);
-        expect(cards).toHaveLength(9);
+    it("shows the rest as a collage of real covers, hidden spaces first", () => {
+        const withCovers = spaces.map((item, index) =>
+            index === 0 || index === 11
+                ? { ...item, info: { ...item.info, heroImg: `/c${index}.jpg` } }
+                : item
+        );
+        const cards = createSpaceCards(withCovers, "", false);
+        // s0 is hidden behind the card, s11 is the newest one shown.
+        expect(cards[cards.length - 1].collage).toEqual([
+            "/c0.jpg",
+            "/c11.jpg",
+        ]);
+    });
+
+    it("shows ten spaces whole, since they fill the same cells", () => {
+        const cards = createSpaceCards(spaces.slice(0, 10), "", false);
+        expect(cards).toHaveLength(10);
         expect(cards.every((card) => card.spaceId)).toBe(true);
     });
 

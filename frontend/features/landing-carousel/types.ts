@@ -25,6 +25,11 @@ export interface LandingCard {
     collections: string[];
     tags: string[];
     imageUrls: string[];
+    /**
+     * Several covers shown as one: a card that stands for many spaces draws
+     * them as leaning strips. Falls back to `imageUrls` under two.
+     */
+    collage?: string[];
     portrait: boolean;
     buildStatus?: string;
     actionLabel?: string;

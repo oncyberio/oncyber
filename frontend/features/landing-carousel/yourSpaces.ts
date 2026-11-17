@@ -5,10 +5,11 @@ import { matchesTemplate } from "./templateSearch";
 import type { LandingCard } from "./types";
 
 /**
- * Create shows this many of your spaces, then one card for the rest: nine
- * cells, so the card that says there are more is on screen with the spaces.
+ * Create shows this many of your spaces, then one card for the rest: ten
+ * cells, which fill whole columns in a grid of one or two rows, so the
+ * section ends without an empty cell.
  */
-export const SPACES_SHOWN = 8;
+export const SPACES_SHOWN = 9;
 
 export const SHOW_ALL_SPACES_ID = "spaces-show-all";
 /** Stands in for a filter that matches nothing, and clears it. */
@@ -73,6 +74,28 @@ export function countSpaces(
 }
 
 const PLACEHOLDER = "/images/sq_image_placeholder.png";
+
+/** How many covers the card for the rest of your spaces shows at once. */
+export const COLLAGE_COVERS = 5;
+
+/**
+ * Covers for the card that stands for the spaces not shown: the hidden
+ * spaces' own covers first, then the shown ones', then template artwork.
+ * Never the placeholder, which says nothing about a space.
+ */
+export function collageCovers(hidden: SpaceSummary[], shown: SpaceSummary[]) {
+    const spaces = [...hidden, ...shown];
+    const own = spaces.map(
+        (space) => space.info?.heroImg || space.info?.cHeroImg
+    );
+    const template = spaces.map((space) => {
+        const cover = exhibitCover({ room: space.info?.room });
+        return cover === PLACEHOLDER ? undefined : cover;
+    });
+    return [...new Set([...own, ...template].filter(Boolean))]
+        .slice(0, COLLAGE_COVERS)
+        .map((cover) => resize(cover, 512, undefined, "webp"));
+}
 
 function time(space: SpaceSummary) {
     const value = space.createdAt ? new Date(space.createdAt).getTime() : 0;
@@ -227,6 +250,7 @@ export function createSpaceCards(
             actionLabel: `Show all ${matches.length} of your ${noun}`,
             // Cards draw their own cover; this one shows the next space's.
             imageUrls: spaceCard(matches[SPACES_SHOWN]).imageUrls,
+            collage: collageCovers(matches.slice(SPACES_SHOWN), shown),
         },
     ];
 }
