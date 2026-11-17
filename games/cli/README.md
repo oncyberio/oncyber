@@ -97,8 +97,20 @@ move the game.
 ## What works outside the repository, and what does not
 
 Works: creating, running, building and checking a game; signing in;
-publishing to a site that takes uploads itself (upload mode `site`: a
-development server or a self-hosted one); listing and unpublishing.
+publishing; listing and unpublishing. `oncyber publish` uploads the way the
+site asks it to:
+
+-   mode `site`: each file to the site itself, with the session token (a
+    development server or a self-hosted one);
+-   mode `storage`: each file straight to the site's storage bucket,
+    through a short-lived address the site signed for that one file, a few
+    files at a time. The address is the credential, so the session token
+    is not sent there: it only ever goes to the site. The command sends
+    exactly the headers the site names, refuses an address that is not
+    `https` (plain `http` is taken for this machine only), and tries a file
+    once more when the connection fails. The site verifies every file
+    before it registers the release. Not yet run against a real bucket:
+    see "Not verified" in the contract.
 
 Different from the repository:
 
@@ -130,6 +142,7 @@ Not yet:
 pnpm games:cli:test          # from the repository root
 node games/cli/bin/oncyber.mjs --help   # runs from the checkout, no pack needed
 node games/cli/test/standin.mjs 4010    # a stand-in site to publish to by hand
+node games/cli/test/standin.mjs 4010 storage   # the same, answering with upload mode `storage`
 ```
 
 `npm pack` runs `scripts/prepack.mjs`, which copies the runtime, the kits,

@@ -8,11 +8,21 @@
 // and the mode `site` upload address, and verifies what the contract says
 // the site verifies: the id, who owns it, the limits, the check's word, the
 // release id, and every file's size and SHA-256. Nothing is kept on disk.
+//
+//   node games/cli/test/standin.mjs [port] storage
+//
+// answers with upload mode `storage` instead: `begin` hands out one address
+// per file on a second server, the stand-in's storage, which is another
+// origin as a real bucket is. That server holds each `PUT` to what its
+// address was made for, as the contract says the storage does: the object,
+// the headers, the size, the MD5, and one write.
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const md5 = (bytes) => createHash("md5").update(bytes).digest("base64");
+const THUMBNAIL_MAX = 512 * 1024;
 /** The release id, written out here on its own: docs/games/releases.md. */
 export const standinReleaseId = (files) =>
     sha256(
@@ -26,16 +36,18 @@ const ID = /^[a-z0-9][a-z0-9-]{2,40}$/;
 
 /**
  * @param {{ tokens?: Record<string, string>, codes?: Record<string, string>,
- *   publishing?: "open" | "off" | string[], catalog?: string[] }} [options]
+ *   publishing?: "open" | "off" | string[], catalog?: string[],
+ *   upload?: "site" | "storage" }} [options]
  *   `tokens` maps a session token to its account, `codes` a sign-in code to
  *   a token, `publishing` is GAMES_PUBLISHING, `catalog` the repository's
- *   own game ids.
+ *   own game ids, `upload` the upload mode `begin` answers with.
  */
 export async function createStandin({
     tokens = { "test-token": "account-1" },
     codes = { "good-code": "test-token" },
     publishing = "open",
     catalog = ["ace", "garden", "lantern-tag", "padel"],
+    upload: uploadMode = "site",
     port = 0,
 } = {}) {
     const state = {
@@ -43,6 +55,37 @@ export async function createStandin({
         uploads: new Map(),
         releases: new Map(),
         requests: [],
+        /** Mode `storage`: every request the storage server got. */
+        storageRequests: [],
+        /** Mode `storage`: what each signed address was made for. */
+        addresses: new Map(),
+        /** Mode `storage`: answer this status to the next PUTs, once each. */
+        storageFailures: [],
+    };
+    let storage = null;
+    let storageUrl = null;
+    /** One address in the storage for one object of one upload. */
+    const sign = (uploadId, path, made) => {
+        const at = `/standin-bucket/games-staging/${uploadId}/${path}`;
+        const signature = `signature-${state.addresses.size + 1}`;
+        const headers = {
+            "Content-Type": "application/octet-stream",
+            "x-goog-content-length-range": `${made.least},${made.most}`,
+            "x-goog-if-generation-match": "0",
+            ...(made.md5 ? { "Content-MD5": made.md5 } : {}),
+        };
+        state.addresses.set(`${at}?X-Signature=${signature}`, {
+            ...made,
+            uploadId,
+            path,
+            headers,
+            written: false,
+        });
+        return {
+            path,
+            url: `${storageUrl}${at}?X-Signature=${signature}`,
+            headers,
+        };
     };
     let next = 1;
     const fail = (message) => {
@@ -133,6 +176,37 @@ export async function createStandin({
                 thumbnail: null,
                 stored,
             });
+            if (uploadMode === "storage")
+                return {
+                    uploadId,
+                    release,
+                    stored,
+                    upload: {
+                        mode: "storage",
+                        expires: 1800,
+                        files: stored
+                            ? []
+                            : [
+                                  ...files.map((file) =>
+                                      sign(uploadId, file.path, {
+                                          least: file.bytes,
+                                          most: file.bytes,
+                                          md5: file.md5
+                                              ? Buffer.from(
+                                                    file.md5,
+                                                    "hex"
+                                                ).toString("base64")
+                                              : null,
+                                      })
+                                  ),
+                                  sign(uploadId, "thumbnail.jpg", {
+                                      least: 0,
+                                      most: THUMBNAIL_MAX,
+                                      md5: null,
+                                  }),
+                              ],
+                    },
+                };
             return {
                 uploadId,
                 release,
@@ -155,6 +229,16 @@ export async function createStandin({
                     fail(
                         `not uploaded: ${missing.map((f) => f.path).join(", ")}`
                     );
+                // The storage checked sizes and MD5s; the SHA-256 is the
+                // site's to check, by reading what is staged.
+                const wrong = upload.files.filter(
+                    (file) =>
+                        sha256(upload.received.get(file.path)) !== file.sha256
+                );
+                if (wrong.length)
+                    fail(
+                        `wrong contents: ${wrong.map((f) => f.path).join(", ")}`
+                    );
                 state.releases.set(key, upload.received);
             }
             const now = new Date().toISOString();
@@ -172,7 +256,7 @@ export async function createStandin({
             });
             game.releases.push({
                 release: upload.release,
-                backend: "local",
+                backend: uploadMode === "storage" ? "storage" : "local",
                 publishedAt: now,
                 files: upload.files.length,
                 bytes: upload.files.reduce((sum, f) => sum + f.bytes, 0),
@@ -325,11 +409,54 @@ export async function createStandin({
         }
     });
     await new Promise((done) => server.listen(port, "127.0.0.1", done));
+    if (uploadMode === "storage") {
+        // The storage: it knows addresses, not accounts.
+        storage = createServer(async (req, res) => {
+            const bytes = await body(req);
+            const made = state.addresses.get(req.url);
+            state.storageRequests.push({
+                method: req.method,
+                url: req.url,
+                headers: req.headers,
+            });
+            const answer = (status, message) =>
+                res
+                    .writeHead(status, { "content-type": "application/xml" })
+                    .end(`<Error><Message>${message}</Message></Error>`);
+            if (req.method !== "PUT" || !made)
+                return answer(403, "SignatureDoesNotMatch");
+            if (state.storageFailures.length)
+                return answer(state.storageFailures.shift(), "Try again");
+            // Every signed header, as it was signed.
+            for (const [name, value] of Object.entries(made.headers))
+                if (req.headers[name.toLowerCase()] !== value)
+                    return answer(403, `SignatureDoesNotMatch: ${name}`);
+            if (bytes.length < made.least || bytes.length > made.most)
+                return answer(400, "EntityTooLarge or EntityTooSmall");
+            if (made.md5 && md5(bytes) !== made.md5)
+                return answer(400, "BadDigest");
+            if (made.written) return answer(412, "PreconditionFailed");
+            made.written = true;
+            const upload = state.uploads.get(made.uploadId);
+            if (upload && made.path === "thumbnail.jpg")
+                upload.thumbnail = bytes;
+            else if (upload) upload.received.set(made.path, bytes);
+            res.writeHead(200).end();
+        });
+        await new Promise((done) => storage.listen(0, "127.0.0.1", done));
+        storageUrl = `http://127.0.0.1:${storage.address().port}`;
+    }
     return {
         server,
         state,
         url: `http://127.0.0.1:${server.address().port}`,
-        close: () => new Promise((done) => server.close(done)),
+        storageUrl,
+        close: () =>
+            Promise.all(
+                [server, storage]
+                    .filter(Boolean)
+                    .map((each) => new Promise((done) => each.close(done)))
+            ),
     };
 }
 
@@ -339,6 +466,7 @@ if (
 ) {
     const standin = await createStandin({
         port: Number(process.argv[2]) || 0,
+        upload: process.argv.includes("storage") ? "storage" : "site",
     });
     console.log(`stand-in site at ${standin.url}
   ONCYBER_BASE_URL=${standin.url} ONCYBER_SESSION_TOKEN=test-token oncyber publish`);

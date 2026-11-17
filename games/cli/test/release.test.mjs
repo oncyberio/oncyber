@@ -29,7 +29,14 @@ test("a committed build gives the files and the release id pnpm games:publish wr
         out: built,
         manifest,
     });
-    assert.deepEqual(release.files, committed.files);
+    // Path, size and SHA-256 as the repository lists them; the MD5 beside
+    // them is for a site's storage to check an upload by, and is no part
+    // of the release id.
+    assert.deepEqual(
+        release.files.map(({ md5, ...file }) => file),
+        committed.files
+    );
+    for (const file of release.files) assert.match(file.md5, /^[0-9a-f]{32}$/);
     assert.equal(release.release, committed.release);
     // The same id by the rule written out in the docs, not the shared code.
     assert.equal(standinReleaseId(release.files), committed.release);

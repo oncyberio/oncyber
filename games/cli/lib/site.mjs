@@ -150,6 +150,58 @@ export function createSite({
                 { status: response.status, code: "UPLOAD_REFUSED" }
             );
         },
+        /**
+         * PUT bytes to an address in the site's storage that the site
+         * signed for this upload. The address is the credential: the
+         * session token is never sent here, only the headers the site
+         * said to send. Tried once more when the connection fails or the
+         * storage is briefly unavailable. Answers "stored", or "exists"
+         * when the storage already holds the object (an address creates
+         * its object once, so a repeat after a lost answer is refused).
+         */
+        async upload(url, bytes, headers = {}) {
+            let failure = null;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                let response;
+                try {
+                    response = await fetch(url, {
+                        method: "PUT",
+                        headers,
+                        body: bytes,
+                        // An address names one place; it is not followed
+                        // anywhere else.
+                        redirect: "error",
+                    });
+                } catch (error) {
+                    failure = new SiteError(
+                        `cannot reach the site's storage at ${
+                            new URL(url).host
+                        }: ${error?.cause?.message ?? error?.message ?? error}`,
+                        { code: "UNREACHABLE" }
+                    );
+                    continue;
+                }
+                if (response.ok) return "stored";
+                if (response.status === 412) return "exists";
+                let reason = "";
+                try {
+                    reason = (await response.text())
+                        .replace(/<[^>]*>/g, " ")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                } catch {
+                    // The status says enough.
+                }
+                failure = new SiteError(
+                    `the site's storage refused the upload (${
+                        response.status
+                    })${reason ? `: ${reason.slice(0, 300)}` : ""}`,
+                    { status: response.status, code: "UPLOAD_REFUSED" }
+                );
+                if (response.status < 500) break;
+            }
+            throw failure;
+        },
         send,
     };
 }

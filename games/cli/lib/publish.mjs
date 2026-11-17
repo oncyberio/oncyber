@@ -2,6 +2,7 @@
 // docs/games/publishing.md. The file list, the release id and the listing
 // entry come from the same code the repository's `pnpm games:publish` and
 // `pnpm games:catalog` use.
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +15,8 @@ export const MAX_FILES = 400;
 export const MAX_MANIFEST_BYTES = 64 * 1024;
 /** The card's picture: a JPEG beside the release, at most this large. */
 export const MAX_THUMBNAIL_BYTES = 512 * 1024;
+/** Mode `storage`: files on their way to the site's storage at once. */
+export const STORAGE_CONCURRENCY = 4;
 
 const load = (path) => import(pathToFileURL(sdk(path)).href);
 const storage = () => load("scripts/games/releases/storage.mjs");
@@ -32,7 +35,15 @@ export async function describeRelease({ id, out, manifest }) {
         );
     const { RELEASE_MANIFEST, listBuild, releaseId } = await storage();
     const { catalogEntry, GENERATED_THUMBNAIL } = await listing();
-    const files = listBuild(out);
+    // Each file's MD5 travels with its SHA-256: a site that keeps releases
+    // in a storage bucket has the bucket check every upload against it. The
+    // release id is made of the SHA-256s alone.
+    const files = listBuild(out).map((file) => ({
+        ...file,
+        md5: createHash("md5")
+            .update(readFileSync(join(out, file.path)))
+            .digest("hex"),
+    }));
     const bytes = files.reduce((sum, file) => sum + file.bytes, 0);
     const folded = new Map();
     for (const { path } of files) {
@@ -154,6 +165,112 @@ async function uploadToSite({ site, upload, out, files, thumbnail, log }) {
 }
 
 /**
+ * Why an address the site gave for its storage is not one to send a file
+ * to, or null: https, or plain http on this machine alone (a development
+ * server's storage emulator).
+ */
+export function storageAddressProblem(address) {
+    let url;
+    try {
+        url = new URL(address);
+    } catch {
+        return "is not an address";
+    }
+    if (url.username || url.password) return "carries a login";
+    if (url.protocol === "https:") return null;
+    const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    return url.protocol === "http:" && local
+        ? null
+        : "is not https (plain http is taken only for this machine)";
+}
+
+/**
+ * Mode `storage`: each file straight to the site's storage bucket, through
+ * the short-lived address the site signed for it, with exactly the headers
+ * the site said to send. The address is the credential, so the session
+ * token is not sent. The site verifies every file at `finish`.
+ */
+async function uploadToStorage({ site, upload, out, files, thumbnail, log }) {
+    const addresses = new Map();
+    for (const entry of Array.isArray(upload.files) ? upload.files : []) {
+        const headers = entry?.headers ?? {};
+        const problem =
+            typeof entry?.path !== "string"
+                ? "names no file"
+                : typeof entry.url !== "string"
+                ? "has no address"
+                : storageAddressProblem(entry.url) ??
+                  (typeof headers !== "object" ||
+                  Array.isArray(headers) ||
+                  Object.values(headers).some(
+                      (value) => typeof value !== "string"
+                  )
+                      ? "has headers that are not text"
+                      : null);
+        if (problem)
+            throw new SiteError(
+                `the upload address the site gave for ${
+                    entry?.path ?? "a file"
+                } ${problem}. Nothing was uploaded`,
+                { code: "UPLOAD_ADDRESS" }
+            );
+        addresses.set(entry.path, { url: entry.url, headers });
+    }
+    const missing = files.find((file) => !addresses.has(file.path));
+    if (missing)
+        throw new SiteError(
+            `the site gave no upload address for ${missing.path}. Nothing was uploaded`,
+            { code: "UPLOAD_ADDRESS" }
+        );
+    let next = 0;
+    let failed = false;
+    const worker = async () => {
+        while (next < files.length && !failed) {
+            const file = files[next++];
+            const { url, headers } = addresses.get(file.path);
+            try {
+                const answer = await site.upload(
+                    url,
+                    readFileSync(join(out, file.path)),
+                    headers
+                );
+                log(
+                    answer === "exists"
+                        ? `  ${file.path} was already sent`
+                        : `  sent ${file.path} (${file.bytes} bytes)`
+                );
+            } catch (error) {
+                failed = true;
+                throw error;
+            }
+        }
+    };
+    await Promise.all(
+        Array.from(
+            { length: Math.min(STORAGE_CONCURRENCY, files.length) },
+            worker
+        )
+    );
+    // The card's picture travels beside the release, as in mode `site`.
+    const address = thumbnail ? addresses.get(thumbnail) : null;
+    if (!address) return;
+    const picture = readFileSync(join(out, thumbnail));
+    if (picture.length > MAX_THUMBNAIL_BYTES)
+        return void log(
+            `  ${thumbnail} is larger than 512 KiB and was not sent; the game is published without a card picture`
+        );
+    try {
+        await site.upload(address.url, picture, address.headers);
+        log(`  sent ${thumbnail}`);
+    } catch (error) {
+        if (error.code !== "UPLOAD_REFUSED") throw error;
+        log(
+            `  ${thumbnail} was not taken (${error.message}); the game is published without a card picture`
+        );
+    }
+}
+
+/**
  * Mode `pinata`: the site hands out a short-lived address in its own
  * storage account and the release would travel there as one CAR archive.
  * The contract calls that shape provisional and says the command may
@@ -200,6 +317,8 @@ export async function publishGame({ project, site, log = () => {} }) {
         );
         if (upload.mode === "site")
             await uploadToSite({ site, upload, out, files, thumbnail, log });
+        else if (upload.mode === "storage")
+            await uploadToStorage({ site, upload, out, files, thumbnail, log });
         else if (upload.mode === "pinata") refusePinata();
         else
             throw new SiteError(
