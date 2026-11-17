@@ -8,6 +8,12 @@ import { formatExhibit } from "@utils/metadata/formatExhibit";
 import { Experience } from "@uitypes/experience";
 import { useContext, useEffect } from "react";
 import { UserContext } from "@components/context/UserContext";
+import { useRouter } from "next/router";
+import { getLocalAnonExhibit } from "@utils/anon";
+import {
+    BROWSE_TEMPLATES_HREF,
+    needsTemplateFirst,
+} from "@features/studio/StudioMenu/browseTemplates";
 
 const Studio3D = dynamic(loadStudio, { ssr: false });
 
@@ -26,14 +32,33 @@ export default function SpaceEdit(props) {
         isAnonymous,
     } = useContext(UserContext);
 
+    const router = useRouter();
+
+    // No world yet: pick a template first, before the studio renders.
+    const templateFirst =
+        isAnonInitialized &&
+        !props.error &&
+        needsTemplateFirst({
+            isAnonymous,
+            hasLocalWorld: isAnonymous && !!getLocalAnonExhibit(),
+            exhibit: props.exhibit,
+            templateId: router.query?.templateId,
+        });
+
+    useEffect(() => {
+        if (templateFirst) router.replace(BROWSE_TEMPLATES_HREF);
+    }, [templateFirst]);
+
     useEffect(() => {
         // Load the scene and its controls while route data is being restored.
-        void preloadStudio().catch(() => {});
-    }, []);
+        if (!templateFirst) void preloadStudio().catch(() => {});
+    }, [templateFirst]);
 
     if (props.error) {
         return <Error statusCode={500} />;
     }
+
+    if (templateFirst) return null;
 
     if (user?.id && userData?.currentExhibitId) {
         if (props.exhibit == null) {
