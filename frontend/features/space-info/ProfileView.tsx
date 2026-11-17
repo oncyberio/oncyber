@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
-import Icon from "@features/landing-carousel/components/Icon";
 type SpaceCard = {
     id: string;
     title: string;
@@ -131,11 +130,6 @@ export default function ProfileView({
                             {profile.wallet.slice(0, 6)}…
                             {profile.wallet.slice(-4)}
                         </small>
-                    )}
-                    {profile?.href && (
-                        <Link className="info-link small" href={profile.href}>
-                            Full profile <Icon name="forward" size={12} />
-                        </Link>
                     )}
                 </span>
             </div>

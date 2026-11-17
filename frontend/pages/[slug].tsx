@@ -11,6 +11,10 @@ import { checkGating } from "@utils/checkGatingRules";
 import dynamic from "next/dynamic";
 import { BasicServerSideProps } from "@utils/serverside/BasicServerSideProps";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
+import {
+    findProfile,
+    profileLobbyHref,
+} from "@utils/serverside/visitedProfile";
 import { useEffect } from "react";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import {
@@ -87,7 +91,7 @@ export default function CustomLinkExhibit({
     );
 }
 
-export const getServerSideProps = BasicServerSideProps(
+const slugServerSideProps = BasicServerSideProps(
     async (
         { params, query, req, res, resolvedUrl }: GetServerSidePropsContext,
         user,
@@ -159,3 +163,25 @@ export const getServerSideProps = BasicServerSideProps(
     },
     { prefetch: prefetchSlugPageData }
 );
+
+/** A profile link (/@name) opens the lobby with that profile's sidebar. */
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+    const slug = context.params?.slug;
+    if (typeof slug === "string" && slug[0] === "@") {
+        const profile = await findProfile(
+            slug,
+            fetchUserByUsername,
+            fetchUserByWalletId
+        );
+        if (profile)
+            return {
+                redirect: {
+                    destination: profileLobbyHref(
+                        profile.username || profile.id
+                    ),
+                    permanent: false,
+                },
+            };
+    }
+    return slugServerSideProps(context);
+}

@@ -76,4 +76,14 @@ export interface LandingPageProps {
      * staff picks and popular worlds shown after the results.
      */
     notFound?: { query: string; sections: LandingCard[] };
+    /** Set by a profile link (/@name): the lobby opens with their sidebar. */
+    profile?: VisitedProfile;
+}
+
+/** The public part of an account, as a profile link shows it. */
+export interface VisitedProfile {
+    id?: string;
+    username?: string;
+    walletId?: string;
+    avatar?: string;
 }

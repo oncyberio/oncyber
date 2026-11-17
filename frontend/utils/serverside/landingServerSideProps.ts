@@ -10,6 +10,11 @@ import {
 } from "@features/landing-carousel/data";
 import { readStaffPickIds } from "@utils/staffPicks";
 import {
+    fetchUserByUsername,
+    fetchUserByWalletId,
+} from "@api/accounts/user/utils";
+import { findProfile } from "./visitedProfile";
+import {
     FeedCategory,
     LandingFeed,
     LandingPageProps,
@@ -153,7 +158,7 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
     context
 ) =>
     withSsrTiming(context.res, async () => {
-        const [authResult, feedProps] = await Promise.all([
+        const [authResult, feedProps, profile] = await Promise.all([
             measureSsrStage("ssr_auth", () =>
                 feedBasicServerSideProps(context)
             ).then(
@@ -161,6 +166,14 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
                 () => ({ status: "rejected" as const })
             ),
             landingFeedProps(context.query),
+            // A profile link (/@name) lands here with ?profile=name.
+            context.query.profile
+                ? findProfile(
+                      context.query.profile,
+                      fetchUserByUsername,
+                      fetchUserByWalletId
+                  )
+                : null,
         ]);
         return {
             props: {
@@ -168,6 +181,7 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
                     ? authResult.value.props
                     : { authenticated: false }),
                 ...feedProps,
+                ...(profile ? { profile } : {}),
             },
         };
     });

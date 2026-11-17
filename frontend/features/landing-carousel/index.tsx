@@ -183,6 +183,16 @@ function LandingContent(props: LandingPageProps) {
         },
         [router]
     );
+    // A profile link (/@name) opens the lobby with their sidebar on the left.
+    const visitedProfile =
+        typeof router.query.profile === "string" ? props.profile : undefined;
+    const closeProfile = useCallback(() => {
+        const { profile, ...query } = router.query;
+        void router.replace({ pathname: router.pathname, query }, undefined, {
+            shallow: true,
+            scroll: false,
+        });
+    }, [router]);
     const leaveLobby = useCallback(() => {
         setBrowseVisible(true);
         setLobbyClosing(true);
@@ -942,6 +952,16 @@ function LandingContent(props: LandingPageProps) {
                     cards={cards.length ? cards : props.initialFeed.cards}
                     onExit={leaveLobby}
                     onReady={() => setLobbyReady(true)}
+                    profile={
+                        visitedProfile && {
+                            id: visitedProfile.id,
+                            name: visitedProfile.username
+                                ? `@${visitedProfile.username}`
+                                : visitedProfile.id,
+                            avatar: visitedProfile.avatar,
+                        }
+                    }
+                    onProfileClose={closeProfile}
                 />
             )}
         </LobbyPage>

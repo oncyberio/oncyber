@@ -1,4 +1,7 @@
-import { GALLERY_SCRIPTS_RETIRED, hasLegacyGalleryScriptWrite } from "@utils/legacyGalleryScripts";
+import {
+    GALLERY_SCRIPTS_RETIRED,
+    hasLegacyGalleryScriptWrite,
+} from "@utils/legacyGalleryScripts";
 import { firestore } from "firebase-admin";
 import { searchSpaces } from "@utils/firestore/spaceSearch";
 import { DEFAULT_FILTERS } from "@features/landing-carousel/data";
@@ -18,6 +21,7 @@ import {
 } from "@utils/firestore/userProfiles";
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
+import { isPublicSpace } from "@utils/spaceVisibility";
 import {
     stripExhibitSecrets,
     stripSecretsFromJson,
@@ -556,7 +560,10 @@ const getRadUserExhibits = async (walletId: string, lastVisible: string) => {
 
 /** Compatibility for existing Studio metadata search callers. */
 const searchExhibit = async (searchInput: string, page = 0): Promise<any[]> => {
-    const filters = { ...DEFAULT_FILTERS, q: String(searchInput || "").slice(0, 300) };
+    const filters = {
+        ...DEFAULT_FILTERS,
+        q: String(searchInput || "").slice(0, 300),
+    };
     if (filters.q.trim().length < 2) return [];
     if (!Number.isInteger(page) || page < 0 || page > 10) return [];
     let result = await searchSpaces(filters);
@@ -564,7 +571,7 @@ const searchExhibit = async (searchInput: string, page = 0): Promise<any[]> => {
         if (!result.hasMore) return [];
         result = await searchSpaces(filters, result.cursor);
     }
-    return result.exhibits.map(exhibit => ({ ...exhibit, editors: [] }));
+    return result.exhibits.map((exhibit) => ({ ...exhibit, editors: [] }));
 };
 
 /**
@@ -1781,11 +1788,19 @@ export default async (req, res) => {
         } else if (req.query.type === "DELETE_EXHIBIT") {
             await deleteExhibit(userId, req.body.exhibitId);
             return res.status(200).json({ success: true });
-        } else if (
-            req.query.type === "GET_USERS_EXHIBITS" ||
-            req.query.type === "GET_PUBLIC_USER_EXHIBITS"
-        ) {
+        } else if (req.query.type === "GET_USERS_EXHIBITS") {
             const exhibits = await getUserExhibits(userId);
+
+            return res.status(200).json({ success: true, exhibits });
+        } else if (req.query.type === "GET_PUBLIC_USER_EXHIBITS") {
+            if (typeof userId !== "string" || !userId.trim())
+                return res
+                    .status(400)
+                    .json({ success: false, error: "userId is required" });
+            // Anyone can ask for someone else's worlds: only the public ones.
+            const exhibits = (await getUserExhibits(userId)).filter(
+                isPublicSpace
+            );
 
             return res.status(200).json({ success: true, exhibits });
         } else if (req.query.type === "GET_PUBLIC_USER_SAVED_EXHIBITS") {
