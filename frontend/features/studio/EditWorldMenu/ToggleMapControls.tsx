@@ -154,5 +154,11 @@ const Container = styled.div<{ isToggling: boolean }>`
         bottom: auto;
         z-index: 1;
         flex-direction: column;
+
+        /* The studio's 40px phone tap target; icons stay 18px. */
+        & > .btn {
+            width: 40px;
+            height: 40px;
+        }
     }
 `;
