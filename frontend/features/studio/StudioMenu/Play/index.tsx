@@ -15,11 +15,12 @@ export function Play() {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Preview"
             onClick={() =>
                 amplitude_logAnalyticsEvent("click_preview", baseAnalyticsEvent)
             }
         >
-            Preview
+            <span className="label">Preview</span>
             <StudioPlayIcon size={16} />
         </PreviewLink>
     );
@@ -44,5 +45,14 @@ const PreviewLink = styled.a`
         margin-left: 0;
         padding: 8px 12px;
         gap: 6px;
+    }
+    /* Small phones: the play mark alone keeps the header on one row. */
+    @media (max-width: 380px) {
+        width: 44px;
+        padding: 0;
+        justify-content: center;
+        .label {
+            display: none;
+        }
     }
 `;
