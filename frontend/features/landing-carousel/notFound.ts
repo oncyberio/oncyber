@@ -1,8 +1,3 @@
-import type { LandingCard } from "./types";
-
-/** Id of the card that says a link led nowhere. */
-export const NOT_FOUND_CARD_ID = "not-found";
-
 const SPACE_ID = /^[A-Za-z0-9]{16,}$/;
 
 /**
@@ -33,44 +28,15 @@ export function notFoundQuery(path: string): string {
         .trim();
 }
 
-/** "frahm genesis" → "Frahm Genesis", for the card's title. */
-function titleCase(words: string) {
-    return words.replace(
-        /(^|\s)(\p{L})/gu,
-        (_, space, letter) => space + letter.toUpperCase()
-    );
-}
-
 /**
- * The card that leads the grid when a link found nothing. It searches for the
- * link's words when there are some; without JavaScript it links to that
- * search.
+ * Narrower searches to offer when a search of several words finds nothing
+ * (every word has to match): one per distinctive word, so "frahm genesis"
+ * offers "frahm" and "genesis".
  */
-export function notFoundCard(query: string): LandingCard {
-    const title = query
-        ? `Could not find “${titleCase(query)}”`
-        : "Could not find this world";
-    const explanation = query
-        ? "It may have moved. Search for it, or explore below."
-        : "It may have moved or been removed. Explore below.";
-    return {
-        id: NOT_FOUND_CARD_ID,
-        title,
-        href: query ? `/?q=${encodeURIComponent(query)}` : "/",
-        // Shown when the card is the large featured one.
-        description: explanation,
-        creator: "",
-        owner: "",
-        room: "",
-        visits: 0,
-        chains: [],
-        collections: [],
-        tags: [],
-        imageUrls: [],
-        portrait: false,
-        buildStatus: explanation,
-        actionLabel: query
-            ? `${title}. Search for ${query}`
-            : `${title}. Explore worlds`,
-    };
+export function searchWordSuggestions(query: string, max = 3): string[] {
+    const words = (query || "").toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length < 2) return [];
+    return [...new Set(words)]
+        .filter((word) => word.length >= 3 && !/^\d+$/.test(word))
+        .slice(0, max);
 }

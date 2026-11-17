@@ -1,4 +1,4 @@
-import { notFoundCard, notFoundQuery, NOT_FOUND_CARD_ID } from "./notFound";
+import { notFoundQuery, searchWordSuggestions } from "./notFound";
 
 describe("notFoundQuery", () => {
     it.each([
@@ -23,18 +23,29 @@ describe("notFoundQuery", () => {
     });
 });
 
-describe("notFoundCard", () => {
-    it("names what was missing and searches for it", () => {
-        const card = notFoundCard("frahm genesis");
-        expect(card.id).toBe(NOT_FOUND_CARD_ID);
-        expect(card.title).toBe("Could not find “Frahm Genesis”");
-        expect(card.href).toBe("/?q=frahm%20genesis");
-        expect(card.imageUrls).toEqual([]);
+describe("searchWordSuggestions", () => {
+    it("offers each distinctive word of a failed search", () => {
+        expect(searchWordSuggestions("frahm genesis")).toEqual([
+            "frahm",
+            "genesis",
+        ]);
+        expect(searchWordSuggestions("The Frahm  the genesis")).toEqual([
+            "the",
+            "frahm",
+            "genesis",
+        ]);
     });
 
-    it("still explains itself without words to search for", () => {
-        const card = notFoundCard("");
-        expect(card.title).toBe("Could not find this world");
-        expect(card.href).toBe("/");
+    it("skips short words and numbers, and keeps it to three", () => {
+        expect(searchWordSuggestions("a 6529 museum of memes")).toEqual([
+            "museum",
+            "memes",
+        ]);
+        expect(searchWordSuggestions("one two three four")).toHaveLength(3);
+    });
+
+    it("offers nothing for a single word", () => {
+        expect(searchWordSuggestions("frahm")).toEqual([]);
+        expect(searchWordSuggestions("")).toEqual([]);
     });
 });

@@ -52,7 +52,7 @@ export interface LandingPageProps {
     initialError: boolean;
     /**
      * Set when the page answers a link that found nothing (status 404): the
-     * words read from that link, which prefill the search.
+     * words read from that link, which the page opens searching for.
      */
     notFound?: { query: string };
 }
