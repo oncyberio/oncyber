@@ -40,3 +40,21 @@ export function searchWordSuggestions(query: string, max = 3): string[] {
         .filter((word) => word.length >= 3 && !/^\d+$/.test(word))
         .slice(0, max);
 }
+
+/**
+ * Close matches for a search of several words that found nothing, from one
+ * search per word: the rarest word's matches first (it says the most about
+ * what was meant), without repeats, a few per word.
+ */
+export function closeMatches<T extends { id: string }>(
+    groups: T[][],
+    { perWord = 12, max = 24 } = {}
+): T[] {
+    const seen = new Set<string>();
+    return [...groups]
+        .filter((group) => group.length)
+        .sort((a, b) => a.length - b.length)
+        .flatMap((group) => group.slice(0, perWord))
+        .filter((card) => !seen.has(card.id) && !!seen.add(card.id))
+        .slice(0, max);
+}

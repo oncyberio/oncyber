@@ -39,6 +39,7 @@ import { LandingPageProps } from "./types";
 import { searchWordSuggestions } from "./notFound";
 import { setDefaultFeedCategory } from "./data";
 import useDiscovery from "./hooks/useDiscovery";
+import useWordMatches from "./hooks/useWordMatches";
 import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
 import { pendingLobbyReturn } from "@utils/lobbyReturnTransition";
 import useDestinationPreviews from "./hooks/useDestinationPreviews";
@@ -235,11 +236,25 @@ function LandingContent(props: LandingPageProps) {
         !filters.chain &&
         !filters.collection;
     const searching = notFoundMode && !!notFound.query;
+    const fullSearchPending =
+        searching &&
+        (loading ||
+            (!discoveryCards.length &&
+                (loadingMore || (hasMore && !error && !loadMoreError))));
+    // Every word has to match, so "frahm genesis" can find nothing while
+    // "frahm" finds the Frahm galleries: show those as close matches.
+    const wordsWanted =
+        searching && !fullSearchPending && !discoveryCards.length;
+    const wordMatches = useWordMatches(filters, wordsWanted);
     const resultsPending =
-        searching && (loading || (loadingMore && !discoveryCards.length));
+        fullSearchPending || (wordsWanted && wordMatches === null);
     const notFoundCards = useMemo(() => {
         if (!notFoundMode || resultsPending) return null;
-        const results = searching ? discoveryCards : [];
+        const results = !searching
+            ? []
+            : discoveryCards.length
+            ? discoveryCards
+            : wordMatches ?? [];
         const shown = new Set(results.map((card) => card.id));
         return [
             ...results.map((card) => ({
@@ -248,11 +263,20 @@ function LandingContent(props: LandingPageProps) {
             })),
             ...notFound.sections.filter((card) => !shown.has(card.id)),
         ];
-    }, [notFoundMode, resultsPending, searching, discoveryCards, notFound]);
+    }, [
+        notFoundMode,
+        resultsPending,
+        searching,
+        discoveryCards,
+        wordMatches,
+        notFound,
+    ]);
     const notFoundLabels = notFoundMode
         ? {
-              results: `Results for \u201c${notFound.query}\u201d`,
-              ...(searching && !discoveryCards.length
+              results: `${
+                  discoveryCards.length ? "Results for" : "Close to"
+              } \u201c${notFound.query}\u201d`,
+              ...(searching && !discoveryCards.length && !wordMatches?.length
                   ? { staff: "No matches \u00b7 Staff picks" }
                   : {}),
           }
