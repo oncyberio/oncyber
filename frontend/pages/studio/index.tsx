@@ -58,7 +58,9 @@ export default function SpaceEdit(props) {
         return <Error statusCode={500} />;
     }
 
-    if (templateFirst) return null;
+    // Black, like the loader before it and the templates after it, so the
+    // hand-off never flashes the page's white background.
+    if (templateFirst) return <BlackScreen />;
 
     if (user?.id && userData?.currentExhibitId) {
         if (props.exhibit == null) {
@@ -72,8 +74,17 @@ export default function SpaceEdit(props) {
             exhibit={exhibit}
             destination={isAnonymous ? destination : props.destination}
         />
-    ) : null;
+    ) : (
+        <BlackScreen />
+    );
 }
+
+const BlackScreen = () => (
+    <div
+        aria-hidden="true"
+        style={{ position: "fixed", inset: 0, background: "#000" }}
+    />
+);
 
 export const getServerSideProps = AuthServerSideProps(
     async ({ query, res }, user, token, exhibit, isAnonymous) => {
