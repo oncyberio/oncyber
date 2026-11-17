@@ -352,6 +352,11 @@ const nextConfig = {
         const docsRewrites = [
             { source: "/llms.txt", destination: "/api/docs/llms" },
             { source: "/docs.md", destination: "/api/docs/raw" },
+            // The games SDK's guide for agents (games/llms.txt).
+            {
+                source: "/games/llms.txt",
+                destination: "/api/docs/raw?slug=build-a-game",
+            },
             {
                 source: "/docs/:slug.md",
                 destination: "/api/docs/raw?slug=:slug",

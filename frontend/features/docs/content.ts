@@ -57,6 +57,13 @@ export function llmsText(origin: string) {
         "meets and travels between them with the same identity and avatar.",
         "Each page below is also available as Markdown by adding .md to its URL.",
         "",
+        "## Building a game",
+        "",
+        `Asked to make a game for Oncyber? Read ${origin}/games/llms.txt first:`,
+        "what a game must do, what is optional (lobby arrival, avatars,",
+        "animations, walking, parties, voice, results, saved data, menus) and",
+        "the SDK helper for each.",
+        "",
         "## Docs",
         "",
         ...docs.map(

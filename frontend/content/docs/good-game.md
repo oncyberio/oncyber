@@ -6,7 +6,9 @@ order: 6
 
 # What a good game does
 
-Rules for a coding agent building a game for Oncyber. Read this before the
+Rules for a coding agent building a game for Oncyber. New to the SDK? Start
+with `games/llms.txt`, which says what is required,
+what is optional and which helper does each thing. Read this before the
 first line of code, fill in the brief, and treat the checks at the end as the
 definition of done. How games run: `docs/games.md`.
 

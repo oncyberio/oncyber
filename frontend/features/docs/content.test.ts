@@ -9,6 +9,17 @@ describe("in-app docs", () => {
         );
     });
 
+    it("sends an agent making a game to the SDK's guide first", () => {
+        const text = llmsText("https://example.test");
+        expect(text).toContain("https://example.test/games/llms.txt");
+        expect(text.indexOf("## Building a game")).toBeLessThan(
+            text.indexOf("## Docs")
+        );
+        const guide = allDocs().find((doc) => doc.slug === "build-a-game");
+        expect(guide?.body).toContain("## Required of every game");
+        expect(guide?.body).toContain("## Optional: fitting in with Oncyber");
+    });
+
     it("serves the game rules with their checks", () => {
         const page = allDocs().find((doc) => doc.slug === "good-game");
         expect(page?.body).toContain("## The rules, in order");

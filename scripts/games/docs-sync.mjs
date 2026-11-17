@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Keep the in-app copy of "What a good game does" (served at /docs/good-game
-// and listed in /llms.txt) equal to docs/games/good-game.md.
+// Keep the in-app copies of the games docs equal to their sources: "What a
+// good game does" (docs/games/good-game.md, served at /docs/good-game) and
+// the agent's guide (games/llms.txt, served at /docs/build-a-game). Both are
+// listed in /llms.txt.
 //
-//   node scripts/games/docs-sync.mjs           write frontend/content/docs/good-game.md
+//   node scripts/games/docs-sync.mjs           write the copies in frontend/content/docs/
 //   node scripts/games/docs-sync.mjs --check   exit 1 when it is out of date
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, posix, resolve } from "node:path";
@@ -43,14 +45,44 @@ export const sameText = (a, b) => {
     return words(a) === words(b);
 };
 
+// The agent's guide to building a game: the SDK's own games/llms.txt, served
+// at /docs/build-a-game, at /games/llms.txt and listed first in /llms.txt.
+export const GUIDE_SOURCE = "games/llms.txt";
+export const GUIDE_TARGET = "frontend/content/docs/build-a-game.md";
+const GUIDE_FRONT = `---
+title: Build a game
+description: Start here to make a game for Oncyber - what a game must do, what is optional (lobby arrival, avatars, animations, walking, parties, voice, results, saved data, menus) and the SDK helper for each.
+order: 5.5
+---
+
+`;
+
+/** The guide as an in-app page: front matter, then the file as written. */
+export const guidePage = (source) => GUIDE_FRONT + source;
+
+/** Each in-app copy: where it is written and what it should say. */
+export const pages = () => [
+    {
+        target: TARGET,
+        page: inAppPage(readFileSync(join(repo, SOURCE), "utf8")),
+    },
+    {
+        target: GUIDE_TARGET,
+        page: guidePage(readFileSync(join(repo, GUIDE_SOURCE), "utf8")),
+    },
+];
+
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-    const page = inAppPage(readFileSync(join(repo, SOURCE), "utf8"));
-    if (process.argv.includes("--check")) {
-        if (!sameText(readFileSync(join(repo, TARGET), "utf8"), page)) {
+    let stale = false;
+    for (const { target, page } of pages()) {
+        if (!process.argv.includes("--check"))
+            writeFileSync(join(repo, target), page);
+        else if (!sameText(readFileSync(join(repo, target), "utf8"), page)) {
             console.error(
-                `${TARGET} is out of date; run node scripts/games/docs-sync.mjs`
+                `${target} is out of date; run node scripts/games/docs-sync.mjs`
             );
-            process.exit(1);
+            stale = true;
         }
-    } else writeFileSync(join(repo, TARGET), page);
+    }
+    if (stale) process.exit(1);
 }

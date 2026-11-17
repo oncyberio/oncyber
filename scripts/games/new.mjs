@@ -229,6 +229,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
         process.exit(1);
     }
     console.log(`games/${id} created from Bloom Garden. Next:
+  0. Read games/llms.txt: what is required, what is optional, and the helper
+     for each. The copy is a starting folder; replace its source.
   1. Fill in games/${id}/BRIEF.md before writing code.
   2. Write the brief's formats into games/${id}/game.json "party" (formats, solo,
      play, late, dropped, extra); after changing "saved", run

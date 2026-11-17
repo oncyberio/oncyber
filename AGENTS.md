@@ -198,8 +198,17 @@ start: write the rule where the next agent will read it (for games,
 in a helper so it is the easy path (`games/runtime/src/`, or a kit in
 `games/kits/`), and add a check
 that fails without it (`pnpm games:check`). Then prove the check on the game
-that was corrected. Building a game starts from that page and its brief
-(`pnpm games:new <id>`); done is `pnpm games:check <id>` passing.
+that was corrected.
+
+### Building a game
+
+Start from [games/llms.txt](games/llms.txt): what a game must do, what is
+optional (lobby arrival, avatars, animations, walking, parties, voice,
+results, saved data, menus) and the SDK helper for each. Then the rules page
+above and the brief (`pnpm games:new <id>`). Done is `pnpm games:check <id>`
+passing. When the SDK gains or changes a helper, update `games/llms.txt` in
+the same change; `pnpm games:test` fails when it names something that isn't
+there.
 
 Formatting is Prettier: four spaces, 80 columns. Format the files you change,
 not the whole repository.
