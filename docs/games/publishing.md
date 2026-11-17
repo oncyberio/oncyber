@@ -68,7 +68,14 @@ Input:
     "id": "my-game",
     "manifest": {},
     "entry": {},
-    "files": [{ "path": "index.html", "bytes": 4419, "sha256": "<hex>" }],
+    "files": [
+        {
+            "path": "index.html",
+            "bytes": 4419,
+            "sha256": "<hex>",
+            "md5": "<hex>"
+        }
+    ],
     "check": {
         "status": "passed",
         "checkedAt": "<ISO date>",
@@ -113,6 +120,9 @@ Input:
     letter, digit or `_` and holds only letters, digits and `. _ - @ + ~`:
     no spaces, no dot files, no `..`, no name ending in a dot. No two paths
     may differ only by case, and `oncyber-release.json` is reserved.
+    `md5` is optional: the file's MD5, 32 hex digits. Only mode `storage`
+    uses it, to have the storage refuse other bytes as they arrive. It is
+    no part of the release id, and a release is verified by its SHA-256s.
 -   `check`: the command's own check result. It must say `passed`, and its
     `release` must be the release id of `files`. It is recorded as
     **self-reported**: the site has not run it.
@@ -131,13 +141,32 @@ Output:
 `release` is the release id computed from `files`, the same id
 `pnpm games:publish` gives. `stored: true` means this exact release is
 already stored and nothing needs uploading: call `finish` straight away.
-`upload.mode` is `site` (send each file to the site) or `pinata` (send them
-to the storage address given; see below). An upload lasts 30 minutes;
-after that, `begin` again. `begin` reserves nothing: the id becomes the
-account's when `finish` registers its first release.
+An upload lasts 30 minutes; after that, `begin` again. `begin` reserves
+nothing: the id becomes the account's when `finish` registers its first
+release.
 
-A server with no releases folder refuses `begin` with "Publishing is not
-available on this server", unless its mode `pinata` is switched on.
+`upload.mode` says where the files go:
+
+| Mode      | The command sends                                     | Releases are kept in                        | For                                        |
+| --------- | ----------------------------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| `site`    | each file to the site, with the session token         | the local releases folder                   | a development server, or a self-hosted one |
+| `storage` | each file to its own signed address in the storage    | the site's Firebase Storage bucket, private | production: a host with no disk of its own |
+| `pinata`  | one archive to a signed address (off, and unverified) | IPFS, read through a gateway                | later                                      |
+
+A server answers with the first of these that it has:
+
+1. `storage`, when `GAMES_PUBLISHING_STORAGE=on` and a bucket is
+   configured. This is how a development server, which has a releases
+   folder, is made to use its bucket.
+2. `site`, when it has a local releases folder (`GAMES_RELEASES_DIR`; on by
+   default on the development server).
+3. `storage`, when a bucket is configured (`GAMES_STORAGE_BUCKET`, or else
+   the Firebase project's `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`) and
+   `GAMES_PUBLISHING_STORAGE` is not `off`.
+4. `pinata`, when a person switched it on (`GAMES_PUBLISHING_PINATA=car`).
+
+With none of them, `begin` is refused with "Publishing is not available on
+this server".
 
 ### Uploading
 
@@ -164,6 +193,64 @@ one) and keeps releases in the local releases folder.
 Refusals carry `{ "error": "<sentence>" }`. `thumbnail.jpg` is sent the same
 way, to `<url>thumbnail.jpg`: a JPEG of at most 512 KiB. It is optional, and
 kept beside the release, not in it.
+
+Mode `storage`: `begin` answers
+
+```json
+{
+    "mode": "storage",
+    "expires": 1800,
+    "files": [
+        {
+            "path": "index.html",
+            "url": "https://storage.googleapis.com/<bucket>/games-staging/<uploadId>/index.html?X-Goog-Algorithm=...",
+            "headers": {
+                "Content-Type": "application/octet-stream",
+                "Content-MD5": "<base64>",
+                "x-goog-content-length-range": "4419,4419",
+                "x-goog-if-generation-match": "0"
+            }
+        }
+    ]
+}
+```
+
+with one entry for every listed file and one more for `thumbnail.jpg`
+(which the command may leave unused). `files` is empty when `stored` is
+true. For each file the command sends `PUT <url>` with the bytes as the
+body and **exactly** the `headers` given, and nothing else of its own: no
+session token, no cookie. The address is the credential, it is not on the
+site's origin, and the token never goes anywhere but the site. The command
+takes an address only if it is `https` (or plain `http` to this machine,
+for a development server's emulator), sends a few files at a time, and
+tries a file once more when the connection fails or the storage answers
+5xx.
+
+| Answer | Meaning                                                                         |
+| ------ | ------------------------------------------------------------------------------- |
+| 200    | Stored                                                                          |
+| 400    | Not the listed size, or not the bytes of the listed MD5                         |
+| 403    | The address expired, or a header is not the one that was signed                 |
+| 412    | The object is already there: an address writes once. The command counts it sent |
+
+Each address is a V4 signed URL of Cloud Storage, good for 30 minutes and
+for one object: `games-staging/<uploadId>/<path>`. What it signs, and so
+what the storage enforces:
+
+-   the object's name, so nothing is written anywhere else;
+-   `x-goog-content-length-range`: exactly the listed size (for the
+    picture, at most 512 KiB);
+-   `Content-MD5`, when `begin` listed an `md5`: only those bytes;
+-   `x-goog-if-generation-match: 0`: the object is created, never replaced;
+-   `Content-Type: application/octet-stream`: the uploader names no type.
+    The site chooses every content type when it serves.
+
+Nothing is served from `games-staging/`. `finish` reads every staged file
+once, checks its size and SHA-256, and copies that very version of it (its
+generation) to `games/<id>/<release>/`, where only the site's server
+writes and nothing is ever replaced. So an address that is still valid
+after `finish`, or an upload racing it, cannot change a file a visitor is
+served. See "Setting up mode `storage`" below.
 
 Mode `pinata`: the site hands the command a short-lived address from its own
 Pinata account, and the command uploads the release folder there directly,
@@ -210,6 +297,17 @@ with the hash `begin` listed, writes the game's record, and answers:
 An upload finishes once. Publishing a release the game already lists makes
 it the current one again and stores nothing.
 
+In mode `storage`, `finish` is where the work is: every file is read from
+the bucket once to hash it (Cloud Storage keeps an MD5 and a CRC32C of an
+object, not a SHA-256), then copied inside the bucket. That is one
+metadata read, one download and one copy per file, at most 30 MiB read in
+all, a few files at a time; the server never holds a whole file in
+memory. A `finish` that finds files missing or wrong registers nothing,
+removes the wrong ones from staging, and may be called again once they are
+sent. Staged files are removed after a `finish` that registered, and when
+`finish` is called on an expired upload; anything else left in staging is
+for the bucket's lifecycle rule (below).
+
 ### `mine`
 
 No input (`"params": []`). The account's games:
@@ -223,6 +321,12 @@ Input: `{ "id": "my-game" }`. Only the owner. Answers
 loading and its releases stop being served (within ten seconds on other
 server instances). The id stays reserved for the owner, and publishing
 again brings the game back.
+
+Stored releases are kept, in every mode: the id is still the owner's, and
+publishing a release the game already lists needs no upload. Nothing of an
+unpublished game is served. To delete its files, a person removes
+`games/<id>/` from the bucket (or the game's folder from the releases
+folder) by hand.
 
 ## What the site keeps
 
@@ -238,7 +342,7 @@ One record per game in the `publishedGames` collection:
     "releases": [
         {
             "release": "<16 hex>",
-            "backend": "local",
+            "backend": "local | storage | pinata",
             "address": "<cid, for pinata>",
             "base": "<gateway base, for pinata>",
             "publishedAt": "<ISO date>",
@@ -256,6 +360,9 @@ One record per game in the `publishedGames` collection:
 `status` is `unlisted` or `unpublished`. A person at Oncyber may set
 `listed` later; nothing in the command can. `releases` keeps the last 20.
 `thumbnail` is there when a `thumbnail.jpg` is stored beside the release.
+A `storage` release records no bucket and no object name: the server reads
+it from `games/<id>/<release>/` in the bucket it is configured with, a
+place made from the record's own id and release.
 The rooms are not in the record: the site makes them from the id each time.
 
 Two more collections hold what is in flight: `gameUploads/<uploadId>` (an
@@ -302,23 +409,115 @@ Not yet, for a registered game:
 -   The releases route serves a game outside the catalog only as its record
     says: published, the release listed, and not stopped. Files in the
     releases folder under an id nobody registered are not served.
+-   In mode `storage` the bucket stays private. A creator's command can
+    create objects under its own upload's staging folder and do nothing
+    else: it cannot read, list, replace or delete, and cannot name another
+    upload's folder or a release's. The site reads a release from the
+    bucket itself and passes it on through the releases route with that
+    route's headers; no visitor is ever given an address in the bucket or
+    sent to it. What the bucket says when it fails stays in the server's
+    log: the creator and the visitor get a sentence or a 502.
 
 ## The site's settings
 
-| Variable                  | What it does                                                                                              |
-| ------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `GAMES_PUBLISHING`        | Who may publish (above). Server-only.                                                                     |
-| `GAMES_PREVIEW`           | `1` shows game pages outside the development server; publishing follows it.                               |
-| `GAMES_RELEASES_DIR`      | The local releases folder, where mode `site` stores. On by default on the development server.             |
-| `GAMES_DISABLED`          | The kill switch ([field-health.md](field-health.md)): `<id>` or `<id>@<release>` stops a registered game. |
-| `GAMES_PUBLISHING_PINATA` | `car` switches mode `pinata` on. Not verified; leave unset.                                               |
-| `SECRET_JWT_KEY`          | Signs the session tokens the command sends.                                                               |
+| Variable                   | What it does                                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `GAMES_PUBLISHING`         | Who may publish (above). Server-only.                                                                                       |
+| `GAMES_PREVIEW`            | `1` shows game pages outside the development server; publishing follows it.                                                 |
+| `GAMES_RELEASES_DIR`       | The local releases folder, where mode `site` stores. On by default on the development server.                               |
+| `GAMES_DISABLED`           | The kill switch ([field-health.md](field-health.md)): `<id>` or `<id>@<release>` stops a registered game.                   |
+| `GAMES_PUBLISHING_STORAGE` | Mode `storage`: unset uses the bucket where there is no releases folder; `on` uses it even where there is one; `off` never. |
+| `GAMES_STORAGE_BUCKET`     | The bucket for mode `storage`. Unset: the Firebase project's bucket, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`.                 |
+| `FIREBASE_ADMIN_*`         | The service account that signs the upload addresses and reads and writes the bucket. Server-only.                           |
+| `GAMES_PUBLISHING_PINATA`  | `car` switches mode `pinata` on. Not verified; leave unset.                                                                 |
+| `SECRET_JWT_KEY`           | Signs the session tokens the command sends.                                                                                 |
 
 The code: the rules in `frontend/features/games/publishedGames.ts`, the
 store and the folder in `publishedGamesServer.ts`, the procedures in
 `frontend/pages/api/_v2/gamePublish/`, the upload address in
-`frontend/pages/api/games/uploads/[...path].ts`, and mode `pinata` in
-`pinnedUploads.ts`.
+`frontend/pages/api/games/uploads/[...path].ts`, mode `storage` in
+`publishedGamesStorage.ts` over the bucket in `releaseBucket.ts`, and mode
+`pinata` in `pinnedUploads.ts`.
+
+`ReleaseBucket` in `releaseBucket.ts` is all the site asks of a store:
+sign an upload address, read, copy one version to a new name, create,
+list, remove. Another store is another implementation of it. A release
+never changes and is named by the hash of its files, with the same layout
+in the bucket as in the local releases folder (`<id>/<release>/<path>`,
+with `oncyber-release.json` and `thumbnail.jpg` beside the files), so
+moving releases to another store later is a copy.
+
+## Setting up mode `storage`
+
+For a person with access to the site's Firebase project. An agent does not
+run these.
+
+1. **Enable Storage** on the Firebase project (Firebase console, Build,
+   Storage, Get started), in the region the site's server runs in. The
+   bucket's name is the project's `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`. To
+   keep games apart from anything else the project stores, make a second
+   bucket in the Google Cloud console instead (uniform bucket-level
+   access, public access prevention **enforced**) and name it in
+   `GAMES_STORAGE_BUCKET`.
+2. **Keep it private.** Do not grant `allUsers` or `allAuthenticatedUsers`
+   anything on the bucket. For the project's own bucket, the Firebase
+   Storage rules decide what the Firebase client SDKs may do, so they must
+   give nothing under the two prefixes:
+
+    ```
+    match /games/{all=**} { allow read, write: if false; }
+    match /games-staging/{all=**} { allow read, write: if false; }
+    ```
+
+    The site's server does not go through these rules. A bucket made in
+    the Cloud console, never added to Firebase, has none to set.
+
+3. **The service account.** The site signs addresses and reaches the bucket
+   as the service account in `FIREBASE_ADMIN_*`. It needs, on the bucket,
+   `storage.objects.create`, `get`, `list` and `delete`: the role **Storage
+   Object Admin** (`roles/storage.objectAdmin`). The Firebase Admin SDK's
+   default service account normally has this already; grant it on the
+   bucket if `begin` or `finish` say the storage did not answer. With the
+   account's private key in `FIREBASE_ADMIN_PRIVATE_KEY`, as the site is
+   set up, addresses are signed on the server with that key and nothing
+   more is needed. Only a server that runs as a service account _without_
+   a key file (application default credentials) signs through the IAM API,
+   and then that account also needs `iam.serviceAccounts.signBlob` on
+   itself: the role **Service Account Token Creator**.
+4. **No CORS.** The command is not a browser, and visitors' browsers never
+   talk to the bucket, so the bucket needs no CORS configuration. Leave it
+   with none.
+5. **A lifecycle rule for staging.** Uploads nobody finished stay under
+   `games-staging/` until something removes them. Add a rule that deletes
+   objects there after a day (Cloud console, the bucket, Lifecycle; or
+   `gcloud storage buckets update gs://<bucket> --lifecycle-file=rule.json`):
+
+    ```json
+    {
+        "rule": [
+            {
+                "action": { "type": "Delete" },
+                "condition": { "age": 1, "matchesPrefix": ["games-staging/"] }
+            }
+        ]
+    }
+    ```
+
+    Set no lifecycle rule, retention policy or object versioning that
+    touches `games/`: releases there are kept.
+
+6. **Switch it on.** On the server: `GAMES_PREVIEW=1`, `GAMES_PUBLISHING`
+   (start with a list of account ids), the bucket's name as above, and no
+   `GAMES_RELEASES_DIR`. `begin` then answers with mode `storage`.
+7. **Try it once**, with the command, as "Not verified" below asks:
+   publish a small game, open its page, send a file again to an address
+   after `finish`, and send a larger file to an address, and see the
+   last two change nothing and be refused.
+
+`finish` runs inside one request: on a serverless host give the
+`/api/_v2/gamePublish` function enough time for a 30 MiB release (a
+minute is ample) and note that `begin` signs up to 401 addresses, which is
+quick with a key and slow through the IAM API.
 
 ## Try it locally
 
@@ -357,6 +556,23 @@ oncyber unpublish <id>                                                         #
 The records are in the emulator's data browser
 (http://127.0.0.1:4000/firestore) under `publishedGames`.
 
+To try mode `storage` with no keys, start the server with the switch:
+
+```sh
+GAMES_PUBLISHING_STORAGE=on pnpm dev:local --no-lobby
+```
+
+`pnpm dev:local` runs the Storage emulator too, and the server then keeps
+releases in its bucket (`demo-oncyber.appspot.com`; browse it at
+http://127.0.0.1:4000/storage) instead of `.games-releases/`. The emulator
+does not implement signed URLs, nor the `PUT /<bucket>/<object>` they are
+for, so on the emulator `begin` hands out the address of an upload session
+of the emulator instead: still one `PUT` of the bytes to an address that
+names one object, so the command does the same thing. Everything after the
+upload is the same code as production: `finish` reading, hashing and
+copying, the record, and the releases route serving from the bucket. What
+the emulator leaves unproven is listed below.
+
 ## Not verified
 
 -   **Mode `pinata` has not run against Pinata or a gateway.** No keys exist
@@ -373,3 +589,28 @@ The records are in the emulator's data browser
     `GAMES_PUBLISHING_PINATA` unset.
 -   **Mode `site` on a host with more than one server**: the releases folder
     must be one disk they share.
+-   **Mode `storage` has not run against Cloud Storage.** No project or key
+    exists where it was built. What has run: the whole loop with the real
+    command against `pnpm dev:local` and the Storage emulator (publish, the
+    page in a browser, a second release, unpublish); the site's tests
+    against a stand-in bucket; and the storage library's own V4 signer,
+    with a key made for the test, checked to sign the object's name and
+    each header listed above. What a person must check on the first real
+    run, because the emulator does none of it:
+    -   that Cloud Storage accepts the signed `PUT` at all with these
+        headers (the signature, and the address surviving the command's
+        HTTP client unchanged for paths holding `@ + ~`);
+    -   that it refuses a body of another size
+        (`x-goog-content-length-range`), other bytes (`Content-MD5`), a
+        second write (`x-goog-if-generation-match: 0`, expected as 412)
+        and an expired address;
+    -   that the copy at `finish` honours the source generation and the
+        create-only precondition (the emulator ignores preconditions, so
+        there the code looks before it writes), and leaves the copy with
+        the content type the server names;
+    -   the service account's permissions, and `iam.serviceAccounts.signBlob`
+        where the server has no key file;
+    -   that the bucket is private: the emulator has no access control and
+        answers anyone on this machine;
+    -   the time `begin` and `finish` take for a release near the limits on
+        the real host.

@@ -104,6 +104,16 @@ folder. The scripts read these from the shell's environment, not from
 `frontend/.env.local`. A local publish never touches the committed pointer, so trying
 things on a laptop cannot change production.
 
+A game published from outside the repository
+([publishing.md](publishing.md)) is not stored by these scripts: the site
+stores it, and its registry record names the backend. There are three:
+`local` (the same folder, written by the site's upload address), `storage`
+(the site's private Firebase Storage bucket, under
+`games/<game>/<release>/`, read by the server and passed on by the same
+releases route; the mode for a host with no disk) and `pinata`
+(unverified, off). The scripts here have no `storage` backend:
+`pnpm games:publish` writes the local folder or pins to IPFS.
+
 To add a backend, return `{ name, put, read }` from a function in
 `storage.mjs` and add it to `releaseTarget` in `publish.mjs`. `put` must be
 a no-op for the same files and refuse different files under the same id.
