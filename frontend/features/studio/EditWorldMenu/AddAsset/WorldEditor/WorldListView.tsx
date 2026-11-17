@@ -1119,46 +1119,6 @@ const ScenePanel = styled.div`
     flex-direction: column;
     gap: 8px;
 
-    @media (max-width: 600px) {
-        width: 100%;
-        height: min(420px, 55dvh);
-        max-height: none;
-        padding: 8px 0 12px;
-        gap: 10px;
-        border-radius: inherit;
-
-        & > .sp-header {
-            padding: 0 12px 0 18px;
-        }
-        & > .sp-seacrh {
-            padding: 0 18px;
-        }
-        & > .sp-list .sp-list-group > .sp-list-group-title {
-            min-height: 40px;
-            padding: 0 18px;
-            font-size: 13px;
-        }
-        & > .sp-list .sp-list-group .sp-list-group-items > .sp-item {
-            min-height: 44px;
-            padding: 0 18px 0 34px;
-            gap: 10px;
-            font-size: 14px;
-            line-height: 20px;
-
-            & > .sp-item-img {
-                width: 24px;
-                height: 24px;
-            }
-            /* No hover on touch: keep row actions visible. */
-            & > .sp-item-actions > .sp-icon {
-                visibility: visible;
-            }
-        }
-        & > .sp-grab {
-            display: none;
-        }
-    }
-
     & > .sp-header {
         font: 500 16px/22px var(--studio-font, sans-serif);
         letter-spacing: 0;
@@ -1310,6 +1270,46 @@ const ScenePanel = styled.div`
         display: flex;
         justify-content: flex-end;
         cursor: s-resize;
+    }
+    /* Phone overrides last so they win over the base rules. */
+    @media (max-width: 600px) {
+        width: 100%;
+        height: min(420px, 55dvh);
+        max-height: none;
+        padding: 8px 0 12px;
+        gap: 10px;
+        border-radius: inherit;
+
+        & > .sp-header {
+            padding: 0 12px 0 18px;
+        }
+        & > .sp-seacrh {
+            padding: 0 18px;
+        }
+        & > .sp-list .sp-list-group > .sp-list-group-title {
+            min-height: 40px;
+            padding: 0 18px;
+            font-size: 13px;
+        }
+        & > .sp-list .sp-list-group .sp-list-group-items > .sp-item {
+            min-height: 44px;
+            padding: 0 18px 0 34px;
+            gap: 10px;
+            font-size: 14px;
+            line-height: 20px;
+
+            & > .sp-item-img {
+                width: 24px;
+                height: 24px;
+            }
+            /* No hover on touch: keep row actions visible. */
+            & > .sp-item-actions > .sp-icon {
+                visibility: visible;
+            }
+        }
+        & > .sp-grab {
+            display: none;
+        }
     }
 `;
 

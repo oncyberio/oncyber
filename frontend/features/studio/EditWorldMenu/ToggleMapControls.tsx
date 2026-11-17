@@ -47,19 +47,19 @@ export function ToggleMapControls() {
 
     return (
         <Container isToggling={isToggling}>
-            <div
+            <button
+                type="button"
                 className={classes({ btn: true, active: !isEnabled })}
-                role="button"
                 title={tx("Perspective")}
                 aria-pressed={!isEnabled}
                 onClick={handleClick}
             >
                 <IconImg className="tmc-icon" name="map-view" size={20} />
                 <span>{tx("Perspective")}</span>
-            </div>
-            <div
+            </button>
+            <button
+                type="button"
                 className={classes({ btn: true, active: isEnabled })}
-                role="button"
                 title={tx("Map view")}
                 aria-pressed={!!isEnabled}
                 onClick={() => handleClick(false)}
@@ -70,7 +70,7 @@ export function ToggleMapControls() {
                     size={20}
                 />
                 <span>{tx("Map view")}</span>
-            </div>
+            </button>
         </Container>
     );
 }
@@ -105,9 +105,17 @@ const Container = styled.div<{ isToggling: boolean }>`
         height: 32px;
         margin: 0;
         padding: 0;
+        border: 0;
         border-radius: 7px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
         cursor: pointer;
         transition: background-color 150ms ease;
+        &:focus-visible {
+            outline: 2px solid var(--studio-focus, #5b8cff);
+            outline-offset: 1px;
+        }
 
         /* The label stays for screen readers; title shows it on hover. */
         & > span {

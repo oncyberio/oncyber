@@ -271,7 +271,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
 
             {!isLoading && !error && (
                 <>
-                    {collabSpaces?.length > 0 ? (
+                    {collabSpaces?.length > 0 || activeTab === "collab" ? (
                         <LibraryTabs role="group" aria-label={tx("Worlds")}>
                             <button
                                 type="button"
