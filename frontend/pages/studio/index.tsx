@@ -10,6 +10,7 @@ import { useContext, useEffect, useRef } from "react";
 import { UserContext } from "@components/context/UserContext";
 import { useRouter } from "next/router";
 import styled from "styled-components";
+import { baseTokens } from "@styles/tokens";
 import CyberloopMark from "@features/landing-carousel/components/CyberloopMark";
 import { getLocalAnonExhibit } from "@utils/anon";
 import {
@@ -97,7 +98,7 @@ const Waiting = styled.div`
     inset: 0;
     display: grid;
     place-items: center;
-    background: #000;
+    background: ${baseTokens.color.black};
     .cyberloop-mark {
         width: 50px;
         height: 50px;

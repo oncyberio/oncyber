@@ -186,3 +186,18 @@ it("shows a world built from scratch on the blank canvas card", () => {
     const blank = cards.find((card) => card.id === "template-blank");
     expect(blank.imageUrls).toEqual(["/landing-build/blank-canvas-1280.webp"]);
 });
+
+it("shows details, not build, on a kit that can't be used yet", () => {
+    const kit = {
+        ...room("paid-kit"),
+        params: { isFuture: true },
+    } as Destination;
+    const cards = createTemplateCards(
+        { ...groups, purchase: [paid, kit] },
+        {},
+        "",
+        "all"
+    );
+    const card = cards.find((item) => item.id === "template-paid-kit");
+    expect(card.buildStatus).toBe("View details");
+});

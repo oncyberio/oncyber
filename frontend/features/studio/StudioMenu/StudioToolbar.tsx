@@ -172,7 +172,11 @@ export function StudioToolbar() {
             if (isFuture) {
                 toggleCreateModal("world-builder");
             } else {
-                router.push(BROWSE_TEMPLATES_HREF);
+                const opened = await router
+                    .push(BROWSE_TEMPLATES_HREF)
+                    .catch(() => false);
+                if (!opened)
+                    showError("Couldn't open the templates. Try again.");
             }
             //
         },
