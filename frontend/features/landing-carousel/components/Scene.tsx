@@ -13,7 +13,7 @@ import styled from "styled-components";
 import * as THREE from "three";
 import { UserContext } from "@components/context/UserContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
-import { LandingCard } from "../types";
+import { GridSection, LandingCard } from "../types";
 import { CardPool } from "../three/pool";
 import {
     createGridLayout,
@@ -66,7 +66,15 @@ interface Props {
     loadingMore: boolean;
     error: boolean;
     loadMore: () => void;
+    /** Labels above the grid's sections (see LandingCard.section). */
+    sectionLabels?: Partial<Record<GridSection, string>>;
 }
+
+const SECTION_LABELS: Record<GridSection, string> = {
+    results: "Results",
+    staff: "Staff picks",
+    popular: POPULAR_SECTION_LABEL,
+};
 
 export default function Scene({
     cards: requestedCards,
@@ -93,6 +101,7 @@ export default function Scene({
     loadingMore,
     error,
     loadMore,
+    sectionLabels,
 }: Props) {
     const blocked = useRef(interactionsBlocked);
     blocked.current = interactionsBlocked;
@@ -112,7 +121,7 @@ export default function Scene({
     const stageRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
-    const sectionLabelRef = useRef<HTMLDivElement>(null);
+    const sectionLabelsRef = useRef<(HTMLDivElement | null)[]>([]);
     const controlsRef = useRef({
         next: () => {},
         previous: () => {},
@@ -445,7 +454,7 @@ export default function Scene({
                     .get(selectedId.current)
                     ?.focus({ preventScroll: true });
             }
-            placeSectionLabel(progress);
+            placeSectionLabels(progress);
             renderer?.render(scene, camera);
             if (transition.motion.current.phase !== "idle") invalidate();
             const shown = cellsInColumns(
@@ -471,16 +480,24 @@ export default function Scene({
                 });
             }
         }
-        function placeSectionLabel(progress: number) {
-            // The label rides above the first popular card's top-left corner.
-            const label = sectionLabelRef.current;
+        function placeSectionLabels(progress: number) {
+            layout.sections.forEach(({ column }, index) =>
+                placeSectionLabel(
+                    sectionLabelsRef.current[index],
+                    column,
+                    progress
+                )
+            );
+        }
+        function placeSectionLabel(
+            label: HTMLDivElement | null,
+            column: number,
+            progress: number
+        ) {
+            // Each label rides above its section's first card's top-left corner.
             if (!label) return;
-            if (layout.sectionColumn < 0) {
-                label.style.visibility = "hidden";
-                return;
-            }
             const dims = cellDimensions(
-                { index: -1, row: 0, column: layout.sectionColumn },
+                { index: -1, row: 0, column },
                 metrics,
                 progress
             );
@@ -500,7 +517,7 @@ export default function Scene({
                 corner.y
             )}px,0) translateY(-100%)`;
             label.style.opacity = String(
-                columnOpacity(layout.sectionColumn, progress, columns)
+                columnOpacity(column, progress, columns)
             );
         }
         function updateSelection(followFocus = true) {
@@ -1061,11 +1078,20 @@ export default function Scene({
                         </Stage>
                     </ScrollContent>
                 </Viewport>
-                {!creating && !formGrid && layout.sectionColumn >= 0 && (
-                    <SectionLabel ref={sectionLabelRef} aria-hidden="true">
-                        {POPULAR_SECTION_LABEL}
-                    </SectionLabel>
-                )}
+                {!creating &&
+                    !formGrid &&
+                    layout.sections.map(({ column, section }, index) => (
+                        <SectionLabel
+                            key={`${section}:${column}`}
+                            ref={(element) => {
+                                sectionLabelsRef.current[index] = element;
+                            }}
+                            aria-hidden="true"
+                        >
+                            {sectionLabels?.[section] ??
+                                SECTION_LABELS[section]}
+                        </SectionLabel>
+                    ))}
                 <EdgeFade aria-hidden="true" />
                 <EdgeFade $right aria-hidden="true" />
             </ViewportFrame>

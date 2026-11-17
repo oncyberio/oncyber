@@ -1,5 +1,5 @@
 {
-    "total": 432,
+    "total": 412,
     "errors": {
         "components/DesignSystem/menus/tabs.tsx TS2339": 6,
         "components/DesignSystem/menus/tabs.tsx TS2769": 1,
@@ -148,11 +148,6 @@
         "components/context/UserContext.tsx TS2322": 1,
         "components/context/UserContext.tsx TS2339": 1,
         "components/context/VrmContext.tsx TS2339": 1,
-        "components/explore/ExhibitPagination.tsx TS2614": 1,
-        "components/explore/RadUser.tsx TS2339": 4,
-        "components/explore/RadUser.tsx TS2769": 1,
-        "components/explore/Tabs.tsx TS2339": 3,
-        "components/explore/Tabs.tsx TS2769": 1,
         "components/factory/Submit.tsx TS2304": 1,
         "components/hooks/useAssets.ts TS2339": 3,
         "components/modals/AccountDashboard/LinkAccount/Providers/index.tsx TS2322": 1,
@@ -214,8 +209,6 @@
         "pages/api/space/template.ts TS2339": 2,
         "pages/api/user/ownership/collection.ts TS2554": 1,
         "pages/collections/[slug].tsx TS2345": 1,
-        "pages/explore.tsx TS2339": 7,
-        "pages/explore.tsx TS2769": 3,
         "ui/components/Button/index.tsx TS2339": 1,
         "ui/components/Errors/styles.tsx TS2339": 1,
         "ui/components/IconButton/index.tsx TS2339": 4,

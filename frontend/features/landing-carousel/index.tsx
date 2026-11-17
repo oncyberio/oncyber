@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { UserContext } from "@components/context/UserContext";
 import { useRouter } from "next/router";
 import type { TemplateGridData } from "./components/TemplateCatalog";
@@ -216,7 +223,46 @@ function LandingContent(props: LandingPageProps) {
         [router]
     );
     const creating = step !== "explore";
-    const cards = useDestinationPreviews(discoveryCards, !creating);
+    // A link that found nothing opens searching for its words: the matches,
+    // then the staff picks and popular worlds, each under its label. Any
+    // change to the search or filters returns to the usual results.
+    const notFound = props.notFound;
+    const notFoundMode =
+        !!notFound &&
+        !creating &&
+        filters.q === notFound.query &&
+        !filters.owner &&
+        !filters.chain &&
+        !filters.collection;
+    const searching = notFoundMode && !!notFound.query;
+    const resultsPending =
+        searching && (loading || (loadingMore && !discoveryCards.length));
+    const notFoundCards = useMemo(() => {
+        if (!notFoundMode || resultsPending) return null;
+        const results = searching ? discoveryCards : [];
+        const shown = new Set(results.map((card) => card.id));
+        return [
+            ...results.map((card) => ({
+                ...card,
+                section: "results" as const,
+            })),
+            ...notFound.sections.filter((card) => !shown.has(card.id)),
+        ];
+    }, [notFoundMode, resultsPending, searching, discoveryCards, notFound]);
+    const notFoundLabels = notFoundMode
+        ? {
+              results: `Results for \u201c${notFound.query}\u201d`,
+              ...(searching && !discoveryCards.length
+                  ? { staff: "No matches \u00b7 Staff picks" }
+                  : {}),
+          }
+        : undefined;
+    const cards = useDestinationPreviews(
+        notFoundCards ?? (notFoundMode ? [] : discoveryCards),
+        !creating
+    );
+    // Only the matches page; more would land after the sections.
+    const pagedHasMore = notFoundMode ? false : hasMore;
     useEffect(() => {
         if (loading || creating || inLobby) return;
         let cancelled = false;
@@ -266,9 +312,10 @@ function LandingContent(props: LandingPageProps) {
             !loading &&
             !loadingMore &&
             hasMore &&
+            (!notFoundMode || searching) &&
             !error &&
             !loadMoreError &&
-            !cards.length
+            !(notFoundMode ? discoveryCards.length : cards.length)
         )
             emptyPageLoader.current();
     }, [
@@ -279,6 +326,9 @@ function LandingContent(props: LandingPageProps) {
         error,
         loadMoreError,
         cards.length,
+        notFoundMode,
+        searching,
+        discoveryCards.length,
     ]);
     const [templates, setTemplates] = useState<TemplateGridData>(null);
     const [loadTemplates, setLoadTemplates] = useState(step === "gallery");
@@ -524,15 +574,18 @@ function LandingContent(props: LandingPageProps) {
                                 footerStart={gridControls}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
-                                hasMore={!creating && !loading && hasMore}
+                                hasMore={!creating && !loading && pagedHasMore}
                                 loadingMore={!creating && loadingMore}
                                 error={!creating && (error || loadMoreError)}
                                 loadMore={loadMore}
+                                sectionLabels={notFoundLabels}
                             />
                         )}
                         {!creating &&
                         !cards.length &&
-                        (loading || (hasMore && !error && !loadMoreError)) ? (
+                        (loading ||
+                            resultsPending ||
+                            (pagedHasMore && !error && !loadMoreError)) ? (
                             <LoadingGrid grid={grid} />
                         ) : templateEmpty ? (
                             <EmptyState
@@ -652,7 +705,10 @@ function LandingContent(props: LandingPageProps) {
                     )}
                     <noscript>
                         <FallbackLinks>
-                            {props.initialFeed.cards.map((card) => (
+                            {[
+                                ...props.initialFeed.cards,
+                                ...(props.notFound?.sections ?? []),
+                            ].map((card) => (
                                 <a href={card.href} key={card.id}>
                                     <CoverImage card={card} />
                                     <span>{card.title}</span>
