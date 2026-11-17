@@ -1,4 +1,4 @@
-import { notFoundQuery, searchWordSuggestions } from "./notFound";
+import { closeMatches, notFoundQuery, searchWordSuggestions } from "./notFound";
 
 describe("notFoundQuery", () => {
     it.each([
@@ -47,5 +47,27 @@ describe("searchWordSuggestions", () => {
     it("offers nothing for a single word", () => {
         expect(searchWordSuggestions("frahm")).toEqual([]);
         expect(searchWordSuggestions("")).toEqual([]);
+    });
+});
+
+describe("closeMatches", () => {
+    const cards = (...ids: string[]) => ids.map((id) => ({ id }));
+
+    it("puts the rarest word's matches first, without repeats", () => {
+        expect(
+            closeMatches([cards("g1", "g2", "f2", "g3"), cards("f1", "f2")])
+        ).toEqual(cards("f1", "f2", "g1", "g2", "g3"));
+    });
+
+    it("keeps a few per word and a few in all", () => {
+        const many = (prefix: string) =>
+            cards(...Array.from({ length: 20 }, (_, i) => `${prefix}${i}`));
+        expect(
+            closeMatches([many("a"), many("b")], { perWord: 3, max: 5 })
+        ).toEqual(cards("a0", "a1", "a2", "b0", "b1"));
+    });
+
+    it("finds nothing when no word does", () => {
+        expect(closeMatches([[], []])).toEqual([]);
     });
 });
