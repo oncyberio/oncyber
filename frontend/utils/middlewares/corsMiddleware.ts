@@ -18,8 +18,6 @@ function initMiddleware(middleware) {
 const origin = [
     "https://oncyber.io",
     "https://www.oncyber.io",
-    "https://cyber.xyz",
-    "https://www.cyber.xyz",
     "https://oncyber.com",
     "https://www.oncyber.com",
     "https://mmo.oncyber.io",

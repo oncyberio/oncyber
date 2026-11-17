@@ -1,0 +1,45 @@
+# Space rooms (Colyseus "cyber"/"game"), voice signaling, /getRooms and TURN
+# credentials: the server the arena VM runs. Rooms live in process memory
+# (LocalPresence), so this stays one machine.
+# Secrets (fly secrets set -a oncyber-arena ...): SECRET_JWT_KEY,
+# LOBBY_IDENTITY_SECRET, FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL,
+# FIREBASE_ADMIN_PRIVATE_KEY, MONITOR_PASSWORD,
+# CLOUDFLARE_TURN_KEY_ID + CLOUDFLARE_TURN_API_TOKEN (voice relay; or coturn's
+# TURN_SECRET + TURN_HOST),
+# VERCEL_PROTECTION_BYPASS (optional), WORLD_ACCESS_SECRET (optional).
+app = "oncyber-arena"
+primary_region = "cdg"
+kill_signal = "SIGTERM"
+kill_timeout = "15s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # The VM ran with 200; unset, rooms get maxPlayers NaN.
+  MAX_PLAYERS = "200"
+  NODE_ENV = "production"
+  # Password worlds and moderator checks call the new site's API.
+  ONCYBER_API_URL = "https://oncyber-two.vercel.app/api"
+
+[http_service]
+  internal_port = 2567
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 800
+    hard_limit = 1000
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"

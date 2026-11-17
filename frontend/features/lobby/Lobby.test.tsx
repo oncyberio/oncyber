@@ -1289,3 +1289,80 @@ test("a scene error of either kind opens the lobby error with Try again, without
         attempts
     );
 });
+
+test("Enter reaches the party chat from inside a space, and the lobby chat after the trip back", () => {
+    social.groupsSupported = true;
+    social.groups = [
+        {
+            id: "g1",
+            name: "Moon club",
+            ownerId: "self",
+            joinCode: "join-me",
+            messages: [],
+            members: [
+                { id: "self", name: "Guest", avatar: "", vrmUrl: "", scale: 1 },
+                { id: "peer", name: "Alice", avatar: "", vrmUrl: "", scale: 1 },
+            ],
+        },
+    ];
+    render(true);
+    click(button("Current conversation: Global. Choose conversation"));
+    click(button("Party Moon club"));
+    const input = container.querySelector<HTMLInputElement>(
+        'input[aria-label="Message Moon club"]'
+    );
+    journey = {
+        ...journey,
+        phase: "entered",
+        selected: cards[0],
+        frameUrl: "/first?__lobbyAttempt=test",
+        attempt: "test",
+    };
+    render(true);
+    const frame = container.querySelector("iframe");
+    const space = frame.contentWindow;
+    const spaceHeard = jest.fn();
+    space.addEventListener("keydown", spaceHeard);
+    const pressEnter = (target: Window) => {
+        const event = new (target as any).KeyboardEvent("keydown", {
+            key: "Enter",
+            bubbles: true,
+            cancelable: true,
+        });
+        act(() => {
+            target.document.dispatchEvent(event);
+        });
+        return event;
+    };
+    act(() => input.blur());
+    // The space has put its own chat away, so the key must not reach it.
+    expect(pressEnter(space).defaultPrevented).toBe(true);
+    expect(spaceHeard).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(input);
+
+    // On the way back the space no longer hands its keys over.
+    journey = {
+        ...journey,
+        phase: "returning",
+        travel: { phase: "charge", startedAt: 1 },
+    };
+    render(true);
+    act(() => input.blur());
+    expect(pressEnter(space).defaultPrevented).toBe(false);
+    expect(spaceHeard).toHaveBeenCalledTimes(1);
+
+    // In the lobby, Enter on the page opens the chat as it did before.
+    journey = {
+        ...journey,
+        phase: "idle",
+        selected: null,
+        travel: null,
+        frameUrl: null,
+    };
+    render(true);
+    act(() => input.blur());
+    pressEnter(window);
+    expect(document.activeElement).toBe(input);
+    const surface = input.closest(".lobby-chat").parentElement;
+    expect(surface.hasAttribute("inert")).toBe(false);
+});

@@ -103,6 +103,9 @@ import { SpaceComponent } from './factory/abstract/spacecomponent'
 import { RENDER_ON_DEMAND, RenderDemand } from './utils/renderDemand'
 
 import { createRenderGate } from './utils/renderDemandGate'
+
+import { xrSessionInit } from './xr/xrBackend'
+
 // const USE_POSTPROCESSING = IS_FUTURE
 
 // The states a visitor settles in, where an unchanged frame is not drawn.
@@ -591,6 +594,12 @@ export default class World3D {
 
         Raycaster.active = false
 
+        // A first/third-person switch still animating would ignore the
+        // switch below and leave the headset behind the avatar.
+        await Camera.waitForTransition()
+
+        if(IS_VR) return
+
         this.wasThirdPerson = !IS_FIRST_PERSON
 
         if(this.wasThirdPerson) {
@@ -650,9 +659,10 @@ export default class World3D {
             syncAntialias()
 
 
-            const sessionInit = {
-                optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking', 'layers' ]
-            }
+            const sessionInit = xrSessionInit({
+
+                isWebGPUBackend: /** @type { any } */ (Renderer.backend)?.isWebGPUBackend === true,
+            })
 
             // @ts-ignore
             const session = await navigator.xr.requestSession( 'immersive-vr', sessionInit )
@@ -1266,7 +1276,13 @@ export default class World3D {
         // looks at the camera and the scene once their matrices are current.
         let draw = this.renderGate ? this.renderGate.begin(this.canSkipFrame()) : true
 
-        if(draw) {
+        // In VR the renderer clears each eye's view itself: a manual clear
+        // outside render() has no XR view to clear.
+        const presenting = Renderer.xr?.isPresenting === true
+
+        Renderer.autoClear = presenting
+
+        if(draw && !presenting) {
 
             Renderer.clear()
         }
@@ -1295,7 +1311,7 @@ export default class World3D {
 
             draw = true
 
-            Renderer.clear()
+            if(!presenting) Renderer.clear()
         }
 
         // HTML embeds are DOM: they follow the camera whether or not we draw.

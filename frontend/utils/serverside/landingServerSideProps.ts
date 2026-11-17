@@ -108,37 +108,66 @@ export function readLandingFeed(
     });
 }
 
+/**
+ * The landing's discovery props for a request: its filters, the feed the
+ * page opens on (staff picks once there are enough, else Popular) and its
+ * first page. Also serves pages that show the landing in place of a link that
+ * found nothing.
+ */
+export async function landingFeedProps(
+    query: Record<string, unknown>,
+    // A page that opens on a search fetches it in the browser instead.
+    { readFeed = true }: { readFeed?: boolean } = {}
+): Promise<
+    Pick<
+        LandingPageProps,
+        "initialFeed" | "initialFilters" | "defaultCategory" | "initialError"
+    >
+> {
+    // Staff picks lead once there are enough of them; until then Popular does.
+    const staffPickCount = await readStaffPickIds()
+        .then((ids) => ids.length)
+        .catch(() => 0);
+    const defaultCategory = defaultCategoryFor(staffPickCount);
+    setDefaultFeedCategory(defaultCategory);
+    const initialFilters = parseFilters(query);
+    if (!readFeed)
+        return {
+            initialFeed: { cards: [], cursor: "", hasMore: false },
+            initialFilters,
+            defaultCategory,
+            initialError: false,
+        };
+    const feed = await measureSsrStage("ssr_feed", () =>
+        readLandingFeed(initialFilters.category)
+    ).catch(() => null);
+    return {
+        initialFeed: feed ?? { cards: [], cursor: "", hasMore: false },
+        initialFilters,
+        defaultCategory,
+        initialError: !feed,
+    };
+}
+
 export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
     context
 ) =>
     withSsrTiming(context.res, async () => {
-        // Staff picks lead once there are enough of them; until then Popular does.
-        const staffPickCount = await readStaffPickIds()
-            .then((ids) => ids.length)
-            .catch(() => 0);
-        const defaultCategory = defaultCategoryFor(staffPickCount);
-        setDefaultFeedCategory(defaultCategory);
-        const initialFilters = parseFilters(context.query);
-        const [authResult, feedResult] = await Promise.allSettled([
+        const [authResult, feedProps] = await Promise.all([
             measureSsrStage("ssr_auth", () =>
                 feedBasicServerSideProps(context)
+            ).then(
+                (value) => ({ status: "fulfilled" as const, value }),
+                () => ({ status: "rejected" as const })
             ),
-            measureSsrStage("ssr_feed", () =>
-                readLandingFeed(initialFilters.category)
-            ),
+            landingFeedProps(context.query),
         ]);
         return {
             props: {
                 ...(authResult.status === "fulfilled"
                     ? authResult.value.props
                     : { authenticated: false }),
-                initialFeed:
-                    feedResult.status === "fulfilled"
-                        ? feedResult.value
-                        : { cards: [], cursor: "", hasMore: false },
-                initialFilters,
-                defaultCategory,
-                initialError: feedResult.status === "rejected",
+                ...feedProps,
             },
         };
     });

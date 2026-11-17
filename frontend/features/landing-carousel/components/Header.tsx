@@ -21,7 +21,9 @@ const ConnectModal = dynamic(() => import("@ui/components/ConnectWallet"), {
     ssr: false,
 });
 
-const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), { ssr: false });
+const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), {
+    ssr: false,
+});
 
 const AccountDashboard = dynamic(
     () => import("@components/modals/AccountDashboard"),
@@ -221,6 +223,12 @@ export default function Header({
 const Container = styled.header`
     position: relative;
     z-index: 5;
+    /* The tall header overlaps the grid's section switch below its
+       controls; only the controls themselves take clicks. */
+    pointer-events: none;
+    > * {
+        pointer-events: auto;
+    }
     height: var(--landing-header-height, 106px);
     flex-shrink: 0;
     margin: 0 7%;

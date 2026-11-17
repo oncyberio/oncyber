@@ -45,6 +45,11 @@ const items: Array<NftOptions> = [
         value: "base",
     },
     {
+        title: "Shape",
+        disabled: false,
+        value: "shape",
+    },
+    {
         title: "Tezos",
         disabled: false,
         value: "tezos",
@@ -81,6 +86,7 @@ const OBJKT_COLLECTION_URL_PREFIX = "https://objkt.com/collection/";
 const icons: Record<NftSource, string> = {
     ethereum: "/v2/icons/ethereum.svg",
     base: "/v2/icons/base.svg",
+    shape: "/v2/icons/shape.svg",
     tezos: "/v2/icons/tezos.svg",
     counterparty: "/v2/icons/counterparty.svg",
     mycollections: "",
@@ -90,6 +96,7 @@ const icons: Record<NftSource, string> = {
 const labels: Record<NftSource, string> = {
     ethereum: "Enter opensea collection URL or slug",
     base: "Enter opensea collection URL or slug",
+    shape: "Enter opensea collection URL or slug",
     tezos: "Enter objkt.com collection URL or contract",
     counterparty: "Search in offical xchain cards",
     mycollections: "Search in your NFT collections",
@@ -195,7 +202,9 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
 
                 // preporcess opensea urls
                 if (
-                    (nftSource === "ethereum" || nftSource === "base") &&
+                    (nftSource === "ethereum" ||
+                        nftSource === "base" ||
+                        nftSource === "shape") &&
                     query.startsWith(OPENSEA_COLLECTION_URL_PREFIX)
                 ) {
                     sourceChain = "ethereum"
@@ -392,7 +401,9 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                             key={index}
                             onClick={() => handleDeleteCollection(collection)}
                         >
-                            <Icon src={icons[collection.blockchain]} />
+                            {icons[collection.blockchain] && (
+                                <Icon src={icons[collection.blockchain]} />
+                            )}
                             {collection.name || collection.slug} ✖{" "}
                         </NftBadge>
                     );

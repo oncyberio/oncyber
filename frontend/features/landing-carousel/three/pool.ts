@@ -2,6 +2,7 @@ import {
     Mesh,
     PlaneGeometry,
     TextureLoader,
+    CanvasTexture,
     ImageBitmapLoader,
     Texture,
     Group,
@@ -16,6 +17,7 @@ import {
 } from "./layout";
 import { createCardMaterial, configureCardTexture } from "./createCardMaterial";
 import { coverSources } from "../coverSources";
+import { COLLAGE_STRIPS, collageStrips, coverFit } from "./collage";
 
 interface Slot {
     mesh: Mesh<PlaneGeometry, ShaderMaterial>;
@@ -75,7 +77,10 @@ export class CardPool {
         const keys = new Map(
             visible.map((cell) => {
                 const card = cards[cell.index];
-                return [cell.index, JSON.stringify([card.id, card.imageUrls])];
+                return [
+                    cell.index,
+                    JSON.stringify([card.id, card.imageUrls, card.collage]),
+                ];
             })
         );
         const visibleKeys = new Set(keys.values());
@@ -196,7 +201,105 @@ export class CardPool {
             }
             this.invalidate();
         };
+        if (card.collage?.length >= 2) {
+            const url = `collage:${card.collage.join("|")}`;
+            void this.loadCollage(url, card.collage).then((texture) => {
+                if (!current()) return;
+                if (texture) apply(url, texture);
+                else next();
+                this.trimTextures();
+            });
+            return;
+        }
         next();
+    }
+
+    /** Several covers on one texture, as leaning strips with a white rule. */
+    private loadCollage(key: string, urls: string[]): Promise<Texture | null> {
+        const cached = this.textures.get(key);
+        if (cached) {
+            this.textures.delete(key);
+            this.textures.set(key, cached);
+            return Promise.resolve(cached);
+        }
+        if (this.failed.has(key) || this.disposed) return Promise.resolve(null);
+        if (this.pending.has(key)) return this.pending.get(key);
+        const load = (url: string) =>
+            new Promise<HTMLImageElement | null>((resolve) => {
+                const image = new Image();
+                image.crossOrigin = "anonymous";
+                image.decoding = "async";
+                image.onload = () => resolve(image);
+                image.onerror = () => resolve(null);
+                image.src = url;
+            });
+        // The first covers that load, in order: a cover that fails gives its
+        // place to the next candidate.
+        const firstLoaded = async () => {
+            const images: HTMLImageElement[] = [];
+            let next = 0;
+            while (next < urls.length && images.length < COLLAGE_STRIPS) {
+                const batch = urls.slice(
+                    next,
+                    next + COLLAGE_STRIPS - images.length
+                );
+                next += batch.length;
+                images.push(
+                    ...(await Promise.all(batch.map(load))).filter(Boolean)
+                );
+                if (this.disposed) break;
+            }
+            return images;
+        };
+        const promise = firstLoaded().then((images) => {
+            this.pending.delete(key);
+            if (this.disposed) return null;
+            this.onLoading(this.pending.size > 0);
+            const canvas = document.createElement("canvas");
+            canvas.width = 1280;
+            canvas.height = 800;
+            const context = images.length >= 2 && canvas.getContext("2d");
+            if (!context) {
+                this.failed.add(key);
+                return null;
+            }
+            const strips = collageStrips(
+                images.length,
+                canvas.width,
+                canvas.height
+            );
+            strips.forEach((strip, index) => {
+                const image = images[index];
+                context.save();
+                context.beginPath();
+                strip.corners.forEach(([x, y], corner) =>
+                    corner ? context.lineTo(x, y) : context.moveTo(x, y)
+                );
+                context.closePath();
+                context.clip();
+                const fit = coverFit(
+                    image.naturalWidth,
+                    image.naturalHeight,
+                    strip.box
+                );
+                context.drawImage(image, fit.x, fit.y, fit.width, fit.height);
+                context.restore();
+            });
+            context.strokeStyle = "#fff";
+            context.lineWidth = 6;
+            strips.slice(1).forEach(({ corners: [top, , , bottom] }) => {
+                context.beginPath();
+                context.moveTo(top[0], top[1]);
+                context.lineTo(bottom[0], bottom[1]);
+                context.stroke();
+            });
+            const texture = configureCardTexture(new CanvasTexture(canvas));
+            this.textures.set(key, texture);
+            return texture;
+        });
+        this.pending.set(key, promise);
+        this.onLoading(true);
+        return promise;
     }
 
     private loadTexture(url: string): Promise<Texture | null> {

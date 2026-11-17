@@ -118,7 +118,11 @@ test("an unavailable managed image still falls back without uploading it", async
         formatAvatar({ ...user, avatar: `${managed}-unavailable` }, dispatch)
     ).resolves.toBe("https://fallback.example/avatar.png");
     expect(updateAvatar).not.toHaveBeenCalled();
-    expect(images).toHaveLength(1);
+    // Resized, then as stored, then the fallback.
+    expect(images).toEqual([
+        `${managed}-unavailable?img-width=256&`,
+        `${managed}-unavailable`,
+    ]);
     expect(dispatch).toHaveBeenCalledWith({
         type: "UPDATE_AVATAR",
         payload: "https://fallback.example/avatar.png",
@@ -135,4 +139,32 @@ test("existing Cloudinary images retain their transform and validation", async (
     );
     expect(updateAvatar).not.toHaveBeenCalled();
     expect(images).toEqual([expected]);
+});
+
+test("a picture the gateway cannot resize is shown as it was stored", async () => {
+    // What an AVIF profile picture does: 415 when resized, fine on its own.
+    const stored = `${managed}?img-width=256&filename=unavailable.jpg`;
+    const original = `${managed}?filename=unavailable.jpg`;
+    Object.defineProperty(globalThis, "Image", {
+        configurable: true,
+        value: class {
+            onload?: () => void;
+            onerror?: () => void;
+            set src(url: string) {
+                images.push(url);
+                void Promise.resolve().then(() => {
+                    if (url.includes("img-width")) this.onerror?.();
+                    else this.onload?.();
+                });
+            }
+        },
+    });
+    await expect(
+        formatAvatar({ ...user, avatar: stored }, dispatch)
+    ).resolves.toBe(original);
+    expect(images).toEqual([stored, original]);
+    expect(dispatch).toHaveBeenLastCalledWith({
+        type: "UPDATE_AVATAR",
+        payload: original,
+    });
 });

@@ -4,6 +4,8 @@ import AtlasFactory from '@3factory/atlas'
 
 import {
 
+    SRGBColorSpace,
+
     Vector3
 
 } from 'three'
@@ -70,7 +72,8 @@ export class Players {
 
         this._init = false
 
-        this.atlasAvatar = AtlasFactory.get( { debug: false })
+        // Profile photos are sRGB: said up front, or they show washed out
+        this.atlasAvatar = AtlasFactory.get( { debug: false, colorSpace: SRGBColorSpace })
 
         this.atlasUserName = AtlasFactory.get( { debug : false, distance : true, elementSize : UserNameGenerator.CANVAS_SIZE })
 

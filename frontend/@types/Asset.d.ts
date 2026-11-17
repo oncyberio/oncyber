@@ -180,4 +180,5 @@ export type OpenSeaChain =
     | "avalanche"
     | "zora"
     | "base"
+    | "shape"
     | "optimism";

@@ -28,11 +28,6 @@ export const walletProviders = [
         logo: "/images/icons/fortmatic.png",
     },
     {
-        key: "niftygateway",
-        title: "Nifty Gateway",
-        logo: "/images/icons/niftygateway.png",
-    },
-    {
         key: "bitski",
         title: "Bitski",
         onlyEthereum: true,

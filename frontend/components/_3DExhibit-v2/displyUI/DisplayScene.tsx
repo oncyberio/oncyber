@@ -522,10 +522,13 @@ function Exhibit3DDisplay_Child(props) {
         //
         if (!isPlaying) return;
 
+        // Enter opens the chat whether or not the pointer is captured: a
+        // visitor who just arrived hasn't clicked into the space yet. Escape
+        // only does while it also releases the pointer.
         if (
             IS_MULTIPLAYER &&
-            (e.key === "Escape" || e.key === "Enter") &&
-            isPointerlock
+            (e.key === "Enter" || (e.key === "Escape" && isPointerlock)) &&
+            !document.documentElement.hasAttribute("data-party-chat-open")
         ) {
             e.preventDefault();
             setIsTyping(true);

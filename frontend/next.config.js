@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { siteOrigin } = require("./utils/siteOrigin");
+const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
 // rather than shipping a site that cannot sign anyone in.
@@ -314,6 +315,17 @@ const nextConfig = {
                 destination: "/studio",
                 permanent: true,
             },
+            // The landing is the explore page now.
+            {
+                source: "/explore",
+                destination: "/",
+                permanent: true,
+            },
+            ...Object.entries(PAGE_REDIRECTS).map(([from, destination]) => ({
+                source: `/${from}`,
+                destination,
+                permanent: true,
+            })),
         ];
     },
     rewrites: async () => {
@@ -331,6 +343,15 @@ const nextConfig = {
             {
                 source: "/ingest/:path*",
                 destination: "https://us.i.posthog.com/:path*",
+            },
+        ];
+
+        // The sitemap is built from the spaces (pages/api/sitemap).
+        const sitemapRewrites = [
+            { source: "/sitemap.xml", destination: "/api/sitemap" },
+            {
+                source: "/sitemaps/:name.xml",
+                destination: "/api/sitemap/:name",
             },
         ];
 
@@ -358,6 +379,7 @@ const nextConfig = {
                         source: "/template",
                         destination: "/marketplace",
                     },
+                    ...sitemapRewrites,
                     ...docsRewrites,
                     ...posthogRewrites,
                 ],
@@ -370,6 +392,7 @@ const nextConfig = {
                 source: "/templates",
                 destination: "/marketplace",
             },
+            ...sitemapRewrites,
             ...docsRewrites,
             ...posthogRewrites,
         ];

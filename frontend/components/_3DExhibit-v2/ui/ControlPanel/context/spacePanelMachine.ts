@@ -2,8 +2,8 @@
  * The one panel open over a space, as a pure state machine.
  *
  * A space has two families of panels: the ones the control panel has always
- * had (`PanelTab`: users, profile, explore, ...) and the three the visitor
- * dock opens itself (emotes, more, search). `SpacePanel` is the single value
+ * had (`PanelTab`: users, profile, explore, ...) and the ones the visitor
+ * dock opens itself (avatars, emotes, people, more, search). `SpacePanel` is the single value
  * for both, so opening any panel replaces whichever was open and two can
  * never be open at once. Chat is not a panel and is never touched here.
  *
@@ -36,7 +36,7 @@ export type PanelTab =
     | "select-media-placeholder";
 
 /** A panel the visitor dock opens itself. */
-export type DockPanel = "emotes" | "more" | "search";
+export type DockPanel = "avatars" | "emotes" | "people" | "more" | "search";
 
 /** The panel open over the space; "" means none. */
 export type SpacePanel = PanelTab | DockPanel;
@@ -57,7 +57,13 @@ export type SpacePanelEvent =
      */
     | { type: "tab"; tab: PanelTab };
 
-const DOCK_PANELS: readonly string[] = ["emotes", "more", "search"];
+const DOCK_PANELS: readonly string[] = [
+    "avatars",
+    "emotes",
+    "people",
+    "more",
+    "search",
+];
 
 export const isDockPanel = (panel: SpacePanel): panel is DockPanel =>
     DOCK_PANELS.includes(panel);

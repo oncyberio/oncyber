@@ -1,4 +1,4 @@
-import { NiftyConnection, WalletConnection } from "@dapp/connect";
+import { WalletConnection } from "@dapp/connect";
 
 import { Signature, signEthereum, signSolana, tezosLoginPayload } from "./sign";
 
@@ -19,51 +19,6 @@ export type AuthResponse =
     // `code` names the row in ../../signInErrors the visitor is shown.
     | { success: false; message: string; code?: string };
 
-const niftyAuth = async (
-    walletId: string,
-    connection: NiftyConnection
-): Promise<AuthResponse> => {
-    let token: string;
-
-    if (connection.type === "niftygateway") {
-        token = connection.token;
-    } else {
-        const res = await fetch(`/api/user/simple_authenticate`, {
-            method: "POST",
-            body: JSON.stringify({
-                owner: walletId,
-                type: connection.type,
-            }),
-            headers: { "Content-Type": "application/json" },
-        }).then((res) => {
-            return res.json();
-        });
-        if (res.success) {
-            token = res.token;
-        }
-    }
-
-    if (token) {
-        return {
-            success: true,
-            payload: {
-                connection,
-                sig: {
-                    sig: token,
-                    type: connection.type,
-                },
-                accountId: walletId,
-            },
-            isAlreadyConnected: true,
-        };
-    } else {
-        return {
-            success: false,
-            message: "Failed to authenticate.",
-        };
-    }
-};
-
 export async function signInOrLinkWeb3({
     walletId,
     connection,
@@ -76,10 +31,6 @@ export async function signInOrLinkWeb3({
     let sig: Signature;
 
     let nonce: string;
-
-    if (connection.type === "niftygateway") {
-        return niftyAuth(walletId, connection);
-    }
 
     // Which step failed decides what the visitor is told.
     let stage: "nonce" | "signature" = "nonce";

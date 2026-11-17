@@ -16,6 +16,7 @@ type Chain =
     | "avalanche"
     | "zora"
     | "base"
+    | "shape"
     | "optimism"
     | "arbitrum_nova";
 

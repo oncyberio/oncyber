@@ -12,13 +12,13 @@ import {
 
 import {
 
-	modelViewProjection,
-
 	texture,
 
 	uv
 
 } from 'three/tsl'
+
+import { skyClipPosition } from './skyPosition.js'
 
 // `.sample()` re-enables the texture's uv transform; these coordinates are raw.
 const sampleRaw = ( node, coord ) => node.sample( coord ).setUpdateMatrix( false )
@@ -46,8 +46,8 @@ export default class SharpMaterial extends NodeMaterial {
 
 		this.side = BackSide
 
-		// set z to camera.far
-		this.vertexNode = modelViewProjection.setZ( modelViewProjection.w )
+		// At infinity (far plane), the same for both eyes in VR.
+		this.vertexNode = skyClipPosition()
 
 		this.colorNode = sampleRaw( this.uniforms.map, uv() )
 	}

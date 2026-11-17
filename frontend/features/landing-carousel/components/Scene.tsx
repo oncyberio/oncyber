@@ -13,7 +13,7 @@ import styled from "styled-components";
 import * as THREE from "three";
 import { UserContext } from "@components/context/UserContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
-import { LandingCard } from "../types";
+import { GridSection, LandingCard } from "../types";
 import { CardPool } from "../three/pool";
 import {
     createGridLayout,
@@ -25,7 +25,16 @@ import {
     adjacentColumn,
     selectedCardIndex,
     moveGridSelection,
+    sectionAt,
+    switchSections,
 } from "../three/layout";
+import {
+    placeSwitch,
+    stepSeparation,
+    placeFilter,
+    SWITCH_GAP,
+    type SwitchItem,
+} from "../sectionSwitch";
 import ExperienceCard from "./ExperienceCard";
 import { CARD_WARM_DWELL_MS, warmSpace } from "../warmSpace";
 import Icon from "./Icon";
@@ -66,7 +75,40 @@ interface Props {
     loadingMore: boolean;
     error: boolean;
     loadMore: () => void;
+    /**
+     * Labels for the grid's sections (see LandingCard.section), where they
+     * differ from the usual ones. Side by side at rest they are a switch;
+     * while the grid moves each rides above its own section.
+     */
+    sectionLabels?: Partial<Record<GridSection, string>>;
+    /**
+     * Keep the labels out of the first view: they show once the grid has
+     * scrolled and go again when it is back at its start.
+     */
+    sectionLabelsOnScroll?: boolean;
+    /** How many items a section holds in all, shown beside its label. */
+    sectionCounts?: Partial<Record<GridSection, number>>;
+    /**
+     * Ways to filter one section. They sit on the labels' line at the far
+     * edge of the grid while that section is in view, and fold into one
+     * menu where the line has no room for them.
+     */
+    sectionFilter?: {
+        section: GridSection;
+        label: string;
+        value: string;
+        options: readonly { value: string; label: string }[];
+        onChange: (value: string) => void;
+    };
 }
+
+const SECTION_LABELS: Record<GridSection, string> = {
+    results: "Results",
+    staff: "Staff picks",
+    popular: POPULAR_SECTION_LABEL,
+    spaces: "Your worlds",
+    templates: "Create new",
+};
 
 export default function Scene({
     cards: requestedCards,
@@ -93,7 +135,13 @@ export default function Scene({
     loadingMore,
     error,
     loadMore,
+    sectionLabels,
+    sectionLabelsOnScroll = false,
+    sectionCounts,
+    sectionFilter,
 }: Props) {
+    const labelsOnScroll = useRef(sectionLabelsOnScroll);
+    labelsOnScroll.current = sectionLabelsOnScroll;
     const blocked = useRef(interactionsBlocked);
     blocked.current = interactionsBlocked;
     const transition = useCardTransition(
@@ -112,11 +160,13 @@ export default function Scene({
     const stageRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
-    const sectionLabelRef = useRef<HTMLDivElement>(null);
+    const switchItems = useRef<HTMLButtonElement[]>([]);
+    const filterRef = useRef<HTMLDivElement>(null);
     const controlsRef = useRef({
         next: () => {},
         previous: () => {},
         goTo: (_column: number) => {},
+        jumpTo: (_column: number) => {},
     });
     const [range, setRange] = useState({
         key: transition.key,
@@ -133,6 +183,7 @@ export default function Scene({
         () => createGridLayout(cards, columns, visibleRows),
         [cards, columns, visibleRows]
     );
+    const shownSections = switchSections(layout, cards);
     const sceneData = useRef({ cards, layout });
     sceneData.current = { cards, layout };
     const refreshScene = useRef(() => {});
@@ -445,7 +496,7 @@ export default function Scene({
                     .get(selectedId.current)
                     ?.focus({ preventScroll: true });
             }
-            placeSectionLabel(progress);
+            placeSectionSwitch(progress);
             renderer?.render(scene, camera);
             if (transition.motion.current.phase !== "idle") invalidate();
             const shown = cellsInColumns(
@@ -471,37 +522,151 @@ export default function Scene({
                 });
             }
         }
-        function placeSectionLabel(progress: number) {
-            // The label rides above the first popular card's top-left corner.
-            const label = sectionLabelRef.current;
-            if (!label) return;
-            if (layout.sectionColumn < 0) {
-                label.style.visibility = "hidden";
-                return;
+        const separation = {
+            value: 0,
+            lastMove: -Infinity,
+            lastTime: performance.now(),
+            progress: NaN,
+            // A click on a label scrolls the grid for the visitor: the
+            // labels stay together until they move it themselves.
+            held: false,
+        };
+        function placeSectionSwitch(progress: number) {
+            const sections = switchSections(layout, cards);
+            if (!sections.length || !switchItems.current[0]) return;
+            const corner = (column: number) => {
+                const dims = cellDimensions(
+                    { index: -1, row: 0, column },
+                    metrics,
+                    progress
+                );
+                return projectPoint(
+                    dims.x - dims.width / 2,
+                    dims.y + dims.height / 2,
+                    metrics
+                );
+            };
+            // Apart while the grid moves, together again once it rests.
+            const moved =
+                !separation.held &&
+                !Number.isNaN(separation.progress) &&
+                Math.abs(progress - separation.progress) > 0.0005;
+            separation.progress = progress;
+            const { animating } = stepSeparation(
+                separation,
+                performance.now(),
+                moved,
+                reducedMotion.matches
+            );
+            if (animating) invalidate();
+            const left = corner(progress);
+            // A section's filters: a column in the margin beside its first
+            // card, or one menu after its label where there is no margin.
+            const filter = filterRef.current;
+            const filterIndex = filter
+                ? sections.findIndex(
+                      ({ section }) => section === filter.dataset.section
+                  )
+                : -1;
+            let filterPlace: ReturnType<typeof placeFilter> = null;
+            let menuWidth = 0;
+            if (filterIndex >= 0) {
+                const [list, menu] = Array.from(
+                    filter.children
+                ) as HTMLElement[];
+                // Where "create" and the view controls line up.
+                const edge =
+                    window.innerWidth * 0.07 -
+                    (filter.offsetParent?.getBoundingClientRect().left || 0);
+                // The list is measured even while the menu stands in for it.
+                const compact = edge + list.offsetWidth + SWITCH_GAP > left.x;
+                filter.dataset.compact = String(compact);
+                menuWidth = compact ? menu.offsetWidth : 0;
+                const start = sections[filterIndex].column;
+                filterPlace = placeFilter({
+                    scrolled: progress - start,
+                    span:
+                        (sections[filterIndex + 1]?.column ??
+                            layout.columnCount) - start,
+                    left: left.x,
+                    edge,
+                    width: list.offsetWidth,
+                });
             }
-            const dims = cellDimensions(
-                { index: -1, row: 0, column: layout.sectionColumn },
+            const items: SwitchItem[] = sections.map(({ column }, index) => {
+                return {
+                    after:
+                        index === filterIndex && menuWidth
+                            ? menuWidth + SWITCH_GAP
+                            : 0,
+                    width: switchItems.current[index]?.offsetWidth || 0,
+                    natural: corner(column).x,
+                    // The top of whichever visible column it sits over.
+                    y: corner(
+                        Math.min(
+                            Math.max(column, progress),
+                            progress + columns - 1
+                        )
+                    ).y,
+                };
+            });
+            const last = cellDimensions(
+                { index: -1, row: 0, column: progress + columns - 1 },
                 metrics,
                 progress
             );
-            const corner = projectPoint(
-                dims.x - dims.width / 2,
-                dims.y + dims.height / 2,
-                metrics
-            );
-            // Stay inside the frame: the label is not clipped by the viewport.
-            const visible =
-                corner.x >= 0 && corner.x + label.offsetWidth <= metrics.width;
-            label.style.visibility = visible ? "visible" : "hidden";
-            if (!visible) return;
+            const placed = placeSwitch(items, {
+                left: left.x,
+                top: left.y,
+                right: projectPoint(
+                    last.x + last.width / 2,
+                    last.y + last.height / 2,
+                    metrics
+                ).x,
+                separated: separation.value,
+            });
+            // A short last section can start past the furthest scroll: at
+            // the end of the grid it is the one in view.
+            const current =
+                layout.maxScrollColumn > 0 &&
+                progress >= layout.maxScrollColumn - 0.01
+                    ? sections.length - 1
+                    : sectionAt(sections, progress);
             const dpr = window.devicePixelRatio || 1;
             const snap = (value: number) => Math.round(value * dpr) / dpr;
-            label.style.transform = `translate3d(${snap(corner.x)}px,${snap(
-                corner.y
-            )}px,0) translateY(-100%)`;
-            label.style.opacity = String(
-                columnOpacity(layout.sectionColumn, progress, columns)
-            );
+            if (filterPlace) {
+                const [list, menu] = Array.from(
+                    filter.children
+                ) as HTMLElement[];
+                // Level with the top of the cards, not with the labels.
+                list.style.transform = `translate3d(${snap(
+                    filterPlace.x
+                )}px,${snap(left.y)}px,0)`;
+                list.style.opacity = String(filterPlace.opacity);
+                list.style.visibility =
+                    filterPlace.opacity > 0.01 ? "visible" : "hidden";
+                menu.style.transform = `translate3d(${snap(
+                    left.x +
+                        (switchItems.current[filterIndex]?.offsetWidth || 0) +
+                        SWITCH_GAP
+                )}px,${snap(left.y)}px,0) translateY(-100%)`;
+                menu.style.visibility = "visible";
+            }
+            // Where asked, the first view has no labels: they fade in over
+            // the first part of a column and out again on the way back.
+            const shown = labelsOnScroll.current
+                ? Math.min(1, Math.max(0, progress / 0.25))
+                : 1;
+            placed.forEach((item, index) => {
+                const element = switchItems.current[index];
+                if (!element) return;
+                element.style.opacity = String(shown);
+                element.style.transform = `translate3d(${snap(item.x)}px,${snap(
+                    item.y
+                )}px,0) translateY(-100%)`;
+                element.style.visibility = shown > 0.01 ? "visible" : "hidden";
+                element.setAttribute("aria-pressed", String(index === current));
+            });
         }
         function updateSelection(followFocus = true) {
             // Hold the keyboard target while its column smoothly comes into view.
@@ -618,9 +783,16 @@ export default function Scene({
             frame = 0;
             render();
         }
-        function goTo(column: number) {
+        function goTo(column: number, held = false) {
+            // Only a click on a section label keeps the labels together.
+            separation.held = held;
             clearTimeout(wheelEndTimer);
             scroller.goTo(column);
+        }
+        /** A jump by pointer: the next arrow key starts from where it lands. */
+        function jumpTo(column: number) {
+            keyboardSelection = null;
+            goTo(column, true);
         }
         function step(direction: number) {
             keyboardSelection = null;
@@ -643,6 +815,7 @@ export default function Scene({
                 return;
             event.preventDefault();
             keyboardSelection = null;
+            separation.held = false;
             const unit =
                 event.deltaMode === 1
                     ? 16
@@ -774,6 +947,7 @@ export default function Scene({
                 return;
             suppressClick.current = false;
             keyboardSelection = null;
+            separation.held = false;
             clearTimeout(wheelEndTimer);
             scroller.beginDrag();
             drag = {
@@ -818,6 +992,7 @@ export default function Scene({
                 step(-1);
             },
             goTo,
+            jumpTo,
         };
         const observer = new ResizeObserver(resize);
         observer.observe(viewport);
@@ -1061,10 +1236,89 @@ export default function Scene({
                         </Stage>
                     </ScrollContent>
                 </Viewport>
-                {!creating && !formGrid && layout.sectionColumn >= 0 && (
-                    <SectionLabel ref={sectionLabelRef} aria-hidden="true">
-                        {POPULAR_SECTION_LABEL}
-                    </SectionLabel>
+                {!formGrid && shownSections.length > 0 && (
+                    <SectionSwitch role="group" aria-label="Jump to a section">
+                        {shownSections.map(({ column, section }, index) => (
+                            <button
+                                key={section}
+                                type="button"
+                                className="switch-item"
+                                ref={(element) => {
+                                    switchItems.current[index] = element;
+                                }}
+                                onClick={() =>
+                                    controlsRef.current.jumpTo(
+                                        Math.min(column, layout.maxScrollColumn)
+                                    )
+                                }
+                            >
+                                {sectionLabels?.[section] ??
+                                    SECTION_LABELS[section]}
+                                {sectionCounts?.[section] > 0 && (
+                                    <span className="count">
+                                        {sectionCounts[section]}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                        {sectionFilter &&
+                            shownSections.some(
+                                ({ section }) =>
+                                    section === sectionFilter.section
+                            ) && (
+                                <div
+                                    className="switch-filter"
+                                    ref={filterRef}
+                                    data-section={sectionFilter.section}
+                                    role="group"
+                                    aria-label={sectionFilter.label}
+                                >
+                                    <div className="filter-list">
+                                        {sectionFilter.options.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                className="switch-item"
+                                                aria-pressed={
+                                                    option.value ===
+                                                    sectionFilter.value
+                                                }
+                                                onClick={() =>
+                                                    sectionFilter.onChange(
+                                                        option.value
+                                                    )
+                                                }
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <label className="filter-menu">
+                                        <select
+                                            aria-label={sectionFilter.label}
+                                            value={sectionFilter.value}
+                                            onChange={(event) =>
+                                                sectionFilter.onChange(
+                                                    event.target.value
+                                                )
+                                            }
+                                        >
+                                            {sectionFilter.options.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
+                                        <Icon name="chevron" size={10} />
+                                    </label>
+                                </div>
+                            )}
+                    </SectionSwitch>
                 )}
                 <EdgeFade aria-hidden="true" />
                 <EdgeFade $right aria-hidden="true" />
@@ -1273,19 +1527,137 @@ const Stage = styled.div`
         display: block;
     }
 `;
-const SectionLabel = styled.div`
+/* Plain labels in the mono caption type, one per section of the grid. */
+const SectionSwitch = styled.div`
     position: absolute;
     left: 0;
     top: 0;
-    z-index: 1;
-    visibility: hidden;
+    z-index: 3;
     pointer-events: none;
-    padding-bottom: 8px;
-    white-space: nowrap;
-    font-family: var(--oc-mono);
-    font-size: 11px;
-    line-height: 16px;
-    color: var(--oc-secondary);
+    > .switch-item,
+    .switch-filter > * {
+        position: absolute;
+        left: 0;
+        top: 0;
+        visibility: hidden;
+    }
+    .switch-item {
+        pointer-events: auto;
+        /* One step of the 4 px rhythm clear of the cards, so the label reads
+           as a heading over them and not as part of the first card. */
+        padding: 0 0 12px;
+        border: 0;
+        background: none;
+        white-space: nowrap;
+        font-family: var(--oc-mono);
+        font-size: 11px;
+        line-height: 16px;
+        color: var(--oc-muted);
+        cursor: pointer;
+        transition: color var(--oc-fast);
+    }
+    /* A larger target than the text itself. */
+    .switch-item::before {
+        content: "";
+        position: absolute;
+        inset: -8px -10px 0;
+    }
+    .switch-item[aria-pressed="true"] {
+        color: #fff;
+    }
+    .switch-item:hover {
+        color: var(--oc-ink);
+    }
+    .switch-item:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
+    /* A section's size, quieter than its name. */
+    .count {
+        margin-left: 6px;
+        color: var(--oc-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    /* Filters belong to one section: a size under the section labels,
+       stacked in the margin beside its first card. */
+    .filter-list {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        isolation: isolate;
+    }
+    /* It rests over the cards that fade out behind it: a faint round wash,
+       wider towards the top left, keeps it readable without an edge. */
+    .filter-list::before {
+        content: "";
+        position: absolute;
+        inset: -56px -44px -40px -96px;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient(
+            closest-side,
+            #00000061,
+            #00000038 55%,
+            transparent
+        );
+    }
+    .filter-list .switch-item {
+        position: relative;
+        text-shadow: 0 1px 2px #00000073;
+        padding: 4px 0;
+    }
+    .filter-list .switch-item::before {
+        inset: 0 -10px;
+    }
+    .switch-filter .switch-item,
+    .filter-menu select {
+        font-size: 10px;
+        letter-spacing: 0.02em;
+    }
+    .filter-menu {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 0 12px;
+        color: #fff;
+        pointer-events: auto;
+    }
+    .filter-menu select {
+        appearance: none;
+        border: 0;
+        padding: 0 14px 0 0;
+        margin-right: -14px;
+        background: none;
+        color: inherit;
+        font-family: var(--oc-mono);
+        line-height: 16px;
+        /* As wide as the chosen filter, where the browser can. */
+        field-sizing: content;
+        cursor: pointer;
+    }
+    .filter-menu select:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
+    .filter-menu option {
+        background: var(--oc-panel);
+        color: var(--oc-ink);
+    }
+    .filter-menu svg {
+        pointer-events: none;
+    }
+    /* The list where the line has room for it, one menu where it has not. */
+    /* The list where the page has a margin for it, one menu where not. */
+    .switch-filter[data-compact="true"] .filter-list {
+        /* Still laid out, so its width can be measured. */
+        visibility: hidden !important;
+    }
+    .switch-filter[data-compact="true"] .filter-list .switch-item {
+        pointer-events: none;
+    }
+    .switch-filter:not([data-compact="true"]) .filter-menu {
+        display: none;
+    }
 `;
 const EdgeFade = styled.div<{ $right?: boolean }>`
     position: absolute;

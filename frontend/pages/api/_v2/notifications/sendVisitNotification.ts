@@ -4,6 +4,7 @@ import { getExhibitById } from "pages/api/exhibit";
 import { nodeEnv } from "@env";
 import crypto from "crypto";
 import { getUserNotificationId } from "./getNotificationId";
+import { siteUrl } from "@utils/siteUrl";
 
 const ONE_SIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 const ONE_SIGNAL_APP_ID = nodeEnv.ONESIGNAL_APP_ID;
@@ -61,7 +62,7 @@ export const sendVisitNotification = proc({
                         gallery_id: exhibitId,
                         gallery_image: exhibit?.info?.cHeroImg,
                     },
-                    url: "https://oncyber.io/spaces/" + exhibitId,
+                    url: siteUrl("/spaces/" + exhibitId),
                     big_picture: exhibit?.info?.cHeroImg,
                     ios_attachments: {
                         id1: exhibit?.info?.cHeroImg,

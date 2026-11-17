@@ -34,6 +34,16 @@ export function usableMediaUrl(value: unknown): string | undefined {
     } catch {}
 }
 
+/** Chains whose NFT media can be looked up again on OpenSea. */
+export const RECOVERY_CHAINS = [
+    "ethereum",
+    "polygon",
+    "base",
+    "arbitrum",
+    "optimism",
+    "shape",
+];
+
 export function openSeaMedia(nft: any) {
     const first = (...urls: unknown[]) =>
         urls.map(usableMediaUrl).find(Boolean);
@@ -76,9 +86,7 @@ export function recoveryIdentity(data: any, failed = false) {
     const contract = data.contract_address || data.token_address;
     const token = String(data.token_id ?? "");
     if (
-        !["ethereum", "polygon", "base", "arbitrum", "optimism"].includes(
-            chain
-        ) ||
+        !RECOVERY_CHAINS.includes(chain) ||
         !/^0x[a-fA-F0-9]{40}$/.test(contract || "") ||
         !/^\d{1,78}$/.test(token)
     )

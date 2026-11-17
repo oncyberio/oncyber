@@ -44,7 +44,8 @@ describe("the SDK's copy of the message names", () => {
 });
 
 /** Runs the SDK in a stand-in for a world's frame, with Oncyber as parent. */
-function loadSdk() {
+/** `hostOrigin` null: the script tag has no data-host-origin. */
+function loadSdk(hostOrigin: string | null = HOST) {
     const sent: Array<{ data: any; origin: string; ports: any[] }> = [];
     const parent = {
         postMessage: (data: any, origin: string, ports: any[] = []) =>
@@ -57,14 +58,16 @@ function loadSdk() {
             if (type === "message") receive = listener;
         },
     };
-    const document = { currentScript: { dataset: { hostOrigin: HOST } } };
+    const document = {
+        currentScript: { dataset: { hostOrigin: hostOrigin ?? undefined } },
+    };
     // A browser global the test environment lacks; Node's behaves the same.
     new Function("window", "document", "MessageChannel", source)(
         frame,
         document,
         MessageChannel
     );
-    const fromHost = (data: any, origin = HOST) =>
+    const fromHost = (data: any, origin = hostOrigin ?? HOST) =>
         receive({ source: parent, origin, data });
     return { sdk: frame.oncyberContent, sent, fromHost };
 }
@@ -213,5 +216,38 @@ describe("the SDK and the host agree", () => {
             "onResume",
         ]);
         expect(Object.isFrozen(world.sdk)).toBe(true);
+    });
+});
+
+describe("which page the SDK trusts as its host", () => {
+    // A world's request goes out only once a trusted host has sent init.
+    async function hostAccepted(hostOrigin: string | null, from: string) {
+        const world = loadSdk(hostOrigin);
+        world.fromHost(createContentInit(newSession(), []), from);
+        world.sdk.ready().catch(() => {});
+        await settle();
+        return world.sent.length > 0;
+    }
+
+    test.each([
+        "https://www.oncyber.com",
+        "https://oncyber.com",
+        "https://oncyber.io",
+        "https://www.oncyber.io",
+    ])("by default, any of Oncyber's domains: %s", async (origin) => {
+        expect(await hostAccepted(null, origin)).toBe(true);
+    });
+
+    test.each([
+        "https://evil.example",
+        "https://oncyber.com.evil.example",
+        "null",
+    ])("by default, no other page: %s", async (origin) => {
+        expect(await hostAccepted(null, origin)).toBe(false);
+    });
+
+    test("data-host-origin names the only host", async () => {
+        expect(await hostAccepted(HOST, HOST)).toBe(true);
+        expect(await hostAccepted(HOST, "https://www.oncyber.com")).toBe(false);
     });
 });

@@ -141,6 +141,7 @@ export default function EntryBtn({
                             }
                             isMobile={isMobile}
                             gated={!!gatingError}
+                            gate={gatingError}
                             loading={!isLoaded}
                             isDark
                             isAnon={isAnonymous && exhibit?.gating?.noAnonymous}

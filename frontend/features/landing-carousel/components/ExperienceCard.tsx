@@ -115,7 +115,9 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 {card.opening && (
                     <div className="card-loading" role="status">
                         <span className="card-spinner" aria-hidden="true" />
-                        <span>Creating your space…</span>
+                        <span>
+                            {card.openingLabel || "Creating your space…"}
+                        </span>
                     </div>
                 )}
                 <div className="card-top">

@@ -337,6 +337,12 @@ export default function LobbyChat({
         if (logRef.current && atBottom)
             logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [lastMessageId, atBottom, open, pickerOpen]);
+    // A send that didn't go through is said in the log, at its end.
+    useEffect(() => {
+        if (!sendError || !logRef.current) return;
+        setAtBottom(true);
+        logRef.current.scrollTop = logRef.current.scrollHeight;
+    }, [sendError]);
     useEffect(() => {
         const incoming = allMessages.filter(
             (item) =>
@@ -740,6 +746,13 @@ export default function LobbyChat({
             );
     };
 
+    // Why a message can't go out, said as a line in the conversation.
+    const chatNotice =
+        sendError ||
+        (!pickerOpen && unavailable
+            ? `${currentName} is no longer nearby. You can message them when they return.`
+            : "");
+
     const contactStrip = (
         <div className="chat-contact-strip">
             <div
@@ -1054,10 +1067,23 @@ export default function LobbyChat({
                                         ? `Say hello to ${currentName}. Only party members can see this conversation.`
                                         : recipient
                                         ? `Say hello to ${currentName}. Only you two can see this conversation.`
-                                        : `Say hello to everyone in this ${spaceLabel}.`}
+                                        : disabledReason ||
+                                          `Say hello to everyone in this ${spaceLabel}.`}
                                 </p>
                             )}
                             {messages.map(renderMessage)}
+                            {chatNotice && (
+                                <div
+                                    className="chat-message chat-system"
+                                    role="status"
+                                >
+                                    <p className="chat-line">
+                                        <span className="chat-text">
+                                            {chatNotice}
+                                        </span>
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                     {feedMessages.length > 0 && (
@@ -1345,15 +1371,10 @@ export default function LobbyChat({
                     </button>
                 )}
             </form>
-            {!pickerOpen && unavailable && (
+            {/* Only while the log is closed; otherwise it's a line in it. */}
+            {chatNotice && !(open && !pickerOpen) && (
                 <p className="send-error" role="status">
-                    {currentName} is no longer nearby. You can message them when
-                    they return.
-                </p>
-            )}
-            {sendError && (
-                <p className="send-error" role="status">
-                    {sendError}
+                    {chatNotice}
                 </p>
             )}
         </section>

@@ -284,6 +284,13 @@ export default function ExperienceShell({
                                     className="experience-badge"
                                     aria-hidden="true"
                                 >
+                                    <span
+                                        className="experience-badge-dot"
+                                        data-offline={
+                                            typeof action.badge !== "number" ||
+                                            undefined
+                                        }
+                                    />
                                     {action.badge}
                                 </span>
                             )}
@@ -696,19 +703,37 @@ const Shell = styled.div`
             visibility: hidden;
         }
     }
+    /* The lobby's count: a live dot and the number, under the button's
+       corner. */
     .experience-badge {
         position: absolute;
-        right: -6px;
-        top: -7px;
-        min-width: 18px;
-        padding: 1px 4px;
-        text-align: center;
+        right: -5px;
+        bottom: -5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-width: 20px;
+        height: 16px;
+        padding: 0 4px;
+        box-sizing: border-box;
         color: #c2c5cc;
-        font: 9px var(--oc-mono);
+        font-size: 9px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
         background: #14161b;
         border: 1px solid #ffffff18;
         border-radius: 6px;
         pointer-events: none;
+    }
+    .experience-badge-dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #2cf8d5;
+    }
+    .experience-badge-dot[data-offline] {
+        background: #ff6161;
     }
     .experience-chat {
         position: absolute;

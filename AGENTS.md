@@ -106,12 +106,15 @@ pnpm format:all                                 # Prettier
 ```
 
 The Next.js build ignores type errors, so run `check:types` separately. The
-frontend has a few hundred known type errors; `scripts/type-baseline.json`
+frontend has a few hundred known type errors; `frontend/scripts/type-baseline.json`
 records them and the check fails only when a change adds one. Lower the
 baseline with `pnpm -C frontend check:types:update` when you fix some.
 
 CI runs the frontend tests, the type ratchet, the lobby world tests and the
 security regression tests on every pull request (`.github/workflows/`).
+Runs on a first pull request from a fork wait until a maintainer approves
+them, and so does its Vercel preview; see
+[CONTRIBUTING.md](CONTRIBUTING.md#after-you-open-a-pull-request).
 
 ## How the code is built
 

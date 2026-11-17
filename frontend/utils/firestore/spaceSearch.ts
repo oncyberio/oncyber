@@ -3,6 +3,7 @@ import { normalizeSearch, matchesSearchText } from "@utils/searchText";
 export { normalizeSearch } from "@utils/searchText";
 import { firestore } from "firebase-admin";
 import { db } from "@utils/firebaseAdmin";
+import { isPublicSpace } from "@utils/spaceVisibility";
 import type { DiscoveryFilters } from "@features/landing-carousel/types";
 
 const BATCH_SIZE = 20;
@@ -128,17 +129,7 @@ export function searchStreams(filters: DiscoveryFilters): Stream[] {
     return [];
 }
 export function matchesSpaceSearch(data: any, filters: DiscoveryFilters) {
-    if (
-        data.mock ||
-        data.deleted ||
-        data.isPublic === false ||
-        data.published === false ||
-        data.info?.private ||
-        ["private", "unlisted", "draft"].includes(
-            data.visibility || data.info?.visibility
-        )
-    )
-        return false;
+    if (!isPublicSpace(data)) return false;
     const info = data.info || {};
     // Public worlds without a preview use the discovery grid's local cover.
     const text = normalizeSearch(

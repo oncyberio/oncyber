@@ -40,7 +40,6 @@ const icons: Record<Blockchain, string> = {
     tezos: "/v2/icons/tezos.svg",
     solana: "/v2/icons/solana.svg",
     counterparty: "/v2/icons/counterparty.svg",
-    niftygateway: "/v2/icons/niftygateway.svg",
 };
 
 const FREE_ACCOUNTS_KEY = "free-accounts";

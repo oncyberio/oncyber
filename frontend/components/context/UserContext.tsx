@@ -17,7 +17,6 @@ import type { Asset } from "@uitypes/Asset";
 import type { UserState } from "@uitypes/user";
 
 import type {
-    NiftyConnection,
     SolanaWallet,
     WalletConnection,
 } from "@dapp/connect";
@@ -149,7 +148,7 @@ export interface UserContextState {
     // createNewAccountAndLogin: (room: string) => Promise<void>;
     simple_authenticate: (
         account: string,
-        connection: NiftyConnection
+        connection: { type: WalletConnection["type"] }
     ) => Promise<AuthResponse>;
     changeAccount: (walletId: string) => Promise<void>;
     addNewAccount: () => Promise<void>;
@@ -826,9 +825,11 @@ export const UserProvider: React.FunctionComponent<UserProviderProps> = ({
         // } });
     }
 
+    // Development sign-in (Shift+H on a local server): the API route only
+    // answers loopback requests in development.
     const simple_authenticate = async (
         walletId: string,
-        connection: NiftyConnection
+        connection: { type: WalletConnection["type"] }
     ): Promise<AuthResponse> => {
         let token: string;
 
@@ -881,8 +882,6 @@ export const UserProvider: React.FunctionComponent<UserProviderProps> = ({
                     },
                 },
             });
-
-            // TODO: Will need to test nifty later and see how it works...
 
             return { success: true, token };
         } else {

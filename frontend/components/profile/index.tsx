@@ -1,4 +1,6 @@
 import { useContext, useEffect, useState } from "react";
+import Head from "next/head";
+import { searchUrl } from "@utils/siteUrl";
 import styled, { css } from "styled-components";
 import Navigation from "../nav/main";
 import { FollowButton, FollowingList } from "./components/Following";
@@ -21,6 +23,32 @@ import { User } from "bitski/lib/auth/user";
 import ProfilePicture from "./components/ProfilePicture";
 import { showModal } from "@components/Dialogs";
 import AccountDashboard from "@components/modals/AccountDashboard";
+
+/** Title, description and canonical address of a profile, for search engines and link previews. */
+function ProfileHead({ userData }) {
+    const handle = userData?.username || userData?.id;
+    if (!handle) return null;
+    const name = userData?.username
+        ? `@${userData.username}`
+        : `${userData.id.slice(0, 6)}…${userData.id.slice(-4)}`;
+    const title = `${name} on oncyber`;
+    const description = `3D spaces and NFTs by ${name} on oncyber.`;
+    const url = searchUrl(`/@${handle}`);
+    return (
+        <Head>
+            <title key="title">{title}</title>
+            <meta key="description" name="description" content={description} />
+            <meta key="ogTitle" property="og:title" content={title} />
+            <meta
+                key="ogDescription"
+                property="og:description"
+                content={description}
+            />
+            <link key="canonical" rel="canonical" href={url} />
+            <meta key="ogUrl" property="og:url" content={url} />
+        </Head>
+    );
+}
 
 const tabs = {
     deployed: "Deployed Spaces",
@@ -101,6 +129,7 @@ const ProfilePage = ({ userData }) => {
 
     return (
         <Container id="container" isLight={isLightTheme}>
+            <ProfileHead userData={userData} />
             <ArtworkInfo
                 toggle={() => toggle(false)}
                 isShowing={isShowing}

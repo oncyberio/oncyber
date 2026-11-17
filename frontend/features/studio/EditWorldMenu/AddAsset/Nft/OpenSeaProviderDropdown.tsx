@@ -17,6 +17,7 @@ type OpenSeaChains =
     | "optimism"
     | "solana"
     | "base"
+    | "shape"
     | "zora";
 
 export interface ProviderOpt {
@@ -40,6 +41,11 @@ export const ethProviderOpts: Array<ProviderOpt> = [
         title: "Base (OS API)",
         disabled: false,
         value: "base",
+    },
+    {
+        title: "Shape (OS API)",
+        disabled: false,
+        value: "shape",
     },
     {
         title: "Zora (OS API)",

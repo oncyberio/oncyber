@@ -87,6 +87,9 @@ export const BrowseSurface = styled.div`
     min-height: 0;
 `;
 
+// The accent span rule is for the footer's own buttons only: a bare span rule
+// also restyled the Jump In and grid controls inside it (19px accent text
+// while the grid loads).
 export const EmptyFooter = styled.div`
     height: 17.8svh;
     min-height: 76px;
@@ -106,7 +109,7 @@ export const EmptyFooter = styled.div`
         cursor: pointer;
         font-size: 14px;
     }
-    span {
+    > button span {
         color: var(--accent);
         font-size: 19px;
     }

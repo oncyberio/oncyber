@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { lobbyTokens as lobby } from "@styles/tokens";
 import { conversationStyles } from "./conversationStyles";
 
 /** Shared conversation placement for the lobby and visiting game worlds. */
@@ -7,7 +8,7 @@ const LobbyConversationSurface = styled.div`
     z-index: 21;
     left: 24px;
     bottom: max(20px, calc(env(safe-area-inset-bottom) + 8px));
-    width: 280px;
+    width: ${lobby.chat.width}px;
     max-width: calc(50vw - 156px);
     pointer-events: auto;
     color: #fff;
@@ -27,6 +28,8 @@ const LobbyConversationSurface = styled.div`
     /* In a space the party chat stays on the bottom bar's line, as in the
        lobby. */
     &[data-entered] {
+        /* The space's own chat is this wide; the party chat takes its place. */
+        width: ${lobby.chat.width}px;
         max-width: calc(100% - 32px);
     }
     &[data-collapsed] .chat-view-viewport {

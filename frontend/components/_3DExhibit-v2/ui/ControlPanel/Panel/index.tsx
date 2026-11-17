@@ -204,6 +204,14 @@ export default function DesktopControlPanel({
 
     if (mobileViewState.type !== "NO_TUTORIAL") return null;
 
+    const chatShown =
+        !showArtworkInfo &&
+        isChatActive &&
+        isChatDisplayed &&
+        isPlaying &&
+        !isModeMenuOpen &&
+        chat.active;
+
     return (
         <Container
             isArtworkInfoShowing={!!artwork}
@@ -260,12 +268,7 @@ export default function DesktopControlPanel({
                 />
             )}
 
-            {!showArtworkInfo &&
-            isChatActive &&
-            isChatDisplayed &&
-            isPlaying &&
-            !isModeMenuOpen &&
-            chat.active ? (
+            {chatShown ? (
                 <Chat
                     exhibit={exhibit}
                     isFlyMode={isFlyMode}
@@ -294,7 +297,9 @@ export default function DesktopControlPanel({
 
             {isPlaying && selectedMode === Mode.MULTIPLAYER && (
                 <>
-                    <Notification_Stack_3D />
+                    {/* Requests sit above the chat, as in the lobby; this
+                        stack is only for when the chat is hidden. */}
+                    {!chatShown && <Notification_Stack_3D />}
                     <SummonNotification />
                 </>
             )}

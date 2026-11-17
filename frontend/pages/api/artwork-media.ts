@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import { nodeEnv } from "@env";
-import { openSeaMedia } from "@utils/media/recovery";
+import { openSeaMedia, RECOVERY_CHAINS } from "@utils/media/recovery";
 
 const cache = new Map<string, { expires: number; media: any }>();
 const pending = new Map<string, Promise<any>>();
@@ -17,9 +17,7 @@ export default async function artworkMedia(
     const { chain, contract, token } = req.query;
     if (
         typeof chain !== "string" ||
-        !["ethereum", "polygon", "base", "arbitrum", "optimism"].includes(
-            chain
-        ) ||
+        !RECOVERY_CHAINS.includes(chain) ||
         typeof contract !== "string" ||
         !/^0x[a-fA-F0-9]{40}$/.test(contract) ||
         typeof token !== "string" ||

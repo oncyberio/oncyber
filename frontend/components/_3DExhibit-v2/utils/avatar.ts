@@ -18,6 +18,13 @@ function isManagedPinataUrl(value: string) {
     }
 }
 
+export function withoutGatewayResize(value: string) {
+    const url = new URL(value);
+    for (const key of [...url.searchParams.keys()])
+        if (key.startsWith("img-")) url.searchParams.delete(key);
+    return url.toString();
+}
+
 function validImage(url) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -102,7 +109,11 @@ export async function formatAvatar(userData, dispatch, exhibit = null) {
 
     const isPinata = isManagedPinataUrl(avatarImg);
 
+    // The picture as stored, in case the gateway can't resize its format.
+    let unresized = "";
+
     if (isPinata) {
+        unresized = withoutGatewayResize(avatarImg);
         //
         const url = new URL(avatarImg);
         const searchParams = new URLSearchParams(url.search);
@@ -116,7 +127,16 @@ export async function formatAvatar(userData, dispatch, exhibit = null) {
     // Final safety net: whatever path produced the url, make sure it
     // actually loads — dead hosts otherwise crash/blank the avatar atlas
     // and the username label downstream
-    avatarImg = await validImage(avatarImg);
+    const resized = avatarImg;
+    avatarImg = await validImage(resized);
+    // The gateway's resizer refuses some formats (415 for AVIF). Pictures
+    // saved in one still load as they are.
+    if (
+        avatarImg === DEFAULT_PLAYER_AVATAR_PICTURE &&
+        unresized &&
+        unresized !== resized
+    )
+        avatarImg = await validImage(unresized);
 
     dispatch({
         type: UPDATE_AVATAR,

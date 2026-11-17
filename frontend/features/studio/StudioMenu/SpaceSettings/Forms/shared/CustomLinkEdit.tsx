@@ -6,6 +6,7 @@ import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import { useCustomLinkEditor } from "@features/studio/StudioMenu/context/useCustomLinkEditor";
 import { Input } from "./Input";
 import { ChangeEvent, useState } from "react";
+import { SITE_ORIGIN, siteUrl } from "@utils/siteUrl";
 
 export function CustomLinkEdit() {
     //
@@ -19,9 +20,7 @@ export function CustomLinkEdit() {
         handleChange,
     } = useCustomLinkEditor();
 
-    const staticText = customLink
-        ? "https://oncyber.io"
-        : "https://oncyber.io/spaces";
+    const staticText = customLink ? SITE_ORIGIN : siteUrl("/spaces");
 
     return (
         <Form>

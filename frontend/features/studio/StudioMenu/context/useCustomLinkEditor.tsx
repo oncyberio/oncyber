@@ -7,6 +7,7 @@ import { analyticsEditSpaceInfo } from "@features/studio/utils";
 import { Experience } from "@uitypes/experience";
 import { validatePath } from "@utils/rules/url";
 import { useState, useContext } from "react";
+import { sitePath, siteUrl } from "@utils/siteUrl";
 
 /** What the copy control beside a space link shows. */
 export type LinkState = "copy" | "loading" | "error" | "success";
@@ -26,9 +27,9 @@ export function useCustomLinkEditor() {
     const copyLink = useEventCallback(() => {
         //
 
-        const link = customLink
-            ? `https://oncyber.io/${customLink}`
-            : `https://oncyber.io/spaces/${exhibit.id}`;
+        const link = siteUrl(
+            customLink ? `/${customLink}` : `/spaces/${exhibit.id}`
+        );
 
         navigator.clipboard.writeText(link);
 
@@ -91,10 +92,23 @@ export function useCustomLinkEditor() {
     const handleChange = useEventCallback((_value: string) => {
         //
         try {
-            const value = _value
-                .toLowerCase()
-                .replaceAll("https://oncyber.io", "")
-                .replace(/[^a-zA-Z0-9-_]+/, "");
+            // A pasted link to the space (any of the site's domains) keeps
+            // only its path: "https://www.oncyber.com/my-space" -> "my-space".
+            const pasted = sitePath(_value);
+            const path =
+                pasted != null
+                    ? pasted.split("?")[0].replace(/^\/+|\/+$/g, "")
+                    : _value;
+
+            // A link with more than one part ("spaces/<id>", "@name/x") is
+            // not a custom link; don't squash it into one.
+            if (pasted != null && path.includes("/")) {
+                setCustomLink(path.toLowerCase());
+
+                throw new Error("Invalid link");
+            }
+
+            const value = path.toLowerCase().replace(/[^a-zA-Z0-9-_]+/, "");
 
             setCustomLink(value);
 

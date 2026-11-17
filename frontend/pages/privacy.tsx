@@ -4,7 +4,7 @@ import styled from "styled-components";
 const Conditions = () => {
     return (
         <Container>
-            <a href="https://oncyber.io">
+            <a href="/">
                 <Logo> Cyber </Logo>
             </a>
             <h1 data-custom-class="title">
@@ -48,8 +48,8 @@ const Conditions = () => {
             <p>
                 <span data-custom-class="body_text">
                     When you&nbsp;visit our website&nbsp;
-                    <a href="http://oncyber.io/" data-custom-class="link">
-                        http://oncyber.io
+                    <a href="https://www.oncyber.com/" data-custom-class="link">
+                        https://www.oncyber.com
                     </a>
                     &nbsp;(the "
                     <strong>

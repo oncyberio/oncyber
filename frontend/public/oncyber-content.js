@@ -21,12 +21,17 @@
         "events": { "resume": "resume" }
     };
     var KIND = PROTOCOL.kinds, METHOD = PROTOCOL.methods;
-    var trustedOrigin = document.currentScript?.dataset.hostOrigin || "https://oncyber.io";
+    // The Oncyber page this world may run in: the one named by
+    // data-host-origin (a preview or a local host), else any of Oncyber's own
+    // domains (oncyber.io is the older one and still redirects here).
+    var ONCYBER_ORIGINS = ["https://www.oncyber.com", "https://oncyber.com", "https://oncyber.io", "https://www.oncyber.io"];
+    var hostOrigin = document.currentScript?.dataset.hostOrigin;
+    var trustedOrigin = function (value) { return hostOrigin ? value === hostOrigin : ONCYBER_ORIGINS.indexOf(value) !== -1; };
     var session = null, origin = null, counter = 0, initialized = [], resumeListeners = [];
     var pending = new Map();
     window.addEventListener("message", function (event) {
         var data = event.data;
-        if (event.source !== window.parent || event.origin !== trustedOrigin || !data || data.tag !== PROTOCOL.tag || data.v !== PROTOCOL.v) return;
+        if (event.source !== window.parent || !trustedOrigin(event.origin) || !data || data.tag !== PROTOCOL.tag || data.v !== PROTOCOL.v) return;
         if (data.kind === KIND.init && typeof data.session === "string" && /^[a-f0-9]{48}$/.test(data.session)) {
             if (session === data.session) return;
             pending.forEach(function (item) { item.reject(new Error("SESSION_CHANGED")); });

@@ -1,4 +1,4 @@
-import { LandingCard } from "../types";
+import { GridSection, LandingCard } from "../types";
 import { brandTokens } from "../../../styles/brand/tokens";
 
 export interface GridCell {
@@ -16,36 +16,46 @@ export interface GridLayout {
      * -1 where a column ends early so the next section starts a new one.
      */
     slots: number[];
-    /** First column of the popular section after the staff picks, or -1. */
+    /** First column of the first labelled section after the start, or -1. */
     sectionColumn: number;
+    /** Each labelled section's first column, in order. */
+    sections: { column: number; section: GridSection }[];
 }
 
-/** Where the popular worlds start after the staff picks, or -1. */
-export function popularSectionStart(cards: LandingCard[]) {
-    const start = cards.findIndex((card) => card.section === "popular");
-    return start > 0 ? start : -1;
+/** Where each labelled section starts: a card whose section differs from the one before. */
+export function sectionStarts(cards: LandingCard[]) {
+    const starts: { index: number; section: GridSection }[] = [];
+    cards.forEach((card, index) => {
+        if (card.section && card.section !== cards[index - 1]?.section)
+            starts.push({ index, section: card.section });
+    });
+    return starts;
 }
 
 /**
  * Fill each vertical column, then continue horizontally without page gaps.
- * A new section (the popular worlds after the staff picks) starts at the top
- * of a new column, so its label sits above its first card.
+ * Each labelled section (the popular worlds after the staff picks, say)
+ * starts at the top of a new column, so its label sits above its first card.
  */
 export function createGridLayout(
     cards: LandingCard[],
     columns = 2,
     visibleRows = 2
 ): GridLayout {
-    const start = popularSectionStart(cards);
-    const padding =
-        start > 0 ? (visibleRows - (start % visibleRows)) % visibleRows : 0;
+    const starts = sectionStarts(cards);
+    const startAt = new Set(starts.map(({ index }) => index));
+    // Each section after the first card starts at the top of a new column.
+    let slot = 0;
     const cells: GridCell[] = cards.map((_, index) => {
-        const slot = index + (start > 0 && index >= start ? padding : 0);
-        return {
+        if (index > 0 && startAt.has(index) && slot % visibleRows)
+            slot += visibleRows - (slot % visibleRows);
+        const cell = {
             index,
             row: slot % visibleRows,
             column: Math.floor(slot / visibleRows),
         };
+        slot++;
+        return cell;
     });
     const columnCount = cells.length ? cells[cells.length - 1].column + 1 : 0;
     const slots = new Array(columnCount * visibleRows).fill(-1);
@@ -57,8 +67,32 @@ export function createGridLayout(
         columnCount,
         maxScrollColumn: Math.max(0, columnCount - columns),
         slots,
-        sectionColumn: start > 0 ? cells[start].column : -1,
+        sectionColumn: (() => {
+            const later = starts.find(({ index }) => index > 0);
+            return later ? cells[later.index].column : -1;
+        })(),
+        sections: starts.map(({ index, section }) => ({
+            column: cells[index].column,
+            section,
+        })),
     };
+}
+
+/**
+ * The sections the label switch names: every section, once the grid's first
+ * card belongs to one. A grid that opens with unlabelled cards has no switch.
+ */
+export function switchSections(layout: GridLayout, cards: LandingCard[]) {
+    return cards[0]?.section ? layout.sections : [];
+}
+
+/** Index of the section whose columns start at or before `column`. */
+export function sectionAt(sections: { column: number }[], column: number) {
+    let current = 0;
+    sections.forEach((section, index) => {
+        if (section.column <= column + 0.5) current = index;
+    });
+    return current;
 }
 
 /** The cells in columns `from` up to (not including) `to`, in card order. */

@@ -1,4 +1,5 @@
 import { ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { SPACE_FILTERS, type SpaceFilter } from "../yourSpaces";
 import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import { DiscoveryFilters } from "../types";
@@ -22,6 +23,8 @@ interface Props {
     templates?: {
         category: TemplateCategory;
         update: (category: TemplateCategory) => void;
+        /** The visitor's own spaces, when Create lists them. */
+        spaces?: { filter: SpaceFilter; update: (filter: SpaceFilter) => void };
     };
 }
 
@@ -70,15 +73,28 @@ export default function DiscoveryHeader({
 
     function buildCommands(): Command[] {
         const filters_: Command[] = templates
-            ? TEMPLATE_CATEGORIES.map((category) => ({
-                  id: `filter-${category.value}`,
-                  section: "Filter templates",
-                  label: category.label,
-                  icon: "filter" as const,
-                  keywords: "filter category template",
-                  checked: templates.category === category.value,
-                  run: () => templates.update(category.value),
-              }))
+            ? [
+                  ...(templates.spaces
+                      ? SPACE_FILTERS.map((filter) => ({
+                            id: `spaces-${filter.value}`,
+                            section: "Filter your worlds",
+                            label: filter.label,
+                            icon: "filter" as const,
+                            keywords: "filter sort my worlds spaces",
+                            checked: templates.spaces.filter === filter.value,
+                            run: () => templates.spaces.update(filter.value),
+                        }))
+                      : []),
+                  ...TEMPLATE_CATEGORIES.map((category) => ({
+                      id: `filter-${category.value}`,
+                      section: "Filter templates",
+                      label: category.label,
+                      icon: "filter" as const,
+                      keywords: "filter category template",
+                      checked: templates.category === category.value,
+                      run: () => templates.update(category.value),
+                  })),
+              ]
             : feedCommands(filters.category, update);
         const create = createCommands(
             templates

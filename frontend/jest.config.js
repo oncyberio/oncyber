@@ -9,6 +9,9 @@ module.exports = {
             },
         ],
     },
+    // Resolve bare imports from the frontend root ("env", "config/...") the
+    // way tsconfig's baseUrl does for Next, so tests load the same files.
+    modulePaths: ["<rootDir>"],
     moduleNameMapper: {
         "^three/webgpu$":
             "<rootDir>/../node_modules/three/build/three.webgpu.js",

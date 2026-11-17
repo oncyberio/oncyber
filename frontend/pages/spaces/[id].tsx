@@ -11,6 +11,10 @@ import styled from "styled-components";
 import { UserContext } from "@components/context/UserContext";
 
 const Error = dynamic(() => import("../../components/Error"));
+// Shown in place of a space that doesn't exist (status 404).
+const NotFoundPage = dynamic(
+    () => import("@features/landing-carousel/NotFoundPage")
+);
 import { createGlobalStyle } from "styled-components";
 
 import { useRouter } from "next/router";
@@ -30,27 +34,40 @@ import { preloadExhibitPortalData } from "@utils/csr";
 import { getJSON } from "@utils/js";
 import NotificationService from "@api/notifications/_api";
 import { isEmbeddedRuntime } from "@features/content-host/runtime";
-import { isSupportedRuntime } from "@utils/runtimeKind";
+import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
 
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
+import { searchUrl, spacePath } from "@utils/siteUrl";
+import { spaceShareImage } from "@utils/spaceShareImage";
+import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
-const EmbeddedExperience = dynamic(() => import("@features/content-host/EmbeddedExperience"), { ssr: false });
+const EmbeddedExperience = dynamic(
+    () => import("@features/content-host/EmbeddedExperience"),
+    { ssr: false }
+);
 
 export default function Exhibit(props: {
     experience: Experience;
     dest: RoomParameters;
     gatingError?: GatingCheckResult;
     getExhibitPath: (exhibit: Experience, pathname: string) => string;
+    notFound?: { query: string };
 }) {
     const { isAnonInitialized } = useContext(UserContext);
+    if (props.notFound) return <NotFoundPage {...(props as any)} />;
     if (!isAnonInitialized) return null;
     if (props.experience && !isSupportedRuntime(props.experience.runtime)) {
         return <Error statusCode={404} />;
     }
     if (isEmbeddedRuntime(props.experience?.runtime)) {
-        return <EmbeddedExperience key={props.experience.id} experience={props.experience} />;
+        return (
+            <EmbeddedExperience
+                key={props.experience.id}
+                experience={props.experience}
+            />
+        );
     }
     return <NativeExhibit key={props.experience?.id} {...props} />;
 }
@@ -215,19 +232,14 @@ function NativeExhibit({
         [setExperience, setDestination, router]
     );
 
-    // lower res version for twitter etc.
-    if (
-        experience?.info?.cHeroImg &&
-        !experience.info.cHeroImg.includes("/upload/c_scale,w_700/")
-    ) {
-        var splitted = experience.info.cHeroImg.split("/upload/");
-        experience.info.cHeroImg =
-            splitted[0] + "/upload/c_scale,w_700/" + splitted[1];
-    }
-
     if (!experience || !destination) {
         return <Error statusCode={404} />;
     }
+
+    // The address search engines and link previews should credit for this
+    // space, whichever URL (old domain, /spaces/<id>, /ja/...) was opened.
+    const canonicalUrl = searchUrl(spacePath(experience));
+    const shareImage = spaceShareImage(experience, destination);
 
     if (gatingError?.type === "other-error") {
         return <Error statusCode={500} />;
@@ -301,16 +313,9 @@ function NativeExhibit({
                     property="og:description"
                     content={experience.info.description || finalDescriptionSEO}
                 />
-                <meta
-                    key="ogImage"
-                    property="og:image"
-                    content={
-                        experience?.info?.heroImg ||
-                        experience?.info?.cHeroImg ||
-                        destination?.image ||
-                        "https://oncyber.io/images/thumbnail.png"
-                    }
-                />
+                <link key="canonical" rel="canonical" href={canonicalUrl} />
+                <meta key="ogUrl" property="og:url" content={canonicalUrl} />
+                <meta key="ogImage" property="og:image" content={shareImage} />
 
                 <meta
                     key="twitterTitle"
@@ -323,12 +328,7 @@ function NativeExhibit({
                 <meta
                     key="twitterImage"
                     name="twitter:image"
-                    content={
-                        experience?.info?.heroImg ||
-                        experience?.info?.cHeroImg ||
-                        destination?.image ||
-                        "https://oncyber.io/images/thumbnail.png"
-                    }
+                    content={shareImage}
                 />
                 <meta
                     key="twitterCard"
@@ -374,15 +374,29 @@ function NativeExhibit({
 }
 
 export const getServerSideProps = AuthServerSidePropsLite(
-    async ({ query, res }, user, token) => {
+    async ({ query, res, resolvedUrl }, user, token) => {
+        // Links pasted with a trailing newline or space (".../spaces/<id>%0A")
+        // still reach the space.
+        const id = String(query.id ?? "");
+        if (id.trim() !== id && id.trim()) {
+            return {
+                redirect: {
+                    destination: `/spaces/${encodeURIComponent(id.trim())}`,
+                    permanent: true,
+                },
+            };
+        }
+
         let data = await fetchExhibitData(query.id, "id");
         let gatingError = null;
 
         if (data?.experience?.info?.customLink) {
-            return { redirect: {
-                destination: "/" + data.experience.info.customLink,
-                permanent: true,
-            } };
+            return {
+                redirect: {
+                    destination: "/" + data.experience.info.customLink,
+                    permanent: true,
+                },
+            };
         }
 
         if (data.experience) {
@@ -397,6 +411,17 @@ export const getServerSideProps = AuthServerSidePropsLite(
             data.dest =
                 (data.experience && rooms[data.experience?.info.room]) || null;
         }
+
+        // No such space: a real 404, showing the landing to explore from.
+        // Embedded experiences have no room, so no destination to require.
+        if (
+            !data.experience ||
+            (isNativeRuntime(data.experience.runtime) && !data.dest)
+        )
+            return {
+                ...data,
+                ...(await notFoundLanding(res, query, resolvedUrl)),
+            };
 
         return {
             ...data,

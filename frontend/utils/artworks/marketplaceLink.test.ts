@@ -34,6 +34,17 @@ describe("marketplaceLink", () => {
         ).toBe("https://opensea.io/assets/base/0xdef/2");
     });
 
+    it("links Shape NFTs to OpenSea under the shape slug", () => {
+        expect(
+            marketplaceLink({
+                blockchain: "shape" as any,
+                marketplace: "shape",
+                contract_address: "0xdef",
+                token_id: "3",
+            })?.href
+        ).toBe("https://opensea.io/assets/shape/0xdef/3");
+    });
+
     it("prefers OpenSea's own permalink when the asset has one", () => {
         expect(
             marketplaceLink({
@@ -78,7 +89,8 @@ describe("marketplaceLink", () => {
         ).toBeNull();
         expect(
             marketplaceLink({
-                blockchain: "niftygateway",
+                // Artworks added before Nifty Gateway shut down keep this tag.
+                blockchain: "niftygateway" as any,
                 openSeaLink: "https://niftygateway.com/x",
             })
         ).toBeNull();

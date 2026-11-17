@@ -645,6 +645,13 @@ export default class Atlas extends Augmented {
 
                     const megaTex = new UpdatableTexture()
 
+                    // Before its first upload: the renderer picks the texture's
+                    // format then, and a later tag no longer changes it.
+                    if( this.opts?.colorSpace ) {
+
+                        megaTex.colorSpace = this.opts.colorSpace
+                    }
+
                     this.megaTextures.push( megaTex )
 
                     megaTex.index = this.megaTextures.length

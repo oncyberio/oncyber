@@ -10,6 +10,7 @@ import { GetServerSidePropsContext } from "next";
 import { checkGating } from "@utils/checkGatingRules";
 import dynamic from "next/dynamic";
 import { BasicServerSideProps } from "@utils/serverside/BasicServerSideProps";
+import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 import { useEffect } from "react";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import {
@@ -20,6 +21,11 @@ import {
 const Profile = dynamic(() => import("../components/profile"));
 
 const Error = dynamic(() => import("../components/Error"));
+
+// Shown in place of a space or profile that doesn't exist (status 404).
+const NotFoundPage = dynamic(
+    () => import("@features/landing-carousel/NotFoundPage")
+);
 
 // Keep the visitor shell in the route chunk; only the engine needs lazy loading.
 import Space from "./spaces/[id]";
@@ -36,6 +42,7 @@ export default function CustomLinkExhibit({
     isProfile,
     profile,
     gatingError,
+    ...props
 }) {
     useEffect(() => {
         if (isProfile) {
@@ -44,6 +51,10 @@ export default function CustomLinkExhibit({
             });
         }
     }, []);
+
+    if (props.notFound) {
+        return <NotFoundPage {...(props as any)} />;
+    }
 
     if (isProfile && !profile) {
         return <Error statusCode={404} />;
@@ -78,7 +89,7 @@ export default function CustomLinkExhibit({
 
 export const getServerSideProps = BasicServerSideProps(
     async (
-        { params, query, req, resolvedUrl }: GetServerSidePropsContext,
+        { params, query, req, res, resolvedUrl }: GetServerSidePropsContext,
         user,
         token,
         prefetched: Promise<ExhibitPageData> | undefined
@@ -101,11 +112,12 @@ export const getServerSideProps = BasicServerSideProps(
                     };
                 }
 
+                // No such profile: a real 404, showing the landing with the
+                // name in the search.
                 return {
-                    // props: {
                     isProfile: true,
                     profile: null,
-                    // },
+                    ...(await notFoundLanding(res, query, resolvedUrl)),
                 };
             }
 
@@ -125,6 +137,14 @@ export const getServerSideProps = BasicServerSideProps(
             (await fetchExhibitData(params.slug as string, "slug", query));
 
         let gatingError = null;
+
+        // No such space: a real 404, showing the landing with the link's
+        // words in the search.
+        if (!data.experience?.editors)
+            return {
+                ...data,
+                ...(await notFoundLanding(res, query, resolvedUrl)),
+            };
 
         if (data.experience) {
             // solo mode should be cheked server side for safety

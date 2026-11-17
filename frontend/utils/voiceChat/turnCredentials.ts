@@ -45,7 +45,12 @@ export async function getTurnIceServers(
         ];
         cache.set(endpoint, {
             servers,
-            expiresAt: (parseInt(data.username, 10) || 0) * 1000,
+            // Coturn usernames start with the expiry; Cloudflare's don't, so
+            // the server also sends expiresAt (seconds).
+            expiresAt:
+                (Number.isFinite(data.expiresAt)
+                    ? data.expiresAt
+                    : parseInt(data.username, 10) || 0) * 1000,
         });
         while (cache.size > MAX_REGIONS)
             cache.delete(cache.keys().next().value);

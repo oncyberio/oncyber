@@ -11,7 +11,6 @@ import {
     instanceIndex,
     max,
     mix,
-    modelViewProjection,
     normalize,
     positionGeometry,
     saturate,
@@ -22,6 +21,7 @@ import {
     varying,
     vec4,
 } from "three/tsl";
+import { skyClipPosition } from "@components/_3DExhibit-v2/three/factory/background/materials/skyPosition";
 
 type FloatNode = ReturnType<typeof tslFloat>;
 
@@ -75,8 +75,8 @@ export function createStrokeMaterial() {
     material.positionNode = normalize(
         centre.xyz.add(axis.xyz.mul(x.mul(length))).add(side.mul(across))
     );
-    // at the far plane: behind the world, whatever the camera's far
-    material.vertexNode = modelViewProjection.setZ(modelViewProjection.w);
+    // at infinity (far plane): behind the world, the same for both eyes in VR
+    material.vertexNode = skyClipPosition();
 
     // ---- fragment: the brush ----
     // per-stroke dice, thrown once in the vertex stage

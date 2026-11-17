@@ -32,12 +32,21 @@ class InstantReader {
         Promise.resolve().then(() => this.onLoad?.());
     }
 }
+let decodes = true;
 class InstantImage {
+    naturalWidth = 2048;
+    naturalHeight = 1024;
     onload: () => void;
+    onerror: () => void;
     set src(_value: string) {
-        Promise.resolve().then(() => this.onload?.());
+        Promise.resolve().then(() =>
+            decodes ? this.onload?.() : this.onerror?.()
+        );
     }
 }
+// What the browser's canvas hands back for the re-encoded picture.
+let encoded = "data:image/jpeg;base64,AAAA";
+const drawn = { width: 0, height: 0 };
 
 let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
@@ -48,6 +57,19 @@ beforeEach(() => {
     (globalThis as any).Image = InstantImage;
     upload.mockReset();
     onImageReady.mockReset();
+    decodes = true;
+    encoded = "data:image/jpeg;base64,AAAA";
+    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+        fillRect: jest.fn(),
+        drawImage: jest.fn(),
+    } as any);
+    jest.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockImplementation(
+        function (this: HTMLCanvasElement) {
+            drawn.width = this.width;
+            drawn.height = this.height;
+            return encoded;
+        }
+    );
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -66,9 +88,9 @@ afterEach(() => {
 
 const alert = () => container.querySelector('[role="alert"]');
 
-async function pick(sizeInBytes: number) {
+async function pick(sizeInBytes: number, type = "image/png") {
     const input = container.querySelector("input");
-    const file = new File(["x"], "me.png", { type: "image/png" });
+    const file = new File(["x"], "me", { type });
     Object.defineProperty(file, "size", { value: sizeInBytes });
     Object.defineProperty(input, "files", {
         value: [file],
@@ -80,7 +102,8 @@ async function pick(sizeInBytes: number) {
     });
 }
 
-test("a picture over 900 KB is explained, without Retry", async () => {
+test("a picture still over 900 KB once shrunk is explained, without Retry", async () => {
+    encoded = "data:image/jpeg;base64," + "A".repeat(1.4 * 1024 * 1024);
     await pick(2 * 1024 * 1024);
 
     expect(alert().textContent).toBe(
@@ -104,10 +127,36 @@ test("a failed upload is explained with Retry, which uploads it again", async ()
 
     expect(upload).toHaveBeenCalledTimes(2);
     expect(upload).toHaveBeenLastCalledWith(
-        "data:image/png;base64,AAAA",
+        "data:image/jpeg;base64,AAAA",
         "0xme",
         1
     );
     expect(onImageReady).toHaveBeenCalledWith("https://pic");
     expect(alert()).toBeNull();
+});
+
+test("any picture the browser can show is saved as a small JPEG", async () => {
+    upload.mockResolvedValueOnce({ success: true, url: "https://pic" });
+    // A large AVIF photo used to be refused or saved in a format the avatar
+    // could not show.
+    await pick(6 * 1024 * 1024, "image/avif");
+
+    expect(drawn).toEqual({ width: 512, height: 256 });
+    expect(upload).toHaveBeenCalledWith(
+        "data:image/jpeg;base64,AAAA",
+        "0xme",
+        1
+    );
+    expect(onImageReady).toHaveBeenCalledWith("https://pic");
+    expect(alert()).toBeNull();
+});
+
+test("a picture the browser cannot read says so instead of doing nothing", async () => {
+    decodes = false;
+    await pick(1024, "image/heic");
+
+    expect(alert().textContent).toBe(
+        "This browser can't read that picture. Choose a JPEG or PNG."
+    );
+    expect(upload).not.toHaveBeenCalled();
 });
