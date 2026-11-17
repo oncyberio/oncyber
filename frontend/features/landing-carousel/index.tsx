@@ -205,20 +205,25 @@ function LandingContent(props: LandingPageProps) {
         router.query.templateCategory
     );
     const updateTemplates = useCallback(
-        (patch: {
-            create?: string;
-            templateSearch?: string;
-            templateCategory?: TemplateCategory;
-        }) => {
+        (
+            patch: {
+                create?: string;
+                templateSearch?: string;
+                templateCategory?: TemplateCategory;
+            },
+            // Searches sent while typing replace one another in history.
+            typed = false
+        ) => {
             const query: typeof router.query = { ...router.query, ...patch };
             if (!query.templateSearch) delete query.templateSearch;
             if (query.templateCategory === "all") delete query.templateCategory;
             // Old availability links must not hide the rest of the catalog.
             delete query.availability;
-            void router.push({ pathname: router.pathname, query }, undefined, {
-                shallow: true,
-                scroll: false,
-            });
+            void router[typed ? "replace" : "push"](
+                { pathname: router.pathname, query },
+                undefined,
+                { shallow: true, scroll: false }
+            );
         },
         [router]
     );
@@ -901,12 +906,16 @@ function LandingContent(props: LandingPageProps) {
                     onChange={
                         templateContext ? undefined : (q) => searchWorlds({ q })
                     }
-                    onSearch={(q) =>
+                    liveMs={templateContext ? 150 : undefined}
+                    onSearch={(q, typed) =>
                         templateContext
-                            ? updateTemplates({
-                                  ...templateSearchPatch(q),
-                                  create: "gallery",
-                              })
+                            ? updateTemplates(
+                                  {
+                                      ...templateSearchPatch(q),
+                                      create: "gallery",
+                                  },
+                                  typed
+                              )
                             : searchWorlds({ q })
                     }
                 />

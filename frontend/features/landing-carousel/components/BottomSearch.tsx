@@ -8,17 +8,37 @@ export default function BottomSearch({
     onChange,
     scope = "worlds",
     withSpaces = false,
+    liveMs,
 }: {
     value: string;
     /** Create also lists the visitor's own spaces, so search covers them. */
     withSpaces?: boolean;
     scope?: "worlds" | "templates" | "destinations" | "game" | "gaussian";
-    onSearch: (query: string) => void;
+    /** `typed` is true for a search sent while typing (see `liveMs`). */
+    onSearch: (query: string, typed?: boolean) => void;
+    /**
+     * Search while typing, this long after the last keystroke, with no need
+     * for Enter. For lists that filter in place.
+     */
+    liveMs?: number;
     onChange?: (query: string) => void;
 }) {
     const [query, setQuery] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => setQuery(value), [value, scope]);
+    // What this field last searched for. The page's value catching up with
+    // it must not overwrite what has been typed since.
+    const sent = useRef<string>(null);
+    const typing = useRef<ReturnType<typeof setTimeout>>();
+    useEffect(() => {
+        if (value !== sent.current) setQuery(value);
+        sent.current = null;
+    }, [value, scope]);
+    useEffect(() => () => clearTimeout(typing.current), []);
+    const search = (text: string, typed = false) => {
+        clearTimeout(typing.current);
+        sent.current = text.trim();
+        onSearch(sent.current, typed);
+    };
     const templates = scope === "templates";
     const destinations = scope === "destinations";
     const creating = scope === "game" || scope === "gaussian";
@@ -44,7 +64,7 @@ export default function BottomSearch({
             }
             onSubmit={(event) => {
                 event.preventDefault();
-                onSearch(query.trim());
+                search(query);
             }}
         >
             {!creating && <Icon name="search" size={18} />}
@@ -92,8 +112,15 @@ export default function BottomSearch({
                 autoComplete="off"
                 value={query}
                 onChange={(event) => {
-                    setQuery(event.target.value);
-                    onChange?.(event.target.value);
+                    const text = event.target.value;
+                    setQuery(text);
+                    onChange?.(text);
+                    if (liveMs == null || creating) return;
+                    clearTimeout(typing.current);
+                    typing.current = setTimeout(
+                        () => search(text, true),
+                        liveMs
+                    );
                 }}
                 onKeyDown={(event) => {
                     if (event.nativeEvent.isComposing || event.keyCode === 229)
@@ -118,7 +145,7 @@ export default function BottomSearch({
                     onClick={() => {
                         setQuery("");
                         if (creating) onChange?.("");
-                        else onSearch("");
+                        else search("");
                         inputRef.current?.focus();
                     }}
                 >
