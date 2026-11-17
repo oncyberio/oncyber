@@ -83,6 +83,14 @@ const Container = styled.div<{ isToggling: boolean }>`
     bottom: 16px;
     z-index: 1000;
 
+    /* While an item's editor panel is open on the right, sit beside it
+       rather than over its bottom corner. */
+    @media (min-width: 601px) {
+        body:has(.has-details) & {
+            right: calc(16px + min(340px, 100vw - 12px) + 12px);
+        }
+    }
+
     box-sizing: border-box;
     display: flex;
     gap: 2px;
