@@ -9,24 +9,36 @@ import {
 } from "./siteUrl";
 
 describe("searchOrigin", () => {
-    it("is the site's own origin unless one is set", () => {
-        expect(searchOrigin(undefined)).toBe("https://www.oncyber.com");
-        expect(searchOrigin("  ")).toBe("https://www.oncyber.com");
-        expect(searchUrl("/hub")).toBe("https://www.oncyber.com/hub");
-    });
-
-    it("uses the domain search results should keep showing", () => {
-        expect(searchOrigin("https://oncyber.io/")).toBe("https://oncyber.io");
-        expect(searchOrigin("https://oncyber.io/some/path")).toBe(
+    it("is oncyber.io on the production site unless one is set", () => {
+        expect(searchOrigin(undefined)).toBe("https://oncyber.io");
+        expect(searchOrigin("  ")).toBe("https://oncyber.io");
+        expect(searchOrigin("", "https://oncyber.io")).toBe(
             "https://oncyber.io"
         );
+        expect(searchUrl("/hub")).toBe("https://oncyber.io/hub");
+    });
+
+    it("is the deployment itself on previews and local builds", () => {
+        expect(searchOrigin("", "https://branch.vercel.app")).toBe(
+            "https://branch.vercel.app"
+        );
+        expect(searchOrigin("", "http://localhost:13000")).toBe(
+            "http://localhost:13000"
+        );
+    });
+
+    it("follows the setting when there is one", () => {
+        expect(searchOrigin("https://www.oncyber.com/")).toBe(
+            "https://www.oncyber.com"
+        );
+        expect(
+            searchOrigin("https://www.oncyber.com", "https://branch.vercel.app")
+        ).toBe("https://www.oncyber.com");
     });
 
     it("ignores a value that is not a web address", () => {
-        expect(searchOrigin("oncyber.io")).toBe("https://www.oncyber.com");
-        expect(searchOrigin("javascript:alert(1)")).toBe(
-            "https://www.oncyber.com"
-        );
+        expect(searchOrigin("oncyber.com")).toBe("https://oncyber.io");
+        expect(searchOrigin("javascript:alert(1)")).toBe("https://oncyber.io");
     });
 
     it("gives a space's path by custom link, else by id", () => {
