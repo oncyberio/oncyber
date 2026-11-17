@@ -1,5 +1,9 @@
 import InAppLink from "@components/InAppLink";
-import { studioMenuItem } from "@features/studio/styles/primitives";
+import {
+    brandMenuDivider,
+    brandMenuPanel,
+    brandMenuRow,
+} from "@features/studio/styles/brandMenu";
 import { useCyberTranslation } from "@components/context/I18nContext";
 import { UserContext } from "@components/context/UserContext";
 import { useEventCallback } from "@components/hooks/useEventCallback";
@@ -10,7 +14,7 @@ import { formatWalletAddress } from "@utils/format";
 import { classes, noop } from "@utils/js";
 import Link from "next/link";
 import { useContext, useState } from "react";
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { Wallet } from "./Wallet";
 import dynamic from "next/dynamic";
 import { showModal } from "@components/Dialogs";
@@ -128,13 +132,13 @@ export function Dropdown({ onAction }: DropdownProps) {
                     className="item"
                     onClick={() => onAction({ type: "create-space" })}
                 >
-                    <IconImg name="plus-circle" size={12} className="icon" />
+                    <IconImg name="plus-circle" size={14} className="icon" />
                     <span>{tx("Make another world")}</span>
                 </button>
             ) : null}
 
             <div className="item">
-                <IconImg name="corner-down-left" size={12} className="icon" />
+                <IconImg name="corner-down-left" size={14} className="icon" />
                 <InAppLink href="/">{tx("Back to Home Page")}</InAppLink>
             </div>
         </Container>
@@ -142,59 +146,37 @@ export function Dropdown({ onAction }: DropdownProps) {
 }
 
 export const Container = styled.div<{ top?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    width: 240px;
-    gap: 8px;
-
-    background: var(--panel-bg);
-    border: var(--panel-border);
-    border-radius: var(--studio-radius-panel);
+    ${brandMenuPanel}
+    width: 260px;
 
     & > .accounts {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 2px;
     }
-
-    ${(props) =>
-        props.top
-            ? css`
-                  box-shadow: var(--panel-shadow);
-                  border-radius: var(--radius-panel);
-              `
-            : ""}
-
-    color: var(--panel-text-primary);
-    font-family: var(--studio-font, sans-serif);
-    font-size: 13px;
-    font-weight: 400;
 
     & > .show-more {
         position: relative;
-        padding: 4px 0;
 
+        /* A bridge so the pointer can reach the side menu. */
         &::before {
             position: absolute;
-            left: 0;
+            left: 100%;
             top: 0;
-            width: 120%;
-            height: 120%;
+            width: 16px;
+            height: 100%;
             content: "";
         }
 
         & > .more-icon {
             margin-left: auto;
-            filter: invert(1);
         }
 
         & > .more {
             position: absolute;
-            left: 105%;
-            top: -12px;
+            left: calc(100% + 16px);
+            top: -8px;
             display: none;
-            box-shadow: 0 10px 20px rgb(0 0 0 / 30%);
         }
 
         &:hover,
@@ -202,34 +184,29 @@ export const Container = styled.div<{ top?: boolean }>`
             & > .more {
                 display: flex;
             }
-
-            /* & > .more-icon {
-                filter: none;
-            } */
         }
     }
 
     & > .sep {
-        width: 100%;
-        height: 1px;
-        background: var(--studio-line, #303035);
+        ${brandMenuDivider}
     }
 
     & .item {
-        ${studioMenuItem}
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
+        ${brandMenuRow}
+        justify-content: flex-start;
+        gap: 10px;
 
-        transition: 0.2s;
-        &:hover {
-            color: var(--panel-text-secondary);
+        & > .icon,
+        & > .more-icon {
+            filter: invert(0.75);
         }
-
-        & > .icon {
+        &:hover > .icon,
+        &:hover > .more-icon {
             filter: invert(1);
+        }
+        & > a {
+            color: inherit;
+            text-decoration: none;
         }
     }
 `;
@@ -238,8 +215,9 @@ const CurrentWallet = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    padding: 4px 4px 8px;
+    gap: 12px;
+    padding: 8px 12px;
+    color: var(--oc-ink);
 
     & > .user {
         width: 100%;

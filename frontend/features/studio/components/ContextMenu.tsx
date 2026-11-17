@@ -1,4 +1,8 @@
-import { studioMenuItem } from "@features/studio/styles/primitives";
+import {
+    brandMenuDivider,
+    brandMenuPanel,
+    brandMenuRow,
+} from "@features/studio/styles/brandMenu";
 import { useEffect, useState, useRef, ReactNode } from "react";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import styled, { css } from "styled-components";
@@ -147,16 +151,10 @@ export function ContextMenu<T>({
 const Menu = styled.div<{ isOn: boolean }>`
     position: fixed;
     z-index: 10000;
-    min-width: 150px;
-    padding: 6px;
+    ${brandMenuPanel}
+    min-width: 180px;
     overflow: hidden;
-    background: var(--panel-bg);
-    border: var(--panel-border);
-    box-shadow: var(--panel-shadow);
-    border-radius: var(--radius-panel-sm);
-    color: var(--panel-text-primary);
-    font-size: 13px;
-    font-weight: 400;
+    animation: none;
     transform: scale(0);
     transform-origin: top left;
 
@@ -173,19 +171,9 @@ const Menu = styled.div<{ isOn: boolean }>`
 `;
 
 const Option = styled.button.attrs({ type: "button" })<{ disabled?: boolean }>`
-    ${studioMenuItem}
-    padding: 8px 18px 8px 12px;
-    font: 13px/20px var(--studio-font, sans-serif);
-    color: var(--panel-text-primary);
-    cursor: pointer;
-
-    display: flex;
-    gap: 6px;
-    align-items: center;
-
-    &:hover {
-        background: var(--panel-bg-hover);
-    }
+    ${brandMenuRow}
+    justify-content: flex-start;
+    gap: 10px;
 
     ${(props) =>
         props.disabled
@@ -201,7 +189,6 @@ const Option = styled.button.attrs({ type: "button" })<{ disabled?: boolean }>`
 `;
 
 export const CMSeparator = styled.div`
-    width: 100%;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    ${brandMenuDivider}
+    flex-shrink: 0;
 `;

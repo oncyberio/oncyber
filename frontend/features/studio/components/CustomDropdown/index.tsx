@@ -170,7 +170,8 @@ export function CustomDropdown({
             right = null;
         } else if (align === "right") {
             left = null;
-            right = containerWidth - captionBounds.left;
+            // Line the dropdown's right edge up with its caption's.
+            right = containerWidth - captionBounds.right;
         } else if (align === "center") {
             const width = contentWidth;
             // Centre the dropdown under the middle of its caption.
