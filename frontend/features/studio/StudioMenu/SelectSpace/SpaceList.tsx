@@ -476,7 +476,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
 }
 
 /* Follows the brand guide's menus, as the language menu does: a panel with
-   24px corners, a mono section label, 40px rows with 8px corners, a subtle
+   24px corners, a section label, 40px rows with 8px corners, a subtle
    hover and a check on the current choice. */
 const Container = styled.div`
     ${brandVariables}
@@ -526,9 +526,7 @@ const Container = styled.div`
         gap: 6px;
         margin: 0;
         color: var(--oc-muted);
-        font: 11px/1 var(--oc-mono);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        font: 500 13px/1.2 var(--oc-font);
     }
 
     .menu-label {
@@ -700,8 +698,7 @@ const SpaceItem = styled.div`
 
     .status {
         color: var(--oc-muted);
-        font: 11px/1 var(--oc-mono);
-        letter-spacing: 0.04em;
+        font: 12px/1.2 var(--oc-font);
     }
 
     & > .actions {
