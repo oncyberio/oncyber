@@ -16,6 +16,7 @@ import UploadService from "@api/uploader/_api";
 import InlineError from "@ui/components/InlineError";
 import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { tx } from "@components/context/I18nContext";
 
 export function Pfp() {
     //
@@ -134,11 +135,11 @@ export function Pfp() {
         <Container aria-busy={isSubmitting}>
             <div className="setting-row">
                 <div>
-                    <h3>Visitor appearance</h3>
-                    <p>Use a shared profile picture.</p>
+                    <h3>{tx("Visitor appearance")}</h3>
+                    <p>{tx("Use a shared profile picture.")}</p>
                 </div>
                 <Toggle
-                    label="Use a shared visitor picture"
+                    label={tx("Use a shared visitor picture")}
                     disabled={!canEdit || isSubmitting}
                     value={isEnabled}
                     onChange={handleToggle}
@@ -148,14 +149,14 @@ export function Pfp() {
                 <div className="current-pfp">
                     <img
                         src={currentPfp.avatar}
-                        alt="Current visitor profile picture"
+                        alt={tx("Current visitor profile picture")}
                     />
                     <div>
-                        <span>Current default</span>
+                        <span>{tx("Current default")}</span>
                         <PanelNote>
                             {isSubmitting
-                                ? "Saving…"
-                                : "Shown to visitors when they arrive."}
+                                ? tx("Saving…")
+                                : tx("Shown to visitors when they arrive.")}
                         </PanelNote>
                     </div>
                 </div>
@@ -173,13 +174,17 @@ export function Pfp() {
                     <LibrarySearch
                         value={query}
                         onChange={setQuery}
-                        placeholder="Search your collection"
+                        placeholder={tx("Search your collection")}
                     />
                     {assetsReq?.state === "InitialLoading" ? (
-                        <PanelEmptyState title="Loading your collection…" />
+                        <PanelEmptyState
+                            title={tx("Loading your collection…")}
+                        />
                     ) : assetsReq?.state === "LoadinError" ? (
-                        <PanelEmptyState title="Couldn't load your collection">
-                            Try reopening this panel.
+                        <PanelEmptyState
+                            title={tx("Couldn't load your collection")}
+                        >
+                            {tx("Try reopening this panel.")}
                         </PanelEmptyState>
                     ) : (
                         <>
@@ -213,8 +218,8 @@ export function Pfp() {
                                 <PanelEmptyState
                                     title={
                                         query
-                                            ? "No matching artwork"
-                                            : "No artwork in your wallet"
+                                            ? tx("No matching artwork")
+                                            : tx("No artwork in your wallet")
                                     }
                                 >
                                     Choose an NFT from your collection as the
@@ -225,12 +230,16 @@ export function Pfp() {
                     )}
                 </>
             ) : (
-                <PanelEmptyState title="Visitors use their own profile picture">
-                    Enable a shared picture to choose one from your collection.
+                <PanelEmptyState
+                    title={tx("Visitors use their own profile picture")}
+                >
+                    {tx(
+                        "Enable a shared picture to choose one from your collection."
+                    )}
                 </PanelEmptyState>
             )}
             {isSubmitting && !currentPfp?.avatar && (
-                <PanelNote role="status">Saving…</PanelNote>
+                <PanelNote role="status">{tx("Saving…")}</PanelNote>
             )}
         </Container>
     );

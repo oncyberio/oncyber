@@ -2,6 +2,7 @@ import { MouseEventHandler } from "react";
 import styled from "styled-components";
 import { Label } from "./Label";
 import { color, radius } from "./tokens";
+import { tx } from "@components/context/I18nContext";
 
 interface RadioBoxProps {
     item: {
@@ -29,7 +30,7 @@ export default function RadioBox({
                     selectedColor={selectedColor}
                 />
             </CircleWrapper>
-            {!hideLabel && <Label>{item?.title}</Label>}
+            {!hideLabel && <Label>{tx(item?.title)}</Label>}
         </Container>
     );
 }

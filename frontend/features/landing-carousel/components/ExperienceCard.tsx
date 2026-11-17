@@ -12,6 +12,7 @@ import { creatorLabel, roomLabel } from "../data";
 import Icon from "./Icon";
 import { useActivitySignal } from "../activity";
 import { coverSources } from "../coverSources";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 export function CoverImage({ card }: { card: LandingCard }) {
     const [failed, setFailed] = useState<string[]>([]);
@@ -70,12 +71,70 @@ interface Props extends AnchorHTMLAttributes<HTMLAnchorElement> {
     arrowOpensNewTab?: boolean;
 }
 
+type Translate = (key: string, values?: Record<string, string>) => string;
+
+/**
+ * Card labels that carry a name or a count inside a fixed English phrase.
+ * `noun` captures are Oncyber's own words and are translated too.
+ */
+const CARD_PATTERNS: [RegExp, string, ("name" | "count" | "noun")[]][] = [
+    [/^Use (.+) template$/, "Use {name} template", ["name"]],
+    [/^View (.+) details$/, "View {name} details", ["name"]],
+    [/^Open (.+) in Studio$/, "Open {name} in Studio", ["name"]],
+    [/^Manage (.+)$/, "Manage {name}", ["name"]],
+    [
+        /^Show all (\d+) of your (.+)$/,
+        "Show all {count} of your {noun}",
+        ["count", "noun"],
+    ],
+    [/^Show all (\d+) (.+)$/, "Show all {count} {noun}", ["count", "noun"]],
+    [/^No (.+) match$/, "No {noun} match", ["noun"]],
+    [/^No (.+) yet$/, "No {noun} yet", ["noun"]],
+    [/^\+(\d+) more$/, "+{count} more", ["count"]],
+    [/^([\d.,]+[KMB]?) visit$/, "{count} visit", ["count"]],
+    [/^([\d.,]+[KMB]?) visits$/, "{count} visits", ["count"]],
+];
+
+export function localizeCardText(text: string, t: Translate) {
+    if (!text) return text;
+    for (const [pattern, key, names] of CARD_PATTERNS) {
+        const match = text.match(pattern);
+        if (!match) continue;
+        const values: Record<string, string> = {};
+        names.forEach((name, index) => {
+            const value = match[index + 1];
+            values[name] = name === "noun" ? t(value) : value;
+        });
+        return t(key, values);
+    }
+    return t(text);
+}
+
+/**
+ * Only Oncyber's own card names are translated; a creator's world or room
+ * name stays as they wrote it.
+ */
+function isOwnCard(card: { id: string; title: string; buildStatus?: string }) {
+    if (card.id.startsWith("space-")) return false;
+    return (
+        Boolean(card.buildStatus) ||
+        card.id.startsWith("build-") ||
+        card.id.startsWith("spaces-") ||
+        card.id === "template-blank" ||
+        card.title === "Untitled world"
+    );
+}
+
 const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
     function ExperienceCard(
         { card, flat, featured, arrowOpensNewTab = false, ...props },
         ref
     ) {
-        const status =
+        const { t, i18n } = useCyberTranslation();
+        const own = isOwnCard(card);
+        const title = own ? localizeCardText(card.title, t) : card.title;
+        const buildStatus = localizeCardText(card.buildStatus, t);
+        const rawStatus =
             card.destinationStatus ||
             {
                 free: "Free",
@@ -84,6 +143,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 checking: "Checking…",
                 scan: "Your scan",
             }[card.templateStatus];
+        const status = rawStatus && t(rawStatus);
         const creator = card.buildStatus ? "" : creatorLabel(card.creator);
         const content = (
             <Card
@@ -98,14 +158,16 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 aria-description={status}
                 aria-label={
                     card.actionLabel
-                        ? card.actionLabel
+                        ? localizeCardText(card.actionLabel, t)
                         : card.id.startsWith("template-")
-                        ? `Use ${card.title} template`
+                        ? t("Use {name} template", { name: title })
                         : card.buildStatus
                         ? card.href
-                            ? `Build a ${card.title.toLowerCase()} in Studio`
-                            : `${card.title} — ${card.buildStatus}`
-                        : `Enter ${card.title}`
+                            ? t("Build a {name} in Studio", {
+                                  name: title.toLowerCase(),
+                              })
+                            : `${title} — ${buildStatus}`
+                        : t("Enter {name}", { name: card.title })
                 }
                 aria-disabled={!card.href || undefined}
                 {...props}
@@ -116,7 +178,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                     <div className="card-loading" role="status">
                         <span className="card-spinner" aria-hidden="true" />
                         <span>
-                            {card.openingLabel || "Creating your space…"}
+                            {t(card.openingLabel) || t("Creating your space…")}
                         </span>
                     </div>
                 )}
@@ -133,7 +195,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                             // Studio build and template cards keep their own flow.
                             !/^(template|build)-/.test(card.id)
                                 ? {
-                                      title: "Open in a new tab",
+                                      title: t("Open in a new tab"),
                                       "data-new-tab": true,
                                       onClick: (event: React.MouseEvent) => {
                                           // Stop the card's in-page travel and
@@ -155,9 +217,9 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 </div>
                 <div className="card-caption">
                     <div className="caption-title">
-                        <h2>{card.title}</h2>
+                        <h2>{title}</h2>
                         {featured && card.buildStatus && (
-                            <span>{card.buildStatus}</span>
+                            <span>{buildStatus}</span>
                         )}
                     </div>
                     <div className="card-meta">
@@ -168,23 +230,30 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                         >
                             {card.buildStatus
                                 ? featured
-                                    ? card.description
-                                    : card.buildStatus
+                                    ? own
+                                        ? t(card.description)
+                                        : card.description
+                                    : buildStatus
                                 : creator
-                                ? `by ${
-                                      /^(0x|tz[123])/.test(creator) ? "" : "@"
-                                  }${creator}`
+                                ? t("by {name}", {
+                                      name: `${
+                                          /^(0x|tz[123])/.test(creator)
+                                              ? ""
+                                              : "@"
+                                      }${creator}`,
+                                  })
                                 : featured
-                                ? card.description || roomLabel(card.room)
-                                : roomLabel(card.room)}
+                                ? card.description || t(roomLabel(card.room))
+                                : t(roomLabel(card.room))}
                         </span>
                         {!card.buildStatus && (
                             <span>
-                                {Intl.NumberFormat("en", {
-                                    notation: "compact",
-                                    maximumFractionDigits: 1,
-                                }).format(card.visits)}{" "}
-                                visits
+                                {t("{count} visits", {
+                                    count: Intl.NumberFormat(i18n, {
+                                        notation: "compact",
+                                        maximumFractionDigits: 1,
+                                    }).format(card.visits),
+                                })}
                             </span>
                         )}
                     </div>

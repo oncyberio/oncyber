@@ -31,6 +31,19 @@ export const emailStepCopy = {
     sent: (email: string) => `We sent a sign-in link to ${email}.`,
 };
 
+function translatedEmailStepCopy(
+    t: (key: string, values?: Record<string, string>) => string
+): typeof emailStepCopy {
+    return {
+        hint: t(emailStepCopy.hint),
+        back: t(emailStepCopy.back),
+        send: t(emailStepCopy.send),
+        sending: t(emailStepCopy.sending),
+        sentTitle: t(emailStepCopy.sentTitle),
+        sent: (email) => t("We sent a sign-in link to {email}.", { email }),
+    };
+}
+
 /** Sign-in buttons that are not a wallet; any other source is a wallet key. */
 const NOT_A_WALLET = ["", "twitter", "google", "email", "passwordless"];
 
@@ -67,6 +80,7 @@ const ProviderButtons: FunctionComponent<
     setShowEmailInput,
 }) => {
     const { t } = useCyberTranslation();
+    const emailStepCopy = translatedEmailStepCopy(t);
 
     // What did not work, shown beside the button that was used
     // (docs/feedback.md). A caller that only sets the plain `error` text
@@ -92,11 +106,11 @@ const ProviderButtons: FunctionComponent<
             <SignInNotice $dark={isDarkTheme} data-beside={place}>
                 {failure.cancelled ? (
                     // Closing a request is a choice: said, but not as an error.
-                    <p role="status">{failure.message}</p>
+                    <p role="status">{t(failure.message)}</p>
                 ) : (
                     <InlineError
                         surface={isDarkTheme ? "dark" : "light"}
-                        message={failure.message}
+                        message={t(failure.message)}
                         onRetry={failure.canRetry ? retrySignIn : undefined}
                     />
                 )}
@@ -149,14 +163,16 @@ const ProviderButtons: FunctionComponent<
                                     ? emailStepCopy.sentTitle
                                     : sendingEmailLink
                                     ? emailStepCopy.sending
-                                    : header ?? "Sign in to oncyber"}
+                                    : header ?? t("Sign in to oncyber")}
                             </h2>
                             <p>
                                 {emailSuccess
                                     ? emailStepCopy.sent(email)
                                     : isEmailInputShowing
                                     ? emailStepCopy.hint
-                                    : "Sign in to explore, create and share your worlds."}
+                                    : t(
+                                          "Sign in to explore, create and share your worlds."
+                                      )}
                             </p>
                         </ModalHeading>
                     ) : (
@@ -171,7 +187,7 @@ const ProviderButtons: FunctionComponent<
                                     ? emailStepCopy.sentTitle
                                     : sendingEmailLink
                                     ? emailStepCopy.sending
-                                    : header ?? "Login to oncyber"}
+                                    : header ?? t("Sign in to oncyber")}
                             </Title>
 
                             <Subtitle
@@ -183,7 +199,7 @@ const ProviderButtons: FunctionComponent<
                                     ? emailStepCopy.sent(email)
                                     : isEmailInputShowing
                                     ? emailStepCopy.hint
-                                    : "Connect with Socials or Web3"}
+                                    : t("Connect with Socials or Web3")}
                             </Subtitle>
                         </>
                     )
@@ -302,7 +318,7 @@ const ProviderButtons: FunctionComponent<
                             <span>
                                 {web2Loading === "passwordless"
                                     ? t`LOADING` + "…"
-                                    : "Email"}
+                                    : t("Email")}
                             </span>
                         </NewStyledWalletProvider>
                     </Web2Wrapper>
@@ -322,7 +338,7 @@ const ProviderButtons: FunctionComponent<
                                         }
                                     >
                                         <Gmail />
-                                        <span>Open Gmail</span>
+                                        <span>{t("Open Gmail")}</span>
                                     </button>
                                     <button
                                         type="button"
@@ -335,7 +351,7 @@ const ProviderButtons: FunctionComponent<
                                         }
                                     >
                                         <Outlook />
-                                        <span>Open Outlook</span>
+                                        <span>{t("Open Outlook")}</span>
                                     </button>
                                 </div>
                                 <button
@@ -343,7 +359,7 @@ const ProviderButtons: FunctionComponent<
                                     className="retry-email"
                                     onClick={resetEmailLink}
                                 >
-                                    Try again or use another email
+                                    {t("Try again or use another email")}
                                 </button>
                             </SendingEmail>
                         ) : (
@@ -353,9 +369,9 @@ const ProviderButtons: FunctionComponent<
                                     disabled={sendingEmailLink}
                                     onChange={(e) => setEmail(e.target.value)}
                                     type="email"
-                                    aria-label="Email address"
+                                    aria-label={t("Email address")}
                                     autoComplete="email"
-                                    placeholder="your@email.com"
+                                    placeholder={t("your@email.com")}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") {
                                             handleSendEmailLink();
@@ -398,7 +414,7 @@ const ProviderButtons: FunctionComponent<
                                         }
                                     >
                                         {sendingEmailLink
-                                            ? "Sending…"
+                                            ? t("Sending…")
                                             : emailStepCopy.send}
                                     </ClickButton>
                                 </ButtonsWrapper>

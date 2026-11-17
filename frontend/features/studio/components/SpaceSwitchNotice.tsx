@@ -3,6 +3,7 @@ import InlineError from "@ui/components/InlineError";
 import { useSpaceSwitch } from "../context/SpaceSwitchContext";
 import { spaceSwitchBackTarget } from "../context/spaceSwitchMachine";
 import { studioAction, studioPanel } from "../styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 /**
  * What a visitor sees when the space they picked does not open: the intro
@@ -31,7 +32,7 @@ export function SpaceSwitchNotice() {
                 />
                 {back && (
                     <BackButton type="button" onClick={() => void goBack()}>
-                        Back to the previous space
+                        {tx("Back to the previous space")}
                     </BackButton>
                 )}
             </Panel>

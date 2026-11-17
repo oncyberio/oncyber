@@ -23,6 +23,7 @@ import { Experience } from "@uitypes/experience";
 import Plus from "@ui/icons/Plus";
 import { useOnboarding } from "@features/onboarding/context/OnboardingContext";
 import { Input } from "@components/forms/Input";
+import { tx } from "@components/context/I18nContext";
 
 const DeleteBlacklist: SpaceAction[] = ["delete"];
 
@@ -246,9 +247,11 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
     return (
         <Container>
             {/* */}
-            {isLoading && <p className="message">Loading...</p>}
+            {isLoading && <p className="message">{tx("Loading...")}</p>}
 
-            {error && <p className="message">Failed to load User spaces!</p>}
+            {error && (
+                <p className="message">{tx("Failed to load User spaces!")}</p>
+            )}
 
             {!isLoading && !error && (
                 <>
@@ -291,7 +294,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                             borderColor="#1d1d1d"
                             padding="20px"
                             color="white"
-                            placeholder="Filter"
+                            placeholder={tx("Filter")}
                             onChange={(e) => setSearch(e.target.value)}
                         />
 
@@ -299,7 +302,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                             .filter((exhibit) => {
                                 if (!search) return true;
                                 const headline =
-                                    exhibit?.info?.headline || "Untitled";
+                                    exhibit?.info?.headline || tx("Untitled");
                                 return headline
                                     .toLowerCase()
                                     .includes(search.toLowerCase());
@@ -350,7 +353,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                                                 <div className="title">
                                                     {info?.headline || (
                                                         <>
-                                                            Untitled{" "}
+                                                            {tx("Untitled")}{" "}
                                                             <span className="sec">
                                                                 (
                                                                 {_exhibit.id.slice(
@@ -432,7 +435,9 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                                         color="#328DFD"
                                     />
                                 </div>
-                                <div className="title">Create New World</div>
+                                <div className="title">
+                                    {tx("Create New World")}
+                                </div>
                             </CreateSpace>
                         </div>
                     )}

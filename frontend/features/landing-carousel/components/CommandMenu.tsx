@@ -9,6 +9,7 @@ import {
 import { Command, matchesCommand } from "../commands";
 import FeedMenu from "./DiscoveryFeedMenu";
 import Icon from "./Icon";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 interface Props {
     commands: Command[];
@@ -27,9 +28,21 @@ interface Props {
  * in the field; arrows move the active row and Enter runs it.
  */
 const CommandMenu = forwardRef<HTMLDivElement, Props>(function CommandMenu(
-    { commands, listLabel, id, className, onClose, onRun },
+    { commands: source, listLabel, id, className, onClose, onRun },
     ref
 ) {
+    const { t } = useCyberTranslation();
+    // Show each row in the visitor's language; the English words stay
+    // searchable through the keywords.
+    const commands = source.map((command) => ({
+        ...command,
+        section: t(command.section),
+        label: t(command.label),
+        detail: command.detail && t(command.detail),
+        keywords: [command.keywords, command.label, command.section]
+            .filter(Boolean)
+            .join(" "),
+    }));
     const [query, setQuery] = useState("");
     const [active, setActive] = useState(() =>
         Math.max(
@@ -68,7 +81,7 @@ const CommandMenu = forwardRef<HTMLDivElement, Props>(function CommandMenu(
             id={id}
             className={className}
             role="dialog"
-            aria-label="Commands"
+            aria-label={t("Commands")}
             onKeyDown={(event) => {
                 if (event.nativeEvent.isComposing || event.keyCode === 229)
                     return;
@@ -110,14 +123,14 @@ const CommandMenu = forwardRef<HTMLDivElement, Props>(function CommandMenu(
                 <input
                     ref={inputRef}
                     role="combobox"
-                    aria-label="Search commands"
+                    aria-label={t("Search commands")}
                     aria-expanded="true"
                     aria-controls={listId}
                     aria-autocomplete="list"
                     aria-activedescendant={
                         visible[activeIndex] ? optionId(activeIndex) : undefined
                     }
-                    placeholder="Filter, create, jump in…"
+                    placeholder={t("Filter, create, jump in…")}
                     autoComplete="off"
                     spellCheck={false}
                     value={query}
@@ -131,10 +144,12 @@ const CommandMenu = forwardRef<HTMLDivElement, Props>(function CommandMenu(
                 className="command-list"
                 id={listId}
                 role="listbox"
-                aria-label={listLabel}
+                aria-label={t(listLabel)}
             >
                 {visible.length === 0 && (
-                    <div className="command-empty">No matching commands</div>
+                    <div className="command-empty">
+                        {t("No matching commands")}
+                    </div>
                 )}
                 {visible.map((command, index) => {
                     const heading =
@@ -166,7 +181,10 @@ const CommandMenu = forwardRef<HTMLDivElement, Props>(function CommandMenu(
                                 <span className="label">{command.label}</span>
                                 <span className="detail">{command.detail}</span>
                                 {command.checked ? (
-                                    <span className="hint" aria-label="current">
+                                    <span
+                                        className="hint"
+                                        aria-label={t("current")}
+                                    >
                                         <Icon name="check" size={14} />
                                     </span>
                                 ) : command.hint ? (

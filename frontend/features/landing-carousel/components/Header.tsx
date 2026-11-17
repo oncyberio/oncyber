@@ -12,10 +12,12 @@ import styled from "styled-components";
 import { UserContext } from "@components/context/UserContext";
 import CyberloopMark from "./CyberloopMark";
 import AccountSidebar from "./AccountSidebar";
+import LanguageSwitch from "./LanguageSwitch";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { blueAction, compactActionSizing } from "@styles/brand";
 import { showError, showModal } from "@components/Dialogs";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 const ConnectModal = dynamic(() => import("@ui/components/ConnectWallet"), {
     ssr: false,
@@ -52,13 +54,14 @@ export default function Header({
 }) {
     const { user, userData, authenticated, isAnonymous, logout } =
         useContext(UserContext);
+    const { t } = useCyberTranslation();
     const username = userData?.username?.replace(/^@/, "");
-    const accountName = username ? `@${username}` : "My account";
+    const accountName = username ? `@${username}` : t("My account");
     const wallet = userData?.walletId || user?.id || "";
     const accountDetail =
         userData?.walletCustomName ||
         (userData?.type === "web2"
-            ? "My spaces"
+            ? t("My spaces")
             : wallet.length > 18
             ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}`
             : wallet);
@@ -96,7 +99,7 @@ export default function Header({
         try {
             await logout();
         } catch {
-            showError("Please try again.", "Could not sign out");
+            showError(t("Please try again."), t("Could not sign out"));
         }
     }
     return (
@@ -106,7 +109,7 @@ export default function Header({
                 <Link
                     href="/"
                     className="brand"
-                    aria-label="Oncyber home"
+                    aria-label={t("Oncyber home")}
                     onClick={
                         onHome
                             ? (event) => {
@@ -125,6 +128,9 @@ export default function Header({
                 </Link>
                 <div className="account-actions">
                     {!immersive && search}
+                    {!immersive && (
+                        <LanguageSwitch className="language-switch" />
+                    )}
                     {signedIn ? (
                         <div className="account-menu">
                             <button
@@ -132,7 +138,9 @@ export default function Header({
                                 ref={accountButton}
                                 id={accountButtonId}
                                 className="account-profile"
-                                aria-label={`${accountName} — Account menu`}
+                                aria-label={`${accountName} — ${t(
+                                    "Account menu"
+                                )}`}
                                 aria-haspopup="dialog"
                                 aria-expanded={accountOpen}
                                 aria-controls={accountMenuId}
@@ -174,7 +182,7 @@ export default function Header({
                             onClick={() => setAuthOpen(true)}
                         >
                             <span>
-                                Sign in <span aria-hidden="true">→</span>
+                                {t("Sign in")} <span aria-hidden="true">→</span>
                             </span>
                         </button>
                     )}
@@ -331,6 +339,11 @@ const Container = styled.header`
     }
     @media (max-width: 700px) {
         height: var(--landing-header-height, 86px);
+        /* No room beside the mark on phones: the browser language picks
+           the language, and the account menu can change it. */
+        .language-switch {
+            display: none;
+        }
         margin: 0 20px;
         .brand > img {
             width: 30px;

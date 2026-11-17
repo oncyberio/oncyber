@@ -26,6 +26,7 @@ import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import { useSpaceCoverContext } from "../context/SpaceCoverContext";
 import { useCustomLinkEditor } from "@features/studio/StudioMenu/context/useCustomLinkEditor";
 import { CustomLinkEdit } from "../shared/CustomLinkEdit";
+import { tx } from "@components/context/I18nContext";
 
 type ExhibitInfo = {
     heroImg?: string;
@@ -143,10 +144,10 @@ export function Details() {
             </HeaderInfo>
 
             <Form>
-                <FormLabel>Title</FormLabel>
+                <FormLabel>{tx("Title")}</FormLabel>
                 <Input
                     maxLength={30}
-                    placeholder="e.g. Martian"
+                    placeholder={tx("e.g. Martian")}
                     onChange={(e) =>
                         editGeneralInfo({
                             headline: e.target.value,
@@ -160,11 +161,11 @@ export function Details() {
             <CustomLinkEdit />
 
             <Form>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>{tx("Description")}</FormLabel>
                 <TextArea
                     className="scrollbar-hidden"
                     maxLength={250}
-                    placeholder="Enter a description..."
+                    placeholder={tx("Enter a description...")}
                     onChange={(e) =>
                         editGeneralInfo({
                             description: e.target.value,
@@ -176,7 +177,7 @@ export function Details() {
             </Form>
 
             <Form>
-                <FormLabel>Preview</FormLabel>
+                <FormLabel>{tx("Preview")}</FormLabel>
 
                 <GenerateImageWrapper>
                     <PreviewWrapper>
@@ -249,7 +250,7 @@ export function Details() {
                             />
                         </ImageWrapper>
                         <Progress progress={progress} />
-                        <span>2D Banner</span>
+                        <span>{tx("2D Banner")}</span>
                     </PreviewWrapper>
 
                     {/* <PreviewWrapper>

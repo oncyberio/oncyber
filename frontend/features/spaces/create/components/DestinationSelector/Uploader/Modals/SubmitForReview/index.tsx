@@ -23,6 +23,7 @@ import Modal from "@components/modals/Modal";
 import { showConfirm, showError } from "@components/Dialogs";
 import { dialogButtons } from "@components/Dialogs/styles";
 import { baseTokens as base } from "@styles/tokens/base";
+import { tx } from "@components/context/I18nContext";
 
 export interface Props {
     destination: Partial<Destination>;
@@ -262,9 +263,11 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 </p>
 
                                 <div>
-                                    <label>Contact Email</label>
+                                    <label>{tx("Contact Email")}</label>
                                     <span className="subcopy">
-                                        Receive updates on minting eligibility
+                                        {tx(
+                                            "Receive updates on minting eligibility"
+                                        )}
                                     </span>
                                     <Input
                                         name="email"
@@ -274,7 +277,7 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                         color="var(--title-color)"
                                         defaultValue={form?.email}
                                         onChange={handleInputChange}
-                                        placeholder="e.g. rtfkt@nike.com"
+                                        placeholder={tx("e.g. rtfkt@nike.com")}
                                     />
                                     {error?.email && (
                                         <span className="error">
@@ -284,9 +287,9 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 </div>
 
                                 <div>
-                                    <label>Distribution Type</label>
+                                    <label>{tx("Distribution Type")}</label>
                                     <span className="subcopy">
-                                        Select your distribution plan
+                                        {tx("Select your distribution plan")}
                                     </span>
                                     <Dropdown
                                         background="var(--field-bg-color)"
@@ -422,7 +425,7 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 )}
 
                                 <div>
-                                    <label>Destination Name</label>
+                                    <label>{tx("Destination Name")}</label>
                                     <Input
                                         name="name"
                                         type={"text"}
@@ -431,7 +434,7 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                         color="var(--title-color)"
                                         defaultValue={form?.name}
                                         onChange={handleInputChange}
-                                        placeholder="Destination Name"
+                                        placeholder={tx("Destination Name")}
                                     />
                                     {error?.name && (
                                         <span className="error">
@@ -441,13 +444,17 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 </div>
 
                                 <div>
-                                    <label>Destination Description</label>
+                                    <label>
+                                        {tx("Destination Description")}
+                                    </label>
                                     <Textarea
                                         name="description"
                                         overrideTheme="dark"
                                         onChange={handleInputChange}
                                         defaultValue={form?.description}
-                                        placeholder="Write a brief description"
+                                        placeholder={tx(
+                                            "Write a brief description"
+                                        )}
                                     />
                                     {error?.description && (
                                         <span className="error">
@@ -457,7 +464,9 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 </div>
 
                                 <div>
-                                    <label>Select Contract for minting</label>
+                                    <label>
+                                        {tx("Select Contract for minting")}
+                                    </label>
                                     <RadioGroup>
                                         {Contracts.filter(
                                             (item) =>
@@ -493,8 +502,12 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                 <div>
                                     <UploaderContainer>
                                         <div className="description">
-                                            <label>Cover Image</label>
-                                            <p>Upload .jpeg or .png images</p>
+                                            <label>{tx("Cover Image")}</label>
+                                            <p>
+                                                {tx(
+                                                    "Upload .jpeg or .png images"
+                                                )}
+                                            </p>
                                             <UploadImage
                                                 overrideTheme="dark"
                                                 onUpload={(thumbnail) =>
@@ -509,8 +522,10 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                                             />
                                         </div>
                                         <div className="description">
-                                            <label>Animation / Video</label>
-                                            <p>Upload .mp4 videos</p>
+                                            <label>
+                                                {tx("Animation / Video")}
+                                            </label>
+                                            <p>{tx("Upload .mp4 videos")}</p>
                                             <VideoImage
                                                 cloudinary={true}
                                                 overrideTheme="dark"
@@ -606,16 +621,18 @@ const SubmitForReview = forwardRef<HTMLDivElement, Props>(
                         <Success>
                             <div>
                                 <CheckCircle color={base.color.ink} />
-                                <h1>Success!</h1>
+                                <h1>{tx("Success!")}</h1>
                                 {isEdit ? (
                                     <p>
-                                        Your destination details has been
-                                        successfully updated!
+                                        {tx(
+                                            "Your destination details has been successfully updated!"
+                                        )}
                                     </p>
                                 ) : (
                                     <p>
-                                        Thanks for your submission! Our team
-                                        will review your space and be in touch.
+                                        {tx(
+                                            "Thanks for your submission! Our team will review your space and be in touch."
+                                        )}
                                     </p>
                                 )}
                             </div>

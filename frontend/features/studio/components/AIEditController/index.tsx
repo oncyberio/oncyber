@@ -46,6 +46,7 @@ import {
 } from "@dapp/cyberRooms";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
 import { shouldDisplayNFTs } from "@features/studio/utils";
+import { tx } from "@components/context/I18nContext";
 
 export default function useAIEditController() {
     const world = useWorld();
@@ -126,7 +127,8 @@ export default function useAIEditController() {
                     placeholder:
                         (name?.length > 20
                             ? name.slice(0, 21) + "..."
-                            : name || "Selected Asset") + " - ⌫ to deselect",
+                            : name || tx("Selected Asset")) +
+                        " - ⌫ to deselect",
                 });
             }
         } else {
@@ -556,7 +558,8 @@ export default function useAIEditController() {
                 if (!result.success) {
                     return {
                         error: true,
-                        message: result.message || "Failed to update user data",
+                        message:
+                            result.message || tx("Failed to update user data"),
                     };
                 }
 

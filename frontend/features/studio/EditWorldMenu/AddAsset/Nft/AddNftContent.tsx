@@ -18,6 +18,7 @@ import { NftEmptyState } from "./NftEmptyState";
 import { useWalletContext } from "../../context/WalletContext";
 import { formatWalletAddress } from "@utils/format";
 import { NftSourceButton } from "./NftSourceButton";
+import { tx } from "@components/context/I18nContext";
 
 export interface ContentProps {
     query: string;
@@ -135,10 +136,10 @@ export function AddNftContent({
                 </svg>
                 <input
                     type="search"
-                    aria-label="Search your NFTs"
+                    aria-label={tx("Search your NFTs")}
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search NFTs"
+                    placeholder={tx("Search NFTs")}
                 />
             </div>
             <div className="source-controls">
@@ -146,11 +147,11 @@ export function AddNftContent({
                     addTogglerRef={togglerRef}
                     caption={({ toggled }) => (
                         <NftSourceButton
-                            label="Wallet"
+                            label={tx("Wallet")}
                             value={
                                 currentWalletId
                                     ? formatWalletAddress(currentWalletId)
-                                    : "Select wallet"
+                                    : tx("Select wallet")
                             }
                             toggled={toggled}
                         />
@@ -160,14 +161,18 @@ export function AddNftContent({
             </div>
             <AssetListWrapper>
                 {isLoading ? (
-                    <NftEmptyState title="Loading NFTs…" />
+                    <NftEmptyState title={tx("Loading NFTs…")} />
                 ) : hasError ? (
-                    <NftEmptyState title="Collection unavailable">
-                        Try another wallet or network.
+                    <NftEmptyState title={tx("Collection unavailable")}>
+                        {tx("Try another wallet or network.")}
                     </NftEmptyState>
                 ) : !shownAssets.length ? (
                     <NftEmptyState
-                        title={query ? "No results" : "No NFTs in this wallet"}
+                        title={
+                            query
+                                ? tx("No results")
+                                : tx("No NFTs in this wallet")
+                        }
                         action={
                             query
                                 ? {
@@ -194,7 +199,7 @@ export function AddNftContent({
                     <div className="footer">
                         <div
                             className="select-info"
-                            title="Unselect all"
+                            title={tx("Unselect all")}
                             onClick={() => {
                                 setSelectedAssets([]);
                             }}

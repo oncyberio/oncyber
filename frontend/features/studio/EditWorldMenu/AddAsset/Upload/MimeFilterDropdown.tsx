@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export const mimeFilterOpts = [
     { title: "All types", value: "all" },
@@ -24,13 +25,13 @@ export function MimeFilterDropdown({
     return (
         <Filter ref={addTogglerRef}>
             <select
-                aria-label="Filter uploads"
+                aria-label={tx("Filter uploads")}
                 value={value}
                 onChange={(e) => onChange(e.target.value as MimeFilterOpt)}
             >
                 {mimeFilterOpts.map((it) => (
                     <option key={it.value} value={it.value}>
-                        {it.title}
+                        {tx(it.title)}
                     </option>
                 ))}
             </select>

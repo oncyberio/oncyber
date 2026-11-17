@@ -7,6 +7,7 @@ import { ExhibitPreview } from "../../../Portal/ExhibitPreview";
 import { PortalOpt } from "../../../shared/AssetTypes";
 
 import PortalController, { Command } from "../shared/PortalController";
+import { tx } from "@components/context/I18nContext";
 
 export default function Basic() {
     //
@@ -20,7 +21,7 @@ export default function Basic() {
         //
         const targetExhibit = portal.portalData.exhibit;
 
-        const name = targetExhibit?.info?.headline || "Untitled";
+        const name = targetExhibit?.info?.headline || tx("Untitled");
 
         content = (
             <Field>
@@ -37,7 +38,9 @@ export default function Basic() {
     } else {
         content = (
             <>
-                <Label>The space linked to this portal was deleted!!</Label>
+                <Label>
+                    {tx("The space linked to this portal was deleted!!")}
+                </Label>
                 <Command
                     style={{ marginBottom: 18 }}
                     onClick={() => {
@@ -45,7 +48,7 @@ export default function Basic() {
                         uiDispatch({ type: "opt-on", option: PortalOpt });
                     }}
                 >
-                    <strong>🔗 Click connect another space</strong>
+                    <strong>{tx("🔗 Click connect another space")}</strong>
                 </Command>
             </>
         );

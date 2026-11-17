@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import Icon from "./Icon";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 export default function BottomSearch({
     value,
@@ -42,11 +43,13 @@ export default function BottomSearch({
     const templates = scope === "templates";
     const destinations = scope === "destinations";
     const creating = scope === "game" || scope === "gaussian";
-    const contextLabel = scope === "game" ? "Game idea" : "Gallery name";
-    const question =
+    const { t } = useCyberTranslation();
+    const contextLabel = t(scope === "game" ? "Game idea" : "Gallery name");
+    const question = t(
         scope === "game"
             ? "What kind of game do you want to build?"
-            : "What would you like to name your gallery?";
+            : "What would you like to name your gallery?"
+    );
 
     return (
         <Search
@@ -56,11 +59,11 @@ export default function BottomSearch({
                     ? contextLabel
                     : templates
                     ? withSpaces
-                        ? "Search your worlds and templates"
-                        : "Search templates"
+                        ? t("Search your worlds and templates")
+                        : t("Search templates")
                     : destinations
-                    ? "Search my destinations"
-                    : "Search worlds"
+                    ? t("Search my destinations")
+                    : t("Search worlds")
             }
             onSubmit={(event) => {
                 event.preventDefault();
@@ -84,28 +87,30 @@ export default function BottomSearch({
                         ? contextLabel
                         : templates
                         ? withSpaces
-                            ? "Search your worlds and gallery templates"
-                            : "Search gallery templates"
+                            ? t("Search your worlds and gallery templates")
+                            : t("Search gallery templates")
                         : destinations
-                        ? "Search my destinations"
-                        : "Search worlds, artists, and creators"
+                        ? t("Search my destinations")
+                        : t("Search worlds, artists, and creators")
                 }
                 placeholder={
                     creating
                         ? question
                         : templates
                         ? withSpaces
-                            ? "Search your worlds and templates…"
-                            : "Search templates, artists, styles…"
+                            ? t("Search your worlds and templates…")
+                            : t("Search templates, artists, styles…")
                         : destinations
-                        ? "Search destinations…"
-                        : "Search worlds, artists, creators…"
+                        ? t("Search destinations…")
+                        : t("Search worlds, artists, creators…")
                 }
                 aria-description={
                     scope === "worlds"
-                        ? "Type / to choose Popular, Latest, or another world feed."
+                        ? t(
+                              "Type / to choose Popular, Latest, or another world feed."
+                          )
                         : templates
-                        ? "Type / to choose a template category."
+                        ? t("Type / to choose a template category.")
                         : undefined
                 }
                 enterKeyHint={creating ? "done" : "search"}
@@ -133,14 +138,16 @@ export default function BottomSearch({
                     type="button"
                     aria-label={
                         creating
-                            ? `Clear ${contextLabel.toLowerCase()}`
+                            ? t("Clear {name}", {
+                                  name: contextLabel.toLowerCase(),
+                              })
                             : templates
                             ? withSpaces
-                                ? "Clear search"
-                                : "Clear template search"
+                                ? t("Clear search")
+                                : t("Clear template search")
                             : destinations
-                            ? "Clear destination search"
-                            : "Clear world search"
+                            ? t("Clear destination search")
+                            : t("Clear world search")
                     }
                     onClick={() => {
                         setQuery("");

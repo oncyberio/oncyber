@@ -5,6 +5,7 @@ import { AssetIcon } from "../shared/AssetIcon";
 import { assetDockOptions, type AssetOption } from "../shared/AssetTypes";
 import { AddAssetLayout } from ".";
 import { AssetDock, AssetDockButton, AssetDockShell } from "./AssetDock";
+import { tx } from "@components/context/I18nContext";
 
 export interface StudioAssetDockProps {
     option: AssetOption | null;
@@ -44,8 +45,8 @@ export function StudioAssetDock({
                                     type="button"
                                     data-tool={tool.value}
                                     $active={active}
-                                    aria-label={tool.title}
-                                    title={tool.title}
+                                    aria-label={tx(tool.title)}
+                                    title={tx(tool.title)}
                                     aria-pressed={active}
                                     className={active ? "active" : ""}
                                     onClick={() => {
@@ -58,7 +59,7 @@ export function StudioAssetDock({
                                     </span>
                                     <span className="desc mobile-only">
                                         <span className="title">
-                                            {tool.title}
+                                            {tx(tool.title)}
                                         </span>
                                     </span>
                                 </AssetDockButton>
@@ -70,8 +71,8 @@ export function StudioAssetDock({
                         type="button"
                         aria-label={
                             expanded
-                                ? "Show fewer asset types"
-                                : "Show more asset types"
+                                ? tx("Show fewer asset types")
+                                : tx("Show more asset types")
                         }
                         aria-expanded={expanded}
                         onClick={() => setExpanded((value) => !value)}

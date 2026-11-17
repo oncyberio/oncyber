@@ -13,6 +13,7 @@ import useModal from "@components/modals/useModal";
 import { UserContext } from "@components/context/UserContext";
 
 import { HIT_ANON_LIMIT, isAnonDataValid } from "@utils/anon";
+import { tx } from "@components/context/I18nContext";
 
 export default function AnonSave({}) {
     const { getModeStatus, worldMode, setWorldMode, exhibit, toggleAuth } =
@@ -69,7 +70,7 @@ export default function AnonSave({}) {
         >
             <NButton size="small" className="action">
                 <span>
-                    {saving ? "Opening…" : "Sign in"}{" "}
+                    {saving ? tx("Opening…") : tx("Sign in")}{" "}
                     <span aria-hidden="true">→</span>
                 </span>
             </NButton>

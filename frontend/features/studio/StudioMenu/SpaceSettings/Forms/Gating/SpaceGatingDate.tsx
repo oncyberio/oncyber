@@ -11,6 +11,7 @@ import { Header } from "../styles/Header";
 import { GatingUIProps } from "./types";
 import { useGatingEditCancel } from "./useGatingEditCancel";
 import { useFormHandler } from "../context/ActionsContext";
+import { tx } from "@components/context/I18nContext";
 
 type DateGating = Experience["gating"]["date"];
 
@@ -69,17 +70,17 @@ export function SpaceGatingDate({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <Header>Allow access before/after a specific date</Header>
+            <Header>{tx("Allow access before/after a specific date")}</Header>
 
             <Form>
-                <FormLabel>Start date</FormLabel>
+                <FormLabel>{tx("Start date")}</FormLabel>
                 <DateInput
                     type="datetime-local"
                     name="start"
                     defaultValue={start}
                     onChange={handleChange}
                 />
-                {/* <FormError className="error">Invalid date</FormError> */}
+                {/* <FormError className="error">{tx("Invalid date")}</FormError> */}
             </Form>
 
             <Form>
@@ -90,7 +91,7 @@ export function SpaceGatingDate({ initState, onClose }: GatingUIProps) {
                     defaultValue={end}
                     onChange={handleChange}
                 />
-                {/* <FormError className="error err">Invalid date</FormError> */}
+                {/* <FormError className="error err">{tx("Invalid date")}</FormError> */}
             </Form>
         </Container>
     );

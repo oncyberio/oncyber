@@ -23,6 +23,7 @@ import { IS_MOBILE } from "@3constants";
 import { useRouter } from "next/router";
 import { createEmptySpace } from "../../utils";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
+import { tx } from "@components/context/I18nContext";
 export interface DestinationBoxProps {
     section: RoomSection;
     room: Destination;
@@ -185,7 +186,7 @@ export function DestinationCell({
     if (isBusy) {
         cta = (
             <div className="loading overlay">
-                <div>Creating Space</div>
+                <div>{tx("Creating Space")}</div>
                 <Spinner className="spinner" />
             </div>
         );
@@ -236,7 +237,7 @@ export function DestinationCell({
             if (canBuy && price != null && !isOwned) {
                 actions.push(
                     <NButton overrideTheme="dark" onClick={handleBuyRoom}>
-                        Buy Now
+                        {tx("Buy Now")}
                     </NButton>
                 );
             } else if (isOwned) {
@@ -324,7 +325,7 @@ export function DestinationCell({
                         <>
                             {isFree && (
                                 <div className="badge free">
-                                    <Dot /> Free
+                                    <Dot /> {tx("Free")}
                                 </div>
                             )}
                             {section === "uploaded" && (
@@ -361,11 +362,17 @@ export function DestinationCell({
                             </div>
                         </div>
                         <div className="desc">
-                            <span className="author">By: {authorName}</span>
+                            <span className="author">
+                                {tx("By: {name}", { name: authorName ?? "" })}
+                            </span>
                             {capacity > 0 ? (
                                 <>
                                     <span className="sep">•</span>
-                                    <span>{capacity} Frames</span>
+                                    <span>
+                                        {tx("{count} Frames", {
+                                            count: capacity,
+                                        })}
+                                    </span>
                                 </>
                             ) : null}
                             {nonFungible && (

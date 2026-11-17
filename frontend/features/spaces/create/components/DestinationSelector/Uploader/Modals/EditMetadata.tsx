@@ -10,6 +10,7 @@ import { amplitude_logAnalyticsEvent, getCookie } from "@utils/analytics";
 import Modal from "@components/modals/Modal";
 import { showError } from "@components/Dialogs";
 import { Destination } from "@uitypes/destinations";
+import { tx } from "@components/context/I18nContext";
 
 export interface RoomMetadata {
     name: string;
@@ -22,7 +23,11 @@ export interface FactoryMetadataProps {
     onCancel: () => unknown;
 }
 
-export default function EditMetadata({ destination, onSubmit, onCancel }: FactoryMetadataProps) {
+export default function EditMetadata({
+    destination,
+    onSubmit,
+    onCancel,
+}: FactoryMetadataProps) {
     //
 
     const [name, setName] = useState(destination.name);
@@ -42,7 +47,10 @@ export default function EditMetadata({ destination, onSubmit, onCancel }: Factor
 
             const sameSlug = destination.slug === slug;
 
-            if (!sameSlug && (await checkSlugExists(name.replace(/ /g, "").toLowerCase()))) {
+            if (
+                !sameSlug &&
+                (await checkSlugExists(name.replace(/ /g, "").toLowerCase()))
+            ) {
                 throw new Error("This destination name already exists");
             }
 
@@ -84,35 +92,45 @@ export default function EditMetadata({ destination, onSubmit, onCancel }: Factor
             <Container>
                 <SubmitDestination>
                     <Details>
-                        <h1>Upload for Testing</h1>
+                        <h1>{tx("Upload for Testing")}</h1>
                         <p>
-                            You'll later have an option to submit your space for official release. View our{" "}
-                            <a href="https://docs.oncyber.io/spaces/" target={"_blank"}>
-                                docs
+                            You'll later have an option to submit your space for
+                            official release. View our{" "}
+                            <a
+                                href="https://docs.oncyber.io/spaces/"
+                                target={"_blank"}
+                            >
+                                {tx("docs")}
                             </a>{" "}
                             for more info.
                         </p>
                         <div>
-                            <label>Destination Name</label>
+                            <label>{tx("Destination Name")}</label>
                             <Input
-                                placeholder="The title of your destination"
+                                placeholder={tx(
+                                    "The title of your destination"
+                                )}
                                 type={"text"}
                                 defaultValue={name}
                                 name="name"
                                 autoComplete="off"
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                onChange={(
+                                    e: ChangeEvent<HTMLInputElement>
+                                ) => {
                                     setName(e.target.value);
                                     setSlug(getSlug(e.target.value));
                                 }}
                             />
                         </div>
                         <div>
-                            <label>Destination Link</label>
+                            <label>{tx("Destination Link")}</label>
                             <div className="input-icon">
                                 {!copied ? (
                                     <DuplicateIcon
                                         onClick={() => {
-                                            navigator.clipboard.writeText(`${nodeEnv.PUBLIC_API}/destinations/${slug}`);
+                                            navigator.clipboard.writeText(
+                                                `${nodeEnv.PUBLIC_API}/destinations/${slug}`
+                                            );
                                             setCopied(true);
                                             setTimeout(() => {
                                                 setCopied(false);
@@ -120,20 +138,35 @@ export default function EditMetadata({ destination, onSubmit, onCancel }: Factor
                                         }}
                                     />
                                 ) : (
-                                    <Check strokeColor="#48C9B0" style={{ marginTop: "2px" }} />
+                                    <Check
+                                        strokeColor="#48C9B0"
+                                        style={{ marginTop: "2px" }}
+                                    />
                                 )}
 
-                                <Input autoComplete="off" type={"url"} disabled placeholder={`${nodeEnv.PUBLIC_API}/destinations/${slug || ""}`} defaultValue={slug ? `${nodeEnv.PUBLIC_API}/destinations/${slug}` : ""} />
+                                <Input
+                                    autoComplete="off"
+                                    type={"url"}
+                                    disabled
+                                    placeholder={`${
+                                        nodeEnv.PUBLIC_API
+                                    }/destinations/${slug || ""}`}
+                                    defaultValue={
+                                        slug
+                                            ? `${nodeEnv.PUBLIC_API}/destinations/${slug}`
+                                            : ""
+                                    }
+                                />
                             </div>
                         </div>
                     </Details>
 
                     <Footer>
                         <RoundButton className="cancel" onClick={onCancel}>
-                            Cancel
+                            {tx("Cancel")}
                         </RoundButton>
                         <RoundButton className="submit" onClick={handleSubmit}>
-                            Upload
+                            {tx("Upload")}
                         </RoundButton>
                     </Footer>
                 </SubmitDestination>

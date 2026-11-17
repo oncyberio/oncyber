@@ -12,6 +12,7 @@ import styled, { css } from "styled-components";
 import { Wallet } from "./Wallet";
 import dynamic from "next/dynamic";
 import { showModal } from "@components/Dialogs";
+import { tx } from "@components/context/I18nContext";
 
 const ConnectWallet = dynamic(() => import("@ui/components/ConnectWallet"));
 
@@ -113,16 +114,16 @@ export function Dropdown({ onAction }: DropdownProps) {
                 onClick={() => onAction({ type: "create-space" })}
             >
                 <IconImg name="plus-circle" size={12} className="icon" />
-                <span>Make another world</span>
+                <span>{tx("Make another world")}</span>
             </div> */}
 
             <div className="item">
                 <IconImg name="corner-down-left" size={12} className="icon" />
-                <a href="/">Home Page</a>
+                <a href="/">{tx("Home Page")}</a>
             </div>
             <div className="item">
                 <IconImg name="corner-down-left" size={12} className="icon" />
-                <a href="/destinations">My Uploads</a>
+                <a href="/destinations">{tx("My Uploads")}</a>
             </div>
         </Container>
     );

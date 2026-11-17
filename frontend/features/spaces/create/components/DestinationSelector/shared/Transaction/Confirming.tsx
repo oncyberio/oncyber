@@ -6,18 +6,19 @@ import {
     dialogCopy,
     dialogTitle,
 } from "@components/Dialogs/styles";
+import { tx } from "@components/context/I18nContext";
 
 export function Confirming() {
     return (
         <Container {...DARK_DIALOG_CONTENT}>
-            <h2>Processing the transaction</h2>
+            <h2>{tx("Processing the transaction")}</h2>
             <Spinner
                 isLightTheme={false}
                 width={48}
                 stroke="#9c9c9c"
                 style={{ opacity: "0.3" }}
             />
-            <p>Check your wallet provider to confirm the purchase.</p>
+            <p>{tx("Check your wallet provider to confirm the purchase.")}</p>
         </Container>
     );
 }

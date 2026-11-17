@@ -10,6 +10,7 @@ import IconImg from "@ui/components/IconImg";
 import { NButton } from "@ui/components/NButton";
 import styled from "styled-components";
 import { useRooms } from "../../useRooms";
+import { tx } from "@components/context/I18nContext";
 
 export function DestinationMarketplace() {
     const {
@@ -32,7 +33,7 @@ export function DestinationMarketplace() {
     let content = null;
 
     if (loading) {
-        content = <div className="loading">Loading…</div>;
+        content = <div className="loading">{tx("Loading…")}</div>;
     } else if (makingOffer) {
         content = (
             <MakingOfferWrapper>
@@ -46,7 +47,7 @@ export function DestinationMarketplace() {
                     type="text"
                     value={startAmount}
                     onChange={handleAmountChange}
-                    placeholder="Offer amount"
+                    placeholder={tx("Offer amount")}
                 />
 
                 <NButton
@@ -77,7 +78,7 @@ export function DestinationMarketplace() {
                         paymentToken={listing?.paymentToken}
                         className="crypto-price"
                     />
-                    <div className="label">Current price</div>
+                    <div className="label">{tx("Current price")}</div>
                 </div>
             );
         } else if (offer != null) {
@@ -88,15 +89,15 @@ export function DestinationMarketplace() {
                         paymentToken={offer.paymentToken}
                         className="crypto-price"
                     />
-                    <div className="label">Highest Offer</div>
+                    <div className="label">{tx("Highest Offer")}</div>
                 </div>
             );
         }
 
         if (isOwner) {
-            actions = <Label>You own this artwork</Label>;
+            actions = <Label>{tx("You own this artwork")}</Label>;
             //}  else if (submitting) {
-            // actions = <Label>Submitting ...</Label>;
+            // actions = <Label>{tx("Submitting ...")}</Label>;
         } else {
             actions = (
                 <Actions>

@@ -6,6 +6,7 @@ import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import { useCustomLinkEditor } from "@features/studio/StudioMenu/context/useCustomLinkEditor";
 import { Input } from "./Input";
 import { ChangeEvent, useState } from "react";
+import { tx } from "@components/context/I18nContext";
 import { SITE_ORIGIN, siteUrl } from "@utils/siteUrl";
 
 export function CustomLinkEdit() {
@@ -24,7 +25,7 @@ export function CustomLinkEdit() {
 
     return (
         <Form>
-            <FormLabel>Your link </FormLabel>
+            <FormLabel>{tx("Your link")} </FormLabel>
             <Input
                 readOnly={userRole !== "owner"}
                 hasError={!!customLinkError}

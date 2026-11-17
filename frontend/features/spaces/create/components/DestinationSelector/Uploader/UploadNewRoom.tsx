@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { DefaultRoomParameters } from "@3utils/defaultroomparameters";
 import { DropGlb } from "./DropGlb";
 import { Destination, useUploader } from "./UploaderProvider";
+import { tx } from "@components/context/I18nContext";
 
 export function UploadNewRoom({
     onUploadSuccess,
@@ -44,7 +45,7 @@ export function UploadNewRoom({
     if (isFuture) {
         message = (
             <p>
-                Drop your <b>Kitbash .glb</b> file here
+                {tx("Drop your")} <b>{tx("Kitbash .glb")}</b> {tx("file here")}
             </p>
         );
     }

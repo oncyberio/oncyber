@@ -7,6 +7,7 @@ import { useEventCallback } from "@components/hooks/useEventCallback";
 import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
 import { studioAction } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 const textColors = [
     { name: "White", value: "#ffffff" },
@@ -36,8 +37,8 @@ export function TextColor() {
 
     return (
         <Field>
-            <Label>Color</Label>
-            <Colors role="group" aria-label="Text color">
+            <Label>{tx("Color")}</Label>
+            <Colors role="group" aria-label={tx("Text color")}>
                 {textColors.map(({ name, value }) => (
                     <Swatch
                         key={value}
@@ -50,11 +51,11 @@ export function TextColor() {
                         <span style={{ background: value }} />
                     </Swatch>
                 ))}
-                <CustomColor $selected={isCustom} title="Custom color">
+                <CustomColor $selected={isCustom} title={tx("Custom color")}>
                     <span className="color-wheel" />
                     <input
                         type="color"
-                        aria-label="Custom text color"
+                        aria-label={tx("Custom text color")}
                         value={selectedColor}
                         onChange={(event) =>
                             handleChangeColor(event.target.value)

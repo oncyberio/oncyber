@@ -14,6 +14,7 @@ import { CurrentForm } from "./types";
 import { Toggle } from "@features/studio/components/Toggle";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useState } from "react";
+import { tx } from "@components/context/I18nContext";
 
 export interface SpaceGatingSettingsProps {
     goto: (form: CurrentForm) => () => unknown;
@@ -93,11 +94,12 @@ export function SpaceGatingSettings({ goto }: SpaceGatingSettingsProps) {
     return (
         <Container>
             <Form>
-                <FormInfo>Make your space private</FormInfo>
+                <FormInfo>{tx("Make your space private")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Set-up rules to exclusive events, private gatherings or
-                        collection-specific galleries.
+                        {tx(
+                            "Set-up rules to exclusive events, private gatherings or collection-specific galleries."
+                        )}
                     </FormLabel>
                     <Toggle
                         value={isGatingEnabled}
@@ -110,66 +112,80 @@ export function SpaceGatingSettings({ goto }: SpaceGatingSettingsProps) {
 
             <div className={`rules ${isGatingEnabled ? "" : "disabled"}`}>
                 <FormItem
-                    label="Allow access to owners of specific NFTs"
+                    label={tx("Allow access to owners of specific NFTs")}
                     action={
                         isGatingRuleEnabled("nftOwnership", gating)
-                            ? "Edit"
-                            : "Enable"
+                            ? tx("Edit")
+                            : tx("Enable")
                     }
-                    info="Enable this rule to make your space a private gathering spot for owners of one or more collections"
+                    info={tx(
+                        "Enable this rule to make your space a private gathering spot for owners of one or more collections"
+                    )}
                     onAction={goto("GatingNfts")}
                 />
 
                 <FormItem
-                    label="Allow access on specific dates"
+                    label={tx("Allow access on specific dates")}
                     action={
-                        isGatingRuleEnabled("date", gating) ? "Edit" : "Enable"
+                        isGatingRuleEnabled("date", gating)
+                            ? tx("Edit")
+                            : tx("Enable")
                     }
-                    info="Enable this rule if you’re organizing a time-specific events (concert, party, talk-show..) to limit users from entering before the event."
+                    info={tx(
+                        "Enable this rule if you’re organizing a time-specific events (concert, party, talk-show..) to limit users from entering before the event."
+                    )}
                     onAction={goto("GatingDate")}
                 />
 
                 <FormItem
-                    label="Allow access to a list of wallet addresses"
+                    label={tx("Allow access to a list of wallet addresses")}
                     action={
                         isGatingRuleEnabled("whitelist", gating)
-                            ? "Edit"
-                            : "Enable"
+                            ? tx("Edit")
+                            : tx("Enable")
                     }
-                    info="Enable this rule to create private events with a few friends or add your whitelist for a massive private party."
+                    info={tx(
+                        "Enable this rule to create private events with a few friends or add your whitelist for a massive private party."
+                    )}
                     onAction={goto("GatingWhitelist")}
                 />
 
                 <FormItem
-                    label="Password protection"
+                    label={tx("Password protection")}
                     action={
                         isGatingRuleEnabled("password", gating)
-                            ? "Edit"
-                            : "Enable"
+                            ? tx("Edit")
+                            : tx("Enable")
                     }
-                    info="Restrict access to visitors with a password"
+                    info={tx("Restrict access to visitors with a password")}
                     onAction={goto("GatingPassword")}
                 />
 
                 {/* <FormItem
-                label="Limit number of simultaneous visitors "
+                label={tx("Limit number of simultaneous visitors ")}
                 action={gating.roomCapacity == null ? "Enable" : "Edit"}
-                info="Enable this rule to keep control over the number of visitors that can enter your space at the same time."
+                info={tx("Enable this rule to keep control over the number of visitors that can enter your space at the same time.")}
                 onAction={goto("GatingRoomCapacity")}
             /> */}
 
                 <FormItem
-                    label="Allow anonymous visitors"
-                    action={gating.noAnonymous ? "Enable" : "Disable"}
+                    label={tx("Allow anonymous visitors")}
+                    action={gating.noAnonymous ? tx("Enable") : tx("Disable")}
                     disabled={requiresLogin}
                     info={
                         gating.noAnonymous
-                            ? "Enabling this feature allows non-logged oncyber users to visit your space."
-                            : "Disabling this feature requires oncyber users to login in order to visit your space."
+                            ? tx(
+                                  "Enabling this feature allows non-logged oncyber users to visit your space."
+                              )
+                            : tx(
+                                  "Disabling this feature requires oncyber users to login in order to visit your space."
+                              )
                     }
                     title={
                         requiresLogin
-                            ? "Anonymous users are not allowed when you enable whitelist or nft ownership rules"
+                            ? tx(
+                                  "Anonymous users are not allowed when you enable whitelist or nft ownership rules"
+                              )
                             : ""
                     }
                     onAction={handleToggleNoAnonymous}

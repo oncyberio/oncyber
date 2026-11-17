@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { studioAction } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 interface NftEmptyStateProps {
     title: string;
@@ -17,7 +18,7 @@ export function NftEmptyState({ title, children, action }: NftEmptyStateProps) {
             </div>
             {action && (
                 <button type="button" onClick={action.onClick}>
-                    {action.label}
+                    {tx(action.label)}
                 </button>
             )}
         </Container>

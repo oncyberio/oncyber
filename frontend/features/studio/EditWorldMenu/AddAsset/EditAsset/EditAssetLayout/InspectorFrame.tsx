@@ -7,6 +7,7 @@ import {
     studioHeading,
     studioAction,
 } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 interface AddAssetLayoutProps {
     title: React.ReactNode;
     icon?: React.ReactNode;
@@ -45,7 +46,7 @@ export function InspectorFrame({
                     {actions}
                     <button
                         type="button"
-                        aria-label="Close inspector"
+                        aria-label={tx("Close inspector")}
                         className="close"
                         onClick={onClose}
                     >

@@ -3,6 +3,7 @@ import { AssetPreview } from "@components/_3DExhibit-v2/ui/AssetsMenu/shared/Art
 import EnterBg from "@ui/components/Icons/EnterBg";
 
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function getRoomSuggestions({
     onSelect,
@@ -55,7 +56,14 @@ export function getRoomSuggestions({
 export function RoomSuggestion({ destination }) {
     return (
         <PlaceholderContainer>
-            <img src={destination?.image || destination?.thumbnail || `/images/sq_image_placeholder.png`} alt="preview" />
+            <img
+                src={
+                    destination?.image ||
+                    destination?.thumbnail ||
+                    `/images/sq_image_placeholder.png`
+                }
+                alt={tx("preview")}
+            />
             <div>{destination?.name}</div>
         </PlaceholderContainer>
     );

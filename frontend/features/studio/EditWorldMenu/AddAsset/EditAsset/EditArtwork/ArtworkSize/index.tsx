@@ -15,6 +15,7 @@ import Slider from "@features/studio/styles/Slider";
 import { Label } from "@features/studio/styles/Label";
 import { Field } from "@features/studio/styles/Field";
 import { useDebouncedCallback } from "@components/hooks/useDebouncedCallback";
+import { tx } from "@components/context/I18nContext";
 
 function scaleToUISize(mesh: SpaceArtwork, scale = mesh.scale.x) {
     if (mesh.isArtwork && !mesh.isPlaceholder) {
@@ -73,7 +74,7 @@ export function ArtworkSize() {
 
     return (
         <Field>
-            <Label className="component-label">Edit Size</Label>
+            <Label className="component-label">{tx("Edit Size")}</Label>
             <Slider
                 min={0}
                 max={600}

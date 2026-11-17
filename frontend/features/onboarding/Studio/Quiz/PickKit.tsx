@@ -6,6 +6,7 @@ import { useOnboarding } from "@features/onboarding/context/OnboardingContext";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
 import { useUserKits } from "@features/studio/EditWorldMenu/hooks/useUserKits";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { tx } from "@components/context/I18nContext";
 
 export default function PickBuildMore({ onCreateSpace }) {
     const { token, user, isAnonymous } = useContext(UserContext);
@@ -42,7 +43,9 @@ export default function PickBuildMore({ onCreateSpace }) {
             id: kit?._id,
             title: kit?.name,
             preview: kit?.thumbnail,
-            subTitle: kit?.nbElements ? `${kit.nbElements} Elements` : null,
+            subTitle: kit?.nbElements
+                ? `${kit.nbElements} ${tx("Elements")}`
+                : null,
             next: () => handleBuildKit(kit?.slug),
         }));
     }, [kits]);
@@ -65,9 +68,9 @@ export default function PickBuildMore({ onCreateSpace }) {
                 onBack={() => {
                     nextStudioQuiz("PickBuildMore");
                 }}
-                title="Which Building Blocks do you want to use?"
+                title={tx("Which Building Blocks do you want to use?")}
                 startIndex={Math.floor(items.length / 2)}
-                skipTitle="View More Kits"
+                skipTitle={tx("View More Kits")}
                 skip={handleSkip}
             />
         )

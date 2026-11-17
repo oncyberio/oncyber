@@ -12,6 +12,7 @@ import { Label } from "@features/studio/styles/Label";
 import { TextArea } from "@features/studio/styles/Input";
 import IconImg from "@ui/components/IconImg";
 import { studioAction } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 export function TextInput() {
     //
@@ -67,12 +68,12 @@ export function TextInput() {
         <Field>
             <Head>
                 <Label as="label" htmlFor="edit-world-text">
-                    Text
+                    {tx("Text")}
                 </Label>
                 <DeleteButton
                     type="button"
-                    aria-label="Delete text"
-                    title="Delete text"
+                    aria-label={tx("Delete text")}
+                    title={tx("Delete text")}
                     onClick={() =>
                         handleDeleteSelection({ source: "asset_edit" })
                     }
@@ -87,7 +88,7 @@ export function TextInput() {
                 rows={3}
                 value={text}
                 onChange={handleTextChange}
-                placeholder="Enter text here"
+                placeholder={tx("Enter text here")}
             />
         </Field>
     );

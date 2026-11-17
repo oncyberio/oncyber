@@ -8,6 +8,7 @@ import { useStudioMenu } from "../context/StudioContext";
 import { useCustomLinkEditor } from "../context/useCustomLinkEditor";
 import { CustomLinkEdit } from "../SpaceSettings/Forms/shared/CustomLinkEdit";
 import { LinkStatus } from "./LinkStatus";
+import { tx } from "@components/context/I18nContext";
 import { spaceUrl } from "@utils/siteUrl";
 
 export function SpaceLink() {
@@ -49,7 +50,7 @@ export function SpaceLink() {
                 />
                 {canEditLink && (
                     <button ref={editBtnRef} className="edit-btn">
-                        Edit
+                        {tx("Edit")}
                     </button>
                 )}
             </div>

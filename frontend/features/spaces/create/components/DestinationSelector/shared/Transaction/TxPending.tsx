@@ -7,6 +7,7 @@ import {
 } from "@components/Dialogs/styles";
 
 import Icon from "@components/Icon";
+import { tx } from "@components/context/I18nContext";
 
 export const TxPending = ({ transactionHash, image }) => {
     //
@@ -14,13 +15,14 @@ export const TxPending = ({ transactionHash, image }) => {
     const platform = transactionHash.startsWith("0x") ? "etherscan" : "tzkt";
     return (
         <Container {...DARK_DIALOG_CONTENT}>
-            <h2>Processing transaction</h2>
+            <h2>{tx("Processing transaction")}</h2>
             <div className="img-wrapper">
                 <img src={image} />
             </div>
             <span style={{ textAlign: "center" }}>
-                We're processing your transaction. This might take a few
-                minutes.
+                {tx(
+                    "We're processing your transaction. This might take a few minutes."
+                )}
             </span>
 
             <a

@@ -10,6 +10,7 @@ import { GatingUIProps } from "./types";
 import { useGatingEditCancel } from "./useGatingEditCancel";
 import { TextArea } from "../shared/TextArea";
 import { useFormHandler } from "../context/ActionsContext";
+import { tx } from "@components/context/I18nContext";
 
 export function SpaceGatingWhitelist({ initState, onClose }: GatingUIProps) {
     //
@@ -65,15 +66,15 @@ export function SpaceGatingWhitelist({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <HeaderInfo>Setup whitelist</HeaderInfo>
+            <HeaderInfo>{tx("Setup whitelist")}</HeaderInfo>
 
             <Form>
                 <FormLabel>
-                    Allow access only to these wallet addresses
+                    {tx("Allow access only to these wallet addresses")}
                 </FormLabel>
                 <TextArea
                     style={{ height: "300px" }}
-                    placeholder="rayan.eth, 0xC23...d724, etc..."
+                    placeholder={tx("rayan.eth, 0xC23...d724, etc...")}
                     onChange={handleChange}
                     value={whitelistText}
                 />

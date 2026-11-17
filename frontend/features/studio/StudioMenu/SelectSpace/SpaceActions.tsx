@@ -2,6 +2,7 @@ import { CustomDropdown } from "@features/studio/components/CustomDropdown";
 import IconImg from "@ui/components/IconImg";
 import styled from "styled-components";
 import { collabActions, ownedActions, SpaceAction, SpaceTab } from "./utils";
+import { tx } from "@components/context/I18nContext";
 
 interface SpaceActionsProps {
     type: SpaceTab;
@@ -47,7 +48,7 @@ export function SpaceActions({
                                     handleAction(action.value);
                                 }}
                             >
-                                {action.title}
+                                {tx(action.title)}
                             </button>
                         );
                     })}

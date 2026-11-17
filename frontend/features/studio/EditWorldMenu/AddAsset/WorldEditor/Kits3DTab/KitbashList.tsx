@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { useMemo } from "react";
 import IconImg from "@ui/components/IconImg";
+import { tx } from "@components/context/I18nContext";
 
 export function KitbashList({ kitsQuery, current, query = null, onKitClick }) {
     //
@@ -23,7 +24,7 @@ export function KitbashList({ kitsQuery, current, query = null, onKitClick }) {
 
     return (
         <Container className="scrollbar-hidden">
-            {isLoading && <div>Loading...</div>}
+            {isLoading && <div>{tx("Loading...")}</div>}
             {error && <div>{error}</div>}
             <Content className="scrollbar-hidden">
                 {shownKits.map((kit) => {

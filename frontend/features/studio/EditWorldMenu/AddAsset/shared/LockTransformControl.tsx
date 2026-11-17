@@ -1,5 +1,6 @@
 import IconImg from "@ui/components/IconImg";
 import { IconBtn } from "@features/studio/styles/Button";
+import { tx } from "@components/context/I18nContext";
 export function LockTransformControl({
     locked,
     disabled = false,
@@ -13,13 +14,17 @@ export function LockTransformControl({
         <IconBtn
             disabled={disabled}
             onClick={onChange}
-            aria-label={`${locked ? "Unlock" : "Lock"} asset position`}
+            aria-label={tx(
+                locked ? "Unlock asset position" : "Lock asset position"
+            )}
         >
             <IconImg
                 name={locked ? "lock" : "unlock"}
                 size={14}
                 style={{ filter: "invert(1)" }}
-                title={`${locked ? "Unlock" : "Lock"} asset position`}
+                title={tx(
+                    locked ? "Unlock asset position" : "Lock asset position"
+                )}
             />
         </IconBtn>
     );

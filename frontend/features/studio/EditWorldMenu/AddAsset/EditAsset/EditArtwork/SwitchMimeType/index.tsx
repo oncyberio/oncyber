@@ -6,6 +6,7 @@ import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditCo
 import { Asset } from "@uitypes/Asset";
 import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
+import { tx } from "@components/context/I18nContext";
 
 const switchingItem = {
     title: "Switching...",
@@ -53,7 +54,7 @@ export function SwitchMimeType() {
 
     return (
         <Field>
-            <Label className="component-label">Change asset type</Label>
+            <Label className="component-label">{tx("Change asset type")}</Label>
             <Dropdown
                 disabled={isSwitching}
                 onChange={handleChange}

@@ -14,6 +14,7 @@ import styled, { css } from "styled-components";
 import { Wallet } from "./Wallet";
 import dynamic from "next/dynamic";
 import { showModal } from "@components/Dialogs";
+import { tx } from "@components/context/I18nContext";
 
 const ConnectWallet = dynamic(() => import("@ui/components/ConnectWallet"));
 
@@ -61,9 +62,9 @@ export function Dropdown({ onAction }: DropdownProps) {
             <div
                 className="item show-more"
                 tabIndex={0}
-                aria-label="Help and account"
+                aria-label={tx("Help and account")}
             >
-                <span>Help & Account</span>
+                <span>{tx("Help & Account")}</span>
                 <IconImg name="chevron-right" size={12} className="more-icon" />
                 <Container className="more">
                     {Object.keys(accounts || {}).length > 1 && (
@@ -128,13 +129,13 @@ export function Dropdown({ onAction }: DropdownProps) {
                     onClick={() => onAction({ type: "create-space" })}
                 >
                     <IconImg name="plus-circle" size={12} className="icon" />
-                    <span>Make another world</span>
+                    <span>{tx("Make another world")}</span>
                 </button>
             ) : null}
 
             <div className="item">
                 <IconImg name="corner-down-left" size={12} className="icon" />
-                <InAppLink href="/">Back to Home Page</InAppLink>
+                <InAppLink href="/">{tx("Back to Home Page")}</InAppLink>
             </div>
         </Container>
     );

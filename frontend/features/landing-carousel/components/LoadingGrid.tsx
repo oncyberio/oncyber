@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useLandingBusy } from "../activity";
 import { cellDimensions, cylinderMetrics, projectPoint } from "../three/layout";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 export default function LoadingGrid({
     grid = { columns: 2, rows: 2 },
@@ -24,6 +25,7 @@ export default function LoadingGrid({
         observer.observe(element);
         return () => observer.disconnect();
     }, []);
+    const { t } = useCyberTranslation();
     const single = grid.columns === 1 && grid.rows === 1;
     const metrics = cylinderMetrics(
         size.width,
@@ -34,7 +36,7 @@ export default function LoadingGrid({
     return (
         <Shell
             role="status"
-            aria-label="Loading world previews"
+            aria-label={t("Loading world previews")}
             $single={single}
             $reserveFooter={reserveFooter}
         >

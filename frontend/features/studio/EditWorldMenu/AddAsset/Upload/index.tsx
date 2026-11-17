@@ -23,6 +23,7 @@ import { UploadOpt } from "../shared/AssetTypes";
 import { PanelButton, PanelEmptyState } from "../shared/PanelContent";
 
 import { LibrarySearch } from "../shared/Library";
+import { tx } from "@components/context/I18nContext";
 
 const swrOptions = {
     revalidateOnFocus: false,
@@ -187,7 +188,7 @@ export function AddUpload({
                 <LibrarySearch
                     value={search}
                     onChange={setSearch}
-                    placeholder="Search uploads"
+                    placeholder={tx("Search uploads")}
                 >
                     <MimeFilterDropdown
                         value={filter}
@@ -201,7 +202,9 @@ export function AddUpload({
                     <UploadAsset onUploadFinished={handleUploadFinished} />
                     {userUploads.error ? (
                         <div className="library-error">
-                            <PanelEmptyState title="Couldn't load uploads" />
+                            <PanelEmptyState
+                                title={tx("Couldn't load uploads")}
+                            />
                             <PanelButton
                                 type="button"
                                 onClick={() => userUploads.mutate()}
@@ -301,11 +304,11 @@ export function AddUpload({
                             <PanelEmptyState
                                 title={
                                     filter === "all" && !search
-                                        ? "No uploads yet"
-                                        : "No matching files"
+                                        ? tx("No uploads yet")
+                                        : tx("No matching files")
                                 }
                             >
-                                Images, video, audio and 3D models.
+                                {tx("Images, video, audio and 3D models.")}
                             </PanelEmptyState>
                         </div>
                     )}

@@ -17,6 +17,7 @@ import { useGatingEditCancel } from "./useGatingEditCancel";
 import { GatingCancelButton, GatingOkButton } from "./Buttons";
 import { useFormHandler } from "../context/ActionsContext";
 import { ComboBox } from "@features/studio/EditWorldMenu/AddAsset/shared/ComboBox";
+import { tx } from "@components/context/I18nContext";
 
 type NftGating = Experience["gating"]["nftOwnership"];
 
@@ -39,7 +40,7 @@ const items: Array<NftOptions> = [
         disabled: false,
         value: "ethereum",
     },
-     {
+    {
         title: "Base",
         disabled: false,
         value: "base",
@@ -197,8 +198,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
 
                 let query = collectionInput.query.trim();
 
-
-                let sourceChain = nftSource
+                let sourceChain = nftSource;
 
                 // preporcess opensea urls
                 if (
@@ -207,7 +207,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                         nftSource === "shape") &&
                     query.startsWith(OPENSEA_COLLECTION_URL_PREFIX)
                 ) {
-                    sourceChain = "ethereum"
+                    sourceChain = "ethereum";
                     query = query.slice(OPENSEA_COLLECTION_URL_PREFIX.length);
                 } else if (
                     nftSource === "tezos" &&
@@ -307,7 +307,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <Header>Access for specific NFT owners</Header>
+            <Header>{tx("Access for specific NFT owners")}</Header>
 
             <Form style={{ marginTop: "32px" }}>
                 <FormLabel>{label}</FormLabel>
@@ -335,7 +335,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                                         height: "100%",
                                         fontSize: "1.2rem",
                                     }}
-                                    title="Couldn't find anything"
+                                    title={tx("Couldn't find anything")}
                                 >
                                     ⚠️
                                 </span>
@@ -373,7 +373,9 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                                                         marginLeft: "5px",
                                                         marginTop: "2px",
                                                     }}
-                                                    alt="This collection is verified"
+                                                    alt={tx(
+                                                        "This collection is verified"
+                                                    )}
                                                 />
                                             )}
                                         </AutocompleteItem>
