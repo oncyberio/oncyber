@@ -98,8 +98,8 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
         @media (max-width: 600px) {
             padding-bottom: 12px;
             .close {
-                min-width: 44px;
-                min-height: 44px;
+                min-width: 36px;
+                min-height: 36px;
             }
         }
 
@@ -190,9 +190,9 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
                     padding: 8px 18px;
 
                     & > .actions > .close {
-                        width: 44px;
-                        height: 44px;
-                        min-height: 44px;
+                        width: 36px;
+                        height: 36px;
+                        min-height: 36px;
                     }
                 }
 

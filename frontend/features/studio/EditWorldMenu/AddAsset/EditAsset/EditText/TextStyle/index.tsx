@@ -141,7 +141,7 @@ const Wrapper = styled(LibraryTabs)`
         opacity: 0.5;
     }
     @media (max-width: 600px) {
-        height: 44px;
+        height: 36px;
         padding: 0;
     }
 `;

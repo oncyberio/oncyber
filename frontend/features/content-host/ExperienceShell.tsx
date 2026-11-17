@@ -895,7 +895,7 @@ const Shell = styled.div`
             left: 16px;
         }
         .experience-chat-composer {
-            height: 44px;
+            height: 40px;
         }
         .experience-chat-input input {
             font-size: 16px;

@@ -114,7 +114,7 @@ const DeleteButton = styled.button`
     }
 
     @media (max-width: 600px) {
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
     }
 `;

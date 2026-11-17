@@ -463,7 +463,13 @@ const Container = styled.div`
     @media (max-width: 600px) {
         width: 100%;
         /* Stay above the asset dock so Create New World can be reached. */
-        height: min(600px, calc(100dvh - 170px));
+        height: min(600px, calc(100dvh - 160px));
+        padding: 16px;
+        gap: 12px;
+
+        & > .header > .title {
+            font-size: 15px;
+        }
     }
 
     & > .header {
@@ -551,6 +557,21 @@ const SpaceItem = styled.div`
         }
     }
 
+    @media (max-width: 600px) {
+        gap: 10px;
+        /* The picture's size is inline; phones get a smaller thumbnail. */
+        & > :first-child {
+            width: 56px !important;
+            height: 42px !important;
+        }
+        & > .info {
+            padding: 8px 0;
+        }
+        & > .info > .title {
+            font-size: 14px;
+        }
+    }
+
     & > .actions {
         flex: 0;
         margin-left: auto;
@@ -584,6 +605,16 @@ const CreateSpace = styled.div`
         font-weight: 500;
         font-size: 16px;
         color: var(--panel-text-primary);
+    }
+
+    @media (max-width: 600px) {
+        & > .thumbnail {
+            width: 56px;
+            height: 42px;
+        }
+        & > .title {
+            font-size: 14px;
+        }
     }
 
     &:hover {

@@ -66,7 +66,7 @@ export const LibraryTabs = styled.div`
     }
     @media (max-width: 600px) {
         & > button {
-            min-height: 44px;
+            min-height: 36px;
         }
     }
 `;

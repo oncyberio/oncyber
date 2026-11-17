@@ -52,6 +52,6 @@ const Container = styled.button`
         outline-offset: 2px;
     }
     @media (max-width: 600px) {
-        min-height: 44px;
+        min-height: 36px;
     }
 `;

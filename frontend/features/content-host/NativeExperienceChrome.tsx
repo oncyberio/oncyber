@@ -829,7 +829,7 @@ const NativeChromeFrame = styled.div`
                 transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .experience-dock-item {
-            flex: 0 0 44px;
+            flex: 0 0 38px;
             pointer-events: auto;
             transition: opacity 160ms ease, transform 200ms ease, visibility 0s;
         }
@@ -842,7 +842,8 @@ const NativeChromeFrame = styled.div`
                 visibility 0s 120ms;
         }
         .experience-dock-item > button {
-            width: 44px;
+            width: 38px;
+            height: 38px;
         }
         &[data-phone-chat-open] .experience-dock {
             left: max(16px, env(safe-area-inset-left));

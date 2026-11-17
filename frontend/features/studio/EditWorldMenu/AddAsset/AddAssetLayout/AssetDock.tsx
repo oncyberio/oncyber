@@ -15,9 +15,9 @@ export const AssetDock = styled.div<{
     --asset-tool-radius: 12px;
 
     @media (max-width: 600px) {
-        --asset-tool-size: 54px;
-        --asset-tool-icon-scale: 1;
-        --asset-tool-radius: 14px;
+        --asset-tool-size: 40px;
+        --asset-tool-icon-scale: 0.8;
+        --asset-tool-radius: 11px;
     }
 
     & > .floatbar {
@@ -64,7 +64,7 @@ export const AssetDock = styled.div<{
             left: 0;
             bottom: 0;
             width: 100%;
-            height: 74px;
+            height: 60px;
             top: initial;
             z-index: 10000;
             //
@@ -186,7 +186,7 @@ export const AssetDock = styled.div<{
             @media (max-width: 600px) {
                 left: 0;
                 width: 100%;
-                bottom: 74px;
+                bottom: 60px;
                 top: initial;
                 transform: none;
             }
@@ -348,7 +348,7 @@ export const AssetDockButton = styled.button<{ $active?: boolean }>`
         font: 8px/12px var(--studio-mono, monospace);
     }
     @media (max-width: 600px) {
-        width: 68px;
+        width: 56px;
         height: 100%;
         padding: 2px;
         box-sizing: border-box;
