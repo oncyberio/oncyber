@@ -115,7 +115,9 @@ export function readLandingFeed(
  * found nothing.
  */
 export async function landingFeedProps(
-    query: Record<string, unknown>
+    query: Record<string, unknown>,
+    // A page that opens on a search fetches it in the browser instead.
+    { readFeed = true }: { readFeed?: boolean } = {}
 ): Promise<
     Pick<
         LandingPageProps,
@@ -129,6 +131,13 @@ export async function landingFeedProps(
     const defaultCategory = defaultCategoryFor(staffPickCount);
     setDefaultFeedCategory(defaultCategory);
     const initialFilters = parseFilters(query);
+    if (!readFeed)
+        return {
+            initialFeed: { cards: [], cursor: "", hasMore: false },
+            initialFilters,
+            defaultCategory,
+            initialError: false,
+        };
     const feed = await measureSsrStage("ssr_feed", () =>
         readLandingFeed(initialFilters.category)
     ).catch(() => null);
