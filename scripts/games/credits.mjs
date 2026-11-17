@@ -13,6 +13,7 @@ import { createRequire } from "node:module";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { GENERATED_THUMBNAIL } from "./listing.mjs";
+import { gameOut, gameSource, standalone } from "./layout.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const NOTICES = join(root, "THIRD_PARTY_NOTICES.md");
@@ -94,7 +95,7 @@ function declaredLicenses(source, dependencies) {
 /** Audit one game's build against its game.json. Reads only. */
 export async function auditGame(id) {
     const { auditCredits } = await rules();
-    const source = join(root, "games", id);
+    const source = gameSource(root, id);
     const manifest = readJson(join(source, "game.json"));
     const packagePath = join(source, "package.json");
     const dependencies = existsSync(packagePath)
@@ -104,7 +105,7 @@ export async function auditGame(id) {
         game: id,
         name: manifest.name ?? id,
         credits: manifest.credits,
-        files: builtFiles(join(root, "frontend/public/games", id)),
+        files: builtFiles(gameOut(root, id)),
         licenses: readJson(join(root, "games/licenses.json")),
         dependencies,
         declaredLicenses: declaredLicenses(source, dependencies),
@@ -140,10 +141,14 @@ export async function checkCredits(id) {
     const findings = [...audit.findings];
     if (!findings.length) {
         writeFileSync(
-            join(root, "frontend/public/games", id, "credits.json"),
+            join(gameOut(root, id), "credits.json"),
             JSON.stringify(audit.published, null, 2) + "\n"
         );
-        if ((await expectedNotices()) !== readFileSync(NOTICES, "utf8"))
+        // The notices file lists the repository's games only.
+        if (
+            !standalone() &&
+            (await expectedNotices()) !== readFileSync(NOTICES, "utf8")
+        )
             findings.push({
                 code: "NOTICES_STALE",
                 message:

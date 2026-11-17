@@ -36,6 +36,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { GAME_MESSAGE_PREFIX } from "../../games/runtime/src/contract.ts";
 import { savedFreshVisitor } from "./saved-data.mjs";
+import { gameOut, gameSource, shown } from "./layout.mjs";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -550,7 +551,7 @@ async function play({
                 rmSync(to, { force: true });
                 renameSync(from, to);
                 video = {
-                    path: `games/${id}/.check/bot.webm`,
+                    path: shown(repo, join(source, ".check/bot.webm")),
                     bytes: statSync(to).size,
                     seconds: chapters.end ?? null,
                     chapters,
@@ -580,8 +581,8 @@ export async function processStage({
     video = false,
     network = null,
 }) {
-    const source = join(root, "games", id);
-    const out = join(root, "frontend/public/games", id);
+    const source = gameSource(root, id);
+    const out = gameOut(root, id);
     const files = readGameFiles(source);
     const findings = await staticFindings({ manifest, files });
     const botRuns = !findings.some((f) => f.code.startsWith("BOT_"));

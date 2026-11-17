@@ -47,6 +47,7 @@ import { checkCredits } from "./credits.mjs";
 import { hostedReleaseStage } from "./releases/stage.mjs";
 import { publishRelease, releaseTarget } from "./releases/publish.mjs";
 import { RELEASE_REPORTS } from "./releases/storage.mjs";
+import { gameOut, gameReports, gameSource, shown, standalone } from "./layout.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const [command, id, ...flags] = process.argv.slice(2);
@@ -60,14 +61,19 @@ if (!["check", "publish"].includes(command) || !/^[a-z0-9][a-z0-9-]{0,62}$/.test
     console.error("usage: games.mjs check|publish <id> [--headed] [--video] [--lobby <url>]");
     process.exit(2);
 }
-const source = join(root, "games", id);
-const out = join(root, "frontend/public/games", id);
-if (!existsSync(join(source, "game.json"))) fail(`games/${id}/game.json not found`);
+// A game in a folder of its own (the `oncyber` command) is checked where it is: layout.mjs.
+const outside = standalone();
+if (outside && command === "publish") fail("a game outside the repository publishes with `oncyber publish`");
+const source = gameSource(root, id);
+const out = gameOut(root, id);
+const reports = gameReports(root, id);
+if (!existsSync(join(source, "game.json"))) fail(`${shown(root, join(source, "game.json"))} not found`);
 const manifest = JSON.parse(readFileSync(join(source, "game.json"), "utf8"));
 // Games on the lifecycle play their scenario; others only prove they boot,
 // which passes only for a game the catalog doesn't list (contract-check.mjs).
 const lifecycle = Boolean(manifest.runtime) && existsSync(join(source, "scenario.json"));
-const contract = contractFindings({ root, id, manifest });
+// Outside the repository there is no catalog to be listed in: the game is going to be published, so it is held to the contract.
+const contract = contractFindings({ root, id, manifest, source, ...(outside ? { listed: true } : {}) });
 
 // Match results: what the run must report (docs/games/results.md).
 const results = resultsPlan(manifest);
@@ -91,7 +97,7 @@ function listFiles(dir) {
 // and are part of the release.
 const REPORTS = RELEASE_REPORTS;
 function bundleFiles() {
-    if (!existsSync(join(out, "index.html"))) fail(`frontend/public/games/${id}/index.html missing; build first`);
+    if (!existsSync(join(out, "index.html"))) fail(`${shown(root, join(out, "index.html"))} missing; build first`);
     return listFiles(out)
         .map((path) => relative(out, path).split(sep).join("/"))
         .filter((path) => !REPORTS.has(path))
@@ -199,7 +205,7 @@ async function check() {
     try {
         ({ chromium } = createRequire(import.meta.url)("playwright"));
     } catch {
-        fail("Playwright not found (npm i -g playwright, or set NODE_PATH)");
+        fail(outside ? "Playwright not found. Install it beside the game: npm install --save-dev playwright && npx playwright install chromium" : "Playwright not found (npm i -g playwright, or set NODE_PATH)");
     }
     const server = await serve();
     const errors = [], pageErrors = [];
@@ -233,7 +239,7 @@ async function check() {
         mkdirSync(join(source, ".check"), { recursive: true });
         await page.screenshot({ path: join(source, ".check/screenshot.png") });
         // The listing: its fields, and the card's thumbnail from this run (listing.mjs).
-        listing = await listingStage({ root, out, manifest, page, booted: report?.status === "passed" && !gameError, retake: command === "publish" || flags.includes("--thumbnail") });
+        listing = await listingStage({ root: outside ? null : root, out, manifest, page, booted: report?.status === "passed" && !gameError, retake: command === "publish" || flags.includes("--thumbnail") });
         // Sound (docs/games/sound.md), on the live game the scenario played in: the page's part of the sound channel, asserted on the output's facts.
         if (report) await soundStage(page, report, { required: lifecycle && manifest.runtime.capabilities.includes("audio") });
         // Loading and pausing (docs/games/loading-and-pausing.md), on the live game the scenario played in, before its trip back ends the visit.
@@ -261,7 +267,7 @@ async function check() {
         scan.findings.push(...scanOwnVoice(out));
         social = await checkSocial({ id, out, browser, network });
         // Keys and focus (docs/games/keys-focus.md): source scan, then typing in the page's chat during play.
-        keys = await runKeysCheck({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, manifest });
+        keys = await runKeysCheck({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, manifest, source });
         scan.findings.push(...keys.findings);
         // The HUD must stay clear of what the page floats over the game.
         if (report && !gameError) safeArea = await checkSafeArea({ browser, origin: `http://127.0.0.1:${server.address().port}`, id, shots: join(source, ".check") });
@@ -348,7 +354,8 @@ async function check() {
     result.network = network.summary();
     result.findings.push(...network.findings());
     if (network.findings().length) result.status = "failed";
-    writeFileSync(join(out, "check.json"), JSON.stringify(result, null, 2) + "\n");
+    mkdirSync(reports, { recursive: true });
+    writeFileSync(join(reports, "check.json"), JSON.stringify(result, null, 2) + "\n");
     const f = report?.frames;
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     if (loading) console.log(`  loading: ${loading.status}` + (loading.firstFrameMs != null ? ` · first frame ${loading.firstFrameMs} ms (budget ${loading.firstFrameBudgetMs} ms) · pause ${loading.pause.mode}: menu ${loading.pause.menu}, hidden ${loading.pause.hidden}` : ""));
@@ -363,7 +370,7 @@ async function check() {
     for (const warning of rights.warnings) console.log(`  warning ${warning.code}: ${warning.message}`);
     if (errors.length) console.log(`  ${errors.length} console error(s), first: ${errors[0]}`);
     for (const skip of avatars.skipped) console.log(`  avatars: ${skip.check} not checked: ${skip.why}`);
-    console.log(`  report: frontend/public/games/${id}/check.json · screenshot: games/${id}/.check/screenshot.png` + (result.process.video ? ` · video: ${result.process.video.path}` : ""));
+    console.log(`  report: ${shown(root, join(reports, "check.json"))} · screenshot: ${shown(root, join(source, ".check/screenshot.png"))}` + (result.process.video ? ` · video: ${result.process.video.path}` : ""));
     return { result, files };
 }
 

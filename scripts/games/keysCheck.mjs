@@ -574,8 +574,8 @@ export async function keysBrowserCheck({
 }
 
 /** Both halves, for games.mjs. Blocking findings and a report for check.json. */
-export async function runKeysCheck({ browser, origin, id, manifest }) {
-    const scan = await keysScan({ id, manifest });
+export async function runKeysCheck({ browser, origin, id, manifest, source }) {
+    const scan = await keysScan({ id, manifest, source });
     // A game that reads keys itself would only fail the browser half the same way.
     const run =
         scan.legacy || scan.findings.length

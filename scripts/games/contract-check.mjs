@@ -68,8 +68,9 @@ export function contractFindings({
     id,
     manifest,
     listed = isListed(root, id),
+    // The game's folder, when it is not games/<id>/ (layout.mjs).
+    source = join(root, "games", id),
 }) {
-    const source = join(root, "games", id);
     const findings = [],
         warnings = [];
     const add = (code, message) => findings.push({ code, message });

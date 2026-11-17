@@ -337,7 +337,8 @@ export function catalogStale(root) {
 /**
  * The listing stage of games:check. Takes the thumbnail from the running
  * game when the listing names none (and none was taken before, or `retake`),
- * then checks the listing against the build.
+ * then checks the listing against the build. `root` is the repository, or
+ * null for a game outside it, which has no catalog to be stale.
  */
 export async function listingStage({
     root,
@@ -368,7 +369,7 @@ export async function listingStage({
         build: new Set(sizes.keys()),
         sizes,
     });
-    const stale = catalogStale(root);
+    const stale = root ? catalogStale(root) : null;
     if (stale) findings.push({ code: "LISTING_CATALOG_STALE", message: stale });
     return {
         findings,

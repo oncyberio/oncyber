@@ -34,6 +34,7 @@ import { dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { GAME_MESSAGE_PREFIX } from "../../games/runtime/src/contract.ts";
+import { standalone } from "./layout.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const DECLARED = join(root, "frontend/features/games/savedData.declared.json");
@@ -153,7 +154,8 @@ export async function savedStaticFindings({ id, manifest }) {
     const synced = existsSync(DECLARED)
         ? JSON.parse(readFileSync(DECLARED, "utf8"))
         : {};
-    if (!isDeepStrictEqual(synced[id] ?? {}, strip(declared)))
+    // The synced file is the repository's; a game outside it has none.
+    if (!standalone() && !isDeepStrictEqual(synced[id] ?? {}, strip(declared)))
         findings.push({
             code: "SAVED_NOT_SYNCED",
             message:
