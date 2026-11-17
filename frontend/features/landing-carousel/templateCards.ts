@@ -94,11 +94,15 @@ export function createTemplateCards(
             portrait: false,
         };
     };
-    const kitCard = (room: Destination): LandingCard => ({
-        ...roomCard(room),
-        buildStatus: "Build with this kit",
-        actionLabel: `Build with the ${room.name} kit`,
-    });
+    // A kit that can't be used yet opens its details, like other templates.
+    const kitCard = (room: Destination): LandingCard =>
+        canUseTemplate(room, ownedRooms, checking)
+            ? {
+                  ...roomCard(room),
+                  buildStatus: "Build with this kit",
+                  actionLabel: `Build with the ${room.name} kit`,
+              }
+            : roomCard(room);
     const starters: LandingCard[] = [
         {
             ...BUILD_CARDS[0],
