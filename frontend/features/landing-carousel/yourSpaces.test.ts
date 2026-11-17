@@ -37,7 +37,7 @@ describe("Create's own spaces", () => {
         const last = cards[cards.length - 1];
         expect(last.id).toBe(SHOW_ALL_SPACES_ID);
         expect(last.title).toBe("+3 more");
-        expect(last.buildStatus).toBe("Show all 12 spaces");
+        expect(last.buildStatus).toBe("Show all 12 worlds");
         expect(cards.every((card) => card.section === "spaces")).toBe(true);
     });
 
@@ -53,6 +53,22 @@ describe("Create's own spaces", () => {
             "/c0.jpg",
             "/c11.jpg",
         ]);
+    });
+
+    it("leaves covers on a host that has shut down out of the collage", () => {
+        const withCovers = spaces.map((item, index) => ({
+            ...item,
+            info: {
+                ...item.info,
+                heroImg:
+                    index % 2
+                        ? `https://res.cloudinary.com/x/c${index}.jpg`
+                        : `/c${index}.jpg`,
+            },
+        }));
+        const { collage } = createSpaceCards(withCovers, "", false).pop();
+        expect(collage).toHaveLength(6);
+        expect(collage.every((cover) => cover.startsWith("/c"))).toBe(true);
     });
 
     it("shows ten spaces whole, since they fill the same cells", () => {
@@ -87,7 +103,7 @@ describe("Create's own spaces", () => {
         const cards = createSpaceCards(spaces, "", false, undefined, "shared");
         expect(cards).toHaveLength(1);
         expect(cards[0].id).toBe(RESET_SPACES_ID);
-        expect(cards[0].title).toBe("No shared spaces yet");
+        expect(cards[0].title).toBe("No shared worlds yet");
         // The link for a new tab keeps the filter it expands.
         const viewed = createSpaceCards(spaces, "", false, undefined, "viewed");
         expect(viewed[viewed.length - 1].href).toBe(

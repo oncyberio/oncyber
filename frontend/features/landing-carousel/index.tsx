@@ -749,7 +749,7 @@ function LandingContent(props: LandingPageProps) {
                                     yourSpaces.spaces?.length
                                         ? {
                                               section: "spaces",
-                                              label: "Filter your spaces",
+                                              label: "Filter your worlds",
                                               value: spaceFilter,
                                               options: SPACE_FILTERS,
                                               onChange: filterSpaces,

@@ -56,7 +56,7 @@ export default function BottomSearch({
                     ? contextLabel
                     : templates
                     ? withSpaces
-                        ? "Search your spaces and templates"
+                        ? "Search your worlds and templates"
                         : "Search templates"
                     : destinations
                     ? "Search my destinations"
@@ -84,7 +84,7 @@ export default function BottomSearch({
                         ? contextLabel
                         : templates
                         ? withSpaces
-                            ? "Search your spaces and gallery templates"
+                            ? "Search your worlds and gallery templates"
                             : "Search gallery templates"
                         : destinations
                         ? "Search my destinations"
@@ -95,7 +95,7 @@ export default function BottomSearch({
                         ? question
                         : templates
                         ? withSpaces
-                            ? "Search your spaces and templates…"
+                            ? "Search your worlds and templates…"
                             : "Search templates, artists, styles…"
                         : destinations
                         ? "Search destinations…"

@@ -17,7 +17,7 @@ import {
 } from "./layout";
 import { createCardMaterial, configureCardTexture } from "./createCardMaterial";
 import { coverSources } from "../coverSources";
-import { collageStrips, coverFit } from "./collage";
+import { COLLAGE_STRIPS, collageStrips, coverFit } from "./collage";
 
 interface Slot {
     mesh: Mesh<PlaneGeometry, ShaderMaterial>;
@@ -233,11 +233,28 @@ export class CardPool {
                 image.onerror = () => resolve(null);
                 image.src = url;
             });
-        const promise = Promise.all(urls.map(load)).then((loaded) => {
+        // The first covers that load, in order: a cover that fails gives its
+        // place to the next candidate.
+        const firstLoaded = async () => {
+            const images: HTMLImageElement[] = [];
+            let next = 0;
+            while (next < urls.length && images.length < COLLAGE_STRIPS) {
+                const batch = urls.slice(
+                    next,
+                    next + COLLAGE_STRIPS - images.length
+                );
+                next += batch.length;
+                images.push(
+                    ...(await Promise.all(batch.map(load))).filter(Boolean)
+                );
+                if (this.disposed) break;
+            }
+            return images;
+        };
+        const promise = firstLoaded().then((images) => {
             this.pending.delete(key);
             if (this.disposed) return null;
             this.onLoading(this.pending.size > 0);
-            const images = loaded.filter(Boolean);
             const canvas = document.createElement("canvas");
             canvas.width = 1280;
             canvas.height = 800;
