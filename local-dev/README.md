@@ -5,12 +5,12 @@ no Firebase account, no keys and no access to Oncyber's data.
 
 ## What it starts
 
-| Piece              | Where                                                               |
-| ------------------ | ------------------------------------------------------------------- |
-| The site           | http://localhost:13000                                              |
-| Firebase emulators | Auth `127.0.0.1:9099`, Firestore `:8085`, Realtime Database `:9000` |
-| Emulator data UI   | http://127.0.0.1:4000 (browse and edit every document)              |
-| Lobby server       | `127.0.0.1:2568`, installed into `multiplayer/` on first run        |
+| Piece              | Where                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| The site           | http://localhost:13000                                                               |
+| Firebase emulators | Auth `127.0.0.1:9099`, Firestore `:8085`, Realtime Database `:9000`, Storage `:9199` |
+| Emulator data UI   | http://127.0.0.1:4000 (browse and edit every document)                               |
+| Lobby server       | `127.0.0.1:2568`, installed into `multiplayer/` on first run                         |
 
 The emulators run as the project `demo-oncyber`. Firebase treats any project
 id starting with `demo-` as offline only, so nothing here can reach a real
@@ -53,6 +53,12 @@ emulator UI (http://127.0.0.1:4000/firestore) into `exhibits.json`.
 
 The engine loads some shared assets (sky, loading textures, default avatar
 parts) from IPFS, so the first visit needs an internet connection.
+
+The Storage emulator holds one thing: the releases of games published from
+outside the repository, when the server is started with
+`GAMES_PUBLISHING_STORAGE=on` ([docs/games/publishing.md](../docs/games/publishing.md)).
+Without it those go to `.games-releases/`. `storage.rules` gives the
+Firebase client SDKs nothing; only the site's server uses the bucket.
 
 ## Commands
 

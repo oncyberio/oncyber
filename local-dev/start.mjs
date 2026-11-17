@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // `pnpm dev:local`: the whole app on your machine with no Firebase account
 // and no keys. Starts the Firebase emulators (auth, Firestore, Realtime
-// Database) with sample spaces, the local lobby server when it is installed,
-// and the Next.js dev server pointed at all of them.
+// Database, Storage) with sample spaces, the local lobby server when it is
+// installed, and the Next.js dev server pointed at all of them.
 //
 //   pnpm dev:local            keep what you changed last time
 //   pnpm dev:local --reset    start again from the fixtures
@@ -27,6 +27,7 @@ const HOSTS = {
     auth: "127.0.0.1:9099",
     firestore: "127.0.0.1:8085",
     database: "127.0.0.1:9000",
+    storage: "127.0.0.1:9199",
 };
 const LOBBY = "127.0.0.1:2568";
 
@@ -128,7 +129,7 @@ async function main() {
         "--config",
         join(HERE, "firebase.json"),
         "--only",
-        "auth,firestore,database",
+        "auth,firestore,database,storage",
         "--export-on-exit",
         DATA,
     ];
@@ -149,7 +150,7 @@ async function main() {
         console.error(
             `\nPorts ${taken.join(", ")} are in use, most likely by emulators` +
                 " left over from an earlier run. Stop them with:\n" +
-                "  lsof -ti tcp:8085,9099,9000,4000,4400,4500,9150 | xargs kill\n"
+                "  lsof -ti tcp:8085,9099,9000,9199,4000,4400,4500,9150 | xargs kill\n"
         );
         process.exit(1);
     } else {
@@ -223,6 +224,10 @@ async function main() {
         FIREBASE_ADMIN_PRIVATE_KEY: "",
         FIREBASE_ADMIN_CLIENT_EMAIL: "",
         FIREBASE_ADMIN_DATABASE_URL: `http://${HOSTS.database}?ns=${PROJECT_ID}-default-rtdb`,
+        // The bucket published games can be kept in. Releases still go to
+        // the local folder here unless GAMES_PUBLISHING_STORAGE=on is set
+        // (docs/games/publishing.md).
+        FIREBASE_STORAGE_EMULATOR_HOST: HOSTS.storage,
         SECRET_JWT_KEY:
             process.env.SECRET_JWT_KEY ||
             "local-dev-session-signing-key-not-for-production",
