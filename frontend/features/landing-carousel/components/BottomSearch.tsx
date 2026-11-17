@@ -7,8 +7,11 @@ export default function BottomSearch({
     onSearch,
     onChange,
     scope = "worlds",
+    withSpaces = false,
 }: {
     value: string;
+    /** Create also lists the visitor's own spaces, so search covers them. */
+    withSpaces?: boolean;
     scope?: "worlds" | "templates" | "destinations" | "game" | "gaussian";
     onSearch: (query: string) => void;
     onChange?: (query: string) => void;
@@ -32,7 +35,9 @@ export default function BottomSearch({
                 creating
                     ? contextLabel
                     : templates
-                    ? "Search templates"
+                    ? withSpaces
+                        ? "Search your spaces and templates"
+                        : "Search templates"
                     : destinations
                     ? "Search my destinations"
                     : "Search worlds"
@@ -58,7 +63,9 @@ export default function BottomSearch({
                     creating
                         ? contextLabel
                         : templates
-                        ? "Search gallery templates"
+                        ? withSpaces
+                            ? "Search your spaces and gallery templates"
+                            : "Search gallery templates"
                         : destinations
                         ? "Search my destinations"
                         : "Search worlds, artists, and creators"
@@ -67,7 +74,9 @@ export default function BottomSearch({
                     creating
                         ? question
                         : templates
-                        ? "Search templates, artists, styles…"
+                        ? withSpaces
+                            ? "Search your spaces and templates…"
+                            : "Search templates, artists, styles…"
                         : destinations
                         ? "Search destinations…"
                         : "Search worlds, artists, creators…"
@@ -99,7 +108,9 @@ export default function BottomSearch({
                         creating
                             ? `Clear ${contextLabel.toLowerCase()}`
                             : templates
-                            ? "Clear template search"
+                            ? withSpaces
+                                ? "Clear search"
+                                : "Clear template search"
                             : destinations
                             ? "Clear destination search"
                             : "Clear world search"

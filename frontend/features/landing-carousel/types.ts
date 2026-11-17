@@ -1,7 +1,13 @@
 export type FeedCategory = "most-visited" | "latest" | "staff" | "oncyberlabs";
 
 /** A labelled part of the landing grid (see LandingCard.section). */
-export type GridSection = "results" | "staff" | "popular";
+export type GridSection =
+    | "results"
+    | "staff"
+    | "popular"
+    /** In Create: the visitor's own spaces, then the template catalog. */
+    | "spaces"
+    | "templates";
 
 export interface LandingCard {
     id: string;
@@ -26,6 +32,10 @@ export interface LandingCard {
     templateStatus?: "free" | "owned" | "uncollected" | "checking" | "scan";
     /** This template is being turned into a space; the card shows its progress. */
     opening?: boolean;
+    /** What the card says while `opening`; defaults to creating a space. */
+    openingLabel?: string;
+    /** A card for one of the visitor's own spaces opens it in Studio. */
+    spaceId?: string;
     /**
      * The labelled part of the grid a card belongs to: the popular worlds
      * after the staff picks in the staff feed, or, on a page answering a link
