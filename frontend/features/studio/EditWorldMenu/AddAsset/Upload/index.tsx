@@ -116,30 +116,34 @@ export function AddUpload({
         // Insert the new upload into the cached list instead of re-reading the
         // whole library (which cost up to MAX_UPLOADS doc reads on every upload).
         // Dedupe by hash so re-uploading an existing file just moves it to top.
+        const moveToTop = (current: UserAsseUpload[]) => {
+            if (!current) return current;
+            const without = current.filter((it) => it.hash !== hash);
+            // A reused file keeps the name it already has in the library.
+            const known = current.find((it) => it.hash === hash);
+            // It also keeps what the library knows about it (optimized files).
+            const entry = {
+                ...known,
+                name: known?.name ?? name,
+                hash,
+                url,
+                mimeType,
+                createdAt: Date.now(),
+                lastModified: Date.now(),
+            } as UserAsseUpload;
+            return [entry, ...without];
+        };
         if (!userUploads.data) {
             // Library not loaded yet. A local edit now would make SWR drop
-            // the first fetch, so fetch the library again; it includes this
-            // upload.
-            userUploads.mutate();
-        } else {
-            userUploads.mutate((current: UserAsseUpload[]) => {
-                if (!current) return current;
-                const without = current.filter((it) => it.hash !== hash);
-                // A reused file keeps the name it already has in the library.
-                const known = current.find((it) => it.hash === hash);
-                // It also keeps what the library knows about it (optimized files).
-                const entry = {
-                    ...known,
-                    name: known?.name ?? name,
-                    hash,
-                    url,
-                    mimeType,
-                    createdAt: Date.now(),
-                    lastModified: Date.now(),
-                } as UserAsseUpload;
-                return [entry, ...without];
-            }, false);
+            // the first fetch, so fetch the library first, then move this
+            // upload to the top (a reused file keeps its old date there).
+            try {
+                await userUploads.mutate();
+            } catch {
+                // The list shows its own error and retry.
+            }
         }
+        userUploads.mutate(moveToTop, false);
 
         let asset = await formatUploadedAsset(
             { url, name, hash, mimeType },
