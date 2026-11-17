@@ -6,7 +6,7 @@ import { getExhibitByCustomLink } from "pages/api/exhibit";
 import { getDestination } from "@utils/saveToDb";
 import { formatExhibit } from "@utils/metadata/formatExhibit";
 import { Experience } from "@uitypes/experience";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { UserContext } from "@components/context/UserContext";
 import { useRouter } from "next/router";
 import styled from "styled-components";
@@ -37,15 +37,18 @@ export default function SpaceEdit(props) {
     const router = useRouter();
 
     // No world yet: pick a template first, before the studio renders.
-    const templateFirst =
-        isAnonInitialized &&
-        !props.error &&
-        needsTemplateFirst({
+    // Decided once, on arrival: the studio later drops `templateId` from
+    // the address, which must not send a guest back to the templates.
+    const arrival = useRef<boolean>(null);
+    if (arrival.current === null && isAnonInitialized && !props.error) {
+        arrival.current = needsTemplateFirst({
             isAnonymous,
             hasLocalWorld: isAnonymous && !!getLocalAnonExhibit(),
             exhibit: props.exhibit,
             templateId: router.query?.templateId,
         });
+    }
+    const templateFirst = arrival.current === true;
 
     useEffect(() => {
         if (templateFirst) router.replace(BROWSE_TEMPLATES_HREF);
