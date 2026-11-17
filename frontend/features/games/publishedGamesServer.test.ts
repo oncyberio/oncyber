@@ -112,6 +112,9 @@ beforeEach(() => {
     } as any;
     delete process.env.GAMES_DISABLED;
     delete process.env.GAMES_PUBLISHING_PINATA;
+    // No bucket here: mode `storage` has its own tests.
+    delete process.env.GAMES_STORAGE_BUCKET;
+    delete process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
     memoryDocs.clear();
     forgetPublishedGames();
     forgetPendingUploads();

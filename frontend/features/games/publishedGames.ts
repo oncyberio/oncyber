@@ -47,6 +47,7 @@ export const PUBLISH_ID = /^[a-z0-9][a-z0-9-]{2,40}$/;
 export const RELEASE_ID = /^[0-9a-f]{16}$/;
 export const UPLOAD_ID = /^[A-Za-z0-9_-]{20,40}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
+const MD5 = /^[0-9a-f]{32}$/;
 /** One folder or file name: no dot files, no spaces, nothing a shell reads. */
 const PATH_PART = /^[A-Za-z0-9_][A-Za-z0-9._@+~-]*$/;
 const TAG = /^[a-z0-9][a-z0-9-]{1,23}$/;
@@ -306,6 +307,10 @@ export const publishBeginSchema = z.object({
                 path: z.string().min(1).max(PUBLISH_MAX_PATH),
                 bytes: z.number().int().min(0).max(PUBLISH_MAX_BYTES),
                 sha256: z.string().regex(SHA256),
+                // Optional, and used by upload mode `storage` alone: the
+                // store checks each upload against it as it arrives. The
+                // SHA-256 is what a release is verified by.
+                md5: z.string().regex(MD5).optional(),
             })
         )
         .min(1)
@@ -339,7 +344,12 @@ export interface PublishedEntry {
 
 export interface PublishedRelease {
     release: string;
-    backend: "local" | "pinata";
+    /**
+     * Where the release is kept: the local releases folder, this server's
+     * storage bucket (under `games/<id>/<release>/`, a place made from the
+     * record's own id and release, never stored), or IPFS.
+     */
+    backend: "local" | "storage" | "pinata";
     /** The IPFS CID and its gateway folder, for `pinata`. */
     address?: string;
     base?: string;
@@ -533,18 +543,23 @@ export function publishedGameLive(record: PublishedGame | null): boolean {
 
 /**
  * Where the releases route reads a listed release of a live game: the local
- * folder, or the gateway folder of one on IPFS (held to the same rule as a
- * committed pointer entry, `pinnedGatewayBase`). Null when the game is not
- * live or does not list the release.
+ * folder, this server's storage bucket, or the gateway folder of one on
+ * IPFS (held to the same rule as a committed pointer entry,
+ * `pinnedGatewayBase`). Null when the game is not live or does not list the
+ * release.
  */
 export function servedRelease(
     record: PublishedGame | null,
     release: string
-): { backend: "local" } | { backend: "pinata"; pinned: HostedRelease } | null {
+):
+    | { backend: "local" | "storage" }
+    | { backend: "pinata"; pinned: HostedRelease }
+    | null {
     if (!publishedGameLive(record) || !RELEASE_ID.test(release)) return null;
     const stored = record.releases.find((entry) => entry.release === release);
     if (!stored) return null;
     if (stored.backend === "local") return { backend: "local" };
+    if (stored.backend === "storage") return { backend: "storage" };
     const base = pinnedGatewayBase(stored);
     return base ? { backend: "pinata", pinned: { release, base } } : null;
 }

@@ -34,10 +34,15 @@ import {
  *
  * A game that is not in the catalog is one published from outside the
  * repository (docs/games/publishing.md), and the registry decides for it:
- * its files are served, from the local folder or from the gateway folder
- * its record names, only while the game is published, the release is one
- * its record lists, and the kill switch does not name it. The registry is
- * asked through a short cache (publishedGamesServer.ts).
+ * its files are served, from the local folder, from this server's storage
+ * bucket or from the gateway folder its record names, only while the game
+ * is published, the release is one its record lists, and the kill switch
+ * does not name it. The registry is asked through a short cache
+ * (publishedGamesServer.ts).
+ *
+ * A release in the bucket (upload mode `storage`) is read by this server
+ * and passed on, like one behind a gateway: the bucket is private, and no
+ * request is ever sent to it or given an address in it.
  *
  * Either way it sends what every host of releases must (docs/games/releases.md):
  * `Access-Control-Allow-Origin: *`, and the game's own
@@ -203,6 +208,87 @@ async function servePinned(
 }
 
 /**
+ * The policy of each release in the bucket this server has served. A
+ * release never changes, so neither does its policy; the keys are releases
+ * the registry lists, and the map is emptied when it grows large.
+ */
+const storedPolicies = new Map<string, Promise<string>>();
+const STORED_POLICIES_MAX = 500;
+
+/** For tests: forget the policies read so far. */
+export function forgetStoredPolicies() {
+    storedPolicies.clear();
+}
+
+/**
+ * One file of a registered game's release kept in this server's bucket
+ * (features/games/releaseBucket.ts). The object's name is made from the
+ * game and release the registry answered for and a path held to the rule
+ * for a release's paths; the storage code loads only for such a request.
+ */
+async function serveStored(
+    req: NextApiRequest,
+    res: NextApiResponse,
+    game: string,
+    release: string,
+    rest: string[]
+) {
+    const [
+        { isMissing, releaseBucket, releaseObject },
+        { ObjectTooLong, readObjectText },
+    ] = await Promise.all([
+        import("@features/games/releaseBucket"),
+        import("@features/games/publishedGamesStorage"),
+    ]);
+    const bucket = releaseBucket();
+    const object = releaseObject(game, release, rest.join("/"));
+    const declared = releaseObject(game, release, NETWORK_FILE);
+    if (!bucket || !object || !declared) return refuse(res, 404);
+    const key = `${game}/${release}`;
+    let policy = storedPolicies.get(key);
+    if (!policy) {
+        // As for a local release: one with no network.json, a malformed
+        // one or one too long to be one reaches only its own files. A
+        // bucket that fails rejects, and is asked again next time.
+        policy = readObjectText(bucket, declared, NETWORK_FILE_LIMIT)
+            .then((text) => (text === null ? null : JSON.parse(text)))
+            .catch((error) => {
+                if (
+                    isMissing(error) ||
+                    error instanceof SyntaxError ||
+                    error instanceof ObjectTooLong
+                )
+                    return null;
+                throw error;
+            })
+            .then(releaseContentSecurityPolicy);
+        if (storedPolicies.size >= STORED_POLICIES_MAX) storedPolicies.clear();
+        storedPolicies.set(key, policy);
+        policy.catch(() => storedPolicies.delete(key));
+    }
+    let found: Awaited<ReturnType<typeof bucket.stat>>;
+    let sent: string;
+    try {
+        sent = await policy;
+        found = await bucket.stat(object);
+    } catch {
+        // What the bucket said of a failure stays here.
+        return refuse(res, 502);
+    }
+    if (!found || found.encoding) return refuse(res, 404);
+    // The type is this route's, by extension; the bucket's is not used.
+    releaseHeaders(res, rest[rest.length - 1], sent);
+    res.setHeader("Content-Length", found.bytes);
+    if (req.method === "HEAD") return res.status(200).end();
+    res.status(200);
+    // The version that was measured. A bucket that stops part way ends the
+    // response short of its length.
+    await pipeline(bucket.read(object, found.generation), res).catch(() =>
+        res.destroy()
+    );
+}
+
+/**
  * Where a registered game's release is read from, or null: not published,
  * not listed, stopped by `GAMES_DISABLED`, or publishing is off here. The
  * registry (and with it Firestore) is loaded only for such a request.
@@ -247,10 +333,13 @@ export default async function handler(
         file && file.startsWith(folder + sep)
             ? await stat(file).catch(() => null)
             : null;
-    if (!found?.isFile())
+    if (!found?.isFile()) {
+        if (registered?.backend === "storage")
+            return serveStored(req, res, game, release, rest);
         return registered
             ? refuse(res, 404)
             : servePinned(req, res, game, release, rest);
+    }
     res.setHeader("Content-Length", found.size);
     // The game reaches its own files and the hosts its release declared,
     // nothing else; opened directly, it still runs without this site's

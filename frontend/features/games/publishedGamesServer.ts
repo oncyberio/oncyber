@@ -1,8 +1,9 @@
 /**
  * The registry of games published from outside the repository
- * (docs/games/publishing.md), on the server: Firestore for the records and
- * the local releases folder for mode `site`. The rules are in
- * publishedGames.ts; this file reads, stores and verifies.
+ * (docs/games/publishing.md), on the server: Firestore for the records, the
+ * local releases folder for mode `site`, and the storage bucket for mode
+ * `storage` (publishedGamesStorage.ts). The rules are in publishedGames.ts;
+ * this file reads, stores and verifies.
  *
  *   publishedGames/<id>     one record per game (the contract's shape)
  *   gameUploads/<uploadId>  an upload between `begin` and `finish`
@@ -45,6 +46,14 @@ import {
     type PinnedUploads,
 } from "./pinnedUploads";
 import {
+    clearStaged,
+    installStoredRelease,
+    signStorageUploads,
+    storageReleaseStored,
+    storageUploadsConfig,
+    type StorageUploads,
+} from "./publishedGamesStorage";
+import {
     PUBLISH_MAX_BYTES,
     PUBLISH_THUMBNAIL,
     PUBLISH_THUMBNAIL_MAX,
@@ -80,7 +89,7 @@ const UPLOADS = "gameUploads";
 const PUBLISHERS = "gamePublishers";
 const STAGING = ".uploads";
 
-export type UploadMode = "site" | "pinata";
+export type UploadMode = "site" | "storage" | "pinata";
 
 /** An upload between `begin` and `finish`. */
 export interface PendingUpload {
@@ -257,15 +266,35 @@ async function sweepStaging(root: string, now: number) {
 // ---------------------------------------------------------------------------
 // begin
 
-/** Where this server stores an upload, or a refusal that says why not. */
+/**
+ * Where this server stores an upload, or a refusal that says why not. In
+ * this order: the bucket when `GAMES_PUBLISHING_STORAGE=on` chose it; the
+ * local releases folder, where there is one; the bucket, where one is
+ * configured; Pinata, where a person switched that on.
+ */
 function uploadTarget(
-    pinned: PinnedUploads | null
-): { mode: "site"; root: string } | { mode: "pinata"; pinned: PinnedUploads } {
+    pinned: PinnedUploads | null,
+    storage: StorageUploads | null
+):
+    | { mode: "site"; root: string }
+    | { mode: "storage"; storage: StorageUploads }
+    | { mode: "pinata"; pinned: PinnedUploads } {
+    if (storage?.forced) return { mode: "storage", storage };
     const root = localReleasesDir();
     if (root) return { mode: "site", root };
+    if (storage) return { mode: "storage", storage };
     if (pinned) return { mode: "pinata", pinned };
     return refuse(
-        "Publishing is not available on this server: it has no releases folder (GAMES_RELEASES_DIR), and uploads to its storage account are not switched on."
+        "Publishing is not available on this server: it has no releases folder (GAMES_RELEASES_DIR), no storage bucket, and uploads to its storage account are not switched on."
+    );
+}
+
+/** A failure of the bucket, said without what the bucket said. */
+function storageFailed(what: string, error: unknown): never {
+    if (error instanceof PublishRefused) throw error;
+    console.error(`[games] storage: ${what} failed`, error);
+    return refuse(
+        `This server's storage did not answer (${what}); try again in a moment.`
     );
 }
 
@@ -275,7 +304,12 @@ export async function beginPublish(
     {
         now = new Date(),
         pinned = pinnedUploadsConfig(),
-    }: { now?: Date; pinned?: PinnedUploads | null } = {}
+        storage = storageUploadsConfig(),
+    }: {
+        now?: Date;
+        pinned?: PinnedUploads | null;
+        storage?: StorageUploads | null;
+    } = {}
 ) {
     const idProblem = publishIdProblem(input.id);
     if (idProblem) refuse(idProblem);
@@ -287,7 +321,7 @@ export async function beginPublish(
         refuse(
             "The check result is for other files than these; run the check again and publish what it checked."
         );
-    const target = uploadTarget(pinned);
+    const target = uploadTarget(pinned, storage);
     const upload: PendingUpload = {
         id: randomBytes(18).toString("base64url"),
         owner,
@@ -342,6 +376,32 @@ export async function beginPublish(
         };
     }
     const expires = Math.floor(PUBLISH_UPLOAD_TTL_MS / 1000);
+    if (target.mode === "storage") {
+        const { bucket } = target.storage;
+        const stored = await storageReleaseStored(
+            bucket,
+            input.id,
+            release,
+            upload.files
+        ).catch((error) => storageFailed("begin", error));
+        return {
+            uploadId: upload.id,
+            release,
+            stored,
+            upload: {
+                mode: "storage" as const,
+                expires,
+                // Nothing to send for a release that is already stored.
+                files: stored
+                    ? []
+                    : await signStorageUploads(
+                          bucket,
+                          upload,
+                          input.files
+                      ).catch((error) => storageFailed("begin", error)),
+            },
+        };
+    }
     const url = await target.pinned.signer
         .sign({
             name: `game-${input.id}-${release}`,
@@ -541,17 +601,22 @@ export async function finishPublish(
     {
         now = new Date(),
         pinned = pinnedUploadsConfig(),
+        storage = storageUploadsConfig(),
         verify = verifyPinnedRelease,
     }: {
         now?: Date;
         pinned?: PinnedUploads | null;
+        storage?: StorageUploads | null;
         verify?: typeof verifyPinnedRelease;
     } = {}
 ) {
     const upload = await readUpload(input.uploadId);
     if (!upload || upload.owner !== owner) refuse("No such upload.");
-    if (now.getTime() > upload.expiresAt)
+    if (now.getTime() > upload.expiresAt) {
+        if (upload.mode === "storage" && storage)
+            await clearStaged(storage.bucket, upload.id);
         refuse("This upload expired; begin again.");
+    }
     const { game, release, files } = upload;
     const gameRef = db.collection(GAMES).doc(game);
     // Before anything is stored under the id: it is free, or this account's.
@@ -581,6 +646,29 @@ export async function finishPublish(
         if (installed)
             undo = () =>
                 rm(folder, { recursive: true, force: true }).catch(() => {});
+    } else if (upload.mode === "storage") {
+        if (!storage)
+            return refuse("This server has no storage bucket any more.");
+        const { bucket } = storage;
+        // Before anything is copied: would this release be registered?
+        planPublish({
+            record: existing,
+            publisher: publisherAt(
+                (await db.collection(PUBLISHERS).doc(owner).get()).data(),
+                now
+            ),
+            owner,
+            id: game,
+            entry: upload.entry,
+            release: stored,
+            now,
+        });
+        const kept = await installStoredRelease(bucket, upload).catch((error) =>
+            storageFailed("finish", error)
+        );
+        stored.backend = "storage";
+        if (kept.thumbnail) stored.thumbnail = true;
+        if (kept.installed) undo = kept.undo;
     } else {
         if (!pinned)
             return refuse(
@@ -643,7 +731,8 @@ export async function finishPublish(
                 recursive: true,
                 force: true,
             }).catch(() => {});
-    }
+    } else if (upload.mode === "storage" && storage)
+        await clearStaged(storage.bucket, upload.id);
     return {
         id: game,
         release,
