@@ -31,6 +31,7 @@ import {
 import {
     placeSwitch,
     stepSeparation,
+    placeFilter,
     SWITCH_GAP,
     type SwitchItem,
 } from "../sectionSwitch";
@@ -547,8 +548,57 @@ export default function Scene({
             );
             if (animating) invalidate();
             const left = corner(progress);
+            // A section's filters follow its label and take their room
+            // from the labels after it, for as long as they are open.
+            const filter = filterRef.current;
+            const filterIndex = filter
+                ? sections.findIndex(
+                      ({ section }) => section === filter.dataset.section
+                  )
+                : -1;
+            let filterPlace: ReturnType<typeof placeFilter> = null;
+            let filterWidth = 0;
+            if (filterIndex >= 0) {
+                const [list, menu] = Array.from(
+                    filter.children
+                ) as HTMLElement[];
+                const label = switchItems.current[filterIndex]?.offsetWidth;
+                const start = left.x + (label || 0) + SWITCH_GAP;
+                const others = sections.reduce(
+                    (width, _section, index) =>
+                        index === filterIndex
+                            ? width
+                            : width +
+                              SWITCH_GAP +
+                              (switchItems.current[index]?.offsetWidth || 0),
+                    0
+                );
+                // The list is measured even while the menu stands in for it.
+                const compact =
+                    start + list.scrollWidth + others >
+                    corner(progress + columns).x;
+                filter.dataset.compact = String(compact);
+                filterWidth = compact ? menu.offsetWidth : list.scrollWidth;
+                // Where "create" and the view controls line up.
+                const edge =
+                    window.innerWidth * 0.07 -
+                    (filter.offsetParent?.getBoundingClientRect().left || 0);
+                filterPlace = placeFilter({
+                    scrolled: progress - sections[filterIndex].column,
+                    start,
+                    edge,
+                    handover:
+                        !compact &&
+                        edge + menu.offsetWidth + SWITCH_GAP <= left.x,
+                });
+            }
             const items: SwitchItem[] = sections.map(({ column }, index) => {
                 return {
+                    after:
+                        index === filterIndex
+                            ? (filterWidth + SWITCH_GAP) *
+                              (1 - filterPlace.handed)
+                            : 0,
                     width: switchItems.current[index]?.offsetWidth || 0,
                     natural: corner(column).x,
                     // The top of whichever visible column it sits over.
@@ -584,34 +634,27 @@ export default function Scene({
                     : sectionAt(sections, progress);
             const dpr = window.devicePixelRatio || 1;
             const snap = (value: number) => Math.round(value * dpr) / dpr;
-            const filter = filterRef.current;
-            if (filter) {
-                // On the labels' line, at the grid's far edge, while its
-                // section leads and the labels are together.
-                const inView =
-                    sections[current]?.section === filter.dataset.section;
-                const right = projectPoint(
-                    last.x + last.width / 2,
-                    last.y + last.height / 2,
-                    metrics
-                ).x;
-                const labelsEnd = items.reduce(
-                    (end, item) => end + item.width + SWITCH_GAP,
-                    left.x
-                );
-                const list = filter.firstElementChild as HTMLElement;
-                // The list is measured even while the menu stands in for it.
-                filter.dataset.compact = String(
-                    labelsEnd + list.scrollWidth > right
-                );
-                filter.style.transform = `translate3d(${snap(right)}px,${snap(
-                    left.y
-                )}px,0) translate(-100%,-100%)`;
-                filter.style.opacity = String(
-                    inView ? 1 - separation.value : 0
-                );
-                filter.style.visibility =
-                    inView && separation.value < 1 ? "visible" : "hidden";
+            if (filterPlace) {
+                const [list, menu] = Array.from(
+                    filter.children
+                ) as HTMLElement[];
+                const show = (
+                    element: HTMLElement,
+                    x: number,
+                    opacity: number
+                ) => {
+                    element.style.transform = `translate3d(${snap(x)}px,${snap(
+                        left.y
+                    )}px,0) translateY(-100%)`;
+                    element.style.opacity = String(opacity);
+                    element.style.visibility =
+                        opacity > 0.01 ? "visible" : "hidden";
+                };
+                const compact = filter.dataset.compact === "true";
+                show(list, filterPlace.list.x, filterPlace.list.opacity);
+                // With no room for the list, the menu takes its place.
+                if (compact) show(menu, filterPlace.list.x, 1);
+                else show(menu, filterPlace.menu.x, filterPlace.menu.opacity);
             }
             placed.forEach((item, index) => {
                 const element = switchItems.current[index];
@@ -1486,7 +1529,7 @@ const SectionSwitch = styled.div`
     z-index: 3;
     pointer-events: none;
     > .switch-item,
-    .switch-filter {
+    .switch-filter > * {
         position: absolute;
         left: 0;
         top: 0;
@@ -1516,22 +1559,34 @@ const SectionSwitch = styled.div`
     .switch-item[aria-pressed="true"] {
         color: #fff;
     }
+    .switch-item:hover {
+        color: var(--oc-ink);
+    }
+    .switch-item:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
     /* A section's size, quieter than its name. */
     .count {
         margin-left: 6px;
         color: var(--oc-muted);
         font-variant-numeric: tabular-nums;
     }
+    /* Filters belong to one section: a size under the section labels. */
     .filter-list {
         display: flex;
-        gap: 20px;
+        gap: 14px;
     }
     .filter-list .switch-item {
         position: relative;
     }
+    .switch-filter .switch-item,
+    .filter-menu select {
+        font-size: 10px;
+        letter-spacing: 0.02em;
+    }
     .filter-menu {
-        position: relative;
-        display: none;
+        display: flex;
         align-items: center;
         gap: 4px;
         padding: 0 0 12px;
@@ -1546,10 +1601,9 @@ const SectionSwitch = styled.div`
         background: none;
         color: inherit;
         font-family: var(--oc-mono);
-        font-size: 11px;
         line-height: 16px;
-        /* As wide as its longest option; the chosen one sits by the arrow. */
-        text-align-last: right;
+        /* As wide as the chosen filter, where the browser can. */
+        field-sizing: content;
         cursor: pointer;
     }
     .filter-menu select:focus-visible {
@@ -1563,24 +1617,13 @@ const SectionSwitch = styled.div`
     .filter-menu svg {
         pointer-events: none;
     }
-    /* No room beside the labels: one menu instead of the list. */
+    /* The list where the line has room for it, one menu where it has not. */
     .switch-filter[data-compact="true"] .filter-list {
-        position: absolute;
-        visibility: hidden;
-        pointer-events: none;
+        /* Still laid out, so its width can be measured. */
+        visibility: hidden !important;
     }
     .switch-filter[data-compact="true"] .filter-list .switch-item {
         pointer-events: none;
-    }
-    .switch-filter[data-compact="true"] .filter-menu {
-        display: flex;
-    }
-    .switch-item:hover {
-        color: var(--oc-ink);
-    }
-    .switch-item:focus-visible {
-        outline: 1px solid var(--oc-accent);
-        outline-offset: 2px;
     }
 `;
 const EdgeFade = styled.div<{ $right?: boolean }>`

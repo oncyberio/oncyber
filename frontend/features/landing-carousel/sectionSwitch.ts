@@ -5,6 +5,8 @@ export interface SwitchItem {
     natural: number;
     /** Top edge of the cards where it rides. */
     y: number;
+    /** Room kept clear after it, for what belongs to its section alone. */
+    after?: number;
 }
 
 /** Space between labels, whether side by side or docked. */
@@ -13,6 +15,48 @@ export const SWITCH_GAP = 20;
 export const SWITCH_SETTLE_MS = 180;
 /** Duration of separating and of joining back together. */
 export const SWITCH_EASE_MS = 240;
+/** Columns of scroll over which a section's filters hand over to the edge. */
+export const FILTER_HANDOVER = 0.6;
+/** How far the filters drift while they hand over. */
+export const FILTER_TRAVEL = 16;
+
+/**
+ * Where a section's filters go. Open, they follow its label as a list. As
+ * the section scrolls left the list drifts that way and fades, and one menu
+ * of the same filters comes to rest at the page's left edge, over the cards
+ * fading out there. Without that room (`handover` false) they stay put.
+ */
+export function placeFilter(frame: {
+    /** Columns scrolled past the section's start. */
+    scrolled: number;
+    /** Where the filters start: just after the section's label. */
+    start: number;
+    /** Left edge of the page's controls, where the menu rests. */
+    edge: number;
+    handover: boolean;
+}) {
+    const t = frame.handover
+        ? smooth(
+              Math.min(
+                  1,
+                  Math.max(0, Math.abs(frame.scrolled) / FILTER_HANDOVER)
+              )
+          )
+        : 0;
+    return {
+        /** 0 with the filters open beside the label, 1 once handed over. */
+        handed: t,
+        // Gone by halfway, before the labels after it close the gap.
+        list: {
+            x: frame.start - t * FILTER_TRAVEL,
+            opacity: Math.max(0, 1 - t * 2),
+        },
+        menu: {
+            x: frame.edge + (1 - t) * FILTER_TRAVEL,
+            opacity: Math.max(0, t * 2 - 1),
+        },
+    };
+}
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -41,7 +85,7 @@ export function placeSwitch(
     let dockEnd = frame.left;
     return items.map((item, index) => {
         const joined = joinedEnd;
-        joinedEnd += item.width + SWITCH_GAP;
+        joinedEnd += item.width + SWITCH_GAP + (item.after || 0);
         const x =
             index === 0
                 ? dockEnd
@@ -50,7 +94,7 @@ export function placeSwitch(
                       Math.min(item.natural, frame.right - item.width)
                   );
         const docked = index === 0 || x === dockEnd;
-        dockEnd = x + item.width + SWITCH_GAP;
+        dockEnd = x + item.width + SWITCH_GAP + (item.after || 0);
         return {
             x: mix(joined, x, t),
             y: mix(frame.top, docked ? frame.top : item.y, t),

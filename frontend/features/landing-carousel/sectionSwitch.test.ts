@@ -1,4 +1,7 @@
 import {
+    FILTER_HANDOVER,
+    FILTER_TRAVEL,
+    placeFilter,
     placeSwitch,
     stepSeparation,
     SWITCH_EASE_MS,
@@ -54,5 +57,35 @@ describe("section switch", () => {
         const rest = stepSeparation(state, now, false);
         expect(rest).toEqual({ value: 0, animating: false });
         expect(stepSeparation(state, now, true, true).value).toBe(1);
+    });
+
+    it("keeps room after a label for its section's filters", () => {
+        const [first, second] = items(-400);
+        const placed = placeSwitch(
+            [{ ...first, after: 200 }, second],
+            frame(0)
+        );
+        expect(placed[1].x).toBe(100 + 80 + SWITCH_GAP + 200);
+    });
+
+    it("hands the filters over to the edge as their section scrolls", () => {
+        const at = (scrolled: number, handover = true) =>
+            placeFilter({ scrolled, start: 300, edge: 40, handover });
+        expect(at(0)).toEqual({
+            handed: 0,
+            list: { x: 300, opacity: 1 },
+            menu: { x: 40 + FILTER_TRAVEL, opacity: 0 },
+        });
+        expect(at(FILTER_HANDOVER)).toEqual({
+            handed: 1,
+            list: { x: 300 - FILTER_TRAVEL, opacity: 0 },
+            menu: { x: 40, opacity: 1 },
+        });
+        // Never both at once: the list is gone before the menu shows.
+        const half = at(FILTER_HANDOVER / 2);
+        expect(half.list.opacity).toBe(0);
+        expect(half.menu.opacity).toBe(0);
+        // With no room at the edge the filters stay where they are.
+        expect(at(3, false).list).toEqual({ x: 300, opacity: 1 });
     });
 });
