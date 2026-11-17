@@ -106,7 +106,7 @@ const SECTION_LABELS: Record<GridSection, string> = {
     results: "Results",
     staff: "Staff picks",
     popular: POPULAR_SECTION_LABEL,
-    spaces: "Your spaces",
+    spaces: "Your worlds",
     templates: "Create new",
 };
 

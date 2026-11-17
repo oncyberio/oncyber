@@ -17,11 +17,11 @@ export const RESET_SPACES_ID = "spaces-reset";
 
 /** The ways to look at your spaces; the first is the default. */
 export const SPACE_FILTERS = [
-    { value: "latest", label: "Latest", noun: "spaces" },
-    { value: "viewed", label: "Most viewed", noun: "spaces" },
-    { value: "deployed", label: "Deployed", noun: "deployed spaces" },
+    { value: "latest", label: "Latest", noun: "worlds" },
+    { value: "viewed", label: "Most viewed", noun: "worlds" },
+    { value: "deployed", label: "Deployed", noun: "deployed worlds" },
     { value: "drafts", label: "Drafts", noun: "drafts" },
-    { value: "shared", label: "Shared", noun: "shared spaces" },
+    { value: "shared", label: "Shared", noun: "shared worlds" },
 ] as const;
 
 export type SpaceFilter = (typeof SPACE_FILTERS)[number]["value"];
@@ -75,13 +75,16 @@ export function countSpaces(
 
 const PLACEHOLDER = "/images/sq_image_placeholder.png";
 
-/** How many covers the card for the rest of your spaces shows at once. */
-export const COLLAGE_COVERS = 5;
+/** Covers offered for it: some no longer load, so more than it shows. */
+export const COLLAGE_CANDIDATES = 20;
+/** Image hosts that have shut down; their covers never load. */
+const DEAD_COVER_HOSTS = /^https?:\/\/res\.cloudinary\.com\//i;
 
 /**
  * Covers for the card that stands for the spaces not shown: the hidden
  * spaces' own covers first, then the shown ones', then template artwork.
- * Never the placeholder, which says nothing about a space.
+ * Never the placeholder, which says nothing about a space. The card draws
+ * the first few that load.
  */
 export function collageCovers(hidden: SpaceSummary[], shown: SpaceSummary[]) {
     const spaces = [...hidden, ...shown];
@@ -93,7 +96,8 @@ export function collageCovers(hidden: SpaceSummary[], shown: SpaceSummary[]) {
         return cover === PLACEHOLDER ? undefined : cover;
     });
     return [...new Set([...own, ...template].filter(Boolean))]
-        .slice(0, COLLAGE_COVERS)
+        .filter((cover) => !DEAD_COVER_HOSTS.test(cover))
+        .slice(0, COLLAGE_CANDIDATES)
         .map((cover) => resize(cover, 512, undefined, "webp"));
 }
 
@@ -168,7 +172,7 @@ function spaceCard(
                 ? "Continue editing"
                 : "Open in Studio",
         actionLabel: `Open ${title} in Studio`,
-        openingLabel: "Opening your space…",
+        openingLabel: "Opening your world…",
         imageUrls: cover
             ? [
                   cover === PLACEHOLDER
@@ -223,8 +227,8 @@ export function createSpaceCards(
                 section: "spaces",
                 title: query.trim() ? `No ${noun} match` : `No ${noun} yet`,
                 href: "/?create=gallery",
-                buildStatus: `Show all ${spaces.length} spaces`,
-                actionLabel: "Show all your spaces",
+                buildStatus: `Show all ${spaces.length} worlds`,
+                actionLabel: "Show all your worlds",
                 imageUrls: [],
             },
         ];

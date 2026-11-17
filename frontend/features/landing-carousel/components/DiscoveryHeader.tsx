@@ -77,10 +77,10 @@ export default function DiscoveryHeader({
                   ...(templates.spaces
                       ? SPACE_FILTERS.map((filter) => ({
                             id: `spaces-${filter.value}`,
-                            section: "Filter your spaces",
+                            section: "Filter your worlds",
                             label: filter.label,
                             icon: "filter" as const,
-                            keywords: "filter sort my spaces",
+                            keywords: "filter sort my worlds spaces",
                             checked: templates.spaces.filter === filter.value,
                             run: () => templates.spaces.update(filter.value),
                         }))

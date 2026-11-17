@@ -1,3 +1,5 @@
+/** How many covers a collage shows. */
+export const COLLAGE_STRIPS = 5;
 /** How far a strip's top edge sits right of its bottom edge, per height. */
 export const COLLAGE_LEAN = 0.16;
 
