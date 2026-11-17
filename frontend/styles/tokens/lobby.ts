@@ -51,7 +51,7 @@ export const lobbyTokens = {
     },
     control: {
         size: 40,
-        touchSize: 44,
+        touchSize: 36,
         radius: base.radius.control,
         background: "#14161bcc",
         hover: "#22252de6",

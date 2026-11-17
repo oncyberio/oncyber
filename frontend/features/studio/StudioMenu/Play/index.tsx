@@ -41,14 +41,15 @@ const PreviewLink = styled.a`
     }
     @media (max-width: 600px) {
         min-width: 0;
-        min-height: 44px;
+        min-height: 36px;
         margin-left: 0;
-        padding: 8px 12px;
+        padding: 6px 12px;
         gap: 6px;
+        font-size: 13px;
     }
     /* Small phones: the play mark alone keeps the header on one row. */
     @media (max-width: 380px) {
-        width: 44px;
+        width: 36px;
         padding: 0;
         justify-content: center;
         .label {

@@ -2205,8 +2205,8 @@ const LobbySurface = styled.div`
     }
     @media (max-width: 680px) {
         .lobby-dock {
-            --lobby-dock-width: 194px;
-            --lobby-dock-height: 44px;
+            --lobby-dock-width: 170px;
+            --lobby-dock-height: 38px;
         }
     }
     @media (max-width: 550px) {
@@ -2216,7 +2216,7 @@ const LobbySurface = styled.div`
                 max(20px, env(safe-area-inset-bottom) + 8px) -
                     max(76px, env(safe-area-inset-bottom) + 68px)
             );
-            --lobby-dock-width: 194px;
+            --lobby-dock-width: 170px;
             left: 50%;
             right: auto;
             bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
@@ -2229,14 +2229,14 @@ const LobbySurface = styled.div`
             gap: 6px;
         }
         .dock-button {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
         }
         .dock-item > span {
             display: none;
         }
         .chat-composer {
-            height: 44px;
+            height: 40px;
         }
         .chat-input-bar input {
             font-size: 16px;

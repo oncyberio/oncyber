@@ -117,7 +117,7 @@ export const StudioToolbarFrame = styled.div<{
 
             @media (max-width: 600px) {
                 max-width: 140px;
-                height: 44px;
+                height: 36px;
                 border-radius: var(--studio-radius-control);
                 padding: 4px 12px 4px 4px;
                 gap: 6px;
@@ -132,7 +132,7 @@ export const StudioToolbarFrame = styled.div<{
             display: none;
 
             @media (max-width: 600px) {
-                width: 44px;
+                width: 36px;
                 display: flex;
                 align-items: center;
                 justify-content: center;

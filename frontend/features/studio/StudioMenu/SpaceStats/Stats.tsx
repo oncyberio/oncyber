@@ -514,8 +514,8 @@ const Container = styled.div`
         padding: 16px 16px 8px;
 
         & > .header .close {
-            width: 44px;
-            height: 44px;
+            width: 36px;
+            height: 36px;
         }
     }
 `;
@@ -552,8 +552,8 @@ const TopBar = styled.div`
             }
 
             @media (max-width: 600px) {
-                width: 44px;
-                min-height: 44px;
+                width: 36px;
+                min-height: 36px;
             }
         }
     }

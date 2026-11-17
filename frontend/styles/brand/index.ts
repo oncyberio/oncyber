@@ -19,6 +19,15 @@ import { landingTokens as landing } from "@styles/tokens/landing";
 /** The action font; also resolves outside a `brandFoundation` root. */
 const actionFont = `${action.type.font} var(--oc-font, ${action.type.family})`;
 
+/** Phones get a smaller action button, so controls leave room for content. */
+const phoneActionSizing = css`
+    @media (max-width: ${base.breakpoint.phone}px) {
+        min-height: 34px;
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+`;
+
 /** Shared geometry for the landing Sign in and Jump In actions. */
 export const compactActionSizing = css`
     display: inline-flex;
@@ -34,6 +43,7 @@ export const compactActionSizing = css`
         gap: ${landing.action.compactGap}px;
         font-size: ${base.font.size.md}px;
     }
+    ${phoneActionSizing}
 `;
 
 /**
@@ -50,6 +60,7 @@ export const actionSpec = css`
     font: ${actionFont};
     /* Keep a gradient fill from repeating under the transparent border. */
     background-origin: border-box;
+    ${phoneActionSizing}
 `;
 
 /** Pill shape. Add after `actionSpec` or `actionButton`. */

@@ -83,11 +83,6 @@ const Container = styled.div<{ isToggling: boolean }>`
 
     user-select: none;
 
-    @media (max-width: 600px) {
-        bottom: 6em;
-        z-index: 1;
-    }
-
     & > .btn {
         border: none;
         margin: 0;
@@ -122,6 +117,22 @@ const Container = styled.div<{ isToggling: boolean }>`
 
         & .tmc-icon {
             filter: invert(0);
+        }
+    }
+    @media (max-width: 600px) {
+        bottom: 72px;
+        right: 8px;
+        z-index: 1;
+
+        & > .btn {
+            width: 64px;
+            padding: 8px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+        }
+        & .tmc-icon {
+            width: 16px;
+            height: 16px;
         }
     }
 `;
