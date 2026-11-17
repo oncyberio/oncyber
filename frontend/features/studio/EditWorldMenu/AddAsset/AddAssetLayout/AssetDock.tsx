@@ -1,6 +1,7 @@
 import React from "react";
 import styled, { css } from "styled-components";
 import type { AssetType } from "../shared/AssetTypes";
+import { tx } from "@components/context/I18nContext";
 export const AssetDock = styled.div<{
     isCollapsed: boolean;
     activeOpt: AssetType;
@@ -385,7 +386,11 @@ export function AssetDockShell({ children }: { children: React.ReactNode }) {
                     />
                 </svg>
             ))}
-            <div className="cmd-list" role="group" aria-label="Add assets">
+            <div
+                className="cmd-list"
+                role="group"
+                aria-label={tx("Add assets")}
+            >
                 {children}
             </div>
         </div>

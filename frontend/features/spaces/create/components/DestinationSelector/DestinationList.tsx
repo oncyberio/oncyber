@@ -13,6 +13,7 @@ import { Destination } from "@uitypes/destinations";
 import { RoomSection } from "./shared/constants";
 import { useRouter } from "next/router";
 import { canBuyRoom } from "@dapp/cyberRooms";
+import { tx } from "@components/context/I18nContext";
 
 interface TabData {
     id: RoomSection;
@@ -322,7 +323,7 @@ export function DestinationList({ scrollRef }) {
             <Search>
                 <div className="search-input">
                     <input
-                        placeholder="E.g. Cyber Loft"
+                        placeholder={tx("E.g. Cyber Loft")}
                         onChange={handleChangeInputFilter}
                     />
                     <IconImg name="search" className="icon" />
@@ -341,7 +342,7 @@ export function DestinationList({ scrollRef }) {
                                         handleTagFilterClick(tag);
                                     }}
                                 >
-                                    {tag.title}
+                                    {tx(tag.title)}
                                 </div>
                             );
                         })}
@@ -370,7 +371,7 @@ export function DestinationList({ scrollRef }) {
             </TabHeaders> */}
             {isLoadingRooms && SpinnerLoader}
             {rooms == null && loadingError && (
-                <h1 className="error">Error loading destinations</h1>
+                <h1 className="error">{tx("Error loading destinations")}</h1>
             )}
             {!isLoadingRooms && rooms && (
                 <TabContent>

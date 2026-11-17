@@ -13,6 +13,7 @@ import { Destination } from "@uitypes/destinations";
 import { deleteCinematic, deleteStylekit } from "@utils/saveToDb";
 import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
+import { tx } from "@components/context/I18nContext";
 
 type RoomAction =
     | "view"
@@ -275,32 +276,32 @@ export function ActionMenu({
                 <div className="items">
                     {canUse("view") && (
                         <RoundButton onClick={handleViewDestination}>
-                            View
+                            {tx("View")}
                         </RoundButton>
                     )}
 
                     {canUse("edit_glb") && (
                         <RoundButton onClick={handleEdit3DModel}>
-                            Update 3D Model
+                            {tx("Update 3D Model")}
                         </RoundButton>
                     )}
 
                     {canUse("edit") && (
                         <RoundButton onClick={handleEditDestinationPhysics}>
-                            Edit Scene
+                            {tx("Edit Scene")}
                         </RoundButton>
                     )}
 
                     {/* {destination.params.isFuture && (
                         <RoundButton onClick={handleEditDestinationKitbash}>
-                            Edit Kitbash
+                            {tx("Edit Kitbash")}
                         </RoundButton>
                     )} */}
 
                     {status === "rejected" && (
                         <>
                             <RoundButton onClick={handleReSubmission}>
-                                Resubmit
+                                {tx("Resubmit")}
                             </RoundButton>
                         </>
                     )}
@@ -308,25 +309,25 @@ export function ActionMenu({
                     {status === "tested" && canUse("delete") && (
                         <>
                             <RoundButton onClick={handleDeleteDestination}>
-                                Delete
+                                {tx("Delete")}
                             </RoundButton>
                         </>
                     )}
                     {status === "submitted" && canUse("cancel_review") && (
                         <RoundButton onClick={handleCancelReviewSubmission}>
-                            Cancel review
+                            {tx("Cancel review")}
                         </RoundButton>
                     )}
 
                     {status === "submitted" && canUse("edit_submit") && (
                         <RoundButton onClick={handleEditSubmitData}>
-                            Edit Submit Data
+                            {tx("Edit Submit Data")}
                         </RoundButton>
                     )}
 
                     {canUse("create_space") && (
                         <RoundButton onClick={handleUseNow}>
-                            Use Now
+                            {tx("Use Now")}
                         </RoundButton>
                     )}
                 </div>

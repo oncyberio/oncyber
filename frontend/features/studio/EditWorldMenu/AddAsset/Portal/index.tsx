@@ -21,6 +21,7 @@ import { TextMenuCaption } from "../../../components/TextMenuCaption";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { PortalOpt } from "../shared/AssetTypes";
 import { PanelEmptyState } from "../shared/PanelContent";
+import { tx } from "@components/context/I18nContext";
 
 const swrOptions = {
     revalidateOnFocus: false,
@@ -132,14 +133,14 @@ export function AddPortal({ isElevator }) {
         content = shownExhibits.length ? (
             <ExhibitList isElevator={isElevator} exhibits={shownExhibits} />
         ) : (
-            <PanelEmptyState title="No matching worlds" />
+            <PanelEmptyState title={tx("No matching worlds")} />
         );
     }
 
     return (
         <Container>
             <SearchInput
-                placeholder="Search worlds or paste an oncyber link"
+                placeholder={tx("Search worlds or paste an oncyber link")}
                 value={query}
                 onChange={setQuery}
             />

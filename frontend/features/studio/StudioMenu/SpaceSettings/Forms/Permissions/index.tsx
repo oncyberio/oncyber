@@ -14,6 +14,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import Dropdown from "@ui/components/Dropdown";
 import Input from "@ui/components/Input";
 import { useDebouncedValue } from "@components/hooks/usDebouncedValue";
+import { tx } from "@components/context/I18nContext";
 
 const labelStyle = {
     fontWeight: 400,
@@ -70,10 +71,10 @@ export function Permissions() {
     return (
         <Container submitting={false}>
             <Form>
-                <FormInfo>Disable Multiplayer</FormInfo>
+                <FormInfo>{tx("Disable Multiplayer")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Make this World a solo experience.
+                        {tx("Make this World a solo experience.")}
                     </FormLabel>
                     <Toggle
                         disabled={!canEdit}
@@ -84,10 +85,10 @@ export function Permissions() {
                     />
                 </FormLabelWrapper>
                 <FormSep />
-                <FormInfo>Public Voice Chat</FormInfo>
+                <FormInfo>{tx("Public Voice Chat")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Allow anyone to speak, no permissions needed.
+                        {tx("Allow anyone to speak, no permissions needed.")}
                     </FormLabel>
                     <Toggle
                         disabled={!canEdit}
@@ -98,10 +99,10 @@ export function Permissions() {
                     />
                 </FormLabelWrapper>
                 <FormSep />
-                <FormInfo>Public Editing</FormInfo>
+                <FormInfo>{tx("Public Editing")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Allow anyone to edit your World.
+                        {tx("Allow anyone to edit your World.")}
                     </FormLabel>
                     <Toggle
                         disabled={!canEdit}
@@ -112,10 +113,10 @@ export function Permissions() {
                     />
                 </FormLabelWrapper>
                 <FormSep />
-                <FormInfo>Camera Mode</FormInfo>
+                <FormInfo>{tx("Camera Mode")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Default point of view for visitors
+                        {tx("Default point of view for visitors")}
                     </FormLabel>
                     <Dropdown
                         background="#27282c"
@@ -132,10 +133,10 @@ export function Permissions() {
                     />
                 </FormLabelWrapper>
                 <FormSep />
-                <FormInfo>Avatar Size</FormInfo>
+                <FormInfo>{tx("Avatar Size")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        Default avatar size for visitors
+                        {tx("Default avatar size for visitors")}
                     </FormLabel>
                     <Input
                         type="number"

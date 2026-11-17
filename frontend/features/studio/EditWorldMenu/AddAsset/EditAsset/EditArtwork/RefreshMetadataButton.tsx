@@ -6,6 +6,7 @@ import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import IconImg from "@ui/components/IconImg";
 import Spinner from "@ui/components/Spinner";
+import { tx } from "@components/context/I18nContext";
 
 //
 export function RefreshMetadataButton() {
@@ -29,7 +30,7 @@ export function RefreshMetadataButton() {
     }, []);
 
     return (
-        <Box title="Refresh metadata" onClick={handleRefreshClick}>
+        <Box title={tx("Refresh metadata")} onClick={handleRefreshClick}>
             {isRefreshing ? (
                 <Spinner width={16} />
             ) : (

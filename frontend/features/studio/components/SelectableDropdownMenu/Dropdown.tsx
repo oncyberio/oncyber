@@ -4,6 +4,7 @@ import React, { CSSProperties } from "react";
 import styled from "styled-components";
 import { OptionItem } from "../../types";
 import { classes } from "@utils/js";
+import { tx } from "@components/context/I18nContext";
 
 //
 export interface DropdownProps<K> {
@@ -52,7 +53,7 @@ export function Dropdown<K>({
                             name="check"
                             size={12}
                         />
-                        <span className="title">{it.title}</span>
+                        <span className="title">{tx(it.title)}</span>
                     </button>
                 );
             })}

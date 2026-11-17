@@ -3,6 +3,7 @@ import { RoomParameters } from "@uitypes/roomParameters";
 import React from "react";
 import styled from "styled-components";
 import { exhibitCover } from "@utils/destinationCover";
+import { tx } from "@components/context/I18nContext";
 
 export type ExhibitPictureProps = React.ComponentPropsWithoutRef<"div"> & {
     exhibit: Experience;
@@ -31,7 +32,7 @@ export const ExhibitPicture = React.forwardRef(
             >
                 <img
                     src={exhibitCover(exhibit?.info, destination)}
-                    alt="Exhibit picture"
+                    alt={tx("Exhibit picture")}
                     onError={(e: any) => {
                         e.target.src = "/images/sq_image_placeholder.png";
                         e.target.onerror = null;

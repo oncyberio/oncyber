@@ -2,6 +2,7 @@ import styled, { useTheme } from "styled-components";
 import EmptyState, { surfaceOfTheme } from "@ui/components/EmptyState";
 import { useNftBuyContext } from "@components/context/NftBuyContext";
 import { AssetTimeline } from "@components/modals/ArtworkInfo/C/components/Timeline";
+import { tx } from "@components/context/I18nContext";
 
 export function Activity() {
     const { assetHistory } = useNftBuyContext();
@@ -12,13 +13,13 @@ export function Activity() {
     if (assetHistory.status === "error") {
         content = <FallbackMsg> {assetHistory.error}</FallbackMsg>;
     } else if (assetHistory.status === "loading") {
-        content = <FallbackMsg>Loading price data…</FallbackMsg>;
+        content = <FallbackMsg>{tx("Loading price data…")}</FallbackMsg>;
     } else if (assetHistory.status === "idle" || !assetHistory.data?.length) {
         content = (
             <EmptyState
                 surface={surface}
                 icon="activity"
-                title="No activity yet."
+                title={tx("No activity yet.")}
             />
         );
     } else {

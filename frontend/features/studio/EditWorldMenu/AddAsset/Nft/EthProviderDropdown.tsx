@@ -7,6 +7,7 @@ import { IconMenuCaption } from "../shared/IconMenuCaption";
 import { useWalletContext } from "@features/studio/EditWorldMenu/context/WalletContext";
 import { getAddrType } from "@utils/getAddrType";
 import { NftSourceButton } from "./NftSourceButton";
+import { tx } from "@components/context/I18nContext";
 
 export interface ProviderOpt {
     title: string;
@@ -141,11 +142,11 @@ export function EthProviderDropdown({ addTogglerRef, showLabel = false }) {
                 showLabel
                     ? ({ toggled }) => (
                           <NftSourceButton
-                              label="Network"
+                              label={tx("Network")}
                               value={
                                   displayItems.find(
                                       (item) => item.value === currentRepo
-                                  )?.title || "Ethereum"
+                                  )?.title || tx("Ethereum")
                               }
                               toggled={toggled}
                           />

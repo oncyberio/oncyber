@@ -13,6 +13,7 @@ import RadioBox from "@features/studio/styles/RadioBox";
 import { DropdownContainer } from "./DropdownContainer";
 import { tool } from "./utils";
 import { useObservableState } from "@components/_3DExhibit-v2/hooks/useObservableState";
+import { tx } from "@components/context/I18nContext";
 
 type VideoOption = OptionItem<VideoPlaybackType>;
 
@@ -64,7 +65,9 @@ export function VideoOptsTool() {
             {({ toggle }) => {
                 return (
                     <DropdownContainer>
-                        <DropdownHeader>Video Playback Options</DropdownHeader>
+                        <DropdownHeader>
+                            {tx("Video Playback Options")}
+                        </DropdownHeader>
 
                         {videoOpts.map((opt) => {
                             const isSelected = opt.value === videoPlayback;
@@ -77,7 +80,7 @@ export function VideoOptsTool() {
                                         handleChangePlayback(opt.value);
                                     }}
                                 >
-                                    <div className="title">{opt.title}</div>
+                                    <div className="title">{tx(opt.title)}</div>
                                     <div className="radio">
                                         <RadioBox
                                             hideLabel={true}

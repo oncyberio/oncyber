@@ -5,6 +5,7 @@ import { useOnboarding } from "@features/onboarding/context/OnboardingContext";
 import { useRooms } from "@features/spaces/create/components/DestinationSelector/useRooms";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { UserContext } from "@components/context/UserContext";
+import { tx } from "@components/context/I18nContext";
 
 const SPACES = {
     "wolfgang-n2_v2": {
@@ -104,7 +105,7 @@ export default function PickBuildMore({ onCreateSpace }) {
             id: space,
             ...SPACES[space],
             ...(space === template?.recommended && {
-                badge: "Recommended",
+                badge: tx("Recommended"),
             }),
             next: () => handleNext(space),
         }));
@@ -113,7 +114,7 @@ export default function PickBuildMore({ onCreateSpace }) {
     return (
         onboarding?.studio === "PickSpace" && (
             <QuizModal
-                title="Choose a Free Template"
+                title={tx("Choose a Free Template")}
                 items={items}
                 startIndex={1}
                 skip={handleSkip}

@@ -9,6 +9,7 @@ import {
     studioField,
     studioAction,
 } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 const panelCopy: Record<AssetType, { title: string; description: string }> = {
     avatar: {
@@ -75,11 +76,11 @@ export function AddAssetLayout({
             <div className="header">
                 <div className="heading">
                     <PanelTypeIcon>{option.icon}</PanelTypeIcon>
-                    <h2>{copy.title}</h2>
+                    <h2>{tx(copy.title)}</h2>
                     <button
                         type="button"
                         className="close"
-                        aria-label="Close asset panel"
+                        aria-label={tx("Close asset panel")}
                         onClick={onClose}
                     >
                         <svg

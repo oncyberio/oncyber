@@ -7,6 +7,7 @@ import { Label } from "@features/studio/styles/Label";
 import { TextArea } from "@features/studio/styles/Input";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 export function CuratorNotes() {
     //
@@ -48,14 +49,14 @@ export function CuratorNotes() {
                     !notesSaved
                 }
             >
-                <Label className="component-label">Curator Notes</Label>
+                <Label className="component-label">{tx("Curator Notes")}</Label>
                 <a onClick={handleSave}>
                     {curatorNotes != selectedMesh?.userData?.curatorNotes &&
                     !notesSaved
                         ? loading
-                            ? "Saving..."
-                            : "Save"
-                        : "Saved"}
+                            ? tx("Saving...")
+                            : tx("Save")
+                        : tx("Saved")}
                 </a>
             </SaveTitle>
             <TextArea
@@ -64,7 +65,7 @@ export function CuratorNotes() {
                     setNotesSaved(false);
                     setCuratorNotes(e.target.value);
                 }}
-                placeholder="Additional notes about the artwork"
+                placeholder={tx("Additional notes about the artwork")}
             />
         </Field>
     );

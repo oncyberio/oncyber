@@ -15,6 +15,7 @@ import { useCurrentExhibit } from "./ExhibitContext";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { Overlay } from "@features/studio/styles/Overlay";
 import ReactPortal from "@components/Snackbar/Portal";
+import { tx } from "@components/context/I18nContext";
 
 export interface ExhibitEditorProps {
     children: React.ReactNode;
@@ -75,7 +76,7 @@ export function ExhibitEditorProvider({ children }: ExhibitEditorProps) {
         <ExhibitEditorContext.Provider value={editorService}>
             {isApplyingKit && (
                 <ReactPortal>
-                    <Overlay>Applying new kit...</Overlay>
+                    <Overlay>{tx("Applying new kit...")}</Overlay>
                 </ReactPortal>
             )}
             {children}

@@ -21,6 +21,7 @@ import { useDebouncedCallback } from "@components/hooks/useDebouncedCallback";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { tool } from "./utils";
 import { useObservableState } from "@components/_3DExhibit-v2/hooks/useObservableState";
+import { tx } from "@components/context/I18nContext";
 
 type AudioOption = OptionItem<AudioType>;
 
@@ -122,7 +123,9 @@ export function AudioOptsTool() {
             {({ toggle }) => {
                 return (
                     <DropdownContainer>
-                        <DropdownHeader>Play Audio Options</DropdownHeader>
+                        <DropdownHeader>
+                            {tx("Play Audio Options")}
+                        </DropdownHeader>
 
                         {options.map((opt) => {
                             const isSelected = opt.value === audioType;
@@ -136,7 +139,7 @@ export function AudioOptsTool() {
                                         }
                                     }}
                                 >
-                                    <div className="title">{opt.title}</div>
+                                    <div className="title">{tx(opt.title)}</div>
                                     <div className="radio">
                                         <RadioBox
                                             hideLabel={true}
@@ -157,7 +160,7 @@ export function AudioOptsTool() {
                             >
                                 <Field>
                                     <Label>
-                                        Slide to increase sound distance
+                                        {tx("Slide to increase sound distance")}
                                     </Label>
                                     <Slider
                                         min={1}

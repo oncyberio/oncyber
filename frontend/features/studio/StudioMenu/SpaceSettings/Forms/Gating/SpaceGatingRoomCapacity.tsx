@@ -10,6 +10,7 @@ import { Header } from "../styles/Header";
 import { GatingUIProps } from "./types";
 import { useGatingEditCancel } from "./useGatingEditCancel";
 import { useFormHandler } from "../context/ActionsContext";
+import { tx } from "@components/context/I18nContext";
 
 export function SpaceGatingRoomCapacity({ initState, onClose }: GatingUIProps) {
     //
@@ -50,13 +51,13 @@ export function SpaceGatingRoomCapacity({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <Header>Set Max Number of Users allowed in space</Header>
+            <Header>{tx("Set Max Number of Users allowed in space")}</Header>
 
             <Form>
-                <FormLabel>Max. Number of Users</FormLabel>
+                <FormLabel>{tx("Max. Number of Users")}</FormLabel>
                 <Input
                     maxLength={30}
-                    placeholder="No limit"
+                    placeholder={tx("No limit")}
                     onChange={handleChange}
                     value={capacity}
                     hasError={!!error}

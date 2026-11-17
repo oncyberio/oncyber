@@ -21,6 +21,7 @@ import { createEmptySpace } from "@features/spaces/create/utils";
 import type { TemplateCategory } from "../templateSearch";
 import { createTemplateCards, templateCover } from "../templateCards";
 import useTemplateRefresh from "../hooks/useTemplateRefresh";
+import { useCyberTranslation } from "@components/context/I18nContext";
 type CatalogProps = {
     onChange: (data: TemplateGridData) => void;
     query: string;
@@ -94,6 +95,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
     const [selected, setSelected] = useState<string>(null);
     const [signingIn, setSigningIn] = useState(false);
     const dialog = useRef<HTMLDialogElement>(null);
+    const { t } = useCyberTranslation();
     const groups = useMemo(
         () => roomSections(rooms, ownedRooms, "template", roomFloorPrices),
         [rooms, ownedRooms, roomFloorPrices]
@@ -207,7 +209,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
             <div className="body">
                 <button
                     className="close"
-                    aria-label="Close room details"
+                    aria-label={t("Close room details")}
                     onClick={() => dialog.current.close()}
                 >
                     ×
@@ -221,23 +223,28 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
                 </div>
                 <div className="content">
                     <span className="eyebrow">
-                        {room.tag.includes("free")
-                            ? "FREE GALLERY"
-                            : ready
-                            ? "YOUR GALLERY"
-                            : "COLLECTIBLE GALLERY"}
+                        {t(
+                            room.tag.includes("free")
+                                ? "FREE GALLERY"
+                                : ready
+                                ? "YOUR GALLERY"
+                                : "COLLECTIBLE GALLERY"
+                        )}
                     </span>
                     <h2 id="template-title">{room.name}</h2>
                     <p className="description">
                         {room.description ||
-                            "A collectible space for your art and exhibitions."}
+                            t(
+                                "A collectible space for your art and exhibitions."
+                            )}
                     </p>
                     {!ready && (
                         <div className="ownership">
-                            <strong>A collectible space</strong>
+                            <strong>{t("A collectible space")}</strong>
                             <p>
-                                Own this gallery to make it yours. Already
-                                collected it? Sign in with your linked wallet.
+                                {t(
+                                    "Own this gallery to make it yours. Already collected it? Sign in with your linked wallet."
+                                )}
                             </p>
                         </div>
                     )}
@@ -249,7 +256,11 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
                                 open({ room: room.slug } as LandingCard)
                             }
                         >
-                            {opening ? "Opening Studio…" : "Use this gallery →"}
+                            {t(
+                                opening
+                                    ? "Opening Studio…"
+                                    : "Use this gallery →"
+                            )}
                         </button>
                     ) : (
                         <div className="actions">
@@ -260,14 +271,17 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    {onOpenSea
-                                        ? "View on OpenSea ↗"
-                                        : "View marketplace ↗"}
+                                    {t(
+                                        onOpenSea
+                                            ? "View on OpenSea ↗"
+                                            : "View marketplace ↗"
+                                    )}
                                 </a>
                             ) : (
                                 <p>
-                                    No marketplace listing is available for this
-                                    room yet.
+                                    {t(
+                                        "No marketplace listing is available for this room yet."
+                                    )}
                                 </p>
                             )}
                             {(!authenticated || isAnonymous) && (
@@ -276,7 +290,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
                                         setSigningIn((value) => !value)
                                     }
                                 >
-                                    I already own this →
+                                    {t("I already own this →")}
                                 </button>
                             )}
                         </div>
@@ -291,18 +305,20 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
                         </ProviderButtonsWrapper>
                     )}
                     <p className="status" role="status">
-                        {isCheckingBalances && authenticated && !isAnonymous
-                            ? "Checking your connected wallets…"
-                            : ready
-                            ? room.tag.includes("free")
-                                ? "Free to create. Make it yours in Studio."
-                                : "Owned by you · Ready to customize"
-                            : authenticated && !isAnonymous && !loadingError
-                            ? "Ownership updates automatically. Make sure the purchasing wallet is linked to your account; recent purchases may take a moment to appear."
-                            : ""}
+                        {t(
+                            isCheckingBalances && authenticated && !isAnonymous
+                                ? "Checking your connected wallets…"
+                                : ready
+                                ? room.tag.includes("free")
+                                    ? "Free to create. Make it yours in Studio."
+                                    : "Owned by you · Ready to customize"
+                                : authenticated && !isAnonymous && !loadingError
+                                ? "Ownership updates automatically. Make sure the purchasing wallet is linked to your account; recent purchases may take a moment to appear."
+                                : ""
+                        )}
                     </p>
                     {(loadingError || error) && (
-                        <p role="alert">{loadingError || error}</p>
+                        <p role="alert">{t(loadingError || error)}</p>
                     )}
                 </div>
             </div>

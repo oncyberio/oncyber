@@ -25,6 +25,7 @@ import { uploadFile } from "@utils/factory/httpPinata";
 import DatePicker from "react-datepicker";
 
 import "react-datepicker/dist/react-datepicker.css";
+import { tx } from "@components/context/I18nContext";
 
 type EventScheduler = {
     title: string;
@@ -404,11 +405,11 @@ export function EventScheduler() {
             </HeaderInfo> */}
 
             <Form>
-                <FormLabel>Event Title</FormLabel>
+                <FormLabel>{tx("Event Title")}</FormLabel>
                 <Input
                     maxLength={30}
                     name="title"
-                    placeholder="e.g. Nyc"
+                    placeholder={tx("e.g. Nyc")}
                     onChange={handleInputChange}
                     value={eventInfo?.title || ""}
                 />
@@ -416,7 +417,7 @@ export function EventScheduler() {
 
             <Form inline style={{ gap: 16, alignItems: "baseline" }}>
                 <Form className="timepicker_container full-form">
-                    <FormLabel>Set start date</FormLabel>
+                    <FormLabel>{tx("Set start date")}</FormLabel>
 
                     <DatePicker
                         selected={eventInfo.startDate}
@@ -444,11 +445,11 @@ export function EventScheduler() {
                         maxTime={getMinMaxTime().startDate.maxTime}
                     />
 
-                    {/* <FormError className="error">Invalid date</FormError> */}
+                    {/* <FormError className="error">{tx("Invalid date")}</FormError> */}
                 </Form>
 
                 <Form className="timepicker_container full-form">
-                    <FormLabel>Set end date</FormLabel>
+                    <FormLabel>{tx("Set end date")}</FormLabel>
 
                     <DatePicker
                         selected={eventInfo.endDate}
@@ -568,7 +569,7 @@ export function EventScheduler() {
 
                     {error?.timeDuration && (
                         <FormError className="error err">
-                            Invalid date
+                            {tx("Invalid date")}
                         </FormError>
                     )}
                 </Form>
@@ -576,7 +577,7 @@ export function EventScheduler() {
 
             <Form inline style={{ gap: 16 }}>
                 <Form className="full-form">
-                    <FormLabel>Event type</FormLabel>
+                    <FormLabel>{tx("Event type")}</FormLabel>
                     <Dropdown
                         background="#27282c"
                         style={dropdownStyle}
@@ -594,7 +595,7 @@ export function EventScheduler() {
                 </Form>
 
                 <Form className="full-form">
-                    <FormLabel>Event Location</FormLabel>
+                    <FormLabel>{tx("Event Location")}</FormLabel>
                     <Input
                         readOnly
                         maxLength={30}
@@ -607,7 +608,7 @@ export function EventScheduler() {
             </Form>
 
             <Form style={{ zIndex: 0 }}>
-                <FormLabel>Event Thumbnail</FormLabel>
+                <FormLabel>{tx("Event Thumbnail")}</FormLabel>
 
                 <GenerateImageWrapper>
                     <PreviewWrapper>
@@ -699,7 +700,7 @@ export function EventScheduler() {
                 />
                 {isUploadHovered && (
                     <span className="aspect-ratio-warning">
-                        Use a 1:1 aspect ratio for best results
+                        {tx("Use a 1:1 aspect ratio for best results")}
                     </span>
                 )}
             </Form>

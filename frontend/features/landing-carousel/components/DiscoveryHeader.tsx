@@ -1,5 +1,5 @@
 import { ReactNode, useContext, useEffect, useRef, useState } from "react";
-import { SPACE_FILTERS, type SpaceFilter } from "../yourSpaces";
+import { MY_SPACES_HREF, SPACE_FILTERS, type SpaceFilter } from "../yourSpaces";
 import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import { DiscoveryFilters } from "../types";
@@ -13,6 +13,8 @@ import {
 import useDiscoveryShortcuts from "../hooks/useDiscoveryShortcuts";
 import CommandMenu from "./CommandMenu";
 import Header from "./Header";
+import { useCyberTranslation } from "@components/context/I18nContext";
+import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "locales/language";
 
 interface Props {
     immersive?: boolean;
@@ -45,13 +47,13 @@ export default function DiscoveryHeader({
     createControl,
 }: Props) {
     const router = useRouter();
-    const { user, userData, authenticated, isAnonymous } =
+    const { user, authenticated, isAnonymous } =
         useContext(UserContext) || ({} as any);
     const signedIn = !!(user?.id && authenticated && !isAnonymous);
-    const username = userData?.username?.replace(/^@/, "");
     const [open, setOpen] = useState(false);
     const [authRequest, setAuthRequest] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
+    const { i18n, switchI18n } = useCyberTranslation();
 
     function closeMenu() {
         setOpen(false);
@@ -145,14 +147,12 @@ export default function DiscoveryHeader({
                 run: () => focusSearch(true),
             },
             signedIn && {
-                id: "go-profile",
+                id: "go-spaces",
                 section: "Go to",
                 label: "My spaces",
-                detail: username ? `@${username}` : undefined,
-                icon: "user" as const,
-                keywords: "profile account",
-                run: () =>
-                    go(`/@${encodeURIComponent(username || user?.id || "")}`),
+                icon: "gallery" as const,
+                keywords: "worlds account",
+                run: () => go(MY_SPACES_HREF),
             },
             signedIn && {
                 id: "go-destinations",
@@ -173,7 +173,22 @@ export default function DiscoveryHeader({
                 run: () => setAuthRequest((count) => count + 1),
             },
         ].filter(Boolean) as Command[];
-        return [...filters_, ...create, ...goTo, ...helpCommands(go)];
+        const languages: Command[] = SUPPORTED_LANGUAGES.map((language) => ({
+            id: `language-${language}`,
+            section: "Language",
+            label: LANGUAGE_NAMES[language],
+            icon: "globe" as const,
+            keywords: `language idioma ${language}`,
+            checked: i18n === language,
+            run: () => switchI18n(language),
+        }));
+        return [
+            ...filters_,
+            ...create,
+            ...goTo,
+            ...helpCommands(go),
+            ...languages,
+        ];
     }
 
     useDiscoveryShortcuts({

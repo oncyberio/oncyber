@@ -23,6 +23,7 @@ import ProgressBar from "@ui/components/ProgressBar";
 import { SimpleDropzone } from "@utils/dropzone/index";
 import styled from "styled-components";
 import { actionTokens as action } from "@styles/tokens/action";
+import { tx } from "@components/context/I18nContext";
 
 type SplineUploadProps = StyledFileProps &
     React.HTMLAttributes<HTMLDivElement & HTMLSpanElement> & {
@@ -191,15 +192,18 @@ const SplineUpload = forwardRef(
                     {!src ? (
                         <>
                             <p>
-                                Drop your <b>.json</b> file here
+                                {tx("Drop your")} <b>{tx(".json")}</b>{" "}
+                                {tx("file here")}
                             </p>
                             <span className="hr">
                                 <div></div>
-                                <div>or</div>
+                                <div>{tx("or")}</div>
                                 <div></div>
                             </span>
 
-                            <Button onClick={handleClick}>Select file</Button>
+                            <Button onClick={handleClick}>
+                                {tx("Select file")}
+                            </Button>
                         </>
                     ) : (
                         <>
@@ -215,7 +219,9 @@ const SplineUpload = forwardRef(
                                     background={action.white.fill}
                                 />
                                 {progress === 100 ? (
-                                    <a onClick={handleRemove}>Remove File</a>
+                                    <a onClick={handleRemove}>
+                                        {tx("Remove File")}
+                                    </a>
                                 ) : (
                                     <span>{progress}% done</span>
                                 )}

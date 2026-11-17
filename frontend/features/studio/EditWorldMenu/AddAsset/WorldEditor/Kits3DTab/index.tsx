@@ -11,6 +11,7 @@ import { EMPTY_ROOM } from "@utils/emptyRoom";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { KitbashAssets } from "./KitbashAssets";
 import { useUserKits } from "@features/studio/EditWorldMenu/hooks/useUserKits";
+import { tx } from "@components/context/I18nContext";
 
 //
 export function Kits3DTab() {
@@ -92,9 +93,13 @@ export function Kits3DTab() {
                 msg = (
                     <div style={style}>
                         <div>
-                            This will reset all content in your current room!
+                            {tx(
+                                "This will reset all content in your current room!"
+                            )}
                         </div>
-                        <div>Do you want to reset to an empty room?</div>
+                        <div>
+                            {tx("Do you want to reset to an empty room?")}
+                        </div>
                     </div>
                 );
 
@@ -108,11 +113,14 @@ export function Kits3DTab() {
                     <div style={style}>
                         {currentKit !== EMPTY_ROOM.slug && (
                             <div>
-                                This will replace all content in your current
-                                room!
+                                {tx(
+                                    "This will replace all content in your current room!"
+                                )}
                             </div>
                         )}
-                        <div>Do you want to apply the default stylekit?</div>
+                        <div>
+                            {tx("Do you want to apply the default stylekit?")}
+                        </div>
                     </div>
                 );
 

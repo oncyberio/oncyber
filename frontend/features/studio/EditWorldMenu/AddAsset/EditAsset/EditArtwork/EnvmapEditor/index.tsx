@@ -14,6 +14,7 @@ import { Label } from "@features/studio/styles/Label";
 import Slider from "@features/studio/styles/Slider";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useDebouncedCallback } from "@components/hooks/useDebouncedCallback";
+import { tx } from "@components/context/I18nContext";
 
 export function EnvmapEditor() {
     //
@@ -57,7 +58,7 @@ export function EnvmapEditor() {
 
     return (
         <Field>
-            <Label className="component-label">Reflection</Label>
+            <Label className="component-label">{tx("Reflection")}</Label>
             <Slider
                 min={0}
                 max={100}

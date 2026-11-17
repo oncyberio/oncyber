@@ -12,6 +12,7 @@ import {
     PanelInput,
     PanelPlaceholder,
 } from "../shared/PanelContent";
+import { tx } from "@components/context/I18nContext";
 
 const swrOptions = { revalidateOnFocus: false, refreshInterval: 0 };
 const ErrorMsgs: Record<FetchError, string> = {
@@ -46,9 +47,9 @@ export function AddIframe() {
             <PanelField>
                 <PanelInput
                     id="studio-website-url"
-                    aria-label="Website URL"
+                    aria-label={tx("Website URL")}
                     type="url"
-                    placeholder="Paste a website URL"
+                    placeholder={tx("Paste a website URL")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />
@@ -56,19 +57,19 @@ export function AddIframe() {
             {!q ? (
                 <PanelPlaceholder
                     icon="iframe"
-                    title="Website preview appears here"
+                    title={tx("Website preview appears here")}
                 />
             ) : error ? (
-                <PanelEmptyState title="Preview unavailable">
+                <PanelEmptyState title={tx("Preview unavailable")}>
                     {ErrorMsgs[error?.message] || ErrorMsgs.NO_FOUND}
                 </PanelEmptyState>
             ) : isLoading || !data ? (
-                <PanelEmptyState title="Loading preview…" />
+                <PanelEmptyState title={tx("Loading preview…")} />
             ) : (
                 <>
                     <div className="website-preview">
                         <iframe
-                            title="Website preview"
+                            title={tx("Website preview")}
                             sandbox="allow-scripts allow-forms allow-pointer-lock allow-same-origin"
                             scrolling="no"
                             frameBorder="0"

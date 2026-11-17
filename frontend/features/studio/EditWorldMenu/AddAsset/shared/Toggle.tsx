@@ -1,5 +1,6 @@
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function Toggle({ value, onChange }) {
     //
@@ -14,10 +15,10 @@ export function Toggle({ value, onChange }) {
     return (
         <StyledToggler>
             <ToggleButton toggle={value} onClick={handleToggleOnHD}>
-                On
+                {tx("On")}
             </ToggleButton>
             <ToggleButton toggle={!value} onClick={handleToggleOffHD}>
-                Off
+                {tx("Off")}
             </ToggleButton>
         </StyledToggler>
     );

@@ -38,6 +38,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import AccountLink from "./Forms/AccountLink";
 import { UserContext } from "@components/context/UserContext";
 import Tooltip from "@ui/components/Tooltip";
+import { tx } from "@components/context/I18nContext";
 
 const IconBtn = styled.div<{ active: boolean; isLight: boolean }>`
     width: 24px;
@@ -225,7 +226,7 @@ function SpaceSettings_Child() {
     const caption = ({ toggled }) => (
         <Caption isAnonymous={isAnonymous}>
             <Tooltip
-                text="Customize World Settings"
+                text={tx("Customize World Settings")}
                 isToggled={toggled}
                 orientation="bottom"
             >
@@ -288,7 +289,7 @@ function SpaceSettings_Child() {
                     <Container>
                         <Multiform
                             className="space-settings"
-                            title="World settings"
+                            title={tx("World settings")}
                             steps={visibleSteps}
                             actions={actions}
                         />

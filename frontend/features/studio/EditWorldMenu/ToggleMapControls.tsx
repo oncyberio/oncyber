@@ -8,6 +8,7 @@ import styled from "styled-components";
 import { useCurrentExhibit } from "../context/ExhibitContext";
 import { useSelectedComponent, useSelectedItem } from "./hooks/worldHooks";
 import IconImg from "@ui/components/IconImg";
+import { tx } from "@components/context/I18nContext";
 
 export function ToggleMapControls() {
     //
@@ -51,7 +52,7 @@ export function ToggleMapControls() {
                 onClick={handleClick}
             >
                 <IconImg className="tmc-icon" name="map-view" size={20} />
-                <span>Perspective</span>
+                <span>{tx("Perspective")}</span>
             </div>
             <div
                 className={classes({ btn: true, active: isEnabled })}
@@ -62,7 +63,7 @@ export function ToggleMapControls() {
                     name="perspective-view"
                     size={20}
                 />
-                <span>Map View</span>
+                <span>{tx("Map View")}</span>
             </div>
         </Container>
     );

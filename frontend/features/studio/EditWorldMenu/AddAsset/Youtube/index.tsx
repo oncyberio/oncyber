@@ -18,6 +18,7 @@ import {
     PanelInput,
     PanelPlaceholder,
 } from "../shared/PanelContent";
+import { tx } from "@components/context/I18nContext";
 
 export function AddYoutube() {
     const { handleAddYoutubeEmbed, handleDragStart } = useEditWorld();
@@ -48,18 +49,21 @@ export function AddYoutube() {
     let content;
     if (!q) {
         content = (
-            <PanelPlaceholder icon="youtube" title="Find a video to preview" />
+            <PanelPlaceholder
+                icon="youtube"
+                title={tx("Find a video to preview")}
+            />
         );
     } else if (error) {
         content = (
-            <PanelEmptyState title="Couldn't load videos">
-                Try another search or link.
+            <PanelEmptyState title={tx("Couldn't load videos")}>
+                {tx("Try another search or link.")}
             </PanelEmptyState>
         );
     } else if (!data) {
-        content = <PanelEmptyState title="Loading videos…" />;
+        content = <PanelEmptyState title={tx("Loading videos…")} />;
     } else if (!data.items.length) {
-        content = <PanelEmptyState title="No videos found" />;
+        content = <PanelEmptyState title={tx("No videos found")} />;
     } else {
         content = (
             <PreviewGrid className="yt-grid" columns={2}>
@@ -97,8 +101,8 @@ export function AddYoutube() {
             <PanelField>
                 <PanelInput
                     id="studio-youtube-query"
-                    aria-label="Search YouTube videos or paste a link"
-                    placeholder="Search videos or paste a link"
+                    aria-label={tx("Search YouTube videos or paste a link")}
+                    placeholder={tx("Search videos or paste a link")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />

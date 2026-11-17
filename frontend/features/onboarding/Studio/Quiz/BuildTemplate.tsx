@@ -11,13 +11,13 @@ import { RoundButton } from "@components/DesignSystem/buttons";
 import styled from "styled-components";
 import { blueAction } from "@styles/brand";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
+import { tx } from "@components/context/I18nContext";
 
 export default function PickBuildMore({ setSkipCommitAnonExhibit }) {
     const { rooms } = useRooms();
 
     const { isAnonymous, user } = useContext(UserContext);
     const { exhibit, isAuthShowing, toggleAuth } = useStudioMenu();
-
 
     const { onboarding, nextStudioQuiz, setCurrentBuildTemplate } =
         useOnboarding();
@@ -63,14 +63,14 @@ export default function PickBuildMore({ setSkipCommitAnonExhibit }) {
     return (
         onboarding?.studio === "PickTemplate" && (
             <QuizModal
-                title="What do you want to do in your 3D world?"
+                title={tx("What do you want to do in your 3D world?")}
                 items={items}
                 startIndex={1}
                 onBack={() => nextStudioQuiz("PickBuildMore")}
             >
                 {isAnonymous && (
                     <LoginWrapper>
-                        <span>Existing user?</span>
+                        <span>{tx("Existing user?")}</span>
                         <RoundButton
                             className="login-cta"
                             onClick={handleLogin}

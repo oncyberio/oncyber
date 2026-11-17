@@ -8,6 +8,7 @@ import {
     PanelInput,
     PanelNote,
 } from "../shared/PanelContent";
+import { tx } from "@components/context/I18nContext";
 
 export default function GlobalStream() {
     const { handleAddGlobalStream } = useEditWorld();
@@ -30,15 +31,15 @@ export default function GlobalStream() {
             <PanelField>
                 <PanelInput
                     id="studio-audio-url"
-                    aria-label="Audio stream URL"
+                    aria-label={tx("Audio stream URL")}
                     aria-describedby="studio-audio-hint"
                     type="url"
-                    placeholder="Paste an audio stream URL"
+                    placeholder={tx("Paste an audio stream URL")}
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                 />
                 <PanelNote id="studio-audio-hint">
-                    Direct stream · Icecast / SHOUTcast
+                    {tx("Direct stream · Icecast / SHOUTcast")}
                 </PanelNote>
             </PanelField>
             <PanelButton

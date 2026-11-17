@@ -11,6 +11,7 @@ import { useSelectedArtwork } from "@features/studio/EditWorldMenu/hooks/worldHo
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import Slider from "@features/studio/styles/Slider";
 import { useSyncState } from "@components/hooks/useSyncState";
+import { tx } from "@components/context/I18nContext";
 
 export function TextHeight() {
     //
@@ -55,7 +56,7 @@ export function TextHeight() {
 
     return (
         <Field>
-            <Label>Line Height</Label>
+            <Label>{tx("Line Height")}</Label>
             <Slider
                 min={0}
                 max={120}

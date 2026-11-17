@@ -35,6 +35,7 @@ import { IconButton } from "@ui/components/IconButton";
 import { MultiSelect } from "../EditAsset/MultiSelect";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
+import { tx } from "@components/context/I18nContext";
 
 //
 
@@ -476,7 +477,7 @@ export function WorldListView() {
             <ScenePanel
                 data-studio-surface
                 role="region"
-                aria-label="World contents"
+                aria-label={tx("World contents")}
                 tabIndex={0}
                 ref={(el) => {
                     // console.log("scenePanel ref", el);
@@ -490,10 +491,10 @@ export function WorldListView() {
                         size={16}
                         style={{ filter: "invert(0.9)" }}
                     />
-                    <span>World contents</span>
+                    <span>{tx("World contents")}</span>
                     <CollapseButton
                         type="button"
-                        aria-label="Collapse world contents"
+                        aria-label={tx("Collapse world contents")}
                         onClick={() => {
                             amplitude_logAnalyticsEvent("collapse_asset_list", {
                                 exhibitId: exhibit.id,
@@ -608,7 +609,7 @@ export function WorldListView() {
                     <div className="mobile-footer">
                         <div className="hr-mobile" />
                         <div className="controls">
-                            <span onClick={handleBack}>Back</span>
+                            <span onClick={handleBack}>{tx("Back")}</span>
                             <div className="center">
                                 <IconButton
                                     name="undo-v2"
@@ -634,7 +635,7 @@ export function WorldListView() {
                                     />
                                 )}
                             </div>
-                            <span onClick={handleDone}>Done</span>
+                            <span onClick={handleDone}>{tx("Done")}</span>
                         </div>
                     </div>
                 </>
