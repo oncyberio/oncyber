@@ -3,12 +3,15 @@ import { createReadStream } from "fs";
 import { readFile, stat } from "fs/promises";
 import { extname, resolve, sep } from "path";
 import { pipeline } from "stream/promises";
+import { findGame } from "@features/games/catalog";
+import { gamePause, pauseForRelease } from "@features/games/gameDisabled";
 import type { HostedRelease } from "@features/games/gameRelease";
 import {
     committedPinnedRelease,
     localReleasesDir,
 } from "@features/games/gameReleaseServer";
 import { gatewayGet } from "@features/games/pinnedGateway";
+import { publishingEnabled } from "@features/games/publishedGames";
 import {
     NETWORK_FILE,
     releaseContentSecurityPolicy,
@@ -28,6 +31,13 @@ import {
  *    is decided by the committed file alone; the request only picks a game,
  *    a release it lists and a path inside it. Any listed release is served,
  *    so a rollback needs nothing new here.
+ *
+ * A game that is not in the catalog is one published from outside the
+ * repository (docs/games/publishing.md), and the registry decides for it:
+ * its files are served, from the local folder or from the gateway folder
+ * its record names, only while the game is published, the release is one
+ * its record lists, and the kill switch does not name it. The registry is
+ * asked through a short cache (publishedGamesServer.ts).
  *
  * Either way it sends what every host of releases must (docs/games/releases.md):
  * `Access-Control-Allow-Origin: *`, and the game's own
@@ -139,15 +149,18 @@ export function forgetPinnedPolicies() {
     pinnedPolicies.clear();
 }
 
-/** One file of a release the committed pointer stores on IPFS. */
+/**
+ * One file of a release stored on IPFS: one the committed pointer lists,
+ * or one a registered game's record lists (`pinned`).
+ */
 async function servePinned(
     req: NextApiRequest,
     res: NextApiResponse,
     game: string,
     release: string,
-    rest: string[]
+    rest: string[],
+    pinned: HostedRelease | null = committedPinnedRelease(game, release)
 ) {
-    const pinned = committedPinnedRelease(game, release);
     // A path names a file inside the release's folder and nothing else.
     if (
         !pinned ||
@@ -189,6 +202,20 @@ async function servePinned(
     await pipeline(body, res).catch(() => res.destroy());
 }
 
+/**
+ * Where a registered game's release is read from, or null: not published,
+ * not listed, stopped by `GAMES_DISABLED`, or publishing is off here. The
+ * registry (and with it Firestore) is loaded only for such a request.
+ */
+async function registeredReleaseOf(game: string, release: string) {
+    if (!publishingEnabled()) return null;
+    if (pauseForRelease(gamePause(game), release).paused) return null;
+    const { registeredRelease } = await import(
+        "@features/games/publishedGamesServer"
+    );
+    return registeredRelease(game, release).catch(() => null);
+}
+
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
@@ -204,6 +231,15 @@ export default async function handler(
         rest.some((part) => !part || part === "." || part === "..")
     )
         return res.status(404).end();
+    // A game outside the catalog is served only as its registry record
+    // says: published, this release listed, and not stopped.
+    let registered: Awaited<ReturnType<typeof registeredReleaseOf>> = null;
+    if (!findGame(game)) {
+        registered = await registeredReleaseOf(game, release);
+        if (!registered) return refuse(res, 404);
+    }
+    if (registered?.backend === "pinata")
+        return servePinned(req, res, game, release, rest, registered.pinned);
     // The local folder first, where it is on; production has none.
     const folder = root ? resolve(root, game, release) : null;
     const file = folder ? resolve(folder, ...rest) : null;
@@ -211,7 +247,10 @@ export default async function handler(
         file && file.startsWith(folder + sep)
             ? await stat(file).catch(() => null)
             : null;
-    if (!found?.isFile()) return servePinned(req, res, game, release, rest);
+    if (!found?.isFile())
+        return registered
+            ? refuse(res, 404)
+            : servePinned(req, res, game, release, rest);
     res.setHeader("Content-Length", found.size);
     // The game reaches its own files and the hosts its release declared,
     // nothing else; opened directly, it still runs without this site's

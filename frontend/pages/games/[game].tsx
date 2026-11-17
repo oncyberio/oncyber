@@ -9,6 +9,7 @@ import {
     type GamePause,
 } from "@features/games/gameDisabled";
 import {
+    findGame,
     findSharedPageGame,
     gamesPreviewEnabled,
     type GameEntry,
@@ -16,7 +17,10 @@ import {
 import type { GameFrame } from "@features/games/gameRelease";
 import { loadGameFrame } from "@features/games/gameReleaseServer";
 
-/** /games/<id>: a catalogued game, hidden until games launch. */
+/**
+ * /games/<id>: a catalogued game, or one published from outside the
+ * repository (docs/games/publishing.md). Hidden until games launch.
+ */
 export default function GameRoute({
     game,
     pause,
@@ -45,8 +49,23 @@ export const getServerSideProps: GetServerSideProps = async ({
     params,
     query,
 }) => {
+    if (!gamesPreviewEnabled()) return { notFound: true };
     const game = findSharedPageGame(params?.game);
-    if (!game || !gamesPreviewEnabled()) return { notFound: true };
+    if (!game) {
+        // Not in the catalog at all: a game the registry holds, if it is
+        // published. It runs in the same page, behind the same gates.
+        if (findGame(params?.game)) return { notFound: true };
+        const { loadRegisteredGame } = await import(
+            "@features/games/publishedGamesServer"
+        );
+        const registered = await loadRegisteredGame(params?.game);
+        if (!registered) return { notFound: true };
+        const pause = pauseForRelease(
+            gamePause(registered.game.id),
+            registered.frame.release
+        );
+        return { props: { ...registered, pause, lobbyWorld: true } };
+    }
     // A hosted release when a person pointed the game at one, else the
     // committed build (docs/games/releases.md).
     const frame = await loadGameFrame(game.id, { draft: "draft" in query });

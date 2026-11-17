@@ -61,6 +61,12 @@ export function useGameResults(options: {
     fromGame: (event: MessageEvent) => boolean;
     /** GamePage's sender: takes `<id>:kind` and translates it for the game. */
     send: (message: object) => void;
+    /**
+     * False for a game whose results the site does not record yet (one
+     * published from outside the repository, docs/games/publishing.md):
+     * the card is shown and nothing is sent.
+     */
+    recorded?: boolean;
     /** Only a signed-in account has somewhere to keep results. */
     signedIn: () => boolean;
     /** The visitor's name as the page shows it to others. */
@@ -160,6 +166,11 @@ export function useGameResults(options: {
             const base: Card = { summary, from: "self", note: "", board: [] };
             // The outcome as the game named it, before the page's own name.
             tellParty(summary, resultOutcome(accepted.result));
+            if (live.current.recorded === false) {
+                setCard({ ...base, note: "Results aren't kept for this game" });
+                status(result.match, "unrecorded", "NOT_RECORDED");
+                return;
+            }
             if (!live.current.signedIn()) {
                 setCard({ ...base, note: "Sign in to keep your results" });
                 status(result.match, "unrecorded", "SIGNED_OUT");

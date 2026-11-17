@@ -185,6 +185,8 @@ export default function GamePage({
     // Match results: validated, recorded and shown by the page.
     const results = useGameResults({
         game: GAME,
+        // A registered game's results are not recorded yet.
+        recorded: !game.registered,
         fromGame,
         send: (message) => send.current(message),
         signedIn: () =>

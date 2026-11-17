@@ -70,7 +70,7 @@ const roster = {
     ],
 };
 
-function mount() {
+function mount(more: { recorded?: boolean } = {}) {
     const sent: any[] = [];
     const relayed: any[] = [];
     let current: ReturnType<typeof useGameResults>;
@@ -83,6 +83,7 @@ function mount() {
             selfName: () => "Ada",
             partyRoom: { relay: (data: unknown) => relayed.push(data) } as any,
             roster: () => roster,
+            ...more,
         });
         return null;
     }
@@ -134,6 +135,25 @@ const mounted: Array<ReturnType<typeof createRoot>> = [];
 beforeEach(() => mockReport.mockClear());
 afterEach(() => {
     for (const root of mounted.splice(0)) act(() => root.unmount());
+});
+
+describe("a game whose results the site does not record", () => {
+    it("shows the card, tells the party and the game, and sends nothing", async () => {
+        // A game published from outside the repository
+        // (docs/games/publishing.md).
+        const { game, sent, relayed, hook } = mount({ recorded: false });
+        game(solo);
+        expect(sent.at(-1)).toMatchObject({
+            type: "ace:result-status",
+            match: solo.match,
+            status: "unrecorded",
+            reason: "NOT_RECORDED",
+        });
+        expect(relayed).toHaveLength(1);
+        expect(hook.result.current.card).toBeTruthy();
+        await act(() => new Promise((done) => setTimeout(done, 50)));
+        expect(mockReport).not.toHaveBeenCalled();
+    });
 });
 
 describe("party-agreed results on the page", () => {
