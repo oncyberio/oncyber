@@ -29,6 +29,7 @@ const APP_PATHS = [
     "marketplace",
     "mints",
     "privacy",
+    "sitemap.xml",
     "spaces",
     "studio",
     "template",

@@ -362,7 +362,10 @@ function LandingContent(props: LandingPageProps) {
     const spaceFilter = parseSpaceFilter(router.query.spacesFilter);
     const filterSpaces = useCallback(
         (filter: string) => {
-            const query = { ...router.query, create: "gallery" };
+            const query: typeof router.query = {
+                ...router.query,
+                create: "gallery",
+            };
             if (parseSpaceFilter(filter) === "latest")
                 delete query.spacesFilter;
             else query.spacesFilter = filter;

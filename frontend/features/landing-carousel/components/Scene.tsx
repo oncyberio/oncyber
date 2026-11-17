@@ -157,6 +157,7 @@ export default function Scene({
         next: () => {},
         previous: () => {},
         goTo: (_column: number) => {},
+        jumpTo: (_column: number) => {},
     });
     const [range, setRange] = useState({
         key: transition.key,
@@ -574,7 +575,13 @@ export default function Scene({
                 ).x,
                 separated: separation.value,
             });
-            const current = sectionAt(sections, progress);
+            // A short last section can start past the furthest scroll: at
+            // the end of the grid it is the one in view.
+            const current =
+                layout.maxScrollColumn > 0 &&
+                progress >= layout.maxScrollColumn - 0.01
+                    ? sections.length - 1
+                    : sectionAt(sections, progress);
             const dpr = window.devicePixelRatio || 1;
             const snap = (value: number) => Math.round(value * dpr) / dpr;
             const filter = filterRef.current;
@@ -734,6 +741,11 @@ export default function Scene({
         function goTo(column: number) {
             clearTimeout(wheelEndTimer);
             scroller.goTo(column);
+        }
+        /** A jump by pointer: the next arrow key starts from where it lands. */
+        function jumpTo(column: number) {
+            keyboardSelection = null;
+            goTo(column);
         }
         function step(direction: number) {
             keyboardSelection = null;
@@ -931,6 +943,7 @@ export default function Scene({
                 step(-1);
             },
             goTo,
+            jumpTo,
         };
         const observer = new ResizeObserver(resize);
         observer.observe(viewport);
@@ -1185,7 +1198,7 @@ export default function Scene({
                                     switchItems.current[index] = element;
                                 }}
                                 onClick={() =>
-                                    controlsRef.current.goTo(
+                                    controlsRef.current.jumpTo(
                                         Math.min(column, layout.maxScrollColumn)
                                     )
                                 }

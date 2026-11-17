@@ -17,6 +17,8 @@ describe("reserved custom links", () => {
         for (const from of Object.keys(PAGE_REDIRECTS))
             expect(isReservedLink(from)).toBe(true);
         expect(APP_PATHS).toContain("exhibits");
+        // Rewritten to the sitemap index before any space link is read.
+        expect(isReservedLink("sitemap.xml")).toBe(true);
     });
 
     it("ignores case and surrounding spaces, and leaves other names free", () => {
