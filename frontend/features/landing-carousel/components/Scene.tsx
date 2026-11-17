@@ -28,7 +28,12 @@ import {
     sectionAt,
     switchSections,
 } from "../three/layout";
-import { placeSwitch, stepSeparation, type SwitchItem } from "../sectionSwitch";
+import {
+    placeSwitch,
+    stepSeparation,
+    SWITCH_GAP,
+    type SwitchItem,
+} from "../sectionSwitch";
 import ExperienceCard from "./ExperienceCard";
 import { CARD_WARM_DWELL_MS, warmSpace } from "../warmSpace";
 import Icon from "./Icon";
@@ -75,6 +80,20 @@ interface Props {
      * while the grid moves each rides above its own section.
      */
     sectionLabels?: Partial<Record<GridSection, string>>;
+    /** How many items a section holds in all, shown beside its label. */
+    sectionCounts?: Partial<Record<GridSection, number>>;
+    /**
+     * Ways to filter one section. They sit on the labels' line at the far
+     * edge of the grid while that section is in view, and fold into one
+     * menu where the line has no room for them.
+     */
+    sectionFilter?: {
+        section: GridSection;
+        label: string;
+        value: string;
+        options: readonly { value: string; label: string }[];
+        onChange: (value: string) => void;
+    };
 }
 
 const SECTION_LABELS: Record<GridSection, string> = {
@@ -111,6 +130,8 @@ export default function Scene({
     error,
     loadMore,
     sectionLabels,
+    sectionCounts,
+    sectionFilter,
 }: Props) {
     const blocked = useRef(interactionsBlocked);
     blocked.current = interactionsBlocked;
@@ -131,6 +152,7 @@ export default function Scene({
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
     const switchItems = useRef<HTMLButtonElement[]>([]);
+    const filterRef = useRef<HTMLDivElement>(null);
     const controlsRef = useRef({
         next: () => {},
         previous: () => {},
@@ -555,6 +577,35 @@ export default function Scene({
             const current = sectionAt(sections, progress);
             const dpr = window.devicePixelRatio || 1;
             const snap = (value: number) => Math.round(value * dpr) / dpr;
+            const filter = filterRef.current;
+            if (filter) {
+                // On the labels' line, at the grid's far edge, while its
+                // section leads and the labels are together.
+                const inView =
+                    sections[current]?.section === filter.dataset.section;
+                const right = projectPoint(
+                    last.x + last.width / 2,
+                    last.y + last.height / 2,
+                    metrics
+                ).x;
+                const labelsEnd = items.reduce(
+                    (end, item) => end + item.width + SWITCH_GAP,
+                    left.x
+                );
+                const list = filter.firstElementChild as HTMLElement;
+                // The list is measured even while the menu stands in for it.
+                filter.dataset.compact = String(
+                    labelsEnd + list.scrollWidth > right
+                );
+                filter.style.transform = `translate3d(${snap(right)}px,${snap(
+                    left.y
+                )}px,0) translate(-100%,-100%)`;
+                filter.style.opacity = String(
+                    inView ? 1 - separation.value : 0
+                );
+                filter.style.visibility =
+                    inView && separation.value < 1 ? "visible" : "hidden";
+            }
             placed.forEach((item, index) => {
                 const element = switchItems.current[index];
                 if (!element) return;
@@ -1141,8 +1192,70 @@ export default function Scene({
                             >
                                 {sectionLabels?.[section] ??
                                     SECTION_LABELS[section]}
+                                {sectionCounts?.[section] > 0 && (
+                                    <span className="count">
+                                        {sectionCounts[section]}
+                                    </span>
+                                )}
                             </button>
                         ))}
+                        {sectionFilter &&
+                            shownSections.some(
+                                ({ section }) =>
+                                    section === sectionFilter.section
+                            ) && (
+                                <div
+                                    className="switch-filter"
+                                    ref={filterRef}
+                                    data-section={sectionFilter.section}
+                                    role="group"
+                                    aria-label={sectionFilter.label}
+                                >
+                                    <div className="filter-list">
+                                        {sectionFilter.options.map((option) => (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                className="switch-item"
+                                                aria-pressed={
+                                                    option.value ===
+                                                    sectionFilter.value
+                                                }
+                                                onClick={() =>
+                                                    sectionFilter.onChange(
+                                                        option.value
+                                                    )
+                                                }
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <label className="filter-menu">
+                                        <select
+                                            aria-label={sectionFilter.label}
+                                            value={sectionFilter.value}
+                                            onChange={(event) =>
+                                                sectionFilter.onChange(
+                                                    event.target.value
+                                                )
+                                            }
+                                        >
+                                            {sectionFilter.options.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
+                                        <Icon name="chevron" size={10} />
+                                    </label>
+                                </div>
+                            )}
                     </SectionSwitch>
                 )}
                 <EdgeFade aria-hidden="true" />
@@ -1359,11 +1472,14 @@ const SectionSwitch = styled.div`
     top: 0;
     z-index: 3;
     pointer-events: none;
-    .switch-item {
+    > .switch-item,
+    .switch-filter {
         position: absolute;
         left: 0;
         top: 0;
         visibility: hidden;
+    }
+    .switch-item {
         pointer-events: auto;
         /* One step of the 4 px rhythm clear of the cards, so the label reads
            as a heading over them and not as part of the first card. */
@@ -1386,6 +1502,65 @@ const SectionSwitch = styled.div`
     }
     .switch-item[aria-pressed="true"] {
         color: #fff;
+    }
+    /* A section's size, quieter than its name. */
+    .count {
+        margin-left: 6px;
+        color: var(--oc-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .filter-list {
+        display: flex;
+        gap: 20px;
+    }
+    .filter-list .switch-item {
+        position: relative;
+    }
+    .filter-menu {
+        position: relative;
+        display: none;
+        align-items: center;
+        gap: 4px;
+        padding: 0 0 12px;
+        color: #fff;
+        pointer-events: auto;
+    }
+    .filter-menu select {
+        appearance: none;
+        border: 0;
+        padding: 0 14px 0 0;
+        margin-right: -14px;
+        background: none;
+        color: inherit;
+        font-family: var(--oc-mono);
+        font-size: 11px;
+        line-height: 16px;
+        /* As wide as its longest option; the chosen one sits by the arrow. */
+        text-align-last: right;
+        cursor: pointer;
+    }
+    .filter-menu select:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
+    .filter-menu option {
+        background: var(--oc-panel);
+        color: var(--oc-ink);
+    }
+    .filter-menu svg {
+        pointer-events: none;
+    }
+    /* No room beside the labels: one menu instead of the list. */
+    .switch-filter[data-compact="true"] .filter-list {
+        position: absolute;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    .switch-filter[data-compact="true"] .filter-list .switch-item {
+        pointer-events: none;
+    }
+    .switch-filter[data-compact="true"] .filter-menu {
+        display: flex;
     }
     .switch-item:hover {
         color: var(--oc-ink);

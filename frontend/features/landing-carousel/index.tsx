@@ -44,7 +44,15 @@ import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
 import { pendingLobbyReturn } from "@utils/lobbyReturnTransition";
 import useDestinationPreviews from "./hooks/useDestinationPreviews";
 import useYourSpaces from "./hooks/useYourSpaces";
-import { createSpaceCards, SHOW_ALL_SPACES_ID, withSpaces } from "./yourSpaces";
+import {
+    countSpaces,
+    createSpaceCards,
+    parseSpaceFilter,
+    RESET_SPACES_ID,
+    SHOW_ALL_SPACES_ID,
+    SPACE_FILTERS,
+    withSpaces,
+} from "./yourSpaces";
 import { CreateIcon } from "./components/CreateIcon";
 import {
     LandingActivityProvider,
@@ -351,6 +359,22 @@ function LandingContent(props: LandingPageProps) {
     // load with the templates, before the first Create click.
     const yourSpaces = useYourSpaces(loadTemplates);
     const spacesExpanded = router.query.spaces === "all";
+    const spaceFilter = parseSpaceFilter(router.query.spacesFilter);
+    const filterSpaces = useCallback(
+        (filter: string) => {
+            const query = { ...router.query, create: "gallery" };
+            if (parseSpaceFilter(filter) === "latest")
+                delete query.spacesFilter;
+            else query.spacesFilter = filter;
+            // Each filter starts from its first spaces again.
+            delete query.spaces;
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
+        },
+        [router]
+    );
     const showSpaces = step === "gallery" && templateCategory === "all";
     const spaceCards = useMemo(
         () =>
@@ -359,7 +383,8 @@ function LandingContent(props: LandingPageProps) {
                       yourSpaces.spaces,
                       templateQuery,
                       spacesExpanded,
-                      yourSpaces.currentId
+                      yourSpaces.currentId,
+                      spaceFilter
                   ).map((card) =>
                       card.spaceId && card.spaceId === yourSpaces.openingId
                           ? { ...card, opening: true }
@@ -373,7 +398,15 @@ function LandingContent(props: LandingPageProps) {
             yourSpaces.openingId,
             templateQuery,
             spacesExpanded,
+            spaceFilter,
         ]
+    );
+    const spaceCount = useMemo(
+        () =>
+            showSpaces && yourSpaces.spaces
+                ? countSpaces(yourSpaces.spaces, templateQuery, spaceFilter)
+                : 0,
+        [showSpaces, yourSpaces.spaces, templateQuery, spaceFilter]
     );
     useLandingBusy(
         creating
@@ -416,8 +449,10 @@ function LandingContent(props: LandingPageProps) {
             const query = { ...router.query };
             if (next === "explore") delete query.create;
             else query.create = next;
-            // "Show all" of your spaces lasts for one visit to Create.
+            // "Show all" and a filter of your spaces last for one visit to
+            // Create.
             delete query.spaces;
+            delete query.spacesFilter;
             // Stay on the same page: only the cards change, including browser Back/Forward.
             if (
                 router.pathname.startsWith("/studio/new-") &&
@@ -441,6 +476,10 @@ function LandingContent(props: LandingPageProps) {
                 shallow: true,
                 scroll: false,
             });
+            return true;
+        }
+        if (card.id === RESET_SPACES_ID) {
+            filterSpaces("latest");
             return true;
         }
         if (card.spaceId) {
@@ -610,6 +649,13 @@ function LandingContent(props: LandingPageProps) {
                     templateContext
                         ? {
                               category: templateCategory,
+                              spaces:
+                                  showSpaces && yourSpaces.spaces?.length
+                                      ? {
+                                            filter: spaceFilter,
+                                            update: filterSpaces,
+                                        }
+                                      : undefined,
                               update: (category) =>
                                   updateTemplates({
                                       templateCategory: category,
@@ -650,7 +696,7 @@ function LandingContent(props: LandingPageProps) {
                                           // updates cards in place instead of
                                           // fading the whole grid out and in.
                                           galleryReady
-                                            ? `gallery:${templateCategory}:${templateQuery}:${spacesExpanded}`
+                                            ? `gallery:${templateCategory}:${templateQuery}:${spacesExpanded}:${spaceFilter}`
                                             : "gallery:loading"
                                         : `explore:${discovery.resultKey}`
                                 }
@@ -670,6 +716,21 @@ function LandingContent(props: LandingPageProps) {
                                 error={!creating && (error || loadMoreError)}
                                 loadMore={loadMore}
                                 sectionLabels={notFoundLabels}
+                                sectionCounts={
+                                    spaceCount ? { spaces: spaceCount } : null
+                                }
+                                sectionFilter={
+                                    step === "gallery" &&
+                                    yourSpaces.spaces?.length
+                                        ? {
+                                              section: "spaces",
+                                              label: "Filter your spaces",
+                                              value: spaceFilter,
+                                              options: SPACE_FILTERS,
+                                              onChange: filterSpaces,
+                                          }
+                                        : null
+                                }
                             />
                         )}
                         {galleryLoading ||

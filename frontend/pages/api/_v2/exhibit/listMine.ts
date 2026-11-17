@@ -7,6 +7,7 @@ export interface SpaceSummary {
     id: string;
     createdAt: string;
     invited: boolean;
+    visits: number;
     info: {
         headline?: string;
         heroImg?: string;
@@ -27,6 +28,7 @@ const SUMMARY_FIELDS = [
     "info.customLink",
     "info.description",
     "createdAt",
+    "number_of_visits",
 ];
 
 export async function listSpaceSummaries(userId: string) {
@@ -52,6 +54,7 @@ export async function listSpaceSummaries(userId: string) {
             id: doc.id,
             createdAt: data.createdAt?.toDate?.()?.toISOString?.() || "",
             invited: !!links.docs[index].data()?.invited,
+            visits: Number(data.number_of_visits) || 0,
             info: data.info || {},
         });
     });

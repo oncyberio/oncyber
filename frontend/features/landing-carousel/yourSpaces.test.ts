@@ -1,5 +1,9 @@
 import {
+    countSpaces,
     createSpaceCards,
+    parseSpaceFilter,
+    RESET_SPACES_ID,
+    type SpaceFilter,
     isDeployed,
     SHOW_ALL_SPACES_ID,
     SPACES_SHOWN,
@@ -26,15 +30,51 @@ const space = (id: string, extra: any = {}) =>
 const spaces = Array.from({ length: 12 }, (_, index) => space(`s${index}`));
 
 describe("Create's own spaces", () => {
-    it("stops at nine, newest first, and ends with Show all", () => {
+    it("stops at eight, newest first, and ends with a card for the rest", () => {
         const cards = createSpaceCards(spaces, "", false);
         expect(cards).toHaveLength(SPACES_SHOWN + 1);
         expect(cards[0].spaceId).toBe("s11");
         const last = cards[cards.length - 1];
         expect(last.id).toBe(SHOW_ALL_SPACES_ID);
-        expect(last.title).toBe("Show all 12 spaces");
-        expect(last.buildStatus).toBe("3 more");
+        expect(last.title).toBe("+4 more");
+        expect(last.buildStatus).toBe("Show all 12 spaces");
         expect(cards.every((card) => card.section === "spaces")).toBe(true);
+    });
+
+    it("shows nine spaces whole, since they fill the same cells", () => {
+        const cards = createSpaceCards(spaces.slice(0, 9), "", false);
+        expect(cards).toHaveLength(9);
+        expect(cards.every((card) => card.spaceId)).toBe(true);
+    });
+
+    it("filters by views, deployed, drafts and shared", () => {
+        const mixed = [
+            space("s1", { visits: 5, info: { heroImg: "a" } }),
+            space("s2", { visits: 90 }),
+            space("s3", { visits: 40, invited: true, info: { heroImg: "a" } }),
+        ];
+        const ids = (filter: SpaceFilter) =>
+            createSpaceCards(mixed, "", false, undefined, filter).map(
+                (card) => card.spaceId
+            );
+        expect(ids("viewed")).toEqual(["s2", "s3", "s1"]);
+        expect(ids("deployed")).toEqual(["s1"]);
+        expect(ids("drafts")).toEqual(["s2"]);
+        expect(ids("shared")).toEqual(["s3"]);
+        expect(
+            createSpaceCards(mixed, "", false, undefined, "viewed")[0]
+                .buildStatus
+        ).toBe("90 visits");
+        expect(countSpaces(mixed, "", "deployed")).toBe(1);
+        expect(parseSpaceFilter("nope")).toBe("latest");
+    });
+
+    it("keeps the section when a filter matches nothing", () => {
+        const cards = createSpaceCards(spaces, "", false, undefined, "shared");
+        expect(cards).toHaveLength(1);
+        expect(cards[0].id).toBe(RESET_SPACES_ID);
+        expect(cards[0].title).toBe("No shared spaces yet");
+        expect(cards[0].section).toBe("spaces");
     });
 
     it("shows every space once expanded", () => {
