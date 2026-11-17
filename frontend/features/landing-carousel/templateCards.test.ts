@@ -180,3 +180,9 @@ it("leaves Cyber Classic and the Art Blocks gallery out for now", () => {
     expect(ids).not.toContain("template-artblocksgallery");
     expect(ids).toContain("template-cyberwarehouse");
 });
+
+it("shows a world built from scratch on the blank canvas card", () => {
+    const cards = createTemplateCards(groups, {}, "", "all");
+    const blank = cards.find((card) => card.id === "template-blank");
+    expect(blank.imageUrls).toEqual(["/landing-build/blank-canvas-1280.webp"]);
+});
