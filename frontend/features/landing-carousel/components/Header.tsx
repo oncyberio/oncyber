@@ -12,7 +12,6 @@ import styled from "styled-components";
 import { UserContext } from "@components/context/UserContext";
 import CyberloopMark from "./CyberloopMark";
 import AccountSidebar from "./AccountSidebar";
-import LanguageSwitch from "./LanguageSwitch";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { blueAction, compactActionSizing } from "@styles/brand";
 import { showError, showModal } from "@components/Dialogs";
@@ -73,7 +72,6 @@ export default function Header({
     const accountMenuId = useId();
     const accountButtonId = `${accountMenuId}-trigger`;
     const signedIn = !!(user?.id && authenticated && !isAnonymous);
-    const profileHref = `/@${encodeURIComponent(username || user?.id || "")}`;
 
     function closeAccountMenu() {
         setAccountOpen(false);
@@ -128,9 +126,6 @@ export default function Header({
                 </Link>
                 <div className="account-actions">
                     {!immersive && search}
-                    {!immersive && (
-                        <LanguageSwitch className="language-switch" />
-                    )}
                     {signedIn ? (
                         <div className="account-menu">
                             <button
@@ -194,7 +189,6 @@ export default function Header({
                     name={accountName}
                     detail={accountDetail}
                     photo={userData?.avatar}
-                    profileHref={profileHref}
                     initialFocus={openingFocus.current}
                     onClose={() => setAccountOpen(false)}
                     onEditProfile={() => editProfile()}
@@ -339,11 +333,6 @@ const Container = styled.header`
     }
     @media (max-width: 700px) {
         height: var(--landing-header-height, 86px);
-        /* No room beside the mark on phones: the browser language picks
-           the language, and the account menu can change it. */
-        .language-switch {
-            display: none;
-        }
         margin: 0 20px;
         .brand > img {
             width: 30px;

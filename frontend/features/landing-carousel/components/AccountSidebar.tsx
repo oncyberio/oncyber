@@ -7,6 +7,8 @@ import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { brandFoundation } from "@styles/brand";
 import { baseTokens } from "@styles/tokens";
 import Icon from "./Icon";
+import { MY_SPACES_HREF } from "../yourSpaces";
+import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "locales/language";
 import { useCyberTranslation } from "@components/context/I18nContext";
 
@@ -15,7 +17,6 @@ type Props = {
     name: string;
     detail: string;
     photo?: string;
-    profileHref: string;
     initialFocus?: "first" | "last";
     onClose(): void;
     onEditProfile(): void;
@@ -25,12 +26,22 @@ type Props = {
 };
 
 /** Account navigation stays above both the lobby canvas and hosted experiences. */
+/** Same pathname and query parameters, in any order; the hash is ignored. */
+export function sameRoute(current: string | undefined, href: string) {
+    if (!current) return false;
+    const a = new URL(current, "http://x");
+    const b = new URL(href, "http://x");
+    if (a.pathname !== b.pathname) return false;
+    a.searchParams.sort();
+    b.searchParams.sort();
+    return a.searchParams.toString() === b.searchParams.toString();
+}
+
 export default function AccountSidebar({
     id,
     name,
     detail,
     photo,
-    profileHref,
     initialFocus = "first",
     onClose,
     onEditProfile,
@@ -45,9 +56,8 @@ export default function AccountSidebar({
     const { t, i18n, switchI18n } = useCyberTranslation();
     const [languagesOpen, setLanguagesOpen] = useState(false);
     const router = useRouter();
-    const path = router?.asPath?.split(/[?#]/)[0];
     const active = (href: string) =>
-        path === href ? ("page" as const) : undefined;
+        sameRoute(router?.asPath, href) ? ("page" as const) : undefined;
 
     useEffect(() => {
         const element = dialog.current;
@@ -147,12 +157,7 @@ export default function AccountSidebar({
                     </button>
                 </header>
                 <div className="sidebar-scroll">
-                    <Link
-                        className="profile-summary"
-                        href={profileHref}
-                        onClick={() => finish()}
-                        aria-label={t("View {name}'s profile", { name })}
-                    >
+                    <div className="profile-summary">
                         <ProfilePortrait
                             src={photo}
                             className="sidebar-portrait"
@@ -164,12 +169,8 @@ export default function AccountSidebar({
                                     {detail}
                                 </span>
                             )}
-                            <span className="profile-link">
-                                {t("View profile")}{" "}
-                                <Icon name="arrow" size={12} />
-                            </span>
                         </span>
-                    </Link>
+                    </div>
                     <nav
                         aria-label={t("Your worlds")}
                         className="sidebar-section"
@@ -177,8 +178,8 @@ export default function AccountSidebar({
                         <h3>{t("Your worlds")}</h3>
                         <Link
                             className="sidebar-row"
-                            href={profileHref}
-                            aria-current={active(profileHref)}
+                            href={MY_SPACES_HREF}
+                            aria-current={active(MY_SPACES_HREF)}
                             data-account-item
                             onClick={() => finish()}
                         >
@@ -272,7 +273,18 @@ export default function AccountSidebar({
                                         className="sidebar-row language-option"
                                         aria-pressed={language === i18n}
                                         lang={language}
-                                        onClick={() => switchI18n(language)}
+                                        onClick={() => {
+                                            // Always store the choice, even when
+                                            // it already shows (from ?lang= or
+                                            // the browser), so it sticks.
+                                            if (language !== i18n) {
+                                                amplitude_logAnalyticsEvent(
+                                                    "language_changed",
+                                                    { from: i18n, to: language }
+                                                );
+                                            }
+                                            switchI18n(language);
+                                        }}
                                     >
                                         <span>{LANGUAGE_NAMES[language]}</span>
                                         {language === i18n && (
@@ -431,16 +443,6 @@ const Surface = styled.dialog`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-    }
-    .profile-link {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: var(--oc-secondary);
-    }
-    .profile-summary:hover .profile-link {
-        color: var(--oc-ink);
     }
     h3 {
         font: 400 10px/1.5 var(--oc-mono);

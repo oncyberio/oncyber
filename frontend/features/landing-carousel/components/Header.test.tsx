@@ -131,18 +131,14 @@ it("keeps the account identity and exposes separate spaces and destinations link
         "Linked accounts",
         "Sign out",
     ]);
-    expect(items()[0].getAttribute("href")).toBe("/@rayan");
+    // My spaces opens your worlds on the main page; there is no profile page.
+    expect(items()[0].getAttribute("href")).toBe("/?create=gallery&spaces=all");
+    expect(document.body.textContent).not.toContain("View profile");
     expect(items()[1].getAttribute("href")).toBe("/destinations");
     expect(document.activeElement).toBe(items()[0]);
     act(() => Simulate.click(items()[1]));
     expect(items()).toHaveLength(0);
     expect(document.activeElement).toBe(trigger());
-});
-
-it("uses the account ID when no username has been set", () => {
-    render({ ...account, userData: {} });
-    open();
-    expect(items()[0].getAttribute("href")).toBe(`/@${account.user.id}`);
 });
 
 it("contains keyboard focus, supports Escape, and returns focus to the account trigger", () => {
@@ -246,7 +242,7 @@ it("dismisses stale account navigation when the account changes", () => {
     render({ ...account, user: { id: "another-wallet" }, userData: {} });
     expect(items()).toHaveLength(0);
     open();
-    expect(items()[0].getAttribute("href")).toBe("/@another-wallet");
+    expect(items()).toHaveLength(6);
 });
 
 it("preserves runtime identity updates after signing in from an experience", async () => {
@@ -282,4 +278,73 @@ it("opens friends from the account menu and closes it on account change", () => 
     );
     render({ ...account, user: { id: "another-account" } });
     expect(container.querySelector('[data-testid="account-modal"]')).toBeNull();
+});
+
+it("changes the language from the profile sidebar", () => {
+    const I18nProvider = require("@components/context/I18nContext").default;
+    localStorage.clear();
+    act(() =>
+        root.render(
+            <I18nProvider>
+                <UserContext.Provider value={account as any}>
+                    <Header menu={null} search={null} />
+                </UserContext.Provider>
+            </I18nProvider>
+        )
+    );
+    expect(container.querySelector(".language-switch")).toBeNull();
+    open();
+    const row = document.querySelector<HTMLButtonElement>(".language-row");
+    expect(row.textContent).toContain("English");
+    act(() => Simulate.click(row));
+    const options = () =>
+        Array.from(
+            document.querySelectorAll<HTMLButtonElement>(".language-option")
+        );
+    expect(options().map((option) => option.textContent)).toEqual([
+        "English",
+        "Español",
+        "日本語",
+        "한국어",
+        "中文",
+    ]);
+    act(() => Simulate.click(options()[1]));
+    expect(options()[1].getAttribute("aria-pressed")).toBe("true");
+    expect(localStorage.getItem("i18n")).toBe("es");
+    expect(document.documentElement.lang).toBe("es");
+});
+
+it("matches the current route regardless of query order or hash", () => {
+    const { sameRoute } = require("./AccountSidebar");
+    const href = "/?create=gallery&spaces=all";
+    expect(sameRoute("/?spaces=all&create=gallery#top", href)).toBe(true);
+    expect(sameRoute("/?create=gallery", href)).toBe(false);
+    expect(sameRoute("/", href)).toBe(false);
+    expect(sameRoute("/destinations", "/destinations")).toBe(true);
+});
+
+it("stores a language picked from the sidebar even when it already shows", () => {
+    const I18nProvider = require("@components/context/I18nContext").default;
+    localStorage.clear();
+    act(() =>
+        root.render(
+            <I18nProvider>
+                <UserContext.Provider value={account as any}>
+                    <Header menu={null} search={null} />
+                </UserContext.Provider>
+            </I18nProvider>
+        )
+    );
+    open();
+    act(() =>
+        Simulate.click(
+            document.querySelector<HTMLButtonElement>(".language-row")
+        )
+    );
+    act(() =>
+        Simulate.click(
+            document.querySelector<HTMLButtonElement>(".language-option")
+        )
+    );
+    expect(localStorage.getItem("i18n")).toBe("en");
 });

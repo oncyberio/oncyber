@@ -1,5 +1,5 @@
 import { ReactNode, useContext, useEffect, useRef, useState } from "react";
-import { SPACE_FILTERS, type SpaceFilter } from "../yourSpaces";
+import { MY_SPACES_HREF, SPACE_FILTERS, type SpaceFilter } from "../yourSpaces";
 import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import { DiscoveryFilters } from "../types";
@@ -47,10 +47,9 @@ export default function DiscoveryHeader({
     createControl,
 }: Props) {
     const router = useRouter();
-    const { user, userData, authenticated, isAnonymous } =
+    const { user, authenticated, isAnonymous } =
         useContext(UserContext) || ({} as any);
     const signedIn = !!(user?.id && authenticated && !isAnonymous);
-    const username = userData?.username?.replace(/^@/, "");
     const [open, setOpen] = useState(false);
     const [authRequest, setAuthRequest] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -148,14 +147,12 @@ export default function DiscoveryHeader({
                 run: () => focusSearch(true),
             },
             signedIn && {
-                id: "go-profile",
+                id: "go-spaces",
                 section: "Go to",
                 label: "My spaces",
-                detail: username ? `@${username}` : undefined,
-                icon: "user" as const,
-                keywords: "profile account",
-                run: () =>
-                    go(`/@${encodeURIComponent(username || user?.id || "")}`),
+                icon: "gallery" as const,
+                keywords: "worlds account",
+                run: () => go(MY_SPACES_HREF),
             },
             signedIn && {
                 id: "go-destinations",
