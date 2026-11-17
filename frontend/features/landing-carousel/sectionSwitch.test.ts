@@ -1,6 +1,5 @@
 import {
-    FILTER_HANDOVER,
-    FILTER_TRAVEL,
+    FILTER_TRAVEL_COLUMNS,
     placeFilter,
     placeSwitch,
     stepSeparation,
@@ -68,24 +67,25 @@ describe("section switch", () => {
         expect(placed[1].x).toBe(100 + 80 + SWITCH_GAP + 200);
     });
 
-    it("hands the filters over to the edge as their section scrolls", () => {
-        const at = (scrolled: number, handover = true) =>
-            placeFilter({ scrolled, start: 300, edge: 40, handover });
-        expect(at(0)).toEqual({
-            handed: 0,
-            list: { x: 300, opacity: 1 },
-            menu: { x: 40 + FILTER_TRAVEL, opacity: 0 },
-        });
-        expect(at(FILTER_HANDOVER)).toEqual({
-            handed: 1,
-            list: { x: 300 - FILTER_TRAVEL, opacity: 0 },
-            menu: { x: 40, opacity: 1 },
-        });
-        // Never both at once: the list is gone before the menu shows.
-        const half = at(FILTER_HANDOVER / 2);
-        expect(half.list.opacity).toBe(0);
-        expect(half.menu.opacity).toBe(0);
-        // With no room at the edge the filters stay where they are.
-        expect(at(3, false).list).toEqual({ x: 300, opacity: 1 });
+    it("pushes a section's filters to the page edge as it scrolls", () => {
+        const at = (scrolled: number) =>
+            placeFilter({ scrolled, span: 5, left: 255, edge: 100, width: 70 });
+        // Beside the first card at rest.
+        expect(at(0)).toEqual({ x: 255 - SWITCH_GAP - 70, opacity: 1 });
+        expect(at(FILTER_TRAVEL_COLUMNS)).toEqual({ x: 100, opacity: 1 });
+        expect(at(3)).toEqual({ x: 100, opacity: 1 });
+        // Gone once its last column has left the screen.
+        expect(at(5.5).opacity).toBe(0.5);
+        expect(at(6).opacity).toBe(0);
+        // Never left of the edge, even in a narrow margin.
+        expect(
+            placeFilter({
+                scrolled: 0,
+                span: 5,
+                left: 150,
+                edge: 100,
+                width: 70,
+            }).x
+        ).toBe(100);
     });
 });

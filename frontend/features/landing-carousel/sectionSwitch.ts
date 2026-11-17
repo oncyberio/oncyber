@@ -15,46 +15,34 @@ export const SWITCH_GAP = 20;
 export const SWITCH_SETTLE_MS = 180;
 /** Duration of separating and of joining back together. */
 export const SWITCH_EASE_MS = 240;
-/** Columns of scroll over which a section's filters hand over to the edge. */
-export const FILTER_HANDOVER = 0.6;
-/** How far the filters drift while they hand over. */
-export const FILTER_TRAVEL = 16;
+/** Columns of scroll over which a section's filters reach the page edge. */
+export const FILTER_TRAVEL_COLUMNS = 0.6;
 
 /**
- * Where a section's filters go. Open, they follow its label as a list. As
- * the section scrolls left the list drifts that way and fades, and one menu
- * of the same filters comes to rest at the page's left edge, over the cards
- * fading out there. Without that room (`handover` false) they stay put.
+ * Where a section's filters go: a short column of labels in the margin
+ * beside the section's first card. As the grid scrolls they are pushed left
+ * with it, as far as the page's left edge, and rest there over the cards
+ * fading out. They fade once the section has left the screen.
  */
 export function placeFilter(frame: {
     /** Columns scrolled past the section's start. */
     scrolled: number;
-    /** Where the filters start: just after the section's label. */
-    start: number;
-    /** Left edge of the page's controls, where the menu rests. */
+    /** Columns the section spans. */
+    span: number;
+    /** Left edge of the grid's first column. */
+    left: number;
+    /** Left edge of the page's controls, where the filters rest. */
     edge: number;
-    handover: boolean;
+    width: number;
 }) {
-    const t = frame.handover
-        ? smooth(
-              Math.min(
-                  1,
-                  Math.max(0, Math.abs(frame.scrolled) / FILTER_HANDOVER)
-              )
-          )
-        : 0;
+    const t = smooth(
+        Math.min(1, Math.max(0, frame.scrolled / FILTER_TRAVEL_COLUMNS))
+    );
+    const start = Math.max(frame.edge, frame.left - SWITCH_GAP - frame.width);
     return {
-        /** 0 with the filters open beside the label, 1 once handed over. */
-        handed: t,
-        // Gone by halfway, before the labels after it close the gap.
-        list: {
-            x: frame.start - t * FILTER_TRAVEL,
-            opacity: Math.max(0, 1 - t * 2),
-        },
-        menu: {
-            x: frame.edge + (1 - t) * FILTER_TRAVEL,
-            opacity: Math.max(0, t * 2 - 1),
-        },
+        x: mix(start, frame.edge, t),
+        // Its last column is the one fading out at the left.
+        opacity: Math.min(1, Math.max(0, frame.span + 1 - frame.scrolled)),
     };
 }
 
