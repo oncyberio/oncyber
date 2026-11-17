@@ -709,5 +709,17 @@
     "Navigation was cancelled. Try opening the space again.": "Se canceló la navegación. Intenta abrir el espacio de nuevo.",
     "Results for “{query}”": "Resultados para “{query}”",
     "Close to “{query}”": "Parecidos a “{query}”",
-    "No matches · Staff picks": "Sin resultados · Selección del equipo"
+    "No matches · Staff picks": "Sin resultados · Selección del equipo",
+    "Couldn't load your worlds.": "No se pudieron cargar tus mundos.",
+    "Worlds": "Mundos",
+    "My Spaces": "Mis espacios",
+    "Collaborations": "Colaboraciones",
+    "No world matches that name.": "Ningún mundo coincide con ese nombre.",
+    "No worlds here yet.": "Todavía no hay mundos aquí.",
+    "{count} artwork": "{count} obra",
+    "{count} artworks": "{count} obras",
+    "Open now": "Abierto ahora",
+    "Create new world": "Crear un mundo nuevo",
+    "Yours": "Tuyos",
+    "Map view": "Vista de mapa"
 }
