@@ -27,6 +27,43 @@ area only when you use that area.
 
 ## Start
 
+There are two places to build a game, with the same SDK, kits and checks.
+
+### Outside the repository: the `oncyber` command
+
+For a game on your own machine, published to Oncyber by its link
+(`docs/games/publishing.md`). The command is the package in `games/cli/`.
+It is not on npm; `games/cli/README.md` says how to install it from a
+tarball.
+
+```sh
+oncyber new <id> --name "Game Name"   # a working starter game in ./<id>
+cd <id> && npm install
+oncyber docs                          # this page; `oncyber docs party` prints docs/games/party.md
+oncyber dev                           # the game alone, on its own port
+oncyber check                         # done is this exiting 0
+oncyber login                         # once: opens the browser, saves a token
+oncyber publish                       # build, check, upload; prints the game's link
+```
+
+Know before you start:
+
+-   The starter is a small, complete contract game (Lantern Tag, renamed)
+    that passes `oncyber check` as created. Rewrite its `BRIEF.md` for your
+    game first, then change the world, the rules and the party's match where
+    the source says `STARTER:`.
+-   The game is the current folder. Where this page says `games/<id>/`, read
+    your game's folder; the build is `dist/`, the check's report is
+    `.oncyber/check.json` and its screenshots are in `.check/`.
+-   Where this page says `pnpm games:check <id>`, run `oncyber check`; for
+    `pnpm games:publish <id>`, `oncyber publish`.
+-   The game's `vite.config.js` is `oncyberGame()` from `oncyber/vite`, which
+    maps the SDK and the kits.
+-   A published game is unlisted: it runs at its link with the visitor's
+    avatar, party, chat and voice, and is not shown in the lobby.
+
+### In the repository
+
 ```sh
 pnpm games:new <id> --name "Game Name"   # creates games/<id>/ and lists it
 # fill in games/<id>/BRIEF.md             # the check fails while a section says TODO
@@ -40,18 +77,18 @@ Know before you start:
 
 -   Alias the SDK and the kits in the game's `vite.config.js`, as
     `games/lantern-tag/vite.config.js` does.
-
 -   `games:new` copies Bloom Garden, which predates the SDK's contract and
     kits. Keep its `BRIEF.md`, `.gitignore` and licence files, and replace
     its source. Use `games/lantern-tag/` as the small worked example of a
     contract game (host, game, party match, sound) and `games/ace/` as the
     full one.
--   The checks run a real browser. On a machine with no GPU set
-    `GAMES_CHECK_TIMEOUT_S=600`.
 -   `npm run build` in a game clears its `check.json` and `release.json`;
     finish with `pnpm games:publish <id>`.
 -   Commit `games/<id>/` and `frontend/public/games/<id>/`. Format with
     Prettier (four spaces, 80 columns).
+
+In both places the checks run a real browser. On a machine with no GPU set
+`GAMES_CHECK_TIMEOUT_S=600`.
 
 ## Required of every game
 
@@ -280,7 +317,8 @@ done:
 
 ## Done
 
-`pnpm games:check <id>` exits 0, `pnpm games:publish <id>` has written the
-build, and both folders are committed. `pnpm games:score <id>` prints each
-stage. Where every rule and finding code is explained:
+In the repository: `pnpm games:check <id>` exits 0, `pnpm games:publish <id>`
+has written the build, and both folders are committed. `pnpm games:score <id>`
+prints each stage. Outside it: `oncyber check` exits 0 and `oncyber publish`
+has printed the game's link. Where every rule and finding code is explained:
 `docs/games/good-game.md`.

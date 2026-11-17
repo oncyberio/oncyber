@@ -81,6 +81,25 @@ test("the guide names every command it relies on", () => {
         assert.ok(scripts[name], `pnpm ${name} is not a script`);
 });
 
+test("every oncyber command the guide shows is one the command has", async () => {
+    const { COMMANDS } = await import("../../../games/cli/lib/args.mjs");
+    const shown = new Set(
+        [...guide.matchAll(/(?:^|[`\s;])oncyber ([a-z]+)\b/gm)].map(
+            (match) => match[1]
+        )
+    );
+    assert.ok(shown.size >= 6);
+    for (const command of shown)
+        assert.ok(
+            Object.hasOwn(COMMANDS, command),
+            `oncyber ${command} is not a command (games/cli/lib/args.mjs)`
+        );
+    // The import a game's vite.config.js is told to use.
+    const exported = JSON.parse(read("games/cli/package.json")).exports;
+    for (const [, name] of guide.matchAll(/`oncyber\/([a-z-]+)`/g))
+        assert.ok(exported[`./${name}`], `oncyber/${name} is not exported`);
+});
+
 test("the site serves the guide as written", () => {
     assert.ok(
         sameText(read(GUIDE_TARGET), guidePage(guide)),
