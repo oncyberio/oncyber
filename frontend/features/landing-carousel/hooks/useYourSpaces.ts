@@ -27,8 +27,13 @@ export default function useYourSpaces(enabled: boolean) {
         async () => (await import("@api/exhibit/_api")).default.listMine({}),
         swrOptions
     );
+    // What this page last saved wins over the fetched value: a navigation
+    // that fails after the save leaves the list's answer out of date.
+    const [savedId, setSavedId] = useState<string>(null);
     const currentId =
-        query.data?.currentId || (userData?.currentExhibitId as string);
+        savedId ||
+        query.data?.currentId ||
+        (userData?.currentExhibitId as string);
     const [openingId, setOpeningId] = useState<string>(null);
     const [error, setError] = useState("");
     const open = useCallback(
@@ -37,26 +42,26 @@ export default function useYourSpaces(enabled: boolean) {
             setOpeningId(spaceId);
             setError("");
             try {
+                const account = spaceId === currentId ? null : accountApi();
+                // The save starts only once leaving the page is certain, so
+                // a failed attempt cannot land after a later one.
                 await Promise.all([
                     preloadStudio().catch(() => {}),
                     prepareNavigation(),
-                    spaceId === currentId
-                        ? null
-                        : accountApi()
-                              .then(({ updateUser }) =>
-                                  updateUser(
-                                      token,
-                                      { currentExhibitId: spaceId },
-                                      user?.id
-                                  )
-                              )
-                              .then((result) => {
-                                  if (!result?.success)
-                                      throw new Error(
-                                          "Couldn't open this space. Please try again."
-                                      );
-                              }),
                 ]);
+                if (account) {
+                    const { updateUser } = await account;
+                    const result = await updateUser(
+                        token,
+                        { currentExhibitId: spaceId },
+                        user?.id
+                    );
+                    if (!result?.success)
+                        throw new Error(
+                            "Couldn't open this space. Please try again."
+                        );
+                    setSavedId(spaceId);
+                }
                 if (!(await router.push("/studio")))
                     throw new Error(
                         "Navigation was cancelled. Try opening the space again."

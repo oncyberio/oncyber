@@ -34,7 +34,7 @@ import { preloadExhibitPortalData } from "@utils/csr";
 import { getJSON } from "@utils/js";
 import NotificationService from "@api/notifications/_api";
 import { isEmbeddedRuntime } from "@features/content-host/runtime";
-import { isSupportedRuntime } from "@utils/runtimeKind";
+import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
 
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
@@ -43,7 +43,10 @@ import { spaceUrl } from "@utils/siteUrl";
 import { spaceShareImage } from "@utils/spaceShareImage";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
-const EmbeddedExperience = dynamic(() => import("@features/content-host/EmbeddedExperience"), { ssr: false });
+const EmbeddedExperience = dynamic(
+    () => import("@features/content-host/EmbeddedExperience"),
+    { ssr: false }
+);
 
 export default function Exhibit(props: {
     experience: Experience;
@@ -59,7 +62,12 @@ export default function Exhibit(props: {
         return <Error statusCode={404} />;
     }
     if (isEmbeddedRuntime(props.experience?.runtime)) {
-        return <EmbeddedExperience key={props.experience.id} experience={props.experience} />;
+        return (
+            <EmbeddedExperience
+                key={props.experience.id}
+                experience={props.experience}
+            />
+        );
     }
     return <NativeExhibit key={props.experience?.id} {...props} />;
 }
@@ -371,20 +379,24 @@ export const getServerSideProps = AuthServerSidePropsLite(
         // still reach the space.
         const id = String(query.id ?? "");
         if (id.trim() !== id && id.trim()) {
-            return { redirect: {
-                destination: `/spaces/${encodeURIComponent(id.trim())}`,
-                permanent: true,
-            } };
+            return {
+                redirect: {
+                    destination: `/spaces/${encodeURIComponent(id.trim())}`,
+                    permanent: true,
+                },
+            };
         }
 
         let data = await fetchExhibitData(query.id, "id");
         let gatingError = null;
 
         if (data?.experience?.info?.customLink) {
-            return { redirect: {
-                destination: "/" + data.experience.info.customLink,
-                permanent: true,
-            } };
+            return {
+                redirect: {
+                    destination: "/" + data.experience.info.customLink,
+                    permanent: true,
+                },
+            };
         }
 
         if (data.experience) {
@@ -401,7 +413,11 @@ export const getServerSideProps = AuthServerSidePropsLite(
         }
 
         // No such space: a real 404, showing the landing to explore from.
-        if (!data.experience || !data.dest)
+        // Embedded experiences have no room, so no destination to require.
+        if (
+            !data.experience ||
+            (isNativeRuntime(data.experience.runtime) && !data.dest)
+        )
             return {
                 ...data,
                 ...(await notFoundLanding(res, query, resolvedUrl)),
