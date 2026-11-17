@@ -462,6 +462,8 @@ const Container = styled.div`
 
     @media (max-width: 600px) {
         width: 100%;
+        /* Stay above the asset dock so Create New World can be reached. */
+        height: min(600px, calc(100dvh - 170px));
     }
 
     & > .header {
@@ -486,6 +488,8 @@ const Container = styled.div`
 
     & > .body {
         flex: 1;
+        min-height: 0;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 12px;

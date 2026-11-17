@@ -880,7 +880,8 @@ const Shell = styled.div`
         .experience-place {
             top: 22px;
             left: 16px;
-            max-width: calc(50% - 35px);
+            /* Stop short of the centred logo (about 40px wide). */
+            max-width: calc(50% - 52px);
             gap: 8px;
         }
         .experience-title {

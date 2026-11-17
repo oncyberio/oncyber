@@ -2196,6 +2196,8 @@ const Conditions = () => {
 
 const Container = styled.div`
     padding: 20px 10%;
+    /* Long URLs in the notice would widen the page on phones. */
+    overflow-wrap: anywhere;
 
     h1 {
         margin: 20px 0;

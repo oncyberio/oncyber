@@ -213,6 +213,7 @@ const Page = styled.div`
         gap: 10px;
         margin-left: auto;
         padding-left: 12px;
+        white-space: nowrap;
         cursor: pointer;
     }
     .copy-prompt .agents {
@@ -225,6 +226,7 @@ const Page = styled.div`
         height: 18px;
     }
     .source {
+        white-space: nowrap;
         padding: 8px 4px;
         border-radius: ${radius.inset}px;
         color: var(--oc-secondary);
@@ -385,7 +387,8 @@ const Page = styled.div`
         padding: 0;
         border: 0;
         border-radius: ${radius.inset}px;
-        background: none;
+        /* Code scrolls under the button; keep it readable. */
+        background: var(--oc-panel);
         color: var(--oc-secondary);
         cursor: pointer;
     }
@@ -541,6 +544,9 @@ const Page = styled.div`
         .copy-prompt .agents {
             display: none;
         }
+        .copy-prompt {
+            padding-left: 14px;
+        }
         .docs-layout {
             display: block;
             padding: 0 16px 64px;
@@ -571,6 +577,11 @@ const Page = styled.div`
         .docs-body details > .table {
             margin-left: 16px;
             margin-right: 16px;
+        }
+    }
+    @media (max-width: 360px) {
+        .section {
+            display: none;
         }
     }
 `;

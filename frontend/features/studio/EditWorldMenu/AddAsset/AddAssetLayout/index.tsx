@@ -180,8 +180,9 @@ const Container = styled.div`
     }
     @media (max-width: 600px) {
         width: 100%;
-        height: min(420px, calc(100dvh - 150px));
-        max-height: min(420px, calc(100dvh - 150px));
+        /* Leave the world in view above the sheet. */
+        height: min(420px, calc(100dvh - 150px), 55dvh);
+        max-height: min(420px, calc(100dvh - 150px), 55dvh);
         border-radius: var(--studio-radius-panel) var(--studio-radius-panel) 0 0;
         border-bottom: 0;
         & > .header {
