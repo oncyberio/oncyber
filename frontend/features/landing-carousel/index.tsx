@@ -482,7 +482,16 @@ function LandingContent(props: LandingPageProps) {
             return true;
         }
         if (card.id === RESET_SPACES_ID) {
-            filterSpaces("latest");
+            // "Show all your spaces" clears the search too, or a search
+            // that matches none of them would keep the list empty.
+            const query = { ...router.query, create: "gallery" };
+            delete query.spacesFilter;
+            delete query.spaces;
+            delete query.templateSearch;
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
             return true;
         }
         if (card.spaceId) {

@@ -220,7 +220,9 @@ export function createSpaceCards(
             section: "spaces",
             title: `+${more} more`,
             // A real link for new tabs; a plain click expands in place.
-            href: "/?create=gallery&spaces=all",
+            href: `/?create=gallery&spaces=all${
+                filter === "latest" ? "" : `&spacesFilter=${filter}`
+            }`,
             buildStatus: `Show all ${matches.length} ${noun}`,
             actionLabel: `Show all ${matches.length} of your ${noun}`,
             // Cards draw their own cover; this one shows the next space's.

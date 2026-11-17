@@ -74,6 +74,11 @@ describe("Create's own spaces", () => {
         expect(cards).toHaveLength(1);
         expect(cards[0].id).toBe(RESET_SPACES_ID);
         expect(cards[0].title).toBe("No shared spaces yet");
+        // The link for a new tab keeps the filter it expands.
+        const viewed = createSpaceCards(spaces, "", false, undefined, "viewed");
+        expect(viewed[viewed.length - 1].href).toBe(
+            "/?create=gallery&spaces=all&spacesFilter=viewed"
+        );
         expect(cards[0].section).toBe("spaces");
     });
 
