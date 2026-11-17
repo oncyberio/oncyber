@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { siteOrigin } = require("./utils/siteOrigin");
+const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
 // rather than shipping a site that cannot sign anyone in.
@@ -314,6 +315,11 @@ const nextConfig = {
                 destination: "/studio",
                 permanent: true,
             },
+            ...Object.entries(PAGE_REDIRECTS).map(([from, destination]) => ({
+                source: `/${from}`,
+                destination,
+                permanent: true,
+            })),
         ];
     },
     rewrites: async () => {

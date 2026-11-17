@@ -10,6 +10,7 @@ import { GetServerSidePropsContext } from "next";
 import { checkGating } from "@utils/checkGatingRules";
 import dynamic from "next/dynamic";
 import { BasicServerSideProps } from "@utils/serverside/BasicServerSideProps";
+import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 import { useEffect } from "react";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import {
@@ -20,6 +21,11 @@ import {
 const Profile = dynamic(() => import("../components/profile"));
 
 const Error = dynamic(() => import("../components/Error"));
+
+// Shown in place of a space or profile that doesn't exist (status 404).
+const NotFoundPage = dynamic(
+    () => import("@features/landing-carousel/NotFoundPage")
+);
 
 // Keep the visitor shell in the route chunk; only the engine needs lazy loading.
 import Space from "./spaces/[id]";
@@ -36,6 +42,7 @@ export default function CustomLinkExhibit({
     isProfile,
     profile,
     gatingError,
+    ...props
 }) {
     useEffect(() => {
         if (isProfile) {
@@ -44,6 +51,10 @@ export default function CustomLinkExhibit({
             });
         }
     }, []);
+
+    if (props.notFound) {
+        return <NotFoundPage {...(props as any)} />;
+    }
 
     if (isProfile && !profile) {
         return <Error statusCode={404} />;
@@ -101,13 +112,12 @@ export const getServerSideProps = BasicServerSideProps(
                     };
                 }
 
-                // No such profile: a real 404, not a page that says so.
-                res.statusCode = 404;
+                // No such profile: a real 404, showing the landing with the
+                // name in the search.
                 return {
-                    // props: {
                     isProfile: true,
                     profile: null,
-                    // },
+                    ...(await notFoundLanding(res, query, resolvedUrl)),
                 };
             }
 
@@ -128,8 +138,13 @@ export const getServerSideProps = BasicServerSideProps(
 
         let gatingError = null;
 
-        // The page shows "not found" (see CustomLinkExhibit): a real 404.
-        if (!data.experience?.editors) res.statusCode = 404;
+        // No such space: a real 404, showing the landing with the link's
+        // words in the search.
+        if (!data.experience?.editors)
+            return {
+                ...data,
+                ...(await notFoundLanding(res, query, resolvedUrl)),
+            };
 
         if (data.experience) {
             // solo mode should be cheked server side for safety

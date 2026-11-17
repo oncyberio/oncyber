@@ -11,6 +11,10 @@ import styled from "styled-components";
 import { UserContext } from "@components/context/UserContext";
 
 const Error = dynamic(() => import("../../components/Error"));
+// Shown in place of a space that doesn't exist (status 404).
+const NotFoundPage = dynamic(
+    () => import("@features/landing-carousel/NotFoundPage")
+);
 import { createGlobalStyle } from "styled-components";
 
 import { useRouter } from "next/router";
@@ -37,6 +41,7 @@ import { isSupportedRuntime } from "@utils/runtimeKind";
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
 import { spaceUrl } from "@utils/siteUrl";
 import { spaceShareImage } from "@utils/spaceShareImage";
+import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
 const EmbeddedExperience = dynamic(() => import("@features/content-host/EmbeddedExperience"), { ssr: false });
 
@@ -45,8 +50,10 @@ export default function Exhibit(props: {
     dest: RoomParameters;
     gatingError?: GatingCheckResult;
     getExhibitPath: (exhibit: Experience, pathname: string) => string;
+    notFound?: { query: string };
 }) {
     const { isAnonInitialized } = useContext(UserContext);
+    if (props.notFound) return <NotFoundPage {...(props as any)} />;
     if (!isAnonInitialized) return null;
     if (props.experience && !isSupportedRuntime(props.experience.runtime)) {
         return <Error statusCode={404} />;
@@ -359,7 +366,17 @@ function NativeExhibit({
 }
 
 export const getServerSideProps = AuthServerSidePropsLite(
-    async ({ query, res }, user, token) => {
+    async ({ query, res, resolvedUrl }, user, token) => {
+        // Links pasted with a trailing newline or space (".../spaces/<id>%0A")
+        // still reach the space.
+        const id = String(query.id ?? "");
+        if (id.trim() !== id && id.trim()) {
+            return { redirect: {
+                destination: `/spaces/${encodeURIComponent(id.trim())}`,
+                permanent: true,
+            } };
+        }
+
         let data = await fetchExhibitData(query.id, "id");
         let gatingError = null;
 
@@ -383,8 +400,12 @@ export const getServerSideProps = AuthServerSidePropsLite(
                 (data.experience && rooms[data.experience?.info.room]) || null;
         }
 
-        // The page shows "not found": say so to search engines too.
-        if (!data.experience || !data.dest) res.statusCode = 404;
+        // No such space: a real 404, showing the landing to explore from.
+        if (!data.experience || !data.dest)
+            return {
+                ...data,
+                ...(await notFoundLanding(res, query, resolvedUrl)),
+            };
 
         return {
             ...data,

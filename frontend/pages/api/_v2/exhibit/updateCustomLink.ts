@@ -3,6 +3,7 @@ import { proc, NoApi } from "@utils/rpc/server";
 import { firestore } from "firebase-admin";
 import { db } from "@utils/firebaseAdmin";
 import { Failure, Success } from "@utils/js";
+import { isReservedLink } from "@utils/reservedLinks";
 
 async function doUpdateCustomLink(
     customLink: string,
@@ -20,6 +21,11 @@ async function doUpdateCustomLink(
     return db.runTransaction(async (batch) => {
         // TODO: For now we don't handle yet concurrent customLink edits very well
         const isRemove = customLink === null || customLink == "";
+
+        // The site's own pages answer these addresses, never the space.
+        if (!isRemove && isReservedLink(customLink)) {
+            throw new Error("This link is reserved. Try another one.");
+        }
 
         //
         const exhibitRef = db.collection("exhibits").doc(exhibitId);

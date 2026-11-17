@@ -45,6 +45,9 @@ jest.mock("../utils/analytics", () => ({
     getCookie: jest.fn(),
 }));
 jest.mock("../utils/ssr", () => ({ fetchExhibitData: jest.fn() }));
+jest.mock("@utils/serverside/notFoundLanding", () => ({
+    notFoundLanding: jest.fn(),
+}));
 jest.mock("../utils/checkGatingRules", () => ({ checkGating: jest.fn() }));
 jest.mock("@utils/urlUtils", () => ({
     cloudinary: { artworkMissingUpload: () => false },
