@@ -1365,7 +1365,9 @@ const SectionSwitch = styled.div`
         top: 0;
         visibility: hidden;
         pointer-events: auto;
-        padding: 0 0 8px;
+        /* One step of the 4 px rhythm clear of the cards, so the label reads
+           as a heading over them and not as part of the first card. */
+        padding: 0 0 12px;
         border: 0;
         background: none;
         white-space: nowrap;
