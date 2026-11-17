@@ -395,7 +395,7 @@ input[type="checkbox"] {
     .m-collab[style],
     .m-select-space[style] {
         width: calc(100% - 12px) !important;
-        top: 64px !important;
+        top: 72px !important;
         left: 0 !important;
         right: 0 !important;
         margin: auto;
