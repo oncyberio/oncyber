@@ -5,13 +5,15 @@
 // loading its committed build until a person runs `pnpm games:release point
 // <id>`; from then on each publish moves the pointer to the new release.
 // The pointer never moves to a host that does not send what a release
-// needs (releaseHostProblems).
+// needs (releaseHostProblems). A release on IPFS (pinata) is not loaded
+// from its gateway at all: the site's releases route fetches it and sends
+// the headers, and the pointer entry says so (`served: "site"`).
 //
 // Settings (environment):
 //   GAMES_RELEASES_BACKEND   "local" (default) or "pinata"
 //   GAMES_RELEASES_DIR       local backend folder, default .games-releases/
 //   PINATA_JWT_KEY           pinata backend: the upload key (server-only)
-//   GAMES_RELEASES_GATEWAY   pinata backend: gateway origin the page loads from
+//   GAMES_RELEASES_GATEWAY   pinata backend: gateway origin the site's releases route reads from
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,6 +27,7 @@ import {
     localFolderStorage,
     pinataStorage,
     releaseId,
+    siteRouteProblems,
     verifyRelease,
 } from "./storage.mjs";
 
@@ -75,10 +78,23 @@ export function releaseTarget(env = process.env) {
  *                                    the release carries, plus a sandbox:
  *                                    exactly releaseContentSecurityPolicy()
  *
- * Returns the problems found. A backend with no `headers` (the local folder)
- * is served by this repository's own code, which sends both.
+ * Returns the problems found. Two kinds of backend are served by this
+ * repository's own code, which sends both, and are not asked:
+ *
+ *   the local folder          no `headers`; the development server's route
+ *   `served: "site"` (pinata) visitors load from the site's releases route,
+ *                             which reads the gateway and adds the headers.
+ *                             The site is not running at publish time, so
+ *                             what is checked here is that the entry is one
+ *                             that route accepts; the bytes were read back
+ *                             from the gateway and hashed by verifyRelease,
+ *                             and the route's headers are proved by its own
+ *                             tests (gameReleaseServer.test.ts).
+ *
+ * Any other host with `headers` is asked, and must send both.
  */
 export async function releaseHostProblems(storage, entry) {
+    if (storage.served === "site") return siteRouteProblems(entry);
     if (typeof storage.headers !== "function") return [];
     let published = null;
     try {
@@ -146,6 +162,8 @@ export async function publishRelease({
         base: stored.base,
         backend: storage.name,
         address: stored.address,
+        // Where visitors load it from, when that is not `base` itself.
+        ...(storage.served ? { served: storage.served } : {}),
         publishedAt: now.toISOString(),
         files: files.length,
         bytes: files.reduce((sum, f) => sum + f.bytes, 0),

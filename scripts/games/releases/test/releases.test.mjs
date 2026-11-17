@@ -36,10 +36,15 @@ import {
     RELEASE_MANIFEST,
     releaseId,
     sha256,
+    siteRouteProblems,
     verifyRelease,
 } from "../storage.mjs";
 // The page's own reader: what the scripts write, the page must accept.
-import { resolveGameFrame } from "../../../../frontend/features/games/gameRelease.ts";
+import {
+    pinnedGatewayBase,
+    pinnedRelease,
+    resolveGameFrame,
+} from "../../../../frontend/features/games/gameRelease.ts";
 
 const scratch = (t) => {
     const dir = mkdtempSync(join(tmpdir(), "releases-test-"));
@@ -193,7 +198,8 @@ test("pointer: publish, rollback, history, unpoint", (t) => {
     const entry = (n) => ({
         release: String(n).padStart(16, "0"),
         base: `https://gateway.example/ipfs/cid${n}/`,
-        backend: "pinata",
+        // Any https host that sends a release's headers itself.
+        backend: "elsewhere",
         address: `cid${n}`,
         publishedAt: "2026-01-01T00:00:00.000Z",
         files: 2,
@@ -382,15 +388,18 @@ test("pinata storage: one pinned directory, read back through the gateway", asyn
             );
             return Response.json({ IpfsHash: cid });
         }
+        assert.equal(init.redirect, "manual", "no redirect is followed");
         const path = url.replace(`https://games.example/ipfs/${cid}/`, "");
+        if (path === moved)
+            return new Response("", {
+                status: 301,
+                headers: { location: "https://elsewhere.example/x" },
+            });
         return pinned.has(path)
-            ? new Response(pinned.get(path), { headers: gateway })
+            ? new Response(pinned.get(path))
             : new Response("", { status: 404 });
     };
-    // What a host of releases must send; this build declares no hosts.
-    const policy = releasePolicy(dir);
-    assert.match(policy, /^default-src 'none'; .*; sandbox allow-scripts/);
-    let gateway = {};
+    let moved = null;
     const storage = pinataStorage({
         jwt: "test-key",
         gateway: "https://games.example/ipfs/",
@@ -410,39 +419,25 @@ test("pinata storage: one pinned directory, read back through the gateway", asyn
         resolveGameFrame("ace", [readPointers(pointers)]).source,
         "committed"
     );
-    // A gateway that sends neither CORS nor the game's policy is never
-    // pointed at, whoever asks: the release stays stored.
+    // The gateway sends neither CORS nor the game's policy, and is not
+    // asked for them: visitors load the release from the site's route,
+    // which sends both. The entry says so, and is one that route accepts.
+    assert.equal(storage.headers, undefined);
+    assert.equal(kept.entry.served, "site");
     assert.deepEqual(
-        (await releaseHostProblems(storage, { game: "ace", ...kept.entry }))
-            .length,
-        2
+        await releaseHostProblems(storage, { game: "ace", ...kept.entry }),
+        []
     );
-    await assert.rejects(
-        publishRelease({
-            game: "ace",
-            dir,
-            files,
-            storage,
-            pointers,
-            point: true,
-        }),
-        /pointer was left where it was.*Access-Control-Allow-Origin.*Content-Security-Policy/
-    );
-    assert.equal(currentRelease(readPointers(pointers), "ace"), null);
-    gateway = { "access-control-allow-origin": "*" };
     assert.match(
         (
             await releaseHostProblems(storage, {
                 game: "ace",
                 ...kept.entry,
+                base: `http://games.example/ipfs/${cid}/`,
             })
         ).join(),
-        /^it does not send the release's Content-Security-Policy/
+        /not an https gateway folder/
     );
-    gateway = {
-        "access-control-allow-origin": "*",
-        "content-security-policy": policy,
-    };
     const { entry, pointed } = await publishRelease({
         game: "ace",
         dir,
@@ -468,10 +463,16 @@ test("pinata storage: one pinned directory, read back through the gateway", asyn
             backend: "pinata",
         }
     );
+    // The page's frame is the site's route, never the gateway, and that
+    // route finds the gateway folder for this release in the same file.
     assert.equal(
         resolveGameFrame("ace", [readPointers(pointers)]).src,
-        `https://games.example/ipfs/${cid}/index.html`
+        `/api/games/releases/ace/${release}/index.html`
     );
+    assert.deepEqual(pinnedRelease(readPointers(pointers), "ace", release), {
+        release,
+        base: `https://games.example/ipfs/${cid}/`,
+    });
     assert.ok(!readFileSync(pointers, "utf8").includes("test-key"));
 
     // A gateway that serves other bytes fails verification.
@@ -481,6 +482,27 @@ test("pinata storage: one pinned directory, read back through the gateway", asyn
             (p) => p.path
         ),
         ["index.html"]
+    );
+
+    // So does one that redirects: the site's route follows no redirect.
+    pinned.set("index.html", Buffer.from(GAME["index.html"]));
+    moved = "assets/a.js";
+    assert.match(
+        (await verifyRelease(storage, { game: "ace", ...entry })).problems
+            .map((p) => `${p.path}: ${p.problem}`)
+            .join(),
+        /^assets\/a\.js: .*answered 301 \(a redirect/
+    );
+
+    // An upload that comes back without a CID the site would fetch.
+    const odd = pinataStorage({
+        jwt: "k",
+        gateway: "https://games.example",
+        fetch: async () => Response.json({ IpfsHash: "../../elsewhere" }),
+    });
+    await assert.rejects(
+        odd.put({ game: "ace", release, dir, files }),
+        /the site cannot serve this release: its address/
     );
 
     assert.throws(
@@ -499,6 +521,95 @@ test("pinata storage: one pinned directory, read back through the gateway", asyn
     await assert.rejects(
         failing.put({ game: "ace", release, dir, files }),
         /Pinata upload failed \(401\)/
+    );
+});
+
+test("the publishing side and the site agree on what the site's route serves", () => {
+    const cid = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
+    const v0 = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
+    const entries = [
+        { address: cid, base: `https://games.example/ipfs/${cid}/` },
+        { address: v0, base: `https://games.example/ipfs/${v0}/` },
+        { address: cid, base: `https://games.example/pre/ipfs/${cid}/` },
+        { address: cid, base: `http://games.example/ipfs/${cid}/` },
+        { address: cid, base: `https://games.example/ipfs/${cid}` },
+        { address: cid, base: `https://games.example/ipfs/${v0}/` },
+        { address: cid, base: `https://a:b@games.example/ipfs/${cid}/` },
+        { address: cid, base: `https://games.example/ipfs/${cid}/?x=1` },
+        { address: cid, base: `https://games.example/x/../ipfs/${cid}/` },
+        { address: "cid1", base: "https://games.example/ipfs/cid1/" },
+        { address: "..", base: "https://games.example/ipfs/../" },
+        { address: cid, base: `/api/games/releases/ace/${"0".repeat(16)}/` },
+        { address: cid },
+        {},
+    ];
+    const accepted = entries.map(
+        (entry) => siteRouteProblems(entry).length === 0
+    );
+    assert.deepEqual(
+        accepted,
+        entries.map(
+            (entry) =>
+                pinnedGatewayBase({ backend: "pinata", ...entry }) !== null
+        )
+    );
+    assert.deepEqual(accepted.slice(0, 4), [true, true, true, false]);
+    assert.ok(accepted.slice(3).every((ok) => !ok));
+});
+
+test("another https host is still asked for both headers", async (t) => {
+    const root = scratch(t),
+        dir = join(root, "build");
+    const files = build(dir, GAME);
+    const local = localFolderStorage({ root: join(root, "store") });
+    let sent = {};
+    // A host visitors load from directly: nothing in front of it.
+    const storage = {
+        name: "elsewhere",
+        put: async (release) => ({
+            ...(await local.put(release)),
+            base: "https://releases.example/ace/",
+        }),
+        read: local.read,
+        headers: async () => new Headers(sent),
+    };
+    const pointers = join(root, "pointers.json");
+    await assert.rejects(
+        publishRelease({
+            game: "ace",
+            dir,
+            files,
+            storage,
+            pointers,
+            point: true,
+        }),
+        /pointer was left where it was.*Access-Control-Allow-Origin.*Content-Security-Policy/
+    );
+    // Stored and listed, never pointed at.
+    assert.equal(currentRelease(readPointers(pointers), "ace"), null);
+    const [entry] = readPointers(pointers).games.ace.releases;
+    assert.equal(entry.served, undefined);
+    sent = { "access-control-allow-origin": "*" };
+    assert.match(
+        (await releaseHostProblems(storage, { game: "ace", ...entry })).join(),
+        /^it does not send the release's Content-Security-Policy/
+    );
+    sent = {
+        "access-control-allow-origin": "*",
+        "content-security-policy": releasePolicy(dir),
+    };
+    const { pointed } = await publishRelease({
+        game: "ace",
+        dir,
+        files,
+        storage,
+        pointers,
+        point: true,
+    });
+    assert.equal(pointed, true);
+    assert.equal(
+        resolveGameFrame("ace", [readPointers(pointers)]).src,
+        "https://releases.example/ace/index.html"
     );
 });
 

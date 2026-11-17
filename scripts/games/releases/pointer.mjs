@@ -7,10 +7,13 @@
 //   "games": {
 //     "ace": {
 //       "current": "<release id>" | null,
-//       "releases": [ { release, base, backend, address, publishedAt, files, bytes }, ... ]
+//       "releases": [ { release, base, backend, address, served?, publishedAt, files, bytes }, ... ]
 //     }
 //   }
 // }
+//
+// `served: "site"` marks a release visitors do not load from `base`: the
+// site's releases route reads `base` and serves it (the pinata backend).
 //
 // `releases` is newest first and keeps what the page needs to load any of
 // them, so rollback is setting `current` to an earlier id. `current` is null

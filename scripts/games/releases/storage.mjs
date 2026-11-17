@@ -12,10 +12,15 @@
 //     put({ game, release, dir, files }): Promise<{ base: string, address: string }>;
 //     // One stored file's bytes, as a visitor would get them.
 //     read({ game, release, base, address }, path): Promise<Buffer>;
-//     // Optional, for a host this repository does not run: the response
-//     // headers a visitor gets with one file, so publish.mjs can refuse to
-//     // point a game at a host that does not send what a release needs.
+//     // Optional, for a host this repository does not run and that visitors
+//     // load from directly: the response headers a visitor gets with one
+//     // file, so publish.mjs can refuse to point a game at a host that
+//     // does not send what a release needs.
 //     headers?({ game, release, base, address }, path): Promise<Headers>;
+//     // Optional: "site" when visitors never load from `base`, because the
+//     // site's releases route fetches from it and sends the headers itself
+//     // (pinata). Recorded in the pointer entry.
+//     served?: "site";
 // }
 //
 // `base` is the URL the game page loads `index.html` from (it ends in "/").
@@ -59,6 +64,41 @@ export const RELEASE_REPORTS = new Set([
     "release.json",
     GENERATED_THUMBNAIL,
 ]);
+
+/** An IPFS content id: CIDv0 (base58, "Qm…") or CIDv1 in base32 ("b…"). */
+const CID = /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58,120})$/;
+
+/**
+ * What stops the site's releases route from serving a pointer entry stored
+ * on IPFS, or nothing. The route (frontend/pages/api/games/releases) fetches
+ * only from an entry whose `address` is a CID and whose `base` is an https
+ * URL ending in /ipfs/<cid>/ with no credentials, query or fragment. This
+ * is the same test as `pinnedGatewayBase` in
+ * frontend/features/games/gameRelease.ts; the tests hold the two together.
+ */
+export function siteRouteProblems({ base, address }) {
+    if (typeof address !== "string" || !CID.test(address))
+        return [`its address ${address} is not an IPFS CID`];
+    let url = null;
+    try {
+        url = new URL(base);
+    } catch {}
+    if (
+        typeof base !== "string" ||
+        base.length > 512 ||
+        url?.protocol !== "https:" ||
+        url.href !== base ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash ||
+        !url.pathname.endsWith(`/ipfs/${address}/`)
+    )
+        return [
+            `its base ${base} is not an https gateway folder ending in /ipfs/${address}/`,
+        ];
+    return [];
+}
 
 export const sha256 = (bytes) =>
     createHash("sha256").update(bytes).digest("hex");
@@ -196,10 +236,15 @@ export function localFolderStorage({ root, url = "/api/games/releases" }) {
 
 /**
  * IPFS through Pinata: the release is pinned as one directory, so its CID
- * names every byte in it and `<gateway>/ipfs/<cid>/` is its base URL.
- * `jwt` is PINATA_JWT_KEY (server-only). `gateway` must serve HTML and send
- * Access-Control-Allow-Origin: * and each release's Content-Security-Policy
- * (docs/games/releases.md); a game is never pointed at one that does not.
+ * names every byte in it and `<gateway>/ipfs/<cid>/` is where it is read.
+ * `jwt` is PINATA_JWT_KEY (server-only). `gateway` must serve HTML and
+ * JavaScript files as they were stored.
+ *
+ * Visitors never load from the gateway. A gateway cannot send each
+ * release's Content-Security-Policy, so the site's releases route
+ * (frontend/pages/api/games/releases) fetches the files from it and sends
+ * what a release needs (docs/games/releases.md). That is `served: "site"`.
+ * Files are read here as that route reads them: no redirect is followed.
  */
 export function pinataStorage({
     jwt,
@@ -215,6 +260,7 @@ export function pinataStorage({
     const origin = gateway.replace(/\/+$/, "").replace(/\/ipfs$/, "");
     return {
         name: "pinata",
+        served: "site",
         async put({ game, release, dir, files }) {
             checkRelease({ game, release, files });
             const form = new FormData();
@@ -252,25 +298,29 @@ export function pinataStorage({
                     ).slice(0, 300)}`
                 );
             const cid = (await response.json()).IpfsHash;
-            if (!/^[A-Za-z0-9]{46,}$/.test(cid ?? ""))
+            if (typeof cid !== "string" || !cid)
                 throw new Error("Pinata upload returned no CID");
-            return { base: `${origin}/ipfs/${cid}/`, address: cid };
+            const stored = { base: `${origin}/ipfs/${cid}/`, address: cid };
+            const problems = siteRouteProblems(stored);
+            if (problems.length)
+                throw new Error(
+                    `the site cannot serve this release: ${problems.join("; ")}`
+                );
+            return stored;
         },
         async read({ base }, path) {
+            // As the site's route asks: a redirect is an answer, not a hop.
             const response = await fetch(new URL(path, base), {
-                redirect: "follow",
+                redirect: "manual",
             });
-            if (!response.ok)
-                throw new Error(`${path}: gateway answered ${response.status}`);
+            if (response.status !== 200)
+                throw new Error(
+                    `${path}: gateway answered ${response.status}` +
+                        (response.status >= 300 && response.status < 400
+                            ? " (a redirect; the site's releases route follows none)"
+                            : "")
+                );
             return Buffer.from(await response.arrayBuffer());
-        },
-        async headers({ base }, path) {
-            const response = await fetch(new URL(path, base), {
-                redirect: "follow",
-            });
-            if (!response.ok)
-                throw new Error(`${path}: gateway answered ${response.status}`);
-            return response.headers;
         },
     };
 }

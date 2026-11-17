@@ -109,19 +109,18 @@ try {
                 : rollback(pointers, id, release);
         const target = currentRelease(next, id);
         // A stored release must still be whole, on a host that sends what
-        // a release needs, before a page is sent to it.
-        if (command === "point") {
-            const { problems } = await verifyRelease(storage, {
-                game: id,
-                ...target,
-            });
-            if (problems.length)
-                fail(
-                    `${id} ${target.release} does not verify: ${problems
-                        .map((p) => `${p.path} (${p.problem})`)
-                        .join("; ")}`
-                );
-        }
+        // a release needs, before a page is sent to it. A rollback target
+        // is read back too: it may have been stored long ago.
+        const { problems } = await verifyRelease(storage, {
+            game: id,
+            ...target,
+        });
+        if (problems.length)
+            fail(
+                `${id} ${target.release} does not verify: ${problems
+                    .map((p) => `${p.path} (${p.problem})`)
+                    .join("; ")}`
+            );
         await assertReleaseHost(storage, { game: id, ...target });
         writePointers(file, next);
         console.log(
@@ -130,7 +129,11 @@ try {
             } in ${where}` +
                 (storage.name === "local"
                     ? ""
-                    : ". Commit that file to ship it.")
+                    : `. Commit that file to ship it${
+                          storage.served === "site"
+                              ? `; the site serves the release at /api/games/releases/${id}/${target.release}/`
+                              : ""
+                      }.`)
         );
     } else if (command === "unpoint") {
         writePointers(file, unpoint(pointers, id));
