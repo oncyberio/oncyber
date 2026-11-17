@@ -488,7 +488,7 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     border: 1px solid var(--oc-line);
-    border-radius: 24px;
+    border-radius: var(--oc-radius-card, 24px);
     background: var(--oc-panel);
     box-shadow: 0 16px 40px #0006, 0 2px 8px #0003;
     color: var(--oc-secondary);

@@ -16,7 +16,7 @@ export const brandMenuPanel = css`
     flex-direction: column;
     gap: 2px;
     border: 1px solid var(--oc-line);
-    border-radius: 24px;
+    border-radius: var(--oc-radius-card, 24px);
     background: var(--oc-panel);
     box-shadow: 0 16px 40px #0006, 0 2px 8px #0003;
     color: var(--oc-secondary);
@@ -48,7 +48,7 @@ export const brandMenuRow = css`
     min-height: 40px;
     padding: 8px 12px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--oc-radius-inset, 8px);
     background: none;
     color: var(--oc-secondary);
     font: 14px/1.2 var(--oc-font);
