@@ -530,12 +530,14 @@ const Profile = ({ isShowing, toggle, handleSettings }) => {
                             placeholder={user?.id?.slice?.(0, 12) + "..."}
                             staticText={`${SITE_DISPLAY_HOST}/@`}
                             value={username || ""}
-                            maxLength={18}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                                // The length limit applies to the name, not
+                                // to a pasted profile link around it.
                                 const value = e.target.value
                                     .toLowerCase()
                                     .replace(PROFILE_LINK_PREFIX, "")
-                                    .replace(/[^a-zA-Z0-9-_]+/, "");
+                                    .replace(/[^a-zA-Z0-9-_]+/, "")
+                                    .slice(0, 18);
 
                                 // Disallow invalid URI characters (only A-Z a-z 0-9 - _ . ! ~ * ' ( ) are accepted)
                                 // cf https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#description
