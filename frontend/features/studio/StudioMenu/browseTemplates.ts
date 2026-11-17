@@ -2,14 +2,17 @@
 export const BROWSE_TEMPLATES_HREF = "/studio/new-gallery";
 
 /**
- * Someone who opens the studio with no world of their own gets a
- * placeholder (`mock`) world in the empty void. Unless they chose that
- * ("Blank canvas" links here with `templateId=@@empty`), send them to
- * browse templates instead.
+ * Someone who opens the studio with no world of their own should pick a
+ * template first, before the studio (and its empty void) renders. A
+ * `templateId` means they already chose one, "Blank canvas" included.
  */
-export function shouldBrowseTemplates(
-    exhibit: { mock?: boolean; info?: { room?: string } } | null | undefined,
-    templateId: unknown
-): boolean {
-    return !!exhibit?.mock && exhibit.info?.room === "@@empty" && !templateId;
+export function needsTemplateFirst(opts: {
+    isAnonymous: boolean;
+    hasLocalWorld: boolean;
+    exhibit: unknown;
+    templateId: unknown;
+}): boolean {
+    if (opts.templateId) return false;
+    if (opts.isAnonymous) return !opts.hasLocalWorld;
+    return opts.exhibit == null;
 }

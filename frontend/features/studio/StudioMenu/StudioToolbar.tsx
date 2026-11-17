@@ -36,10 +36,7 @@ import Tooltip from "@ui/components/Tooltip";
 import StudioQuiz from "@features/onboarding/Studio/Quiz";
 import { PlayToggle } from "./DisplayToggle";
 import { tx } from "@components/context/I18nContext";
-import {
-    BROWSE_TEMPLATES_HREF,
-    shouldBrowseTemplates,
-} from "./browseTemplates";
+import { BROWSE_TEMPLATES_HREF } from "./browseTemplates";
 
 const DestinationSelector = dynamic(
     () => import("@features/spaces/create/components/DestinationSelector"),
@@ -84,12 +81,9 @@ export function StudioToolbar() {
     const spaceStatus = getSpaceStatus(exhibit);
 
     useEffect(() => {
-        // No world yet: pick a template in the gallery browser first.
-        if (isAnonymous && getLocalAnonExhibit()) return;
-
-        if (shouldBrowseTemplates(exhibit, router.query?.templateId)) {
-            router.replace(BROWSE_TEMPLATES_HREF);
-        } else if (isAnonymous) {
+        // Visitors with no world never get here: pages/studio sends them to
+        // the template browser before the studio renders.
+        if (isAnonymous && !getLocalAnonExhibit()) {
             nextStudioTuto("AssetsContent");
         }
     }, []);

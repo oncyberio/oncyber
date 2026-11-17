@@ -1,21 +1,30 @@
-import { shouldBrowseTemplates } from "./browseTemplates";
+import { needsTemplateFirst } from "./browseTemplates";
 
-const placeholder = { mock: true, info: { room: "@@empty" } };
+const base = {
+    isAnonymous: false,
+    hasLocalWorld: false,
+    exhibit: null,
+    templateId: undefined,
+};
 
-it("sends someone with no world to browse templates", () => {
-    expect(shouldBrowseTemplates(placeholder, undefined)).toBe(true);
+it("sends a signed-in visitor with no world to the templates", () => {
+    expect(needsTemplateFirst(base)).toBe(true);
 });
 
-it("keeps someone who chose the blank canvas in the studio", () => {
-    expect(shouldBrowseTemplates(placeholder, "@@empty")).toBe(false);
+it("sends a guest with no local draft to the templates", () => {
+    expect(needsTemplateFirst({ ...base, isAnonymous: true })).toBe(true);
 });
 
-it("keeps someone with a saved world in the studio", () => {
+it("opens the studio when there is a world to edit", () => {
+    expect(needsTemplateFirst({ ...base, exhibit: { id: "x" } })).toBe(false);
     expect(
-        shouldBrowseTemplates({ info: { room: "@@empty" } }, undefined)
+        needsTemplateFirst({ ...base, isAnonymous: true, hasLocalWorld: true })
     ).toBe(false);
+});
+
+it("opens the studio when a template was chosen, blank canvas included", () => {
+    expect(needsTemplateFirst({ ...base, templateId: "@@empty" })).toBe(false);
     expect(
-        shouldBrowseTemplates({ mock: true, info: { room: "loft" } }, undefined)
+        needsTemplateFirst({ ...base, isAnonymous: true, templateId: "loft" })
     ).toBe(false);
-    expect(shouldBrowseTemplates(null, undefined)).toBe(false);
 });
