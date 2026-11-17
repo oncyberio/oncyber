@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LibrarySearch, LibraryGrid } from "../../shared/Library";
 import { PanelEmptyState } from "../../shared/PanelContent";
 import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
+import { tx } from "@components/context/I18nContext";
 
 export function ComponentsTab() {
     //
@@ -36,7 +37,7 @@ export function ComponentsTab() {
             <LibrarySearch
                 value={query}
                 onChange={setQuery}
-                placeholder="Search world settings"
+                placeholder={tx("Search world settings")}
             />
             <LibraryGrid $columns={3} style={{ marginTop: 12 }}>
                 {availableOptions.map((it, i) =>
@@ -50,7 +51,7 @@ export function ComponentsTab() {
                 )}
             </LibraryGrid>
             {!availableOptions.length && (
-                <PanelEmptyState title="No matching settings" />
+                <PanelEmptyState title={tx("No matching settings")} />
             )}
         </div>
     );

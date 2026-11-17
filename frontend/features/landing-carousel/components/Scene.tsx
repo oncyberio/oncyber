@@ -49,6 +49,7 @@ import {
     useLandingActivity,
     useLandingBusy,
 } from "../activity";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 interface Props {
     cards: LandingCard[];
@@ -140,6 +141,7 @@ export default function Scene({
     sectionCounts,
     sectionFilter,
 }: Props) {
+    const { t, i18n } = useCyberTranslation();
     const labelsOnScroll = useRef(sectionLabelsOnScroll);
     labelsOnScroll.current = sectionLabelsOnScroll;
     const blocked = useRef(interactionsBlocked);
@@ -1045,9 +1047,12 @@ export default function Scene({
         textureActivity,
     ]);
 
+    // The section switch is placed from its labels' widths, so a language
+    // change or new labels place it again.
+    const labelText = Object.values(sectionLabels ?? {}).join("|");
     useLayoutEffect(() => {
         refreshScene.current();
-    }, [cards, layout, range.renderFrom, range.renderTo]);
+    }, [cards, layout, range.renderFrom, range.renderTo, i18n, labelText]);
 
     // Resting on a space's card starts its downloads before the click; a
     // press starts them at once (the click lands ~100ms later).
@@ -1095,7 +1100,7 @@ export default function Scene({
                     ref={viewportRef}
                     tabIndex={0}
                     role="region"
-                    aria-label={browseLabel}
+                    aria-label={t(browseLabel)}
                 >
                     <ScrollContent ref={contentRef}>
                         <Stage ref={stageRef}>
@@ -1237,7 +1242,10 @@ export default function Scene({
                     </ScrollContent>
                 </Viewport>
                 {!formGrid && shownSections.length > 0 && (
-                    <SectionSwitch role="group" aria-label="Jump to a section">
+                    <SectionSwitch
+                        role="group"
+                        aria-label={t("Jump to a section")}
+                    >
                         {shownSections.map(({ column, section }, index) => (
                             <button
                                 key={section}
@@ -1252,8 +1260,10 @@ export default function Scene({
                                     )
                                 }
                             >
-                                {sectionLabels?.[section] ??
-                                    SECTION_LABELS[section]}
+                                {t(
+                                    sectionLabels?.[section] ??
+                                        SECTION_LABELS[section]
+                                )}
                                 {sectionCounts?.[section] > 0 && (
                                     <span className="count">
                                         {sectionCounts[section]}
@@ -1271,7 +1281,7 @@ export default function Scene({
                                     ref={filterRef}
                                     data-section={sectionFilter.section}
                                     role="group"
-                                    aria-label={sectionFilter.label}
+                                    aria-label={t(sectionFilter.label)}
                                 >
                                     <div className="filter-list">
                                         {sectionFilter.options.map((option) => (
@@ -1289,13 +1299,13 @@ export default function Scene({
                                                     )
                                                 }
                                             >
-                                                {option.label}
+                                                {t(option.label)}
                                             </button>
                                         ))}
                                     </div>
                                     <label className="filter-menu">
                                         <select
-                                            aria-label={sectionFilter.label}
+                                            aria-label={t(sectionFilter.label)}
                                             value={sectionFilter.value}
                                             onChange={(event) =>
                                                 sectionFilter.onChange(
@@ -1309,7 +1319,7 @@ export default function Scene({
                                                         key={option.value}
                                                         value={option.value}
                                                     >
-                                                        {option.label}
+                                                        {t(option.label)}
                                                     </option>
                                                 )
                                             )}
@@ -1367,27 +1377,33 @@ export default function Scene({
                             }}
                         >
                             <Icon name="play" size={15} />{" "}
-                            {featuredActionLabel ||
-                                (creating
-                                    ? featured.buildStatus || "Continue"
-                                    : "Launch")}
+                            {t(
+                                featuredActionLabel ||
+                                    (creating
+                                        ? featured.buildStatus || "Continue"
+                                        : "Launch")
+                            )}
                         </Link>
                     ) : (
                         <span className="unavailable">
-                            {formGrid ? featured.title : featured.buildStatus}
+                            {t(
+                                formGrid ? featured.title : featured.buildStatus
+                            )}
                         </span>
                     )}
-                    <span className="scroll-hint">Scroll to explore</span>
+                    <span className="scroll-hint">
+                        {t("Scroll to explore")}
+                    </span>
                     <div>
                         <button
-                            aria-label="Previous world"
+                            aria-label={t("Previous world")}
                             disabled={range.atStart}
                             onClick={() => controlsRef.current.previous()}
                         >
                             <Icon name="back" size={18} />
                         </button>
                         <button
-                            aria-label="Next world"
+                            aria-label={t("Next world")}
                             disabled={range.atEnd}
                             onClick={() => controlsRef.current.next()}
                         >
@@ -1402,16 +1418,16 @@ export default function Scene({
                         id="open-create"
                         onClick={onCreate}
                         aria-pressed={creating}
-                        title={
+                        title={t(
                             createTitle ||
-                            (creating
-                                ? "Back to exploring worlds"
-                                : "Create with Oncyber")
-                        }
+                                (creating
+                                    ? "Back to exploring worlds"
+                                    : "Create with Oncyber")
+                        )}
                         className="create-link"
                     >
                         <span>
-                            {createLabel}
+                            {t(createLabel)}
                             <CreateIcon open={creating} />
                         </span>
                     </button>
@@ -1419,7 +1435,7 @@ export default function Scene({
                 <div className="browse-controls">
                     {loadingMore && (
                         <span className="loading-more" role="status">
-                            Loading more worlds…
+                            {t("Loading more worlds…")}
                         </span>
                     )}
                     {hasMore && error && (
@@ -1428,7 +1444,7 @@ export default function Scene({
                             disabled={loadingMore}
                             onClick={loadMore}
                         >
-                            Try loading more again{" "}
+                            {t("Try loading more again")}{" "}
                             <Icon name="plus" size={12} />
                         </button>
                     )}
@@ -1442,20 +1458,23 @@ export default function Scene({
                         <span> / </span>
                         {cards.length}{" "}
                         <span className="counter-label">
-                            {counterLabel || (creating ? "options" : "worlds")}
+                            {t(
+                                counterLabel ||
+                                    (creating ? "options" : "worlds")
+                            )}
                         </span>
                     </span>
                     {!single && (
                         <div className="arrows">
                             <button
-                                aria-label="Previous worlds"
+                                aria-label={t("Previous worlds")}
                                 disabled={range.atStart}
                                 onClick={() => controlsRef.current.previous()}
                             >
                                 <Icon name="back" size={15} />
                             </button>
                             <button
-                                aria-label="Next worlds"
+                                aria-label={t("Next worlds")}
                                 disabled={range.atEnd}
                                 onClick={() => controlsRef.current.next()}
                             >

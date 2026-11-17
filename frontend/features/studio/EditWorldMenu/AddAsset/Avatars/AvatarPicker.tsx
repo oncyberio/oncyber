@@ -8,6 +8,7 @@ import {
     LibraryTabs,
 } from "../shared/Library";
 import { PanelEmptyState, PanelNote } from "../shared/PanelContent";
+import { tx } from "@components/context/I18nContext";
 export const STUDIO_AVATARS = Object.values(VRMS).filter(
     (avatar) => !(avatar as { hidden?: boolean }).hidden
 );
@@ -53,7 +54,7 @@ export function AvatarPicker({
     }, [view, shown, onWarm]);
     return (
         <Container>
-            <LibraryTabs role="group" aria-label="Avatar source">
+            <LibraryTabs role="group" aria-label={tx("Avatar source")}>
                 {[
                     { value: "default", title: "Oncyber" },
                     { value: "uploads", title: "Your models" },
@@ -65,7 +66,7 @@ export function AvatarPicker({
                         aria-pressed={view === tab.value}
                         onClick={() => setView(tab.value)}
                     >
-                        {tab.title}
+                        {tx(tab.title)}
                     </button>
                 ))}
             </LibraryTabs>
@@ -80,7 +81,7 @@ export function AvatarPicker({
                             <LibrarySearch
                                 value={query}
                                 onChange={setQuery}
-                                placeholder="Search avatars"
+                                placeholder={tx("Search avatars")}
                             />
                             <LibraryGrid $columns={3}>
                                 {shown.map((avatar) => (
@@ -102,11 +103,13 @@ export function AvatarPicker({
                             </LibraryGrid>
                             {pending && (
                                 <PanelNote role="status">
-                                    Adding avatar…
+                                    {tx("Adding avatar…")}
                                 </PanelNote>
                             )}
                             {!shown.length && (
-                                <PanelEmptyState title="No matching avatars" />
+                                <PanelEmptyState
+                                    title={tx("No matching avatars")}
+                                />
                             )}
                             <PanelNote>{hint}</PanelNote>
                         </>

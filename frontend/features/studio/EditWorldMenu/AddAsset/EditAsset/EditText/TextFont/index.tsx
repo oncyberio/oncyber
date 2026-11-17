@@ -4,6 +4,7 @@ import { useSelectedArtwork } from "@features/studio/EditWorldMenu/hooks/worldHo
 import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
 import { TextSelect } from "../styles";
+import { tx } from "@components/context/I18nContext";
 
 const items = [
     {
@@ -46,7 +47,7 @@ export function TextFont() {
     return (
         <Field>
             <Label as="label" htmlFor="edit-text-font">
-                Font
+                {tx("Font")}
             </Label>
             <TextSelect
                 id="edit-text-font"
@@ -59,7 +60,7 @@ export function TextFont() {
                         value={item.value}
                         disabled={item.disabled}
                     >
-                        {item.title}
+                        {tx(item.title)}
                     </option>
                 ))}
             </TextSelect>

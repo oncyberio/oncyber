@@ -3,6 +3,7 @@ import { AssetPreview } from "@components/_3DExhibit-v2/ui/AssetsMenu/shared/Art
 import EnterBg from "@ui/components/Icons/EnterBg";
 
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function getPlaceholdersSuggestions({
     onSelect,
@@ -32,7 +33,8 @@ export function getPlaceholdersSuggestions({
                     } catch (err) {
                         return {
                             success: false,
-                            message: err.message || "Failed to execute command",
+                            message:
+                                err.message || tx("Failed to execute command"),
                         };
                     }
                 },
@@ -55,7 +57,10 @@ export function getPlaceholdersSuggestions({
 export function PlaceholderSuggestion({ mesh }) {
     return (
         <PlaceholderContainer>
-            <img src={`/images/textures/placeholder.png`} alt="placeholder" />
+            <img
+                src={`/images/textures/placeholder.png`}
+                alt={tx("placeholder")}
+            />
             <div>{mesh.userData.id}</div>
         </PlaceholderContainer>
     );

@@ -4,6 +4,7 @@ import { Container, Header, Footer } from "./shared/styles";
 import ProgressBar from "@ui/components/ProgressBar";
 import { NButton } from "@features/studio/components/StudioButton";
 import { useCinematic } from "../../context/CinematicContext";
+import { tx } from "@components/context/I18nContext";
 
 export default function Record() {
     const { videoFormat, previewRef, progress, cancel } = useCinematic();
@@ -11,7 +12,7 @@ export default function Record() {
     return (
         <Container hasBackground={true}>
             <Header className="header">
-                <h1>Processing and rendering...</h1>
+                <h1>{tx("Processing and rendering...")}</h1>
             </Header>
             <Processing>
                 <canvas
@@ -36,7 +37,7 @@ export default function Record() {
                             }}
                         />
                     </div>
-                    <p>Note: this may take a minute</p>
+                    <p>{tx("Note: this may take a minute")}</p>
                 </Loading>
             </Processing>
             <Footer>
@@ -47,7 +48,7 @@ export default function Record() {
                     overrideTheme="dark"
                     className="cancel"
                 >
-                    <span>Cancel</span>
+                    <span>{tx("Cancel")}</span>
                 </NButton>
                 <NButton
                     size="medium"
@@ -56,7 +57,7 @@ export default function Record() {
                     overrideTheme="dark"
                     disabled={true}
                 >
-                    <span>Download video</span>
+                    <span>{tx("Download video")}</span>
                 </NButton>
             </Footer>
         </Container>

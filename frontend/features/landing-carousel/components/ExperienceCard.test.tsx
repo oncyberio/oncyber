@@ -2,7 +2,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import ExperienceCard, { CoverImage } from "./ExperienceCard";
+import ExperienceCard, { CoverImage, localizeCardText } from "./ExperienceCard";
+import { translate } from "locales/language";
 import { BUILD_CARDS } from "../buildOptions";
 import { fallbackCover } from "../coverSources";
 const act = (React as any).act;
@@ -150,4 +151,19 @@ it('labels a world card with its title, then "by @{creator}"', () => {
     expect(container.querySelector(".card-meta span").textContent).toBe(
         "by @mira"
     );
+});
+
+test("card labels keep names and counts while the phrase is translated", () => {
+    const es = (key: string, values?: Record<string, string>) =>
+        translate("es", key, values);
+    expect(localizeCardText("Open Show all 3 in Studio", es)).toBe(
+        "Abrir Show all 3 en Studio"
+    );
+    expect(localizeCardText("Show all 12 of your drafts", es)).toBe(
+        "Ver tus 12 borradores"
+    );
+    expect(localizeCardText("+4 more", es)).toBe("+4 más");
+    expect(localizeCardText("1.2K visits", es)).toBe("1.2K visitas");
+    expect(localizeCardText("Continue editing", es)).toBe("Seguir editando");
+    expect(localizeCardText(undefined, es)).toBeUndefined();
 });

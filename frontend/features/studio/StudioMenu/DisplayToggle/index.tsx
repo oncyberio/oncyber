@@ -8,6 +8,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { UserContext } from "@components/context/UserContext";
 import { useContext } from "react";
 import Tooltip from "@ui/components/Tooltip";
+import { tx } from "@components/context/I18nContext";
 
 const icons: Record<WorldModeStatus, React.ReactNode> = {
     inactive: (
@@ -60,7 +61,7 @@ export function PlayToggle() {
             {status !== "active" && (
                 <FullLabel onClick={handleClick}>
                     <Tooltip
-                        text="Toggle visitor mode"
+                        text={tx("Toggle visitor mode")}
                         orientation="bottom"
                         isToggled={false}
                     >
@@ -71,7 +72,9 @@ export function PlayToggle() {
 
             {status === "active" && (
                 <>
-                    <Button onClick={handleClick}>Exit Visitor Mode</Button>
+                    <Button onClick={handleClick}>
+                        {tx("Exit Visitor Mode")}
+                    </Button>
                 </>
             )}
         </Container>

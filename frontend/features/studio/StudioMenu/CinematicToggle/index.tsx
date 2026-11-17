@@ -10,6 +10,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { UserContext } from "@components/context/UserContext";
 import { useContext } from "react";
 import Tooltip from "@ui/components/Tooltip";
+import { tx } from "@components/context/I18nContext";
 
 const icons: Record<WorldModeStatus, React.ReactNode> = {
     inactive: (
@@ -62,7 +63,7 @@ export function CinematicToggle() {
             <FullLabel onClick={handleClick}>
                 {status !== "active" && (
                     <Tooltip
-                        text="Export Video Teaser"
+                        text={tx("Export Video Teaser")}
                         orientation="bottom"
                         isToggled={false}
                     >
@@ -74,7 +75,9 @@ export function CinematicToggle() {
 
             {status === "active" && (
                 <>
-                    <Button onClick={handleClick}>Exit Cinematic</Button>
+                    <Button onClick={handleClick}>
+                        {tx("Exit Cinematic")}
+                    </Button>
                     <CinematicUI />
                 </>
             )}

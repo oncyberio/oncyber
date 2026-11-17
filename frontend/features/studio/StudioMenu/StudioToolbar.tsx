@@ -35,6 +35,7 @@ import { useAI } from "@features/ai/context/AIContext";
 import Tooltip from "@ui/components/Tooltip";
 import StudioQuiz from "@features/onboarding/Studio/Quiz";
 import { PlayToggle } from "./DisplayToggle";
+import { tx } from "@components/context/I18nContext";
 
 const DestinationSelector = dynamic(
     () => import("@features/spaces/create/components/DestinationSelector"),
@@ -206,21 +207,29 @@ export function StudioToolbar() {
                         title={
                             isCreateModalShowing === "world-builder" ? (
                                 <>
-                                    Build From{" "}
-                                    <span className="art">Scratch</span>
+                                    {tx("Build From")}{" "}
+                                    <span className="art">{tx("Scratch")}</span>
                                 </>
                             ) : (
                                 <>
-                                    Browse{" "}
-                                    <span className="art">Templates</span>
+                                    {tx("Browse")}{" "}
+                                    <span className="art">
+                                        {tx("Templates")}
+                                    </span>
                                 </>
                             )
                         }
                         description={
                             <>
-                                {isCreateModalShowing === "world-builder"
-                                    ? "Choose from an array of kits to build your World from scratch"
-                                    : "Choose a ready made template and customize your World"}
+                                {tx(
+                                    isCreateModalShowing === "world-builder"
+                                        ? tx(
+                                              "Choose from an array of kits to build your World from scratch"
+                                          )
+                                        : tx(
+                                              "Choose a ready made template and customize your World"
+                                          )
+                                )}
                             </>
                         }
                     />
@@ -232,7 +241,9 @@ export function StudioToolbar() {
                     toggle={toggleAuth}
                     onlyEthereum={false}
                     open={isAuthShowing}
-                    header={isAnonLimit ? "Login to add more content!" : null}
+                    header={
+                        isAnonLimit ? tx("Sign in to add more content!") : null
+                    }
                     style={{ zIndex: 10000000 }}
                     callbackAfterAuth={async (
                         token,
@@ -310,8 +321,8 @@ export function StudioToolbar() {
                                             }}
                                         >
                                             {isAnonymous
-                                                ? "Draft"
-                                                : spaceStatus}{" "}
+                                                ? tx("Draft")
+                                                : tx(spaceStatus)}{" "}
                                             /
                                         </SMLabel>
 
@@ -336,7 +347,7 @@ export function StudioToolbar() {
                         <CinematicToggle />
 
                         {/* {ai?.isWhitelisted && (
-                            <Tooltip text="Magic Composer" orientation="bottom">
+                            <Tooltip text={tx("Magic Composer")} orientation="bottom">
                                 <LabelledIcon
                                     name="multi-star"
                                     toggled={ai.isShowing}
@@ -357,8 +368,8 @@ export function StudioToolbar() {
                         <Tooltip
                             text={
                                 isAnonymous
-                                    ? "Sign in to save and share"
-                                    : "Preview your World Live"
+                                    ? tx("Sign in to save and share")
+                                    : tx("Preview your World Live")
                             }
                             orientation="bottom"
                         >

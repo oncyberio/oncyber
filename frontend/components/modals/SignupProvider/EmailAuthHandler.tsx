@@ -17,6 +17,7 @@ import Cyber from "@ui/components/Icons/Cyber";
 import { useScreenSize } from "@components/hooks/useScreenSize";
 import InlineError from "@ui/components/InlineError";
 import { describeSignInResponse } from "@features/auth/signInErrors";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 /**
  * Finishes a sign-in from an email link. When it cannot, it says which of
@@ -28,6 +29,7 @@ export function MagicCode(props: { onClose?: () => void }) {
     const [failure, setFailure] = useState("");
 
     const { authHandler } = useContext(UserContext);
+    const { t } = useCyberTranslation();
 
     useEffect(() => {
         authHandler({
@@ -53,12 +55,12 @@ export function MagicCode(props: { onClose?: () => void }) {
             <Cyber size={43} />
             <div className="details">
                 <span className="title">
-                    {failure ? "Couldn’t sign you in" : "Connecting"}
+                    {t(failure ? "Couldn’t sign you in" : "Connecting")}
                 </span>
                 {!failure ? (
-                    <span className="sub-title">Connecting…</span>
+                    <span className="sub-title">{t("Connecting…")}</span>
                 ) : null}
-                <InlineError surface="light" message={failure} />
+                <InlineError surface="light" message={failure && t(failure)} />
             </div>
         </Container>
     );

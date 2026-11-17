@@ -13,6 +13,8 @@ import {
 import useDiscoveryShortcuts from "../hooks/useDiscoveryShortcuts";
 import CommandMenu from "./CommandMenu";
 import Header from "./Header";
+import { useCyberTranslation } from "@components/context/I18nContext";
+import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "locales/language";
 
 interface Props {
     immersive?: boolean;
@@ -52,6 +54,7 @@ export default function DiscoveryHeader({
     const [open, setOpen] = useState(false);
     const [authRequest, setAuthRequest] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
+    const { i18n, switchI18n } = useCyberTranslation();
 
     function closeMenu() {
         setOpen(false);
@@ -173,7 +176,22 @@ export default function DiscoveryHeader({
                 run: () => setAuthRequest((count) => count + 1),
             },
         ].filter(Boolean) as Command[];
-        return [...filters_, ...create, ...goTo, ...helpCommands(go)];
+        const languages: Command[] = SUPPORTED_LANGUAGES.map((language) => ({
+            id: `language-${language}`,
+            section: "Language",
+            label: LANGUAGE_NAMES[language],
+            icon: "globe" as const,
+            keywords: `language idioma ${language}`,
+            checked: i18n === language,
+            run: () => switchI18n(language),
+        }));
+        return [
+            ...filters_,
+            ...create,
+            ...goTo,
+            ...helpCommands(go),
+            ...languages,
+        ];
     }
 
     useDiscoveryShortcuts({

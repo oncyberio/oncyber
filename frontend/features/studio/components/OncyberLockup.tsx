@@ -1,5 +1,6 @@
 import React from "react";
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function CyberOrbit({ className = "" }: { className?: string }) {
     return (
@@ -15,7 +16,7 @@ export function CyberOrbit({ className = "" }: { className?: string }) {
 
 export function OncyberLockup() {
     return (
-        <Lockup role="img" aria-label="Oncyber">
+        <Lockup role="img" aria-label={tx("Oncyber")}>
             <CyberOrbit className="logomark" />
             <img
                 src="/brand/oncyber-wordmark-white.png"

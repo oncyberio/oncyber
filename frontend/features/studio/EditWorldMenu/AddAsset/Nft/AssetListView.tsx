@@ -15,6 +15,7 @@ const IS_MOBILE =
     window.matchMedia("(pointer: coarse)").matches;
 const getNftId = (asset) => `${asset?.token_address}/${asset?.token_id}`;
 import { noop } from "@utils/js";
+import { tx } from "@components/context/I18nContext";
 
 let initSelectState = {
     startAsset: null,
@@ -412,7 +413,7 @@ export function AssetListView({
                         ) : (
                             asset.incompatible && (
                                 <Notice placement="left">
-                                    Incompatible Format
+                                    {tx("Incompatible Format")}
                                 </Notice>
                             )
                         )}

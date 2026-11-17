@@ -12,6 +12,15 @@ import {
 } from "@utils/analytics";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { IS_MOBILE } from "@components/_3DExhibit-v2/three/constants";
+import { isLanguage, Language, LANGUAGE_NAMES } from "locales/language";
+
+const LANGUAGE_FLAGS: { value: Language; icon: string }[] = [
+    { value: "en", icon: "UK" },
+    { value: "es", icon: "Spain" },
+    { value: "ko", icon: "Korea" },
+    { value: "ja", icon: "Japan" },
+    { value: "zh", icon: "China" },
+];
 
 export default function Settings() {
     const { settings, handleSettings, settingsLoading } = usePanel();
@@ -22,7 +31,7 @@ export default function Settings() {
 
     const { t, i18n, switchI18n } = useCyberTranslation();
     // Match the translation provider's English fallback for unset/unknown locales.
-    const language = ["en", "ja", "ko", "zh"].includes(i18n) ? i18n : "en";
+    const language = isLanguage(i18n) ? i18n : "en";
 
     const fireEvent = (label, key, value) => {
         const currentExhibit = room?.currentExhibit;
@@ -66,54 +75,21 @@ export default function Settings() {
         <Container className="scrollbar-hidden">
             <Section title={t`SELECT_LANGUAGE`}>
                 <FlagWrapper>
-                    <Flag
-                        type="button"
-                        aria-label="English"
-                        aria-pressed={language === "en"}
-                        active={language === "en"}
-                        onClick={() => {
-                            fireEvent("Language", "p_language", "en");
-                            switchI18n("en");
-                        }}
-                    >
-                        <IconImg size={22} name="UK" />
-                    </Flag>
-                    <Flag
-                        type="button"
-                        aria-label="한국어"
-                        aria-pressed={language === "ko"}
-                        active={language === "ko"}
-                        onClick={() => {
-                            fireEvent("Language", "p_language", "ko");
-                            switchI18n("ko");
-                        }}
-                    >
-                        <IconImg size={22} name="Korea" />
-                    </Flag>
-                    <Flag
-                        type="button"
-                        aria-label="日本語"
-                        aria-pressed={language === "ja"}
-                        active={language === "ja"}
-                        onClick={() => {
-                            fireEvent("Language", "p_language", "ja");
-                            switchI18n("ja");
-                        }}
-                    >
-                        <IconImg size={22} name="Japan" />
-                    </Flag>
-                    <Flag
-                        type="button"
-                        aria-label="中文"
-                        aria-pressed={language === "zh"}
-                        active={language === "zh"}
-                        onClick={() => {
-                            fireEvent("Language", "p_language", "zh");
-                            switchI18n("zh");
-                        }}
-                    >
-                        <IconImg size={22} name="China" />
-                    </Flag>
+                    {LANGUAGE_FLAGS.map(({ value, icon }) => (
+                        <Flag
+                            key={value}
+                            type="button"
+                            aria-label={LANGUAGE_NAMES[value]}
+                            aria-pressed={language === value}
+                            active={language === value}
+                            onClick={() => {
+                                fireEvent("Language", "p_language", value);
+                                switchI18n(value);
+                            }}
+                        >
+                            <IconImg size={22} name={icon} />
+                        </Flag>
+                    ))}
                 </FlagWrapper>
             </Section>
             <Section title={t`GRAPHICS_QUALITY`}>

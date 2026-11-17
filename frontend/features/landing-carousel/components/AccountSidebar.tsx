@@ -7,6 +7,8 @@ import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { brandFoundation } from "@styles/brand";
 import { baseTokens } from "@styles/tokens";
 import Icon from "./Icon";
+import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "locales/language";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 type Props = {
     id: string;
@@ -40,6 +42,7 @@ export default function AccountSidebar({
     const closeTimer = useRef<ReturnType<typeof setTimeout>>();
     const closingRef = useRef(false);
     const [closing, setClosing] = useState(false);
+    const { t, i18n, switchI18n } = useCyberTranslation();
     const router = useRouter();
     const path = router?.asPath?.split(/[?#]/)[0];
     const active = (href: string) =>
@@ -112,7 +115,7 @@ export default function AccountSidebar({
                 if (event.key === "Tab") {
                     const targets = [
                         ...dialog.current.querySelectorAll<HTMLElement>(
-                            "button:not(:disabled), a[href]"
+                            "button:not(:disabled), a[href], select"
                         ),
                     ];
                     const first = targets[0],
@@ -132,10 +135,10 @@ export default function AccountSidebar({
         >
             <aside className="account-sidebar">
                 <header className="sidebar-header">
-                    <h2 id={`${id}-title`}>Your account</h2>
+                    <h2 id={`${id}-title`}>{t("Your account")}</h2>
                     <button
                         className="close-account"
-                        aria-label="Close account sidebar"
+                        aria-label={t("Close account sidebar")}
                         onClick={dismiss}
                         type="button"
                     >
@@ -147,7 +150,7 @@ export default function AccountSidebar({
                         className="profile-summary"
                         href={profileHref}
                         onClick={() => finish()}
-                        aria-label={`View ${name}'s profile`}
+                        aria-label={t("View {name}'s profile", { name })}
                     >
                         <ProfilePortrait
                             src={photo}
@@ -161,12 +164,16 @@ export default function AccountSidebar({
                                 </span>
                             )}
                             <span className="profile-link">
-                                View profile <Icon name="arrow" size={12} />
+                                {t("View profile")}{" "}
+                                <Icon name="arrow" size={12} />
                             </span>
                         </span>
                     </Link>
-                    <nav aria-label="Your worlds" className="sidebar-section">
-                        <h3>Your worlds</h3>
+                    <nav
+                        aria-label={t("Your worlds")}
+                        className="sidebar-section"
+                    >
+                        <h3>{t("Your worlds")}</h3>
                         <Link
                             className="sidebar-row"
                             href={profileHref}
@@ -176,8 +183,10 @@ export default function AccountSidebar({
                         >
                             <Icon name="gallery" size={21} />
                             <span>
-                                <strong>My spaces</strong>
-                                <small>Your galleries and experiences</small>
+                                <strong>{t("My spaces")}</strong>
+                                <small>
+                                    {t("Your galleries and experiences")}
+                                </small>
                             </span>
                             {arrow}
                         </Link>
@@ -190,8 +199,8 @@ export default function AccountSidebar({
                         >
                             <Icon name="globe" size={21} />
                             <span>
-                                <strong>My destinations</strong>
-                                <small>The places you own</small>
+                                <strong>{t("My destinations")}</strong>
+                                <small>{t("The places you own")}</small>
                             </span>
                             {arrow}
                         </Link>
@@ -203,8 +212,8 @@ export default function AccountSidebar({
                         >
                             <Icon name="people" size={21} />
                             <span>
-                                <strong>Friends</strong>
-                                <small>Friends and requests</small>
+                                <strong>{t("Friends")}</strong>
+                                <small>{t("Friends and requests")}</small>
                             </span>
                             {arrow}
                         </button>
@@ -213,7 +222,7 @@ export default function AccountSidebar({
                         aria-labelledby={`${id}-settings`}
                         className="sidebar-section settings-section"
                     >
-                        <h3 id={`${id}-settings`}>Account</h3>
+                        <h3 id={`${id}-settings`}>{t("Account")}</h3>
                         <button
                             type="button"
                             className="sidebar-row compact-row"
@@ -221,7 +230,7 @@ export default function AccountSidebar({
                             onClick={() => finish(onEditProfile)}
                         >
                             <Icon name="user" size={20} />
-                            <span>Edit profile</span>
+                            <span>{t("Edit profile")}</span>
                             {arrow}
                         </button>
                         <button
@@ -231,9 +240,29 @@ export default function AccountSidebar({
                             onClick={() => finish(onConnections)}
                         >
                             <Icon name="wallet" size={20} />
-                            <span>Linked accounts</span>
+                            <span>{t("Linked accounts")}</span>
                             {arrow}
                         </button>
+                        <label className="sidebar-row compact-row language-row">
+                            <Icon name="globe" size={20} />
+                            <span>{t("Language")}</span>
+                            <select
+                                value={i18n}
+                                onChange={(event) =>
+                                    switchI18n(event.target.value)
+                                }
+                            >
+                                {SUPPORTED_LANGUAGES.map((language) => (
+                                    <option
+                                        key={language}
+                                        value={language}
+                                        lang={language}
+                                    >
+                                        {LANGUAGE_NAMES[language]}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
                     </section>
                 </div>
                 <footer className="sidebar-footer">
@@ -244,7 +273,7 @@ export default function AccountSidebar({
                         onClick={() => finish(onSignOut)}
                     >
                         <Icon name="signout" size={20} />
-                        <span>Sign out</span>
+                        <span>{t("Sign out")}</span>
                     </button>
                 </footer>
             </aside>
@@ -456,6 +485,23 @@ const Surface = styled.dialog`
     }
     .settings-section {
         margin-top: 28px;
+    }
+    .language-row {
+        cursor: pointer;
+    }
+    .language-row select {
+        margin-left: auto;
+        padding: 6px 8px;
+        color: var(--oc-ink);
+        background: transparent;
+        border: 1px solid var(--oc-line-strong);
+        border-radius: var(--oc-radius-control);
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .language-row select option {
+        color: #000;
     }
     .compact-row {
         min-height: 48px;

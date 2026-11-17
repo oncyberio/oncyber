@@ -10,6 +10,7 @@ import { TextAlign, TextTransform } from "@uitypes/Asset";
 import IconImg from "@ui/components/IconImg";
 import { LibraryTabs } from "../../../shared/Library";
 import { TextSelect } from "../styles";
+import { tx } from "@components/context/I18nContext";
 
 const textTransformOpts = [
     {
@@ -78,8 +79,8 @@ export function TextStyle() {
     return (
         <Container>
             <Field>
-                <Label>Alignment</Label>
-                <Wrapper role="group" aria-label="Text alignment">
+                <Label>{tx("Alignment")}</Label>
+                <Wrapper role="group" aria-label={tx("Text alignment")}>
                     {alignOpts.map((it) => (
                         <button
                             type="button"
@@ -99,7 +100,7 @@ export function TextStyle() {
             </Field>
             <Field>
                 <Label as="label" htmlFor="edit-text-case">
-                    Case
+                    {tx("Case")}
                 </Label>
                 <TextSelect
                     id="edit-text-case"
@@ -112,7 +113,7 @@ export function TextStyle() {
                 >
                     {textTransformOpts.map((item) => (
                         <option key={item.value} value={item.value}>
-                            {item.title}
+                            {tx(item.title)}
                         </option>
                     ))}
                 </TextSelect>

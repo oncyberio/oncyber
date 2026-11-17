@@ -15,6 +15,7 @@ import { formatAsset } from "@utils/formatAssets";
 import { NftOpt } from "../shared/AssetTypes";
 import { classes } from "@utils/js";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 const NftsTabs = [
     {
@@ -102,7 +103,7 @@ export function AddNft() {
         <Container>
             {loadingContent}
 
-            <LibraryTabs role="group" aria-label="NFT source">
+            <LibraryTabs role="group" aria-label={tx("NFT source")}>
                 {NftsTabs.map(({ title, value }) => (
                     <button
                         type="button"

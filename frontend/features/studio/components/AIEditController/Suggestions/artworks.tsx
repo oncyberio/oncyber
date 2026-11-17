@@ -5,6 +5,7 @@ import { AssetPreview } from "@components/_3DExhibit-v2/ui/AssetsMenu/shared/Art
 import EnterBg from "@ui/components/Icons/EnterBg";
 
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function placeholderIdtoAsset(placeholderOrArtworkId, world) {
     const asset = world.current.getArtworks().find((artwork) => {
@@ -98,15 +99,15 @@ export function HangNFTFeedback({ asset, teleport, isSelected }) {
                 {asset.mime_type != "cyber/text" ? (
                     <p>{asset.name}</p>
                 ) : (
-                    <p>Text asset</p>
+                    <p>{tx("Text asset")}</p>
                 )}
-                {/* <SButton onClick={teleport}>teleport</SButton> */}
+                {/* <SButton onClick={teleport}>{tx("teleport")}</SButton> */}
             </TeleportWrapper>
             {isSelected ? (
                 <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    <p>Enter</p>
+                    <p>{tx("Enter")}</p>
                     <EnterBg size={18} foreground="#292929" background="#fff" />
-                    <p>to select</p>
+                    <p>{tx("to select")}</p>
                 </div>
             ) : null}
         </HangNFTContainer>

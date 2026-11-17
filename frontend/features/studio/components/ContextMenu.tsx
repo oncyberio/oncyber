@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, ReactNode } from "react";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import styled, { css } from "styled-components";
 import IconImg from "@ui/components/IconImg";
+import { tx } from "@components/context/I18nContext";
 
 export interface CMOption<T> {
     value: T;
@@ -135,7 +136,7 @@ export function ContextMenu<T>({
                                     />
                                 )}
                             </span>
-                            <span>{opt.title}</span>
+                            <span>{tx(opt.title)}</span>
                         </Option>
                     );
                 })}

@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 type MetricsProps = {
     spaceVisits: string | number;
@@ -21,15 +22,15 @@ export const Metrics = ({
 }: MetricsProps) => (
     <Container>
         <Metric>
-            <dt>Total visits</dt>
+            <dt>{tx("Total visits")}</dt>
             <dd>{spaceVisits}</dd>
         </Metric>
         <Metric>
-            <dt>Days since creation</dt>
+            <dt>{tx("Days since creation")}</dt>
             <dd>{daysSinceCreation}</dd>
         </Metric>
         <Metric>
-            <dt>Performance score</dt>
+            <dt>{tx("Performance score")}</dt>
             <dd>{formatScore(score)}</dd>
         </Metric>
     </Container>

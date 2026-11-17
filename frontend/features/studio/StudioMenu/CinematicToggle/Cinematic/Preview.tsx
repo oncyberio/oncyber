@@ -10,6 +10,7 @@ import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { LAYOUT_TYPES } from "@3gl/modules/cinematic/composer/constants";
 import { CANVAS } from "@components/_3DExhibit-v2/three/constants";
 import { useBoundingclientrectRef } from "@components/hooks/useBoundingclientrectRef";
+import { tx } from "@components/context/I18nContext";
 
 export default function Preview({ containerRef }) {
     const world = useWorld();
@@ -112,7 +113,7 @@ export default function Preview({ containerRef }) {
     return (
         <Container>
             <Header className="header">
-                <h1>Space video preview</h1>
+                <h1>{tx("Space video preview")}</h1>
             </Header>
             <Tags className="tags">
                 <Tag
@@ -174,7 +175,7 @@ export default function Preview({ containerRef }) {
                     {videoFormat?.format}
                 </Tag>
                 <Action step={step}>
-                    <label>Actions</label>
+                    <label>{tx("Actions")}</label>
                     <div>
                         <Button
                             type="button"

@@ -5,6 +5,7 @@ import { tz } from "moment-timezone";
 import { showError } from "@components/Dialogs";
 import { Contracts } from "../../../../../shared/constants";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 export type SetupClaimReviewTable = {
     contractName: string;
@@ -108,16 +109,16 @@ export default function SetupClaimReview(props: SetupClaimReviewTable) {
     return (
         <Table>
             <tr>
-                <th>Destribution Type</th>
-                <td>Setup a Claim Page</td>
+                <th>{tx("Destribution Type")}</th>
+                <td>{tx("Setup a Claim Page")}</td>
             </tr>
             <tr>
-                <th>Name</th>
+                <th>{tx("Name")}</th>
                 <td>{name}</td>
             </tr>
             {description && (
                 <tr className="description">
-                    <th>Description</th>
+                    <th>{tx("Description")}</th>
                     <td>
                         <p>
                             {description.length <= 41 ? (
@@ -160,16 +161,16 @@ export default function SetupClaimReview(props: SetupClaimReviewTable) {
                 </tr>
             )}
             <tr>
-                <th>Cover Image</th>
+                <th>{tx("Cover Image")}</th>
                 <td>
                     <a href={thumbnail} target={"_blank"} download>
-                        Click to Download
+                        {tx("Click to Download")}
                     </a>
                 </td>
             </tr>
             {animationHash && (
                 <tr>
-                    <th>Cover Video</th>
+                    <th>{tx("Cover Video")}</th>
                     <td>
                         <a
                             href={`https://cyber.mypinata.cloud/ipfs/${animationHash}`}
@@ -183,31 +184,31 @@ export default function SetupClaimReview(props: SetupClaimReviewTable) {
             )}
 
             <tr>
-                <th>Claim Start</th>
+                <th>{tx("Claim Start")}</th>
                 <td>{formatStartDate}</td>
             </tr>
             <tr>
-                <th>Claim End</th>
+                <th>{tx("Claim End")}</th>
                 <td>{formatEndDate}</td>
             </tr>
             {claimType === "allow_list" && whitelist && (
                 <tr>
-                    <th>List of Wallet Addresses</th>
+                    <th>{tx("List of Wallet Addresses")}</th>
                     <td className="link" onClick={downloadCSV}>
-                        Click to Download
+                        {tx("Click to Download")}
                     </td>
                 </tr>
             )}
             <tr>
-                <th>Contract for Minting</th>
+                <th>{tx("Contract for Minting")}</th>
                 <td>{Contract?.title}</td>
             </tr>
             <tr>
-                <th>Maximum Tokens to be Minted</th>
+                <th>{tx("Maximum Tokens to be Minted")}</th>
                 <td>{maxNumberOfTokens}</td>
             </tr>
             <tr>
-                <th>Estimated Cost to Initiate Claim</th>
+                <th>{tx("Estimated Cost to Initiate Claim")}</th>
                 <td>
                     {gasPriceError
                         ? "Cannot estimate gas price"
@@ -217,7 +218,7 @@ export default function SetupClaimReview(props: SetupClaimReviewTable) {
                 </td>
             </tr>
             <tr>
-                <th>Secondary Sale Royalty Take Rate</th>
+                <th>{tx("Secondary Sale Royalty Take Rate")}</th>
                 <td>75%</td>
             </tr>
         </Table>

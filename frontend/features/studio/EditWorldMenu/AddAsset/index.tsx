@@ -59,6 +59,7 @@ import Tooltip from "@ui/components/Tooltip";
 import { DELETE_KEY } from "@components/_3DExhibit-v2/three/constants";
 import { useOnboarding } from "@features/onboarding/context/OnboardingContext";
 import { useScriptEditorStore } from "./shared/ScriptEditor/ScriptEditorStore";
+import { tx } from "@components/context/I18nContext";
 
 const ScriptEditor = dynamic(() => import("./shared/ScriptEditor"), {
     ssr: false,
@@ -411,7 +412,7 @@ export function AddAsset() {
 
                         const tooltipText =
                             it.value === "nft" && isAnonymous
-                                ? "Connect wallet to add NFTs"
+                                ? tx("Connect wallet to add NFTs")
                                 : it.description;
 
                         return (
@@ -454,7 +455,7 @@ export function AddAsset() {
                                         {isMobile && (
                                             <span className="desc">
                                                 <span className="title scrollbar-hidden">
-                                                    {it.title}
+                                                    {tx(it.title)}
                                                 </span>
                                             </span>
                                         )}
@@ -470,10 +471,14 @@ export function AddAsset() {
                             id="show-more"
                             type="button"
                             aria-label={
-                                isShowMore ? "Show fewer tools" : "More tools"
+                                isShowMore
+                                    ? tx("Show fewer tools")
+                                    : tx("More tools")
                             }
                             title={
-                                isShowMore ? "Show fewer tools" : "More tools"
+                                isShowMore
+                                    ? tx("Show fewer tools")
+                                    : tx("More tools")
                             }
                             aria-expanded={isShowMore}
                             onClick={() => {

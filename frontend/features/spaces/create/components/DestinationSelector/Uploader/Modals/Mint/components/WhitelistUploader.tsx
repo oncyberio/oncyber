@@ -13,6 +13,7 @@ import Plus from "@ui/icons/Plus";
 import { showError } from "@components/Dialogs";
 import { nodeEnv } from "@env";
 import { ethers } from "ethers";
+import { tx } from "@components/context/I18nContext";
 
 type StyledWhitelistProps = {
     url?: string;
@@ -228,7 +229,7 @@ export default function WhitelistUploader({
             ) : (
                 <StyledFileInfo>
                     <span>{name}</span>
-                    <a onClick={handleRemoveFile}>Remove File</a>
+                    <a onClick={handleRemoveFile}>{tx("Remove File")}</a>
                 </StyledFileInfo>
             )}
 

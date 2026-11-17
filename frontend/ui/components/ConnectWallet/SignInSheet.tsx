@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import { UserContext } from "@components/context/UserContext";
 import { brandFoundation } from "@styles/brand";
 import { MoreOptionsWrapper } from "@ui/components/WalletButtons/styles";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 export type ConnectWalletProps = React.HTMLAttributes<HTMLDivElement> &
     StyledModalProps & {
@@ -36,6 +37,7 @@ function onlyEthButton(item) {
 
 const Modal = forwardRef(
     (props: ConnectWalletProps, ref: React.Ref<HTMLDivElement>) => {
+        const { t } = useCyberTranslation();
         const {
             open,
             style = {},
@@ -108,7 +110,7 @@ const Modal = forwardRef(
         ) : (
             <ModalWrapper
                 isMobileResponsive={false}
-                ariaLabel="Sign in to oncyber"
+                ariaLabel={t("Sign in to oncyber")}
                 overrideTheme="light"
                 forceOpen={forceOpen}
                 size="medium"

@@ -21,6 +21,7 @@ import { useStudioMenu } from "../../context/StudioContext";
 import Invite from "./Invite";
 import { fetchEditors } from "./utils";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { tx } from "@components/context/I18nContext";
 
 interface Item {
     title: string;
@@ -242,14 +243,14 @@ export default function Collab() {
                                                 }
                                                 value={_privilege.value}
                                             >
-                                                {_privilege.title}
+                                                {t(_privilege.title)}
                                             </option>
                                         );
                                     })}
                                 </Select>
                             )
                         ) : (
-                            <p>Loading...</p>
+                            <p>{t("Loading...")}</p>
                         )}
                     </div>
                 ),
@@ -268,12 +269,12 @@ export default function Collab() {
                             }}
                             className="table-action"
                         >
-                            Remove
+                            {t("Remove")}
                         </div>
                     ),
             };
         });
-    }, [editors, user.id, privilegeChangeLoading]);
+    }, [editors, user.id, privilegeChangeLoading, t]);
 
     return (
         <Container>
@@ -283,11 +284,11 @@ export default function Collab() {
                 isShowing={showInviteCancel}
             />
 
-            <h2>Edit collaborators</h2>
+            <h2>{tx("Edit collaborators")}</h2>
 
             {isLoading && (
                 <p className="loading" role="status">
-                    Loading collaborators…
+                    {tx("Loading collaborators…")}
                 </p>
             )}
 

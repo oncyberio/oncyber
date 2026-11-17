@@ -25,6 +25,7 @@ import { showError } from "@components/Dialogs";
 import { switchWalletNetwork } from "@dapp/switchNetwork";
 import { uploadFile } from "@utils/factory/httpPinata";
 import Radio from "./components/Radio";
+import { tx } from "@components/context/I18nContext";
 
 const ClaimOptions = [
     {
@@ -500,8 +501,10 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
                 loading && step === "review" ? (
                     <State
                         type="pending"
-                        title="Pending…"
-                        description="Please don't close your browser until the transaction is completed."
+                        title={tx("Pending…")}
+                        description={tx(
+                            "Please don't close your browser until the transaction is completed."
+                        )}
                         footer={
                             <RoundButton
                                 disabled
@@ -610,8 +613,9 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
 
                                     <div>
                                         <label>
-                                            Set up an allow list or allow anyone
-                                            to claim:
+                                            {tx(
+                                                "Set up an allow list or allow anyone to claim:"
+                                            )}
                                         </label>
                                         <RadioGroup>
                                             {ClaimOptions.map((item, index) => (
@@ -633,8 +637,9 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
                                     {claimType === "allow_list" ? (
                                         <div>
                                             <label>
-                                                List of Wallet addresses that
-                                                will be able to claim
+                                                {tx(
+                                                    "List of Wallet addresses that will be able to claim"
+                                                )}
                                             </label>
                                             <span>
                                                 Download sample{" "}
@@ -668,8 +673,9 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
                                     ) : (
                                         <div>
                                             <label>
-                                                Max # of tokens possible to be
-                                                minted
+                                                {tx(
+                                                    "Max # of tokens possible to be minted"
+                                                )}
                                             </label>
                                             <Input
                                                 min={0}
@@ -761,8 +767,10 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
             ) : (
                 <State
                     type="success"
-                    title="Success!"
-                    description="View your claim page and share with your community!"
+                    title={tx("Success!")}
+                    description={tx(
+                        "View your claim page and share with your community!"
+                    )}
                     footer={
                         <RoundButton
                             isLight={true}
@@ -776,7 +784,7 @@ const SetupClaimPage = ({ destination, onSuccess, onCancel }) => {
                     }
                 >
                     <Claim>
-                        <label>Your claim page</label>
+                        <label>{tx("Your claim page")}</label>
                         <Input
                             icon={true}
                             iconPosition="right"

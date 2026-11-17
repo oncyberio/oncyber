@@ -8,6 +8,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { useSelectedPortal } from "@features/studio/EditWorldMenu/hooks/worldHooks";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { AddPortal } from "../../../Portal";
+import { tx } from "@components/context/I18nContext";
 
 export default function LevelsController() {
     //
@@ -97,7 +98,7 @@ export default function LevelsController() {
                 }}
                 onClick={() => setIsAdding((state) => !state)}
             >
-                {!isAdding ? "Add" : "Back"}
+                {!isAdding ? tx("Add") : tx("Back")}
             </NButton>
 
             {isAdding ? (

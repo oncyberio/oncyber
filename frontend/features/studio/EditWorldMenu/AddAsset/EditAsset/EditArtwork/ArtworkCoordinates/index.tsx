@@ -4,6 +4,7 @@ import { ArtworkPlacement } from "../../../shared/ArtworkPlacement";
 import { TYPES } from "@components/_3DExhibit-v2/three/factory/artwork/constants";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { isArtwork } from "@features/studio/EditWorldMenu/utils";
+import { tx } from "@components/context/I18nContext";
 
 export function ArtworkCoordinates({ isYOnly }) {
     //
@@ -22,9 +23,9 @@ export function ArtworkCoordinates({ isYOnly }) {
 
     const hideAdvanced = transformMode !== "3d";
 
-    const promptMsg = `${
-        hideAdvanced ? "Enable" : "Disable"
-    } advanced placement controls (x, y, z)`;
+    const promptMsg = hideAdvanced
+        ? tx("Enable advanced placement controls (x, y, z)")
+        : tx("Disable advanced placement controls (x, y, z)");
 
     if ((mesh as any).mediaType === TYPES.TRIGGER_ZONE) {
         return <ArtworkPlacement isYOnly={isYOnly} mesh={mesh as any} />;

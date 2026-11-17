@@ -12,6 +12,7 @@ import styled from "styled-components";
 import { blueAction } from "@styles/brand";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { tx } from "@components/context/I18nContext";
 
 export default function PickBuildMore({ setSkipCommitAnonExhibit }) {
     const { token, user, isAnonymous } = useContext(UserContext);
@@ -142,11 +143,11 @@ export default function PickBuildMore({ setSkipCommitAnonExhibit }) {
                 type="buildMore"
                 clickRef={clickRef}
                 onBack={isAnonymous ? null : handleSkip}
-                title="Start building your 3D World"
+                title={tx("Start building your 3D World")}
             >
                 {isAnonymous && (
                     <LoginWrapper>
-                        <span>Existing user?</span>
+                        <span>{tx("Existing user?")}</span>
                         <RoundButton
                             className="login-cta"
                             onClick={handleLogin}

@@ -10,6 +10,7 @@ import { ImageHDTool } from "./HDImageTool";
 import { useSelectedArtwork } from "@features/studio/EditWorldMenu/hooks/worldHooks";
 import { isArtwork } from "@features/studio/EditWorldMenu/utils";
 import { Rotate90HorzTool } from "./Rotate90HorzTool";
+import { tx } from "@components/context/I18nContext";
 
 export function QuickEdit() {
     //
@@ -20,7 +21,9 @@ export function QuickEdit() {
 
     return (
         <Field>
-            <Label className="component-label">Quick Edit Controls</Label>
+            <Label className="component-label">
+                {tx("Quick Edit Controls")}
+            </Label>
             <Toolbar className="quick-edit-toolbar">
                 <Rotate90Tool />
 

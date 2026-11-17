@@ -8,6 +8,7 @@ import { Label } from "@features/studio/styles/Label";
 import { isNft as isNftAsset } from "@features/studio/EditWorldMenu/utils";
 import { LockTransform } from "../LockTransform";
 import IconImg from "@ui/components/IconImg";
+import { tx } from "@components/context/I18nContext";
 
 export function ArtworkInfo({
     asset,
@@ -27,7 +28,7 @@ export function ArtworkInfo({
     return (
         <Container>
             <Label className="artwork-info-header">
-                {header ?? "Asset info"}
+                {header ?? tx("Asset info")}
             </Label>
             <Wrapper>
                 <div className="preview-img-wrapper">
@@ -42,7 +43,7 @@ export function ArtworkInfo({
                 </div>
                 <div className="metadata">
                     <h3 className="artwork-name">
-                        {isText ? "Text Asset" : asset?.name}
+                        {isText ? tx("Text Asset") : asset?.name}
                     </h3>
                     {asset?.addedBy && (
                         <span className="added-by">

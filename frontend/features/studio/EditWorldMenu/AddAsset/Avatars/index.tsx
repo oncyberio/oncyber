@@ -8,6 +8,7 @@ import { PanelEmptyState } from "../shared/PanelContent";
 import { formatUploadedAsset } from "../Upload/utils";
 import { AddUpload } from "../Upload";
 import { AvatarPicker, STUDIO_AVATARS } from "./AvatarPicker";
+import { tx } from "@components/context/I18nContext";
 const avatars = STUDIO_AVATARS;
 function warmAvatar(url: string) {
     import("@3/three/factory/artwork/meshes/model/preloadAvatar")
@@ -63,7 +64,9 @@ export function AddAvatars() {
             uploads={<AddUpload initialFilter="model" />}
             visitors={
                 isAnonymous ? (
-                    <PanelEmptyState title="Connect a wallet to set visitor defaults" />
+                    <PanelEmptyState
+                        title={tx("Connect a wallet to set visitor defaults")}
+                    />
                 ) : (
                     <Pfp />
                 )

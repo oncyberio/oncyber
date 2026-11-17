@@ -3,6 +3,7 @@ import { useAuthorName } from "../../useAuthorName";
 import { DestinationActivity } from "../DestinationActivity";
 import { DestinationMarketplace } from "../DestinationMarketplace";
 import { useCurrentRoom } from "../RoomContext";
+import { tx } from "@components/context/I18nContext";
 
 export interface DestinationInfoProps {}
 
@@ -26,7 +27,7 @@ export function DestinationInfo() {
         <Container>
             <h2 className="title">{name}</h2>
             <div className="author">
-                <span style={{ opacity: 0.6 }}>Space by </span>
+                <span style={{ opacity: 0.6 }}>{tx("Space by")} </span>
                 {authorName}
             </div>
             <div className="desc">{description}</div>

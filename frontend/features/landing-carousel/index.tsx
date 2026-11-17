@@ -59,6 +59,7 @@ import {
     useActivitySignal,
     useLandingBusy,
 } from "./activity";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 
@@ -148,6 +149,7 @@ function LandingContent(props: LandingPageProps) {
     // Image-only fallback for WebGL failures; curvature is never a user mode.
     const [flat, setFlat] = useState(false);
     const [gridChoice, setGridChoice] = useState(0);
+    const { t } = useCyberTranslation();
     const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
     const grid = gridSizes[gridChoice];
     const router = useRouter();
@@ -277,11 +279,14 @@ function LandingContent(props: LandingPageProps) {
     ]);
     const notFoundLabels = notFoundMode
         ? {
-              results: `${
-                  discoveryCards.length ? "Results for" : "Close to"
-              } \u201c${notFound.query}\u201d`,
+              results: t(
+                  discoveryCards.length
+                      ? "Results for \u201c{query}\u201d"
+                      : "Close to \u201c{query}\u201d",
+                  { query: notFound.query }
+              ),
               ...(searching && !discoveryCards.length && !wordMatches?.length
-                  ? { staff: "No matches \u00b7 Staff picks" }
+                  ? { staff: t("No matches \u00b7 Staff picks") }
                   : {}),
           }
         : undefined;
@@ -578,21 +583,23 @@ function LandingContent(props: LandingPageProps) {
             id="open-create"
             onClick={toggleCreate}
             aria-pressed={creating}
-            title={creating ? "Back to exploring worlds" : "Create a gallery"}
+            title={t(
+                creating ? "Back to exploring worlds" : "Create a gallery"
+            )}
         >
             <span>
-                create
+                {t("create")}
                 <CreateIcon open={creating} />
             </span>
         </CreateControl>
     );
     const gridControls = (
         <ViewControls>
-            <div className="density" role="group" aria-label="Grid size">
+            <div className="density" role="group" aria-label={t("Grid size")}>
                 {gridSizes.map((size, index) => (
                     <button
                         key={`${size.columns}x${size.rows}`}
-                        aria-label={`${size.columns} by ${size.rows} grid`}
+                        aria-label={t("{columns} by {rows} grid", size)}
                         aria-pressed={gridChoice === index}
                         onClick={() => setGridChoice(index)}
                     >
@@ -616,13 +623,16 @@ function LandingContent(props: LandingPageProps) {
                     }}
                 >
                     <EnterPortalIcon aria-hidden="true" />
-                    <span className="jump-in-label">Jump In</span>
+                    <span className="jump-in-label">{t("Jump In")}</span>
                     {lobbyPopulation != null && (
                         <span
                             className="lobby-count"
-                            aria-label={`${lobbyPopulation} ${
-                                lobbyPopulation === 1 ? "person" : "people"
-                            } in the lobby`}
+                            aria-label={t(
+                                lobbyPopulation === 1
+                                    ? "{count} person in the lobby"
+                                    : "{count} people in the lobby",
+                                { count: lobbyPopulation }
+                            )}
                         >
                             {lobbyPopulation}
                         </span>
@@ -644,11 +654,13 @@ function LandingContent(props: LandingPageProps) {
                 className="skip-link"
                 href={inLobby ? "#lobby-controls" : "#worlds"}
             >
-                {inLobby
-                    ? "Skip to lobby controls"
-                    : creating
-                    ? "Skip to gallery destinations"
-                    : "Skip to worlds"}
+                {t(
+                    inLobby
+                        ? "Skip to lobby controls"
+                        : creating
+                        ? "Skip to gallery destinations"
+                        : "Skip to worlds"
+                )}
             </a>
             {loadTemplates && !inLobby && (
                 <TemplateCatalog
@@ -689,16 +701,16 @@ function LandingContent(props: LandingPageProps) {
                 ref={mainRef}
                 aria-hidden={inLobby || undefined}
                 id="worlds"
-                aria-label={
+                aria-label={t(
                     creating ? "Create with Oncyber" : "Explore Oncyber worlds"
-                }
+                )}
             >
                 <BrowseSurface>
                     {/* Opening shows on the picked card itself. */}
                     {step === "gallery" &&
                         (yourSpaces.error || templates?.error) && (
                             <TemplateStatus role="alert">
-                                {yourSpaces.error || templates.error}
+                                {t(yourSpaces.error || templates.error)}
                             </TemplateStatus>
                         )}
                     <div className="results" aria-busy={!creating && loading}>
@@ -770,22 +782,22 @@ function LandingContent(props: LandingPageProps) {
                                 size="page"
                                 titleAs="h2"
                                 icon="globe"
-                                title={
+                                title={t(
                                     templateQuery
                                         ? "No matching rooms."
                                         : "No galleries found."
-                                }
-                                detail={
+                                )}
+                                detail={t(
                                     templateCategory !== "all"
                                         ? "Try another template category."
                                         : templateQuery
                                         ? "Try another name, artist, or style."
                                         : "The catalog updates automatically. Please try again in a moment."
-                                }
+                                )}
                                 action={
                                     templateCategory !== "all"
                                         ? {
-                                              label: "Show all templates",
+                                              label: t("Show all templates"),
                                               onClick: () =>
                                                   updateTemplates({
                                                       templateCategory: "all",
@@ -793,7 +805,7 @@ function LandingContent(props: LandingPageProps) {
                                           }
                                         : templateQuery
                                         ? {
-                                              label: "Clear template search",
+                                              label: t("Clear template search"),
                                               onClick: () =>
                                                   updateTemplates(
                                                       templateSearchPatch("")
@@ -808,20 +820,20 @@ function LandingContent(props: LandingPageProps) {
                                 titleAs="h2"
                                 role={error ? "alert" : "status"}
                                 icon={error ? "globe" : "search"}
-                                title={
+                                title={t(
                                     error
                                         ? "Couldn’t load worlds."
                                         : "No worlds found."
-                                }
-                                detail={
+                                )}
+                                detail={t(
                                     error
                                         ? "Please try again."
                                         : "Try another search or remove a filter."
-                                }
+                                )}
                                 action={
                                     error
                                         ? {
-                                              label: "Try again",
+                                              label: t("Try again"),
                                               icon: (
                                                   <Icon
                                                       name="arrow"
@@ -833,7 +845,7 @@ function LandingContent(props: LandingPageProps) {
                                                   : discovery.retry,
                                           }
                                         : {
-                                              label: "Explore all",
+                                              label: t("Explore all"),
                                               icon: (
                                                   <Icon
                                                       name="arrow"
@@ -869,7 +881,11 @@ function LandingContent(props: LandingPageProps) {
                                         onClick={loadMore}
                                         disabled={loadingMore}
                                     >
-                                        {loadingMore ? "Loading…" : "Load more"}
+                                        {t(
+                                            loadingMore
+                                                ? "Loading…"
+                                                : "Load more"
+                                        )}
                                     </ActionButton>
                                 )}
                             </EmptyState>

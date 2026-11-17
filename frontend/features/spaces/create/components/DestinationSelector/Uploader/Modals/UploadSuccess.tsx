@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { RoundButton } from "@components/DesignSystem/buttons";
 import Modal from "@components/modals/Modal";
 import { noop } from "lodash";
+import { tx } from "@components/context/I18nContext";
 
 export function UploadSuccess({ slug, closeLabel, onClose }) {
     return (
@@ -40,10 +41,11 @@ export function UploadSuccess({ slug, closeLabel, onClose }) {
                             />
                         </svg>
                     </div>
-                    <h1>Success!</h1>
+                    <h1>{tx("Success!")}</h1>
                     <p>
-                        Once you’ve tested your space, you can submit it for
-                        release.
+                        {tx(
+                            "Once you’ve tested your space, you can submit it for release."
+                        )}
                     </p>
                     <BtnGroup>
                         {closeLabel && onClose && (

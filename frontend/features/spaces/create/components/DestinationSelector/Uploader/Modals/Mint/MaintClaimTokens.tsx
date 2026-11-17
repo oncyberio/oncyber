@@ -21,6 +21,7 @@ import {
 } from "@utils/saveToDb";
 import { showError } from "@components/Dialogs";
 import { switchWalletNetwork } from "@dapp/switchNetwork";
+import { tx } from "@components/context/I18nContext";
 
 const MaintClaimTokens = ({ destination, onSuccess, onCancel }) => {
     const {
@@ -474,11 +475,13 @@ const MaintClaimTokens = ({ destination, onSuccess, onCancel }) => {
         loading && step === "review" ? (
             <State
                 type="pending"
-                title="Pending…"
-                description="Please don't close your browser until the transaction is completed."
+                title={tx("Pending…")}
+                description={tx(
+                    "Please don't close your browser until the transaction is completed."
+                )}
                 footer={
                     <RoundButton disabled isLight={true} background="#070707">
-                        Got it
+                        {tx("Got it")}
                     </RoundButton>
                 }
             />
@@ -498,7 +501,9 @@ const MaintClaimTokens = ({ destination, onSuccess, onCancel }) => {
                     {step === "init" ? (
                         <>
                             <div>
-                                <label>Number of tokens to mint/claim</label>
+                                <label>
+                                    {tx("Number of tokens to mint/claim")}
+                                </label>
                                 <Input
                                     min={0}
                                     type={"number"}
@@ -569,7 +574,7 @@ const MaintClaimTokens = ({ destination, onSuccess, onCancel }) => {
     ) : (
         <State
             type="success"
-            title="Success!"
+            title={tx("Success!")}
             description={`You've claimed ${form?.quantity} tokens! Please use them responsibly.`}
             footer={
                 <RoundButton

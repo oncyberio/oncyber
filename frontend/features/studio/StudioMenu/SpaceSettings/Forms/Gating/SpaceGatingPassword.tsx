@@ -17,6 +17,7 @@ import {
 } from "@utils/rules/password";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { TextArea } from "../shared/TextArea";
+import { tx } from "@components/context/I18nContext";
 
 export function SpaceGatingPassword({ initState, onClose }: GatingUIProps) {
     //
@@ -102,15 +103,15 @@ export function SpaceGatingPassword({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <Header>Restrict access to visitors with a password</Header>
+            <Header>{tx("Restrict access to visitors with a password")}</Header>
 
             <Form>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>{tx("Password")}</FormLabel>
                 <Input
                     maxLength={30}
                     placeholder={
                         hasSavedPassword
-                            ? "Type a new password to replace it"
+                            ? tx("Type a new password to replace it")
                             : ""
                     }
                     onChange={handleChangePassword}
@@ -120,12 +121,14 @@ export function SpaceGatingPassword({ initState, onClose }: GatingUIProps) {
                 {error ? <FormError>{error}</FormError> : null}
                 {hasSavedPassword && !password ? (
                     <SavedNote>
-                        This world has a password. It can’t be shown again.
+                        {tx(
+                            "This world has a password. It can’t be shown again."
+                        )}
                     </SavedNote>
                 ) : null}
             </Form>
             <Form>
-                <FormLabel>Message for users</FormLabel>
+                <FormLabel>{tx("Message for users")}</FormLabel>
                 <TextArea
                     style={{ height: "300px" }}
                     maxLength={300}
