@@ -36,6 +36,10 @@ import Tooltip from "@ui/components/Tooltip";
 import StudioQuiz from "@features/onboarding/Studio/Quiz";
 import { PlayToggle } from "./DisplayToggle";
 import { tx } from "@components/context/I18nContext";
+import {
+    BROWSE_TEMPLATES_HREF,
+    shouldBrowseTemplates,
+} from "./browseTemplates";
 
 const DestinationSelector = dynamic(
     () => import("@features/spaces/create/components/DestinationSelector"),
@@ -80,24 +84,13 @@ export function StudioToolbar() {
     const spaceStatus = getSpaceStatus(exhibit);
 
     useEffect(() => {
-        if (!exhibit && !isAnonymous) {
-            if (exhibit?.info?.room === "@@empty") {
-                //nextStudioQuiz("PickBuildMore");
-                toggleCreateModal("template");
-            } else {
-                nextStudioTuto("AssetsContent");
-            }
-        }
-    }, [exhibit]);
+        // No world yet: pick a template in the gallery browser first.
+        if (isAnonymous && getLocalAnonExhibit()) return;
 
-    useEffect(() => {
-        if (isAnonymous && !getLocalAnonExhibit()) {
-            if (exhibit?.info?.room === "@@empty") {
-                //nextStudioQuiz("PickBuildMore");
-                toggleCreateModal("template");
-            } else {
-                nextStudioTuto("AssetsContent");
-            }
+        if (shouldBrowseTemplates(exhibit, router.query?.templateId)) {
+            router.replace(BROWSE_TEMPLATES_HREF);
+        } else if (isAnonymous) {
+            nextStudioTuto("AssetsContent");
         }
     }, []);
 
@@ -182,7 +175,11 @@ export function StudioToolbar() {
                 return;
             }
 
-            toggleCreateModal(isFuture ? "world-builder" : "template");
+            if (isFuture) {
+                toggleCreateModal("world-builder");
+            } else {
+                router.push(BROWSE_TEMPLATES_HREF);
+            }
             //
         },
         []
