@@ -19,6 +19,8 @@ import { Wallet } from "./Wallet";
 import dynamic from "next/dynamic";
 import { showModal } from "@components/Dialogs";
 import { tx } from "@components/context/I18nContext";
+import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from "locales/language";
+import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 
 const ConnectWallet = dynamic(() => import("@ui/components/ConnectWallet"));
 
@@ -33,9 +35,25 @@ export interface DropdownProps {
     onAction: (action: Action) => unknown;
 }
 
+// Arrow keys move between languages; Escape goes back to the row.
+function moveLanguageFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    const options = Array.from(
+        event.currentTarget.querySelectorAll<HTMLButtonElement>("button")
+    );
+    const index = options.indexOf(document.activeElement as HTMLButtonElement);
+    const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+    if (step) {
+        event.preventDefault();
+        options[(index + step + options.length) % options.length]?.focus();
+    } else if (event.key === "Escape") {
+        event.stopPropagation();
+        (event.currentTarget.parentElement as HTMLElement)?.focus();
+    }
+}
+
 export function Dropdown({ onAction }: DropdownProps) {
     //
-    const { t } = useCyberTranslation();
+    const { t, i18n, switchI18n } = useCyberTranslation();
 
     const { user, logout, accounts, userData, changeAccount, isAnonymous } =
         useContext(UserContext);
@@ -124,6 +142,55 @@ export function Dropdown({ onAction }: DropdownProps) {
                     ) : null}
                 </Container>
             </div>
+            <div
+                className="item show-more language"
+                tabIndex={0}
+                aria-label={`${t("Language")}: ${LANGUAGE_NAMES[i18n]}`}
+            >
+                <IconImg name="globe" size={14} className="icon" />
+                <span>{t("Language")}</span>
+                <span className="value" lang={i18n}>
+                    {LANGUAGE_NAMES[i18n]}
+                </span>
+                <IconImg name="chevron-right" size={12} className="more-icon" />
+                <Container
+                    className="more"
+                    role="menu"
+                    aria-label={t("Language")}
+                    onKeyDown={moveLanguageFocus}
+                >
+                    {SUPPORTED_LANGUAGES.map((language) => (
+                        <button
+                            key={language}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={language === i18n}
+                            lang={language}
+                            className="item"
+                            onClick={() => {
+                                if (language === i18n) return;
+                                amplitude_logAnalyticsEvent(
+                                    "language_changed",
+                                    {
+                                        from: i18n,
+                                        to: language,
+                                    }
+                                );
+                                switchI18n(language);
+                            }}
+                        >
+                            <span>{LANGUAGE_NAMES[language]}</span>
+                            {language === i18n && (
+                                <IconImg
+                                    name="check"
+                                    size={14}
+                                    className="check"
+                                />
+                            )}
+                        </button>
+                    ))}
+                </Container>
+            </div>
             <div className="sep" />
 
             {!isAnonymous ? (
@@ -177,6 +244,8 @@ export const Container = styled.div<{ top?: boolean }>`
             left: calc(100% + 16px);
             top: -8px;
             display: none;
+            width: 200px;
+            cursor: default;
         }
 
         &:hover,
@@ -207,6 +276,17 @@ export const Container = styled.div<{ top?: boolean }>`
         & > a {
             color: inherit;
             text-decoration: none;
+        }
+        & > .value {
+            margin-left: auto;
+            color: var(--oc-muted);
+        }
+        & > .value + .more-icon {
+            margin-left: 0;
+        }
+        & > .check {
+            margin-left: auto;
+            filter: invert(1);
         }
     }
 `;
