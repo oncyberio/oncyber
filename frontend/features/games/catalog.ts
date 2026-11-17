@@ -51,6 +51,12 @@ export interface GameEntry {
      * same-origin frame) instead of the shared, sandboxed GamePage.
      */
     ownPage?: boolean;
+    /**
+     * Published from outside the repository and read from the registry, not
+     * this catalog (docs/games/publishing.md). Its results are not recorded
+     * and it has no saved data on the server yet.
+     */
+    registered?: boolean;
 }
 
 export function findGame(id: unknown): GameEntry | null {
