@@ -11,6 +11,9 @@ import type { LandingCard } from "./types";
  */
 export const SPACES_SHOWN = 9;
 
+/** "My spaces": the Create grid with every one of your worlds. */
+export const MY_SPACES_HREF = "/?create=gallery&spaces=all";
+
 export const SHOW_ALL_SPACES_ID = "spaces-show-all";
 /** Stands in for a filter that matches nothing, and clears it. */
 export const RESET_SPACES_ID = "spaces-reset";

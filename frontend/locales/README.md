@@ -7,9 +7,9 @@ them.
 -   **Which language.** `?lang=es` first, then the visitor's saved choice,
     then the first browser language we support, then English. The server
     always renders English and the client switches before the first paint.
--   **Switching.** The language code in the landing header, the language row
-    in the account menu, the `/` command menu, and the flags in the in-space
-    settings panel.
+-   **Switching.** The Language row in the profile sidebar (click your
+    profile), the `/` command menu, and the flags in the in-space settings
+    panel.
 -   **Keys.** The older in-space strings use `UPPER_SNAKE` keys defined in
     every `*/index.json`. Newer strings use the English text itself as the key
     (`t("My spaces")`), so a missing translation shows the English.
