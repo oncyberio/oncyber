@@ -783,19 +783,19 @@ export default function Scene({
             frame = 0;
             render();
         }
-        function goTo(column: number) {
+        function goTo(column: number, held = false) {
+            // Only a click on a section label keeps the labels together.
+            separation.held = held;
             clearTimeout(wheelEndTimer);
             scroller.goTo(column);
         }
         /** A jump by pointer: the next arrow key starts from where it lands. */
         function jumpTo(column: number) {
             keyboardSelection = null;
-            separation.held = true;
-            goTo(column);
+            goTo(column, true);
         }
         function step(direction: number) {
             keyboardSelection = null;
-            separation.held = false;
             goTo(
                 adjacentColumn(
                     requestedColumn ??
