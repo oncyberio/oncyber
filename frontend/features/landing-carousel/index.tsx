@@ -731,6 +731,11 @@ function LandingContent(props: LandingPageProps) {
                                 error={!creating && (error || loadMoreError)}
                                 loadMore={loadMore}
                                 sectionLabels={notFoundLabels}
+                                // The landing opens on the worlds alone;
+                                // its section names come in with the scroll.
+                                sectionLabelsOnScroll={
+                                    step !== "gallery" && !notFoundMode
+                                }
                                 sectionCounts={
                                     spaceCount ? { spaces: spaceCount } : null
                                 }
