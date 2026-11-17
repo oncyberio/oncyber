@@ -315,6 +315,12 @@ const nextConfig = {
                 destination: "/studio",
                 permanent: true,
             },
+            // The landing is the explore page now.
+            {
+                source: "/explore",
+                destination: "/",
+                permanent: true,
+            },
             ...Object.entries(PAGE_REDIRECTS).map(([from, destination]) => ({
                 source: `/${from}`,
                 destination,
