@@ -78,6 +78,23 @@ export function createGridLayout(
     };
 }
 
+/**
+ * The sections the label switch names: every section, once the grid's first
+ * card belongs to one. A grid that opens with unlabelled cards has no switch.
+ */
+export function switchSections(layout: GridLayout, cards: LandingCard[]) {
+    return cards[0]?.section ? layout.sections : [];
+}
+
+/** Index of the section whose columns start at or before `column`. */
+export function sectionAt(sections: { column: number }[], column: number) {
+    let current = 0;
+    sections.forEach((section, index) => {
+        if (section.column <= column + 0.5) current = index;
+    });
+    return current;
+}
+
 /** The cells in columns `from` up to (not including) `to`, in card order. */
 export function cellsInColumns(layout: GridLayout, from: number, to: number) {
     const rows = layout.columnCount

@@ -36,6 +36,11 @@ jest.mock(
 );
 
 jest.mock("next/router", () => ({ useRouter: () => mockRouter }));
+// Create shows the worlds' loading grid until its catalog arrives; it
+// measures itself with a ResizeObserver, which jsdom lacks.
+jest.mock("./components/LoadingGrid", () => () => (
+    <div role="status" aria-label="Loading world previews" />
+));
 // Keep the page's dynamic-loading behavior while replacing only its expensive
 // grid renderer and authenticated catalog data source below.
 jest.mock("next/dynamic", () => ({

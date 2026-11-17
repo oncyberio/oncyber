@@ -43,6 +43,8 @@ import useWordMatches from "./hooks/useWordMatches";
 import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
 import { pendingLobbyReturn } from "@utils/lobbyReturnTransition";
 import useDestinationPreviews from "./hooks/useDestinationPreviews";
+import useYourSpaces from "./hooks/useYourSpaces";
+import { createSpaceCards, SHOW_ALL_SPACES_ID, withSpaces } from "./yourSpaces";
 import { CreateIcon } from "./components/CreateIcon";
 import {
     LandingActivityProvider,
@@ -55,17 +57,6 @@ const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 const TemplateCatalog = dynamic(() => import("./components/TemplateCatalog"), {
     ssr: false,
 });
-const TEMPLATE_LOADING_CARDS: LandingCard[] = Array.from(
-    { length: 4 },
-    (_, index) => ({
-        ...BUILD_CARDS[0],
-        id: `loading-template-${index}`,
-        title: "Loading templates…",
-        href: "",
-        imageUrls: [],
-        buildStatus: "Your existing Oncyber templates",
-    })
-);
 const GRID_SIZES = [
     { columns: 2, rows: 2 },
     { columns: 1, rows: 1 },
@@ -356,10 +347,42 @@ function LandingContent(props: LandingPageProps) {
     ]);
     const [templates, setTemplates] = useState<TemplateGridData>(null);
     const [loadTemplates, setLoadTemplates] = useState(step === "gallery");
+    // Signed-in creators find their own spaces ahead of the templates. They
+    // load with the templates, before the first Create click.
+    const yourSpaces = useYourSpaces(loadTemplates);
+    const spacesExpanded = router.query.spaces === "all";
+    const showSpaces = step === "gallery" && templateCategory === "all";
+    const spaceCards = useMemo(
+        () =>
+            showSpaces && yourSpaces.spaces
+                ? createSpaceCards(
+                      yourSpaces.spaces,
+                      templateQuery,
+                      spacesExpanded,
+                      yourSpaces.currentId
+                  ).map((card) =>
+                      card.spaceId && card.spaceId === yourSpaces.openingId
+                          ? { ...card, opening: true }
+                          : card
+                  )
+                : [],
+        [
+            showSpaces,
+            yourSpaces.spaces,
+            yourSpaces.currentId,
+            yourSpaces.openingId,
+            templateQuery,
+            spacesExpanded,
+        ]
+    );
     useLandingBusy(
         creating
             ? step === "gallery" &&
-                  (!templates || templates.loading || !!templates.opening)
+                  (!templates ||
+                      templates.loading ||
+                      !!templates.opening ||
+                      yourSpaces.loading ||
+                      !!yourSpaces.openingId)
             : loading || loadingMore
     );
     const routeActivity = useActivitySignal();
@@ -393,6 +416,8 @@ function LandingContent(props: LandingPageProps) {
             const query = { ...router.query };
             if (next === "explore") delete query.create;
             else query.create = next;
+            // "Show all" of your spaces lasts for one visit to Create.
+            delete query.spaces;
             // Stay on the same page: only the cards change, including browser Back/Forward.
             if (
                 router.pathname.startsWith("/studio/new-") &&
@@ -410,7 +435,21 @@ function LandingContent(props: LandingPageProps) {
         goToStep(creationToggleStep(step));
     }, [step, goToStep]);
     const activateCard = (card: LandingCard) => {
+        if (card.id === SHOW_ALL_SPACES_ID) {
+            const query = { ...router.query, create: "gallery", spaces: "all" };
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
+            return true;
+        }
+        if (card.spaceId) {
+            if (templates?.opening) return true;
+            void yourSpaces.open(card.spaceId);
+            return true;
+        }
         if (card.id.startsWith("template-")) {
+            if (yourSpaces.openingId) return true;
             templates?.open(card);
             return true;
         }
@@ -420,7 +459,9 @@ function LandingContent(props: LandingPageProps) {
         step === "gallery" &&
         templates &&
         !templates.loading &&
-        !templates.cards.length;
+        !yourSpaces.loading &&
+        !templates.cards.length &&
+        !spaceCards.length;
     useEffect(() => {
         if (!templateEmpty) return;
         const closeEmptyGallery = (event: KeyboardEvent) => {
@@ -437,13 +478,36 @@ function LandingContent(props: LandingPageProps) {
         document.addEventListener("keydown", closeEmptyGallery);
         return () => document.removeEventListener("keydown", closeEmptyGallery);
     }, [templateEmpty, toggleCreate]);
-    const gridCards =
-        step === "gallery"
-            ? templates?.cards.length
-                ? templates.cards
-                : TEMPLATE_LOADING_CARDS
-            : cards;
-    const showGrid = !templateEmpty && (creating || cards.length > 0);
+    // Both lists arrive before either is drawn, so the grid is drawn once
+    // and nothing shifts when the slower one lands.
+    const galleryReady =
+        !!templates &&
+        (!templates.loading || templates.cards.length > 0) &&
+        !yourSpaces.loading;
+    const templateCards = templates?.cards;
+    const galleryCards = useMemo(
+        () => (galleryReady ? withSpaces(spaceCards, templateCards || []) : []),
+        [galleryReady, spaceCards, templateCards]
+    );
+    // In the staff feed the popular worlds follow the picks under their own
+    // label, so the picks are named too and the two labels form a switch.
+    const worldCards = useMemo(
+        () =>
+            cards.some((card) => card.section === "popular") &&
+            cards.some((card) => !card.section)
+                ? cards.map((card) =>
+                      card.section
+                          ? card
+                          : { ...card, section: "staff" as const }
+                  )
+                : cards,
+        [cards]
+    );
+    const gridCards = step === "gallery" ? galleryCards : worldCards;
+    // Create waits the way the worlds do: the same placeholder grid.
+    const galleryLoading = step === "gallery" && !galleryReady;
+    const showGrid =
+        !templateEmpty && !galleryLoading && (creating || cards.length > 0);
     const retainedGridCards = useRef(gridCards);
     if (showGrid) retainedGridCards.current = gridCards;
 
@@ -565,11 +629,12 @@ function LandingContent(props: LandingPageProps) {
             >
                 <BrowseSurface>
                     {/* Opening shows on the picked card itself. */}
-                    {step === "gallery" && templates?.error && (
-                        <TemplateStatus role="alert">
-                            {templates.error}
-                        </TemplateStatus>
-                    )}
+                    {step === "gallery" &&
+                        (yourSpaces.error || templates?.error) && (
+                            <TemplateStatus role="alert">
+                                {yourSpaces.error || templates.error}
+                            </TemplateStatus>
+                        )}
                     <div className="results" aria-busy={!creating && loading}>
                         {retainedGridCards.current.length > 0 && (
                             <Scene
@@ -580,11 +645,13 @@ function LandingContent(props: LandingPageProps) {
                                 cards={retainedGridCards.current}
                                 contentKey={
                                     step === "gallery"
-                                        ? `gallery:${
-                                              templates?.cards
-                                                  .map((card) => card.id)
-                                                  .join(",") || "loading"
-                                          }`
+                                        ? // What the visitor chose, not what
+                                          // arrived: a refreshed catalog
+                                          // updates cards in place instead of
+                                          // fading the whole grid out and in.
+                                          galleryReady
+                                            ? `gallery:${templateCategory}:${templateQuery}:${spacesExpanded}`
+                                            : "gallery:loading"
                                         : `explore:${discovery.resultKey}`
                                 }
                                 onCardActivate={activateCard}
@@ -605,11 +672,12 @@ function LandingContent(props: LandingPageProps) {
                                 sectionLabels={notFoundLabels}
                             />
                         )}
-                        {!creating &&
-                        !cards.length &&
-                        (loading ||
-                            resultsPending ||
-                            (pagedHasMore && !error && !loadMoreError)) ? (
+                        {galleryLoading ||
+                        (!creating &&
+                            !cards.length &&
+                            (loading ||
+                                resultsPending ||
+                                (pagedHasMore && !error && !loadMoreError))) ? (
                             <LoadingGrid grid={grid} />
                         ) : templateEmpty ? (
                             <EmptyState
@@ -721,7 +789,9 @@ function LandingContent(props: LandingPageProps) {
                             </EmptyState>
                         ) : null}
                     </div>
-                    {(templateEmpty || (!creating && !cards.length)) && (
+                    {(templateEmpty ||
+                        galleryLoading ||
+                        (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
                             {gridControls}
                             {viewControls}
@@ -745,6 +815,7 @@ function LandingContent(props: LandingPageProps) {
             {!inLobby && (
                 <BottomSearch
                     scope={templateContext ? "templates" : "worlds"}
+                    withSpaces={templateContext && yourSpaces.signedIn}
                     value={templateContext ? templateQuery : filters.q}
                     onChange={
                         templateContext ? undefined : (q) => searchWorlds({ q })

@@ -7,6 +7,7 @@ import { createEmpty } from "./createEmpty";
 import { updateExhibitKit } from "./updateExhibitKit";
 import { duplicate } from "./duplicate";
 import { get } from "./get";
+import { listMine } from "./listMine";
 import {
     create as snapshotCreate,
     list as snapshotList,
@@ -27,6 +28,7 @@ const ExhibitService = {
     updateCustomLink,
     updateExhibitKit,
     get,
+    listMine,
     snapshotCreate,
     snapshotList,
     //...

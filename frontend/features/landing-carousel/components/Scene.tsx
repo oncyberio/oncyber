@@ -25,7 +25,10 @@ import {
     adjacentColumn,
     selectedCardIndex,
     moveGridSelection,
+    sectionAt,
+    switchSections,
 } from "../three/layout";
+import { placeSwitch, stepSeparation, type SwitchItem } from "../sectionSwitch";
 import ExperienceCard from "./ExperienceCard";
 import { CARD_WARM_DWELL_MS, warmSpace } from "../warmSpace";
 import Icon from "./Icon";
@@ -66,7 +69,11 @@ interface Props {
     loadingMore: boolean;
     error: boolean;
     loadMore: () => void;
-    /** Labels above the grid's sections (see LandingCard.section). */
+    /**
+     * Labels for the grid's sections (see LandingCard.section), where they
+     * differ from the usual ones. Side by side at rest they are a switch;
+     * while the grid moves each rides above its own section.
+     */
     sectionLabels?: Partial<Record<GridSection, string>>;
 }
 
@@ -74,6 +81,8 @@ const SECTION_LABELS: Record<GridSection, string> = {
     results: "Results",
     staff: "Staff picks",
     popular: POPULAR_SECTION_LABEL,
+    spaces: "Your spaces",
+    templates: "Templates",
 };
 
 export default function Scene({
@@ -121,7 +130,7 @@ export default function Scene({
     const stageRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
-    const sectionLabelsRef = useRef<(HTMLDivElement | null)[]>([]);
+    const switchItems = useRef<HTMLButtonElement[]>([]);
     const controlsRef = useRef({
         next: () => {},
         previous: () => {},
@@ -142,6 +151,7 @@ export default function Scene({
         () => createGridLayout(cards, columns, visibleRows),
         [cards, columns, visibleRows]
     );
+    const shownSections = switchSections(layout, cards);
     const sceneData = useRef({ cards, layout });
     sceneData.current = { cards, layout };
     const refreshScene = useRef(() => {});
@@ -454,7 +464,7 @@ export default function Scene({
                     .get(selectedId.current)
                     ?.focus({ preventScroll: true });
             }
-            placeSectionLabels(progress);
+            placeSectionSwitch(progress);
             renderer?.render(scene, camera);
             if (transition.motion.current.phase !== "idle") invalidate();
             const shown = cellsInColumns(
@@ -480,45 +490,80 @@ export default function Scene({
                 });
             }
         }
-        function placeSectionLabels(progress: number) {
-            layout.sections.forEach(({ column }, index) =>
-                placeSectionLabel(
-                    sectionLabelsRef.current[index],
-                    column,
+        const separation = {
+            value: 0,
+            lastMove: -Infinity,
+            lastTime: performance.now(),
+            progress: NaN,
+        };
+        function placeSectionSwitch(progress: number) {
+            const sections = switchSections(layout, cards);
+            if (!sections.length || !switchItems.current[0]) return;
+            const corner = (column: number) => {
+                const dims = cellDimensions(
+                    { index: -1, row: 0, column },
+                    metrics,
                     progress
-                )
+                );
+                return projectPoint(
+                    dims.x - dims.width / 2,
+                    dims.y + dims.height / 2,
+                    metrics
+                );
+            };
+            // Apart while the grid moves, together again once it rests.
+            const moved =
+                !Number.isNaN(separation.progress) &&
+                Math.abs(progress - separation.progress) > 0.0005;
+            separation.progress = progress;
+            const { animating } = stepSeparation(
+                separation,
+                performance.now(),
+                moved,
+                reducedMotion.matches
             );
-        }
-        function placeSectionLabel(
-            label: HTMLDivElement | null,
-            column: number,
-            progress: number
-        ) {
-            // Each label rides above its section's first card's top-left corner.
-            if (!label) return;
-            const dims = cellDimensions(
-                { index: -1, row: 0, column },
+            if (animating) invalidate();
+            const left = corner(progress);
+            const items: SwitchItem[] = sections.map(({ column }, index) => {
+                return {
+                    width: switchItems.current[index]?.offsetWidth || 0,
+                    natural: corner(column).x,
+                    // The top of whichever visible column it sits over.
+                    y: corner(
+                        Math.min(
+                            Math.max(column, progress),
+                            progress + columns - 1
+                        )
+                    ).y,
+                };
+            });
+            const last = cellDimensions(
+                { index: -1, row: 0, column: progress + columns - 1 },
                 metrics,
                 progress
             );
-            const corner = projectPoint(
-                dims.x - dims.width / 2,
-                dims.y + dims.height / 2,
-                metrics
-            );
-            // Stay inside the frame: the label is not clipped by the viewport.
-            const visible =
-                corner.x >= 0 && corner.x + label.offsetWidth <= metrics.width;
-            label.style.visibility = visible ? "visible" : "hidden";
-            if (!visible) return;
+            const placed = placeSwitch(items, {
+                left: left.x,
+                top: left.y,
+                right: projectPoint(
+                    last.x + last.width / 2,
+                    last.y + last.height / 2,
+                    metrics
+                ).x,
+                separated: separation.value,
+            });
+            const current = sectionAt(sections, progress);
             const dpr = window.devicePixelRatio || 1;
             const snap = (value: number) => Math.round(value * dpr) / dpr;
-            label.style.transform = `translate3d(${snap(corner.x)}px,${snap(
-                corner.y
-            )}px,0) translateY(-100%)`;
-            label.style.opacity = String(
-                columnOpacity(column, progress, columns)
-            );
+            placed.forEach((item, index) => {
+                const element = switchItems.current[index];
+                if (!element) return;
+                element.style.transform = `translate3d(${snap(item.x)}px,${snap(
+                    item.y
+                )}px,0) translateY(-100%)`;
+                element.style.visibility = "visible";
+                element.setAttribute("aria-pressed", String(index === current));
+            });
         }
         function updateSelection(followFocus = true) {
             // Hold the keyboard target while its column smoothly comes into view.
@@ -1078,20 +1123,28 @@ export default function Scene({
                         </Stage>
                     </ScrollContent>
                 </Viewport>
-                {!creating &&
-                    !formGrid &&
-                    layout.sections.map(({ column, section }, index) => (
-                        <SectionLabel
-                            key={`${section}:${column}`}
-                            ref={(element) => {
-                                sectionLabelsRef.current[index] = element;
-                            }}
-                            aria-hidden="true"
-                        >
-                            {sectionLabels?.[section] ??
-                                SECTION_LABELS[section]}
-                        </SectionLabel>
-                    ))}
+                {!formGrid && shownSections.length > 0 && (
+                    <SectionSwitch role="group" aria-label="Jump to a section">
+                        {shownSections.map(({ column, section }, index) => (
+                            <button
+                                key={section}
+                                type="button"
+                                className="switch-item"
+                                ref={(element) => {
+                                    switchItems.current[index] = element;
+                                }}
+                                onClick={() =>
+                                    controlsRef.current.goTo(
+                                        Math.min(column, layout.maxScrollColumn)
+                                    )
+                                }
+                            >
+                                {sectionLabels?.[section] ??
+                                    SECTION_LABELS[section]}
+                            </button>
+                        ))}
+                    </SectionSwitch>
+                )}
                 <EdgeFade aria-hidden="true" />
                 <EdgeFade $right aria-hidden="true" />
             </ViewportFrame>
@@ -1299,19 +1352,46 @@ const Stage = styled.div`
         display: block;
     }
 `;
-const SectionLabel = styled.div`
+/* Plain labels in the mono caption type, one per section of the grid. */
+const SectionSwitch = styled.div`
     position: absolute;
     left: 0;
     top: 0;
-    z-index: 1;
-    visibility: hidden;
+    z-index: 3;
     pointer-events: none;
-    padding-bottom: 8px;
-    white-space: nowrap;
-    font-family: var(--oc-mono);
-    font-size: 11px;
-    line-height: 16px;
-    color: var(--oc-secondary);
+    .switch-item {
+        position: absolute;
+        left: 0;
+        top: 0;
+        visibility: hidden;
+        pointer-events: auto;
+        padding: 0 0 8px;
+        border: 0;
+        background: none;
+        white-space: nowrap;
+        font-family: var(--oc-mono);
+        font-size: 11px;
+        line-height: 16px;
+        color: var(--oc-muted);
+        cursor: pointer;
+        transition: color var(--oc-fast);
+    }
+    /* A larger target than the text itself. */
+    .switch-item::before {
+        content: "";
+        position: absolute;
+        inset: -8px -10px 0;
+    }
+    .switch-item[aria-pressed="true"] {
+        color: #fff;
+    }
+    .switch-item:hover {
+        color: var(--oc-ink);
+    }
+    .switch-item:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
 `;
 const EdgeFade = styled.div<{ $right?: boolean }>`
     position: absolute;
