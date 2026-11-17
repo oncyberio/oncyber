@@ -107,7 +107,7 @@ const SECTION_LABELS: Record<GridSection, string> = {
     staff: "Staff picks",
     popular: POPULAR_SECTION_LABEL,
     spaces: "Your spaces",
-    templates: "Templates",
+    templates: "Create new",
 };
 
 export default function Scene({
