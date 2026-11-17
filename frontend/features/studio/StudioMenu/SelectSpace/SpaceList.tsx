@@ -7,6 +7,7 @@ import ExhibitService from "@api/exhibit/_api";
 
 import { useContext, useEffect, useState } from "react";
 import styled from "styled-components";
+import { brandVariables } from "@styles/brand";
 import { useStudioMenu } from "../context/StudioContext";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { showConfirm } from "@components/Dialogs";
@@ -22,16 +23,6 @@ import { useRouter } from "next/router";
 import { Experience } from "@uitypes/experience";
 import Plus from "@ui/icons/Plus";
 import { useOnboarding } from "@features/onboarding/context/OnboardingContext";
-import {
-    LibrarySearch,
-    LibraryTabs,
-} from "@features/studio/EditWorldMenu/AddAsset/shared/Library";
-import {
-    studioAction,
-    studioFocus,
-    studioHeading,
-    studioPanel,
-} from "@features/studio/styles/primitives";
 
 const DeleteBlacklist: SpaceAction[] = ["delete"];
 
@@ -271,45 +262,67 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
 
             {!isLoading && !error && (
                 <>
-                    {collabSpaces?.length > 0 || activeTab === "collab" ? (
-                        <LibraryTabs role="group" aria-label={tx("Worlds")}>
-                            <button
-                                type="button"
-                                aria-pressed={activeTab === "owned"}
-                                onClick={() => setActiveTab("owned")}
+                    <div className="menu-head">
+                        {collabSpaces?.length > 0 || activeTab === "collab" ? (
+                            <div
+                                className="tabs"
+                                role="group"
+                                aria-label={tx("Worlds")}
                             >
-                                <span className="label">{tx("My Spaces")}</span>
+                                <button
+                                    type="button"
+                                    aria-pressed={activeTab === "owned"}
+                                    onClick={() => setActiveTab("owned")}
+                                >
+                                    {tx("My Spaces")}
+                                    <span className="count">
+                                        {ownedSpaces?.length ?? 0}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={activeTab === "collab"}
+                                    onClick={() => setActiveTab("collab")}
+                                >
+                                    {tx("Collaborations")}
+                                    <span className="count">
+                                        {collabSpaces?.length ?? 0}
+                                    </span>
+                                </button>
+                            </div>
+                        ) : (
+                            <h2 className="menu-label">
+                                {tx("My Spaces")}
                                 <span className="count">
                                     {ownedSpaces?.length ?? 0}
                                 </span>
-                            </button>
-                            <button
-                                type="button"
-                                aria-pressed={activeTab === "collab"}
-                                onClick={() => setActiveTab("collab")}
-                            >
-                                <span className="label">
-                                    {tx("Collaborations")}
-                                </span>
-                                <span className="count">
-                                    {collabSpaces.length}
-                                </span>
-                            </button>
-                        </LibraryTabs>
-                    ) : (
-                        <h2 className="heading">
-                            {tx("My Spaces")}
-                            <span className="count">
-                                {ownedSpaces?.length ?? 0}
-                            </span>
-                        </h2>
-                    )}
+                            </h2>
+                        )}
+                    </div>
 
-                    <LibrarySearch
-                        value={search}
-                        onChange={setSearch}
-                        placeholder={tx("Search worlds")}
-                    />
+                    <label className="search">
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m20 20-3.5-3.5" />
+                        </svg>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder={tx("Search worlds")}
+                            aria-label={tx("Search worlds")}
+                            spellCheck={false}
+                        />
+                    </label>
 
                     <div className="body scrollbar-hidden">
                         {visibleSpaces.length === 0 && (
@@ -393,7 +406,7 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                                                         viewBox="0 0 24 24"
                                                         fill="none"
                                                         stroke="currentColor"
-                                                        strokeWidth="2.4"
+                                                        strokeWidth="2"
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                         aria-hidden="true"
@@ -442,13 +455,19 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
                         })}
                     </div>
                     {activeTab === "owned" && (
-                        <CreateSpace
-                            type="button"
-                            onClick={() => onCreateSpace("", true)}
-                        >
-                            <Plus width="16" height="16" color="currentColor" />
-                            {tx("Create new world")}
-                        </CreateSpace>
+                        <div className="menu-foot">
+                            <CreateSpace
+                                type="button"
+                                onClick={() => onCreateSpace("", true)}
+                            >
+                                <Plus
+                                    width="14"
+                                    height="14"
+                                    color="currentColor"
+                                />
+                                {tx("Create new world")}
+                            </CreateSpace>
+                        </div>
                     )}
                 </>
             )}
@@ -456,57 +475,129 @@ export function SpaceList({ onCreateSpace, onChangeSpace }) {
     );
 }
 
+/* Follows the brand guide's menus, as the language menu does: a panel with
+   24px corners, a mono section label, 40px rows with 8px corners, a subtle
+   hover and a check on the current choice. */
 const Container = styled.div`
-    ${studioPanel}
+    ${brandVariables}
     box-sizing: border-box;
-    width: 360px;
+    width: 340px;
     /* Grows with the list, up to a scrolling height. */
     max-height: min(560px, calc(100dvh - 96px));
-    padding: var(--studio-panel-padding, 14px);
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    border: 1px solid var(--oc-line);
+    border-radius: 24px;
+    background: var(--oc-panel);
+    box-shadow: 0 16px 40px #0006, 0 2px 8px #0003;
+    color: var(--oc-secondary);
+    font: 14px/1.2 var(--oc-font);
     overflow: hidden;
+    animation: space-menu-in 0.14s ease-out;
 
     @media (max-width: 600px) {
         width: 100%;
+        border-radius: 20px;
         /* Stay above the asset bar so Create new world can be reached. */
-        max-height: min(560px, calc(100dvh - 136px));
+        max-height: min(560px, calc(100dvh - 144px));
     }
 
-    & > .heading {
-        ${studioHeading}
+    @keyframes space-menu-in {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+
+    .menu-head {
         display: flex;
+        align-items: center;
+        padding: 8px 12px 6px;
+    }
+
+    .menu-label,
+    .tabs > button {
+        display: inline-flex;
         align-items: baseline;
-        gap: 8px;
-        font-size: 16px;
-        line-height: 22px;
+        gap: 6px;
+        margin: 0;
+        color: var(--oc-muted);
+        font: 11px/1 var(--oc-mono);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .menu-label {
+        color: var(--oc-ink);
+    }
+
+    .tabs {
+        display: flex;
+        gap: 16px;
+        > button {
+            padding: 4px 0;
+            border: 0;
+            background: none;
+            cursor: pointer;
+            transition: color 0.15s ease;
+            &:hover,
+            &[aria-pressed="true"] {
+                color: var(--oc-ink);
+            }
+            &:focus-visible {
+                outline: 2px solid var(--accent);
+                outline-offset: 2px;
+                border-radius: 4px;
+            }
+        }
     }
 
     .count {
-        flex-shrink: 0;
-        color: var(--studio-muted, #a1a1a8);
-        font: 400 12px/20px var(--studio-mono, monospace);
+        color: var(--oc-muted);
     }
 
-    ${LibraryTabs} > button {
-        display: inline-flex;
+    .search {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 6px;
-        > .label {
+        gap: 8px;
+        flex-shrink: 0;
+        height: 40px;
+        margin: 4px 4px 6px;
+        padding: 0 12px;
+        border: 1px solid var(--oc-line);
+        border-radius: 12px;
+        color: var(--oc-muted);
+        transition: border-color 0.15s ease;
+        &:focus-within {
+            border-color: var(--oc-line-strong);
+            color: var(--oc-secondary);
+        }
+        > svg {
+            flex-shrink: 0;
+        }
+        > input {
+            flex: 1;
             min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            height: 100%;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            background: none;
+            color: var(--oc-ink);
+            font: 14px/1.2 var(--oc-font);
+            &::placeholder {
+                color: var(--oc-muted);
+            }
         }
     }
 
     & > .body {
         flex: 1;
         min-height: 0;
-        margin: 0 calc(-1 * var(--studio-panel-padding, 14px));
-        padding: 0 calc(var(--studio-panel-padding, 14px) - 6px);
         overflow-y: auto;
         overscroll-behavior: contain;
         display: flex;
@@ -517,9 +608,16 @@ const Container = styled.div`
     .empty,
     & > .message {
         margin: 0;
-        padding: 16px 6px;
-        color: var(--studio-muted, #a1a1a8);
-        font: 400 13px/18px var(--studio-font, sans-serif);
+        padding: 12px;
+        color: var(--oc-muted);
+        font: 14px/1.4 var(--oc-font);
+    }
+
+    .menu-foot {
+        flex-shrink: 0;
+        margin: 6px -8px -8px;
+        padding: 6px 8px 8px;
+        border-top: 1px solid var(--oc-line);
     }
 `;
 
@@ -534,13 +632,13 @@ const SpaceItem = styled.div`
     align-items: center;
     gap: 4px;
     min-width: 0;
-    padding-right: 4px;
-    border-radius: var(--studio-radius-control, 10px);
-    transition: background-color 150ms ease;
+    padding-right: 8px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
 
     &:hover,
-    &[data-current] {
-        background: var(--studio-surface, #1c1c1f);
+    &:focus-within {
+        background: var(--oc-hover);
     }
 
     & > .open {
@@ -549,7 +647,8 @@ const SpaceItem = styled.div`
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 6px;
+        min-height: 52px;
+        padding: 6px 4px 6px 6px;
         border: 0;
         border-radius: inherit;
         background: transparent;
@@ -557,15 +656,15 @@ const SpaceItem = styled.div`
         font: inherit;
         text-align: left;
         cursor: pointer;
-        ${studioFocus}
+        outline: none;
     }
 
     .thumb {
         flex-shrink: 0;
-        width: 56px !important;
-        height: 40px !important;
-        min-width: 56px;
-        border-radius: var(--studio-radius-preview, 6px) !important;
+        width: 48px !important;
+        height: 36px !important;
+        min-width: 48px;
+        border-radius: 6px !important;
         overflow: hidden;
     }
 
@@ -574,7 +673,7 @@ const SpaceItem = styled.div`
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 4px;
     }
 
     .name,
@@ -585,24 +684,31 @@ const SpaceItem = styled.div`
     }
 
     .name {
-        color: var(--studio-ink, #f2f2f3);
-        font: 500 14px/20px var(--studio-font, sans-serif);
+        color: var(--oc-secondary);
+        font: 14px/1.2 var(--oc-font);
+        transition: color 0.15s ease;
         > .sec {
-            color: var(--studio-muted, #a1a1a8);
-            font-weight: 400;
+            color: var(--oc-muted);
         }
     }
 
+    &:hover .name,
+    &:focus-within .name,
+    &[data-current] .name {
+        color: var(--oc-ink);
+    }
+
     .status {
-        color: var(--studio-muted, #a1a1a8);
-        font: 400 12px/16px var(--studio-font, sans-serif);
+        color: var(--oc-muted);
+        font: 11px/1 var(--oc-mono);
+        letter-spacing: 0.04em;
     }
 
     & > .actions {
         flex-shrink: 0;
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: 4px;
     }
 
     .current {
@@ -610,22 +716,44 @@ const SpaceItem = styled.div`
         place-items: center;
         width: 20px;
         height: 20px;
-        border-radius: 50%;
-        background: var(--studio-ink, #f2f2f3);
-        color: var(--studio-bg, #141416);
+        color: var(--oc-ink);
     }
 
-    @media (max-width: 600px) {
-        & > .open {
-            min-height: 52px;
+    /* The row menu shows on hover or focus; touch screens always show it. */
+    & > .actions > :not(.current) {
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+    &:hover > .actions > *,
+    &:focus-within > .actions > * {
+        opacity: 1;
+    }
+    @media (hover: none) {
+        & > .actions > * {
+            opacity: 1;
         }
     }
 `;
 
 const CreateSpace = styled.button`
-    ${studioAction}
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    border: 1px solid var(--studio-line, #303035);
-    background: var(--studio-surface, #1c1c1f);
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--oc-secondary);
+    font: 14px/1.2 var(--oc-font);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    &:hover,
+    &:focus-visible {
+        background: var(--oc-hover);
+        color: var(--oc-ink);
+        outline: none;
+    }
 `;
