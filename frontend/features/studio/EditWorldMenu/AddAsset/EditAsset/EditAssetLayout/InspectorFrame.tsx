@@ -73,7 +73,9 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
     max-height: calc(100vh - var(--edit-asset-top) - 140px);
 
     @media (max-width: 600px) {
-        max-height: 40vh;
+        /* The sheet around it (CtxMenu) sets the height on phones. */
+        max-height: none;
+        padding: 12px 18px 0;
         border-radius: 0 !important;
         border: none !important;
         width: 100% !important;
@@ -96,10 +98,14 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
         border-bottom: 1px solid var(--separator-color);
 
         @media (max-width: 600px) {
-            padding-bottom: 12px;
-            .close {
-                min-width: 36px;
-                min-height: 36px;
+            padding-bottom: 10px;
+            .actions > * {
+                min-width: 40px;
+                min-height: 40px;
+            }
+            .actions > .close {
+                width: 40px;
+                height: 40px;
             }
         }
 
@@ -178,8 +184,8 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
             }
 
             @media (max-width: 600px) {
-                height: min(420px, calc(100dvh - 150px));
-                max-height: min(420px, calc(100dvh - 150px));
+                height: min(420px, calc(100dvh - 150px), 55dvh);
+                max-height: min(420px, calc(100dvh - 150px), 55dvh);
                 border-radius: var(--studio-radius-panel)
                     var(--studio-radius-panel) 0 0 !important;
                 border: 1px solid var(--studio-line) !important;
@@ -190,9 +196,9 @@ const Container = styled.div<{ $variant: "inspector" | "content" }>`
                     padding: 8px 18px;
 
                     & > .actions > .close {
-                        width: 36px;
-                        height: 36px;
-                        min-height: 36px;
+                        width: 40px;
+                        height: 40px;
+                        min-height: 40px;
                     }
                 }
 

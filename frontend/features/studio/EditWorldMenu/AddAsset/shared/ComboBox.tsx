@@ -21,6 +21,9 @@ export const ComboBox = styled(DefaultDropdown)`
         & li {
             padding: 6px 0;
             min-height: 36px;
+            @media (max-width: 600px) {
+                min-height: 40px;
+            }
             user-select: none;
         }
     }

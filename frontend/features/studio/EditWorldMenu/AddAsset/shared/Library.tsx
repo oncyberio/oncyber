@@ -66,7 +66,7 @@ export const LibraryTabs = styled.div`
     }
     @media (max-width: 600px) {
         & > button {
-            min-height: 36px;
+            min-height: 40px;
         }
     }
 `;
@@ -132,6 +132,10 @@ const SearchRow = styled.div`
         width: 100%;
         height: 36px;
         min-height: 36px;
+        @media (max-width: 600px) {
+            min-height: 40px;
+            height: 40px;
+        }
         padding: 7px 10px 7px 30px;
         border: 1px solid var(--studio-line);
         border-radius: var(--studio-radius-control);

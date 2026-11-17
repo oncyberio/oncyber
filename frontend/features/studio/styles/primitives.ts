@@ -1,6 +1,9 @@
 import { css } from "styled-components";
 import { studioTokens as studio } from "@styles/tokens";
 
+/** Media query for the studio's phone layout. */
+export const studioPhone = `@media (max-width: ${studio.breakpoint.compact}px)`;
+
 export const studioFocus = css`
     &:focus-visible {
         outline: ${studio.focus.width}px solid
@@ -25,6 +28,9 @@ export const studioField = css`
         var(--studio-control-ease, ${studio.motion.ease});
     &::placeholder {
         color: var(--studio-muted, ${studio.color.muted});
+    }
+    ${studioPhone} {
+        min-height: ${studio.phone.target}px;
     }
     &:focus {
         border-color: var(--studio-muted, ${studio.color.muted});
@@ -63,6 +69,9 @@ export const studioAction = css`
         opacity: ${studio.action.disabledOpacity};
         cursor: not-allowed;
     }
+    ${studioPhone} {
+        min-height: ${studio.phone.target}px;
+    }
     ${studioFocus}
 `;
 
@@ -84,6 +93,9 @@ export const studioHeading = css`
 export const studioTab = css`
     ${studioAction}
     min-height: ${studio.tab.minHeight}px;
+    ${studioPhone} {
+        min-height: ${studio.phone.target}px;
+    }
     padding: 0;
     border: 0;
     border-bottom: 1px solid transparent;
@@ -108,4 +120,38 @@ export const studioMenuItem = css`
     padding: ${studio.menuItem.paddingY}px ${studio.menuItem.paddingX}px;
     text-align: left;
     font-weight: 400;
+`;
+
+/** A square icon button at the phone tap-target size. */
+export const studioPhoneIconButton = css`
+    ${studioPhone} {
+        width: ${studio.phone.target}px;
+        height: ${studio.phone.target}px;
+        min-width: ${studio.phone.target}px;
+        min-height: ${studio.phone.target}px;
+        padding: 0;
+    }
+`;
+
+/**
+ * On phones, a studio panel becomes a bottom sheet: full width, rounded on
+ * top, no taller than the phone sheet height. Pass the distance from the
+ * bottom of the screen (the asset bar's height when it is showing).
+ */
+export const studioPhoneSheet = (bottom = `${studio.phone.dock}px`) => css`
+    ${studioPhone} {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: ${bottom};
+        width: 100% !important;
+        max-width: none !important;
+        max-height: min(420px, ${studio.phone.sheet}) !important;
+        margin: 0;
+        border: 1px solid var(--studio-line, ${studio.color.line}) !important;
+        border-bottom: 0 !important;
+        border-radius: var(--studio-radius-panel, ${studio.radius.panel}px)
+            var(--studio-radius-panel, ${studio.radius.panel}px) 0 0 !important;
+        box-shadow: 0 -8px 24px #00000066;
+    }
 `;

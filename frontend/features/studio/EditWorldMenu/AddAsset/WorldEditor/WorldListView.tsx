@@ -1,4 +1,8 @@
-import { studioAction } from "@features/studio/styles/primitives";
+import {
+    studioAction,
+    studioPhoneIconButton,
+    studioPhoneSheet,
+} from "@features/studio/styles/primitives";
 import IconImg from "@ui/components/IconImg";
 import {
     KeyboardEventHandler,
@@ -7,7 +11,7 @@ import {
     useRef,
     useState,
 } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { SearchInput } from "../shared/SearchInput";
 import { PanelTypeIcon } from "../shared/PanelTypeIcon";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
@@ -899,13 +903,12 @@ const Container = styled.div`
         }
     }
 
+    /* Phones: the contents button sits top right under the toolbar; the
+       list and the inspector open as bottom sheets, one at a time. */
     @media (max-width: 600px) {
-        top: 98px;
-        max-height: calc(100dvh - 180px);
-        width: calc(100% - 12px);
-        left: 0;
-        right: 0;
-        margin: auto;
+        top: 76px;
+        right: 12px;
+        max-height: none;
     }
 
     user-select: none;
@@ -993,7 +996,43 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         }
     }
     @media (max-width: 600px) {
-        max-width: calc(100vw - 12px);
+        transition: none;
+        > .wing {
+            display: none;
+        }
+        > .dock-content {
+            padding: 0;
+            animation: none;
+        }
+        ${(p) =>
+            p.$collapsed
+                ? css`
+                      width: 40px;
+                      height: 40px;
+                      border: 1px solid var(--studio-line, #303035);
+                      border-radius: 12px;
+                      background: var(--studio-surface, #1c1c1f);
+                      button[aria-label="World contents"] {
+                          width: 38px;
+                          height: 38px;
+                          border-radius: 12px;
+                          background: transparent;
+                          border: 0;
+                          > .icon-img {
+                              transform: none;
+                          }
+                      }
+                  `
+                : css`
+                      ${studioPhoneSheet()}
+                      .has-details & {
+                          display: none;
+                      }
+                      > .dock-content > [role="region"] {
+                          border: 0;
+                          border-radius: inherit;
+                      }
+                  `}
     }
     @media (prefers-reduced-motion: reduce) {
         transition: none;
@@ -1012,6 +1051,11 @@ const FilterBtn = styled.div`
     height: 28px;
     border-radius: 6px;
     cursor: pointer;
+    @media (max-width: 600px) {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--studio-radius-control, 10px);
+    }
 `;
 
 const filterCaption = (
@@ -1049,6 +1093,42 @@ const ScenePanel = styled.div`
 
     @media (max-width: 600px) {
         width: 100%;
+        height: min(420px, 55dvh);
+        max-height: none;
+        padding: 8px 0 12px;
+        gap: 10px;
+        border-radius: inherit;
+
+        & > .sp-header {
+            padding: 0 12px 0 18px;
+        }
+        & > .sp-seacrh {
+            padding: 0 18px;
+        }
+        & > .sp-list .sp-list-group > .sp-list-group-title {
+            min-height: 40px;
+            padding: 0 18px;
+            font-size: 13px;
+        }
+        & > .sp-list .sp-list-group .sp-list-group-items > .sp-item {
+            min-height: 44px;
+            padding: 0 18px 0 34px;
+            gap: 10px;
+            font-size: 14px;
+            line-height: 20px;
+
+            & > .sp-item-img {
+                width: 24px;
+                height: 24px;
+            }
+            /* No hover on touch: keep row actions visible. */
+            & > .sp-item-actions > .sp-icon {
+                visibility: visible;
+            }
+        }
+        & > .sp-grab {
+            display: none;
+        }
     }
 
     & > .sp-header {
@@ -1232,12 +1312,54 @@ const CtxMenu = styled.div`
     > .mobile-footer {
         display: none;
     }
+    ${studioPhoneSheet("0px")}
     @media (max-width: 600px) {
-        > [data-studio-surface] {
-            max-height: calc(100dvh - 266px) !important;
-        }
+        background: var(--studio-panel, #181818);
+        padding-bottom: env(safe-area-inset-bottom);
+        > [data-studio-surface],
         ${Container}:not(.collapsed) & > [data-studio-surface] {
-            max-height: calc(100dvh - 202px - min(252px, 30dvh)) !important;
+            flex: 1;
+            max-height: calc(min(420px, 55dvh) - 52px) !important;
+            box-shadow: none;
+            background: transparent;
+        }
+        > .mobile-footer {
+            display: block;
+            flex-shrink: 0;
+            border-top: 1px solid var(--studio-line, #303035);
+            > .hr-mobile {
+                display: none;
+            }
+            > .controls {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 52px;
+                padding: 0 8px;
+                > span {
+                    display: grid;
+                    place-items: center;
+                    min-width: 64px;
+                    height: 40px;
+                    padding: 0 12px;
+                    border-radius: var(--studio-radius-control, 10px);
+                    font: 500 14px/20px var(--studio-font, sans-serif);
+                    color: var(--studio-ink, #f2f2f3);
+                    cursor: pointer;
+                }
+                > span:last-child {
+                    background: var(--studio-ink, #f2f2f3);
+                    color: var(--studio-bg, #141416);
+                }
+                > .center {
+                    display: flex;
+                    gap: 4px;
+                    > * {
+                        width: 40px;
+                        height: 40px;
+                    }
+                }
+            }
         }
     }
 `;
@@ -1250,4 +1372,11 @@ const CollapseButton = styled.button`
     padding: 0;
     margin-left: auto;
     color: var(--studio-muted);
+    ${studioPhoneIconButton}
+    @media (max-width: 600px) {
+        /* The sheet closes downwards. */
+        svg {
+            transform: rotate(90deg);
+        }
+    }
 `;

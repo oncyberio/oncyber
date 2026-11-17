@@ -41,7 +41,7 @@ const PreviewLink = styled.a`
     }
     @media (max-width: 600px) {
         min-width: 0;
-        min-height: 36px;
+        min-height: 40px;
         margin-left: 0;
         padding: 6px 12px;
         gap: 6px;
@@ -49,7 +49,7 @@ const PreviewLink = styled.a`
     }
     /* Small phones: the play mark alone keeps the header on one row. */
     @media (max-width: 380px) {
-        width: 36px;
+        width: 40px;
         padding: 0;
         justify-content: center;
         .label {

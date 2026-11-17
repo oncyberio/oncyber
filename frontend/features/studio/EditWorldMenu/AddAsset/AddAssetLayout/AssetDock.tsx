@@ -72,7 +72,9 @@ export const AssetDock = styled.div<{
             ${(props) =>
                 props.isSelectedMesh && props.isEditableMesh
                     ? css`
-                          visibility: hidden;
+                          /* display, not visibility: an active tool's icon
+                             set visible would otherwise stay on screen. */
+                          display: none;
                       `
                     : css`
                           visibility: visible;

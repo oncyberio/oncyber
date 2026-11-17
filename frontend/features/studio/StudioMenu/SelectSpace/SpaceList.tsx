@@ -463,7 +463,7 @@ const Container = styled.div`
     @media (max-width: 600px) {
         width: 100%;
         /* Stay above the asset dock so Create New World can be reached. */
-        height: min(600px, calc(100dvh - 160px));
+        height: min(600px, calc(100dvh - 136px));
         padding: 16px;
         gap: 12px;
 

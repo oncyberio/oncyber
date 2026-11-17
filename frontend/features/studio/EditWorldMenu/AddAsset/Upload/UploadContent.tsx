@@ -307,6 +307,9 @@ const Container = styled.div<{ $isDragging: boolean }>`
     .upload-symbol {
         width: 36px;
         height: 36px;
+        @media (max-width: 600px) {
+            height: 40px;
+        }
         border-radius: 50%;
         display: grid;
         place-items: center;
