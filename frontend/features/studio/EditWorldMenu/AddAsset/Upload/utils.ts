@@ -113,32 +113,43 @@ export async function formatUploadedAsset(
         asset.animation_url = asset.dcompressed_animation_url = url;
 
         if (mimeType.startsWith("model/gltf")) {
-
             let needsOptimizedFilesRefresh = false;
             let needsAnimationUrlRefresh = false;
 
             if (d_optimized_files) {
                 //
-                const hasCloudinaryURLs = cloudinary.isBrokenCloudinaryUrl(d_optimized_files?.high)
-                    || cloudinary.isBrokenCloudinaryUrl(d_optimized_files?.low)
-                    || cloudinary.isBrokenCloudinaryUrl(d_optimized_files?.low_compressed);
+                const hasCloudinaryURLs =
+                    cloudinary.isBrokenCloudinaryUrl(d_optimized_files?.high) ||
+                    cloudinary.isBrokenCloudinaryUrl(d_optimized_files?.low) ||
+                    cloudinary.isBrokenCloudinaryUrl(
+                        d_optimized_files?.low_compressed
+                    );
 
                 if (hasCloudinaryURLs) {
                     needsOptimizedFilesRefresh = true;
                 }
             }
 
-            if (asset.animation_url && cloudinary.isBrokenCloudinaryUrl(asset.animation_url)) {
+            if (
+                asset.animation_url &&
+                cloudinary.isBrokenCloudinaryUrl(asset.animation_url)
+            ) {
                 needsAnimationUrlRefresh = true;
             }
 
             if (needsOptimizedFilesRefresh || needsAnimationUrlRefresh) {
-                const refreshedAsset = await AssetService.getAssetsByHash({ hash });
+                const refreshedAsset = await AssetService.getAssetsByHash({
+                    hash,
+                });
 
                 if (refreshedAsset) {
                     // Only update d_optimized_files if needed
-                    if (needsOptimizedFilesRefresh && refreshedAsset?.d_optimized_files) {
-                        asset.d_optimized_files = refreshedAsset.d_optimized_files;
+                    if (
+                        needsOptimizedFilesRefresh &&
+                        refreshedAsset?.d_optimized_files
+                    ) {
+                        asset.d_optimized_files =
+                            refreshedAsset.d_optimized_files;
                     }
 
                     // Only update animation URLs if needed
@@ -150,10 +161,9 @@ export async function formatUploadedAsset(
                     }
                 }
             }
-
         }
     } else {
-        // 
+        //
         asset.image_url = asset.dcompressed_image_url = url;
     }
 
@@ -168,11 +178,6 @@ export function getUploadErrorMsg(err: Error) {
     let title = "Upload error";
     let message = "Failed to upload file";
 
-    if (err.message === "exists") {
-        //
-        title = "Upload error";
-        message = "File already exists";
-    }
     if (err.message === "mime") {
         title = "Unsupported mime type";
         message = "File must be either an image, video, audio or GLB model";

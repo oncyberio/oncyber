@@ -118,8 +118,10 @@ export function AddUpload({
         // Dedupe by hash so re-uploading an existing file just moves it to top.
         userUploads.mutate((current: UserAsseUpload[] = []) => {
             const without = current.filter((it) => it.hash !== hash);
+            // A reused file keeps the name it already has in the library.
+            const known = current.find((it) => it.hash === hash);
             const entry = {
-                name,
+                name: known?.name ?? name,
                 hash,
                 url,
                 mimeType,

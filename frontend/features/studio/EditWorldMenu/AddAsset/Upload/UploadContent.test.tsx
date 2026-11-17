@@ -38,7 +38,6 @@ beforeEach(() => {
 });
 
 it.each([
-    ["exists", "You have already uploaded this file.", false],
     ["mime", "This kind of file can't be added.", false],
     ["size-limit", "This file is too large.", false],
     ["network", "Couldn't upload the file.", true],
@@ -103,6 +102,26 @@ it("offers no Retry when the file itself is the problem", async () => {
     );
     expect(alert.querySelector("button")).toBeNull();
     expect(mockSaveUpload).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+});
+
+it("reuses a file that is already uploaded instead of failing", async () => {
+    const file = new File(["png"], "cat.png", { type: "image/png" });
+    const existing = {
+        exists: true,
+        url: "https://cdn/cat.png",
+        name: "cat.png",
+        hash: "h",
+        mimeType: "image/png",
+    };
+    mockSaveUpload.mockResolvedValueOnce(existing);
+
+    const { host, root, finished, choose } = mount();
+    await choose(file);
+
+    expect(finished).toHaveBeenCalledWith(existing);
+    expect(host.querySelector('[role="alert"]')).toBeNull();
 
     act(() => root.unmount());
 });
