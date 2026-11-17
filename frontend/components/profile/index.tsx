@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import Head from "next/head";
-import { siteUrl } from "@utils/siteUrl";
+import { searchUrl } from "@utils/siteUrl";
 import styled, { css } from "styled-components";
 import Navigation from "../nav/main";
 import { FollowButton, FollowingList } from "./components/Following";
@@ -33,7 +33,7 @@ function ProfileHead({ userData }) {
         : `${userData.id.slice(0, 6)}…${userData.id.slice(-4)}`;
     const title = `${name} on oncyber`;
     const description = `3D spaces and NFTs by ${name} on oncyber.`;
-    const url = siteUrl(`/@${handle}`);
+    const url = searchUrl(`/@${handle}`);
     return (
         <Head>
             <title key="title">{title}</title>

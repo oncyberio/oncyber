@@ -24,13 +24,52 @@ export function siteUrl(path = "/"): string {
     return SITE_ORIGIN + (path.startsWith("/") ? path : `/${path}`);
 }
 
+/**
+ * The origin search engines should credit, without a trailing slash. Set
+ * NEXT_PUBLIC_SEARCH_ORIGIN when the site answers on more than one domain
+ * and results should keep showing one of them; every domain then names that
+ * one as the original. Unset, it is the site's own origin.
+ */
+export function searchOrigin(
+    value = process.env.NEXT_PUBLIC_SEARCH_ORIGIN
+): string {
+    const raw = (value || "").trim().replace(/\/+$/, "");
+    if (!raw) return SITE_ORIGIN;
+    try {
+        const url = new URL(raw);
+        return url.protocol === "https:" || url.protocol === "http:"
+            ? url.origin
+            : SITE_ORIGIN;
+    } catch {
+        return SITE_ORIGIN;
+    }
+}
+
+export const SEARCH_ORIGIN = searchOrigin();
+
+/**
+ * The address of a page for search engines and link previews (the canonical
+ * link, og:url, the sitemap): the same path on SEARCH_ORIGIN.
+ */
+export function searchUrl(path = "/"): string {
+    return SEARCH_ORIGIN + (path.startsWith("/") ? path : `/${path}`);
+}
+
+/** The path of a space: its custom link when it has one. */
+export function spacePath(space: {
+    id?: string;
+    info?: { customLink?: string | null };
+}): string {
+    const slug = space?.info?.customLink;
+    return slug ? `/${slug}` : `/spaces/${space?.id}`;
+}
+
 /** The public link to a space: its custom link when it has one. */
 export function spaceUrl(space: {
     id?: string;
     info?: { customLink?: string | null };
 }): string {
-    const slug = space?.info?.customLink;
-    return siteUrl(slug ? `/${slug}` : `/spaces/${space?.id}`);
+    return siteUrl(spacePath(space));
 }
 
 // Every domain the site has answered on. Links people saved or pasted from
