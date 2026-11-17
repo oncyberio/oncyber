@@ -24,6 +24,7 @@ import {
     readLobbyKeyboard,
 } from "./lobbyControls";
 import React, { useEffect, useRef } from "react";
+import { createFrameCap, maxFrameRateFromSearch } from "@utils/frameCap";
 import type * as THREE from "three";
 
 import type { createAvatar as NativeAvatarFactory } from "./webgpu/avatarAdapter";
@@ -337,6 +338,9 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 const nativePixelRatio = Math.min(
                     window.devicePixelRatio || 1,
                     2
+                );
+                const frameCap = createFrameCap(
+                    maxFrameRateFromSearch(window.location.search)
                 );
                 let supersampled = true;
                 let supersampleCheck = 0;
@@ -979,6 +983,16 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                   !request.signal.aborted
                           ).length
                         : activeLoads;
+                    // Your party's full avatars go ahead of the crowd's, on
+                    // slots of their own, so they are ready before a trip.
+                    if (!allowed)
+                        for (const [visitor, load] of remoteQueue) {
+                            if (!visitor.cinematic) continue;
+                            if (running >= limit + 4) break;
+                            remoteQueue.delete(visitor);
+                            load();
+                            running++;
+                        }
                     for (const [visitor, load] of remoteQueue) {
                         if (running >= limit) break;
                         if (
@@ -1411,8 +1425,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         self.model &&
                         budget.maxLabels > 0 &&
                         latest.current.selfName &&
-                        !travel &&
-                        !group &&
+                        // Shown through a trip too, like everyone else's
+                        // in the line; only the world reveal hides it.
                         !preview &&
                         !latest.current.avatarPreview &&
                         self.group.visible &&
@@ -1544,7 +1558,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         const cinematic =
                             (allowed?.has(participant.id) ||
                                 latest.current.travelPartyIds
-                                    ?.slice(0, 8)
+                                    // Parties hold 8; staged recording crowds bring up to 16.
+                                    ?.slice(0, 16)
                                     .includes(participant.id)) &&
                             travel?.phase !== "return";
                         // Until their own avatar is ready, they stand in the
@@ -1789,6 +1804,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             avatar.model &&
                             index < budget.maxLabels &&
                             distanceSq < 900 &&
+                            // Not while they shrink away to join the line.
+                            avatar.group.scale.x > 0.5 &&
                             !speechBubbles.speaking(participant.id)
                         )
                             nameTags?.show(
@@ -2068,6 +2085,12 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         else if (transitionTimings?.finish())
                             publishTransitionTimings(time, true);
                         clearInput();
+                        return;
+                    }
+                    // 60 frames a second at most on fast displays (?fps=N
+                    // overrides): half the GPU work on a 120 Hz screen
+                    if (!frameCap.shouldDraw(time)) {
+                        frame = requestAnimationFrame(render);
                         return;
                     }
                     const delta = lastTime

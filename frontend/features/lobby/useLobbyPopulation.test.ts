@@ -1,3 +1,4 @@
+/** @jest-environment jsdom */
 import { fetchLobbyPopulation } from "./useLobbyPopulation";
 import { selectLobbyEndpoint } from "./lobbyEndpoints";
 
@@ -30,4 +31,22 @@ test("regional world servers report population on health", async () => {
     (selectLobbyEndpoint as jest.Mock).mockResolvedValue({ id: "eu", httpUrl: "https://eu", protocol: 2 });
     (fetch as jest.Mock).mockReturnValue(json({ lobbyProtocol: 2, population: 41 }));
     expect(await fetchLobbyPopulation(new AbortController().signal)).toBe(41);
+});
+
+test("the landing count includes a staged recording crowd", async () => {
+    const React = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const { useLobbyPopulation } = await import("./useLobbyPopulation");
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    window.history.replaceState(null, "", "/?crowd=40");
+    let seen: number | null = null;
+    const Probe = () => {
+        seen = useLobbyPopulation(false);
+        return null;
+    };
+    const root = createRoot(document.createElement("div"));
+    await React.act(async () => root.render(React.createElement(Probe)));
+    expect(seen).toBe(40);
+    React.act(() => root.unmount());
+    window.history.replaceState(null, "", "/");
 });

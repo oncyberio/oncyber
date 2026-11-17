@@ -150,6 +150,21 @@ export function createNativeLobbyDeparture(
                             throw new Error(
                                 "The world's scene is not ready for departure."
                             );
+                        // Recording: the staged friends line up beside you
+                        // first, in the places the lobby shows them on return.
+                        const lineYaw =
+                            player.rotation.y +
+                            nativeTravelAvatarYawOffset(player.avatar3D);
+                        const lineUp = (window as any)
+                            .__oncyberRecordingLineUp as
+                            | ((yaw: number, snap?: boolean) => boolean)
+                            | undefined;
+                        if (lineUp?.(lineYaw)) {
+                            await new Promise((done) => setTimeout(done, 900));
+                            if (disposed)
+                                throw new Error("Departure cancelled.");
+                            lineUp(lineYaw, true);
+                        }
                         capturedScene = Root.currentSpace.scene;
                         tripMark("depart:start");
                         const controls: any = Camera.currentControls;

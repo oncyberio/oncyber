@@ -48,12 +48,15 @@ function backend() {
         stats: () => ({ draws: 0, triangles: 0 }),
     } as unknown as LobbySceneBackend;
 }
+let frameTime = 0;
 async function frame(count = 1) {
     for (let index = 0; index < count; index++)
         await act(async () => {
             const pending = frames;
             frames = [];
-            pending.forEach((callback) => callback(performance.now()));
+            // A display refresh apart, so the 60 fps cap draws each one.
+            frameTime = Math.max(frameTime + 20, performance.now());
+            pending.forEach((callback) => callback(frameTime));
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
 }

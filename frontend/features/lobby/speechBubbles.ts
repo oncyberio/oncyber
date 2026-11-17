@@ -70,7 +70,7 @@ type Projector = (point: Point) => {
 // The name tag's own measures (webgpu/nameTags.ts), so the line can stand
 // exactly where the tag was: text height in metres, then sizes in ems of it.
 const TAG_FONT_METRES = 0.081;
-const PHOTO_EM = 1.9;
+const PHOTO_EM = 1.9 * 0.85; // webgpu/nameTags.ts TAG_PHOTO_SCALE
 const GAP_EM = 0.37;
 const BASE_PX = 16;
 /** A message never gets smaller than this, however far the speaker is. */

@@ -27,6 +27,32 @@ export function ownedFirst(owned: LobbyAvatarChoice[], catalog: LobbyAvatarChoic
     });
 }
 
+/** Every VRM a wallet holds on one chain, page by page, until `active()` turns false. */
+export async function discoverWalletAvatars(
+    chain: "eth" | "polygon",
+    wallet: string,
+    append: (items: LobbyAvatarChoice[]) => void,
+    active: () => boolean = () => true
+) {
+    const [{ getVrmNftClient }, { default: partners }] = await Promise.all([import("@utils/vrmNftClient"), import("@utils/vrmPartners")]);
+    const client = await getVrmNftClient(chain);
+    const seen = new Set<string>();
+    let pageKey: string | undefined;
+    do {
+        if (!active()) return;
+        const page = await client.alchemy.getNfts({ owner: wallet, withMetadata: true, ...(pageKey ? { pageKey } : {}) });
+        if (!active()) return;
+        append((page.ownedNfts || []).map((item) => {
+            const partner = partners[item.contract?.address?.toLowerCase()]?.(item);
+            // NFT ids are objects; use the model URL for a stable choice id.
+            return ownedAvatarChoice({ metadata: (partner || item).metadata });
+        }).filter(Boolean));
+        pageKey = page.pageKey;
+        if (seen.has(pageKey)) break;
+        seen.add(pageKey);
+    } while (pageKey);
+}
+
 /** Use the same authenticated uploads and NFT metadata sources as the world picker. */
 export default function useOwnedLobbyAvatars(accountKey: string, wallets: string[], open: boolean) {
     const [state, setState] = useState<{ key: string; items: LobbyAvatarChoice[]; loading: boolean; error: string }>({ key: "", items: [], loading: false, error: "" });
@@ -45,25 +71,8 @@ export default function useOwnedLobbyAvatars(accountKey: string, wallets: string
             const entries = await api.getVrms({});
             append((entries || []).map(ownedAvatarChoice).filter(Boolean));
         };
-        const discover = async (chain: "eth" | "polygon", wallet: string) => {
-            const [{ getVrmNftClient }, { default: partners }] = await Promise.all([import("@utils/vrmNftClient"), import("@utils/vrmPartners")]);
-            const client = await getVrmNftClient(chain);
-            const seen = new Set<string>();
-            let pageKey: string | undefined;
-            do {
-                if (!active()) return;
-                const page = await client.alchemy.getNfts({ owner: wallet, withMetadata: true, ...(pageKey ? { pageKey } : {}) });
-                if (!active()) return;
-                append((page.ownedNfts || []).map((item) => {
-                    const partner = partners[item.contract?.address?.toLowerCase()]?.(item);
-                    // NFT ids are objects; use the model URL for a stable choice id.
-                    return ownedAvatarChoice({ metadata: (partner || item).metadata });
-                }).filter(Boolean));
-                pageKey = page.pageKey;
-                if (seen.has(pageKey)) break;
-                seen.add(pageKey);
-            } while (pageKey);
-        };
+        const discover = (chain: "eth" | "polygon", wallet: string) =>
+            discoverWalletAvatars(chain, wallet, append, active);
         void Promise.allSettled([uploaded(), ...walletKey.split(",").filter(Boolean).flatMap((wallet) => [discover("eth", wallet), discover("polygon", wallet)])]).then((results) => {
             if (active()) setState((previous) => ({ ...previous, loading: false, error: results.some((result) => result.status === "rejected") ? "Some owned avatars couldn’t load. Reopen to retry." : "" }));
         });

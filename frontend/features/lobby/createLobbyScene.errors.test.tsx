@@ -75,13 +75,16 @@ async function mount(
     await render();
     return render;
 }
+let frameTime = performance.now();
 /** Runs the frames the scene has asked for, then lets avatar loads settle. */
 async function frame(count = 1) {
     for (let index = 0; index < count; index++)
         await act(async () => {
             const pending = frames;
             frames = [];
-            pending.forEach((callback) => callback(performance.now()));
+            // A display refresh apart, so the 60 fps cap draws each one.
+            frameTime += 20;
+            pending.forEach((callback) => callback(frameTime));
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
 }
