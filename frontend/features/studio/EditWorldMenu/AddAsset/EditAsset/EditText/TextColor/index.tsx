@@ -93,7 +93,7 @@ const Swatch = styled.button`
     }
 
     @media (max-width: 600px) {
-        height: 36px;
+        height: 40px;
     }
 `;
 
@@ -136,6 +136,6 @@ const CustomColor = styled.label<{ $selected: boolean }>`
     }
 
     @media (max-width: 600px) {
-        height: 36px;
+        height: 40px;
     }
 `;

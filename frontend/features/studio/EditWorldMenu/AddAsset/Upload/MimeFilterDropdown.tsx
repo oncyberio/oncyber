@@ -59,6 +59,9 @@ const Filter = styled.div`
     & > select {
         appearance: none;
         min-height: 36px;
+        @media (max-width: 600px) {
+            min-height: 40px;
+        }
         padding: 5px 25px 5px 10px;
         border: 1px solid var(--studio-line);
         border-radius: var(--studio-radius-control);

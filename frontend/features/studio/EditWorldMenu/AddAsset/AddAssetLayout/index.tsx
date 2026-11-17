@@ -188,9 +188,9 @@ const Container = styled.div`
         & > .header {
             padding: 8px 18px;
             .heading .close {
-                width: 36px;
-                height: 36px;
-                min-height: 36px;
+                width: 40px;
+                height: 40px;
+                min-height: 40px;
             }
         }
         & > .body {

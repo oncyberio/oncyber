@@ -96,15 +96,18 @@ export function EditComponent() {
             }
         >
             {/* <pre>{JSON.stringify(element.data, null, 4)}</pre> */}
-            {element &&
-                ElementGui.render({
-                    source: element,
-                    undoManager: editorService,
-                    autoUndo: false,
-                    title: `Edit ${element.data.type}`,
-                    embedded: true,
-                    // info,
-                })}
+            {element && (
+                <div className="cl-gui">
+                    {ElementGui.render({
+                        source: element,
+                        undoManager: editorService,
+                        autoUndo: false,
+                        title: `Edit ${element.data.type}`,
+                        embedded: true,
+                        // info,
+                    })}
+                </div>
+            )}
             {/* <pre>{JSON.stringify(toXYZ(element.position), null, 4)}</pre> */}
         </EditComponentLayout>
     );

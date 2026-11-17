@@ -36,9 +36,9 @@ export const ToolbarButton = styled.button.attrs({ type: "button" })<{
             color: var(--studio-ink, #f2f2f3);
         `}
     @media (max-width: 600px) {
-        width: ${(props) => (props.hasLabel ? "auto" : "36px")};
-        height: 36px;
-        min-height: 36px;
+        width: ${(props) => (props.hasLabel ? "auto" : "40px")};
+        height: 40px;
+        min-height: 40px;
     }
     ${(props) =>
         props.$primary &&

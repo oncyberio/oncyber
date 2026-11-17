@@ -49,6 +49,8 @@ export function ToggleMapControls() {
         <Container isToggling={isToggling}>
             <div
                 className={classes({ btn: true, active: !isEnabled })}
+                role="button"
+                aria-pressed={!isEnabled}
                 onClick={handleClick}
             >
                 <IconImg className="tmc-icon" name="map-view" size={20} />
@@ -56,6 +58,8 @@ export function ToggleMapControls() {
             </div>
             <div
                 className={classes({ btn: true, active: isEnabled })}
+                role="button"
+                aria-pressed={!!isEnabled}
                 onClick={() => handleClick(false)}
             >
                 <IconImg
@@ -119,20 +123,43 @@ const Container = styled.div<{ isToggling: boolean }>`
             filter: invert(0);
         }
     }
+    /* Phones: an icon-only switch under the world contents button, the
+       same 40px size as the toolbar. */
     @media (max-width: 600px) {
-        bottom: 72px;
-        right: 8px;
+        top: 124px;
+        right: 12px;
+        bottom: auto;
         z-index: 1;
+        flex-direction: column;
+        gap: 0;
+        border: 1px solid var(--studio-line, #303035);
+        border-radius: 12px;
+        background: var(--studio-surface, #1c1c1f);
+        overflow: hidden;
 
         & > .btn {
-            width: 64px;
-            padding: 8px 6px;
-            border-radius: 10px;
-            font-size: 9px;
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+            background: transparent;
+            justify-content: center;
+
+            & > span {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+            }
+        }
+        & > .btn.active {
+            box-shadow: none;
         }
         & .tmc-icon {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
     }
 `;

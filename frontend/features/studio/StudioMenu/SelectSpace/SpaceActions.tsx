@@ -63,6 +63,16 @@ const Caption = styled.div`
     border-radius: 50%;
     padding: 2px;
     cursor: pointer;
+    @media (max-width: 600px) {
+        display: grid;
+        place-items: center;
+        /* A 32px circle inside a 40px tap target. */
+        box-sizing: border-box;
+        width: 40px;
+        height: 40px;
+        padding: 4px;
+        background-clip: content-box;
+    }
 `;
 
 const Dropdown = styled.div`
@@ -76,6 +86,19 @@ const Dropdown = styled.div`
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+
+    @media (max-width: 600px) {
+        min-width: 180px;
+        padding: 4px;
+        gap: 0;
+        & > .cmd {
+            width: 100%;
+            min-height: 44px;
+            padding: 0 12px;
+            font-size: 14px;
+            text-align: left;
+        }
+    }
 
     & > .cmd {
         background: none;

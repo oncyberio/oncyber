@@ -246,6 +246,10 @@ const Container = styled.div`
             width: 100%;
             height: 36px;
             min-height: 36px;
+            @media (max-width: 600px) {
+                min-height: 40px;
+                height: 40px;
+            }
             background: var(--studio-inset);
             border-color: var(--studio-line);
             font-size: 12px;
