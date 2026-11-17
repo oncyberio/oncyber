@@ -37,11 +37,6 @@ export function uploadFailure(err: Error): {
     canRetry: boolean;
 } {
     switch (err?.message) {
-        case "exists":
-            return {
-                message: "You have already uploaded this file.",
-                canRetry: false,
-            };
         case "mime":
             return {
                 message:
@@ -149,16 +144,17 @@ export function UploadAsset({ onUploadFinished }: UploadAssetProps) {
                 },
             });
 
-            if (result.exists) {
-                throw new Error("exists");
-            }
-
+            // A file already in the library is reused as it is: it moves to
+            // the top of the uploads list instead of failing.
             onUploadFinished(result);
 
-            amplitude_logAnalyticsEvent("upload_custom_asset", {
-                ...baseAnalyticsEvent,
-                type: mime,
-            });
+            amplitude_logAnalyticsEvent(
+                result.exists ? "reuse_custom_asset" : "upload_custom_asset",
+                {
+                    ...baseAnalyticsEvent,
+                    type: mime,
+                }
+            );
 
             //
         } catch (e) {

@@ -50,7 +50,6 @@ export class RemoteUploader {
     }) {
         //
 
-
         let { file, mime, token, onProgress } = opts;
 
         checkUploadLimit(opts);
@@ -73,7 +72,7 @@ export class RemoteUploader {
                 d_optimized_files: existingUpload.d_optimized_files,
                 name: file.name,
                 hash: hashHex,
-                mimeType: mime,
+                mimeType: existingUpload.mimeType ?? mime,
             };
         }
 
