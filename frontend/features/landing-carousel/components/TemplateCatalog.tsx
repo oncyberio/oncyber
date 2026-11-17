@@ -19,7 +19,11 @@ import { LandingCard } from "../types";
 import { createEmptySpace } from "@features/spaces/create/utils";
 
 import type { TemplateCategory } from "../templateSearch";
-import { createTemplateCards, templateCover } from "../templateCards";
+import {
+    createTemplateCards,
+    isKitRoom,
+    templateCover,
+} from "../templateCards";
 import useTemplateRefresh from "../hooks/useTemplateRefresh";
 import { useCyberTranslation } from "@components/context/I18nContext";
 type CatalogProps = {
@@ -64,9 +68,10 @@ export default function TemplateCatalog(props: CatalogProps) {
     return (
         <RoomsProvider
             context="template"
+            withKits
             onCreateSpace={openStudio}
-            onCreateEmptyStudioSpace={async () =>
-                openStudio(await createEmptySpace(user?.id, token))
+            onCreateEmptyStudioSpace={async (kit?: string) =>
+                openStudio(await createEmptySpace(user?.id, token, kit))
             }
         >
             <Catalog {...props} />
@@ -141,6 +146,7 @@ function Catalog({ onChange, query, category, active }: CatalogProps) {
         setError("");
         try {
             if (card.id === "template-blank") await onCreateEmptyStudioSpace();
+            else if (isKitRoom(room)) await onCreateEmptyStudioSpace(room.slug);
             else if (!(await handleCreateSpace(room)))
                 throw new Error(
                     "Could not open this template. Please try again."

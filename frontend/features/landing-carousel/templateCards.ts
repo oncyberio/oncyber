@@ -27,7 +27,15 @@ export function templateCover(room?: Parameters<typeof destinationCover>[0]) {
     return cover && cardImage(cover);
 }
 
-/** One gallery catalog: usable rooms and a blank canvas, then collectibles. */
+/** A build-from-scratch kit: it opens the empty void with its pieces. */
+export function isKitRoom(room?: { params?: { isFuture?: boolean } }) {
+    return room?.params?.isFuture === true;
+}
+
+/**
+ * One gallery catalog: usable rooms, a blank canvas, the build-from-scratch
+ * kits, then collectibles.
+ */
 export function createTemplateCards(
     groups: {
         owned: Destination[];
@@ -78,6 +86,11 @@ export function createTemplateCards(
             portrait: false,
         };
     };
+    const kitCard = (room: Destination): LandingCard => ({
+        ...roomCard(room),
+        buildStatus: "Build with this kit",
+        actionLabel: `Build with the ${room.name} kit`,
+    });
     const starters: LandingCard[] = [
         {
             ...BUILD_CARDS[0],
@@ -90,8 +103,9 @@ export function createTemplateCards(
             description: "Build your own space in Studio.",
         },
     ];
+    const templates = available.filter((room) => !isKitRoom(room));
     return [
-        ...available
+        ...templates
             .filter((room) => !collectible.has(room.slug))
             .map(roomCard),
         ...(category === "all" || category === "free"
@@ -99,6 +113,7 @@ export function createTemplateCards(
                   matchesTemplate(query, card.title, card.description)
               )
             : []),
-        ...available.filter((room) => collectible.has(room.slug)).map(roomCard),
+        ...available.filter(isKitRoom).map(kitCard),
+        ...templates.filter((room) => collectible.has(room.slug)).map(roomCard),
     ];
 }

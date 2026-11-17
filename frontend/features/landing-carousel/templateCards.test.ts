@@ -143,3 +143,24 @@ it("asks Pinata for card-sized WebP covers", () => {
     expect(url.searchParams.get("img-format")).toBe("webp");
     expect(templateCover(pinned)).toBe(card.imageUrls[0]);
 });
+it("lists build-from-scratch kits right after the blank canvas", () => {
+    const kit = {
+        ...room("brutalist-kit", ["free"]),
+        params: { isFuture: true },
+    } as Destination;
+    const cards = createTemplateCards(
+        { ...groups, owned: [warehouse, kit, owned] },
+        { mine: true },
+        "",
+        "all"
+    );
+    expect(cards.map((card) => card.id)).toEqual([
+        "template-cyberwarehouse",
+        "template-mine",
+        "template-upload",
+        "template-blank",
+        "template-brutalist-kit",
+        "template-space-pod",
+    ]);
+    expect(cards[4].buildStatus).toBe("Build with this kit");
+});
