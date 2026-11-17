@@ -116,7 +116,10 @@ export function AddUpload({
         // Insert the new upload into the cached list instead of re-reading the
         // whole library (which cost up to MAX_UPLOADS doc reads on every upload).
         // Dedupe by hash so re-uploading an existing file just moves it to top.
-        userUploads.mutate((current: UserAsseUpload[] = []) => {
+        userUploads.mutate((current: UserAsseUpload[]) => {
+            // Library not loaded yet: leave it to the first fetch, which
+            // includes this upload, rather than caching a one-item list.
+            if (!current) return current;
             const without = current.filter((it) => it.hash !== hash);
             // A reused file keeps the name it already has in the library.
             const known = current.find((it) => it.hash === hash);
