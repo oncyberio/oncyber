@@ -55,7 +55,8 @@ A game loaded from a hosted release gets the same policy from the
 release's host, built from the `network.json` inside the release; a host
 that does not send it is never pointed at, and the check's hosted stage
 runs the game under it ([releases.md](releases.md), "What a host must
-send").
+send"). For a release on IPFS that host is the site's own releases route,
+which reads the release from its gateway and adds the policy.
 
 The policy covers the whole check, not only the scenario: every stage's
 server serves the game's files with it and every browser a stage opens is
