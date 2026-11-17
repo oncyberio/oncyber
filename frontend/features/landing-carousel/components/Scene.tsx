@@ -548,8 +548,8 @@ export default function Scene({
             );
             if (animating) invalidate();
             const left = corner(progress);
-            // A section's filters follow its label and take their room
-            // from the labels after it, for as long as they are open.
+            // A section's filters: a column in the margin beside its first
+            // card, or one menu after its label where there is no margin.
             const filter = filterRef.current;
             const filterIndex = filter
                 ? sections.findIndex(
@@ -557,47 +557,35 @@ export default function Scene({
                   )
                 : -1;
             let filterPlace: ReturnType<typeof placeFilter> = null;
-            let filterWidth = 0;
+            let menuWidth = 0;
             if (filterIndex >= 0) {
                 const [list, menu] = Array.from(
                     filter.children
                 ) as HTMLElement[];
-                const label = switchItems.current[filterIndex]?.offsetWidth;
-                const start = left.x + (label || 0) + SWITCH_GAP;
-                const others = sections.reduce(
-                    (width, _section, index) =>
-                        index === filterIndex
-                            ? width
-                            : width +
-                              SWITCH_GAP +
-                              (switchItems.current[index]?.offsetWidth || 0),
-                    0
-                );
-                // The list is measured even while the menu stands in for it.
-                const compact =
-                    start + list.scrollWidth + others >
-                    corner(progress + columns).x;
-                filter.dataset.compact = String(compact);
-                filterWidth = compact ? menu.offsetWidth : list.scrollWidth;
                 // Where "create" and the view controls line up.
                 const edge =
                     window.innerWidth * 0.07 -
                     (filter.offsetParent?.getBoundingClientRect().left || 0);
+                // The list is measured even while the menu stands in for it.
+                const compact = edge + list.offsetWidth + SWITCH_GAP > left.x;
+                filter.dataset.compact = String(compact);
+                menuWidth = compact ? menu.offsetWidth : 0;
+                const start = sections[filterIndex].column;
                 filterPlace = placeFilter({
-                    scrolled: progress - sections[filterIndex].column,
-                    start,
+                    scrolled: progress - start,
+                    span:
+                        (sections[filterIndex + 1]?.column ??
+                            layout.columnCount) - start,
+                    left: left.x,
                     edge,
-                    handover:
-                        !compact &&
-                        edge + menu.offsetWidth + SWITCH_GAP <= left.x,
+                    width: list.offsetWidth,
                 });
             }
             const items: SwitchItem[] = sections.map(({ column }, index) => {
                 return {
                     after:
-                        index === filterIndex
-                            ? (filterWidth + SWITCH_GAP) *
-                              (1 - filterPlace.handed)
+                        index === filterIndex && menuWidth
+                            ? menuWidth + SWITCH_GAP
                             : 0,
                     width: switchItems.current[index]?.offsetWidth || 0,
                     natural: corner(column).x,
@@ -638,23 +626,19 @@ export default function Scene({
                 const [list, menu] = Array.from(
                     filter.children
                 ) as HTMLElement[];
-                const show = (
-                    element: HTMLElement,
-                    x: number,
-                    opacity: number
-                ) => {
-                    element.style.transform = `translate3d(${snap(x)}px,${snap(
-                        left.y
-                    )}px,0) translateY(-100%)`;
-                    element.style.opacity = String(opacity);
-                    element.style.visibility =
-                        opacity > 0.01 ? "visible" : "hidden";
-                };
-                const compact = filter.dataset.compact === "true";
-                show(list, filterPlace.list.x, filterPlace.list.opacity);
-                // With no room for the list, the menu takes its place.
-                if (compact) show(menu, filterPlace.list.x, 1);
-                else show(menu, filterPlace.menu.x, filterPlace.menu.opacity);
+                // Level with the top of the cards, not with the labels.
+                list.style.transform = `translate3d(${snap(
+                    filterPlace.x
+                )}px,${snap(left.y)}px,0)`;
+                list.style.opacity = String(filterPlace.opacity);
+                list.style.visibility =
+                    filterPlace.opacity > 0.01 ? "visible" : "hidden";
+                menu.style.transform = `translate3d(${snap(
+                    left.x +
+                        (switchItems.current[filterIndex]?.offsetWidth || 0) +
+                        SWITCH_GAP
+                )}px,${snap(left.y)}px,0) translateY(-100%)`;
+                menu.style.visibility = "visible";
             }
             placed.forEach((item, index) => {
                 const element = switchItems.current[index];
@@ -1572,13 +1556,19 @@ const SectionSwitch = styled.div`
         color: var(--oc-muted);
         font-variant-numeric: tabular-nums;
     }
-    /* Filters belong to one section: a size under the section labels. */
+    /* Filters belong to one section: a size under the section labels,
+       stacked in the margin beside its first card. */
     .filter-list {
         display: flex;
-        gap: 14px;
+        flex-direction: column;
+        align-items: flex-start;
     }
     .filter-list .switch-item {
         position: relative;
+        padding: 4px 0;
+    }
+    .filter-list .switch-item::before {
+        inset: 0 -10px;
     }
     .switch-filter .switch-item,
     .filter-menu select {
@@ -1618,12 +1608,16 @@ const SectionSwitch = styled.div`
         pointer-events: none;
     }
     /* The list where the line has room for it, one menu where it has not. */
+    /* The list where the page has a margin for it, one menu where not. */
     .switch-filter[data-compact="true"] .filter-list {
         /* Still laid out, so its width can be measured. */
         visibility: hidden !important;
     }
     .switch-filter[data-compact="true"] .filter-list .switch-item {
         pointer-events: none;
+    }
+    .switch-filter:not([data-compact="true"]) .filter-menu {
+        display: none;
     }
 `;
 const EdgeFade = styled.div<{ $right?: boolean }>`
