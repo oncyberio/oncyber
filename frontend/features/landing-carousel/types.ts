@@ -50,4 +50,9 @@ export interface LandingPageProps {
     /** Feed opened by a URL without a category (staff picks once there are 5+). */
     defaultCategory?: FeedCategory;
     initialError: boolean;
+    /**
+     * Set when the page answers a link that found nothing (status 404): the
+     * words read from that link, which prefill the search.
+     */
+    notFound?: { query: string };
 }

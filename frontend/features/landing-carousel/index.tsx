@@ -29,6 +29,7 @@ import { GLASSES_ICON_URL } from "./glassesIcon";
 import LoadingGrid from "./components/LoadingGrid";
 import { CoverImage } from "./components/ExperienceCard";
 import { LandingPageProps } from "./types";
+import { NOT_FOUND_CARD_ID, notFoundCard } from "./notFound";
 import { setDefaultFeedCategory } from "./data";
 import useDiscovery from "./hooks/useDiscovery";
 import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
@@ -335,6 +336,11 @@ function LandingContent(props: LandingPageProps) {
         goToStep(creationToggleStep(step));
     }, [step, goToStep]);
     const activateCard = (card: LandingCard) => {
+        if (card.id === NOT_FOUND_CARD_ID) {
+            if (props.notFound?.query)
+                searchWorlds({ q: props.notFound.query });
+            return true;
+        }
         if (card.id.startsWith("template-")) {
             templates?.open(card);
             return true;
@@ -362,12 +368,24 @@ function LandingContent(props: LandingPageProps) {
         document.addEventListener("keydown", closeEmptyGallery);
         return () => document.removeEventListener("keydown", closeEmptyGallery);
     }, [templateEmpty, toggleCreate]);
+    // A link that found nothing: its card leads the staff picks until the
+    // visitor searches or filters.
+    const notFound = props.notFound;
+    const exploreCards =
+        notFound &&
+        !filters.q.trim() &&
+        !filters.owner.trim() &&
+        !filters.chain &&
+        !filters.collection.trim() &&
+        cards.length
+            ? [notFoundCard(notFound.query), ...cards]
+            : cards;
     const gridCards =
         step === "gallery"
             ? templates?.cards.length
                 ? templates.cards
                 : TEMPLATE_LOADING_CARDS
-            : cards;
+            : exploreCards;
     const showGrid = !templateEmpty && (creating || cards.length > 0);
     const retainedGridCards = useRef(gridCards);
     if (showGrid) retainedGridCards.current = gridCards;
@@ -648,6 +666,7 @@ function LandingContent(props: LandingPageProps) {
                 <BottomSearch
                     scope={templateContext ? "templates" : "worlds"}
                     value={templateContext ? templateQuery : filters.q}
+                    defaultQuery={templateContext ? "" : props.notFound?.query}
                     onChange={
                         templateContext ? undefined : (q) => searchWorlds({ q })
                     }

@@ -4,18 +4,29 @@ import Icon from "./Icon";
 
 export default function BottomSearch({
     value,
+    defaultQuery = "",
     onSearch,
     onChange,
     scope = "worlds",
 }: {
     value: string;
+    /** Text shown before anything is searched (the words of a missing link). */
+    defaultQuery?: string;
     scope?: "worlds" | "templates" | "destinations" | "game" | "gaussian";
     onSearch: (query: string) => void;
     onChange?: (query: string) => void;
 }) {
-    const [query, setQuery] = useState(value);
+    const [query, setQuery] = useState(value || defaultQuery);
     const inputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => setQuery(value), [value, scope]);
+    const mounted = useRef(false);
+    useEffect(() => {
+        // The first run would only clear the default text.
+        if (!mounted.current) {
+            mounted.current = true;
+            if (!value) return;
+        }
+        setQuery(value);
+    }, [value, scope]);
     const templates = scope === "templates";
     const destinations = scope === "destinations";
     const creating = scope === "game" || scope === "gaussian";
