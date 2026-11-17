@@ -20,6 +20,7 @@ avatar, friends and voice as they travel between spaces.
 | `cloud-functions/functions/`    | Firebase functions: 3D asset and avatar optimization, IPFS uploads                             | its own `npm ci`              |
 | `cloud-functions/artist-index/` | Firebase functions: artist search index                                                        | its own `npm ci`              |
 | `games/`                        | Games (plain three.js) and their lifecycle runtime, hidden at launch; see `docs/games.md`      | per game (`npm ci`)           |
+| `games/cli/`                    | The `oncyber` command: build, check and publish a game outside this repository                 | none (`npm pack` to install)  |
 | `scripts/`                      | Maintenance and content tools (gallery CDN, museum media, world CLI)                           | per script                    |
 | `tasks/`                        | Standalone asset tools (VRM resize, texture compression, FBX to VRM animation, camera splines) | per tool                      |
 | `docs/`                         | Architecture notes, brand guide, measurements and plans                                        |                               |
@@ -104,6 +105,7 @@ pnpm -C frontend check:tokens                   # interface colours come from th
 pnpm -C frontend build                          # production build (needs NEXT_PUBLIC_FIREBASE_*)
 pnpm -C frontend find:unused                    # files and packages nothing uses (knip)
 npm --prefix multiplayer test                   # multiplayer (mocha)
+pnpm games:cli:test                             # the oncyber command (games/cli)
 pnpm format:all                                 # Prettier
 ```
 

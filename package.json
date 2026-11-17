@@ -25,6 +25,7 @@
         "games:credits": "node scripts/games/credits.mjs",
         "games:release": "node scripts/games/releases/cli.mjs",
         "games:release:test": "node --experimental-strip-types --test scripts/games/releases/test/*.test.mjs",
+        "games:cli:test": "node --experimental-strip-types --test games/cli/test/*.test.mjs",
         "prepare": "husky install"
     },
     "repository": {
