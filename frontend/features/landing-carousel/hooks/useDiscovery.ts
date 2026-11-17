@@ -36,6 +36,10 @@ export default function useDiscovery(
     { syncUrl = true, fetchOnMount = false }: DiscoveryOptions = {}
 ) {
     const router = useRouter();
+    // The address the page was served at. Its filters are the server's, which
+    // can hold more than the URL: a link that found nothing searches for its
+    // own words ("/frahm-genesis" opens searching "frahm genesis").
+    const servedPath = useRef(router.asPath);
     const [filters, setFilters] = useState(initialFilters);
     const [cards, setCards] = useState(initialFeed.cards);
     const [cardsKey, setCardsKey] = useState("");
@@ -224,7 +228,10 @@ export default function useDiscovery(
             return;
         }
         if (!router.isReady) return;
-        const next = parseFilters(router.query);
+        const next =
+            router.asPath === servedPath.current
+                ? initialFilters
+                : parseFilters(router.query);
         // Ignore an older shallow navigation while a newer keystroke is pending.
         if (
             pendingFilters.current &&
@@ -267,6 +274,10 @@ export default function useDiscovery(
             );
             if (router.pathname.startsWith("/studio/new-"))
                 query.create = "explore";
+            // Keep a dynamic route's own parameters ("/[slug]").
+            for (const [, name] of router.pathname.matchAll(/\[([^\]]+)\]/g))
+                if (router.query[name] !== undefined)
+                    query[name] = router.query[name] as string;
             void router
                 .replace({ pathname: router.pathname, query }, undefined, {
                     shallow: true,

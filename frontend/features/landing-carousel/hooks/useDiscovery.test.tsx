@@ -631,3 +631,49 @@ describe("isolated discovery panels", () => {
         expect(mockRouter.replace).not.toHaveBeenCalled();
     });
 });
+
+describe("a link that found nothing", () => {
+    function Missing() {
+        state = useDiscovery({
+            ...props,
+            initialFeed: { cards: [], cursor: "", hasMore: false },
+            initialFilters: {
+                ...DEFAULT_FILTERS,
+                category: "most-visited",
+                q: "frahm genesis",
+            },
+        });
+        return null;
+    }
+    function openMissing() {
+        mockRouter.pathname = "/[slug]";
+        mockRouter.asPath = "/frahm-genesis";
+        mockRouter.query = { slug: "frahm-genesis" };
+        act(() => root.render(<Missing />));
+    }
+
+    it("keeps searching the link's words, which its URL does not carry", () => {
+        openMissing();
+        expect(state.filters.q).toBe("frahm genesis");
+    });
+
+    it("keeps the route's own parameter when the search changes", () => {
+        openMissing();
+        act(() => state.update({ q: "frahm" }));
+        expect(mockRouter.replace).toHaveBeenCalledWith(
+            {
+                pathname: "/[slug]",
+                query: {
+                    q: "frahm",
+                    slug: "frahm-genesis",
+                },
+            },
+            undefined,
+            { shallow: true, scroll: false }
+        );
+        mockRouter.query = { slug: "frahm-genesis", q: "frahm" };
+        mockRouter.asPath = "/frahm-genesis?q=frahm";
+        act(() => root.render(<Missing />));
+        expect(state.filters.q).toBe("frahm");
+    });
+});
