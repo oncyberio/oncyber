@@ -340,6 +340,15 @@ const nextConfig = {
             },
         ];
 
+        // The sitemap is built from the spaces (pages/api/sitemap).
+        const sitemapRewrites = [
+            { source: "/sitemap.xml", destination: "/api/sitemap" },
+            {
+                source: "/sitemaps/:name.xml",
+                destination: "/api/sitemap/:name",
+            },
+        ];
+
         // Docs as plain text for agents (see features/docs/content.ts).
         const docsRewrites = [
             { source: "/llms.txt", destination: "/api/docs/llms" },
@@ -364,6 +373,7 @@ const nextConfig = {
                         source: "/template",
                         destination: "/marketplace",
                     },
+                    ...sitemapRewrites,
                     ...docsRewrites,
                     ...posthogRewrites,
                 ],
@@ -376,6 +386,7 @@ const nextConfig = {
                 source: "/templates",
                 destination: "/marketplace",
             },
+            ...sitemapRewrites,
             ...docsRewrites,
             ...posthogRewrites,
         ];

@@ -1,5 +1,6 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
+import { siteUrl } from "@utils/siteUrl";
 import Link from "next/link";
 import styled, { css } from "styled-components";
 import {
@@ -28,7 +29,19 @@ export default function DocsPage({ doc, nav }: Props) {
     return (
         <Page>
             <Head>
-                <title>{`${doc.title} · Oncyber docs`}</title>
+                <title key="title">
+                    {doc.slug ? `${doc.title} · Oncyber docs` : "Oncyber docs"}
+                </title>
+                <link
+                    key="canonical"
+                    rel="canonical"
+                    href={siteUrl(href(doc.slug))}
+                />
+                <meta
+                    key="ogUrl"
+                    property="og:url"
+                    content={siteUrl(href(doc.slug))}
+                />
                 <meta name="description" content={doc.description} />
                 <link
                     rel="alternate"

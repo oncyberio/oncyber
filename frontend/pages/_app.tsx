@@ -39,6 +39,7 @@ import dynamic from "next/dynamic";
 
 import Iframe from "@components/layouts/iframe";
 import { isSupportedRuntime } from "@utils/runtimeKind";
+import { watchChunkErrors } from "@utils/browser/chunkReload";
 
 const AIProvider = dynamic(() => import("@features/ai/context/AIContext"));
 
@@ -52,6 +53,8 @@ const EmailAuthHandler = dynamic(
 const MyApp = ({ Component, pageProps }: AppProps) => {
     const router = useRouter();
     useEffect(() => trackExperienceNavigation(router), [router.events]);
+    // A script chunk that fails to load would leave the page blank.
+    useEffect(() => watchChunkErrors(), []);
 
     const world = useRef(null);
 
