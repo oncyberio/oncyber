@@ -1,4 +1,8 @@
-import { isChunkLoadError, reloadForChunkError } from "./chunkReload";
+import {
+    isChunkLoadError,
+    reloadForChunkError,
+    withChunkReload,
+} from "./chunkReload";
 
 const chunkError = Object.assign(
     new Error(
@@ -67,4 +71,33 @@ test("without storage it doesn't risk a loop", () => {
     } as any;
     expect(reloadForChunkError(chunkError, { storage, reload })).toBe(false);
     expect(reload).not.toHaveBeenCalled();
+});
+
+test("a sessionStorage that throws on access doesn't break the listener", () => {
+    const reload = jest.fn();
+    Object.defineProperty(globalThis, "sessionStorage", {
+        configurable: true,
+        get() {
+            throw new Error("SecurityError");
+        },
+    });
+    try {
+        expect(reloadForChunkError(new Error("unrelated"), { reload })).toBe(
+            false
+        );
+        expect(reloadForChunkError(chunkError, { reload })).toBe(false);
+        expect(reload).not.toHaveBeenCalled();
+    } finally {
+        delete (globalThis as any).sessionStorage;
+    }
+});
+
+test("a failed dynamic loader is reported, then fails as before", async () => {
+    const report = jest.fn();
+    const loader = withChunkReload(() => Promise.reject(chunkError), report);
+    await expect(loader()).rejects.toBe(chunkError);
+    expect(report).toHaveBeenCalledWith(chunkError);
+    const fine = withChunkReload(() => Promise.resolve("module"), report);
+    await expect(fine()).resolves.toBe("module");
+    expect(report).toHaveBeenCalledTimes(1);
 });

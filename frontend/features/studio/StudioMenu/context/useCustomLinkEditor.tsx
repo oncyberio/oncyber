@@ -95,13 +95,20 @@ export function useCustomLinkEditor() {
             // A pasted link to the space (any of the site's domains) keeps
             // only its path: "https://www.oncyber.com/my-space" -> "my-space".
             const pasted = sitePath(_value);
-            const value = (
+            const path =
                 pasted != null
-                    ? pasted.split("?")[0].replace(/^\/+/, "")
-                    : _value
-            )
-                .toLowerCase()
-                .replace(/[^a-zA-Z0-9-_]+/, "");
+                    ? pasted.split("?")[0].replace(/^\/+|\/+$/g, "")
+                    : _value;
+
+            // A link with more than one part ("spaces/<id>", "@name/x") is
+            // not a custom link; don't squash it into one.
+            if (pasted != null && path.includes("/")) {
+                setCustomLink(path.toLowerCase());
+
+                throw new Error("Invalid link");
+            }
+
+            const value = path.toLowerCase().replace(/[^a-zA-Z0-9-_]+/, "");
 
             setCustomLink(value);
 

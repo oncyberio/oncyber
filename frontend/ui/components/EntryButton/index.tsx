@@ -73,6 +73,8 @@ const EntryButton = forwardRef(
                         circleWidth={width}
                         isMobile={isMobile}
                         isDark={loading || isDark}
+                        role={gated ? "img" : undefined}
+                        aria-label={gated ? t(text) : undefined}
                     >
                         <p className="text">
                             {loading ? null : gated ? (

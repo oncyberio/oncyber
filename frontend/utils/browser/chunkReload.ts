@@ -22,22 +22,49 @@ export function isChunkLoadError(reason: unknown): boolean {
 export function reloadForChunkError(
     reason: unknown,
     {
-        storage = typeof sessionStorage !== "undefined" ? sessionStorage : null,
+        // Left out, sessionStorage is used. Reading it can itself throw
+        // when the browser denies storage, so that happens inside the
+        // guarded block below.
+        storage = undefined as
+            | Pick<Storage, "getItem" | "setItem">
+            | null
+            | undefined,
         reload = () => window.location.reload(),
         now = Date.now(),
     } = {}
 ): boolean {
     if (!isChunkLoadError(reason)) return false;
     try {
-        const last = Number(storage?.getItem(KEY) || 0);
+        const store =
+            storage !== undefined
+                ? storage
+                : typeof sessionStorage !== "undefined"
+                ? sessionStorage
+                : null;
+        const last = Number(store?.getItem(KEY) || 0);
         if (now - last < QUIET_MS) return false;
-        storage?.setItem(KEY, String(now));
+        store?.setItem(KEY, String(now));
     } catch {
         // Storage unavailable: reloading could loop, so don't.
         return false;
     }
     reload();
     return true;
+}
+
+/**
+ * Wraps a `next/dynamic` loader. Next handles a failed loader itself, so the
+ * failure never reaches the window listeners below; this reports it first.
+ */
+export function withChunkReload<T>(
+    loader: () => Promise<T>,
+    report: (reason: unknown) => unknown = reloadForChunkError
+): () => Promise<T> {
+    return () =>
+        loader().catch((error) => {
+            report(error);
+            throw error;
+        });
 }
 
 /** Watches for chunk failures; returns the cleanup. */
