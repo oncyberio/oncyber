@@ -52,7 +52,11 @@ export default function SpaceEdit(props) {
     const templateFirst = arrival.current === true;
 
     useEffect(() => {
-        if (templateFirst) router.replace(BROWSE_TEMPLATES_HREF);
+        if (!templateFirst) return;
+        // A failed client navigation must not leave the black screen up.
+        router.replace(BROWSE_TEMPLATES_HREF).catch(() => {
+            window.location.assign(BROWSE_TEMPLATES_HREF);
+        });
     }, [templateFirst]);
 
     useEffect(() => {

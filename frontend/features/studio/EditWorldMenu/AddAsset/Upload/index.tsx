@@ -120,7 +120,9 @@ export function AddUpload({
             const without = current.filter((it) => it.hash !== hash);
             // A reused file keeps the name it already has in the library.
             const known = current.find((it) => it.hash === hash);
+            // It also keeps what the library knows about it (optimized files).
             const entry = {
+                ...known,
                 name: known?.name ?? name,
                 hash,
                 url,
