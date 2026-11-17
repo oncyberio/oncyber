@@ -420,6 +420,11 @@ export function fixCloudinaryBehindProxy(url: string) {
 export const removeQueryParam = (router, param) => {
     const { pathname, query } = router;
 
+    // Nothing to remove: leave the router alone. Even a shallow replace can
+    // ask the server for the page's data again, and a page that receives
+    // new data starts over (Studio loaded its space twice).
+    if (!(param in (query || {}))) return;
+
     const params = new URLSearchParams(query);
 
     params.delete(param);
