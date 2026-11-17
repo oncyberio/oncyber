@@ -142,6 +142,10 @@ them, and so does its Vercel preview; see
     sign and send through it.
 -   **UI.** Follow [docs/brand/README.md](docs/brand/README.md) and use the
     tokens in `frontend/styles/tokens/` (browse them at `/dev/tokens`).
+    Every state a visitor can reach is styled, including open menus and
+    lists: no native `<select>` popups or unstyled browser controls in the
+    interface. Menus follow the brand guide's menu rows (a check on the
+    current choice, arrow keys, Escape, focus return).
 
 TypeScript is not strict (`strict: false`), and JavaScript and TypeScript
 files sit side by side. New files should be TypeScript.

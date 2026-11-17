@@ -20,3 +20,9 @@ reviews:
               Flag secrets or keys in NEXT_PUBLIC_* variables or committed
               files. The product is Oncyber: flag other product or SDK names
               added to code, docs or the interface.
+        - path: "frontend/{features,components,ui,pages}/**/*.tsx"
+          instructions: >-
+              Flag interface controls that skip the design system: native
+              <select> menus, unstyled browser inputs or buttons, or colours,
+              radii and spacing written by hand where docs/brand/README.md
+              and frontend/styles/tokens define them.

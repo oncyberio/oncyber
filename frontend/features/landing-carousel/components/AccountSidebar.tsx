@@ -43,6 +43,7 @@ export default function AccountSidebar({
     const closingRef = useRef(false);
     const [closing, setClosing] = useState(false);
     const { t, i18n, switchI18n } = useCyberTranslation();
+    const [languagesOpen, setLanguagesOpen] = useState(false);
     const router = useRouter();
     const path = router?.asPath?.split(/[?#]/)[0];
     const active = (href: string) =>
@@ -243,26 +244,44 @@ export default function AccountSidebar({
                             <span>{t("Linked accounts")}</span>
                             {arrow}
                         </button>
-                        <label className="sidebar-row compact-row language-row">
+                        <button
+                            type="button"
+                            className="sidebar-row compact-row language-row"
+                            aria-expanded={languagesOpen}
+                            aria-controls={`${id}-languages`}
+                            onClick={() => setLanguagesOpen((open) => !open)}
+                        >
                             <Icon name="globe" size={20} />
                             <span>{t("Language")}</span>
-                            <select
-                                value={i18n}
-                                onChange={(event) =>
-                                    switchI18n(event.target.value)
-                                }
+                            <span className="row-value" lang={i18n}>
+                                {LANGUAGE_NAMES[i18n]}
+                            </span>
+                            <Icon name="chevron" size={12} />
+                        </button>
+                        {languagesOpen && (
+                            <div
+                                id={`${id}-languages`}
+                                className="language-list"
+                                role="group"
+                                aria-label={t("Language")}
                             >
                                 {SUPPORTED_LANGUAGES.map((language) => (
-                                    <option
+                                    <button
                                         key={language}
-                                        value={language}
+                                        type="button"
+                                        className="sidebar-row language-option"
+                                        aria-pressed={language === i18n}
                                         lang={language}
+                                        onClick={() => switchI18n(language)}
                                     >
-                                        {LANGUAGE_NAMES[language]}
-                                    </option>
+                                        <span>{LANGUAGE_NAMES[language]}</span>
+                                        {language === i18n && (
+                                            <Icon name="check" size={16} />
+                                        )}
+                                    </button>
                                 ))}
-                            </select>
-                        </label>
+                            </div>
+                        )}
                     </section>
                 </div>
                 <footer className="sidebar-footer">
@@ -486,22 +505,27 @@ const Surface = styled.dialog`
     .settings-section {
         margin-top: 28px;
     }
-    .language-row {
-        cursor: pointer;
+    .language-row .row-value {
+        flex: 0 1 auto;
+        color: var(--oc-muted);
     }
-    .language-row select {
-        margin-left: auto;
-        padding: 6px 8px;
-        color: var(--oc-ink);
-        background: transparent;
-        border: 1px solid var(--oc-line-strong);
-        border-radius: var(--oc-radius-control);
-        font: inherit;
+    .language-row > svg:last-child {
+        color: var(--oc-muted);
+        transition: transform var(--oc-fast);
+    }
+    .language-row[aria-expanded="true"] > svg:last-child {
+        transform: rotate(180deg);
+    }
+    .language-list {
+        margin: 0 0 4px 32px;
+    }
+    .language-option {
+        min-height: 40px;
         font-size: 14px;
-        cursor: pointer;
+        border-radius: 8px;
     }
-    .language-row select option {
-        color: #000;
+    .language-option[aria-pressed="true"] {
+        color: var(--oc-ink);
     }
     .compact-row {
         min-height: 48px;
