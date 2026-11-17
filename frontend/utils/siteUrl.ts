@@ -24,24 +24,39 @@ export function siteUrl(path = "/"): string {
     return SITE_ORIGIN + (path.startsWith("/") ? path : `/${path}`);
 }
 
+// The domain search results show today. The site also answers on
+// oncyber.com; until the move is made, both name this one as the original.
+const DEFAULT_SEARCH_ORIGIN = "https://oncyber.io";
+
+const PRODUCTION_HOSTS = new Set([
+    "oncyber.com",
+    "www.oncyber.com",
+    "oncyber.io",
+    "www.oncyber.io",
+]);
+
 /**
- * The origin search engines should credit, without a trailing slash. Set
- * NEXT_PUBLIC_SEARCH_ORIGIN when the site answers on more than one domain
- * and results should keep showing one of them; every domain then names that
- * one as the original. Unset, it is the site's own origin.
+ * The origin search engines should credit, without a trailing slash:
+ * NEXT_PUBLIC_SEARCH_ORIGIN when it is set, else oncyber.io on the
+ * production site. Previews, local builds and other deployments credit
+ * themselves.
  */
 export function searchOrigin(
-    value = process.env.NEXT_PUBLIC_SEARCH_ORIGIN
+    value = process.env.NEXT_PUBLIC_SEARCH_ORIGIN,
+    site = SITE_ORIGIN
 ): string {
-    const raw = (value || "").trim().replace(/\/+$/, "");
-    if (!raw) return SITE_ORIGIN;
+    const fallback = PRODUCTION_HOSTS.has(new URL(site).host)
+        ? DEFAULT_SEARCH_ORIGIN
+        : site;
+    const raw = (value || "").trim();
+    if (!raw) return fallback;
     try {
         const url = new URL(raw);
         return url.protocol === "https:" || url.protocol === "http:"
             ? url.origin
-            : SITE_ORIGIN;
+            : fallback;
     } catch {
-        return SITE_ORIGIN;
+        return fallback;
     }
 }
 
