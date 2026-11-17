@@ -157,6 +157,12 @@ and its `base` is an `https` URL ending in `/ipfs/<that cid>/`; otherwise
 the page loads the committed build (`pinnedGatewayBase` in
 `gameRelease.ts`).
 
+A game that is not in the catalog is one published from outside the
+repository ([publishing.md](publishing.md)). Its page takes the frame from
+the game's record in the registry instead of a pointer file, and the
+releases route serves its files only as that record says: the game
+published, the release listed, and the kill switch not naming it.
+
 ### What a host must send
 
 A host of releases must send two headers with **every file of a release**:
