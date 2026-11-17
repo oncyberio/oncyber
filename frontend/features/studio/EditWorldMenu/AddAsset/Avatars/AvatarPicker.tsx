@@ -57,7 +57,7 @@ export function AvatarPicker({
             <LibraryTabs role="group" aria-label={tx("Avatar source")}>
                 {[
                     { value: "default", title: "Oncyber" },
-                    { value: "uploads", title: "Your models" },
+                    { value: "uploads", title: "Yours" },
                     { value: "visitors", title: "Visitors" },
                 ].map((tab) => (
                     <button

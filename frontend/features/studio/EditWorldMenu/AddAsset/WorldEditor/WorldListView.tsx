@@ -883,9 +883,9 @@ const Container = styled.div`
     --right-panel-width: min(340px, calc(100vw - 12px));
 
     position: fixed;
-    top: 102px;
-    right: 6px;
-    max-height: calc(100dvh - 124px);
+    top: 76px;
+    right: 16px;
+    max-height: calc(100dvh - 92px);
     z-index: 1100;
 
     display: flex;
@@ -985,6 +985,50 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
             right: 2px;
         }
     }
+    /* Collapsed, it is one 40px control like the toolbar's buttons. */
+    ${(p) =>
+        p.$collapsed &&
+        css`
+            box-sizing: border-box;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--studio-line, #303035);
+            border-radius: var(--studio-radius-control, 10px);
+            background: var(--studio-surface, #1c1c1f);
+            box-shadow: var(--panel-shadow);
+            > .wing {
+                display: none;
+            }
+            > .dock-content {
+                padding: 0;
+            }
+            button[aria-label="World contents"] {
+                width: 38px;
+                height: 38px;
+                border: 0;
+                border-radius: inherit;
+                background: transparent;
+                > .icon-img {
+                    transform: none;
+                }
+                /* The count sits on the corner, clear of the icon. */
+                > .badge {
+                    top: -7px;
+                    right: -7px;
+                    bottom: auto;
+                    min-width: 18px;
+                    height: 18px;
+                    padding: 0 5px;
+                    box-sizing: border-box;
+                    border-radius: 9px;
+                    background: var(--studio-accent, #2f6bff);
+                    color: #fff;
+                    font-size: 11px;
+                    line-height: 18px;
+                    text-align: center;
+                }
+            }
+        `}
     @keyframes world-contents-in {
         from {
             opacity: 0;
@@ -1006,23 +1050,7 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         }
         ${(p) =>
             p.$collapsed
-                ? css`
-                      width: 40px;
-                      height: 40px;
-                      border: 1px solid var(--studio-line, #303035);
-                      border-radius: 12px;
-                      background: var(--studio-surface, #1c1c1f);
-                      button[aria-label="World contents"] {
-                          width: 38px;
-                          height: 38px;
-                          border-radius: 12px;
-                          background: transparent;
-                          border: 0;
-                          > .icon-img {
-                              transform: none;
-                          }
-                      }
-                  `
+                ? ""
                 : css`
                       ${studioPhoneSheet()}
                       .has-details & {

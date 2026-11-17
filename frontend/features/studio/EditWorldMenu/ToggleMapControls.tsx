@@ -50,6 +50,7 @@ export function ToggleMapControls() {
             <div
                 className={classes({ btn: true, active: !isEnabled })}
                 role="button"
+                title={tx("Perspective")}
                 aria-pressed={!isEnabled}
                 onClick={handleClick}
             >
@@ -59,6 +60,7 @@ export function ToggleMapControls() {
             <div
                 className={classes({ btn: true, active: isEnabled })}
                 role="button"
+                title={tx("Map view")}
                 aria-pressed={!!isEnabled}
                 onClick={() => handleClick(false)}
             >
@@ -67,20 +69,28 @@ export function ToggleMapControls() {
                     name="perspective-view"
                     size={20}
                 />
-                <span>{tx("Map View")}</span>
+                <span>{tx("Map view")}</span>
             </div>
         </Container>
     );
 }
 
+/* A segmented icon switch in the studio's control style (like the library
+   tabs): 40px tall, the selected view raised on the surface colour. */
 const Container = styled.div<{ isToggling: boolean }>`
     position: fixed;
-    bottom: 1em;
-    right: 1em;
+    right: 16px;
+    bottom: 16px;
     z-index: 1000;
 
+    box-sizing: border-box;
     display: flex;
     gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--studio-line, #303035);
+    border-radius: var(--studio-radius-control, 10px);
+    background: var(--studio-inset, #101012);
+    box-shadow: var(--panel-shadow);
 
     transition: opacity 0.2s ease-in-out;
     opacity: ${({ isToggling }) => (isToggling ? 0.3 : 1)};
@@ -88,78 +98,53 @@ const Container = styled.div<{ isToggling: boolean }>`
     user-select: none;
 
     & > .btn {
-        border: none;
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
         margin: 0;
-        width: 83px;
-        box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-        border-radius: 12px;
-        padding: 1rem;
+        padding: 0;
+        border-radius: 7px;
         cursor: pointer;
+        transition: background-color 150ms ease;
 
-        font-family: var(--studio-font, sans-serif);
-        font-size: 10px;
-        font-weight: 400;
-        background: var(--world-builder-bg);
-        color: #a7a7a7;
-
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.1rem;
-
-        user-select: none;
+        /* The label stays for screen readers; title shows it on hover. */
+        & > span {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+        &:hover {
+            background: var(--studio-hover, #28282c);
+        }
     }
 
     & .tmc-icon {
-        filter: invert(0.5);
+        width: 18px;
+        height: 18px;
+        filter: invert(0.55);
     }
 
     & > .btn.active {
-        background: #fff;
-        color: #000;
-        box-shadow: 0px 2px 30px 0px rgba(0, 0, 0, 0.32);
+        background: var(--studio-surface, #1c1c1f);
+        box-shadow: var(--studio-edge), 0 1px 3px #00000033;
 
         & .tmc-icon {
-            filter: invert(0);
+            filter: invert(0.95);
         }
     }
-    /* Phones: an icon-only switch under the world contents button, the
-       same 40px size as the toolbar. */
+
+    /* Phones: stacked under the world contents button, clear of the
+       bottom sheets. */
     @media (max-width: 600px) {
         top: 124px;
         right: 12px;
         bottom: auto;
         z-index: 1;
         flex-direction: column;
-        gap: 0;
-        border: 1px solid var(--studio-line, #303035);
-        border-radius: 12px;
-        background: var(--studio-surface, #1c1c1f);
-        overflow: hidden;
-
-        & > .btn {
-            width: 38px;
-            height: 38px;
-            padding: 0;
-            border-radius: 0;
-            box-shadow: none;
-            background: transparent;
-            justify-content: center;
-
-            & > span {
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                overflow: hidden;
-                clip: rect(0 0 0 0);
-            }
-        }
-        & > .btn.active {
-            box-shadow: none;
-        }
-        & .tmc-icon {
-            width: 18px;
-            height: 18px;
-        }
     }
 `;
