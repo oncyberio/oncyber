@@ -19,8 +19,9 @@ export function SelectSpace({ onChangeSpace, onCreateSpace, className = "" }) {
                     {name}
                 </TextMenuCaption>
             }
-            padding={8}
+            padding={24}
             align="center"
+            anchor=".exhibit-wrapper"
             className={className}
         >
             {({ toggle }) =>

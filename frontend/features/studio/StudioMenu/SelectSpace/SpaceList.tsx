@@ -460,7 +460,8 @@ const Container = styled.div`
     ${studioPanel}
     box-sizing: border-box;
     width: 360px;
-    height: min(560px, calc(100dvh - 96px));
+    /* Grows with the list, up to a scrolling height. */
+    max-height: min(560px, calc(100dvh - 96px));
     padding: var(--studio-panel-padding, 14px);
     display: flex;
     flex-direction: column;
@@ -470,7 +471,7 @@ const Container = styled.div`
     @media (max-width: 600px) {
         width: 100%;
         /* Stay above the asset bar so Create new world can be reached. */
-        height: min(560px, calc(100dvh - 136px));
+        max-height: min(560px, calc(100dvh - 136px));
     }
 
     & > .heading {
