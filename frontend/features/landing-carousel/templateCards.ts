@@ -27,6 +27,9 @@ export function templateCover(room?: Parameters<typeof destinationCover>[0]) {
     return cover && cardImage(cover);
 }
 
+/** Kept out of Create for now (Cyber Classic, Art Blocks gallery). */
+export const HIDDEN_TEMPLATES = ["classic", "artblocksgallery"];
+
 /** A build-from-scratch kit: it opens the empty void with its pieces. */
 export function isKitRoom(room?: { params?: { isFuture?: boolean } }) {
     return room?.params?.isFuture === true;
@@ -47,7 +50,9 @@ export function createTemplateCards(
     category: TemplateCategory,
     checking = false
 ): LandingCard[] {
-    const available = selectTemplateRooms(groups, query, category);
+    const available = selectTemplateRooms(groups, query, category).filter(
+        (room) => !HIDDEN_TEMPLATES.includes(room.slug)
+    );
     const collectible = new Set(groups.purchase.map((room) => room.slug));
     const roomCard = (room: Destination): LandingCard => {
         const ready = canUseTemplate(room, ownedRooms, checking);

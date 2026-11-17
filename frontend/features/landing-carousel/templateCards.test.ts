@@ -99,13 +99,9 @@ it("keeps every displayed gallery action in the normal Studio template flow", ()
 });
 
 it("uses restored room artwork consistently in template cards and details", () => {
-    const rooms = [
-        "white-cube",
-        "wolfgang-n2",
-        "wolfgang-n2-dark",
-        "loft",
-        "classic",
-    ].map((slug) => room(slug, ["free"]));
+    const rooms = ["white-cube", "wolfgang-n2", "wolfgang-n2-dark", "loft"].map(
+        (slug) => room(slug, ["free"])
+    );
     const cards = createTemplateCards(
         { owned: rooms, uploaded: [], purchase: [] },
         {},
@@ -163,4 +159,24 @@ it("lists build-from-scratch kits right after the blank canvas", () => {
         "template-space-pod",
     ]);
     expect(cards[4].buildStatus).toBe("Build with this kit");
+});
+
+it("leaves Cyber Classic and the Art Blocks gallery out for now", () => {
+    const cards = createTemplateCards(
+        {
+            ...groups,
+            owned: [
+                warehouse,
+                room("classic", ["free"]),
+                room("artblocksgallery", ["free"]),
+            ],
+        },
+        {},
+        "",
+        "all"
+    );
+    const ids = cards.map((card) => card.id);
+    expect(ids).not.toContain("template-classic");
+    expect(ids).not.toContain("template-artblocksgallery");
+    expect(ids).toContain("template-cyberwarehouse");
 });
