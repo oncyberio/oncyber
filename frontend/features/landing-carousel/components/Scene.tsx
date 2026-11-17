@@ -1584,14 +1584,26 @@ const SectionSwitch = styled.div`
         display: flex;
         flex-direction: column;
         align-items: flex-start;
-        /* It rests over the cards that fade out behind it: a soft shadow
-           keeps it readable there. */
-        border-radius: 12px;
-        background: rgba(0, 0, 0, 0.55);
-        box-shadow: 0 0 18px 14px rgba(0, 0, 0, 0.55);
+        isolation: isolate;
+    }
+    /* It rests over the cards that fade out behind it: a faint round wash,
+       wider towards the top left, keeps it readable without an edge. */
+    .filter-list::before {
+        content: "";
+        position: absolute;
+        inset: -56px -44px -40px -96px;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient(
+            closest-side,
+            #00000061,
+            #00000038 55%,
+            transparent
+        );
     }
     .filter-list .switch-item {
         position: relative;
+        text-shadow: 0 1px 2px #00000073;
         padding: 4px 0;
     }
     .filter-list .switch-item::before {
