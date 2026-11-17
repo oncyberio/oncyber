@@ -29,7 +29,11 @@ export default function useYourSpaces(enabled: boolean) {
     );
     // What this page last saved wins over the fetched value: a navigation
     // that fails after the save leaves the list's answer out of date.
-    const [savedId, setSavedId] = useState<string>(null);
+    // Kept with the account that saved it, in case another signs in here.
+    const [saved, setSaved] = useState<{ userId: string; spaceId: string }>(
+        null
+    );
+    const savedId = saved?.userId === user?.id ? saved?.spaceId : null;
     const currentId =
         savedId ||
         query.data?.currentId ||
@@ -60,7 +64,7 @@ export default function useYourSpaces(enabled: boolean) {
                         throw new Error(
                             "Couldn't open this space. Please try again."
                         );
-                    setSavedId(spaceId);
+                    setSaved({ userId: user?.id, spaceId });
                 }
                 if (!(await router.push("/studio")))
                     throw new Error(
