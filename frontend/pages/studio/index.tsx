@@ -9,6 +9,8 @@ import { Experience } from "@uitypes/experience";
 import { useContext, useEffect } from "react";
 import { UserContext } from "@components/context/UserContext";
 import { useRouter } from "next/router";
+import styled from "styled-components";
+import CyberloopMark from "@features/landing-carousel/components/CyberloopMark";
 import { getLocalAnonExhibit } from "@utils/anon";
 import {
     BROWSE_TEMPLATES_HREF,
@@ -79,12 +81,25 @@ export default function SpaceEdit(props) {
     );
 }
 
+// Black with the Cyberloop playing in the middle while the studio works out
+// where to go.
 const BlackScreen = () => (
-    <div
-        aria-hidden="true"
-        style={{ position: "fixed", inset: 0, background: "#000" }}
-    />
+    <Waiting aria-hidden="true">
+        <CyberloopMark continuous />
+    </Waiting>
 );
+
+const Waiting = styled.div`
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: #000;
+    .cyberloop-mark {
+        width: 50px;
+        height: 50px;
+    }
+`;
 
 export const getServerSideProps = AuthServerSideProps(
     async ({ query, res }, user, token, exhibit, isAnonymous) => {
