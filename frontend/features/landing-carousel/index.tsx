@@ -484,7 +484,10 @@ function LandingContent(props: LandingPageProps) {
         if (card.id === RESET_SPACES_ID) {
             // "Show all your spaces" clears the search too, or a search
             // that matches none of them would keep the list empty.
-            const query = { ...router.query, create: "gallery" };
+            const query: typeof router.query = {
+                ...router.query,
+                create: "gallery",
+            };
             delete query.spacesFilter;
             delete query.spaces;
             delete query.templateSearch;
