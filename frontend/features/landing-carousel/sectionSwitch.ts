@@ -11,8 +11,11 @@ export interface SwitchItem {
 
 /** Space between labels, whether side by side or docked. */
 export const SWITCH_GAP = 20;
-/** How long after the last scroll movement the labels stay apart. */
-export const SWITCH_SETTLE_MS = 180;
+/**
+ * How long after the last scroll movement the labels stay apart: a full
+ * second, so they hold still between one scroll and the next.
+ */
+export const SWITCH_SETTLE_MS = 1000;
 /** Duration of separating and of joining back together. */
 export const SWITCH_EASE_MS = 240;
 /** Columns of scroll over which a section's filters reach the page edge. */
