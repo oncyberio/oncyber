@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { firestore } from "firebase-admin";
 import { db } from "@utils/firebaseAdmin";
 import { allDocs } from "@features/docs/content";
-import { SITE_ORIGIN } from "@utils/siteUrl";
+import { SEARCH_ORIGIN } from "@utils/siteUrl";
 import {
     SITEMAP_CACHE_CONTROL,
     SITEMAP_MAX_URLS,
@@ -63,11 +63,11 @@ export default async function sitemapPart(
     const name = String(req.query.name || "").replace(/\.xml$/, "");
     let entries: SitemapEntry[] | null = null;
     try {
-        if (name === "pages") entries = pageEntries(SITE_ORIGIN);
+        if (name === "pages") entries = pageEntries(SEARCH_ORIGIN);
         else if (name.startsWith("spaces-"))
             entries = await spaceEntries(
                 name.slice("spaces-".length),
-                SITE_ORIGIN
+                SEARCH_ORIGIN
             );
     } catch (error) {
         console.error("[sitemap]", name, error);

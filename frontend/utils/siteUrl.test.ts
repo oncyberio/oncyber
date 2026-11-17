@@ -1,4 +1,41 @@
-import { isSiteHost, sitePath, siteUrl, spaceUrl } from "./siteUrl";
+import {
+    isSiteHost,
+    searchOrigin,
+    searchUrl,
+    sitePath,
+    siteUrl,
+    spacePath,
+    spaceUrl,
+} from "./siteUrl";
+
+describe("searchOrigin", () => {
+    it("is the site's own origin unless one is set", () => {
+        expect(searchOrigin(undefined)).toBe("https://www.oncyber.com");
+        expect(searchOrigin("  ")).toBe("https://www.oncyber.com");
+        expect(searchUrl("/hub")).toBe("https://www.oncyber.com/hub");
+    });
+
+    it("uses the domain search results should keep showing", () => {
+        expect(searchOrigin("https://oncyber.io/")).toBe("https://oncyber.io");
+        expect(searchOrigin("https://oncyber.io/some/path")).toBe(
+            "https://oncyber.io"
+        );
+    });
+
+    it("ignores a value that is not a web address", () => {
+        expect(searchOrigin("oncyber.io")).toBe("https://www.oncyber.com");
+        expect(searchOrigin("javascript:alert(1)")).toBe(
+            "https://www.oncyber.com"
+        );
+    });
+
+    it("gives a space's path by custom link, else by id", () => {
+        expect(spacePath({ id: "abc", info: { customLink: "hub" } })).toBe(
+            "/hub"
+        );
+        expect(spacePath({ id: "abc" })).toBe("/spaces/abc");
+    });
+});
 
 describe("siteUrl", () => {
     it("builds links on the site's origin", () => {

@@ -39,7 +39,7 @@ import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
-import { spaceUrl } from "@utils/siteUrl";
+import { searchUrl, spacePath } from "@utils/siteUrl";
 import { spaceShareImage } from "@utils/spaceShareImage";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
@@ -238,7 +238,7 @@ function NativeExhibit({
 
     // The address search engines and link previews should credit for this
     // space, whichever URL (old domain, /spaces/<id>, /ja/...) was opened.
-    const canonicalUrl = spaceUrl(experience);
+    const canonicalUrl = searchUrl(spacePath(experience));
     const shareImage = spaceShareImage(experience, destination);
 
     if (gatingError?.type === "other-error") {
