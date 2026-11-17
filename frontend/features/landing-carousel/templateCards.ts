@@ -27,6 +27,9 @@ export function templateCover(room?: Parameters<typeof destinationCover>[0]) {
     return cover && cardImage(cover);
 }
 
+/** A world built from the blank canvas. */
+export const BLANK_CANVAS_COVER = "/landing-build/blank-canvas-1280.webp";
+
 /** Kept out of Create for now (Cyber Classic, Art Blocks gallery). */
 export const HIDDEN_TEMPLATES = ["classic", "artblocksgallery"];
 
@@ -103,6 +106,7 @@ export function createTemplateCards(
             title: "Blank canvas",
             room: "@@empty",
             href: "/studio?templateId=%40%40empty",
+            imageUrls: [BLANK_CANVAS_COVER],
             buildStatus: "Start from scratch",
             templateStatus: "free",
             description: "Build your own space in Studio.",

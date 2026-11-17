@@ -6,3 +6,5 @@
 These are real renders, copied without alterations. The ruins image illustrates an explorable place on the Gaussian workflow card; it is not represented as a scan screenshot.
 
 `cyber-warehouse-1280.webp` is a 1280-wide WebP copy of `cyber-warehouse.jpg` (35 KB instead of 280 KB) for cards.
+
+`blank-canvas-1280.webp`: a world built in Studio from the blank canvas, provided by the Oncyber team, resized to 1280 wide for the Blank canvas card.
