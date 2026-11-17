@@ -1,6 +1,8 @@
 import {
     committedFrame,
     frameBase,
+    pinnedGatewayBase,
+    pinnedRelease,
     pointedRelease,
     releaseBase,
     resolveGameFrame,
@@ -153,6 +155,107 @@ describe("resolveGameFrame", () => {
                 resolveGameFrame("ace", [pointers(A, { [A]: base })])
             )
         ).toBe(base);
+    });
+});
+
+describe("a release stored on IPFS", () => {
+    const CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
+    const OLD = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
+    const gateway = (cid: string) => `https://gateway.example/ipfs/${cid}/`;
+    const pinata = (release: string, address: unknown, base: unknown) => ({
+        release,
+        base,
+        backend: "pinata",
+        address,
+        served: "site",
+    });
+    const file = (current: string | null, releases: unknown[]) => ({
+        version: 1,
+        games: { ace: { current, releases } },
+    });
+    const pinned = file(A, [
+        pinata(A, CID, gateway(CID)),
+        pinata(B, OLD, gateway(OLD)),
+    ]);
+
+    it("loads through this app's releases route, never from the gateway", () => {
+        const frame = resolveGameFrame("ace", [pinned]);
+        expect(frame).toEqual({
+            src: `/api/games/releases/ace/${A}/index.html`,
+            release: A,
+            source: "hosted",
+        });
+        // What derives from the frame follows it: the credits and licence
+        // texts are read from the route, and the lobby's prepare frame
+        // accepts the address (releaseBase, as gamePrepare.ts asks).
+        const base = frameBase("ace", frame);
+        expect(base).toBe(`/api/games/releases/ace/${A}/`);
+        expect(releaseBase("ace", A, base)).toBe(base);
+        // A rollback is the same route with the other id.
+        const back = file(B, pinned.games.ace.releases);
+        expect(resolveGameFrame("ace", [back]).src).toBe(
+            `/api/games/releases/ace/${B}/index.html`
+        );
+        // In production as in development.
+        expect(
+            resolveGameFrame("ace", [null, pinned], { development: true }).src
+        ).toBe(`/api/games/releases/ace/${A}/index.html`);
+    });
+
+    it("names the gateway folder of any listed release, for the route", () => {
+        expect(pinnedRelease(pinned, "ace", A)).toEqual({
+            release: A,
+            base: gateway(CID),
+        });
+        expect(pinnedRelease(pinned, "ace", B)).toEqual({
+            release: B,
+            base: gateway(OLD),
+        });
+        // Listed but not pointed at: still a stored release.
+        expect(
+            pinnedRelease(file(null, pinned.games.ace.releases), "ace", A)?.base
+        ).toBe(gateway(CID));
+        expect(pinnedRelease(pinned, "ace", "9".repeat(16))).toBeNull();
+        expect(pinnedRelease(pinned, "garden", A)).toBeNull();
+        expect(pinnedRelease(pinned, "__proto__", A)).toBeNull();
+        expect(pinnedRelease(pinned, "ace", "../x")).toBeNull();
+        expect(pinnedRelease(null, "ace", A)).toBeNull();
+        expect(
+            pinnedRelease({ version: 2, games: pinned.games }, "ace", A)
+        ).toBeNull();
+        // Nothing is switched: the committed file lists no release.
+        expect(pinnedRelease(committed, "ace", A)).toBeNull();
+    });
+
+    it("refuses an entry whose gateway address is not its CID's https folder", () => {
+        for (const [address, base] of [
+            [CID, `http://gateway.example/ipfs/${CID}/`],
+            [CID, `https://gateway.example/ipfs/${CID}`],
+            [CID, gateway(OLD)],
+            [CID, `https://user:pass@gateway.example/ipfs/${CID}/`],
+            [CID, `${gateway(CID)}?x=1`],
+            [CID, `${gateway(CID)}#x`],
+            [CID, `https://gateway.example/x/../ipfs/${CID}/`],
+            [CID, `/api/games/releases/ace/${A}/`],
+            [CID, `https://gateway.example/${"a/".repeat(260)}ipfs/${CID}/`],
+            ["cid1", "https://gateway.example/ipfs/cid1/"],
+            ["..", "https://gateway.example/ipfs/../"],
+            [undefined, gateway(CID)],
+            [CID, undefined],
+        ]) {
+            const entry = pinata(A, address, base);
+            expect(pinnedGatewayBase(entry)).toBeNull();
+            expect(pinnedRelease(file(A, [entry]), "ace", A)).toBeNull();
+            // The page does not fall back to loading the gateway itself.
+            expect(resolveGameFrame("ace", [file(A, [entry])])).toEqual(
+                committedFrame("ace")
+            );
+        }
+        // Only the pinata backend is served this way.
+        expect(
+            pinnedGatewayBase({ ...pinata(A, CID, gateway(CID)), backend: "x" })
+        ).toBeNull();
+        expect(pinnedGatewayBase(null)).toBeNull();
     });
 });
 

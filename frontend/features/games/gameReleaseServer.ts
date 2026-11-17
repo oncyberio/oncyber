@@ -1,7 +1,12 @@
 import { readFile } from "fs/promises";
 import { join, resolve } from "path";
 import committedPointers from "./releases.json";
-import { resolveGameFrame, type GameFrame } from "./gameRelease";
+import {
+    pinnedRelease,
+    resolveGameFrame,
+    type GameFrame,
+    type HostedRelease,
+} from "./gameRelease";
 
 /**
  * The local releases folder this server reads and serves, or null. On by
@@ -18,6 +23,18 @@ export function localReleasesDir(
     return env.NODE_ENV === "development"
         ? resolve(cwd, "..", ".games-releases")
         : null;
+}
+
+/**
+ * The gateway folder of a release the committed pointer stores on IPFS, or
+ * null. Only the committed file is asked: what this server fetches for the
+ * releases route is decided in review, never by a request or a local file.
+ */
+export function committedPinnedRelease(
+    id: string,
+    release: string
+): HostedRelease | null {
+    return pinnedRelease(committedPointers, id, release);
 }
 
 async function readLocalPointers(): Promise<unknown> {

@@ -30,8 +30,62 @@ export interface HostedRelease {
 
 const GAME_ID = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const RELEASE_ID = /^[0-9a-f]{16}$/;
-/** Where this app serves a local releases folder. */
+/**
+ * Where this app serves releases: a local releases folder, and the releases
+ * the committed pointer stores on IPFS (pages/api/games/releases).
+ */
 export const LOCAL_RELEASES_PATH = "/api/games/releases";
+/** An IPFS content id: CIDv0 (base58, "Qm…") or CIDv1 in base32 ("b…"). */
+const CID = /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58,120})$/;
+
+/**
+ * The gateway folder of a release stored on IPFS through Pinata, or null:
+ * the pointer entry's `base`, when the entry says backend `pinata`, its
+ * `address` is a CID and the base is an https URL ending in /ipfs/<cid>/
+ * with no credentials, query or fragment. A gateway cannot send a release's
+ * own Content-Security-Policy, so the page never loads this URL: this app's
+ * releases route fetches from it and adds the headers
+ * (docs/games/releases.md). scripts/games/releases/storage.mjs holds the
+ * same test for the publishing side.
+ */
+export function pinnedGatewayBase(entry: unknown): string | null {
+    const { backend, address, base } = (entry ?? {}) as Record<string, unknown>;
+    if (backend !== "pinata" || typeof address !== "string") return null;
+    if (!CID.test(address)) return null;
+    if (typeof base !== "string" || base.length > 512) return null;
+    let url: URL;
+    try {
+        url = new URL(base);
+    } catch {
+        return null;
+    }
+    if (url.protocol !== "https:" || url.href !== base) return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    if (!url.pathname.endsWith(`/ipfs/${address}/`)) return null;
+    return base;
+}
+
+/**
+ * Any release a pointer file lists for a game on IPFS, current or not (a
+ * rollback target is as servable as the current one): its gateway folder.
+ */
+export function pinnedRelease(
+    pointers: unknown,
+    id: string,
+    release: string
+): HostedRelease | null {
+    if (!GAME_ID.test(id) || !RELEASE_ID.test(release)) return null;
+    const file = pointers as any;
+    if (file?.version !== 1 || typeof file.games !== "object" || !file.games)
+        return null;
+    const entry = Object.hasOwn(file.games, id) ? file.games[id] : null;
+    if (!entry || !Array.isArray(entry.releases)) return null;
+    const listed = entry.releases.find(
+        (candidate: any) => candidate?.release === release
+    );
+    const base = pinnedGatewayBase(listed);
+    return base ? { release, base } : null;
+}
 
 /** The build in public/games/<id>: the fallback, and the draft in development. */
 export function committedFrame(id: string): GameFrame {
@@ -99,6 +153,15 @@ export function pointedRelease(
     const current = entry.releases.find(
         (candidate: any) => candidate?.release === entry.current
     );
+    // A release on IPFS loads through this app's route, never from the
+    // gateway: the route sends the headers a gateway cannot.
+    if (current?.backend === "pinata")
+        return pinnedGatewayBase(current)
+            ? {
+                  release: entry.current,
+                  base: `${LOCAL_RELEASES_PATH}/${id}/${entry.current}/`,
+              }
+            : null;
     const base = releaseBase(id, entry.current, current?.base, development);
     return base ? { release: entry.current, base } : null;
 }
