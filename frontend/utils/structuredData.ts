@@ -168,9 +168,7 @@ export function spaceStructuredData(
     const name = plainText(space?.info?.headline);
     if (!space?.id || !name) return null;
     const url = searchUrl(path || spacePath(space));
-    const artists = content?.artists?.length
-        ? content.artists
-        : featuredNames(featuring);
+    const artists = content ? content.artists : featuredNames(featuring);
     const creator = spaceCreator(space);
     const person = creator && {
         "@type": "Person",

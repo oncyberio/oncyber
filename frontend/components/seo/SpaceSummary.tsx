@@ -36,9 +36,9 @@ export default function SpaceSummary({
         .split(/\n\s*\n/)
         .map((paragraph) => plainText(paragraph))
         .filter(Boolean);
-    const names = content?.artists?.length
-        ? content.artists
-        : featuredNames(featuring);
+    // With the space's content read, its artists are known; the names from
+    // the head tags mix in the titles of works, which are listed below.
+    const names = content ? content.artists : featuredNames(featuring);
     const builtIn = plainText(gallery);
     return (
         <Hidden aria-label="About this space">

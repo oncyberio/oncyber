@@ -3,6 +3,7 @@ import {
     artworkLine,
     spaceContent,
     SPACE_CONTENT_LIMITS,
+    uploadName,
 } from "./spaceContent";
 
 const text = (value: string) => ({
@@ -46,12 +47,17 @@ describe("spaceContent", () => {
                     creator: { user: { username: "6529Collections" } },
                     collection: { name: "The Memes by 6529" },
                 }),
-                // An upload still called by its file name.
+                // Uploads called by their file names: a name, or none.
                 c: {
                     data: {
                         mime_type: "model/gltf-binary",
-                        name: "donald_trump.glb",
+                        name: "trump_skibidi_toilet.glb",
                     },
+                },
+                c2: { data: { mime_type: "image/jpeg", name: "IMG_1234.jpg" } },
+                c3: { data: { mime_type: "image/png", name: "PFP.png" } },
+                c4: {
+                    data: { mime_type: "text/html", name: "Telegram: Contact" },
                 },
                 // Placeholders and account ids are not names.
                 d: nft({
@@ -73,6 +79,7 @@ describe("spaceContent", () => {
                 description: "Myths of the Near Future Meme: 8",
                 image: "https://example.com/a.png",
             },
+            { name: "trump skibidi toilet" },
             { name: "43" },
         ]);
         expect(artists).toEqual([
@@ -155,5 +162,22 @@ describe("artworkLine", () => {
         expect(artworkLine({ name: "A", creator: "X", collection: "X" })).toBe(
             "A by X"
         );
+    });
+});
+
+describe("uploadName", () => {
+    it.each([
+        ["PEDRO.jpg", "PEDRO"],
+        ["lebrontoy.png", "lebrontoy"],
+        ["president_donald_j._trump__fly.glb", "president donald j trump fly"],
+        ["Hammy.jpg", "Hammy"],
+        ["IMG_1234.jpg", ""],
+        ["Screenshot 2024-05-05 at 10.11.12.png", ""],
+        ["untitled.glb", ""],
+        ["12.png", ""],
+        ["a1.mp4", ""],
+        ["video2.mp4", ""],
+    ])("%s → %j", (file, name) => {
+        expect(uploadName(file)).toBe(name);
     });
 });

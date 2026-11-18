@@ -49,6 +49,25 @@ const PLACEHOLDER =
     /^(opensea collection|unidentified contract|no description provided\.?|untitled|null|undefined)$/i;
 const SPACE_ID = /^[A-Za-z0-9]{10,40}$/;
 
+/** Names a camera, phone or export gives a file: they say nothing. */
+const GENERIC_FILE =
+    /^(img|image|images|dsc|dscn|pxl|photo|pic|picture|screenshot|screen shot|capture|untitled|file|download|export|scene|model|mesh|object|video|movie|clip|audio|sound|whatsapp|final|copy|new|test|pfp|logo|banner|background|texture|frame)(\b|[\s\d_-]|$)/i;
+
+/**
+ * The name an upload was given, when its file name is one: "PEDRO.jpg" is
+ * "PEDRO" and "trump_skibidi_toilet.glb" is "trump skibidi toilet". Camera
+ * and export names ("IMG_1234.jpg", "untitled.glb") are no name at all.
+ */
+export function uploadName(file: string): string {
+    const name = file
+        .replace(FILE_NAME, "")
+        .replace(/[_\-.+]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const letters = name.replace(/[^\p{L}]/gu, "");
+    return letters.length < 3 || GENERIC_FILE.test(name) ? "" : name;
+}
+
 function named(value: unknown, max = 120): string {
     const text = plainText(value, max);
     return !text || PLACEHOLDER.test(text) ? "" : text;
@@ -100,17 +119,24 @@ export function spaceContent(space: any): SpaceContent {
         .slice(0, limits.texts)
         .filter((text) => (textTotal += text.length) <= limits.textTotal);
 
-    // Works: anything with a real name that is not a wall text, an embed
-    // or an upload still called by its file name.
+    // Works: anything with a real name that is not a wall text or an
+    // embedded page. An upload called by its file name goes by that name
+    // without the extension, when it is a name at all.
     const seenWork = new Set<string>();
     const artworks: SpaceArtwork[] = [];
     for (const item of items) {
         const data = item?.data;
         const type = String(data?.mime_type || "");
-        if (!data || type.startsWith("cyber/") || type.startsWith("embed/"))
+        if (
+            !data ||
+            type.startsWith("cyber/") ||
+            type.startsWith("embed/") ||
+            type === "text/html"
+        )
             continue;
-        const name = named(data.name);
-        if (!name || FILE_NAME.test(name)) continue;
+        const given = named(data.name);
+        const name = FILE_NAME.test(given) ? uploadName(given) : given;
+        if (!name) continue;
         const creator = personName(data.creator?.user?.username);
         const collection = named(data.collection?.name);
         const key = `${name}|${creator}|${collection}`.toLowerCase();
