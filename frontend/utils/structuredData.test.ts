@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import {
     docStructuredData,
+    featuredNames,
     jsonLdScript,
     plainText,
     profileStructuredData,
@@ -176,5 +177,23 @@ describe("jsonLdScript", () => {
         const script = jsonLdScript({ name: "</script><script>alert(1)" });
         expect(script).not.toContain("<");
         expect(JSON.parse(script).name).toBe("</script><script>alert(1)");
+    });
+});
+
+describe("featuredNames", () => {
+    it("keeps artists and collections, not upload file names or repeats", () => {
+        expect(
+            featuredNames([
+                "Art Blocks",
+                "sares-8-perish.glb",
+                "punk.jpg",
+                "Post Ad 1 Short 2.mp4",
+                "art blocks",
+                "",
+                null,
+                "gen_dot_art",
+                "Frahm v2.0 Genesis",
+            ])
+        ).toEqual(["Art Blocks", "gen_dot_art", "Frahm v2.0 Genesis"]);
     });
 });

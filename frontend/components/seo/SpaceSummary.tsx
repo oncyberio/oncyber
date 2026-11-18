@@ -1,6 +1,11 @@
 import styled from "styled-components";
 import { SITE_NAME } from "@utils/siteMeta";
-import { plainText, spaceCreator, SpaceForSearch } from "@utils/structuredData";
+import {
+    featuredNames,
+    plainText,
+    spaceCreator,
+    SpaceForSearch,
+} from "@utils/structuredData";
 
 /**
  * The text of a space page: its name, creator, description and what it
@@ -24,7 +29,7 @@ export default function SpaceSummary({
         .split(/\n\s*\n/)
         .map((paragraph) => plainText(paragraph))
         .filter(Boolean);
-    const names = featuring.map((item) => plainText(item)).filter(Boolean);
+    const names = featuredNames(featuring);
     return (
         <Hidden aria-label="About this space">
             <h1>{name}</h1>

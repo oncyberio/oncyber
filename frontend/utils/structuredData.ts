@@ -32,6 +32,23 @@ export function plainText(value: unknown, max = 0): string {
     return (words || cut).replace(/[\s,;:.–-]+$/, "") + "…";
 }
 
+/**
+ * Names worth listing as what a space features: artists and collections,
+ * not the file names of uploads ("sares-5.glb", "punk.jpg").
+ */
+export function featuredNames(names: unknown[]): string[] {
+    const seen = new Set<string>();
+    return names
+        .map((name) => plainText(name))
+        .filter(
+            (name) =>
+                name &&
+                !/\.[a-z0-9]{2,5}$/i.test(name) &&
+                !seen.has(name.toLowerCase()) &&
+                !!seen.add(name.toLowerCase())
+        );
+}
+
 /** Drops empty values so no property is sent without content. */
 function compact<T extends Json>(node: T): T {
     return Object.fromEntries(
@@ -174,7 +191,7 @@ export function spaceStructuredData(
                 image: isHttpUrl(image) ? image : undefined,
                 creator: person || undefined,
                 // What a visitor finds inside, by artist or collection name.
-                keywords: featuring.slice(0, 20).join(", "),
+                keywords: featuredNames(featuring).slice(0, 20).join(", "),
                 genre: "3D space",
                 publisher: { "@id": orgId() },
             }),
