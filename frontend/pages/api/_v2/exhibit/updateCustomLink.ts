@@ -4,15 +4,11 @@ import { firestore } from "firebase-admin";
 import { db } from "@utils/firebaseAdmin";
 import { Failure, Success } from "@utils/js";
 import { isReservedLink } from "@utils/reservedLinks";
-import { notifyIndexNow } from "@utils/indexNow";
-import { isPublicSpace } from "@utils/spaceVisibility";
 
 async function doUpdateCustomLink(
     customLink: string,
     exhibitId: string,
-    userId: string,
-    // Set when the link changed on a space anyone may visit.
-    changed?: { listed?: boolean }
+    userId: string
 ) {
     // Check first if already exists
     // IF yes return error
@@ -84,8 +80,6 @@ async function doUpdateCustomLink(
             });
         }
 
-        if (changed) changed.listed = isPublicSpace(exhibit);
-
         // Save customLink in exhibit.info
         batch.update(
             exhibitRef,
@@ -114,21 +108,11 @@ export const updateCustomLink = proc({
         //
         try {
             //
-            const changed: { listed?: boolean } = {};
             const result = await doUpdateCustomLink(
                 link,
                 exhibitId,
-                this.userId,
-                changed
+                this.userId
             );
-
-            // A public space has a new address: tell search engines now
-            // (a no-op unless INDEXNOW_KEY is set; never fails the save).
-            if (result && changed.listed)
-                await notifyIndexNow([
-                    link ? `/${link}` : `/spaces/${exhibitId}`,
-                    `/spaces/${exhibitId}`,
-                ]);
 
             return Success(result);
         } catch (err) {
