@@ -62,10 +62,25 @@ export function uploadName(file: string): string {
     const name = file
         .replace(FILE_NAME, "")
         .replace(/[_\-.+]+/g, " ")
+        // "(1)", "copy" and a second extension are the file system's.
+        .replace(/\(\d+\)/g, " ")
+        .replace(/\s+(copy|jpe?g|png|gif|webp|mp4|mov|glb|gltf)\s*$/i, "")
         .replace(/\s+/g, " ")
         .trim();
-    const letters = name.replace(/[^\p{L}]/gu, "");
-    return letters.length < 3 || GENERIC_FILE.test(name) ? "" : name;
+    const letters = name.replace(/[^\p{L}]/gu, "").length;
+    const digits = name.replace(/\D/g, "").length;
+    if (letters < 4 || digits > name.length * 0.3 || GENERIC_FILE.test(name))
+        return "";
+    return name.split(" ").some(isMachineToken) ? "" : name;
+}
+
+/** Ids, hashes and counters that cameras, sites and tools put in file names. */
+function isMachineToken(token: string): boolean {
+    if (/\d{5,}/.test(token)) return true;
+    const mixed = /\d/.test(token) && /\p{L}/u.test(token);
+    if (token.length >= 8 && mixed) return true;
+    // Random ids switch case mid-word again and again ("GSapYunXIAAzQZu").
+    return (token.match(/\p{Ll}\p{Lu}/gu) || []).length >= 3;
 }
 
 function named(value: unknown, max = 120): string {

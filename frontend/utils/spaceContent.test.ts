@@ -177,6 +177,19 @@ describe("uploadName", () => {
         ["12.png", ""],
         ["a1.mp4", ""],
         ["video2.mp4", ""],
+        ["trump_ymca_dance (1).glb", "trump ymca dance"],
+        ["TrumpPortrait.jpg.png", "TrumpPortrait"],
+        [
+            "world_war_2_usa_flag_animation.glb",
+            "world war 2 usa flag animation",
+        ],
+        ["asd.png", ""],
+        ["7358d270-d76e-11ef-94cb-5f844ceb9e30.jpg", ""],
+        ["LYNXNPEB7R0F5.jpg", ""],
+        ["GSapYunXIAAzQZu.jpg", ""],
+        ["77772524007-getty-images-2182526163.jpg", ""],
+        ["160504160857-03-donald-trump-0504.jpg", ""],
+        ["nyu-121124-01.jpg", ""],
     ])("%s → %j", (file, name) => {
         expect(uploadName(file)).toBe(name);
     });
