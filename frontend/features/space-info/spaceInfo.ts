@@ -255,3 +255,25 @@ export function profileNft(nft: any): ProfileNft | null {
                 : ""),
     };
 }
+
+/** Most spaces a profile lists in each section. */
+export const MAX_PROFILE_SPACES = 30;
+
+/**
+ * Spaces for the profile panel: only what a card shows, with ~320px covers.
+ * Spaces without a cover are left out, since a blank tile tells a visitor
+ * nothing.
+ */
+export function profileSpaceCards(
+    cards: { id: string; title: string; href: string; imageUrls: string[] }[]
+) {
+    return cards
+        .filter((card) => card.imageUrls.length > 0)
+        .slice(0, MAX_PROFILE_SPACES)
+        .map((card) => ({
+            id: card.id,
+            title: card.title,
+            href: card.href,
+            imageUrls: card.imageUrls.map((url) => resize(url, 320)),
+        }));
+}
