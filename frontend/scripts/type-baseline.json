@@ -1,5 +1,5 @@
 {
-    "total": 412,
+    "total": 408,
     "errors": {
         "components/DesignSystem/menus/tabs.tsx TS2339": 6,
         "components/DesignSystem/menus/tabs.tsx TS2769": 1,
@@ -126,8 +126,6 @@
         "components/_3DExhibit-v2/ui/ControlPanel/Modes/shared/Helper.tsx TS2339": 3,
         "components/_3DExhibit-v2/ui/ControlPanel/Modes/shared/styles.tsx TS2339": 1,
         "components/_3DExhibit-v2/ui/ControlPanel/Notification/SummonNotification.tsx TS2339": 4,
-        "components/_3DExhibit-v2/ui/ControlPanel/Profile/Explore.tsx TS2322": 1,
-        "components/_3DExhibit-v2/ui/ControlPanel/Profile/Explore.tsx TS2339": 3,
         "components/_3DExhibit-v2/ui/ControlPanel/Profile/Vrm/NewUpload.tsx TS2339": 1,
         "components/_3DExhibit-v2/ui/ControlPanel/Profile/Vrm/NewUpload.tsx TS2345": 1,
         "components/_3DExhibit-v2/ui/ControlPanel/Profile/Vrm/Selection.tsx TS2339": 1,
