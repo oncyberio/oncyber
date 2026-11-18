@@ -265,7 +265,13 @@ export const MAX_PROFILE_SPACES = 30;
  * nothing.
  */
 export function profileSpaceCards(
-    cards: { id: string; title: string; href: string; imageUrls: string[] }[]
+    cards: {
+        id: string;
+        title: string;
+        href: string;
+        imageUrls: string[];
+        visits?: number;
+    }[]
 ) {
     return cards
         .filter((card) => card.imageUrls.length > 0)
@@ -275,5 +281,6 @@ export function profileSpaceCards(
             title: card.title,
             href: card.href,
             imageUrls: card.imageUrls.map((url) => resize(url, 320)),
+            visits: Number(card.visits) || 0,
         }));
 }
