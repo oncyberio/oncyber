@@ -34,3 +34,40 @@ test("a space without a name or details adds nothing it does not know", () => {
     expect(html).not.toContain("Featuring");
     expect(html).not.toContain(" by ");
 });
+
+test("it carries what is inside: wall texts, works, artists, portals and visits", () => {
+    const html = renderToStaticMarkup(
+        <SpaceSummary
+            space={space}
+            gallery="Wolfgang №2"
+            content={{
+                texts: ["The squirrel that sparked a movement."],
+                artworks: [
+                    {
+                        name: "Aeroglyph6529",
+                        creator: "6529Collections",
+                        collection: "The Memes by 6529",
+                        description: "Myths of the Near Future",
+                    },
+                ],
+                artists: ["6529Collections", "The Memes by 6529"],
+                portals: ["HRkakF5x5rFEVvRqUu8S"],
+                visits: 140774,
+                modified: "2024-06-21",
+            }}
+        />
+    );
+    expect(html).toContain("Built in Wolfgang №2.");
+    expect(html).toContain("140,774 visits.");
+    expect(html).toContain('<time dateTime="2024-06-21">2024-06-21</time>');
+    expect(html).toContain(
+        "<p>Featuring 6529Collections, The Memes by 6529.</p>"
+    );
+    expect(html).toContain("<p>The squirrel that sparked a movement.</p>");
+    expect(html).toContain(
+        "<li>Aeroglyph6529 by 6529Collections (The Memes by 6529): Myths of the Near Future</li>"
+    );
+    expect(html).toContain(
+        '<a href="/spaces/HRkakF5x5rFEVvRqUu8S" tabindex="-1">'
+    );
+});

@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { SITE_NAME } from "@utils/siteMeta";
+import { artworkLine, SpaceContent } from "@utils/spaceContent";
 import {
     featuredNames,
     plainText,
@@ -8,18 +9,24 @@ import {
 } from "@utils/structuredData";
 
 /**
- * The text of a space page: its name, creator, description and what it
- * shows. A space is a canvas, so without this the page holds no words for
- * a screen reader, a search engine or an AI assistant that reads the HTML.
- * It is rendered on the server and kept out of sight and out of the tab
- * order; the 3D interface shows the same details.
+ * The text of a space page: its name, creator and description, the words
+ * on its walls, the works it shows and where its portals lead. A space is
+ * a canvas, so without this the page holds no words for a screen reader, a
+ * search engine or an AI assistant that reads the HTML. It is rendered on
+ * the server and kept out of sight and out of the tab order; the 3D
+ * interface shows the same things.
  */
 export default function SpaceSummary({
     space,
     featuring = [],
+    content,
+    gallery,
 }: {
     space: SpaceForSearch;
     featuring?: string[];
+    content?: SpaceContent;
+    /** The gallery or world the space is built in, when it has a name. */
+    gallery?: string;
 }) {
     const name = plainText(space?.info?.headline);
     if (!name) return null;
@@ -29,7 +36,10 @@ export default function SpaceSummary({
         .split(/\n\s*\n/)
         .map((paragraph) => plainText(paragraph))
         .filter(Boolean);
-    const names = featuredNames(featuring);
+    const names = content?.artists?.length
+        ? content.artists
+        : featuredNames(featuring);
+    const builtIn = plainText(gallery);
     return (
         <Hidden aria-label="About this space">
             <h1>{name}</h1>
@@ -47,13 +57,62 @@ export default function SpaceSummary({
                 <a href="/" tabIndex={-1}>
                     {SITE_NAME}
                 </a>
-                .
+                .{builtIn && builtIn !== name && ` Built in ${builtIn}.`}
+                {content?.visits > 0 &&
+                    ` ${content.visits.toLocaleString("en-US")} visits.`}
+                {content?.modified && (
+                    <>
+                        {" Updated "}
+                        <time dateTime={content.modified}>
+                            {content.modified}
+                        </time>
+                        .
+                    </>
+                )}
             </p>
             {paragraphs.map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
             ))}
             {names.length > 0 && (
-                <p>Featuring {names.slice(0, 30).join(", ")}.</p>
+                <>
+                    <h2>Artists and collections</h2>
+                    <p>Featuring {names.slice(0, 40).join(", ")}.</p>
+                </>
+            )}
+            {content?.texts.length > 0 && (
+                <>
+                    <h2>In this space</h2>
+                    {content.texts.map((text, index) => (
+                        <p key={index}>{text}</p>
+                    ))}
+                </>
+            )}
+            {content?.artworks.length > 0 && (
+                <>
+                    <h2>Works on show</h2>
+                    <ul>
+                        {content.artworks.map((work, index) => (
+                            <li key={index}>
+                                {artworkLine(work)}
+                                {work.description && `: ${work.description}`}
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
+            {content?.portals.length > 0 && (
+                <>
+                    <h2>Portals to other spaces</h2>
+                    <ul>
+                        {content.portals.map((id) => (
+                            <li key={id}>
+                                <a href={`/spaces/${id}`} tabIndex={-1}>
+                                    Space {id}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </>
             )}
         </Hidden>
     );

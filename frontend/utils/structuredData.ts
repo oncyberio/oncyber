@@ -5,6 +5,7 @@
  */
 import { SHARE_IMAGE_PATH, SITE_NAME } from "./siteMeta";
 import { searchUrl, siteUrl, spacePath } from "./siteUrl";
+import type { SpaceContent } from "./spaceContent";
 
 type Json = Record<string, unknown>;
 
@@ -149,14 +150,27 @@ export function spaceCreator(space: SpaceForSearch): {
 export function spaceStructuredData(
     space: SpaceForSearch,
     {
+        path,
         description,
         image,
         featuring = [],
-    }: { description?: string; image?: string; featuring?: string[] } = {}
+        content,
+    }: {
+        /** The page's canonical path, when it differs from the space's own. */
+        path?: string;
+        description?: string;
+        image?: string;
+        featuring?: string[];
+        /** What the space holds (see utils/spaceContent.ts). */
+        content?: SpaceContent;
+    } = {}
 ): Json | null {
     const name = plainText(space?.info?.headline);
     if (!space?.id || !name) return null;
-    const url = searchUrl(spacePath(space));
+    const url = searchUrl(path || spacePath(space));
+    const artists = content?.artists?.length
+        ? content.artists
+        : featuredNames(featuring);
     const creator = spaceCreator(space);
     const person = creator && {
         "@type": "Person",
@@ -175,11 +189,12 @@ export function spaceStructuredData(
                 description: text,
                 isPartOf: { "@id": siteId() },
                 primaryImageOfPage: isHttpUrl(image) ? image : undefined,
+                dateModified: content?.modified,
                 mainEntity: { "@id": `${url}#space` },
                 breadcrumb: breadcrumbs([
                     { name: SITE_NAME, path: "/" },
                     ...(creator ? [creator] : []),
-                    { name, path: spacePath(space) },
+                    { name, path: path || spacePath(space) },
                 ]),
             }),
             compact({
@@ -191,8 +206,40 @@ export function spaceStructuredData(
                 image: isHttpUrl(image) ? image : undefined,
                 creator: person || undefined,
                 // What a visitor finds inside, by artist or collection name.
-                keywords: featuredNames(featuring).slice(0, 20).join(", "),
+                keywords: artists.slice(0, 20).join(", "),
                 genre: "3D space",
+                dateCreated: content?.created,
+                dateModified: content?.modified,
+                interactionStatistic:
+                    content?.visits > 0
+                        ? {
+                              "@type": "InteractionCounter",
+                              interactionType: {
+                                  "@type": "ViewAction",
+                              },
+                              userInteractionCount: content.visits,
+                          }
+                        : undefined,
+                // The words on its walls, as the work's own text.
+                text: content?.texts.slice(0, 6).join(" ").slice(0, 1500),
+                // The works on show.
+                hasPart: content?.artworks.slice(0, 25).map((work) =>
+                    compact({
+                        "@type": "VisualArtwork",
+                        name: work.name,
+                        description: work.description,
+                        image: work.image,
+                        creator: work.creator
+                            ? { "@type": "Person", name: work.creator }
+                            : undefined,
+                        isPartOf: work.collection
+                            ? {
+                                  "@type": "Collection",
+                                  name: work.collection,
+                              }
+                            : undefined,
+                    })
+                ),
                 publisher: { "@id": orgId() },
             }),
         ],
