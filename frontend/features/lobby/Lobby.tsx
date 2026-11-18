@@ -107,6 +107,11 @@ export default function Lobby({
     const profilePhoto = useProfilePhoto(userData);
     const journey = useLobbyJourney(initialReturn);
     const [lobbyInfoOpen, setLobbyInfoOpen] = useState(!!profile);
+    // A new profile link opens the panel again, on that person.
+    const profileId = profile?.id;
+    useEffect(() => {
+        if (profileId) setLobbyInfoOpen(true);
+    }, [profileId]);
     const journeyView = lobbyJourneyView(journey);
     const { entered, returning, preparingReturn } = journeyView;
     // Walking through a portal is no trip: no travel overlay and no
@@ -1111,6 +1116,7 @@ export default function Lobby({
                 />
                 {lobbyInfoOpen && (
                     <SpaceInfoSidebar
+                        key={profileId || "lobby"}
                         id="lobby-info"
                         fallback={{
                             title: "Lobby",
