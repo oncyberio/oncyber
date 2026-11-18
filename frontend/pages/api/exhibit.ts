@@ -22,11 +22,16 @@ import {
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
 import { isPublicSpace } from "@utils/spaceVisibility";
+import { z } from "zod";
 import {
     stripExhibitSecrets,
     stripSecretsFromJson,
 } from "@utils/worldPassword/publicGating";
 import { writesWorldPassword } from "@utils/worldPassword/server";
+
+const publicUserExhibitsBody = z.object({
+    userId: z.string().trim().min(1),
+});
 
 function formatExhibitData(it: Experience) {
     if (it.portals == null) {
@@ -1793,12 +1798,13 @@ export default async (req, res) => {
 
             return res.status(200).json({ success: true, exhibits });
         } else if (req.query.type === "GET_PUBLIC_USER_EXHIBITS") {
-            if (typeof userId !== "string" || !userId.trim())
+            const parsed = publicUserExhibitsBody.safeParse(req.body);
+            if (!parsed.success)
                 return res
                     .status(400)
                     .json({ success: false, error: "userId is required" });
             // Anyone can ask for someone else's worlds: only the public ones.
-            const exhibits = (await getUserExhibits(userId)).filter(
+            const exhibits = (await getUserExhibits(parsed.data.userId)).filter(
                 isPublicSpace
             );
 
