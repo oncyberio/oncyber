@@ -1,4 +1,9 @@
-import { buildSpaceInfo, buildSpaceLocation } from "./spaceInfo";
+import {
+    buildSpaceInfo,
+    buildSpaceLocation,
+    MAX_PROFILE_SPACES,
+    profileSpaceCards,
+} from "./spaceInfo";
 import {
     defaultCategoryFor,
     DEFAULT_FILTERS,
@@ -133,4 +138,36 @@ test("location view falls back to the room slug and a short wallet", () => {
     const location = buildSpaceLocation({ author: { id: wallet } }, "room");
     expect(location.name).toBe("room");
     expect(location.author).toMatchObject({ name: "0x1234…5678", href: "" });
+});
+
+test("the profile panel leaves out spaces with no cover", () => {
+    const card = (id: string, imageUrls: string[]) => ({
+        id,
+        title: id,
+        href: `/${id}`,
+        imageUrls,
+    });
+    const cards = profileSpaceCards([
+        card("blank", []),
+        card("covered", ["https://example.com/a.png"]),
+    ]);
+    expect(cards.map((it) => it.id)).toEqual(["covered"]);
+});
+
+test("the profile panel cap counts only spaces with a cover", () => {
+    const blanks = Array.from({ length: 5 }, (_, i) => ({
+        id: `blank-${i}`,
+        title: "",
+        href: "",
+        imageUrls: [],
+    }));
+    const covered = Array.from({ length: MAX_PROFILE_SPACES }, (_, i) => ({
+        id: `space-${i}`,
+        title: "",
+        href: "",
+        imageUrls: ["https://example.com/a.png"],
+    }));
+    expect(profileSpaceCards([...blanks, ...covered])).toHaveLength(
+        MAX_PROFILE_SPACES
+    );
 });
