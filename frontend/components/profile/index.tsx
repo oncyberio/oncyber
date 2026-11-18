@@ -1,9 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import Head from "next/head";
 import { searchUrl } from "@utils/siteUrl";
-import { profileStructuredData } from "@utils/structuredData";
-import type { ProfileSpaceLink } from "@utils/serverside/profileSpaces";
-import JsonLd from "@components/JsonLd";
 import styled, { css } from "styled-components";
 import Navigation from "../nav/main";
 import { FollowButton, FollowingList } from "./components/Following";
@@ -38,35 +35,18 @@ function ProfileHead({ userData }) {
     const description = `3D spaces and NFTs by ${name} on oncyber.`;
     const url = searchUrl(`/@${handle}`);
     return (
-        <>
-            <Head>
-                <title key="title">{title}</title>
-                <meta
-                    key="description"
-                    name="description"
-                    content={description}
-                />
-                <meta key="ogTitle" property="og:title" content={title} />
-                <meta
-                    key="ogDescription"
-                    property="og:description"
-                    content={description}
-                />
-                <meta key="ogType" property="og:type" content="profile" />
-                <meta key="twitterTitle" name="twitter:title" content={title} />
-                <meta
-                    key="twitterDescription"
-                    name="twitter:description"
-                    content={description}
-                />
-                <link key="canonical" rel="canonical" href={url} />
-                <meta key="ogUrl" property="og:url" content={url} />
-            </Head>
-            <JsonLd
-                id="profile"
-                data={profileStructuredData(userData, description)}
+        <Head>
+            <title key="title">{title}</title>
+            <meta key="description" name="description" content={description} />
+            <meta key="ogTitle" property="og:title" content={title} />
+            <meta
+                key="ogDescription"
+                property="og:description"
+                content={description}
             />
-        </>
+            <link key="canonical" rel="canonical" href={url} />
+            <meta key="ogUrl" property="og:url" content={url} />
+        </Head>
     );
 }
 
@@ -77,56 +57,7 @@ const tabs = {
     // 'created': 'Created NFTs',
 };
 
-/**
- * The creator's public spaces as links in the server-rendered page. The
- * grid below loads the same spaces once the page runs; until then (and for
- * search engines and assistants that never run it) these are the way from
- * a creator to their spaces. Out of sight and out of the tab order.
- */
-function ProfileSpaceLinks({
-    name,
-    spaces,
-}: {
-    name: string;
-    spaces?: ProfileSpaceLink[];
-}) {
-    if (!spaces?.length) return null;
-    return (
-        <HiddenNav aria-label={`Spaces by ${name}`}>
-            <h2>Spaces by {name}</h2>
-            <ul>
-                {spaces.map((space) => (
-                    <li key={space.id}>
-                        <a href={space.path} tabIndex={-1}>
-                            {space.name}
-                        </a>
-                    </li>
-                ))}
-            </ul>
-        </HiddenNav>
-    );
-}
-
-const HiddenNav = styled.nav`
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-`;
-
-const ProfilePage = ({
-    userData,
-    spaces,
-}: {
-    userData: any;
-    spaces?: ProfileSpaceLink[];
-}) => {
+const ProfilePage = ({ userData }) => {
     const [selectedArtwork, setSelectedArtwork] = useState();
     const { toggle, isShowing } = useModal();
     const [isActive, setActive] = useState("deployed");
@@ -134,9 +65,7 @@ const ProfilePage = ({
     const [savedSpaces, setSavedSpaces] = useState([]);
     const { user } = useContext(UserContext);
     const [currentProfile, setCurrentProfile] = useState(null);
-    // The spaces load once the page is open. Starting as "loading" keeps the
-    // server-rendered page from saying the profile has no public spaces.
-    const [loadingDeployedSpaces, setLoadingDeployedSpaces] = useState(true);
+    const [loadingDeployedSpaces, setLoadingDeployedSpaces] = useState(false);
     const [loadingSavedSpaces, setLoadingSavedSpaces] = useState(false);
 
     const { isLightTheme } = useContext(ThemeContext);
@@ -198,21 +127,9 @@ const ProfilePage = ({
     }, [userData?.id]);
     ``;
 
-    // The server-rendered page has no state yet: name the profile from its
-    // own data, not "@undefined...".
-    const shownProfile = currentProfile ?? userData;
-
     return (
         <Container id="container" isLight={isLightTheme}>
             <ProfileHead userData={userData} />
-            <ProfileSpaceLinks
-                name={
-                    userData?.username
-                        ? `@${userData.username}`
-                        : "this creator"
-                }
-                spaces={spaces}
-            />
             <ArtworkInfo
                 toggle={() => toggle(false)}
                 isShowing={isShowing}
@@ -229,11 +146,11 @@ const ProfilePage = ({
                     />
                     <h1>
                         <span className="pixelated">@</span>
-                        {shownProfile?.username ||
-                            shownProfile?.id?.slice(0, 5) + "..."}
+                        {currentProfile?.username ||
+                            currentProfile?.id?.slice(0, 5) + "..."}
                     </h1>
-                    {shownProfile?.username ? (
-                        <p>{shownProfile?.id}</p>
+                    {currentProfile?.username ? (
+                        <p>{currentProfile?.id}</p>
                     ) : (
                         user?.id == userData?.id && (
                             <p

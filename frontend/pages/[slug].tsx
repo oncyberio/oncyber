@@ -11,7 +11,6 @@ import { checkGating } from "@utils/checkGatingRules";
 import dynamic from "next/dynamic";
 import { BasicServerSideProps } from "@utils/serverside/BasicServerSideProps";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
-import { profileSpaces } from "@utils/serverside/profileSpaces";
 import { useEffect } from "react";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import {
@@ -62,7 +61,7 @@ export default function CustomLinkExhibit({
     }
 
     if (isProfile) {
-        return <Profile userData={profile} spaces={props.profileSpaces} />;
+        return <Profile userData={profile} />;
     }
 
     if (!experience?.editors) {
@@ -109,7 +108,6 @@ export const getServerSideProps = BasicServerSideProps(
                         // props: {
                         isProfile: true,
                         profile: data,
-                        profileSpaces: await profileSpaces(data.id),
                         // },
                     };
                 }
@@ -127,7 +125,6 @@ export const getServerSideProps = BasicServerSideProps(
                 // props: {
                 isProfile: true,
                 profile: data,
-                profileSpaces: await profileSpaces(data.id),
                 // },
             };
         }

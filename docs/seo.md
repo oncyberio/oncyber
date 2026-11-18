@@ -8,15 +8,14 @@ else; don't add a brand or a suffix to it.
 
 ## What each page carries
 
-| Page                                  | Title and description                                 | Canonical                                   | Structured data                                                         | Text in the HTML                                                                                 | Built in                                                                    |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Home `/`                              | Site title, the landing's own description             | `/`                                         | Organization, WebSite, ItemList of the featured spaces                  | An h1; links to About, Studio, Docs, Privacy (shown on focus); the featured spaces in `noscript` | `components/layouts/headers.tsx`, `pages/landing-carousel.tsx`              |
-| Space `/<link>`, `/spaces/<id>`       | The space's name; its description and who it features | Its link, with `?id=` on single-work spaces | WebPage, CreativeWork (works, wall text, visits, dates), BreadcrumbList | Name, creator, description, wall texts, works, artists, the creator's other spaces, portals      | `components/seo/SpaceSeo.tsx`, `utils/spaceSeo.ts`, `utils/spaceContent.ts` |
-| Profile `/@name`                      | `@name on oncyber`                                    | `/@name`                                    | ProfilePage                                                             | The creator's public spaces as links                                                             | `components/profile/index.tsx`, `utils/serverside/profileSpaces.ts`         |
-| Template `/destinations/<slug>`, mint | The template's name and description                   | Itself                                      | WebPage                                                                 | Name, author, description                                                                        | `components/seo/DestinationSeo.tsx`                                         |
-| Docs `/docs/...`                      | The page's own                                        | Itself                                      | TechArticle, or FAQPage for a page with `faq: true`                     | The page                                                                                         | `pages/docs/[[...slug]].tsx`, `features/docs/content.ts`                    |
-| `/about`, `/privacy`, `/studio`       | Their own (`utils/siteMeta.ts`)                       | Themselves                                  |                                                                         | The page                                                                                         | `components/layouts/headers.tsx`                                            |
-| A link that finds nothing             | `Could not find "…"`                                  | None; `noindex`; status 404                 |                                                                         | The landing, searching for the link's words                                                      | `utils/serverside/notFoundLanding.ts`                                       |
+| Page                                  | Title and description                                 | Canonical                                   | Structured data                                                         | Text in the HTML                                                                            | Built in                                                                    |
+| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Home `/`                              | Site title, the landing's own description             | `/`                                         | Organization, WebSite, ItemList of the featured spaces                  | An h1; an About link; the featured spaces in `noscript`                                     | `components/layouts/headers.tsx`, `pages/landing-carousel.tsx`              |
+| Space `/<link>`, `/spaces/<id>`       | The space's name; its description and who it features | Its link, with `?id=` on single-work spaces | WebPage, CreativeWork (works, wall text, visits, dates), BreadcrumbList | Name, creator, description, wall texts, works, artists, the creator's other spaces, portals | `components/seo/SpaceSeo.tsx`, `utils/spaceSeo.ts`, `utils/spaceContent.ts` |
+| Template `/destinations/<slug>`, mint | The template's name and description                   | Itself                                      | WebPage                                                                 | Name, author, description                                                                   | `components/seo/DestinationSeo.tsx`                                         |
+| Docs `/docs/...`                      | The page's own                                        | Itself                                      | TechArticle, or FAQPage for a page with `faq: true`                     | The page                                                                                    | `pages/docs/[[...slug]].tsx`, `features/docs/content.ts`                    |
+| `/about`, `/privacy`, `/studio`       | Their own (`utils/siteMeta.ts`)                       | Themselves                                  |                                                                         | The page                                                                                    | `components/layouts/headers.tsx`                                            |
+| A link that finds nothing             | `Could not find "…"`                                  | None; `noindex`; status 404                 |                                                                         | The landing, searching for the link's words                                                 | `utils/serverside/notFoundLanding.ts`                                       |
 
 Every address in a canonical, `og:url`, the sitemap and structured data is
 on the search origin (`NEXT_PUBLIC_SEARCH_ORIGIN`, see `utils/siteUrl.ts`).
@@ -40,15 +39,14 @@ the space.
 
 Space pages add none: their text comes from the data the page already
 loads. The creator's other spaces are read when a space's cached view is
-filled (at most once a day, 13 documents). A profile page reads up to 30 of
-the creator's spaces, kept ten minutes per server. A link typed with
+filled (at most once a day, 13 documents). A link typed with
 capitals costs one more lookup, only when it misses.
 
 ## Checking a deployment
 
 ```sh
 pnpm -C frontend check:seo https://www.oncyber.com
-pnpm -C frontend check:seo <preview url> --space /frahm-gallery --profile /@6529
+pnpm -C frontend check:seo <preview url> --space /frahm-gallery
 ```
 
 It fetches each kind of page and fails when one has lost its title,

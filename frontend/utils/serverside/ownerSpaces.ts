@@ -2,16 +2,16 @@ import { db } from "@utils/firebaseAdmin";
 import { isReservedLink } from "@utils/reservedLinks";
 import { isPublicSpace, PUBLIC_SPACE_FIELDS } from "@utils/spaceVisibility";
 
-/** A creator's public space, as a link on their profile. */
-export interface ProfileSpaceLink {
+/** A creator's public space, as a link from another of their spaces. */
+export interface OwnerSpaceLink {
     id: string;
     name: string;
     path: string;
 }
 
-/** Most spaces read for one profile, and most links listed. */
-export const PROFILE_SPACES_READ = 30;
-export const PROFILE_SPACES_LISTED = 24;
+/** Most sibling spaces read for, and listed on, one space page. */
+export const OWNER_SPACES_READ = 13;
+export const OWNER_SPACES_LISTED = 12;
 
 const FIELDS = [
     "info.headline",
@@ -21,10 +21,10 @@ const FIELDS = [
 ];
 
 /** The links to list from a creator's spaces: public, named, most visited first. */
-export function profileSpaceLinks(
+export function spaceLinks(
     docs: { id: string; data: any }[],
-    max = PROFILE_SPACES_LISTED
-): ProfileSpaceLink[] {
+    max = OWNER_SPACES_LISTED
+): OwnerSpaceLink[] {
     return docs
         .filter(({ data }) => isPublicSpace(data))
         .map(({ id, data }) => {
@@ -48,47 +48,6 @@ export function profileSpaceLinks(
         .map(({ id, name, path }) => ({ id, name, path }));
 }
 
-const CACHE_MS = 10 * 60 * 1000;
-const CACHE_MAX = 500;
-const cache = new Map<string, { at: number; links: ProfileSpaceLink[] }>();
-
-/**
- * The public spaces a profile page links to in its HTML, so search engines
- * and assistants that do not run the page's script can still follow a
- * creator to their spaces. One bounded read, kept for ten minutes per
- * server; a failure lists nothing rather than failing the page.
- */
-export async function profileSpaces(
-    ownerId: string,
-    store = db,
-    now = Date.now()
-): Promise<ProfileSpaceLink[]> {
-    if (!ownerId) return [];
-    const hit = cache.get(ownerId);
-    if (hit && now - hit.at < CACHE_MS) return hit.links;
-    try {
-        const snapshot = await store
-            .collection("exhibits")
-            .where("owner", "==", ownerId)
-            .select(...FIELDS)
-            .limit(PROFILE_SPACES_READ)
-            .get();
-        const links = profileSpaceLinks(
-            snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() }))
-        );
-        if (cache.size >= CACHE_MAX) cache.clear();
-        cache.set(ownerId, { at: now, links });
-        return links;
-    } catch (error) {
-        console.error("[profile spaces]", error?.message || error);
-        return [];
-    }
-}
-
-/** Most sibling spaces read for, and listed on, one space page. */
-export const OWNER_SPACES_READ = 13;
-export const OWNER_SPACES_LISTED = 12;
-
 /**
  * Other public spaces by the same owner, for the links a space page gives
  * to its creator's other work. Read when a space's cached view is filled
@@ -99,7 +58,7 @@ export async function ownerSpaceLinks(
     ownerId: string,
     exceptId: string,
     store = db
-): Promise<ProfileSpaceLink[]> {
+): Promise<OwnerSpaceLink[]> {
     if (!ownerId) return [];
     try {
         const snapshot = await store
@@ -108,11 +67,10 @@ export async function ownerSpaceLinks(
             .select(...FIELDS)
             .limit(OWNER_SPACES_READ)
             .get();
-        return profileSpaceLinks(
+        return spaceLinks(
             snapshot.docs
                 .filter((doc) => doc.id !== exceptId)
-                .map((doc) => ({ id: doc.id, data: doc.data() })),
-            OWNER_SPACES_LISTED
+                .map((doc) => ({ id: doc.id, data: doc.data() }))
         );
     } catch (error) {
         console.error("[owner spaces]", error?.message || error);

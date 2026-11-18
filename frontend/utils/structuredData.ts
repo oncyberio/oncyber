@@ -244,47 +244,6 @@ export function spaceStructuredData(
     };
 }
 
-export interface ProfileForSearch {
-    id?: string;
-    username?: string;
-    avatar?: string;
-}
-
-/** A creator's profile page. */
-export function profileStructuredData(
-    profile: ProfileForSearch,
-    description?: string
-): Json | null {
-    const handle = profile?.username || profile?.id;
-    if (!handle) return null;
-    const url = searchUrl(`/@${handle}`);
-    const name = profile.username
-        ? `@${profile.username}`
-        : `${profile.id.slice(0, 6)}…${profile.id.slice(-4)}`;
-    return {
-        "@context": CONTEXT,
-        "@type": "ProfilePage",
-        "@id": url,
-        url,
-        name: `${name} on ${SITE_NAME}`,
-        description,
-        isPartOf: { "@id": siteId() },
-        mainEntity: compact({
-            "@type": "Person",
-            "@id": `${url}#person`,
-            name,
-            alternateName: profile.username || undefined,
-            identifier: profile.id,
-            url,
-            image: isHttpUrl(profile.avatar) ? profile.avatar : undefined,
-        }),
-        breadcrumb: breadcrumbs([
-            { name: SITE_NAME, path: "/" },
-            { name, path: `/@${handle}` },
-        ]),
-    };
-}
-
 /** A docs page: an article in the docs section, or its questions and answers. */
 export function docStructuredData(doc: {
     slug: string;

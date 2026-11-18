@@ -5,7 +5,6 @@ import {
     featuredNames,
     jsonLdScript,
     plainText,
-    profileStructuredData,
     siteStructuredData,
     spaceCreator,
     spaceStructuredData,
@@ -122,36 +121,6 @@ describe("spaceCreator", () => {
             path: "/@tz1short",
         });
         expect(spaceCreator({})).toBeNull();
-    });
-});
-
-describe("profileStructuredData", () => {
-    it("describes a named profile", () => {
-        const data: any = profileStructuredData(
-            {
-                id: "0xabc0000000000000000000000000000000000def",
-                username: "6529",
-            },
-            "3D spaces and NFTs by @6529 on oncyber."
-        );
-        expect(data["@type"]).toBe("ProfilePage");
-        expect(data.url).toBe(searchUrl("/@6529"));
-        expect(data.mainEntity).toMatchObject({
-            "@type": "Person",
-            name: "@6529",
-            alternateName: "6529",
-        });
-        expect(data.mainEntity).not.toHaveProperty("image");
-    });
-
-    it("falls back to the wallet, and to nothing without a profile", () => {
-        const data: any = profileStructuredData({
-            id: "0xabc0000000000000000000000000000000000def",
-            avatar: "https://example.com/a.png",
-        });
-        expect(data.mainEntity.name).toBe("0xabc0…0def");
-        expect(data.mainEntity.image).toBe("https://example.com/a.png");
-        expect(profileStructuredData(null)).toBeNull();
     });
 });
 

@@ -18,7 +18,7 @@ import {
 } from "@utils/firestore/userProfiles";
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
-import { ownerSpaceLinks } from "@utils/serverside/profileSpaces";
+import { ownerSpaceLinks } from "@utils/serverside/ownerSpaces";
 import {
     stripExhibitSecrets,
     stripSecretsFromJson,

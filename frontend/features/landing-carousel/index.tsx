@@ -19,6 +19,7 @@ import { creationToggleStep, creationStep } from "./creationSteps";
 import Header from "./components/Header";
 import ImmersiveViewportStyle from "@features/content-host/ImmersiveViewportStyle";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import styled from "styled-components";
 import { ActionButton, compactActionSizing } from "@styles/brand";
 import EmptyState from "@ui/components/EmptyState";
@@ -66,15 +67,9 @@ const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 const TemplateCatalog = dynamic(() => import("./components/TemplateCatalog"), {
     ssr: false,
 });
-const GRID_SIZES = [
-    { columns: 2, rows: 2 },
-    { columns: 1, rows: 1 },
-];
+const GRID = { columns: 2, rows: 2 };
 /** Phones show one column of two cards instead of the 2×2 grid. */
-const MOBILE_GRID_SIZES = [
-    { columns: 1, rows: 2 },
-    { columns: 1, rows: 1 },
-];
+const MOBILE_GRID = { columns: 1, rows: 2 };
 const MOBILE_QUERY = "(max-width: 700px)";
 
 function useMobileLayout() {
@@ -148,10 +143,8 @@ function LandingContent(props: LandingPageProps) {
     } = discovery;
     // Image-only fallback for WebGL failures; curvature is never a user mode.
     const [flat, setFlat] = useState(false);
-    const [gridChoice, setGridChoice] = useState(0);
     const { t } = useCyberTranslation();
-    const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
-    const grid = gridSizes[gridChoice];
+    const grid = useMobileLayout() ? MOBILE_GRID : GRID;
     const router = useRouter();
     const inLobby = router.query.lobby === "1";
     const [browseVisible, setBrowseVisible] = useState(!inLobby);
@@ -593,22 +586,9 @@ function LandingContent(props: LandingPageProps) {
             </span>
         </CreateControl>
     );
-    const gridControls = (
-        <ViewControls>
-            <div className="density" role="group" aria-label={t("Grid size")}>
-                {gridSizes.map((size, index) => (
-                    <button
-                        key={`${size.columns}x${size.rows}`}
-                        aria-label={t("{columns} by {rows} grid", size)}
-                        aria-pressed={gridChoice === index}
-                        onClick={() => setGridChoice(index)}
-                    >
-                        {size.columns}×{size.rows}
-                    </button>
-                ))}
-            </div>
-        </ViewControls>
-    );
+    // The way from the landing to the rest of the site: a plain link, in
+    // the corner the grid size switch used to take.
+    const aboutLink = <AboutLink href="/about">{t("about")}</AboutLink>;
     const lobbyPopulation = useLobbyPopulation(!creating && !inLobby);
     const viewControls = (
         <ViewControls>
@@ -662,23 +642,6 @@ function LandingContent(props: LandingPageProps) {
                         : "Skip to worlds"
                 )}
             </a>
-            {/* The rest of the site, for keyboards, screen readers and search
-                engines: the landing itself shows only worlds. Each link
-                appears when focused, like the skip link. */}
-            <nav className="site-links" aria-label="Oncyber">
-                <a className="skip-link" href="/about">
-                    About Oncyber
-                </a>
-                <a className="skip-link" href="/studio">
-                    Create a space
-                </a>
-                <a className="skip-link" href="/docs">
-                    Docs
-                </a>
-                <a className="skip-link" href="/privacy">
-                    Privacy
-                </a>
-            </nav>
             {/* The page's heading, for screen readers and search engines:
                 the visible page is a logo over a canvas of cards. */}
             <h1 className="landing-title">
@@ -764,7 +727,7 @@ function LandingContent(props: LandingPageProps) {
                                 onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
-                                footerStart={gridControls}
+                                footerStart={aboutLink}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
                                 hasMore={!creating && !loading && pagedHasMore}
@@ -919,7 +882,7 @@ function LandingContent(props: LandingPageProps) {
                         galleryLoading ||
                         (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
-                            {gridControls}
+                            {aboutLink}
                             {viewControls}
                         </EmptyFooter>
                     )}
@@ -980,6 +943,29 @@ const EnterPortalIcon = styled.span`
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses; the red lens is the Create accent token. */
     background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
+`;
+
+const AboutLink = styled(Link)`
+    /* Twice, to outrank the page's own rule for links. */
+    && {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        min-height: 44px;
+        padding: 10px 0;
+        color: var(--oc-secondary);
+        font-size: 14px;
+        white-space: nowrap;
+        transition: color var(--oc-fast);
+    }
+    &&:hover {
+        color: var(--oc-ink);
+    }
+    @media (max-width: 700px) {
+        && {
+            font-size: 12px;
+        }
+    }
 `;
 
 const CreateControl = styled.button`
