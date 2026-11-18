@@ -18,13 +18,16 @@ import { randomRecipe } from "../random";
 import {
     TOON_AVATAR_SCHEMA,
     defaultRecipe,
+    normalizeRecipe,
     recipesEqual,
     setRecipeField,
     type Field,
     type ToonAvatarRecipe,
 } from "../recipe";
 import { TOON_MOTIONS, type ToonMotion } from "../three/motion";
-import { toonAvatarUrl } from "../url";
+import { isAuthoredAvatarId, loadAuthoredAvatar } from "../authored/catalogue";
+import type { AuthoredAvatar } from "../authored/types";
+import { authoredAvatarUrl, toonAvatarUrl } from "../url";
 import {
     TOON_AVATAR_NAME,
     readToonDraft,
@@ -84,15 +87,40 @@ async function portrait(stage: ToonAvatarStage): Promise<string | undefined> {
 
 export default function AvatarMaker() {
     const router = useRouter();
-    if (!router.isReady) return <Page aria-busy />;
-    return <Maker initial={initialRecipe(router.query)} query={router.query} />;
+    const id = router.isReady ? router.query.id : undefined;
+    const wanted = isAuthoredAvatarId(id) ? id : null;
+    const [authored, setAuthored] = useState<AuthoredAvatar | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        if (wanted)
+            void loadAuthoredAvatar(wanted).then((avatar) => {
+                if (!cancelled) setAuthored(avatar);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [wanted]);
+    if (!router.isReady || (wanted && !authored)) return <Page aria-busy />;
+    return (
+        <Maker
+            initial={
+                decodeRecipe(router.query.a) ||
+                (authored && normalizeRecipe(authored.recipe)) ||
+                initialRecipe(router.query)
+            }
+            authored={authored}
+            query={router.query}
+        />
+    );
 }
 
 function Maker({
     initial,
+    authored,
     query,
 }: {
     initial: ToonAvatarRecipe;
+    authored: AuthoredAvatar | null;
     query: Record<string, unknown>;
 }) {
     const router = useRouter();
@@ -132,6 +160,7 @@ function Maker({
             if (cancelled || !canvas.current) return;
             created = new ToonAvatarStage(canvas.current, initial, {
                 forceWebGL: query.renderer === "webgl",
+                authored: authored || undefined,
                 reducedMotion: window.matchMedia?.(
                     "(prefers-reduced-motion: reduce)"
                 ).matches,
@@ -261,11 +290,19 @@ function Maker({
     };
 
     const useAvatar = async () => {
-        const url = toonAvatarUrl(code);
+        // An authored avatar keeps its id, plus the sliders if they were changed.
+        const url = authored
+            ? authoredAvatarUrl(
+                  authored.id,
+                  recipesEqual(recipe, normalizeRecipe(authored.recipe))
+                      ? undefined
+                      : code
+              )
+            : toonAvatarUrl(code);
         const image = stage.current
             ? await portrait(stage.current).catch(() => undefined)
             : undefined;
-        saveToonAvatar({ code, image, wear: true });
+        saveToonAvatar({ code, id: authored?.id, image, wear: true });
         const { userData, user, token, authenticated, isAnonymous } =
             account || {};
         // The lobby and spaces read the same travel avatar and saved setting.

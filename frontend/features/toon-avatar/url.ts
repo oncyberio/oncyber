@@ -3,6 +3,7 @@ import {
     encodeRecipe,
     TOON_AVATAR_CODE_MAX_LENGTH,
 } from "./codec";
+import { isAuthoredAvatarId } from "./authored/catalogue";
 import type { ToonAvatarRecipe } from "./recipe";
 
 /** Where the maker lives. An avatar's address is a link to itself in the maker. */
@@ -19,8 +20,16 @@ export function toonAvatarUrl(recipe: ToonAvatarRecipe | string): string {
     return `${TOON_AVATAR_PATH}?a=${code}`;
 }
 
-/** The avatar code in a toon avatar address, absolute or site-relative; else null. */
-export function toonAvatarCode(url: unknown): string | null {
+/** An avatar written as code is addressed by its id: `/studio/avatar?id=tinker`. */
+export function authoredAvatarUrl(id: string, code?: string): string {
+    return `${TOON_AVATAR_PATH}?id=${id}${code ? `&a=${code}` : ""}`;
+}
+
+/** An authored avatar may carry a code too: its own sliders, changed. */
+export type ToonAvatarSource = { code?: string; id?: string };
+
+/** What a maker address points at: a recipe code, an authored avatar, or nothing. */
+export function toonAvatarSource(url: unknown): ToonAvatarSource | null {
     if (
         typeof url !== "string" ||
         url.length > TOON_AVATAR_CODE_MAX_LENGTH + 256
@@ -33,11 +42,20 @@ export function toonAvatarCode(url: unknown): string | null {
         return null;
     }
     if (parsed.pathname !== TOON_AVATAR_PATH) return null;
-    const code = parsed.searchParams.get("a");
-    return code && decodeRecipe(code) ? code : null;
+    const a = parsed.searchParams.get("a");
+    const code = a && decodeRecipe(a) ? a : undefined;
+    const param = parsed.searchParams.get("id");
+    const id = isAuthoredAvatarId(param) ? param : undefined;
+    return code || id ? { code, id } : null;
 }
 
-export const isToonAvatarUrl = (url: unknown) => toonAvatarCode(url) !== null;
+/** The avatar code in a toon avatar address, absolute or site-relative; else null. */
+export function toonAvatarCode(url: unknown): string | null {
+    const source = toonAvatarSource(url);
+    return source?.code ?? null;
+}
+
+export const isToonAvatarUrl = (url: unknown) => toonAvatarSource(url) !== null;
 
 export function toonRecipeFromUrl(url: unknown): ToonAvatarRecipe | null {
     const code = toonAvatarCode(url);

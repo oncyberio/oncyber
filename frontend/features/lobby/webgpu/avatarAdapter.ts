@@ -41,7 +41,11 @@ import {
     POSSIBLE_ACTIONS,
 } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
-import { isToonAvatarUrl, toonRecipeFromUrl } from "@features/toon-avatar/url";
+import {
+    isToonAvatarUrl,
+    toonAvatarSource,
+    toonRecipeFromUrl,
+} from "@features/toon-avatar/url";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import {
     applyNativeAvatarMaterials,
@@ -356,8 +360,17 @@ function retargetAnimation(
 
 /** A toon avatar is built from the recipe in its address: there is no file. */
 async function buildToonAvatar(url: string): Promise<ModernVRM> {
-    const { createToonVrm } = await import("@features/toon-avatar/three/vrm");
-    return createToonVrm(toonRecipeFromUrl(url)) as unknown as ModernVRM;
+    const [{ createToonVrm }, { loadAuthoredAvatar }] = await Promise.all([
+        import("@features/toon-avatar/three/vrm"),
+        import("@features/toon-avatar/authored/catalogue"),
+    ]);
+    const source = toonAvatarSource(url);
+    // Either sliders packed into the address, or an avatar written as code.
+    const authored = source?.id ? await loadAuthoredAvatar(source.id) : null;
+    return createToonVrm(
+        toonRecipeFromUrl(url) ?? authored?.recipe,
+        authored || undefined
+    ) as unknown as ModernVRM;
 }
 
 async function parseAvatar(url: string): Promise<LobbyAvatar> {

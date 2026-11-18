@@ -1,4 +1,5 @@
 import type { Object3D } from "three";
+import type { AuthoredAvatar } from "../authored/types";
 import { TOON_BONES, type ToonBone } from "../skeleton";
 import { ToonAvatar } from "./avatar";
 import { ToonFaceAnimator, ToonSecondaryMotion } from "./motion";
@@ -15,8 +16,8 @@ type BonePose = { position: number[]; rotation: number[] };
  * bones by name, and an `update` for per-frame extras. Clips retargeted for
  * a normalized VRM humanoid play on it as they are.
  */
-export function createToonVrm(recipe: unknown) {
-    const avatar = new ToonAvatar(recipe);
+export function createToonVrm(recipe: unknown, authored?: AuthoredAvatar) {
+    const avatar = new ToonAvatar(recipe, authored);
     const bone = (name: string): Object3D | null =>
         HUMANOID.has(name) ? avatar.bones[name as ToonBone] : null;
     const face = new ToonFaceAnimator();

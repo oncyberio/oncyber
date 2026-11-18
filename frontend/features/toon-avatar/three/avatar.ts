@@ -8,7 +8,8 @@ import {
     Sphere,
     Vector3,
 } from "three";
-import { faceParams, type ToonExpression } from "../face";
+import type { AuthoredAvatar } from "../authored/types";
+import { faceParams, type ToonExpression, type ToonFaceParams } from "../face";
 import { buildToonMesh, type ToonMesh } from "../mesh";
 import { normalizeRecipe, type ToonAvatarRecipe } from "../recipe";
 import {
@@ -71,7 +72,11 @@ export class ToonAvatar {
 
     private materials = createToonMaterials(this.uniforms);
 
-    constructor(recipe?: unknown) {
+    /**
+     * @param recipe The sliders; defaults to the authored avatar's own.
+     * @param authored Code for one particular avatar, on top of the recipe.
+     */
+    constructor(recipe?: unknown, private authored?: AuthoredAvatar) {
         this.root.name = "ToonAvatar";
         for (const name of TOON_BONES) {
             const bone = new Bone();
@@ -96,7 +101,7 @@ export class ToonAvatar {
             mesh.frustumCulled = true;
             this.root.add(mesh);
         }
-        this.setRecipe(recipe);
+        this.setRecipe(recipe ?? authored?.recipe);
     }
 
     /** Standing height in metres, to the top of the skull. */
@@ -105,7 +110,11 @@ export class ToonAvatar {
     }
 
     setRecipe(input: unknown) {
-        const built = buildToonMesh(normalizeRecipe(input));
+        const authored = this.authored;
+        const built = buildToonMesh(
+            normalizeRecipe(input),
+            authored?.build && ((kit) => authored.build(kit))
+        );
         this.recipe = built.recipe;
         this.layout = built.layout;
 
@@ -136,10 +145,14 @@ export class ToonAvatar {
 
         applyFaceParams(
             this.uniforms,
-            faceParams(built.recipe, built.layout, built.face)
+            this.face(faceParams(built.recipe, built.layout, built.face))
         );
         this.uniforms.inkWidth.value = built.layout.ink;
         this.uniforms.shade.value = built.recipe.look.shade;
+    }
+
+    private face(params: ToonFaceParams) {
+        return this.authored?.face ? this.authored.face(params) : params;
     }
 
     setExpression(expression: Partial<ToonExpression>) {

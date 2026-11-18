@@ -25,7 +25,7 @@ import {
 const SEGMENTS = 72;
 const PI = Math.PI;
 
-type CapOptions = {
+export type CapOptions = {
     color: Rgb;
     /** Lower edge of the cap: latitude for each longitude (0 is the face). */
     edge: (longitude: number) => number;
@@ -43,7 +43,7 @@ type CapOptions = {
  * bands are all caps. The edge gets an ink line and dips under the skin, so
  * the cap is sealed and outlined all the way round.
  */
-function cap(ctx: ToonContext, head: HeadShape, options: CapOptions) {
+export function cap(ctx: ToonContext, head: HeadShape, options: CapOptions) {
     const { builder, colors, layout } = ctx;
     const { color, edge, top, thickness, ceiling } = options;
     const count = options.rows ?? 9;
@@ -99,7 +99,7 @@ function cap(ctx: ToonContext, head: HeadShape, options: CapOptions) {
 }
 
 /** The usual hairline: high on the forehead, down past the ears, low at the nape. */
-function hairline(
+export function hairline(
     front: number,
     nape: number,
     scallop = 0,
@@ -129,7 +129,7 @@ function hairline(
 }
 
 /** A tapering cone of hair pointing away from the skull. */
-function spike(
+export function spike(
     ctx: ToonContext,
     head: HeadShape,
     latitude: number,
@@ -159,7 +159,7 @@ function spike(
 }
 
 /** A hanging lock: ponytail or pigtail. Swings on the hair bone. */
-function tail(
+export function tail(
     ctx: ToonContext,
     root: Vec3,
     away: Vec3,
@@ -208,7 +208,7 @@ function tail(
 }
 
 /** Hair that hangs past the skull: a thick sheet around the back and sides. */
-function curtain(
+export function curtain(
     ctx: ToonContext,
     head: HeadShape,
     bottomY: number,

@@ -65,7 +65,7 @@ export function torsoSection(ctx: ToonContext, t: number) {
     return { center, width: width + bulge * 0.18, depth };
 }
 
-function torsoWeights(t: number): Weights {
+export function torsoWeights(t: number): Weights {
     return chainWeights(
         t,
         [

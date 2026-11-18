@@ -84,6 +84,14 @@ else is built from the recipe in the browser when the avatar is shown.
     functions of time that turn bones; hair tails and coat tails trail on a
     spring.
 
+-   **Avatars written as code.** A character the sliders can't reach is
+    its own module in `features/toon-avatar/authored/`: a recipe plus a
+    `build` function that adds bespoke geometry with the same kit. Tinker,
+    Moth and Juno in the lobby picker are made this way.
+    `docs/avatar-authoring.md` in the repository is the method for writing
+    one from a reference picture, with `/dev/avatar-lab` to compare against
+    it.
+
 To add an option, append it to its list in `recipe.ts` (never insert: codes
 store the position), build its shape in `mesh/`, and run
 `pnpm -C frontend test features/toon-avatar`. To try a made avatar in the

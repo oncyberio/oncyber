@@ -1,5 +1,6 @@
 import * as THREE from "three/webgpu";
 import { float as tslFloat, length, smoothstep, uv, vec4 } from "three/tsl";
+import type { AuthoredAvatar } from "../authored/types";
 import { ToonAvatar } from "../three/avatar";
 import {
     ToonAnimator,
@@ -48,7 +49,11 @@ export class ToonAvatarStage {
     constructor(
         private canvas: HTMLCanvasElement,
         recipe: ToonAvatarRecipe,
-        options: { forceWebGL?: boolean; reducedMotion?: boolean } = {}
+        options: {
+            forceWebGL?: boolean;
+            reducedMotion?: boolean;
+            authored?: AuthoredAvatar;
+        } = {}
     ) {
         this.reducedMotion = !!options.reducedMotion;
         this.renderer = new THREE.WebGPURenderer({
@@ -61,7 +66,7 @@ export class ToonAvatarStage {
         this.renderer.toneMapping = THREE.NoToneMapping;
         this.renderer.setClearColor(0x000000, 0);
 
-        this.avatar = new ToonAvatar(recipe);
+        this.avatar = new ToonAvatar(recipe, options.authored);
         this.scene.add(this.avatar.root);
         const bone = (name: string) =>
             this.avatar.bones[name as keyof ToonAvatar["bones"]];

@@ -1,5 +1,6 @@
 import { decodeRecipe } from "./codec";
-import { toonAvatarUrl } from "./url";
+import { isAuthoredAvatarId } from "./authored/catalogue";
+import { authoredAvatarUrl, toonAvatarUrl } from "./url";
 
 /**
  * The avatar a visitor last finished in the maker, kept in this browser so
@@ -8,6 +9,8 @@ import { toonAvatarUrl } from "./url";
  */
 export type SavedToonAvatar = {
     code: string;
+    /** Set when the avatar is an authored one (with `code` as its sliders). */
+    id?: string;
     /** Small portrait (data URL) for pickers. */
     image?: string;
     wear?: boolean;
@@ -29,7 +32,12 @@ export function readSavedToonAvatar(): SavedToonAvatar | null {
             stored.image.length <= MAX_IMAGE
                 ? stored.image
                 : undefined;
-        return { code: stored.code, image, wear: stored.wear === true };
+        return {
+            code: stored.code,
+            id: isAuthoredAvatarId(stored.id) ? stored.id : undefined,
+            image,
+            wear: stored.wear === true,
+        };
     } catch {
         return null;
     }
@@ -56,7 +64,9 @@ export function takeWornToonAvatar() {
 }
 
 export function savedToonChoice(saved: SavedToonAvatar) {
-    const url = toonAvatarUrl(saved.code);
+    const url = saved.id
+        ? authoredAvatarUrl(saved.id, saved.code)
+        : toonAvatarUrl(saved.code);
     return { id: url, name: TOON_AVATAR_NAME, url, img: saved.image };
 }
 

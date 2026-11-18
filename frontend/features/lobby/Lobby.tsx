@@ -59,7 +59,12 @@ import { lobbyGroupPresence } from "./lobbyGroupPresence";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
-import { isToonAvatarUrl, TOON_AVATAR_PATH } from "@features/toon-avatar/url";
+import {
+    authoredAvatarUrl,
+    isToonAvatarUrl,
+    TOON_AVATAR_PATH,
+} from "@features/toon-avatar/url";
+import { AUTHORED_AVATARS } from "@features/toon-avatar/authored/catalogue";
 import {
     readSavedToonAvatar,
     savedToonChoice,
@@ -260,7 +265,17 @@ export default function Lobby({
             : isToonAvatarUrl(saved)
             ? { id: saved, name: "My avatar", url: saved }
             : null;
-        return mine ? [{ ...mine, owned: true }, ...choices] : choices;
+        // Avatars written as code sit with the catalogue, ahead of the models.
+        const authored = AUTHORED_AVATARS.map((item) => ({
+            id: authoredAvatarUrl(item.id),
+            name: item.name,
+            url: authoredAvatarUrl(item.id),
+        }));
+        return [
+            ...(mine ? [{ ...mine, owned: true }] : []),
+            ...authored,
+            ...choices,
+        ];
         // Re-read when the picker opens, in case the maker ran in another tab.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ownedAvatars.items, userData?.settings?.vrm, avatarOpen]);
