@@ -1,6 +1,8 @@
 import { useContext, useEffect, useState } from "react";
 import Head from "next/head";
 import { searchUrl } from "@utils/siteUrl";
+import { profileStructuredData } from "@utils/structuredData";
+import JsonLd from "@components/JsonLd";
 import styled, { css } from "styled-components";
 import Navigation from "../nav/main";
 import { FollowButton, FollowingList } from "./components/Following";
@@ -35,18 +37,35 @@ function ProfileHead({ userData }) {
     const description = `3D spaces and NFTs by ${name} on oncyber.`;
     const url = searchUrl(`/@${handle}`);
     return (
-        <Head>
-            <title key="title">{title}</title>
-            <meta key="description" name="description" content={description} />
-            <meta key="ogTitle" property="og:title" content={title} />
-            <meta
-                key="ogDescription"
-                property="og:description"
-                content={description}
+        <>
+            <Head>
+                <title key="title">{title}</title>
+                <meta
+                    key="description"
+                    name="description"
+                    content={description}
+                />
+                <meta key="ogTitle" property="og:title" content={title} />
+                <meta
+                    key="ogDescription"
+                    property="og:description"
+                    content={description}
+                />
+                <meta key="ogType" property="og:type" content="profile" />
+                <meta key="twitterTitle" name="twitter:title" content={title} />
+                <meta
+                    key="twitterDescription"
+                    name="twitter:description"
+                    content={description}
+                />
+                <link key="canonical" rel="canonical" href={url} />
+                <meta key="ogUrl" property="og:url" content={url} />
+            </Head>
+            <JsonLd
+                id="profile"
+                data={profileStructuredData(userData, description)}
             />
-            <link key="canonical" rel="canonical" href={url} />
-            <meta key="ogUrl" property="og:url" content={url} />
-        </Head>
+        </>
     );
 }
 
@@ -65,7 +84,9 @@ const ProfilePage = ({ userData }) => {
     const [savedSpaces, setSavedSpaces] = useState([]);
     const { user } = useContext(UserContext);
     const [currentProfile, setCurrentProfile] = useState(null);
-    const [loadingDeployedSpaces, setLoadingDeployedSpaces] = useState(false);
+    // The spaces load once the page is open. Starting as "loading" keeps the
+    // server-rendered page from saying the profile has no public spaces.
+    const [loadingDeployedSpaces, setLoadingDeployedSpaces] = useState(true);
     const [loadingSavedSpaces, setLoadingSavedSpaces] = useState(false);
 
     const { isLightTheme } = useContext(ThemeContext);
@@ -127,6 +148,10 @@ const ProfilePage = ({ userData }) => {
     }, [userData?.id]);
     ``;
 
+    // The server-rendered page has no state yet: name the profile from its
+    // own data, not "@undefined...".
+    const shownProfile = currentProfile ?? userData;
+
     return (
         <Container id="container" isLight={isLightTheme}>
             <ProfileHead userData={userData} />
@@ -146,11 +171,11 @@ const ProfilePage = ({ userData }) => {
                     />
                     <h1>
                         <span className="pixelated">@</span>
-                        {currentProfile?.username ||
-                            currentProfile?.id?.slice(0, 5) + "..."}
+                        {shownProfile?.username ||
+                            shownProfile?.id?.slice(0, 5) + "..."}
                     </h1>
-                    {currentProfile?.username ? (
-                        <p>{currentProfile?.id}</p>
+                    {shownProfile?.username ? (
+                        <p>{shownProfile?.id}</p>
                     ) : (
                         user?.id == userData?.id && (
                             <p

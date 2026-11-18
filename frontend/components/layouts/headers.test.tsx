@@ -164,3 +164,58 @@ test("the preview image URL is absolute for each deployment", () => {
     ).toBe("https://oncyber-git-x-oncyber.vercel.app");
     expect(siteOrigin({})).toBe("http://localhost:13000");
 });
+
+function headOf(pathname: string) {
+    mockRouter = { pathname, query: {} };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<Headers />));
+    const result = {
+        title: container.querySelector("title")?.textContent,
+        description: container
+            .querySelector('meta[name="description"]')
+            ?.getAttribute("content"),
+        canonical: container
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute("href"),
+        ogUrl: container
+            .querySelector('meta[property="og:url"]')
+            ?.getAttribute("content"),
+        siteName: container
+            .querySelector('meta[property="og:site_name"]')
+            ?.getAttribute("content"),
+        jsonLd: container.querySelector('script[type="application/ld+json"]')
+            ?.textContent,
+    };
+    act(() => root.unmount());
+    return result;
+}
+
+test("the home page names its own address and describes the site once", () => {
+    const head = headOf("/");
+    expect(head.title).toBe(SITE_TITLE);
+    expect(head.canonical).toMatch(/^https:\/\/[^/]+\/$/);
+    expect(head.ogUrl).toBe(head.canonical);
+    expect(head.siteName).toBe("oncyber");
+    const types = JSON.parse(head.jsonLd)["@graph"].map(
+        (node) => node["@type"]
+    );
+    expect(types).toEqual(["Organization", "WebSite"]);
+    expect(headOf("/about").jsonLd).toBeUndefined();
+});
+
+test("pages that repeated the home title say which page they are", () => {
+    const about = headOf("/about");
+    expect(about.title).toMatch(/^About oncyber/);
+    expect(about.description).not.toBe(headOf("/").description);
+    expect(about.canonical).toMatch(/\/about$/);
+    expect(headOf("/privacy").title).toBe("Privacy notice · oncyber");
+    expect(headOf("/studio").title).toBe("Studio · oncyber");
+});
+
+test("pages that set their own address, or should have none, get no default", () => {
+    // Spaces, profiles and docs name theirs; a missing link is not indexed.
+    for (const pathname of ["/[slug]", "/spaces/[id]", "/docs/[[...slug]]"])
+        expect(headOf(pathname).canonical).toBeUndefined();
+    expect(headOf("/destinations").canonical).toBeUndefined();
+});

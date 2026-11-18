@@ -41,6 +41,9 @@ import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
 import { searchUrl, spacePath } from "@utils/siteUrl";
 import { spaceShareImage } from "@utils/spaceShareImage";
+import { plainText, spaceStructuredData } from "@utils/structuredData";
+import JsonLd from "@components/JsonLd";
+import SpaceSummary from "@components/seo/SpaceSummary";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
 const EmbeddedExperience = dynamic(
@@ -263,9 +266,10 @@ function NativeExhibit({
             );
         })
         .filter((x) => x);
-    const SEOCompletion = SEOCompletionList.filter(
+    const featuring = SEOCompletionList.filter(
         (element, index) => SEOCompletionList.indexOf(element) === index
-    ).join(", ");
+    );
+    const SEOCompletion = featuring.join(", ");
     const formatedCompletion =
         SEOCompletionList?.length > 0
             ? "\nFeaturing NFTs from " +
@@ -296,7 +300,9 @@ function NativeExhibit({
                 <meta
                     key="description"
                     name="description"
-                    content={finalDescriptionSEO}
+                    // One line: a description's own line breaks read as
+                    // run-together words in a search result.
+                    content={plainText(finalDescriptionSEO)}
                 />
                 <meta
                     key="keywords"
@@ -341,6 +347,16 @@ function NativeExhibit({
                     content={experience.info.description || finalDescriptionSEO}
                 />
             </Head>
+            <JsonLd
+                id="space"
+                data={spaceStructuredData(experience, {
+                    description:
+                        experience.info.description || finalDescriptionSEO,
+                    image: shareImage,
+                    featuring,
+                })}
+            />
+            <SpaceSummary space={experience} featuring={featuring} />
 
             <Container>
                 <GlobalStyle />

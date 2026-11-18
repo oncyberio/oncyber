@@ -662,6 +662,13 @@ function LandingContent(props: LandingPageProps) {
                         : "Skip to worlds"
                 )}
             </a>
+            {/* The page's heading, for screen readers and search engines:
+                the visible page is a logo over a canvas of cards. */}
+            <h1 className="landing-title">
+                {props.notFound?.query
+                    ? `Could not find \u201c${props.notFound.query}\u201d`
+                    : "oncyber: explore 3D spaces, galleries and worlds"}
+            </h1>
             {loadTemplates && !inLobby && (
                 <TemplateCatalog
                     onChange={setTemplates}

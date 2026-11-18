@@ -238,6 +238,19 @@ const nextConfig = {
             });
         }
 
+        // Internal tools and sign-in helpers stay out of search results.
+        for (const source of [
+            "/dev/:path*",
+            "/design",
+            "/cli-auth",
+            "/_trpc",
+        ]) {
+            headers.push({
+                source,
+                headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+            });
+        }
+
         headers.push({
             source: "/(.*)",
             headers: [

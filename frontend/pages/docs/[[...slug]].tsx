@@ -1,6 +1,8 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { searchUrl } from "@utils/siteUrl";
+import { docStructuredData } from "@utils/structuredData";
+import JsonLd from "@components/JsonLd";
 import Link from "next/link";
 import styled, { css } from "styled-components";
 import {
@@ -26,12 +28,15 @@ export default function DocsPage({ doc, nav }: Props) {
     const index = nav.findIndex((entry) => entry.slug === doc.slug);
     const previous = nav[index - 1];
     const next = nav[index + 1];
+    const title = doc.slug ? `${doc.title} · Oncyber docs` : "Oncyber docs";
     return (
         <Page>
+            <JsonLd id="doc" data={docStructuredData(doc)} />
             <Head>
-                <title key="title">
-                    {doc.slug ? `${doc.title} · Oncyber docs` : "Oncyber docs"}
-                </title>
+                <title key="title">{title}</title>
+                <meta key="ogTitle" property="og:title" content={title} />
+                <meta key="twitterTitle" name="twitter:title" content={title} />
+                <meta key="ogType" property="og:type" content="article" />
                 <link
                     key="canonical"
                     rel="canonical"
@@ -42,7 +47,23 @@ export default function DocsPage({ doc, nav }: Props) {
                     property="og:url"
                     content={searchUrl(href(doc.slug))}
                 />
-                <meta name="description" content={doc.description} />
+                {/* Keyed, so it replaces the site's default description
+                    instead of following it. */}
+                <meta
+                    key="description"
+                    name="description"
+                    content={doc.description}
+                />
+                <meta
+                    key="ogDescription"
+                    property="og:description"
+                    content={doc.description}
+                />
+                <meta
+                    key="twitterDescription"
+                    name="twitter:description"
+                    content={doc.description}
+                />
                 <link
                     rel="alternate"
                     type="text/markdown"

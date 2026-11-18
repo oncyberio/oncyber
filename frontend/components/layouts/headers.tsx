@@ -1,6 +1,18 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { baseTokens } from "@styles/tokens/base";
+import {
+    CANONICAL_ROUTES,
+    PAGE_META,
+    SHARE_IMAGE_PATH,
+    SITE_DESCRIPTION,
+    SITE_NAME,
+    SITE_TITLE,
+} from "@utils/siteMeta";
+import { searchUrl } from "@utils/siteUrl";
+import { jsonLdScript, siteStructuredData } from "@utils/structuredData";
+
+export { SHARE_IMAGE_PATH, SITE_TITLE };
 
 /**
  * Fonts preloaded at high priority: only those a page shows first.
@@ -72,18 +84,30 @@ export function fontPreloadsFor(
     );
 }
 
-export const SITE_TITLE = "oncyber: forever";
+const PREVIEW_DESCRIPTION =
+    "A digital world for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free.";
 
-// Link previews (X, iMessage, Slack, ...) need an absolute image URL. The
-// image ships in public/, so it is served from the deployment that rendered
-// the page (NEXT_PUBLIC_SITE_ORIGIN, set in next.config.js).
-export const SHARE_IMAGE_PATH = "/brand/share-card.png";
+/**
+ * The address search engines should credit for a page that names none of its
+ * own: its path on the search origin, whatever query or /ja prefix it was
+ * opened with. Null for pages that set their own (or should have none).
+ */
+export function defaultCanonical(pathname: string): string | null {
+    const path = CANONICAL_ROUTES.get(pathname);
+    return path ? searchUrl(path) : null;
+}
 
 export default function Headers() {
     const shareImage = `${
         process.env.NEXT_PUBLIC_SITE_ORIGIN || "http://localhost:13000"
     }${SHARE_IMAGE_PATH}`;
     const router = useRouter();
+    const canonical = defaultCanonical(router?.pathname);
+    const page = PAGE_META[router?.pathname];
+    const title = page?.title || SITE_TITLE;
+    const description = page?.description || SITE_DESCRIPTION;
+    // Link previews keep the site's own wording unless the page has its own.
+    const previewDescription = page?.description || PREVIEW_DESCRIPTION;
     return (
         <Head>
             <meta
@@ -103,17 +127,38 @@ export default function Headers() {
                     />
                 )
             )}
-            <title key="title">{SITE_TITLE}</title>
+            <title key="title">{title}</title>
+            <meta key="description" name="description" content={description} />
+            {canonical && (
+                <link key="canonical" rel="canonical" href={canonical} />
+            )}
+            {canonical && (
+                <meta key="ogUrl" property="og:url" content={canonical} />
+            )}
             <meta
-                key="description"
-                name="description"
-                content="A multiverse for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free."
+                key="ogSiteName"
+                property="og:site_name"
+                content={SITE_NAME}
             />
-            <meta key="ogTitle" property="og:title" content={SITE_TITLE} />
+            <meta key="ogType" property="og:type" content="website" />
+            <meta key="twitterSite" name="twitter:site" content="@oncyber" />
+            {/* The site and the organisation behind it, once, on the home page. */}
+            {router?.pathname === "/" && (
+                <script
+                    key="jsonld:site"
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: jsonLdScript(
+                            siteStructuredData(SITE_DESCRIPTION)
+                        ),
+                    }}
+                />
+            )}
+            <meta key="ogTitle" property="og:title" content={title} />
             <meta
                 key="ogDescription"
                 property="og:description"
-                content="A digital world for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free."
+                content={previewDescription}
             />
             <meta key="ogImage" property="og:image" content={shareImage} />
             <meta key="ogImageWidth" property="og:image:width" content="1200" />
@@ -137,15 +182,11 @@ export default function Headers() {
                 name="twitter:card"
                 content="summary_large_image"
             />
-            <meta
-                key="twitterTitle"
-                name="twitter:title"
-                content={SITE_TITLE}
-            />
+            <meta key="twitterTitle" name="twitter:title" content={title} />
             <meta
                 key="twitterDescription"
                 name="twitter:description"
-                content="A digital world for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free."
+                content={previewDescription}
             />
         </Head>
     );
