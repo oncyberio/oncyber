@@ -25,6 +25,8 @@ type Props = {
     error?: string;
     onSelect: (item: LobbyAvatarChoice) => void;
     onClose: () => void;
+    /** Where "Make your own" goes. Left out, the link isn't shown. */
+    makeHref?: string;
 };
 
 const prefersReducedMotion = () =>
@@ -40,6 +42,7 @@ export default function AvatarCarousel({
     error,
     onSelect,
     onClose,
+    makeHref,
 }: Props) {
     const [activeId, setActiveId] = useState(selectedId);
     const [focusedId, setFocusedId] = useState(selectedId);
@@ -297,6 +300,11 @@ export default function AvatarCarousel({
                     <span className="avatar-hint">
                         Scroll to browse · click to choose
                     </span>
+                    {makeHref && (
+                        <a className="avatar-make" href={makeHref}>
+                            Make your own
+                        </a>
+                    )}
                     <nav aria-label="Browse avatars">
                         <button
                             className="arrow"
@@ -478,6 +486,29 @@ const Shell = styled.section`
     .avatar-hint {
         font-size: 11px;
         color: #c2c2bd;
+    }
+    .avatar-make {
+        margin-left: auto;
+        padding: 4px 10px;
+        border: 1px solid #ffffff2e;
+        border-radius: 10px;
+        color: #f3f3f1;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 20px;
+        text-decoration: none;
+        pointer-events: auto;
+        &:hover {
+            background: #ffffff12;
+            border-color: #ffffff66;
+        }
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: 2px;
+        }
+    }
+    .avatar-make + nav {
+        margin-left: 0;
     }
     nav {
         display: flex;

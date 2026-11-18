@@ -1,3 +1,4 @@
+import { isToonAvatarUrl } from "@features/toon-avatar/url";
 import { readTravelAvatar, rememberTravelAvatar } from "@utils/travelAvatar";
 import { defaultAvatarId } from "@utils/defaultAvatar";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -426,8 +427,14 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
         //
 
         try {
-            const travellingAvatar = readTravelAvatar(userData);
+            // Gallery spaces load avatars from model files only. A toon avatar
+            // (built from its recipe, worn in the lobby) has no file, so its
+            // wearer takes the default avatar here.
+            const travelled = readTravelAvatar(userData);
+            const travellingAvatar =
+                travelled && !isToonAvatarUrl(travelled.url) ? travelled : null;
             let vrmId = travellingAvatar?.id || userData?.settings?.vrm;
+            if (isToonAvatarUrl(vrmId)) vrmId = undefined;
 
             let customVrms, avatar;
 

@@ -41,6 +41,7 @@ import {
     POSSIBLE_ACTIONS,
 } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
+import { isToonAvatarUrl, toonRecipeFromUrl } from "@features/toon-avatar/url";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import {
     applyNativeAvatarMaterials,
@@ -144,6 +145,8 @@ interface ModernVRM {
     };
     meta?: { metaVersion: string };
     springBoneManager?: { joints?: { size: number } };
+    /** Standing height in metres, for avatars that keep their own size. */
+    displayHeight?: number;
     update(delta: number): void;
 }
 interface ModernAvatarLoader {
@@ -207,6 +210,7 @@ export async function resolveLobbyAvatar(
         return { id: directUrl, name: "Avatar", url: directUrl, scale };
 
     let id = identity?.settings?.vrm;
+    if (isToonAvatarUrl(id)) return { id, name: "Avatar", url: id, scale };
     if (!id) id = defaultAvatarId(identity);
     else if (id === "square" || id === "check") id = pfpAvatarId(identity);
     if (id === "square") return { ...fallback, scale };
@@ -350,7 +354,20 @@ function retargetAnimation(
     return new THREE.AnimationClip("vrmAnimation", clip.duration, tracks);
 }
 
+/** A toon avatar is built from the recipe in its address: there is no file. */
+async function buildToonAvatar(url: string): Promise<ModernVRM> {
+    const { createToonVrm } = await import("@features/toon-avatar/three/vrm");
+    return createToonVrm(toonRecipeFromUrl(url)) as unknown as ModernVRM;
+}
+
 async function parseAvatar(url: string): Promise<LobbyAvatar> {
+    if (isToonAvatarUrl(url)) {
+        const [vrm, basics] = await Promise.all([
+            buildToonAvatar(url),
+            getMotionClips(),
+        ]);
+        return assembleAvatar(url, vrm, basics);
+    }
     const [data, basics] = await Promise.all([
         avatarBytes(url),
         getMotionClips(),
@@ -380,7 +397,16 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
     } finally {
         draco.dispose();
     }
+    return assembleAvatar(url, vrm, basics);
+}
 
+/** Turns a loaded (or built) humanoid into a lobby avatar: clips, IK, baking. */
+async function assembleAvatar(
+    url: string,
+    vrm: ModernVRM,
+    basics: Awaited<ReturnType<typeof getMotionClips>>
+): Promise<LobbyAvatar> {
+    const displayHeight = vrm.displayHeight ?? 1.8;
     const root = new THREE.Group();
     root.name = "oncyber-lobby-avatar";
     root.add(vrm.scene);
@@ -496,7 +522,7 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         motionClips[clip.name] = metadata;
     }
     vrm.scene.position.y -= bounds.min.y;
-    root.scale.setScalar(1.8 / rawHeight);
+    root.scale.setScalar(displayHeight / rawHeight);
     await calibrateLobbyContacts(
         THREE as unknown as Parameters<typeof authorLobbyTransitions>[0],
         root as unknown as Parameters<typeof createProceduralRig>[1],
@@ -1057,7 +1083,7 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
     );
     const avatar: LobbyAvatar = {
         root,
-        height: 1.8,
+        height: displayHeight,
         sourceUrl: url,
         bakeParts,
         bakeClip: bakeSupported ? bakeClip : undefined,

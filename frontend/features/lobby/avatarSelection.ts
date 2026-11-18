@@ -1,6 +1,12 @@
 import { readTravelAvatar } from "@utils/travelAvatar";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
+import { isToonAvatarUrl } from "@features/toon-avatar/url";
+import {
+    readSavedToonAvatar,
+    savedToonChoice,
+    TOON_AVATAR_NAME,
+} from "@features/toon-avatar/wardrobe";
 
 export interface LobbyAvatarIdentity {
     settings?: { vrm?: string; default_vrm_scale?: number };
@@ -42,6 +48,14 @@ export async function resolveLobbyAvatar(
         return { id: directUrl, name: "Avatar", url: directUrl, scale };
 
     let id = identity?.settings?.vrm;
+    // A toon avatar is saved as its own address: the recipe is in the link.
+    if (isToonAvatarUrl(id))
+        return { id, name: TOON_AVATAR_NAME, url: id, scale };
+    if (!id) {
+        // No saved choice: wear the one this browser last made, if asked to.
+        const made = readSavedToonAvatar();
+        if (made?.wear) return { ...savedToonChoice(made), scale };
+    }
     if (!id) id = defaultAvatarId(identity);
     else if (id === "square" || id === "check") id = pfpAvatarId(identity);
     if (id === "square") return { ...fallback, scale };

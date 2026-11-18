@@ -59,6 +59,12 @@ import { lobbyGroupPresence } from "./lobbyGroupPresence";
 import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
+import { isToonAvatarUrl, TOON_AVATAR_PATH } from "@features/toon-avatar/url";
+import {
+    readSavedToonAvatar,
+    savedToonChoice,
+    saveToonAvatar,
+} from "@features/toon-avatar/wardrobe";
 import VRMS from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { EMOTES } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -235,19 +241,29 @@ export default function Lobby({
         flashWallets(account),
         avatarOpen
     );
-    const avatarChoices = useMemo(
-        () =>
-            ownedFirst(
-                ownedAvatars.items,
-                Object.values(VRMS).map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    url: item.url,
-                    img: item.image,
-                }))
-            ),
-        [ownedAvatars.items]
-    );
+    const avatarChoices = useMemo(() => {
+        const choices = ownedFirst(
+            ownedAvatars.items,
+            Object.values(VRMS).map((item) => ({
+                id: item.id,
+                name: item.name,
+                url: item.url,
+                img: item.image,
+            }))
+        );
+        // The avatar made in the maker comes first: from this browser, or the
+        // one saved to the account on another device.
+        const made = readSavedToonAvatar();
+        const saved = userData?.settings?.vrm;
+        const mine = made
+            ? savedToonChoice(made)
+            : isToonAvatarUrl(saved)
+            ? { id: saved, name: "My avatar", url: saved }
+            : null;
+        return mine ? [{ ...mine, owned: true }, ...choices] : choices;
+        // Re-read when the picker opens, in case the maker ran in another tab.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ownedAvatars.items, userData?.settings?.vrm, avatarOpen]);
     useEffect(() => {
         controlsElement.current?.toggleAttribute("inert", avatarOpen);
     }, [avatarOpen]);
@@ -1415,6 +1431,10 @@ export default function Lobby({
                             onSelect={(item) => {
                                 if (item.id === avatar?.id) return;
                                 setAvatarError("");
+                                // Choosing anything else takes the made avatar off.
+                                const made = readSavedToonAvatar();
+                                if (made?.wear && !isToonAvatarUrl(item.id))
+                                    saveToonAvatar({ ...made, wear: false });
                                 pickedAvatar.current = item.id;
                                 setAvatar({
                                     id: item.id,
@@ -1427,6 +1447,7 @@ export default function Lobby({
                                 }));
                             }}
                             onClose={closeAvatars}
+                            makeHref={TOON_AVATAR_PATH}
                         />
                     </>
                 )}

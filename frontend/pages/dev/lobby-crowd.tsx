@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toonAvatarCode, toonAvatarUrl } from "@features/toon-avatar/url";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { DEFAULT_LOBBY_AVATAR_URL } from "@features/lobby/avatarSelection";
@@ -44,7 +45,13 @@ export default function LobbyCrowdBenchmark() {
         Object.hasOwn(catalogue, router.query.avatar)
             ? router.query.avatar
             : "square";
-    const avatarUrl = catalogue[avatarId]?.url || DEFAULT_LOBBY_AVATAR_URL;
+    // ?toon=<avatar code> fills the crowd with a toon avatar from the maker.
+    const toonCode = toonAvatarCode(
+        toonAvatarUrl(String(router.query.toon || ""))
+    );
+    const avatarUrl = toonCode
+        ? toonAvatarUrl(toonCode)
+        : catalogue[avatarId]?.url || DEFAULT_LOBBY_AVATAR_URL;
     const [stats, setStats] = useState<LobbyRenderStats>(null);
     const [error, setError] = useState("");
     const [motion, setMotion] = useState(-1);
@@ -179,7 +186,8 @@ export default function LobbyCrowdBenchmark() {
                     {" · "}
                     <a
                         href={href({
-                            motionPack: motionPack === "cc0" ? "default" : "cc0",
+                            motionPack:
+                                motionPack === "cc0" ? "default" : "cc0",
                         })}
                     >
                         Compare{" "}
