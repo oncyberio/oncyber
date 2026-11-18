@@ -1131,6 +1131,13 @@ const LobbyPage = styled(Page)`
         align-items: center;
         gap: 12px;
     }
+    /* On a phone the arrows sit close by: keep the count clear of them. */
+    @media (max-width: 700px) {
+        .jump-group {
+            gap: 10px;
+            margin-left: 12px;
+        }
+    }
     /* How many people are in the lobby: a count, so the quiet mono voice,
        beside the button it belongs to. */
     .lobby-count {
