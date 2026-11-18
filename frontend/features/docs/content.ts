@@ -22,6 +22,14 @@ function plain(markdown: string): string {
         .trim();
 }
 
+/** A name or description as one line that cannot break a Markdown link. */
+function oneLine(text: string): string {
+    return String(text ?? "")
+        .replace(/[[\]()]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 /** Each "## Question?" heading with the text under it. */
 export function faqOf(body: string): { question: string; answer: string }[] {
     return body
@@ -104,11 +112,13 @@ export function llmsText(origin: string, featured: FeaturedSpace[] = []) {
                   "",
                   ...featured.map(
                       (space) =>
-                          `- [${plain(space.title)}](${origin}${space.href})${
-                              space.creator ? ` by ${plain(space.creator)}` : ""
+                          `- [${oneLine(space.title)}](${origin}${space.href})${
+                              space.creator
+                                  ? ` by ${oneLine(space.creator)}`
+                                  : ""
                           }${
                               space.description
-                                  ? `: ${plain(space.description).slice(
+                                  ? `: ${oneLine(space.description).slice(
                                         0,
                                         160
                                     )}`

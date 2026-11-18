@@ -56,13 +56,20 @@ describe("llmsText", () => {
                 creator: "@6529",
                 description: "The first district\nof OM.",
             },
-            { title: "Starry Night", href: "/spaces/abc" },
+            {
+                title: "Starry [Night]",
+                href: "/spaces/abc",
+                creator: "rayan_oncyber",
+            },
         ]);
         expect(text).toContain("## Featured spaces");
         expect(text).toContain(
             `- [6529 Museum District](${ORIGIN}/6529om) by @6529: The first district of OM.`
         );
-        expect(text).toContain(`- [Starry Night](${ORIGIN}/spaces/abc)`);
+        // Names keep their underscores; brackets cannot break the link.
+        expect(text).toContain(
+            `- [Starry Night](${ORIGIN}/spaces/abc) by rayan_oncyber`
+        );
         expect(text).toContain(`${ORIGIN}/llms-full.txt`);
         expect(text).toContain(`${ORIGIN}/docs/what-is-oncyber.md`);
     });
