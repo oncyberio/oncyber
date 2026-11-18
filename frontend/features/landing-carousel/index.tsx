@@ -19,9 +19,11 @@ import { creationToggleStep, creationStep } from "./creationSteps";
 import Header from "./components/Header";
 import ImmersiveViewportStyle from "@features/content-host/ImmersiveViewportStyle";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import styled from "styled-components";
 import { ActionButton, actionButton, outlineAction } from "@styles/brand";
 import EmptyState from "@ui/components/EmptyState";
+import ExperienceControlIcon from "@ui/components/ExperienceControlIcon";
 import {
     Page,
     BrowseSurface,
@@ -585,9 +587,15 @@ function LandingContent(props: LandingPageProps) {
             </span>
         </CreateControl>
     );
-    // Nothing sits in the footer's left corner; the spacer keeps the browse
-    // controls and Jump In on the right.
-    const footerSpacer = <span aria-hidden="true" />;
+    // The way to the rest of the site, in the footer's left corner: the
+    // info mark a space shows beside its title, then the word. As quiet as
+    // "create" above it.
+    const aboutLink = (
+        <AboutLink href="/about">
+            <ExperienceControlIcon name="info" size={14} />
+            {t("about")}
+        </AboutLink>
+    );
     const lobbyPopulation = useLobbyPopulation(!creating && !inLobby);
     const viewControls = (
         <ViewControls>
@@ -726,7 +734,7 @@ function LandingContent(props: LandingPageProps) {
                                 onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
-                                footerStart={footerSpacer}
+                                footerStart={aboutLink}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
                                 hasMore={!creating && !loading && pagedHasMore}
@@ -881,7 +889,7 @@ function LandingContent(props: LandingPageProps) {
                         galleryLoading ||
                         (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
-                            {footerSpacer}
+                            {aboutLink}
                             {viewControls}
                         </EmptyFooter>
                     )}
@@ -942,6 +950,41 @@ const EnterPortalIcon = styled.span`
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses; the red lens is the Create accent token. */
     background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
+`;
+
+const AboutLink = styled(Link)`
+    /* Twice, to outrank the page's own rule for links. The same type,
+       colour and height as "create". */
+    && {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 0;
+        color: var(--oc-secondary);
+        font-size: 14px;
+        white-space: nowrap;
+        transition: color var(--oc-fast);
+    }
+    /* The mark is quieter than the word, as it is beside a space's title. */
+    .experience-control-icon {
+        opacity: 0.6;
+        transition: opacity var(--oc-fast);
+    }
+    &&:hover {
+        color: var(--oc-ink);
+    }
+    &:hover .experience-control-icon,
+    &:focus-visible .experience-control-icon {
+        opacity: 1;
+    }
+    @media (max-width: 700px) {
+        && {
+            gap: 6px;
+            font-size: 12px;
+        }
+    }
 `;
 
 const CreateControl = styled.button`
@@ -1068,6 +1111,18 @@ const LobbyPage = styled(Page)`
     .jump-in {
         ${actionButton}
         ${outlineAction}
+        /* At rest it sits at the level of "create": the same secondary ink,
+           and an edge of that colour. */
+        color: var(--oc-secondary);
+        border-color: color-mix(in srgb, var(--oc-secondary) 55%, transparent);
+    }
+    /* Under the pointer it is white. */
+    .jump-in:hover:not(:disabled) {
+        color: #fff;
+        border-color: #fff;
+    }
+    .jump-in:hover:not(:disabled) .lobby-count {
+        color: #fff;
     }
     /* How many people are in the lobby: a count, so the quiet mono voice,
        set off by a hairline. */
