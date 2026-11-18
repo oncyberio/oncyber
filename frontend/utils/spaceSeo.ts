@@ -5,6 +5,7 @@
  */
 import { GET_SINGLE_DISPLAY_EXPERIENCE } from "./partnerships/singledisplay";
 import { spacePath } from "./siteUrl";
+import { uploadName } from "./spaceContent";
 import { plainText } from "./structuredData";
 
 export interface SpaceSeo {
@@ -47,6 +48,16 @@ export function singleDisplayQuery(
     );
 }
 
+/**
+ * A work's name as a description should show it: an upload goes by its file
+ * name without the extension ("PEDRO.jpg" is "PEDRO"), and a camera or
+ * machine name is no name.
+ */
+function workName(name: unknown): string | null {
+    if (typeof name !== "string" || !name) return null;
+    return /\.[a-z0-9]{2,5}$/i.test(name) ? uploadName(name) || null : name;
+}
+
 export function spaceSeo(
     space: any,
     {
@@ -67,7 +78,7 @@ export function spaceSeo(
             return (
                 data?.creator?.user?.username ||
                 data?.contract?.name ||
-                data?.name ||
+                workName(data?.name) ||
                 null
             );
         })

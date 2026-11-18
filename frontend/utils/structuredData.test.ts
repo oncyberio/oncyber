@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import {
     docStructuredData,
+    featuredSpacesStructuredData,
     featuredNames,
     jsonLdScript,
     plainText,
@@ -195,5 +196,56 @@ describe("featuredNames", () => {
                 "Frahm v2.0 Genesis",
             ])
         ).toEqual(["Art Blocks", "gen_dot_art", "Frahm v2.0 Genesis"]);
+    });
+});
+
+describe("featuredSpacesStructuredData", () => {
+    it("lists the spaces the home page features, in order", () => {
+        const data: any = featuredSpacesStructuredData([
+            {
+                title: "6529 Museum District",
+                href: "/6529om",
+                imageUrls: ["https://example.com/a.png"],
+            },
+            { title: "Starry Night", href: "/spaces/abc" },
+            { title: "", href: "/nameless" },
+            { title: "Elsewhere", href: "https://elsewhere.example/" },
+        ]);
+        expect(data["@type"]).toBe("ItemList");
+        expect(data.itemListElement).toEqual([
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "6529 Museum District",
+                url: searchUrl("/6529om"),
+                image: "https://example.com/a.png",
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Starry Night",
+                url: searchUrl("/spaces/abc"),
+            },
+        ]);
+        expect(featuredSpacesStructuredData([])).toBeNull();
+        expect(featuredSpacesStructuredData(undefined)).toBeNull();
+    });
+});
+
+describe("a docs page written as questions", () => {
+    it("is a FAQ page with each question and answer", () => {
+        const data: any = docStructuredData({
+            slug: "what-is-oncyber",
+            title: "What is Oncyber?",
+            faq: [{ question: "Is it free?", answer: "Yes." }],
+        });
+        expect(data["@type"]).toBe("FAQPage");
+        expect(data.mainEntity).toEqual([
+            {
+                "@type": "Question",
+                name: "Is it free?",
+                acceptedAnswer: { "@type": "Answer", text: "Yes." },
+            },
+        ]);
     });
 });

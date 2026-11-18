@@ -1,7 +1,11 @@
 /** @jest-environment node */
 jest.mock("@utils/firebaseAdmin", () => ({ db: {} }));
 
-import { profileSpaceLinks, profileSpaces } from "./profileSpaces";
+import {
+    ownerSpaceLinks,
+    profileSpaceLinks,
+    profileSpaces,
+} from "./profileSpaces";
 
 const doc = (id: string, data: any) => ({ id, data });
 
@@ -80,6 +84,48 @@ describe("profileSpaces", () => {
         const error = jest.spyOn(console, "error").mockImplementation(() => {});
         expect(await profileSpaces("0xowner2", failing)).toEqual([]);
         expect(await profileSpaces("", failing)).toEqual([]);
+        error.mockRestore();
+    });
+});
+
+describe("ownerSpaceLinks", () => {
+    const store = (docs: any[]) => {
+        const query: any = {
+            where: jest.fn(() => query),
+            select: jest.fn(() => query),
+            limit: jest.fn(() => query),
+            get: jest.fn(async () => ({
+                docs: docs.map(({ id, data }) => ({ id, data: () => data })),
+            })),
+        };
+        return { collection: jest.fn(() => query), query } as any;
+    };
+
+    it("lists the owner's other public spaces, never the space itself", async () => {
+        const db = store([
+            doc("self", {
+                info: { headline: "This one" },
+                number_of_visits: 9,
+            }),
+            doc("a", { info: { headline: "Other", customLink: "other" } }),
+            doc("b", { deleted: true, info: { headline: "Gone" } }),
+        ]);
+        expect(await ownerSpaceLinks("0xowner", "self", db)).toEqual([
+            { id: "a", name: "Other", path: "/other" },
+        ]);
+        expect(db.query.limit).toHaveBeenCalledWith(13);
+    });
+
+    it("lists nothing without an owner or when the read fails", async () => {
+        const error = jest.spyOn(console, "error").mockImplementation(() => {});
+        expect(await ownerSpaceLinks("", "self", store([]))).toEqual([]);
+        expect(
+            await ownerSpaceLinks("0xowner", "self", {
+                collection: () => {
+                    throw new Error("down");
+                },
+            } as any)
+        ).toEqual([]);
         error.mockRestore();
     });
 });

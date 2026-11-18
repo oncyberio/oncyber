@@ -100,6 +100,20 @@ export default function SpaceSummary({
                     </ul>
                 </>
             )}
+            {content?.siblings?.length > 0 && (
+                <>
+                    <h2>More spaces by {creator?.name || "this creator"}</h2>
+                    <ul>
+                        {content.siblings.map((sibling) => (
+                            <li key={sibling.id}>
+                                <a href={sibling.path} tabIndex={-1}>
+                                    {sibling.name}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
             {content?.portals.length > 0 && (
                 <>
                     <h2>Portals to other spaces</h2>

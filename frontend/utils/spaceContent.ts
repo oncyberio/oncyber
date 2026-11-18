@@ -24,6 +24,8 @@ export interface SpaceContent {
     artists: string[];
     /** Ids of the spaces its portals lead to. */
     portals: string[];
+    /** Other public spaces by the same creator. */
+    siblings: { id: string; name: string; path: string }[];
     visits?: number;
     /** ISO dates (YYYY-MM-DD). */
     created?: string;
@@ -192,6 +194,19 @@ export function spaceContent(space: any): SpaceContent {
         ),
     ].slice(0, limits.portals);
 
+    const siblings = (
+        Array.isArray(space?.ownerSpaces) ? space.ownerSpaces : []
+    )
+        .filter(
+            (link: any) =>
+                typeof link?.name === "string" &&
+                typeof link?.path === "string" &&
+                link.path.startsWith("/") &&
+                link.id !== space?.id
+        )
+        .slice(0, 12)
+        .map(({ id, name, path }: any) => ({ id, name, path }));
+
     const visits = Number(space?.number_of_visits);
     const created = isoDate(space?.createdAt);
     const modified =
@@ -201,6 +216,7 @@ export function spaceContent(space: any): SpaceContent {
         artworks,
         artists,
         portals,
+        siblings,
         ...(Number.isFinite(visits) && visits > 0 ? { visits } : {}),
         ...(created ? { created } : {}),
         ...(modified ? { modified } : {}),

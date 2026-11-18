@@ -18,6 +18,7 @@ import {
 } from "@utils/firestore/userProfiles";
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
+import { ownerSpaceLinks } from "@utils/serverside/profileSpaces";
 import {
     stripExhibitSecrets,
     stripSecretsFromJson,
@@ -477,6 +478,13 @@ async function loadExhibitView(id: string, v: number): Promise<Experience> {
     } catch (err) {
         exhibit.ownerName = null;
     }
+
+    // The owner's other public spaces, for the links a space page gives to
+    // its creator's other work. Resolved here, once per cache fill (at most
+    // daily), for the same reason as the owner's name above.
+    exhibit.ownerSpaces = exhibit.owner
+        ? await ownerSpaceLinks(exhibit.owner, exhibit.id)
+        : [];
 
     writeExhibitCache(id, v, exhibit);
     writeSharedExhibitCache(id, v, exhibit);

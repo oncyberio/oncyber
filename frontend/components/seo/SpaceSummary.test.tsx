@@ -52,6 +52,9 @@ test("it carries what is inside: wall texts, works, artists, portals and visits"
                 ],
                 artists: ["6529Collections", "The Memes by 6529"],
                 portals: ["HRkakF5x5rFEVvRqUu8S"],
+                siblings: [
+                    { id: "s1", name: "Frahm Flow", path: "/frahm-flow" },
+                ],
                 visits: 140774,
                 modified: "2024-06-21",
             }}
@@ -69,5 +72,9 @@ test("it carries what is inside: wall texts, works, artists, portals and visits"
     );
     expect(html).toContain(
         '<a href="/spaces/HRkakF5x5rFEVvRqUu8S" tabindex="-1">'
+    );
+    expect(html).toContain("<h2>More spaces by @frahm</h2>");
+    expect(html).toContain(
+        '<a href="/frahm-flow" tabindex="-1">Frahm Flow</a>'
     );
 });

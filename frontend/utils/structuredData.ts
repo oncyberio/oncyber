@@ -285,18 +285,28 @@ export function profileStructuredData(
     };
 }
 
-/** A docs page: an article in the docs section. */
+/** A docs page: an article in the docs section, or its questions and answers. */
 export function docStructuredData(doc: {
     slug: string;
     title: string;
     description?: string;
+    faq?: { question: string; answer: string }[];
 }): Json {
     const path = doc.slug ? `/docs/${doc.slug}` : "/docs";
     const url = searchUrl(path);
     return {
         "@context": CONTEXT,
-        "@type": "TechArticle",
+        "@type": doc.faq?.length ? "FAQPage" : "TechArticle",
         "@id": url,
+        ...(doc.faq?.length
+            ? {
+                  mainEntity: doc.faq.map(({ question, answer }) => ({
+                      "@type": "Question",
+                      name: question,
+                      acceptedAnswer: { "@type": "Answer", text: answer },
+                  })),
+              }
+            : {}),
         url,
         headline: doc.title,
         description: plainText(doc.description),
@@ -309,6 +319,37 @@ export function docStructuredData(doc: {
             { name: "Docs", path: "/docs" },
             ...(doc.slug ? [{ name: doc.title, path }] : []),
         ]),
+    };
+}
+
+/** The spaces the home page features, as a list. */
+export function featuredSpacesStructuredData(
+    cards: { title?: string; href?: string; imageUrls?: string[] }[]
+): Json | null {
+    const items = (cards || [])
+        .filter(
+            (card) =>
+                plainText(card?.title) &&
+                typeof card?.href === "string" &&
+                card.href.startsWith("/")
+        )
+        .slice(0, 30);
+    if (!items.length) return null;
+    return {
+        "@context": CONTEXT,
+        "@type": "ItemList",
+        "@id": searchUrl("/#featured"),
+        name: `Featured spaces on ${SITE_NAME}`,
+        numberOfItems: items.length,
+        itemListElement: items.map((card, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: plainText(card.title),
+            url: searchUrl(card.href),
+            ...(isHttpUrl(card.imageUrls?.[0])
+                ? { image: card.imageUrls[0] }
+                : {}),
+        })),
     };
 }
 

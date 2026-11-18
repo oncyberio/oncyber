@@ -63,6 +63,25 @@ describe("spaceSeo", () => {
         expect(seo.description.endsWith("word")).toBe(true);
     });
 
+    it("names uploads without their file extension, and skips machine names", () => {
+        const seo = spaceSeo(
+            {
+                id: "abc",
+                info: { headline: "Museum Of Brainrot" },
+                artworks: {
+                    a: work({ name: "PEDRO.jpg" }),
+                    b: work({ name: "IMG_1234.jpg" }),
+                    c: work({ name: "rizz.png" }),
+                },
+            },
+            { ownerName: "museumofbrainrot" }
+        );
+        expect(seo.description).toBe(
+            "Immerse yourself in museumofbrainrot's Museum Of Brainrot. Featuring NFTs from PEDRO, rizz and many more"
+        );
+        expect(seo.keywords).toBe("PEDRO, rizz");
+    });
+
     it("survives a space with no artworks field", () => {
         expect(
             spaceSeo({ id: "abc", info: { headline: "Web world" } }).title

@@ -9,6 +9,29 @@ export interface DocPage {
     description: string;
     order: number;
     body: string;
+    /** Questions and answers, when the page is written as them (`faq: true`). */
+    faq?: { question: string; answer: string }[];
+}
+
+/** Markdown as plain text: links keep their words, marks go. */
+function plain(markdown: string): string {
+    return markdown
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/[`*_]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+/** Each "## Question?" heading with the text under it. */
+export function faqOf(body: string): { question: string; answer: string }[] {
+    return body
+        .split(/^## /m)
+        .slice(1)
+        .map((section) => {
+            const [heading, ...rest] = section.split("\n");
+            return { question: plain(heading), answer: plain(rest.join("\n")) };
+        })
+        .filter(({ question, answer }) => question.endsWith("?") && answer);
 }
 
 const DIR = path.join(process.cwd(), "content", "docs");
@@ -20,12 +43,14 @@ function parse(slug: string, raw: string): DocPage {
         const [key, ...rest] = line.split(":");
         if (key && rest.length) meta[key.trim()] = rest.join(":").trim();
     });
+    const body = match ? raw.slice(match[0].length) : raw;
     return {
         slug,
         title: meta.title || slug,
         description: meta.description || "",
         order: Number(meta.order) || 0,
-        body: match ? raw.slice(match[0].length) : raw,
+        body,
+        ...(meta.faq === "true" ? { faq: faqOf(body) } : {}),
     };
 }
 
@@ -44,7 +69,14 @@ export function allDocs(): DocPage[] {
 }
 
 /** The plain-text index agents read at /llms.txt. */
-export function llmsText(origin: string) {
+export interface FeaturedSpace {
+    title: string;
+    href: string;
+    creator?: string;
+    description?: string;
+}
+
+export function llmsText(origin: string, featured: FeaturedSpace[] = []) {
     const docs = allDocs();
     const home = docs.find((doc) => !doc.slug);
     return [
@@ -66,6 +98,26 @@ export function llmsText(origin: string) {
         `- A space lives at ${origin}/<its-link> or ${origin}/spaces/<id>; a creator's profile at ${origin}/@<name>`,
         `- [Sitemap](${origin}/sitemap.xml): every public space`,
         "",
+        ...(featured.length
+            ? [
+                  "## Featured spaces",
+                  "",
+                  ...featured.map(
+                      (space) =>
+                          `- [${plain(space.title)}](${origin}${space.href})${
+                              space.creator ? ` by ${plain(space.creator)}` : ""
+                          }${
+                              space.description
+                                  ? `: ${plain(space.description).slice(
+                                        0,
+                                        160
+                                    )}`
+                                  : ""
+                          }`
+                  ),
+                  "",
+              ]
+            : []),
         "## Everything in one file",
         "",
         `- [All docs](${origin}/llms-full.txt): every page below, in full`,

@@ -84,3 +84,38 @@ export async function profileSpaces(
         return [];
     }
 }
+
+/** Most sibling spaces read for, and listed on, one space page. */
+export const OWNER_SPACES_READ = 13;
+export const OWNER_SPACES_LISTED = 12;
+
+/**
+ * Other public spaces by the same owner, for the links a space page gives
+ * to its creator's other work. Read when a space's cached view is filled
+ * (at most once a day per space), never per pageview. A failure lists
+ * nothing.
+ */
+export async function ownerSpaceLinks(
+    ownerId: string,
+    exceptId: string,
+    store = db
+): Promise<ProfileSpaceLink[]> {
+    if (!ownerId) return [];
+    try {
+        const snapshot = await store
+            .collection("exhibits")
+            .where("owner", "==", ownerId)
+            .select(...FIELDS)
+            .limit(OWNER_SPACES_READ)
+            .get();
+        return profileSpaceLinks(
+            snapshot.docs
+                .filter((doc) => doc.id !== exceptId)
+                .map((doc) => ({ id: doc.id, data: doc.data() })),
+            OWNER_SPACES_LISTED
+        );
+    } catch (error) {
+        console.error("[owner spaces]", error?.message || error);
+        return [];
+    }
+}

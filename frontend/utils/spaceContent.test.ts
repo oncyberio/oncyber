@@ -142,6 +142,7 @@ describe("spaceContent", () => {
             artworks: [],
             artists: [],
             portals: [],
+            siblings: [],
         });
         expect(spaceContent({ artworks: { a: null, b: {} } }).artworks).toEqual(
             []
@@ -192,5 +193,25 @@ describe("uploadName", () => {
         ["nyu-121124-01.jpg", ""],
     ])("%s → %j", (file, name) => {
         expect(uploadName(file)).toBe(name);
+    });
+});
+
+describe("siblings", () => {
+    it("lists the creator's other spaces, skipping anything malformed", () => {
+        expect(
+            spaceContent({
+                id: "self",
+                ownerSpaces: [
+                    { id: "a", name: "Frahm Flow", path: "/frahm-flow" },
+                    { id: "self", name: "This one", path: "/spaces/self" },
+                    {
+                        id: "b",
+                        name: "Bad",
+                        path: "https://elsewhere.example/",
+                    },
+                    null,
+                ],
+            }).siblings
+        ).toEqual([{ id: "a", name: "Frahm Flow", path: "/frahm-flow" }]);
     });
 });
