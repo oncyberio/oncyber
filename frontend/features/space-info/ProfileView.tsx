@@ -37,10 +37,13 @@ export default function ProfileView({
     fallbackAvatar,
     renderImage,
     onLoaded,
+    actions,
 }: {
     profileId: string;
     fallbackName: string;
     fallbackAvatar?: string;
+    /** Shown under the name, e.g. Teleport when they're in the same world. */
+    actions?: React.ReactNode;
     renderImage(urls: string[], className?: string): React.ReactNode;
     onLoaded?(name: string): void;
 }) {
@@ -133,6 +136,7 @@ export default function ProfileView({
                     )}
                 </span>
             </div>
+            {actions && <div className="space-actions">{actions}</div>}
             {failed && (
                 <p className="info-status" role="alert">
                     This profile is unavailable right now.

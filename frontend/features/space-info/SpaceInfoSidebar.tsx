@@ -32,6 +32,8 @@ type Props = {
     presence?: string;
     /** Open straight onto a profile (wallet or username). */
     initialProfile?: { id: string; name: string; avatar?: string };
+    /** Buttons under the opening profile, e.g. Teleport inside a space. */
+    profileActions?: React.ReactNode;
     onClose(): void;
 };
 
@@ -57,6 +59,7 @@ export default function SpaceInfoSidebar({
     fallback,
     presence,
     initialProfile,
+    profileActions,
     onClose,
 }: Props) {
     const dialog = useRef<HTMLDialogElement>(null);
@@ -221,6 +224,11 @@ export default function SpaceInfoSidebar({
                             profileId={view.id}
                             fallbackName={view.name}
                             fallbackAvatar={view.avatar}
+                            actions={
+                                stack.length === 1 && initialProfile
+                                    ? profileActions
+                                    : undefined
+                            }
                             renderImage={(urls, className) => (
                                 <FallbackImage
                                     urls={urls}
@@ -913,6 +921,9 @@ const Surface = styled.dialog`
     }
     .info-link:hover {
         text-decoration: underline;
+    }
+    .profile-head + .space-actions {
+        margin-top: 8px;
     }
     .space-actions {
         display: flex;
