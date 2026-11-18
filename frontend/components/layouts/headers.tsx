@@ -84,6 +84,19 @@ export function fontPreloadsFor(
     );
 }
 
+/** Does the page preview with its own image (a space's cover), not the share card? */
+export function showsOwnImage(
+    pathname: string,
+    slug?: string | string[]
+): boolean {
+    if (pathname === "/spaces/[id]") return true;
+    // `/[slug]` is a space, except `/@name`, which is a profile page.
+    return (
+        pathname === "/[slug]" &&
+        !(typeof slug === "string" && slug.startsWith("@"))
+    );
+}
+
 const PREVIEW_DESCRIPTION =
     "A digital world for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free.";
 
@@ -103,6 +116,7 @@ export default function Headers() {
     }${SHARE_IMAGE_PATH}`;
     const router = useRouter();
     const canonical = defaultCanonical(router?.pathname);
+    const ownImage = showsOwnImage(router?.pathname, router?.query?.slug);
     const page = PAGE_META[router?.pathname];
     const title = page?.title || SITE_TITLE;
     const description = page?.description || SITE_DESCRIPTION;
@@ -161,17 +175,29 @@ export default function Headers() {
                 content={previewDescription}
             />
             <meta key="ogImage" property="og:image" content={shareImage} />
-            <meta key="ogImageWidth" property="og:image:width" content="1200" />
-            <meta
-                key="ogImageHeight"
-                property="og:image:height"
-                content="630"
-            />
-            <meta
-                key="ogImageType"
-                property="og:image:type"
-                content="image/png"
-            />
+            {/* The share card's size and type. A space shows its own cover
+                instead, whose size is not known, so none is claimed there. */}
+            {!ownImage && (
+                <meta
+                    key="ogImageWidth"
+                    property="og:image:width"
+                    content="1200"
+                />
+            )}
+            {!ownImage && (
+                <meta
+                    key="ogImageHeight"
+                    property="og:image:height"
+                    content="630"
+                />
+            )}
+            {!ownImage && (
+                <meta
+                    key="ogImageType"
+                    property="og:image:type"
+                    content="image/png"
+                />
+            )}
             <meta
                 key="twitterImage"
                 name="twitter:image"

@@ -11,6 +11,7 @@ import { checkGating } from "@utils/checkGatingRules";
 import dynamic from "next/dynamic";
 import { BasicServerSideProps } from "@utils/serverside/BasicServerSideProps";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
+import { profileSpaces } from "@utils/serverside/profileSpaces";
 import { useEffect } from "react";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import {
@@ -61,7 +62,7 @@ export default function CustomLinkExhibit({
     }
 
     if (isProfile) {
-        return <Profile userData={profile} />;
+        return <Profile userData={profile} spaces={props.profileSpaces} />;
     }
 
     if (!experience?.editors) {
@@ -108,6 +109,7 @@ export const getServerSideProps = BasicServerSideProps(
                         // props: {
                         isProfile: true,
                         profile: data,
+                        profileSpaces: await profileSpaces(data.id),
                         // },
                     };
                 }
@@ -125,6 +127,7 @@ export const getServerSideProps = BasicServerSideProps(
                 // props: {
                 isProfile: true,
                 profile: data,
+                profileSpaces: await profileSpaces(data.id),
                 // },
             };
         }
@@ -138,13 +141,35 @@ export const getServerSideProps = BasicServerSideProps(
 
         let gatingError = null;
 
-        // No such space: a real 404, showing the landing with the link's
-        // words in the search.
-        if (!data.experience?.editors)
+        if (!data.experience?.editors) {
+            // Links are stored as typed, almost always in lower case, and
+            // people retype them with capitals ("/Frahm-Gallery"). One more
+            // lookup on a miss sends those to the space instead of a 404.
+            const slug = String(params.slug);
+            const lower = slug.toLowerCase();
+            if (lower !== slug) {
+                const match = await fetchExhibitData(lower, "slug", query);
+                if (match.experience?.editors) {
+                    const search = resolvedUrl.includes("?")
+                        ? resolvedUrl.slice(resolvedUrl.indexOf("?"))
+                        : "";
+                    return {
+                        redirect: {
+                            destination: `/${encodeURIComponent(
+                                lower
+                            )}${search}`,
+                            permanent: true,
+                        },
+                    };
+                }
+            }
+            // No such space: a real 404, showing the landing with the link's
+            // words in the search.
             return {
                 ...data,
                 ...(await notFoundLanding(res, query, resolvedUrl)),
             };
+        }
 
         if (data.experience) {
             // solo mode should be cheked server side for safety

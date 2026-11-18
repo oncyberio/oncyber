@@ -66,6 +66,10 @@ export function llmsText(origin: string) {
         `- A space lives at ${origin}/<its-link> or ${origin}/spaces/<id>; a creator's profile at ${origin}/@<name>`,
         `- [Sitemap](${origin}/sitemap.xml): every public space`,
         "",
+        "## Everything in one file",
+        "",
+        `- [All docs](${origin}/llms-full.txt): every page below, in full`,
+        "",
         "## Docs",
         "",
         ...docs.map(
@@ -75,5 +79,25 @@ export function llmsText(origin: string) {
                 }.md): ${doc.description}`
         ),
         "",
+    ].join("\n");
+}
+
+/** Every docs page in full, in one file, served at /llms-full.txt. */
+export function llmsFullText(origin: string) {
+    const docs = allDocs();
+    const home = docs.find((doc) => !doc.slug);
+    return [
+        "# Oncyber docs",
+        "",
+        `> ${home?.description || ""}`,
+        "",
+        ...docs.flatMap((doc) => [
+            "---",
+            "",
+            `Source: ${origin}/docs${doc.slug ? `/${doc.slug}` : ""}`,
+            "",
+            doc.body.trim(),
+            "",
+        ]),
     ].join("\n");
 }

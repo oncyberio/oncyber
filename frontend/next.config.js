@@ -371,6 +371,12 @@ const nextConfig = {
         // Docs as plain text for agents (see features/docs/content.ts).
         const docsRewrites = [
             { source: "/llms.txt", destination: "/api/docs/llms" },
+            {
+                source: "/llms-full.txt",
+                destination: "/api/docs/llms?full=1",
+            },
+            // Proof of ownership for IndexNow notices (utils/indexNow.ts).
+            { source: "/indexnow-key.txt", destination: "/api/indexnow-key" },
             { source: "/docs.md", destination: "/api/docs/raw" },
             {
                 source: "/docs/:slug.md",

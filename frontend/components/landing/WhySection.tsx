@@ -8,7 +8,8 @@ class WhySection extends React.Component<{ whyRef: React.Ref<HTMLElement> }> {
     render() {
         return (
             <Container id="why" ref={this.props.whyRef}>
-                <SectionTitle> How it works</SectionTitle>
+                {/* A section heading: the page's one h1 is its title. */}
+                <SectionTitle as="h2"> How it works</SectionTitle>
                 <Row>
                     <ImageWrapper color="#60bc45">
                         <video

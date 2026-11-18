@@ -2,7 +2,7 @@
 import React from "react";
 import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
-import Headers, { fontPreloadsFor, SITE_TITLE } from "./headers";
+import Headers, { fontPreloadsFor, showsOwnImage, SITE_TITLE } from "./headers";
 import { siteOrigin } from "@utils/siteOrigin";
 
 let mockRouter: { pathname: string; query: Record<string, string> };
@@ -218,4 +218,23 @@ test("pages that set their own address, or should have none, get no default", ()
     for (const pathname of ["/[slug]", "/spaces/[id]", "/docs/[[...slug]]"])
         expect(headOf(pathname).canonical).toBeUndefined();
     expect(headOf("/destinations").canonical).toBeUndefined();
+});
+
+test("the share card's size is claimed only where the share card is the image", () => {
+    const width = (pathname: string, query: Record<string, string> = {}) => {
+        mockRouter = { pathname, query };
+        const container = document.createElement("div");
+        const root = createRoot(container);
+        act(() => root.render(<Headers />));
+        const value = container
+            .querySelector('meta[property="og:image:width"]')
+            ?.getAttribute("content");
+        act(() => root.unmount());
+        return value;
+    };
+    expect(width("/")).toBe("1200");
+    expect(width("/[slug]", { slug: "@6529" })).toBe("1200");
+    expect(width("/[slug]", { slug: "frahm-gallery" })).toBeUndefined();
+    expect(width("/spaces/[id]", { id: "abc" })).toBeUndefined();
+    expect(showsOwnImage("/about")).toBe(false);
 });

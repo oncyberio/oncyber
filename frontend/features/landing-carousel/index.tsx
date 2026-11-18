@@ -662,6 +662,23 @@ function LandingContent(props: LandingPageProps) {
                         : "Skip to worlds"
                 )}
             </a>
+            {/* The rest of the site, for keyboards, screen readers and search
+                engines: the landing itself shows only worlds. Each link
+                appears when focused, like the skip link. */}
+            <nav className="site-links" aria-label="Oncyber">
+                <a className="skip-link" href="/about">
+                    About Oncyber
+                </a>
+                <a className="skip-link" href="/studio">
+                    Create a space
+                </a>
+                <a className="skip-link" href="/docs">
+                    Docs
+                </a>
+                <a className="skip-link" href="/privacy">
+                    Privacy
+                </a>
+            </nav>
             {/* The page's heading, for screen readers and search engines:
                 the visible page is a logo over a canvas of cards. */}
             <h1 className="landing-title">

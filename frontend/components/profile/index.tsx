@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import Head from "next/head";
 import { searchUrl } from "@utils/siteUrl";
 import { profileStructuredData } from "@utils/structuredData";
+import type { ProfileSpaceLink } from "@utils/serverside/profileSpaces";
 import JsonLd from "@components/JsonLd";
 import styled, { css } from "styled-components";
 import Navigation from "../nav/main";
@@ -76,7 +77,56 @@ const tabs = {
     // 'created': 'Created NFTs',
 };
 
-const ProfilePage = ({ userData }) => {
+/**
+ * The creator's public spaces as links in the server-rendered page. The
+ * grid below loads the same spaces once the page runs; until then (and for
+ * search engines and assistants that never run it) these are the way from
+ * a creator to their spaces. Out of sight and out of the tab order.
+ */
+function ProfileSpaceLinks({
+    name,
+    spaces,
+}: {
+    name: string;
+    spaces?: ProfileSpaceLink[];
+}) {
+    if (!spaces?.length) return null;
+    return (
+        <HiddenNav aria-label={`Spaces by ${name}`}>
+            <h2>Spaces by {name}</h2>
+            <ul>
+                {spaces.map((space) => (
+                    <li key={space.id}>
+                        <a href={space.path} tabIndex={-1}>
+                            {space.name}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </HiddenNav>
+    );
+}
+
+const HiddenNav = styled.nav`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+`;
+
+const ProfilePage = ({
+    userData,
+    spaces,
+}: {
+    userData: any;
+    spaces?: ProfileSpaceLink[];
+}) => {
     const [selectedArtwork, setSelectedArtwork] = useState();
     const { toggle, isShowing } = useModal();
     const [isActive, setActive] = useState("deployed");
@@ -155,6 +205,14 @@ const ProfilePage = ({ userData }) => {
     return (
         <Container id="container" isLight={isLightTheme}>
             <ProfileHead userData={userData} />
+            <ProfileSpaceLinks
+                name={
+                    userData?.username
+                        ? `@${userData.username}`
+                        : "this creator"
+                }
+                spaces={spaces}
+            />
             <ArtworkInfo
                 toggle={() => toggle(false)}
                 isShowing={isShowing}
