@@ -600,20 +600,13 @@ function LandingContent(props: LandingPageProps) {
     const viewControls = (
         <ViewControls>
             {!creating && (
-                <button
-                    className="jump-in"
-                    onPointerEnter={warmLobbyAvatar}
-                    onFocus={warmLobbyAvatar}
-                    onClick={() => {
-                        warmLobbyAvatar();
-                        setLobby(true);
-                    }}
-                >
-                    <EnterPortalIcon aria-hidden="true" />
-                    <span className="jump-in-label">{t("Jump In")}</span>
+                <span className="jump-group">
+                    {/* Who is in the lobby sits beside the button, not in
+                        it: the button stays the size of Sign in. */}
                     {lobbyPopulation != null && (
                         <span
                             className="lobby-count"
+                            role="img"
                             aria-label={t(
                                 lobbyPopulation === 1
                                     ? "{count} person in the lobby"
@@ -624,7 +617,19 @@ function LandingContent(props: LandingPageProps) {
                             {lobbyPopulation}
                         </span>
                     )}
-                </button>
+                    <button
+                        className="jump-in"
+                        onPointerEnter={warmLobbyAvatar}
+                        onFocus={warmLobbyAvatar}
+                        onClick={() => {
+                            warmLobbyAvatar();
+                            setLobby(true);
+                        }}
+                    >
+                        <EnterPortalIcon aria-hidden="true" />
+                        <span className="jump-in-label">{t("Jump In")}</span>
+                    </button>
+                </span>
             )}
         </ViewControls>
     );
@@ -1121,23 +1126,22 @@ const LobbyPage = styled(Page)`
         color: #fff;
         border-color: #fff;
     }
-    .jump-in:hover:not(:disabled) .lobby-count {
-        color: #fff;
+    .jump-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
     }
     /* How many people are in the lobby: a count, so the quiet mono voice,
-       set off by a hairline. */
-    .jump-in .lobby-count {
+       beside the button it belongs to. */
+    .lobby-count {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        align-self: stretch;
-        padding-left: 10px;
-        border-left: 1px solid var(--oc-line-strong);
         font: 400 11px/1 var(--oc-mono);
         color: var(--oc-secondary);
         font-variant-numeric: tabular-nums;
     }
-    .jump-in .lobby-count::before {
+    .lobby-count::before {
         content: "";
         width: 6px;
         height: 6px;
