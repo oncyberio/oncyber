@@ -214,7 +214,7 @@ export const TOON_AVATAR_SCHEMA = {
         skin: color("#e9b48c", "Skin"),
         ink: color("#241a17", "Ink"),
         line: unit(0.4, "Line weight"),
-        shade: unit(0, "Shading"),
+        shade: unit(0.55, "Shading"),
     },
 } as const;
 

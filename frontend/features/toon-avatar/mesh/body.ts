@@ -239,7 +239,13 @@ function sleevePlan(ctx: ToonContext, armLength: number) {
     const { outfit } = ctx.recipe;
     const { top, outer } = ctx.colors;
     const coat = outfit.outer === "coat" || outfit.outer === "jacket";
-    if (coat) return { end: armLength * 0.93, color: outer, grow: 1.5 };
+    if (coat)
+        return {
+            end: armLength * 0.93,
+            color: outer,
+            // A jacket is cut close; a coat hangs loose.
+            grow: outfit.outer === "jacket" ? 1.28 : 1.5,
+        };
     switch (outfit.top) {
         case "tee":
             return { end: armLength * 0.27, color: top, grow: 1.42 };
@@ -612,7 +618,7 @@ function buildOuter(ctx: ToonContext) {
         style === "coat"
             ? lerp(knee, torso.bottom, -0.15)
             : style === "jacket"
-            ? torso.bottom + length * 0.16
+            ? torso.bottom + length * 0.03
             : torso.bottom + length * 0.3;
     const bottomT = (bottomY - torso.bottom) / length;
     const topT = 0.93;
@@ -633,7 +639,12 @@ function buildOuter(ctx: ToonContext) {
             section.center[2] * (t < 0 ? 0.5 : 1),
         ];
         // The gap in front widens toward the hem so the coat hangs open.
-        const gap = lerp(0.5, 0.2, smoothstep(bottomT, topT, t)) + below * 0.2;
+        // A coat hangs open and widens to the hem. A jacket is buttoned:
+        // closed at the waist, opening in a V up to the collar.
+        const gap =
+            style === "jacket"
+                ? lerp(0.05, 0.36, smoothstep(0.5, 0.95, t))
+                : lerp(0.5, 0.2, smoothstep(bottomT, topT, t)) + below * 0.2;
         const arc = (grow: number) => {
             const points: Vec3[] = [];
             for (let j = 0; j <= half * 2; j++) {

@@ -507,10 +507,22 @@ export function createToonMaterials(uniforms: ToonUniforms) {
         penned(uniforms.head.w.div(uniforms.eye.z))
     );
 
-    // Optional cel shadow: one soft-edged band, lit from the upper left.
-    const light = vec3(-0.45, 0.6, 0.66).normalize();
-    const lit = smoothstep(-0.06, 0.06, dot(normalView, light).add(0.18));
-    const shadow = mix(tslFloat(1).sub(uniforms.shade.mul(0.3)), 1, lit);
+    // Cel shading, the way a background painter would do it: one crisp
+    // shadow shape tinted cool rather than just darker, and a narrow band of
+    // light on the side facing the lamp. Edges stay sharp at any zoom.
+    const light = vec3(-0.5, 0.62, 0.6).normalize();
+    const facing = dot(normalView, light);
+    const edge = max(fwidth(facing), 0.002);
+    const lit = smoothstep(edge.negate(), edge, facing.add(0.12));
+    const glow = smoothstep(edge.negate(), edge, facing.sub(0.8));
+    const shadowTint = mix(
+        vec3(1, 1, 1),
+        vec3(0.62, 0.6, 0.78),
+        uniforms.shade
+    );
+    const shadow = mix(shadowTint, vec3(1, 1, 1), lit).mul(
+        tslFloat(1).add(glow.mul(uniforms.shade).mul(0.16))
+    );
     // A little paper grain, fixed to the screen like the stock it's drawn on.
     const tooth = fract(
         sin(dot(screenCoordinate.xy.floor(), vec2(12.9898, 78.233))).mul(

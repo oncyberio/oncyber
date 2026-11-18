@@ -9,12 +9,14 @@ export const AUTHORED_AVATARS = [
     { id: "tinker", name: "Tinker" },
     { id: "moth", name: "Moth" },
     { id: "juno", name: "Juno" },
+    { id: "suit", name: "Suit" },
 ] as const;
 
 const LOADERS: Record<string, () => Promise<{ default: AuthoredAvatar }>> = {
     tinker: () => import("./tinker"),
     moth: () => import("./moth"),
     juno: () => import("./juno"),
+    suit: () => import("./suit"),
 };
 
 export const isAuthoredAvatarId = (id: unknown): id is string =>

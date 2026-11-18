@@ -45,7 +45,7 @@ export function randomRecipe(
             : pick(SKIN_TONES.slice(11));
         out.look.ink = "#241a17";
         out.look.line = 0.5;
-        out.look.shade = 0;
+        out.look.shade = 0.55;
     }
     if (groups.has("hair")) {
         const hair = chance(0.8)
