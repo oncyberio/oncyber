@@ -19,9 +19,8 @@ import { creationToggleStep, creationStep } from "./creationSteps";
 import Header from "./components/Header";
 import ImmersiveViewportStyle from "@features/content-host/ImmersiveViewportStyle";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import styled from "styled-components";
-import { ActionButton, compactActionSizing } from "@styles/brand";
+import { ActionButton, actionButton, outlineAction } from "@styles/brand";
 import EmptyState from "@ui/components/EmptyState";
 import {
     Page,
@@ -586,9 +585,9 @@ function LandingContent(props: LandingPageProps) {
             </span>
         </CreateControl>
     );
-    // The way from the landing to the rest of the site: a plain link, in
-    // the corner the grid size switch used to take.
-    const aboutLink = <AboutLink href="/about">{t("about")}</AboutLink>;
+    // Nothing sits in the footer's left corner; the spacer keeps the browse
+    // controls and Jump In on the right.
+    const footerSpacer = <span aria-hidden="true" />;
     const lobbyPopulation = useLobbyPopulation(!creating && !inLobby);
     const viewControls = (
         <ViewControls>
@@ -727,7 +726,7 @@ function LandingContent(props: LandingPageProps) {
                                 onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
-                                footerStart={aboutLink}
+                                footerStart={footerSpacer}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
                                 hasMore={!creating && !loading && pagedHasMore}
@@ -882,7 +881,7 @@ function LandingContent(props: LandingPageProps) {
                         galleryLoading ||
                         (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
-                            {aboutLink}
+                            {footerSpacer}
                             {viewControls}
                         </EmptyFooter>
                     )}
@@ -943,29 +942,6 @@ const EnterPortalIcon = styled.span`
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses; the red lens is the Create accent token. */
     background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
-`;
-
-const AboutLink = styled(Link)`
-    /* Twice, to outrank the page's own rule for links. */
-    && {
-        display: inline-flex;
-        align-items: center;
-        justify-self: start;
-        min-height: 44px;
-        padding: 10px 0;
-        color: var(--oc-secondary);
-        font-size: 14px;
-        white-space: nowrap;
-        transition: color var(--oc-fast);
-    }
-    &&:hover {
-        color: var(--oc-ink);
-    }
-    @media (max-width: 700px) {
-        && {
-            font-size: 12px;
-        }
-    }
 `;
 
 const CreateControl = styled.button`
@@ -1086,50 +1062,32 @@ const LobbyPage = styled(Page)`
     &[data-lobby-ready] > header .account-detail {
         color: #969aa3;
     }
+    /* The shared outline action, exactly: the same height, padding,
+       corners, type and edge as every other action button (Sign in above
+       is its blue sibling). Nothing here resizes it. */
     .jump-in {
-        ${compactActionSizing}
-        /* A compact action beside the search bar, not a second bar. */
-        min-height: 36px;
-        height: 36px;
-        gap: 7px;
-        padding: 0 12px 0 10px;
-        border-radius: 10px;
-        font-size: 13px;
-        color: #f3f3ed;
-        background: transparent;
-        box-shadow: inset 0 0 0 1px rgba(243, 243, 237, 0.55);
-        transition: background 180ms ease, box-shadow 180ms ease;
+        ${actionButton}
+        ${outlineAction}
     }
-    .jump-in:hover:not([aria-pressed="true"]) {
-        color: #fff;
-        background: rgba(243, 243, 237, 0.08);
-        box-shadow: inset 0 0 0 1px #f3f3ed;
-    }
+    /* How many people are in the lobby: a count, so the quiet mono voice,
+       set off by a hairline. */
     .jump-in .lobby-count {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        margin-left: 1px;
-        padding-left: 7px;
-        border-left: 1px solid rgba(243, 243, 237, 0.3);
+        gap: 6px;
+        align-self: stretch;
+        padding-left: 10px;
+        border-left: 1px solid var(--oc-line-strong);
+        font: 400 11px/1 var(--oc-mono);
+        color: var(--oc-secondary);
         font-variant-numeric: tabular-nums;
     }
-    /* Aeonik sits its capitals ~0.5px below the line box centre; lift the
-       words (and the count's digits) so they line up with the icon. */
-    .jump-in .jump-in-label,
-    .jump-in .lobby-count {
-        position: relative;
-        top: -1px;
-    }
     .jump-in .lobby-count::before {
-        position: relative;
-        top: 1px;
         content: "";
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: #4ade80;
-        box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
     }
     @media (max-width: 700px) {
         &[data-in-lobby] > header {
