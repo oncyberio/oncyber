@@ -5,6 +5,7 @@ import {
     abs,
     atan,
     attribute,
+    cameraProjectionMatrix,
     clamp,
     cos,
     dot,
@@ -15,9 +16,12 @@ import {
     max,
     min,
     mix,
+    modelViewMatrix,
     normalLocal,
     normalView,
     positionLocal,
+    screenCoordinate,
+    screenSize,
     sin,
     smoothstep,
     sqrt,
@@ -34,6 +38,10 @@ import {
 } from "../face";
 
 type Node = any;
+
+/** Ink line weight limits, as fractions of the picture's height. */
+const LINE_MIN = 0.002;
+const LINE_MAX = 0.0042;
 
 const VEC4_KEYS = [
     "eye",
@@ -128,11 +136,16 @@ const segment = (p: Node, a: Node, b: Node) => {
     return length(pa.sub(ba.mul(h)));
 };
 
-function paintFace(u: ToonUniforms, base: Node, p: Node, aa: Node): Node {
+function paintFace(
+    u: ToonUniforms,
+    base: Node,
+    p: Node,
+    aa: Node,
+    line: Node
+): Node {
     return Fn(() => {
         const color = vec3(base).toVar();
         const ink = vec3(u.ink);
-        const line = u.head.w;
         const half = line.mul(0.5);
         const ax = abs(p.x);
         const mirrored = vec2(ax, p.y);
@@ -396,13 +409,18 @@ function paintFace(u: ToonUniforms, base: Node, p: Node, aa: Node): Node {
     })();
 }
 
-function paintEye(u: ToonUniforms, q: Node, right: Node, aa: Node): Node {
+function paintEye(
+    u: ToonUniforms,
+    q: Node,
+    right: Node,
+    aa: Node,
+    line: Node
+): Node {
     return Fn(() => {
         const color = vec3(1, 1, 1).toVar();
         const ink = vec3(u.ink);
         const eyeRadius = u.eye.z;
         const aspect = u.eye.w;
-        const line = u.head.w.div(eyeRadius);
         const blink = mix(u.gaze.x, u.gaze.y, right);
 
         // Pupil.
@@ -463,28 +481,72 @@ export function createToonMaterials(uniforms: ToonUniforms) {
     const region = paint.z;
     const aa = max(fwidth(p.x).add(fwidth(p.y)).mul(0.6), 0.0005);
 
+    // Ink keeps a drawn line's weight on screen: it follows the avatar's own
+    // line width, but never thinner or heavier than a pen would be at this
+    // picture size. Painted lines and the hull share the same limits.
+    const thinnest = screenSize.y.mul(LINE_MIN);
+    const heaviest = screenSize.y.mul(LINE_MAX);
+    const paintPerPixel = max(max(fwidth(p.x), fwidth(p.y)), 0.00001);
+    const penned = (width: Node) =>
+        clamp(width, paintPerPixel.mul(thinnest), paintPerPixel.mul(heaviest));
+
     const isFace = step(0.5, region).mul(step(region, 1.5));
     const isEye = step(1.5, region);
-    const face = paintFace(uniforms, vertexColor, p, aa);
-    const eye = paintEye(uniforms, p, step(2.5, region), aa);
+    const face = paintFace(
+        uniforms,
+        vertexColor,
+        p,
+        aa,
+        penned(uniforms.head.w)
+    );
+    const eye = paintEye(
+        uniforms,
+        p,
+        step(2.5, region),
+        aa,
+        penned(uniforms.head.w.div(uniforms.eye.z))
+    );
 
-    // Cel shadow: one soft-edged band, lit from the upper left of the view.
+    // Optional cel shadow: one soft-edged band, lit from the upper left.
     const light = vec3(-0.45, 0.6, 0.66).normalize();
     const lit = smoothstep(-0.06, 0.06, dot(normalView, light).add(0.18));
     const shadow = mix(tslFloat(1).sub(uniforms.shade.mul(0.3)), 1, lit);
+    // A little paper grain, fixed to the screen like the stock it's drawn on.
+    const tooth = fract(
+        sin(dot(screenCoordinate.xy.floor(), vec2(12.9898, 78.233))).mul(
+            43758.5453
+        )
+    );
+    const paper = tslFloat(1).add(tooth.sub(0.5).mul(0.045));
 
     const fillMaterial = new MeshBasicNodeMaterial();
     fillMaterial.name = "ToonAvatarFill";
     fillMaterial.toneMapped = false;
     const surface = mix(mix(vertexColor, face, isFace).mul(shadow), eye, isEye);
-    fillMaterial.colorNode = vec4(surface.mul(uniforms.tint), 1);
+    fillMaterial.colorNode = vec4(surface.mul(paper).mul(uniforms.tint), 1);
 
     const inkMaterial = new MeshBasicNodeMaterial();
     inkMaterial.name = "ToonAvatarInk";
     inkMaterial.toneMapped = false;
     inkMaterial.side = BackSide;
+    // How far one pixel reaches at this vertex, in view units.
+    const clip = cameraProjectionMatrix.mul(
+        modelViewMatrix.mul(vec4(positionLocal, 1))
+    );
+    const viewPerPixel = clip.w
+        .mul(2)
+        .div(cameraProjectionMatrix.mul(vec4(0, 1, 0, 0)).y.mul(screenSize.y));
+    const modelScale = max(
+        length(modelViewMatrix.mul(vec4(normalLocal, 0)).xyz),
+        0.0001
+    );
+    const hull = clamp(
+        uniforms.inkWidth.mul(modelScale),
+        viewPerPixel.mul(thinnest),
+        viewPerPixel.mul(heaviest)
+    ).div(modelScale);
     inkMaterial.positionNode = positionLocal.add(
-        normalLocal.mul(uniforms.inkWidth).mul(paint.w)
+        normalLocal.mul(hull).mul(paint.w)
     );
     inkMaterial.colorNode = vec4(vec3(uniforms.ink).mul(uniforms.tint), 1);
 

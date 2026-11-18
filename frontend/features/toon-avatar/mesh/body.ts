@@ -357,12 +357,13 @@ function buildHand(ctx: ToonContext, sideName: "left" | "right", wrist: Vec3) {
         rings: 7,
         segments: 12,
     });
-    // Three fingers and a thumb: chunky enough to read at a distance.
-    const finger = size * 0.14;
+    // Four fingers and a thumb, kept stubby so they read at a distance.
+    const finger = size * 0.105;
     for (const [offset, reach] of [
-        [-0.28, 0.8],
-        [0, 1],
-        [0.28, 0.85],
+        [-0.33, 0.78],
+        [-0.11, 0.98],
+        [0.11, 1],
+        [0.33, 0.84],
     ]) {
         const base: Vec3 = [
             palm[0] + sign * size * 0.28,
