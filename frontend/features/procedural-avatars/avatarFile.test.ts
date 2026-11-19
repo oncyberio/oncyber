@@ -22,6 +22,7 @@ import summer from "../../public/lobby/procedural/recipes/summer-smith.json";
 import jerry from "../../public/lobby/procedural/recipes/jerry-smith.json";
 import { recipeForUrl } from "./catalog";
 import { tailorCartoon } from "./cartoonCast";
+import { studyCrowdMember } from "./studyCrowd";
 
 test.each([morty, summer, jerry, beth, evilMorty, jessica])(
     "the $name file and picker build the same Rick-family body",
@@ -45,6 +46,51 @@ test("changing Beth's shirt keeps the measured lids and closed hairstyle", () =>
     expect(tailored.household.fallRows).toEqual(original.household.fallRows);
     expect(tailored.household.orbits).toEqual(original.household.orbits);
     expect(tailored.outfit.color).toBe("#1177aa");
+});
+
+test("measured fasteners and the opening belong to the button-front garment", () => {
+    const file = JSON.parse(JSON.stringify(jessica));
+    Object.assign(file.design.outfit, {
+        buttons: [0.28, 0.51, 0.74],
+        buttonColor: "#eddbc7",
+        placketDepth: 0.21,
+    });
+    const original = readAvatarFile(file).recipe.cartoon;
+    expect(original.outfit.buttonColor).toBe("#eddbc7");
+    const crew = tailorCartoon(original, { outfit: { top: "crew" } });
+    expect(crew.outfit.buttons).toBeUndefined();
+    expect(crew.outfit.buttonColor).toBeUndefined();
+    expect(crew.outfit.placketDepth).toBeUndefined();
+    file.design.outfit.top = "crew";
+    expect(() => readAvatarFile(file)).toThrow();
+});
+
+test("the branch crowd reproduces 100 distinct shapes from two seed families", () => {
+    const seeds = [
+        JSON.stringify(jessica),
+        JSON.stringify({
+            version: 1,
+            name: "Sunshine",
+            style: "family",
+            family: "sunshine",
+            paints: {},
+            proportions: {},
+        }),
+    ];
+    const geometry = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+        const recipe = studyCrowdMember(seeds[i % 2], i);
+        geometry.add(
+            JSON.stringify([
+                recipe.template,
+                recipe.cartoon?.head ?? recipe.headWidth,
+            ])
+        );
+    }
+    expect(geometry.size).toBe(100);
+    expect(studyCrowdMember(seeds[0], 0)).toEqual(
+        studyCrowdMember(seeds[0], 0)
+    );
 });
 
 test("Jessica's upper teeth follow the lip and can give way to a closed smile", () => {

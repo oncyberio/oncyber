@@ -222,3 +222,82 @@ def visible_placket(rgb, head, fabric):
         if np.count_nonzero(has_ink & fabric_edges) >= 0.16 * height:
             return True
     return False
+
+
+def button_front(rgb, center, neck, hem, cloth, skin):
+    """Find compact fasteners in a column beside a continuous cloth overlap."""
+    length = hem - neck
+    if length < 35:
+        return None
+    top, stop = max(0, round(neck + 0.10 * length)), min(len(rgb), round(hem))
+    left, right = (
+        max(0, round(center - 0.17 * length)),
+        min(rgb.shape[1], round(center + 0.17 * length) + 1),
+    )
+    patch = rgb[top:stop, left:right]
+    if min(patch.shape[:2]) < 6:
+        return None
+    tone = patch @ [0.2126, 0.7152, 0.0722]
+    cloth_tone = cloth @ [0.2126, 0.7152, 0.0722]
+    is_cloth = np.linalg.norm(patch - cloth, axis=2) < 48
+    # A printed dot can resemble a single button. The adjacent seam must
+    # run down the shirt with the same fabric visible on its two sides.
+    offset = max(2, round(0.027 * length))
+    ink = tone < min(110, 0.67 * cloth_tone)
+    seams = np.zeros_like(ink)
+    seams[:, offset:-offset] = (
+        ink[:, offset:-offset] & is_cloth[:, : -2 * offset] & is_cloth[:, 2 * offset :]
+    )
+    candidates = []
+    highlights = (tone > cloth_tone + 35) & ~is_cloth
+    labels, _ = ndimage.label(highlights, np.ones((3, 3)))
+    for label, (ys, xs) in enumerate(ndimage.find_objects(labels), 1):
+        w, h = xs.stop - xs.start, ys.stop - ys.start
+        if max(w, h) > max(3, 0.055 * length) or not 0.4 <= w / h <= 2.5:
+            continue
+        local = labels[ys, xs] == label
+        if local.sum() < 2:
+            continue
+        y, x = np.mean(np.nonzero(local), axis=1) + [ys.start, xs.start]
+        at = (top + y - neck) / length
+        if 0.2 <= at <= 0.96:
+            candidates.append(
+                (x, y, at, np.percentile(patch[ys, xs][local], 85, axis=0))
+            )
+    aligned = []
+    for x, _, _, _ in candidates:
+        group = [b for b in candidates if abs(b[0] - x) <= max(1.2, 0.015 * length)]
+        if len(group) < 2 or len(group) > 6:
+            continue
+        positions = np.array([b[2] for b in group])
+        if np.min(np.diff(positions)) < 0.055 or np.ptp(positions) < 0.19:
+            continue
+        lo, hi = round(group[0][1]), round(group[-1][1]) + 1
+        dx = max(2, round(0.075 * length))
+        strip = seams[lo:hi, max(0, round(x) - dx) : round(x) + dx + 1]
+        if strip.any(axis=1).mean() >= 0.70:
+            aligned.append(group)
+    if not aligned:
+        return None
+    group = max(aligned, key=len)
+    column = int(np.rint(np.median([b[0] for b in group])))
+    # The last exposed skin just above the fasteners locates the V opening.
+    core = patch[
+        : max(1, round(group[0][1])), max(0, column - offset) : column + offset + 1
+    ]
+    exposed = np.flatnonzero((np.linalg.norm(core - skin, axis=2) < 52).any(axis=1))
+    result = {
+        "buttons": [round(b[2], 4) for b in group],
+        "buttonColor": np.median([b[3] for b in group], axis=0),
+    }
+    if len(exposed):
+        runs = np.split(exposed, np.flatnonzero(np.diff(exposed) > 1) + 1)
+        neckline = next(
+            (r for r in runs if r[0] <= offset and len(r) >= max(3, 0.035 * length)),
+            None,
+        )
+        if neckline is not None:
+            result["placketDepth"] = round(
+                float(np.clip((top + neckline[-1] + 1 - neck) / length, 0.1, 0.4)), 4
+            )
+    return result

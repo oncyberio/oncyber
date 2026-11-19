@@ -7,6 +7,7 @@ from .eye_review import portrait_pair
 from .household import (
     fit_frontal_features,
     fit_portrait,
+    frontal_lobes,
     paint,
     pigment,
     scalp_boundary,
@@ -194,8 +195,14 @@ def hair_fall(rgb, mask, center, top, chin, width, hair, skin):
         rows.append(
             [round(float(t), 3), round(float(outer), 3), round(float(inner), 3)]
         )
-    # Short cap and ear shadows cannot justify shoulder-length hair.
-    if len(rows) < 7 or rows[-1][0] < 1.05 or rows[0][0] > 0.49:
+    # A chin-length bob has broad locks on both sides of the lower jaw.
+    # A cropped cap and the narrow outline around a cheek end much earlier.
+    bob = (
+        len([1 for t, outer, inner in rows if 0.74 < t < 1 and outer - inner > 0.075])
+        >= 3
+        and rows[-1][0] >= 0.9
+    )
+    if len(rows) < 7 or (rows[-1][0] < 1.05 and not bob) or rows[0][0] > 0.49:
         return None
     if len(rows) > 16:
         rows = [rows[i] for i in np.linspace(0, len(rows) - 1, 16).round().astype(int)]
@@ -218,9 +225,10 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
         return round((y - crown) * scale + 12, 2)
 
     visible = mask & (abs(rgb - paper).max(axis=2) > 38)
-    if (
-        min(np.linalg.norm(pigment(rgb, samples[k]) - paper) for k in ("shirt", "skin"))
-        > 86
+    # A pale forearm can differ from cream paper mostly in its blue channel.
+    # Use the same color distance as the silhouette being measured.
+    if all(
+        np.max(abs(pigment(rgb, samples[k]) - paper)) > 45 for k in ("shirt", "skin")
     ):
         cut = sections["sleeve"]
 
@@ -395,7 +403,23 @@ def fit_front(source, name):
         [max(0, x - 4), max(0, y - 4), min(w, r + 4), min(h, b + 4)]
         for x, y, r, b in (eye["bounds"] for eye in actual)
     ]
-    from .visible_parts import open_smile
+    from .visible_parts import button_front, open_smile
+
+    if body["outfit"]["top"] != "tank":
+        neck, hem = ((measured[k] - 12) / scale + crown for k in ("neckline", "hem"))
+        fabric = pigment(rgb, samples["shirt"])
+        fasteners = button_front(
+            rgb, center, neck, hem, fabric, pigment(rgb, samples["skin"])
+        )
+        if fasteners:
+            body["outfit"].update(
+                {
+                    **fasteners,
+                    "top": "polo",
+                    "trim": paint(fabric),
+                    "buttonColor": paint(fasteners["buttonColor"]),
+                }
+            )
 
     visible = open_smile(
         rgb, [e["bounds"] for e in actual], top, chin, pigment(rgb, samples["skin"])
@@ -456,7 +480,17 @@ def fit_front(source, name):
         ]
         for x, y, rx, ry in sections.get("ears", [])
     ]
-    fit_frontal_features(recipe["design"], lobes, scale)
+    boxes = np.array([e["bounds"] for e in actual])
+    eye_axis, eye_y = np.mean((boxes[:, :2] + boxes[:, 2:]) / 2, axis=0)
+    skin, hair = [pigment(rgb, samples[key]) for key in ("skin", "hair")]
+    width = head_width / scale
+    # Filling the face silhouette also fills the ink separating ear and cheek.
+    # Read both visible lobes on the original pigment before choosing a default.
+    raw = frontal_lobes(rgb, mask, skin, hair, eye_axis, eye_y, top, chin, width)
+    recovered = len(raw) > len(lobes)
+    fit_frontal_features(
+        recipe["design"], raw if recovered else lobes, scale, separate_ears=recovered
+    )
     family["body"] = {
         k: v
         for k, v in measured.items()
@@ -474,7 +508,6 @@ def fit_front(source, name):
         brow = painted_brow(rgb, eye["bounds"])
         if brow:
             orbit.update(brow)
-    boxes = np.array([e["bounds"] for e in actual])
     cx = (left + right - 1) / 2
     H = floor - top - 1
     eye_box = [
@@ -483,12 +516,34 @@ def fit_front(source, name):
         (boxes[:, 2].max() - cx + 3) / H,
         (boxes[:, 3].max() - top + 3) / H,
     ]
-    skin, hair = [pigment(rgb, samples[key]) for key in ("skin", "hair")]
-    width = recipe["design"]["head"][0] / scale
+    fall = hair_fall(rgb, mask, center, top, chin, width, hair, skin)
+    bob = fall and fall[-1][0] < 1.05
+    # On a short bob the side locks visible below the ears belong to the
+    # separate curtain. They must not pull the forehead cap across the cheek.
     line = scalp_boundary(
-        rgb, mask, center, top, chin - top, width, family["widths"], skin, hair
+        rgb,
+        mask,
+        eye_axis,
+        top,
+        chin - top,
+        width,
+        family["widths"],
+        skin,
+        hair,
+        eyes=[e["bounds"] for e in actual],
+        cap_limit=min(0.76, recipe["design"]["face"]["eyeHeight"] + 0.10)
+        if bob
+        else 0.93,
     )
     if line:
+        if bob and len(family.get("ears", [])) == 2:
+            # The scalp wraps behind each observed lobe. A local paper
+            # highlight near the temple is not an opening in a closed bob.
+            ears = sorted(family["ears"])
+            for i, angle in enumerate(np.linspace(-np.pi / 2, np.pi / 2, len(line))):
+                ear = ears[int(angle > 0)]
+                wrap = float(np.clip((abs(angle) - 0.85) / 0.42, 0, 1))
+                line[i] = round(max(line[i], (ear[1] - ear[3] * 0.78) * wrap), 4)
         recipe["design"]["hairline"] = line
     # Hair visible outside both cheeks below the ears continues around the
     # occiput. Estimate the nape length independently of the forehead part.
@@ -517,7 +572,6 @@ def fit_front(source, name):
                 break
     if len(ends) == 2:
         family["nape"] = round(float(np.mean(ends)), 3)
-    fall = hair_fall(rgb, mask, center, top, chin, width, hair, skin)
     if fall:
         recipe["design"]["hair"]["cut"] = "waves"
         family["fallRows"] = fall

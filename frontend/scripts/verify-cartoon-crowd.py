@@ -44,9 +44,9 @@ def recipe_handler(recipes, loaded):
     return serve
 
 
-def verify(base, dest, sources, count):
+def verify(base, dest, sources, count, preview=False):
     dest.mkdir(parents=True, exist_ok=True)
-    recipes = variants([json.loads(p.read_text()) for p in sources], count)
+    recipes = {} if preview else variants([json.loads(p.read_text()) for p in sources], count)
     report = {}
     env = dict(os.environ)
     driver = "/usr/lib/chromium/vk_swiftshader_icd.json"
@@ -61,15 +61,18 @@ def verify(base, dest, sources, count):
             loaded = set()
 
             page = browser.new_page(user_agent="Oncyber local avatar review", viewport={"width": 1050, "height": 840})
-            page.route("**/lobby/procedural/recipes/crowd-study-*.json", recipe_handler(recipes, loaded))
+            if not preview:
+                page.route("**/lobby/procedural/recipes/crowd-study-*.json", recipe_handler(recipes, loaded))
             query = urlencode({"renderer": mode, "count": count, "cast": "cartoon", "guest": list(recipes)}, doseq=True)
-            page.goto(f"{base.rstrip('/')}/dev/procedural-crowd?{query}", wait_until="domcontentloaded", timeout=120000)
+            route = "/preview/crowd" if preview else "/dev/procedural-crowd"
+            page.goto(f"{base.rstrip('/')}{route}?{query}", wait_until="domcontentloaded", timeout=120000)
             page.wait_for_function("n => Number(document.querySelector('canvas')?.dataset.visible) === n", arg=count, timeout=240000)
             canvas = page.locator("canvas")
             stats = canvas.evaluate("c => ({...c.dataset})")
-            if len(loaded) != count or stats["calls"] != "1" or stats["backend"] != expected:
-                raise RuntimeError(f"{expected} loaded {len(loaded)} distinct recipes, renderer reported {stats}")
-            report[expected] = {**stats, "uniqueRecipesLoaded": len(loaded)}
+            distinct = int(stats["distinct"]) if preview else len(loaded)
+            if distinct != count or stats["authored"] != str(count) or stats["calls"] != "1" or stats["backend"] != expected:
+                raise RuntimeError(f"{expected} loaded {distinct} distinct recipes, renderer reported {stats}")
+            report[expected] = {**stats, "uniqueRecipesLoaded": distinct}
             canvas.screenshot(path=dest / f"crowd-{mode}.png")
             page.close()
         browser.close()
@@ -80,10 +83,13 @@ def verify(base, dest, sources, count):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
-    parser.add_argument("recipes", type=Path, nargs="+", help="Fitted front-view cartoon recipes to vary")
+    parser.add_argument("recipes", type=Path, nargs="*", help="Fitted front-view cartoon recipes to vary")
+    parser.add_argument("--preview", action="store_true", help="Test the eight embedded branch study seeds")
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--count", type=int, default=100)
     args = parser.parse_args()
     if not 1 <= args.count <= 100:
         parser.error("--count must be between 1 and 100")
-    print(json.dumps(verify(args.base, args.output, args.recipes, args.count), indent=2))
+    if bool(args.recipes) == args.preview:
+        parser.error("Choose recipe files or --preview")
+    print(json.dumps(verify(args.base, args.output, args.recipes, args.count, args.preview), indent=2))

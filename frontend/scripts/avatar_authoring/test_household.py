@@ -13,6 +13,62 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_buttons_follow_a_sewn_placket_and_ignore_printed_dots(self):
+        from .visible_parts import button_front
+
+        art = Image.new("RGB", (100, 140), "#55466f")
+        draw = ImageDraw.Draw(art)
+        draw.polygon([(37, 14), (63, 14), (50, 48)], fill="#efb799")
+        for y in (57, 77, 97):
+            draw.ellipse((47, y - 1, 49, y + 1), fill="#ecdab9")
+        cloth = np.array([85, 70, 111])
+        skin = np.array([239, 183, 153])
+
+        def measure():
+            return button_front(np.array(art, dtype=float), 50, 20, 120, cloth, skin)
+
+        self.assertIsNone(measure())
+        draw.line((52, 50, 52, 115), fill="#241c30", width=2)
+        result = measure()
+        self.assertEqual(result["buttons"], [0.37, 0.57, 0.77])
+        np.testing.assert_array_equal(result["buttonColor"], [236, 218, 185])
+        self.assertAlmostEqual(result["placketDepth"], 0.29, delta=0.02)
+
+    def test_chin_length_hair_needs_locks_around_both_cheeks(self):
+        art = Image.new("RGB", (160, 180), "#fff7ea")
+        draw = ImageDraw.Draw(art)
+        draw.ellipse((36, 10, 124, 108), fill="#9b522b")
+        draw.ellipse((52, 37, 108, 110), fill="#edbe91")
+        for x in (32, 109):
+            draw.rounded_rectangle((x, 60, x + 19, 106), radius=5, fill="#9b522b")
+        rgb = np.array(art, dtype=float)
+        mask = (rgb != rgb[0, 0]).any(axis=2)
+        hair, skin = np.array([155, 82, 43]), np.array([237, 190, 145])
+        rows = hair_fall(rgb, mask, 80, 10, 110, 96, hair, skin)
+        self.assertIsNotNone(rows)
+        self.assertLess(rows[-1][0], 1.05)
+        rgb[75:] = skin
+        self.assertIsNone(hair_fall(rgb, mask, 80, 10, 110, 96, hair, skin))
+
+    def test_one_reusable_button_front_carries_its_opening_and_fastener_paint(self):
+        from .feature_library import apply_feature
+
+        original = json.loads((RECIPES / "morty-smith.json").read_text())
+        feature = {
+            "family": "rick-classic",
+            "construction": "household",
+            "edits": [
+                {"field": "design.outfit.top", "value": "polo"},
+                {"field": "design.outfit.buttons", "value": [0.31, 0.54, 0.77]},
+                {"field": "design.outfit.placketDepth", "value": 0.23},
+                {"field": "design.outfit.buttonColor", "value": "#e6cfaa"},
+            ],
+        }
+        revised = apply_feature(original, feature)
+        self.assertEqual(revised["design"]["outfit"]["buttonColor"], "#e6cfaa")
+        crew = edited_recipe(revised, [{"field": "design.outfit.top", "value": "crew"}])
+        self.assertEqual(crew["design"]["outfit"], original["design"]["outfit"])
+
     def test_cropped_arm_uses_both_sleeve_edges_and_the_exposed_skin_radius(self):
         from .visible_parts import visible_arm
 

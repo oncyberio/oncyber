@@ -5,7 +5,7 @@ import numpy as np
 from .eye_review import portrait_pair
 from .family import FAMILIES
 from .fit import pixels
-from .household import fit_frontal_features, fit_portrait, paint, pigment
+from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
@@ -16,7 +16,7 @@ from .visible_parts import (
     visible_placket,
 )
 from .household_front import has_ink_outline, painted_brow
-from .tracing import ear_lobes, garment_motif, nose_stroke, outline_mark
+from .tracing import garment_motif, nose_stroke, outline_mark
 
 PRESETS = {
     "child": ("child", 520, 150),
@@ -292,19 +292,10 @@ def compile_portrait(source, family, name, obs):
             [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (e["bounds"] for e in pair)]
         )
         cx, eye_y = centers.mean(0)
-        near = np.linalg.norm(rgb - skin, axis=2)
-        exposed = mask & (near < 75) & (near + 18 < np.linalg.norm(rgb - hair, axis=2))
-        ears = ear_lobes(exposed, cx, eye_y, chin, skull_width)
-        lobes = [
-            [
-                (ex - cx) / skull_width,
-                (ey - top) / height,
-                rx / skull_width,
-                ry / height,
-            ]
-            for _, ex, ey, rx, ry in ears
-        ]
-        fit_frontal_features(design, lobes, design["head"][1] / height)
+        lobes = frontal_lobes(rgb, mask, skin, hair, cx, eye_y, top, chin, skull_width)
+        fit_frontal_features(
+            design, lobes, design["head"][1] / height, separate_ears=True
+        )
         nose = nose_stroke(
             rgb, skin, eye_y, (cx, guide["nose_y"]), guide["mouth_y"], skull_width
         )

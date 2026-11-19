@@ -57,6 +57,7 @@ export default function RecipeReview({
                         {name}
                     </a>
                 ))}
+                <a href="/preview/crowd">100-avatar crowd</a>
             </nav>
             <div className="review">
                 <aside>
@@ -191,7 +192,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         path.join(folder, entry.id + ".recipe"),
         "utf8"
     );
-    const record = results.runs.measured_parts_replay.cases[entry.id];
+    const record = results.runs.garment_replay.cases[entry.id];
     if (
         createHash("sha256").update(candidate).digest("hex") !==
         record.candidate_sha256

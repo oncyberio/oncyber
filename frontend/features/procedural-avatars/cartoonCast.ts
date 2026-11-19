@@ -264,6 +264,7 @@ export interface CartoonDesign {
         placketDepth?: number;
         /** Fastener heights along a button-front shirt, measured from throat to hem. */
         buttons?: number[];
+        buttonColor?: string;
     };
     face?: Partial<{
         eyeHeight: number;
@@ -337,7 +338,11 @@ export function tailorCartoon(
         outfit: { ...base.outfit, ...changes.outfit },
         face: changes.face ? { ...base.face, ...changes.face } : base.face,
     };
-    if (tailored.outfit.top !== "polo") delete tailored.outfit.buttons;
+    if (tailored.outfit.top !== "polo") {
+        delete tailored.outfit.buttons;
+        delete tailored.outfit.placketDepth;
+        delete tailored.outfit.buttonColor;
+    } else if (!tailored.outfit.buttons) delete tailored.outfit.buttonColor;
     if (!base.household) return tailored;
     // Other silhouettes use the existing parametric hair builder.
     if (

@@ -2084,7 +2084,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
                 0.55,
                 swatch(o.color, ink, 0.48)
             );
-            const dye = swatch(o.trim, ink, 0.68);
+            const dye = o.buttonColor ?? swatch(o.trim, ink, 0.68);
             for (const at of o.buttons) {
                 const y = neck + bodyLength * at;
                 const radius = shoulder * 0.043;

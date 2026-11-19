@@ -487,6 +487,8 @@ const design = z
                 shoes: paint,
                 footwear: z.enum(["sneaker", "flat", "boot"]).optional(),
                 bands: z.array(band).max(3).optional(),
+                placketDepth: n(0.1, 0.4).optional(),
+                buttonColor: paint.optional(),
                 buttons: z
                     .array(n(0.2, 0.96))
                     .min(1)
@@ -503,6 +505,12 @@ const design = z
             .refine(
                 (o) => !o.buttons || o.top === "polo",
                 "Shirt buttons require a collared shirt"
+            )
+            .refine(
+                (o) =>
+                    (!o.buttonColor || !!o.buttons) &&
+                    (o.placketDepth === undefined || o.top === "polo"),
+                "Measured fastener paint and opening depth require the matching garment"
             ),
         parts: z
             .strictObject({

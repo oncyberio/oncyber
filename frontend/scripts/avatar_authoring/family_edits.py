@@ -287,6 +287,11 @@ def edit_schema(family=None, construction=None):
                 },
             ),
             fields(["design.face.eyeHeight"], bounded(0.2, 0.65)),
+            fields(["design.outfit.buttonColor"], {"anyOf": [color, {"type": "null"}]}),
+            fields(
+                ["design.outfit.placketDepth"],
+                {"anyOf": [bounded(0.1, 0.4), {"type": "null"}]},
+            ),
             fields(
                 ["design.outfit.buttons"],
                 {
@@ -397,6 +402,8 @@ def edited_recipe(
                     "design.household.eyePatch",
                     "design.household.headband",
                     "design.outfit.buttons",
+                    "design.outfit.buttonColor",
+                    "design.outfit.placketDepth",
                 )
                 and value is None
             ):
@@ -522,9 +529,20 @@ def edited_recipe(
         outfit = recipe["design"]["outfit"]
         buttons = outfit.get("buttons", [])
         if outfit["top"] != "polo":
-            if buttons and "design.outfit.buttons" in seen:
-                raise ValueError("Shirt buttons require a collared shirt")
+            if any(
+                outfit.get(k) is not None and "design.outfit." + k in seen
+                for k in ("buttons", "placketDepth", "buttonColor")
+            ):
+                raise ValueError(
+                    "Shirt fasteners and opening depth require a collared shirt"
+                )
             outfit.pop("buttons", None)
+            outfit.pop("buttonColor", None)
+            outfit.pop("placketDepth", None)
         elif any(b - a < 0.035 for a, b in itertools.pairwise(buttons)):
             raise ValueError("Shirt buttons must run from the collar to the hem")
+        elif not buttons:
+            if outfit.get("buttonColor") and "design.outfit.buttonColor" in seen:
+                raise ValueError("Fastener paint requires shirt buttons")
+            outfit.pop("buttonColor", None)
     return recipe

@@ -3,15 +3,19 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { cartoonCast } from "@features/procedural-avatars/cartoonCast";
-import { characters } from "@features/procedural-avatars/catalog";
+import {
+    characters,
+    previewRecipe,
+} from "@features/procedural-avatars/catalog";
 import type { LobbyAvatar } from "@features/lobby/webgpu/avatarAdapter";
 
-export default function ProceduralCrowdStudy() {
+export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
     const router = useRouter();
     const cartoon = router.query.cast === "cartoon";
     const canvas = useRef<HTMLCanvasElement>(null);
     const [message, setMessage] = useState("Preparing recipes…");
     useEffect(() => {
+        const local: ReturnType<typeof previewRecipe>[] = [];
         let stopped = false,
             dispose = () => {};
         (async () => {
@@ -62,6 +66,26 @@ export default function ProceduralCrowdStudy() {
             const authored = [...new Set(params.getAll("guest"))]
                 .filter((id) => /^[a-z][a-z0-9-]{0,63}$/.test(id))
                 .slice(0, count);
+            if (seeds) {
+                const { studyCrowdMember } = await import(
+                    "@features/procedural-avatars/studyCrowd"
+                );
+                if (stopped) return;
+                for (let i = 0; i < count; i++)
+                    local.push(
+                        previewRecipe(
+                            studyCrowdMember(seeds[i % seeds.length], i)
+                        )
+                    );
+            }
+            const distinct = new Set(
+                local.map(({ recipe }) =>
+                    recipe.cartoon
+                        ? recipe.cartoon.head.join("/") +
+                          recipe.cartoon.outfit.color
+                        : [recipe.headWidth, recipe.crownLength].join("/")
+                )
+            ).size;
             for (let i = 0; i < count; i += 4) {
                 const batch = await Promise.all(
                     Array.from(
@@ -70,9 +94,10 @@ export default function ProceduralCrowdStudy() {
                             const k = i + j,
                                 id = families[k % families.length];
                             const source =
-                                k < authored.length
+                                local[k]?.slug ??
+                                (k < authored.length
                                     ? "drawn-" + authored[k]
-                                    : id + "/" + k;
+                                    : id + "/" + k);
                             const avatar = await crowd.create(
                                 "/models/procedural/" + source
                             );
@@ -153,7 +178,8 @@ export default function ProceduralCrowdStudy() {
                 el.dataset.frameCalls = String(stats.drawCalls);
                 el.dataset.visible = String(crowd.stats.visible);
                 el.dataset.backend = backend;
-                el.dataset.authored = String(authored.length);
+                el.dataset.authored = String(local.length || authored.length);
+                if (local.length) el.dataset.distinct = String(distinct);
                 el.dataset.triangles = String(stats.triangles);
                 el.dataset.readyMs = String(Math.round(readyMs));
                 if (frames++ === 0)
@@ -173,8 +199,9 @@ export default function ProceduralCrowdStudy() {
         return () => {
             stopped = true;
             dispose();
+            local.forEach((entry) => entry.release());
         };
-    }, [router.asPath]);
+    }, [router.asPath, seeds]);
     return (
         <main>
             <Head>
@@ -184,7 +211,9 @@ export default function ProceduralCrowdStudy() {
                 <h1>Recipe crowd</h1>
                 <Link
                     href={
-                        cartoon
+                        seeds
+                            ? "/preview/studies/rowan"
+                            : cartoon
                             ? "/dev/cartoon-cast"
                             : "/dev/procedural-avatars"
                     }

@@ -292,12 +292,20 @@ export function drawHouseholdHead(
     if (g.hair.cut === "waves" && g.household.fallRows) {
         // A closed horseshoe section leaves room for the neck. The back and both
         // side locks share vertices around the bend, including at shoulder height.
-        const segments = g.household.headband
-            ? d.s.detail === "crowd"
-                ? 10
-                : 12
-            : 24;
-        const rows = g.household.fallRows.map(([t, outer, inner]) => {
+        const measured = g.household.fallRows;
+        const shortBob = measured.at(-1)[0] < 1.05;
+        const segments =
+            g.household.headband || shortBob
+                ? d.s.detail === "crowd"
+                    ? 10
+                    : 12
+                : 24;
+        // The upper curtain sits inside the cap. Its hidden intermediate
+        // rings cost triangles without contributing to the crown silhouette.
+        const levels = shortBob
+            ? measured.filter(([t], i) => i === 0 || t > 0.48 || i % 2 === 0)
+            : measured;
+        const rows = levels.map(([t, outer, inner]) => {
             const arc = (j: number, inside: boolean): Point => {
                 // A band draws the two curtains behind the ears. Leave the
                 // lower flared ends free where the band releases their tension.
@@ -329,7 +337,16 @@ export function drawHouseholdHead(
                 // scalp even between two successive sections of the curtain.
                 let lateral = x * width,
                     forward = z * width;
-                if (g.household.headband && t < 0.68) {
+                if (shortBob) {
+                    // The jaw-length locks turn behind the pinna. Their front
+                    // silhouette still follows the measured inner and outer
+                    // edges, while the rear meridian keeps its full depth.
+                    forward -=
+                        width *
+                        MathUtils.smoothstep(t, 0.35, 0.61) *
+                        (0.2 + 0.2 * Math.cos(a));
+                }
+                if ((g.household.headband || shortBob) && t < 0.68) {
                     const [r, nose, nape] = level(t);
                     const middle = (nose + nape) / 2;
                     const radial = Math.hypot(
@@ -357,7 +374,9 @@ export function drawHouseholdHead(
             // The concave inner shell is visible along the opening and hem.
             // Its broad rear surface needs fewer meridians than the silhouette.
             const innerSegments =
-                d.s.detail === "crowd" || g.household.headband ? 5 : 7;
+                d.s.detail === "crowd" || g.household.headband || shortBob
+                    ? 5
+                    : 7;
             const inside = Array.from({ length: segments + 1 }, (_, j) => {
                 const u =
                     Math.round((1 - j / segments) * innerSegments) /

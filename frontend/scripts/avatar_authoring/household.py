@@ -29,7 +29,18 @@ def skull_depth(widths):
     return {"chin": round(0.15 + 0.13 * jaw, 3), "forehead": 0.115, "cheek": 0.065}
 
 
-def fit_frontal_features(design, lobes, units_per_pixel):
+def frontal_lobes(rgb, mask, skin, hair, cx, eye_y, top, chin, width):
+    from .tracing import ear_lobes
+
+    near = np.linalg.norm(rgb - skin, axis=2)
+    exposed = mask & (near < 75) & (near + 18 < np.linalg.norm(rgb - hair, axis=2))
+    return [
+        [(x - cx) / width, (y - top) / (chin - top), rx / width, ry / (chin - top)]
+        for _, x, y, rx, ry in ear_lobes(exposed, cx, eye_y, chin, width)
+    ]
+
+
+def fit_frontal_features(design, lobes, units_per_pixel, *, separate_ears=False):
     """Seat the measured ear lobes and restore the ink margin outside each eye white."""
     household = design["household"]
     face = design["face"]
@@ -47,7 +58,7 @@ def fit_frontal_features(design, lobes, units_per_pixel):
     ]
     if ears:
         household["ears"] = ears
-        if "portraitPreset" in household and len(ears) == 2:
+        if separate_ears and len(ears) == 2:
             # The measured ear already owns the outer arc on these rows.
             # A skull fitted to that same outline hides the pinna in the cap.
             profile = np.array(household["widths"])
@@ -115,11 +126,12 @@ def scalp_boundary(
     hidden=None,
     band_color=None,
     eyes=(),
+    cap_limit=0.93,
 ):
     """Intersect each skull meridian with visible cap pigment before the first exposed skin."""
     if np.linalg.norm(skin - hair) < 35:
         return None
-    ts = np.linspace(0.035, 0.93, 125)
+    ts = np.linspace(0.035, cap_limit, 125)
     radius = np.interp(ts, np.linspace(0, 1, len(profile)), profile) * width / 2
     ys = np.rint(top + ts * height).astype(int).clip(0, mask.shape[0] - 1)
     line = []

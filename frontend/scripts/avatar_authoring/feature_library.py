@@ -43,6 +43,8 @@ def apply_feature(recipe, definition):
             "design.household.headband",
             "design.household.eyePatch",
             "design.outfit.buttons",
+            "design.outfit.buttonColor",
+            "design.outfit.placketDepth",
             "design.outfit.top",
             "shirtMark",
             "sunRays",
