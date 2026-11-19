@@ -699,6 +699,10 @@ const householdFile = file.extend({
                 cut: z.enum(["crop", "part", "ponytail", "waves"]),
             }),
             household: z.strictObject({
+                jawWidths: z.array(n(0.04, 1.15)).length(8).optional(),
+                portraitPreset: z
+                    .enum(["child", "lean-teen", "adult"])
+                    .optional(),
                 widths: z
                     .array(n(0, 1.15))
                     .min(9)

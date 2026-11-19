@@ -7,7 +7,7 @@ import jerry from "../../public/lobby/procedural/recipes/jerry-smith.json";
 import { prepareHousehold } from "./householdBody";
 import { proportions } from "./cartoonProportions";
 export { proportions } from "./cartoonProportions";
-import { fittedArmPlane, type PartFit } from "./humanoidParts";
+import { fittedArmPlane, referenceBends, type PartFit } from "./humanoidParts";
 import type { AvatarRecipe } from "./recipes";
 import type { Point } from "./sculpt";
 import type { ReferenceLayout } from "./referenceProportions";
@@ -38,8 +38,11 @@ import type { RoundedSection } from "./roundedProfile";
 export interface CartoonDesign {
     height: number;
     household?: {
+        portraitPreset?: "child" | "lean-teen" | "adult";
         /** Skull widths from crown to chin, as fractions of its largest width. */
         widths: number[];
+        /** Skin widths at 60%, 65%, …, 95% of crown-to-chin height. */
+        jawWidths?: number[];
         /** Front-view lobe centers and radii in fractions of skull width and height. */
         ears?: [number, number, number, number][];
         /** Angle of the visible helix from the sagittal plane toward the face. */
@@ -564,15 +567,17 @@ export function cartoonLayout(d: CartoonDesign): ReferenceLayout {
         if (sections) {
             const rows = sections.arm;
             const z = fittedArmPlane(shoulder, hip - neck);
-            const center = (i: number, depth: number): Point => [
-                fittedArmX(d, side, rows[i][0]),
-                rows[i][1],
-                depth,
-            ];
+            const last = rows.at(-1);
+            const elbow = referenceBends(d.parts?.hands).elbow;
+            const elbowX = shoulder + (last[0] - shoulder) * elbow;
             return [
                 [side * shoulder, rows[0][1], z[0]],
-                center(Math.floor(rows.length / 2), z[1]),
-                center(rows.length - 1, z[2]),
+                [
+                    fittedArmX(d, side, elbowX),
+                    rows[0][1] + (last[1] - rows[0][1]) * elbow,
+                    z[1],
+                ],
+                [fittedArmX(d, side, last[0]), last[1], z[2]],
             ];
         }
         const gesture =
@@ -611,34 +616,32 @@ export function cartoonLayout(d: CartoonDesign): ReferenceLayout {
         return [root, elbow, move(elbow, fore, b, zb)];
     };
     const spread = d.fit?.hipOffset;
-    const leg = (s: number): [Point, Point, Point] =>
-        sections
-            ? [
-                  [pelvisX + s * sections.leg[0][1], hip, 0],
-                  [
-                      pelvisX +
-                          s *
-                              sections.leg[
-                                  Math.floor(sections.leg.length / 2)
-                              ][1],
-                      sections.leg[Math.floor(sections.leg.length / 2)][0],
-                      2,
-                  ],
-                  [pelvisX + s * sections.shoe[0][1], sections.shoe[0][0], 0],
-              ]
-            : [
-                  [s * (spread ?? waist * 0.52), hip, 0],
-                  [
-                      s * (spread ?? waist * 0.62),
-                      hip + (d.height - hip) * 0.49,
-                      2,
-                  ],
-                  [
-                      s * (spread ?? waist * 0.72),
-                      d.height - (d.fit?.cuffHeight ?? 20),
-                      0,
-                  ],
-              ];
+    const leg = (s: number): [Point, Point, Point] => {
+        if (sections) {
+            const thigh = pelvisX + s * sections.leg[0][1];
+            const [ankleY, ankleOffset] = sections.shoe[0];
+            const ankle = pelvisX + s * ankleOffset;
+            const knee = referenceBends(d.parts?.legs).knee;
+            return [
+                [thigh, hip, 0],
+                [
+                    thigh + (ankle - thigh) * knee,
+                    hip + (ankleY - hip) * knee,
+                    2,
+                ],
+                [ankle, ankleY, 0],
+            ];
+        }
+        return [
+            [s * (spread ?? waist * 0.52), hip, 0],
+            [s * (spread ?? waist * 0.62), hip + (d.height - hip) * 0.49, 2],
+            [
+                s * (spread ?? waist * 0.72),
+                d.height - (d.fit?.cuffHeight ?? 20),
+                0,
+            ],
+        ];
+    };
     const toe = (s: number): Point => [
         pelvisX +
             s *

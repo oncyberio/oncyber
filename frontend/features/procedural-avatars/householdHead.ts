@@ -100,7 +100,7 @@ export function drawHouseholdHead(
         }
         return MathUtils.lerp(side, 0.72, rear);
     }
-    function point(angle: number, t: number): Point {
+    function point(angle: number, t: number, hair = false): Point {
         const [r, front, back] = level(t);
         const z = (front + back) / 2,
             dz = (front - back) / 2;
@@ -118,7 +118,28 @@ export function drawHouseholdHead(
                 : 0;
         const reach = width * 0.19 * swept;
         const lean = parted ? width * 0.11 * Math.max(0, 1 - t * 2.8) ** 2 : 0;
-        const x = (r + reach) * Math.sin(angle) + lean;
+        let cheekRadius = r;
+        const jawWidths = g.household.jawWidths;
+        if (!hair && jawWidths && t > 0.56) {
+            const station = MathUtils.clamp(
+                (t - 0.6) / 0.05,
+                0,
+                jawWidths.length - 1
+            );
+            const i = Math.floor(station);
+            const measured =
+                width *
+                0.5 *
+                Math.sqrt(MathUtils.clamp((1 - t) / 0.05, 0, 1)) *
+                MathUtils.lerp(
+                    jawWidths[i],
+                    jawWidths[Math.min(i + 1, jawWidths.length - 1)],
+                    station - i
+                );
+            const visible = MathUtils.smoothstep(t, 0.56, 0.67);
+            cheekRadius = MathUtils.lerp(r, Math.min(r, measured), visible);
+        }
+        const x = (cheekRadius + reach) * Math.sin(angle) + lean;
         // A front drawing measures x and y at the temple, even where the cap
         // continues behind an ear. Displace only its depth on this meridian.
         const nape = g.household.nape;
@@ -176,13 +197,18 @@ export function drawHouseholdHead(
                 const u = 0.5 - 0.5 * Math.cos((Math.PI * i) / steps);
                 return point(
                     a,
-                    hair ? u * hem(a) : MathUtils.lerp(hem(a), 1, u)
+                    hair ? u * hem(a) : MathUtils.lerp(hem(a), 1, u),
+                    hair
                 );
             })
         );
     const cap = rings(10, true),
         jaw = rings(13, false);
-    jaw[0] = cap.at(-1);
+    if (g.household.jawWidths) {
+        // Close the hair overhang in its own pigment. Skin spanning this rim
+        // would create false cheek panels below the ears in a front view.
+        cap.push(jaw[0]);
+    } else jaw[0] = cap.at(-1);
     const seam = new Set(jaw[0].map((p) => p.map(Math.fround).join("/")));
     const preserve = d.s.preserveVertex,
         normal = d.s.surfaceNormal,
@@ -221,10 +247,10 @@ export function drawHouseholdHead(
     d.s.surfaceNormal = skinNormal;
     // Give the temple boundary the fine painted edge of the source drawing.
     // Both edges follow the skull, including the side hidden in a single still.
-    const boundary = cap.at(-1);
+    const boundary = cap.at(g.household.jawWidths ? -2 : -1);
     const hairBand = boundary.map((_, j): Point => {
         const a = ((j % sides) * Math.PI * 2) / sides;
-        return point(a, hem(a) - Math.min(0.0045, 0.55 / height));
+        return point(a, hem(a) - Math.min(0.0045, 0.55 / height), true);
     });
     const liftEdge = (p: Point, j: number): Point => {
         const a = ((j % sides) * Math.PI * 2) / sides;

@@ -18,6 +18,26 @@ export type PartFit = {
     handPitch?: number;
 };
 
+function bendRatios(joints: Record<string, number[]>) {
+    function fraction(root: string, bend: string, tip: string) {
+        const distance = (a: string, b: string) =>
+            Math.hypot(...joints[a].map((v, i) => v - joints[b][i]));
+        const first = distance(root, bend);
+        return first / (first + distance(bend, tip));
+    }
+    return {
+        elbow: fraction("leftUpperArm", "leftLowerArm", "leftHand"),
+        knee: fraction("leftUpperLeg", "leftLowerLeg", "leftFoot"),
+    };
+}
+const bends = {
+    classic: bendRatios(classic.joints),
+    sunshine: bendRatios(sunshineJoints),
+};
+export function referenceBends(source: PartSource = "classic") {
+    return bends[source];
+}
+
 const shoulderReferences = [classic.joints, sunshineJoints].map((joints) => {
     const width = joints.leftUpperArm[0] - joints.neck[0];
     return {

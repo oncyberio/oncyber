@@ -1,4 +1,5 @@
 import * as T from "three/webgpu";
+import { cartoonLayout } from "./cartoonCast";
 import classic from "./rick-classic.json";
 import sunshine from "./sunshine.json";
 import sunshineJoints from "./sunshine-rig.json";
@@ -510,3 +511,25 @@ test.each(["classic", "sunshine"] as const)(
         }
     }
 );
+
+test("adding garment sections preserves the anatomical elbow and knee", () => {
+    const { design } = readCartoonFile(tess);
+    const sections = design.fit.sections;
+    const before = cartoonLayout(design).landmarks;
+    const denser = {
+        ...sections,
+        arm: [sections.arm[0], sections.arm[1], ...sections.arm.slice(1)],
+        leg: [sections.leg[0], sections.leg[1], ...sections.leg.slice(1)],
+    };
+    const after = cartoonLayout({
+        ...design,
+        fit: { ...design.fit, sections: denser },
+    }).landmarks;
+    expect(after.arms).toEqual(before.arms);
+    expect(after.legs).toEqual(before.legs);
+    const [shoulder, elbow, wrist] = before.arms[1];
+    expect((elbow[0] - shoulder[0]) / (wrist[0] - shoulder[0])).toBeCloseTo(
+        0.5,
+        1
+    );
+});

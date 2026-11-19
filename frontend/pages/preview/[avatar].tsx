@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import type { GetServerSideProps } from "next";
 import { useState } from "react";
 import styled from "styled-components";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
@@ -9,7 +10,15 @@ import type { LobbyParticipant } from "@features/lobby/sceneTypes";
 const Lobby = dynamic(() => import("@features/lobby/LobbyRenderer"), {
     ssr: false,
 });
-const rick = catalogue["procedural-rick-classic"];
+const avatars = {
+    rick: {
+        name: "Rick Sanchez",
+        url: catalogue["procedural-rick-classic"].url,
+    },
+    jessica: { name: "Jessica", url: catalogue["procedural-cast-jessica"].url },
+    "nia-bell": { name: "Nia Bell", url: "/models/procedural/drawn-nia-bell" },
+};
+type Avatar = keyof typeof avatars;
 const participants: LobbyParticipant[] = [];
 const noop = () => {};
 
@@ -48,37 +57,40 @@ const Controls = styled.aside`
     }
 `;
 
-export default function RickPreview() {
+export default function AvatarPreview({ avatar }: { avatar: Avatar }) {
+    const { name, url: avatarUrl } = avatars[avatar];
     const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
     return (
-        <Space aria-label="Rick Sanchez avatar preview">
+        <Space aria-label={`${name} avatar preview`}>
             <Head>
-                <title>Walk around as Rick · Oncyber</title>
+                <title>Walk around as {name} · Oncyber</title>
                 <meta name="robots" content="noindex" />
             </Head>
             <Lobby
                 active
                 crowdEnabled={false}
-                avatarUrl={rick.url}
+                avatarUrl={avatarUrl}
                 participants={participants}
                 onMove={noop}
                 onReady={noop}
                 onError={setError}
                 onAvatarStatus={({ url, status }) => {
-                    if (url !== rick.url) return;
+                    if (url !== avatarUrl) return;
                     setReady(status === "ready");
-                    setError(status === "error" ? "Rick could not load." : "");
+                    setError(
+                        status === "error" ? `${name} could not load.` : ""
+                    );
                 }}
             />
             <Controls aria-live="polite">
                 {error ? (
                     <>
-                        {error} <a href="/preview/rick">Try again</a>
+                        {error} <a href={`/preview/${avatar}`}>Try again</a>
                     </>
                 ) : ready ? (
                     <>
-                        <strong>Rick Sanchez</strong>
+                        <strong>{name}</strong>
                         <div className="keyboard">
                             WASD to move · Shift to run · Space to jump · Drag
                             to look around
@@ -88,16 +100,21 @@ export default function RickPreview() {
                         </div>
                     </>
                 ) : (
-                    "Loading Rick…"
+                    `Loading ${name}…`
                 )}
             </Controls>
         </Space>
     );
 }
 
-export function getServerSideProps() {
-    return process.env.NODE_ENV === "development" ||
-        process.env.VERCEL_ENV === "preview"
-        ? { props: {} }
-        : { notFound: true };
-}
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+    const avatar = params?.avatar;
+    if (
+        (process.env.NODE_ENV !== "development" &&
+            process.env.VERCEL_ENV !== "preview") ||
+        typeof avatar !== "string" ||
+        !Object.prototype.hasOwnProperty.call(avatars, avatar)
+    )
+        return { notFound: true };
+    return { props: { avatar } };
+};

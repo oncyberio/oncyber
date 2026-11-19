@@ -1,4 +1,5 @@
 import type { CartoonDesign } from "./cartoonCast";
+import { composition, landmarks } from "./referenceLandmarks";
 import { proportions } from "./cartoonProportions";
 
 export function prepareHousehold(source: CartoonDesign): CartoonDesign {
@@ -29,7 +30,32 @@ export function prepareHousehold(source: CartoonDesign): CartoonDesign {
 
 /** Lay out the garment, limb sections and native hand sockets in the same T-pose. */
 function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
-    const { neck, hip, shoulder, waist } = proportions(g);
+    const proportionsFit = proportions(g);
+    const { neck } = proportionsFit;
+    // A portrait ends above the wrists and pelvis. Recover those proportions
+    // from an authored full-body figure, scaled from neckline to floor.
+    const preset = g.household.portraitPreset;
+    const template =
+        preset === "lean-teen"
+            ? "summer"
+            : preset === "child"
+            ? "morty"
+            : "rick-classic";
+    const reference = landmarks[template];
+    const scale =
+        (g.height - neck) / (composition[template].floor - reference.neck[1]);
+    const usePreset = !!preset && !g.household.body;
+    const shoulder = usePreset
+        ? ((reference.arms[1][0][0] - reference.arms[0][0][0]) * scale) / 2
+        : proportionsFit.shoulder;
+    const hip = usePreset
+        ? neck + (reference.hip[1] - reference.neck[1]) * scale
+        : proportionsFit.hip;
+    const waist = usePreset
+        ? Math.abs(reference.legs[1][0][0] - reference.legs[0][0][0]) *
+          scale *
+          0.71
+        : proportionsFit.waist;
     const [width, skull] = g.head;
     const face = g.household;
     const lips = face.lips?.map(([x, upper, lower]) => [
@@ -119,9 +145,18 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
     const trunk = hip - neck,
         height = g.height,
         legLength = height - hip;
-    const wrist = height * 0.447,
-        upper = wrist - shoulder;
-    const radius = shoulder * (g.build === "lean" ? 0.17 : 0.21);
+    const reach = reference.arms.map(
+        ([root, elbow, hand]) =>
+            Math.hypot(...root.map((v, i) => v - elbow[i])) +
+            Math.hypot(...hand.map((v, i) => v - elbow[i]))
+    );
+    const upper = usePreset
+        ? ((reach[0] + reach[1]) * scale) / 2
+        : height * 0.447 - shoulder;
+
+    const radius = usePreset
+        ? scale * { "lean-teen": 8.1, child: 9.2, adult: 11 }[preset]
+        : shoulder * (g.build === "lean" ? 0.17 : 0.21);
     const ankle = height - 16,
         leg = waist * (g.build === "lean" ? 0.38 : 0.42);
     const spread = waist * 0.67,

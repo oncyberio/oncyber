@@ -2447,7 +2447,13 @@ function clothing(d: Drawing, g: CartoonDesign) {
         lower[0] = join;
         const thighBone = side + "UpperLeg",
             shinBone = side + "LowerLeg";
-        const sides = d.s.detail === "crowd" ? 8 : 12;
+        // Slender trouser legs need fewer meridians than a wide or baggy cut.
+        const sides =
+            d.s.detail === "crowd"
+                ? 8
+                : g.household?.portraitPreset === "lean-teen"
+                ? 10
+                : 12;
         trouserLeg(
             d,
             {
