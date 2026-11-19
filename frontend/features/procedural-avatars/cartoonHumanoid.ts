@@ -2635,6 +2635,9 @@ function clothing(d: Drawing, g: CartoonDesign) {
                 : g.household?.portraitPreset === "lean-teen"
                 ? 10
                 : 12;
+        const panels = g.household
+            ? { top: waistY, bottom: lower.at(-1)[0] }
+            : undefined;
         trouserLeg(
             d,
             {
@@ -2652,9 +2655,19 @@ function clothing(d: Drawing, g: CartoonDesign) {
                           measured.seams.trousers,
                           frontOfLoft(rings)
                       )
-                : undefined
+                : undefined,
+            panels
         );
-        trouserShin(d, lower, thighBone, shinBone, o.trousers, leg, sides);
+        trouserShin(
+            d,
+            lower,
+            thighBone,
+            shinBone,
+            o.trousers,
+            leg,
+            sides,
+            panels
+        );
         d.bind(side + "Foot");
         if (measured) {
             const sideSign = sign;

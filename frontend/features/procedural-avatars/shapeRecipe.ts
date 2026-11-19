@@ -13,7 +13,7 @@ import {
     type Section,
     type XY,
 } from "./drawing";
-import type { Point } from "./sculpt";
+import type { PanelJoin, Point } from "./sculpt";
 import { avatarStyles, crewOpening, styleOf, type CrewNeck } from "./styles";
 import { finish } from "./surfaces";
 import { drawRoundedProfile, type RoundedSection } from "./roundedProfile";
@@ -136,14 +136,22 @@ export function trouserShin(
     shin: string,
     color: string,
     bend: number,
-    sides = 16
+    sides = 16,
+    join?: PanelJoin
 ) {
     const knee = lower[0][0],
         hem = lower.at(-1);
     d.drape(thigh, shin, knee, knee + bend);
     const cap: Point = [(hem[1] + hem[2]) / 2, hem[0], hem[4] ?? 0];
     const rings = lower.map((row) => trouserRing(row, sides));
-    d.s.surface([...rings, rings.at(-1).map(() => cap)], color, false, "start");
+    d.s.surface(
+        [...rings, rings.at(-1).map(() => cap)],
+        color,
+        false,
+        "start",
+        undefined,
+        join
+    );
     return profileDepth(lower);
 }
 /** One side of a bifurcated garment. Its top boundary follows half of
@@ -154,7 +162,8 @@ export function trouserLeg(
     color: string,
     joinKnee = false,
     sides = 16,
-    detail?: (rings: Point[][]) => void
+    detail?: (rings: Point[][]) => void,
+    join?: PanelJoin
 ) {
     const {
         profile,
@@ -199,7 +208,14 @@ export function trouserLeg(
         ...profile.slice(below).map((row) => trouserRing(row, sides)),
         ...(joinKnee ? [] : [cap]),
     ];
-    d.s.surface(rows, color, true, joinKnee ? "end" : undefined);
+    d.s.surface(
+        rows,
+        color,
+        true,
+        joinKnee ? "end" : undefined,
+        undefined,
+        join
+    );
     d.s.preserveVertex = undefined;
     detail?.(rows);
     return profileDepth(profile);

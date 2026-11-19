@@ -12,6 +12,13 @@ import * as T from "three/webgpu";
 import * as N from "three/tsl";
 
 export type Point = [number, number, number];
+/** Matched end and start rings on two consecutive skinned cloth panels. */
+export interface PanelJoin {
+    top: number;
+    bottom: number;
+    ringStart?: number;
+    stride?: number;
+}
 export interface PaintRun {
     start: number;
     count: number;
@@ -899,7 +906,8 @@ export class Sculpt {
             | "sides"
             | "perimeter"
             | undefined = undefined,
-        sampleError?: number
+        sampleError?: number,
+        panel?: PanelJoin
     ) {
         const near = this.detail === "full";
         const rowCount = rows.length,
@@ -967,7 +975,14 @@ export class Sculpt {
         for (let row = 0; row < rows.length; row++)
             for (let i = 0; i < stride; i++)
                 uv.push(
-                    rowsKept[row] / (rowCount - 1),
+                    panel
+                        ? T.MathUtils.clamp(
+                              (rows[row][i][1] - panel.top) /
+                                  (panel.bottom - panel.top),
+                              0,
+                              1
+                          )
+                        : rowsKept[row] / (rowCount - 1),
                     columns[i] / (colCount - 1)
                 );
         g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
@@ -1030,7 +1045,30 @@ export class Sculpt {
         }
         g.setIndex(indices.map((i) => aliases[i]));
         g.computeVertexNormals();
+        const base = this.positions.length / 3,
+            firstIndex = this.indices.length;
         this.add(g, color);
+        if (panel && stitch === "end") {
+            panel.ringStart = base + (rows.length - 1) * stride;
+            panel.stride = stride;
+        } else if (
+            panel &&
+            stitch === "start" &&
+            panel.ringStart !== undefined &&
+            panel.stride === stride
+        ) {
+            // Both panels bind this ring entirely to the thigh. Share its
+            // indices so normals, vertex paint and fabric coordinates meet.
+            for (let i = firstIndex; i < this.indices.length; i++) {
+                const column = this.indices[i] - base;
+                if (column < stride) this.indices[i] = panel.ringStart + column;
+            }
+            for (let i = 0; i < stride * 3; i++) {
+                const j = panel.ringStart * 3 + i;
+                this.colors[j] =
+                    (this.colors[j] + this.colors[base * 3 + i]) / 2;
+            }
+        }
         return rows;
     }
 

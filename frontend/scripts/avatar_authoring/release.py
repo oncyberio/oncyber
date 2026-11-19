@@ -118,28 +118,36 @@ def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
     return result
 
 
-def check_evidence(recipe, folder):
+def verified_captures(recipe, folder):
+    """Verify exact native evidence, including captures of candidates that missed."""
     report = json.loads((folder / "evidence.json").read_text())
     if report["recipe"] != digest(recipe):
         raise ValueError("The recipe changed after the native review")
     if set(report["backends"]) != {"WebGPUBackend", "WebGLBackend"}:
         raise ValueError("Both native backends must be reviewed")
     for backend, item in report["backends"].items():
+        if item["native"]["backend"] != backend:
+            raise ValueError(f"Unexpected renderer for {backend}")
+        if set(item["views"]) != set(VIEWS) or any(
+            digest(folder / backend / name) != item["views"][name] for name in VIEWS
+        ):
+            raise ValueError(f"Review frames changed for {backend}")
+    return report
+
+
+def check_evidence(recipe, folder):
+    report = verified_captures(recipe, folder)
+    for backend, item in report["backends"].items():
         native = item["native"]
         if not reference_passes(report["framing"], item["reference_metrics"]):
             raise ValueError(f"Native reference comparison failed on {backend}")
         if not (
-            native["backend"] == backend
-            and 0 < native["triangles"] <= report["triangle_budget"]
+            0 < native["triangles"] <= report["triangle_budget"]
             and native["moving_steps"] >= 9
             and native["hand"] == "right"
             and 0.3 <= native["crouch_height_ratio"] < 0.98
         ):
             raise ValueError(f"Motion, grip or performance failed on {backend}")
-        if set(item["views"]) != set(VIEWS) or any(
-            digest(folder / backend / name) != item["views"][name] for name in VIEWS
-        ):
-            raise ValueError(f"Review frames changed for {backend}")
     return report
 
 
@@ -164,7 +172,7 @@ def require_release(recipe, folder):
 
 
 def record_decision(recipe, source, folder, decision):
-    report = check_evidence(recipe, folder)
+    report = verified_captures(recipe, folder)
     if report["reference"] != digest(source) or decision.get("evidence") != digest(
         folder / "evidence.json"
     ):
@@ -182,7 +190,7 @@ def vision_decision(recipe, source, folder, args):
     from .provider import openrouter_model, request_drawing
     from PIL import Image, ImageOps, ImageDraw
 
-    report = check_evidence(recipe, folder)
+    report = verified_captures(recipe, folder)
     if report["reference"] != digest(source):
         raise ValueError("The reference changed after it was measured")
     if args.openrouter:

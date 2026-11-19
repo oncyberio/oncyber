@@ -31,9 +31,10 @@ import { seatFrontalPupil, seatPupil } from "./cartoonEye";
 import { buildCharacter } from "./buildCharacter";
 import { disposeAvatarGraph } from "../lobby/webgpu/avatarResources";
 import type { Point } from "./sculpt";
-import { frontOfLoft, type Drawing, type Section } from "./drawing";
+import { frontOfLoft, Drawing, type Section } from "./drawing";
 import tess from "../../public/lobby/procedural/recipes/tess-brindle.json";
 import nori from "../../public/lobby/procedural/recipes/nori-quill.json";
+import { trouserLeg, trouserShin } from "./shapeRecipe";
 import { cranialStations } from "./cranialBase";
 
 test("a T-pose clips the measured eye in depth while keeping its equator and scale", () => {
@@ -509,6 +510,70 @@ test.each(["classic", "sunshine"] as const)(
         } finally {
             disposeAvatarGraph(model.scene);
         }
+    }
+);
+
+test.each(["full", "crowd"] as const)(
+    "%s trousers keep one weighted ring across the knee after simplification",
+    (detail) => {
+        const d = new Drawing("rick-classic");
+        d.s.detail = detail;
+        d.s.record = { points: [], runs: [] };
+        const knee: Section = [448, 9, 32, 10, 1];
+        const upper: Section[] = [
+            [305, 0, 39, 18, 0],
+            [352, 4, 37, 15, 1],
+            knee,
+        ];
+        const lower: Section[] = [
+            knee,
+            [494, 11, 31, 12, 0],
+            [552, 14, 28, 8, 0],
+        ];
+        const panels = { top: upper[0][0], bottom: lower.at(-1)[0] };
+        const thigh = "leftUpperLeg",
+            shin = "leftLowerLeg";
+        const sides = detail === "full" ? 12 : 8;
+        trouserLeg(
+            d,
+            { profile: upper, bone: thigh, inseam: { center: 0, drop: 28 } },
+            "#34515e",
+            true,
+            sides,
+            undefined,
+            panels
+        );
+        trouserShin(d, lower, thigh, shin, "#34515e", 20, sides, panels);
+
+        const geometry = d.s.geometry();
+        const points = d.s.record.points;
+        const edges = new Map<string, number[]>();
+        const ids = geometry.index.array;
+        const joints = geometry.getAttribute("skinIndex");
+        const weights = geometry.getAttribute("skinWeight");
+        const thighId = d.s.bones.findIndex((b) => b.name === thigh);
+        for (let i = 0; i < ids.length; i += 3) {
+            const face = Array.from(ids.slice(i, i + 3));
+            const boundary = face.filter((v) => points[3 * v + 1] === knee[0]);
+            if (boundary.length !== 2) continue;
+            for (const v of boundary) {
+                const weight =
+                    joints.getX(v) === thighId
+                        ? weights.getX(v)
+                        : weights.getY(v);
+                expect(weight).toBe(1);
+            }
+            const other = face.find((v) => !boundary.includes(v));
+            const edge = boundary.sort((a, b) => a - b).join(",");
+            edges.set(edge, [
+                ...(edges.get(edge) ?? []),
+                Math.sign(points[3 * other + 1] - knee[0]),
+            ]);
+        }
+        expect(edges.size).toBe(sides);
+        for (const neighbors of edges.values())
+            expect(neighbors.sort()).toEqual([-1, 1]);
+        geometry.dispose();
     }
 );
 

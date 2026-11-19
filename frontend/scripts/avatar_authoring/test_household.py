@@ -13,6 +13,29 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_one_pixel_trouser_gap_follows_paper_past_a_pocket(self):
+        from .household_front import trouser_opening
+
+        paper = np.array([245, 236, 218])
+        cloth = np.array([52, 65, 81])
+        rgb = np.tile(paper, (65, 111, 1))
+        rgb[:, 20:90] = cloth
+        rgb[12:17, 53:57] = paper
+        rgb[20:25, 54:57] = cloth // 2
+        rgb[26:41, 56] = paper
+        rgb[41:, 52:58] = paper
+        mask = np.ones(rgb.shape[:2], dtype=bool)
+
+        def opening():
+            return trouser_opening(rgb, mask, 54, 7, 55, 1.0, paper, cloth)
+
+        self.assertEqual(opening(), 26)
+        rgb[26:41, 56] = 0
+        mask[26:41, 56] = False
+        self.assertEqual(opening(), 26)
+        rgb[41:, 52:58] = cloth
+        self.assertIsNone(opening())
+
     def test_buttons_follow_a_sewn_placket_and_ignore_printed_dots(self):
         from .visible_parts import button_front
 

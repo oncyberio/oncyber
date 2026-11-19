@@ -308,6 +308,34 @@ def hair_fall(rgb, mask, center, top, chin, width, hair, skin):
     return rows
 
 
+def trouser_opening(rgb, mask, ix, first, last, scale, paper, pants):
+    """Follow the paper between two thighs back to the tip of the opening."""
+    reach = max(2, round(49 / scale))
+    xs = np.arange(max(0, ix - reach), min(mask.shape[1], ix + reach + 1))
+    rows = np.arange(first, last + 1)
+    patch = rgb[np.ix_(rows, xs)]
+    paper_distance = np.linalg.norm(patch - paper, axis=2)
+    pants_distance = np.linalg.norm(patch - pants, axis=2)
+    empty = (~mask[np.ix_(rows, xs)]) | (paper_distance < 0.6 * pants_distance)
+    # Seed only the gap bracketed by cloth. A pale pocket, or the paper
+    # outside a narrow leg, must not raise the measured crotch.
+    cloth = np.flatnonzero(~empty[-1])
+    if len(cloth) < 2:
+        return None
+    middle = np.arange(len(xs))
+    seed = np.zeros_like(empty)
+    seed[-1] = (
+        empty[-1]
+        & (abs(xs - ix) < 15 / scale)
+        & (middle > cloth[0])
+        & (middle < cloth[-1])
+    )
+    gap = ndimage.binary_propagation(seed, structure=np.ones((3, 3)), mask=empty)
+    if gap[:, 0].any() or gap[:, -1].any() or not gap.any():
+        return None
+    return int(first + np.flatnonzero(gap.any(axis=1))[0])
+
+
 def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
     """Follow the two edges of a clothed limb through paper grain and contour ink."""
     h, w = mask.shape
@@ -371,14 +399,10 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
     last = y_at(sections["leg"][1][0])
     if last <= first + 3:
         return
-    # Find the first sustained background opening between the thighs.
-    strip = visible[first:last, ix - 1 : ix + 2].any(axis=1)
-    opens = np.flatnonzero(
-        np.convolve((~strip).astype(int), np.ones(4, dtype=int), mode="valid") == 4
-    )
-    if not len(opens):
+    opening = trouser_opening(rgb, mask, ix, first, last, scale, paper, pants)
+    if opening is None:
         return
-    fork = level(first + opens[0])
+    fork = level(opening)
     pelvis = sections["pelvis"]
     if not body["hem"] + 4 < fork < sections["leg"][1][0] - 1:
         return
@@ -386,7 +410,25 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
         row[0] = round(pelvis[0][0] + (fork - pelvis[0][0]) * j / (len(pelvis) - 1), 2)
     leg = sections["leg"]
     leg[0][0] = round(fork + 0.7, 2)
-    for yrow in leg:
+    # Measure both legs at the newly located fork. The old radius was fit
+    # at another height, often well below the inner edge of the trousers.
+    y = y_at(leg[0][0])
+    xs = np.flatnonzero(
+        mask[y]
+        & (
+            np.linalg.norm(rgb[y] - pants, axis=1)
+            < 1.1 * np.linalg.norm(rgb[y] - paper, axis=1)
+        )
+    )
+    near = xs[abs(xs - ix) < 79 / scale] - ix
+    sides = [near[near >= 0], -near[near <= 0]]
+    if all(len(side) >= 4 for side in sides):
+        inner, outer = np.mean([(s.min(), s.max()) for s in sides], axis=0) * scale
+        leg[0][1:] = [
+            round((outer + inner) / 2, 2),
+            round((outer - inner + scale) / 2, 2),
+        ]
+    for yrow in leg[1:]:
         y = y_at(yrow[0])
         xs = np.flatnonzero(visible[y, ix:]) + ix
         if len(xs) < 3:

@@ -789,7 +789,14 @@ class AuthoringTests(unittest.TestCase):
                 measure.assert_called_once()
 
     def test_promotion_checks_reference_motion_views_and_previous_digest(self):
-        from .release import CHECKS, VIEWS, check_evidence, digest, record_decision
+        from .release import (
+            CHECKS,
+            VIEWS,
+            check_evidence,
+            digest,
+            record_decision,
+            verified_captures,
+        )
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -842,6 +849,27 @@ class AuthoringTests(unittest.TestCase):
                 }
                 record_decision(source, reference, root, decision)
 
+            approval()
+            report = json.loads((root / "evidence.json").read_text())
+            report["backends"]["WebGLBackend"]["reference_metrics"][
+                "silhouette_iou"
+            ] = 0.8
+            (root / "evidence.json").write_text(json.dumps(report))
+            self.assertEqual(verified_captures(source, root), report)
+            decision = {
+                "kind": "human",
+                "reviewer": "unit fixture",
+                "checks": dict.fromkeys(CHECKS, False),
+                "evidence": digest(root / "evidence.json"),
+            }
+            with self.assertRaisesRegex(ValueError, "reference comparison"):
+                record_decision(source, reference, root, decision)
+            self.assertFalse(
+                json.loads((root / "visual-review.json").read_text())["checks"]["body"]
+            )
+            (root / "WebGLBackend" / "back.png").write_bytes(b"unreviewed")
+            with self.assertRaisesRegex(ValueError, "frames changed"):
+                verified_captures(source, root)
             approval()
             url = install(source, "artist", store, release=root)
             self.assertEqual(install(source, "artist", store), url)

@@ -5,11 +5,14 @@ import json
 from hashlib import sha256
 from pathlib import Path
 
+import numpy as np
+
 from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
+from avatar_authoring.household_front import trouser_opening
 from avatar_authoring.sun_rays import kit_landmarks, shorts_cut
 from avatar_authoring.one_image import author_one, save
-from avatar_authoring.release import digest
+from avatar_authoring.release import digest, verified_captures
 
 
 def manifest_digest(manifest):
@@ -221,6 +224,30 @@ def visible_shorts(path):
         }
 
 
+def visible_trouser_opening(path):
+    """Locate the fork on a rendered T-pose independently of the authored pattern."""
+    rgb, mask = pixels(path, keep_components=True)
+    ys = np.nonzero(mask)[0]
+    top, height = ys.min(), float(np.ptp(ys))
+    if height < 10:
+        return None
+    floor = round(top + height * 0.72)
+    span = np.flatnonzero(mask[floor])
+    if len(span) < 4:
+        return None
+    center = round((span[0] + span[-1]) / 2)
+    samples = [round(center + side * 0.28 * np.ptp(span)) for side in (-1, 1)]
+    dye = np.median(rgb[floor, samples], axis=0)
+    paper = np.median(np.vstack((rgb[0], rgb[-1])), axis=0)
+    if np.linalg.norm(paper - dye) < 60:
+        return None
+    opening = trouser_opening(
+        rgb, mask, center, round(top + height * 0.43), floor, 608 / height, paper, dye
+    )
+    if opening is not None:
+        return round((opening - top) / height, 4)
+
+
 def record_preview(args):
     """Record the exact exported, rendered study bytes alongside the frozen inputs."""
     root = args.manifest.parent
@@ -271,39 +298,48 @@ def record_preview(args):
                 if "front" in attempt
             ]
         evidence = folder / selected["directory"] / "approval/evidence.json"
-        if selected["accepted"] or evidence.is_file():
-            report = json.loads(evidence.read_bytes())
-            if (
-                report["reference"] != case["reference_sha256"]
-                or report["recipe"] != sha
-            ):
-                raise ValueError(
-                    f"{key} release evidence differs from the selected recipe"
-                )
-            data["evidence_sha256"] = digest(evidence)
-            data["native_release"] = {
-                mode: {
-                    "source_silhouette_iou": v["reference_metrics"]["silhouette_iou"],
-                    **{
-                        f: v["native"][f]
-                        for f in (
-                            "triangles",
-                            "moving_steps",
-                            "hand",
-                            "crouch_height_ratio",
-                        )
-                    },
-                }
-                for mode, v in report["backends"].items()
+        reference = root / case["evaluation_reference"]
+        report = verified_captures(candidate, evidence.parent)
+        if (
+            report["reference"] != case["reference_sha256"]
+            or digest(reference) != case["reference_sha256"]
+            or report["framing"] != "full"
+        ):
+            raise ValueError(
+                f"{key} native evidence and frozen full-body reference differ"
+            )
+        data["evidence_sha256"] = digest(evidence)
+        data["native_release"] = {
+            mode: {
+                "source_silhouette_iou": v["reference_metrics"]["silhouette_iou"],
+                **{
+                    f: v["native"][f]
+                    for f in (
+                        "triangles",
+                        "moving_steps",
+                        "hand",
+                        "crouch_height_ratio",
+                    )
+                },
             }
-            if "shortsCut" in json.loads(candidate.read_bytes()):
-                data["visible_shorts"] = {
-                    "reference": visible_shorts(root / case["evaluation_reference"]),
-                    **{
-                        mode: visible_shorts(evidence.parent / mode / "front.png")
-                        for mode in report["backends"]
-                    },
-                }
+            for mode, v in report["backends"].items()
+        }
+        if "shortsCut" in json.loads(candidate.read_bytes()):
+            data["visible_shorts"] = {
+                "reference": visible_shorts(reference),
+                **{
+                    mode: visible_shorts(evidence.parent / mode / "front.png")
+                    for mode in report["backends"]
+                },
+            }
+        if case["family"] == "rick-classic" and case["framing"] == "full":
+            data["trouser_opening_height_fraction"] = {
+                "reference": visible_trouser_opening(reference),
+                **{
+                    mode: visible_trouser_opening(evidence.parent / mode / "front.png")
+                    for mode in report["backends"]
+                },
+            }
         rows[key] = data
     seed_digest = sha256(b"\n".join(seeds)).hexdigest()
     crowd = json.loads(args.crowd_evidence.read_bytes())
