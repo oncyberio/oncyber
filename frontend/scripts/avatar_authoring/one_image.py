@@ -52,70 +52,67 @@ def save(path, value):
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
 
 
-def portrait_metrics(source, native, family):
-    """Register by the two eye centers or by the dark visor, independent of crop."""
-
-    def sample(path):
-        try:
-            rgb, mask = pixels(path, keep_components=True)
-        except ValueError as exc:
-            # A close native portrait can fill both lower corners with jersey.
-            # Only infer a backdrop when the upper corners actually agree.
-            if "contrasting background" not in str(exc):
-                raise
-            with Image.open(path) as im:
-                im = ImageOps.exif_transpose(im).convert("RGB")
-                im.thumbnail((1600, 1600))
-                rgb = np.asarray(im, dtype=float)
-            corners = [
-                np.median(p.reshape(-1, 3), axis=0) for p in (rgb[:5, :5], rgb[:5, -5:])
-            ]
-            if np.max(np.abs(corners[0] - corners[1])) > 12:
-                raise
-            background = np.max(abs(rgb - np.mean(corners, axis=0)), axis=2) < 15
-            border = np.zeros_like(background)
-            border[0] = background[0]
-            border[:, 0] = background[:, 0]
-            border[:, -1] = background[:, -1]
-            mask = ~ndimage.binary_propagation(border, mask=background)
-        h, w = mask.shape
-        if family == "sunshine":
-            labels, n = ndimage.label(
-                mask & (rgb.max(2) < 103) & (np.indices(mask.shape)[0] < h * 0.77)
-            )
-            if not n:
-                raise ValueError("Cannot register the visor")
-            y, x = np.where(labels == 1 + np.bincount(labels.ravel())[1:].argmax())
-            scale = (np.ptp(x) + 1) / 2
-            cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
-            half = 1.65
-        else:
-            pair = portrait_pair(rgb, (0, 0, w, h))
-            if len(pair) != 2:
-                raise ValueError("Cannot register both eyes")
-            centers = np.array(
-                [
-                    [(a + c) / 2, (b + d) / 2]
-                    for a, b, c, d in (p["bounds"] for p in pair)
-                ]
-            )
-            cx, cy = centers.mean(0)
-            scale = centers[1, 0] - centers[0, 0]
-            half = 1.95
-        y, x = np.mgrid[-half:half:192j, -half:half:192j]
-        yy, xx = (
-            np.rint(cy + y * scale).astype(int),
-            np.rint(cx + x * scale).astype(int),
+def portrait_sample(path, family):
+    try:
+        rgb, mask = pixels(path, keep_components=True)
+    except ValueError as exc:
+        # A close native portrait can fill both lower corners with jersey.
+        # Only infer a backdrop when the upper corners actually agree.
+        if "contrasting background" not in str(exc):
+            raise
+        with Image.open(path) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((1600, 1600))
+            rgb = np.asarray(im, dtype=float)
+        corners = [
+            np.median(p.reshape(-1, 3), axis=0) for p in (rgb[:5, :5], rgb[:5, -5:])
+        ]
+        if np.max(np.abs(corners[0] - corners[1])) > 12:
+            raise
+        background = np.max(abs(rgb - np.mean(corners, axis=0)), axis=2) < 15
+        border = np.zeros_like(background)
+        border[0] = background[0]
+        border[:, 0] = background[:, 0]
+        border[:, -1] = background[:, -1]
+        mask = ~ndimage.binary_propagation(border, mask=background)
+    h, w = mask.shape
+    if family == "sunshine":
+        labels, n = ndimage.label(
+            mask & (rgb.max(2) < 103) & (np.indices(mask.shape)[0] < h * 0.77)
         )
-        inside = (xx >= 0) & (xx < w) & (yy >= 0) & (yy < h)
-        xx, yy = xx.clip(0, w - 1), yy.clip(0, h - 1)
-        shape = mask[yy, xx] & inside
-        colors = rgb[yy, xx]
-        ink = (colors.max(2) < 112) & shape
-        return shape, colors, ink, inside
+        if not n:
+            raise ValueError("Cannot register the visor")
+        y, x = np.where(labels == 1 + np.bincount(labels.ravel())[1:].argmax())
+        scale = (np.ptp(x) + 1) / 2
+        cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
+        half = 1.65
+    else:
+        pair = portrait_pair(rgb, (0, 0, w, h))
+        if len(pair) != 2:
+            raise ValueError("Cannot register both eyes")
+        centers = np.array(
+            [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (p["bounds"] for p in pair)]
+        )
+        cx, cy = centers.mean(0)
+        scale = centers[1, 0] - centers[0, 0]
+        half = 1.95
+    y, x = np.mgrid[-half:half:192j, -half:half:192j]
+    yy, xx = (
+        np.rint(cy + y * scale).astype(int),
+        np.rint(cx + x * scale).astype(int),
+    )
+    inside = (xx >= 0) & (xx < w) & (yy >= 0) & (yy < h)
+    xx, yy = xx.clip(0, w - 1), yy.clip(0, h - 1)
+    shape = mask[yy, xx] & inside
+    colors = rgb[yy, xx]
+    ink = (colors.max(2) < 112) & shape
+    return shape, colors, ink, inside
 
-    a, ar, ai, ac = sample(source)
-    b, br, bi, bc = sample(native)
+
+def portrait_metrics(source, native, family):
+    """Register by eye centers or by the visor independently of crop."""
+    a, ar, ai, ac = portrait_sample(source, family)
+    b, br, bi, bc = portrait_sample(native, family)
     valid = ac & bc
     shared = a & b & valid
 
@@ -140,31 +137,170 @@ def portrait_metrics(source, native, family):
     }
 
 
+def correct_portrait(recipe, source, native):
+    """Correct the rendered skin or cloth pigment and skull outline in the eye plane."""
+    from copy import deepcopy
+    from .household import paint
+
+    result = deepcopy(recipe)
+    family = recipe["family"]
+    a, ar, _, ac = portrait_sample(source, family)
+    b, br, _, bc = portrait_sample(native, family)
+    shared = a & b & ac & bc
+    if family == "sunshine":
+        swatches = [(result["paints"], key) for key in ("skin", "rays", "shirt")]
+    else:
+        design = result["design"]
+        swatches = [
+            (design, "skin"),
+            (design["hair"], "color"),
+            (design["outfit"], "color"),
+        ]
+        skull = design["household"]
+        width, height = design["head"]
+        gap = 2 * width * design["face"]["eyeSpacing"]
+
+        # Source and native are at identical ocular scale. Deform only the
+        # frontal width at the observed skull height, keeping the eye sockets fixed.
+        def adjust(profile, levels):
+            changed = []
+            for radius, t in zip(profile, levels):
+                y = round(
+                    95.5 + (t - design["face"]["eyeHeight"]) * height / gap * 191 / 3.9
+                )
+                if not 2 < y < 189 or not radius:
+                    changed.append(radius)
+                    continue
+
+                def span(shape, inside):
+                    active = np.flatnonzero(
+                        (shape[y - 1 : y + 2] & inside[y - 1 : y + 2]).sum(0) >= 2
+                    )
+                    if len(active) < 8 or active[0] < 2 or active[-1] > 189:
+                        return None
+                    return active[-1] - active[0]
+
+                target, actual = span(a, ac), span(b, bc)
+                ratio = np.clip(target / actual, 0.86, 1.16) if target and actual else 1
+                changed.append(round(float(np.clip(radius * ratio, 0.04, 1.15)), 4))
+            return changed
+
+        skull["widths"] = adjust(
+            skull["widths"], np.linspace(0, 1, len(skull["widths"]))
+        )
+        if skull.get("jawWidths"):
+            skull["jawWidths"] = adjust(skull["jawWidths"], np.linspace(0.6, 0.95, 8))
+    for mapping, key in swatches:
+        pigment = np.array(list(bytes.fromhex(mapping[key][1:])), dtype=float)
+        region = (
+            shared
+            & (np.linalg.norm(ar - pigment, axis=2) < 64)
+            & (np.linalg.norm(br - pigment, axis=2) < 95)
+        )
+        if region.sum() >= 64:
+            correction = np.median((ar - br)[region], axis=0)
+            mapping[key] = paint(
+                np.clip(pigment + np.clip(correction, -26, 26), 0, 255)
+            )
+    return result
+
+
 def best_pass(attempts):
     from .family_trials import merit
 
     def rank(p):
         if "front" in p:
-            score = merit(p["front"])
+            return p["accepted"], merit(p["front"]), 0
         else:
             v = p["visible_portrait"]
-            score = min(
+            ratios = (
                 v["head_iou"] / 0.86,
                 28 / max(v["rgb_mae"], 0.01),
                 v["ink_agreement"] / 0.68,
                 v["visible_fraction"] / 0.7,
             )
-        return p["accepted"], score
+            return p["accepted"], min(ratios), sum(min(1.25, r) for r in ratios)
 
     return max(attempts, key=rank)
 
 
+def recognize_input(source, family="auto", framing="auto"):
+    """Route one isolated drawing by its visible face and whether the torso is cropped."""
+    if family != "auto" and framing != "auto":
+        return family, framing
+    rgb, mask = pixels(source, keep_components=True)
+    y, x = np.where(mask)
+    top, bottom = int(y.min()), int(y.max())
+    h, w = mask.shape
+    height = max(1, bottom - top)
+    region = np.indices(mask.shape)[0] < top + 0.66 * height
+    luminous = (rgb.min(2) > 150) & (np.ptp(rgb, axis=2) < 46)
+    dark, n = ndimage.label(mask & region & (rgb.max(2) < 108))
+    lenses = []
+    for label, sl in enumerate(ndimage.find_objects(dark), 1):
+        if sl is None:
+            continue
+        ys, xs = sl
+        width, depth = xs.stop - xs.start, ys.stop - ys.start
+        if not (width > max(10, 0.09 * height) and 1.45 < width / depth < 4.6):
+            continue
+        component = dark[sl] == label
+        if component.mean() < 0.42:
+            continue
+        holes, n_marks = ndimage.label(
+            ndimage.binary_fill_holes(component) & luminous[sl]
+        )
+        major = (
+            np.where(
+                np.bincount(holes.ravel(), minlength=n_marks + 1)[1:]
+                > max(2, 0.009 * width * depth)
+            )[0]
+            + 1
+        )
+        centers = [np.where(holes == m)[1].mean() / width for m in major]
+        if any(0.12 < c < 0.44 for c in centers) and any(
+            0.56 < c < 0.88 for c in centers
+        ):
+            lenses.append(width)
+    if family == "auto":
+        if lenses:
+            family = "sunshine"
+        elif (
+            len(
+                portrait_pair(
+                    rgb,
+                    (int(x.min()), top, int(x.max() + 1), round(top + 0.65 * height)),
+                )
+            )
+            == 2
+        ):
+            family = "rick-classic"
+        else:
+            raise ValueError(
+                "Cannot identify a registered family from the visible eyes or visor"
+            )
+    if framing == "auto":
+        # A clipped bust has a broad garment at the edge. Full T-poses have
+        # separated feet and small face features relative to figure height.
+        touches = (
+            bottom >= h - 2 and mask[max(top, bottom - 2) : bottom + 1].mean() > 0.12
+        )
+        if lenses and family == "sunshine":
+            face_ratio = max(lenses) / height
+            framing = "portrait" if touches or face_ratio > 0.32 else "full"
+        else:
+            eyes = portrait_pair(
+                rgb, (int(x.min()), top, int(x.max() + 1), round(top + 0.78 * height))
+            )
+            gap = 0.0
+            if len(eyes) == 2:
+                centers = [(a + c) / 2 for a, _, c, _ in (v["bounds"] for v in eyes)]
+                gap = (centers[1] - centers[0]) / height
+            framing = "portrait" if touches or gap > 0.12 else "full"
+    return family, framing
+
+
 def author_one(source, output, family, framing, name, args):
-    if family not in ("rick-classic", "sunshine") or framing not in (
-        "full",
-        "portrait",
-    ):
-        raise ValueError("Choose a registered family and full or portrait framing")
     output.mkdir(parents=True, exist_ok=True)
     directory = Path(mkdtemp(prefix="study-", dir=output)).resolve()
     remote = bool(args.openrouter or args.endpoint or args.adapter)
@@ -188,11 +324,20 @@ def author_one(source, output, family, framing, name, args):
 
     feature_cache = {}
     try:
+        family, framing = recognize_input(source, family or "auto", framing)
+        if family not in ("rick-classic", "sunshine") or framing not in (
+            "portrait",
+            "full",
+        ):
+            raise ValueError(
+                "Choose one of the registered families and a full body or portrait"
+            )
+        report.update(family=family, framing=framing)
         if args.openrouter:
             args.model = openrouter_model(args.model)
         if framing == "portrait":
             obs = None
-            for i in range(2 if remote else 1):
+            for i in range(2):
                 dest = directory / f"pass-{i + 1}"
                 dest.mkdir()
                 if remote:
@@ -216,6 +361,10 @@ def author_one(source, output, family, framing, name, args):
                 validate(obs, OBSERVATION)
                 save(dest / "observations.json", obs)
                 recipe = compile_portrait(source, family, name, obs)
+                if i and not remote:
+                    recipe = correct_portrait(
+                        recipe, source, previous / (title + ".png")
+                    )
                 if obs["missing"]:
                     from .feature_library import apply_feature, library_key
 

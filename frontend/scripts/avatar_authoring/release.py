@@ -4,7 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from .family_review import compare_images
+from .family_review import compare_images, eyes_match, native_front
+from .sun_rays import collar_closed
 from .one_image import portrait_metrics
 from .review import render
 
@@ -41,9 +42,40 @@ def reference_passes(framing, score):
             and score["head_iou"] >= 0.86
             and score["head_edge_agreement"] >= 0.68
             and score["body_edge_agreement"] >= 0.65
+            and ("eye_pigment_agreement" not in score or eyes_match(score))
+            and score.get("shirt_mark_agreement", 1) >= 0.65
+            and not collar_closed(score.get("floating_gap"))
             and score["rgb_mae"] <= 28
         )
     raise ValueError("Unknown reference framing")
+
+
+def registration_from_source(recipe, source):
+    data = json.loads(recipe.read_bytes())
+    family = data.get("family")
+    if not family:
+        return None
+    existing = recipe.parent / "review.json"
+    if existing.exists():
+        study = json.loads(existing.read_bytes())
+        if study.get("source_sha256") == digest(source) and study.get(
+            "recipe_sha256"
+        ) == digest(recipe):
+            measured = study.get("candidates", {}).get(family)
+            if measured:
+                return measured
+    if data.get("construction") == "household":
+        from .household_front import fit_front
+
+        _, registration = fit_front(source, "Reference measurement")
+    else:
+        from .family import fit_family
+
+        _, metrics, _ = fit_family(
+            source, family, custom_jersey=data.get("plainJersey", False)
+        )
+        registration = metrics[family]
+    return registration
 
 
 def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
@@ -59,6 +91,11 @@ def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
         "triangle_budget": budget,
         "backends": {},
     }
+    registration = (
+        registration_from_source(recipe, source) if framing == "full" else None
+    )
+    if registration:
+        result["registration"] = registration
     for mode, backend in [("webgl", "WebGLBackend"), ("auto", "WebGPUBackend")]:
         dest = folder / backend
         native = render(recipe, dest, base, motion=True, backend=mode)
@@ -68,6 +105,8 @@ def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
         measured = (
             portrait_metrics(source, dest / (title + ".png"), family)
             if framing == "portrait"
+            else native_front(source, dest / "front.png", family, registration)
+            if registration
             else compare_images(source, dest / "front.png")
         )
         result["backends"][backend] = {

@@ -74,15 +74,15 @@ The drawing supplies visible features such as trouser width, sleeve and pocket s
 
 ## One picture within a family
 
-Choose `rick-classic` for a cartoon human or `sunshine` for a floating orb with a visor. Supply `full` for a front T-pose and `portrait` for an image cropped above the hips. Both eyes or the full visor must be visible. Portraits measure the shirt when its side seams are visible. The preset supplies the hidden pelvis, limbs and sockets. A missing reference angle leaves that angle inferred.
+The `--one-image` command detects the family from the eyes or visor and identifies a cropped torso. To set either explicitly, choose `rick-classic` for a cartoon human or `sunshine` for a floating orb with a visor. Supply `full` for a front T-pose and `portrait` for an image cropped above the hips. Both eyes or the full visor must be visible. Portraits measure the shirt when its side seams are visible. The preset supplies the hidden pelvis, limbs and sockets. A missing reference angle leaves that angle inferred.
 
 ```sh
 python frontend/scripts/author-cartoon.py portrait.webp /tmp/avatar-study \
-  --one-image portrait --within-family rick-classic --name "New character"
+  --one-image --name "New character"
 python frontend/scripts/benchmark-avatar-holdout.py /tmp/avatar-holdout
 ```
 
-The local command uses deterministic image measurements. For a hosted observer add `--openrouter --model <exact-catalog-id>` and set `OPENROUTER_API_KEY` in the authoring environment. The endpoint must support image input and tool calls. A full reference gets one measured native fit and at most one correction. A remote portrait observer supplies a normalized head box, three visible pigment locations and family choices, and can correct its observations once after seeing the native draw. The study records the actual provider, reported model, calls, elapsed time and any reported charges. Local studies make zero provider calls.
+The local command uses deterministic image measurements. For a hosted observer add `--openrouter --model <exact-catalog-id>` and set `OPENROUTER_API_KEY` in the authoring environment. The endpoint must support image input and tool calls. A full reference gets one measured native fit and at most one correction. A local portrait can correct projected skull width and pigment once from the native frame. A remote portrait observer supplies a normalized head box, three visible pigment locations and family choices, and can correct its observations once after seeing the native draw. The study records the actual provider, reported model, calls, elapsed time and any reported charges. Local studies make zero provider calls.
 
 For a missing named feature, the fitter first checks its family and construction in `--feature-library`. With `--feature-model <exact-catalog-id>`, a stronger model can compose up to four existing native part operations. The definition stays in the study until its exact application passes release review. Features that need new geometry require a new shared primitive. Sunshine recipes can select a plain jersey and trace a colored chest mark over the fabric. Earlier recipes retain their original printed kit.
 

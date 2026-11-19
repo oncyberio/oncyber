@@ -363,7 +363,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--one-image",
-        choices=["full", "portrait"],
+        choices=["auto", "full", "portrait"],
+        nargs="?",
+        const="auto",
         help="Build from one image within a named family with at most one correction",
     )
     parser.add_argument("--name", help="Name of the proposed character")
@@ -434,7 +436,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.one_image:
-        if args.within_family not in FAMILIES or any(
+        if any(
             (
                 args.profile,
                 args.opposite_profile,
@@ -445,7 +447,7 @@ if __name__ == "__main__":
                 args.family,
             )
         ):
-            parser.error("--one-image takes one reference and a named --within-family")
+            parser.error("--one-image takes one reference and optional --within-family")
         from avatar_authoring.one_image import author_one
 
         directory, report = author_one(

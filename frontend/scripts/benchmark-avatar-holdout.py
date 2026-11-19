@@ -75,8 +75,8 @@ def benchmark(args):
         folder, report = author_one(
             source,
             args.output / key,
-            case["family"],
-            case["framing"],
+            "auto",
+            "auto",
             case["name"],
             args,
         )
@@ -92,7 +92,11 @@ def benchmark(args):
             "selected_pass": report.get("selected_pass"),
             "reported_provider_cost": report.get("reported_provider_cost"),
             "passes": [p["accepted"] for p in report["passes"]],
-            "visible_checks_passed": report["accepted"],
+            "routed_family": report["family"],
+            "routed_framing": report["framing"],
+            "visible_checks_passed": report["accepted"]
+            and (report["family"], report["framing"])
+            == (case["family"], case["framing"]),
             "independent_review": "pending",
             "error": report.get("error"),
         }
@@ -146,7 +150,10 @@ def score_reviews(args):
             for attempt in study["passes"]:
                 directory = folder / attempt["directory"]
                 state = "failed visible checks"
-                if attempt["accepted"]:
+                if attempt["accepted"] and (study["family"], study["framing"]) == (
+                    case["family"],
+                    case["framing"],
+                ):
                     state = "awaiting independent review"
                     if (directory / "approval/visual-review.json").is_file():
                         try:

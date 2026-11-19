@@ -705,6 +705,17 @@ class AuthoringTests(unittest.TestCase):
         self.assertTrue(all(26 <= y <= 29 for _, y in points))
         self.assertAlmostEqual(width, 2)
 
+    def test_family_and_framing_are_visible_in_the_single_input(self):
+        from .one_image import recognize_input
+
+        folder = Path(__file__).parent / "targets/holdout-v1"
+        for case in json.loads((folder / "manifest.json").read_bytes())["cases"]:
+            with self.subTest(case=case["id"]):
+                self.assertEqual(
+                    recognize_input(folder / case["input"]),
+                    (case["family"], case["framing"]),
+                )
+
     def test_bounded_correction_can_retain_a_better_first_portrait(self):
         from .one_image import best_pass
 
@@ -729,6 +740,35 @@ class AuthoringTests(unittest.TestCase):
         self.assertIs(best_pass([first, second]), first)
         passed = {**first, "accepted": True}
         self.assertIs(best_pass([first, passed]), passed)
+
+    def test_release_reuses_registration_only_for_the_measured_image_and_recipe(self):
+        from .release import digest, registration_from_source
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            recipe, source = root / "candidate.json", root / "source.png"
+            recipe.write_text('{"family":"rick-classic","construction":"household"}')
+            source.write_bytes(b"calibration image")
+            score = {"head_fraction": 0.227, "eye_frame": [-0.06, 0.1, 0.06, 0.15]}
+            (root / "review.json").write_text(
+                json.dumps(
+                    {
+                        "recipe_sha256": digest(recipe),
+                        "source_sha256": digest(source),
+                        "candidates": {"rick-classic": score},
+                    }
+                )
+            )
+            self.assertEqual(registration_from_source(recipe, source), score)
+            source.write_bytes(b"held out image")
+            with patch(
+                "avatar_authoring.household_front.fit_front",
+                return_value=({}, {"head_fraction": 0.34}),
+            ) as measure:
+                self.assertEqual(
+                    registration_from_source(recipe, source), {"head_fraction": 0.34}
+                )
+                measure.assert_called_once()
 
     def test_promotion_checks_reference_motion_views_and_previous_digest(self):
         from .release import CHECKS, VIEWS, check_evidence, digest, record_decision
