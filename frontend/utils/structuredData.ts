@@ -19,7 +19,7 @@ export const SITE_SOCIALS = [
     "https://twitter.com/oncyber",
     "https://www.instagram.com/oncyber",
     "https://github.com/oncyberio/oncyber",
-    "https://discord.gg/3dEQXmAXnv",
+    "https://discord.gg/YTpSRnB65U",
 ];
 
 /** One line of plain text: no markup, no line breaks, capped at a word. */
