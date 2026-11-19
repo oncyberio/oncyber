@@ -3,6 +3,7 @@ import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json"
 import rigMap from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/baker/rigmap";
 import { bakeAvatarAnimation } from "@components/_3DExhibit-v2/three/factory/artwork/meshes/model/avatarAnimations";
 import { buildCharacter } from "./buildCharacter";
+import { Drawing } from "./drawing";
 import { coatShadowUV, garmentInk } from "./garmentPrint";
 import { coatUVBase } from "./surfaces";
 import { roundedProfileRows, type RoundedSection } from "./shapeRecipe";
@@ -14,6 +15,45 @@ import { drawingRig } from "./referenceProportions";
 import { referencePose } from "./referencePose";
 import { disposeAvatarGraph } from "../lobby/webgpu/avatarResources";
 import motion from "../../public/lobby/native-avatar-motion.json";
+
+test("the chest descends from every meridian of a deep bound crew neckline", () => {
+    const drawing = new Drawing("sunshine");
+    const surface = jest.spyOn(drawing.s, "surface");
+    drawing.body(
+        [
+            [170, -30, 30, 17],
+            [176, -50, 50, 26],
+            [185, -64, 64, 32],
+            [212, -76, 76, 37],
+        ],
+        "#8899aa",
+        false,
+        20,
+        "none",
+        0,
+        {
+            neckline: {
+                kind: "crew",
+                width: 0.55,
+                depth: 0.82,
+                frontDrop: 13,
+                backDrop: 2,
+            },
+            binding: "#2255aa",
+            interior: "#553344",
+            bandWidth: 5,
+        }
+    );
+    const binding = surface.mock.calls.find(
+        ([, color]) => color === "#2255aa"
+    )[0];
+    const fabric = surface.mock.calls.at(-1)[0];
+    for (let i = 0; i < binding[1].length; i++) {
+        expect(fabric[0][i][1]).toBeGreaterThan(binding[1][i][1]);
+        expect(fabric[1][i][1]).toBeGreaterThan(fabric[0][i][1]);
+    }
+    expect(fabric.at(-1)[0][1]).toBe(212);
+});
 
 test("a shaped cross-section keeps its measured bounds at both avatar detail levels", () => {
     const roundedProfile: RoundedSection[] = [

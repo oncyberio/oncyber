@@ -668,6 +668,8 @@ const householdOrbit = z.strictObject({
             return area > 2 && Math.abs(sweep - 2 * Math.PI) < 0.01;
         }, "The eye rim must enclose its socket once in order"),
     pupil: z.tuple([n(-0.8, 0.8), n(-0.8, 0.8)]),
+    rimInk: z.strictObject({ width: n(0.018, 0.28), color: paint }).optional(),
+    browOccluded: z.literal(true).optional(),
     browRim: z
         .array(z.tuple([n(-1.3, 1.3), n(-2.8, -0.7)]))
         .min(6)
@@ -861,6 +863,26 @@ const householdFile = file.extend({
                         "The inner hair edge must sit inside its outer silhouette"
                     )
                     .optional(),
+                measuredBob: z
+                    .strictObject({
+                        frame: z.tuple([n(1, 500), n(1, 500)]),
+                        skullWidth: n(1, 500),
+                        eyeAxis: n(-0.5, 0.5),
+                        sections: fit.shape.sections
+                            .unwrap()
+                            .pick({
+                                hair: true,
+                                nape: true,
+                                sidePart: true,
+                                chin: true,
+                                jaw: true,
+                                locks: true,
+                                ears: true,
+                                nose: true,
+                            })
+                            .required({ hair: true, nape: true }),
+                    })
+                    .optional(),
                 body: householdBodyFit.optional(),
                 creases: z
                     .array(
@@ -882,8 +904,11 @@ const householdFile = file.extend({
             "Painted teeth require matching open-mouth columns"
         )
         .refine(
-            (d) => d.hair.cut !== "waves" || !!d.household.fallRows,
-            "Shoulder-length hair requires measured fall rows"
+            (d) =>
+                d.hair.cut !== "waves" ||
+                !!d.household.fallRows ||
+                !!d.household.measuredBob,
+            "Shoulder-length hair requires a measured cap and nape or fall rows"
         ),
 });
 export function readHouseholdFile(input: unknown) {

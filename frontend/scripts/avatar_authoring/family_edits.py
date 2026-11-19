@@ -361,8 +361,9 @@ def edited_recipe(
                 field == "design.hair.cut"
                 and value == "waves"
                 and not recipe["design"]["household"].get("fallRows")
+                and not recipe["design"]["household"].get("measuredBob")
             ):
-                raise ValueError("Shoulder-length hair requires measured fall rows")
+                raise ValueError("Shoulder-length hair requires a measured cap and nape or fall rows")
             target = recipe
             *path, key = field.split(".")
             for section in path:

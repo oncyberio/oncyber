@@ -20,6 +20,7 @@ type Eye = {
     closedSocket?: boolean;
     observedGaze?: [number, number];
     rimInk?: { width: number; color: string };
+    outerRim?: boolean;
     lid?: XY[];
     pupil?: XY;
     pigment?: CartoonDesign["pupil"];
@@ -787,7 +788,19 @@ export function drawCartoonEye(d: Drawing, face: Depth, e: Eye) {
                 0.8,
             ];
         }
-        d.s.surface([outer, seat], e.skin, true, "perimeter");
+        let socketEdge = outer;
+        if (e.outerRim && e.rimInk) {
+            // The detected white ends at the inner edge of the ink. Sew the
+            // measured stroke onto the socket so it stays seated in profile.
+            const width = e.rimInk.width;
+            socketEdge = outer.map(([x, y, z]): Point => {
+                const ox = x + ((x - cx) * width) / rx;
+                const oy = y + ((y - cy) * width) / ry;
+                return [ox, oy, Math.max(face(ox, oy) + 0.4, z - width * 0.55)];
+            });
+            d.s.surface([outer, socketEdge], e.rimInk.color, true, "perimeter");
+        }
+        d.s.surface([socketEdge, seat], e.skin, true, "perimeter");
         d.s.inkedPortrait = inked;
         d.s.surfaceNormal = undefined;
         if (e.lid) {

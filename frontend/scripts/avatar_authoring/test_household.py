@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 from .family_edits import edited_recipe
 from .household import projected_band_width, scalp_band
-from .household_front import fit_front, hair_fall
+from .household_front import fit_front, hair_fall, nape_height
 from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
@@ -49,6 +49,44 @@ class HouseholdTests(unittest.TestCase):
         self.assertLess(rows[-1][0], 1.05)
         rgb[75:] = skin
         self.assertIsNone(hair_fall(rgb, mask, 80, 10, 110, 96, hair, skin))
+
+    def test_nape_ends_at_the_connected_lock_even_when_the_jaw_ink_matches(self):
+        skin = np.array([243, 170, 129])
+        hair = np.array([63, 39, 36])
+        rgb = np.tile(skin, (102, 141, 1))
+        mask = np.ones(rgb.shape[:2], dtype=bool)
+        rgb[:28, 30:111] = hair
+        rgb[20:60, 30:44] = hair
+        rgb[20:60, 96:111] = hair
+        rgb[59:89, [35, 105]] = hair
+        rgb[91:97, 25:116] = hair
+        self.assertAlmostEqual(
+            nape_height(rgb, mask, 70, 0, 100, 100, skin, hair), 0.595
+        )
+        self.assertIsNone(nape_height(rgb, mask, 70, 0, 100, 100, skin, skin))
+
+    def test_short_bob_registers_its_geometry_and_keeps_the_covered_brow_hidden(self):
+        source = VIEWS.parent / "holdout-v1" / "lark-full.webp"
+        recipe, _ = fit_front(source, "Unregistered bob")
+        design = recipe["design"]
+        household = design["household"]
+        measured = household["measuredBob"]
+        self.assertEqual(measured["frame"], design["head"])
+        self.assertLess(measured["skullWidth"], measured["frame"][0])
+        self.assertTrue({"hair", "nape", "ears"} <= measured["sections"].keys())
+        self.assertNotIn("eyes", measured["sections"])
+        self.assertNotIn("fallRows", household)
+        left, right = household["orbits"]
+        self.assertTrue(left["browOccluded"])
+        self.assertNotIn("browRim", left)
+        self.assertGreaterEqual(len(right["browRim"]), 6)
+        for eye in (left, right):
+            self.assertGreater(eye["rimInk"]["width"], 0)
+        self.assertNotEqual(household["lipColor"], household["lipInk"])
+        self.assertEqual(
+            edited_recipe(recipe, [{"field": "design.hair.cut", "value": "waves"}]),
+            recipe,
+        )
 
     def test_one_reusable_button_front_carries_its_opening_and_fastener_paint(self):
         from .feature_library import apply_feature

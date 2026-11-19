@@ -45,6 +45,7 @@ import {
 import { trouserLeg, trouserShin } from "./shapeRecipe";
 import { cranialDepth, cranialStations, cranialSurfaces } from "./cranialBase";
 import { drawHouseholdHead } from "./householdHead";
+import { measuredHouseholdBob } from "./householdBody";
 import { turnContours } from "./turnContours";
 import { coatShirtSection, drawOpenCoat } from "./openCoat";
 import { avatarStyles } from "./styles";
@@ -1196,10 +1197,13 @@ function features(
                     eye?.rimInk ??
                     (traced
                         ? {
-                              width: Math.max(0.78, actualRX * 0.075),
-                              color: "#352d29",
+                              width: traced.rimInk
+                                  ? actualRX * traced.rimInk.width
+                                  : Math.max(0.78, actualRX * 0.075),
+                              color: traced.rimInk?.color ?? "#352d29",
                           }
                         : undefined),
+                outerRim: !!traced?.rimInk,
                 lid:
                     eye?.lid ??
                     traced?.lid?.map(
@@ -1243,7 +1247,8 @@ function features(
             traced?.browRim?.map(
                 ([x, y]): XY => [ex + actualRX * x, ey + actualRY * y]
             );
-        if (rim) {
+        const hiddenBrow = eye?.browOccluded || traced?.browOccluded;
+        if (rim && !hiddenBrow) {
             const center: XY = [
                 rim.reduce((sum, p) => sum + p[0], 0) / rim.length,
                 rim.reduce((sum, p) => sum + p[1], 0) / rim.length,
@@ -1256,7 +1261,7 @@ function features(
                 eye?.browColor ?? traced?.browColor ?? g.hair.color,
                 { edge: 0.46, ink }
             );
-        } else if (browGuide && !eye?.browOccluded)
+        } else if (browGuide && !hiddenBrow)
             drawCartoonBrow(
                 d,
                 face,
@@ -1264,7 +1269,7 @@ function features(
                 eye?.browWidth ?? 0.9,
                 swatch(g.hair.color, ink, 0.76)
             );
-        else if (!eye?.lid && !eye?.browOccluded && !joinedBrow) {
+        else if (!eye?.lid && !hiddenBrow && !joinedBrow) {
             const arch = g.brow === "arched" ? 0.32 : 0.15;
             const brow = Array.from({ length: 7 }, (_, i): XY => {
                 const u = (i - 3) / 3;
@@ -1713,7 +1718,7 @@ function drawFittedFoot(
             T.MathUtils.clamp((x - a[0]) / (b[0] - a[0]), 0, 1)
         );
     };
-    const count = d.s.detail === "full" ? 24 : 16;
+    const count = d.s.detail === "full" ? 16 : 12;
     const ring = (
         [min, max]: [number, number],
         depth: number,
@@ -2753,6 +2758,39 @@ function clothing(d: Drawing, g: CartoonDesign) {
         shoeDetails(d, shoe, o.shoes, o.footwear ?? "flat");
     }
 }
+/** Put the family's editable orbital measurements in the fitted skull's drawing plane. */
+function measuredBobEyes(g: CartoonDesign) {
+    const bob = g.household.measuredBob;
+    const [w, h] = bob.frame;
+    const rx = w * (g.face?.eyeRadius ?? 0.149);
+    const ry = rx * (g.face?.eyeAspect ?? 0.94);
+    return g.household.orbits.map((eye, i) => {
+        const x =
+            w *
+            (bob.eyeAxis + (i === 0 ? -1 : 1) * (g.face?.eyeSpacing ?? 0.196));
+        const y = 12 + h * ((g.face?.eyeHeight ?? 0.495) + (eye.lift ?? 0));
+        const point = ([u, v]: XY): XY => [x + rx * u, y + ry * v];
+        const [u, v] = eye.pupil;
+        const pupil: [number, number, number] = [
+            x + rx * T.MathUtils.clamp(u + g.gaze, -0.78, 0.78),
+            y + ry * v,
+            rx * (g.pupil?.radius ?? 0.23),
+        ];
+        return {
+            rim: eye.rim.map(point),
+            pupil,
+            lid: eye.lid?.map(point),
+            brow: eye.brow?.map(point),
+            browRim: eye.browRim?.map(point),
+            browColor: eye.browColor,
+            browOccluded: eye.browOccluded,
+            rimInk: eye.rimInk && {
+                width: eye.rimInk.width * rx,
+                color: eye.rimInk.color,
+            },
+        };
+    });
+}
 export function drawCartoonHumanoid(d: Drawing, design: CartoonDesign) {
     const g = hairBehindEars(fitBobDepth(design));
     const [w, h] = g.head,
@@ -2896,6 +2934,54 @@ export function drawCartoonHumanoid(d: Drawing, design: CartoonDesign) {
             (1 - 0.24 * T.MathUtils.smoothstep(y, edge - h * 0.044, edge))
         );
     };
+    const bobFit = measuredHouseholdBob(g);
+    if (bobFit) {
+        // Reuse the fitted bob's cut between skull and hair. Paint the
+        // household's expression on that same surface in its measured frame.
+        const sx = w / bobFit.frame[0],
+            height = bobFit.frame[1];
+        const first = bobFit.sections.hair[0][0];
+        // Align the first sewn crown ring and chin with the rig's two head anchors.
+        const sy = h / Math.max(height * 0.9, 12 + height - first);
+        const previous = d.s.referenceFrame;
+        const matrix = new T.Matrix4()
+            .makeScale(sx, sy, sx)
+            .setPosition(0, 12 + h - (12 + height) * sy, 0);
+        d.s.referenceFrame = previous
+            ? previous.clone().multiply(matrix)
+            : matrix;
+        const skull = hairBehindEars(
+            fitBobDepth({
+                ...g,
+                household: undefined,
+                head: [bobFit.skullWidth, bobFit.frame[1]],
+                hair: { ...g.hair, cut: "bob" },
+                fit: {
+                    ...g.fit,
+                    sections: {
+                        ...g.fit.sections,
+                        ...bobFit.sections,
+                        eyes: measuredBobEyes(g),
+                    },
+                },
+            })
+        );
+        const sections = headSections(skull);
+        const orbits = fittedOrbits(skull, profileDepth(sections, 1, true));
+        const face = drawBobHead(
+            d,
+            skull,
+            sections,
+            orbits,
+            cranialStations(skull, sections)
+        );
+        scalp(d, skull, sections, face);
+        d.s.tone = undefined;
+        features(d, skull, face, orbits);
+        d.s.referenceFrame = previous;
+        d.s.fineDetail = false;
+        return;
+    }
     if (g.household) {
         const face = drawHouseholdHead(d, g, sections);
         d.s.tone = undefined;

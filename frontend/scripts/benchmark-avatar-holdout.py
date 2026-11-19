@@ -100,6 +100,8 @@ def benchmark(args):
             "independent_review": "pending",
             "error": report.get("error"),
         }
+        if report.get("native_render_retries"):
+            result["native_render_retries"] = report["native_render_retries"]
         if report.get("candidate"):
             frame = (folder / report["candidate"]).parent / "front.png"
             result["candidate_sha256"] = digest(folder / report["candidate"])
@@ -369,7 +371,9 @@ if __name__ == "__main__":
         default=Path(__file__).parent / "avatar_authoring/features",
         help="Reviewed native part definitions",
     )
-    parser.add_argument("--model", default="gpt-6.2-astra")
+    parser.add_argument(
+        "--model", help="Vision model for the initial observation and one correction"
+    )
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--renderer", choices=["webgl", "auto"], default="webgl")
     parser.add_argument("--max-triangles", type=int, default=4000)

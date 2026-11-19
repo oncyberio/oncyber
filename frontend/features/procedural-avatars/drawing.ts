@@ -600,6 +600,35 @@ export class Drawing {
         if (collar) {
             const uv = this.s.printUV;
             this.s.printUV = undefined;
+            if (collar.bandWidth) {
+                // A deep scoop can descend below the first chest ring. Seat
+                // the cloth below the binding along each meridian so the
+                // shoulder cannot fold back over the front of the collar.
+                const rim = crewOpening(
+                    sections[0],
+                    collar.neckline,
+                    n,
+                    collar.center
+                );
+                for (let i = 0; i <= n; i++) {
+                    const front = Math.max(0, Math.cos((2 * Math.PI * i) / n));
+                    const edge = rim[i][1] + front * collar.bandWidth;
+                    const join = rows[1][i][1];
+                    const lift = edge + 1 - join;
+                    if (lift <= 0) continue;
+                    const end =
+                        edge +
+                        Math.max(
+                            3,
+                            collar.neckline.frontDrop + collar.bandWidth
+                        );
+                    for (const row of rows.slice(1)) {
+                        const point = row[i];
+                        if (point[1] >= end) break;
+                        point[1] += (lift * (end - point[1])) / (end - join);
+                    }
+                }
+            }
             this.crewCollar(
                 sections[0],
                 rows[1],

@@ -97,6 +97,33 @@ def painted_brow(rgb, bounds):
     }
 
 
+def orbital_ink(orbit, drawn, bounds, scale, center, crown):
+    """Register the measured pen strokes to the white, independent of skull size."""
+    x, y, r, b = bounds
+    radii = np.array([(r - x) / 2, (b - y) / 2])
+    mid = np.array([(x + r) / 2 - center, (y + b) / 2 - crown])
+    stroke = drawn.get("rimInk")
+    if stroke:
+        orbit["rimInk"] = {
+            "width": round(
+                float(np.clip(stroke["width"] / (radii[0] * scale), 0.018, 0.28)), 4
+            ),
+            "color": stroke["color"],
+        }
+    if drawn.get("browOccluded"):
+        orbit.pop("browRim", None)
+        orbit.pop("browColor", None)
+        orbit.pop("brow", None)
+        orbit["browOccluded"] = True
+    elif drawn.get("browRim"):
+        points = ((np.asarray(drawn["browRim"]) - [0, 12]) / scale - mid) / radii
+        if 6 <= len(points) <= 24 and np.all(
+            (points >= [-1.3, -2.8]) & (points <= [1.3, -0.7])
+        ):
+            orbit["browRim"] = points.round(3).tolist()
+            orbit["browColor"] = drawn["browColor"]
+
+
 def outlined_collar(
     rgb, center, chin, shoulder_y, head_width, skin, shirt, scale, crown
 ):
@@ -199,6 +226,36 @@ def crown_sides(rgb, mask, axis, top, chin, width, hair, skin):
     )
     edges[0] = np.mean(edges[0])
     return np.clip(edges, -0.85, 0.85).round(4).tolist()
+
+
+def nape_height(rgb, mask, axis, top, chin, width, skin, hair):
+    """Find the end of the hair mass behind each ear without following jaw ink."""
+    if np.linalg.norm(hair - skin) < 42:
+        return None
+    height = chin - top
+    lo = max(0, round(axis - 0.8 * width))
+    hi = min(mask.shape[1], round(axis + 0.8 * width) + 1)
+    patch = rgb[top : chin + 1, lo:hi]
+    dh = np.linalg.norm(patch - hair, axis=2)
+    ds = np.linalg.norm(patch - skin, axis=2)
+    cap = (dh < 55) & (dh + 18 < ds) & mask[top : chin + 1, lo:hi]
+    # A dark jaw contour can share the hair swatch. Keep colored locks wide
+    # enough to survive erosion and connected to the upper cap after opening.
+    brush = np.ones((max(2, round(height * 0.016)), max(3, round(width * 0.033))), bool)
+    labels, count = ndimage.label(ndimage.binary_opening(cap, brush), np.ones((3, 3)))
+    if not count:
+        return None
+    roots = np.unique(labels[: max(1, round(height * 0.40))])
+    cap = np.isin(labels, roots[roots > 0])
+    u = (np.arange(lo, hi) - axis) / width
+    ends = []
+    for side in (-1, 1):
+        counts = cap[:, (side * u > 0.24) & (side * u < 0.75)].sum(axis=1)
+        ys = np.flatnonzero(counts >= max(3, width * 0.032))
+        if not len(ys):
+            return None
+        ends.append((ys[-1] + 0.5) / height)
+    return round(float(np.clip(np.mean(ends), 0.5, 0.97)), 3)
 
 
 def hair_fall(rgb, mask, center, top, chin, width, hair, skin):
@@ -772,6 +829,21 @@ def fit_front(source, name):
                 .tolist(),
                 **({"tongue": opening["tongue"]} if opening.get("tongue") else {}),
             }
+    closed = sections.get("mouth")
+    if (
+        closed
+        and closed.get("color")
+        and family.get("lips")
+        and closed["expression"] == recipe["design"]["mouth"]
+    ):
+        drawn = np.asarray(closed["rows"])[:, 1]
+        lips = np.asarray(family["lips"])
+        middle = 12 + head_height * np.median(lips[:, 1:])
+        if abs(np.median(drawn) - middle) < head_height * 0.035:
+            # Use pigment from the seam, with the portrait fitter's closed lip
+            # contour. A near-colored nostril can enter a vertical mouth scan.
+            family["lipColor"] = closed["color"]
+            family["lipInk"] = closed["ink"]
     lobes = [
         [
             x / head_width,
@@ -805,10 +877,12 @@ def fit_front(source, name):
             family["body"][angle] = parts[angle]
     # Frame both eyes with the same source-based axial coordinates used by
     # native_front's registered comparison. The T-pose stays centered at its bounds.
-    for orbit, eye in zip(family["orbits"], actual):
+    for i, (orbit, eye) in enumerate(zip(family["orbits"], actual)):
         brow = painted_brow(rgb, eye["bounds"])
         if brow:
             orbit.update(brow)
+        if len(eyes) == len(actual):
+            orbital_ink(orbit, eyes[i], eye["bounds"], scale, center, crown)
     cx = (left + right - 1) / 2
     H = floor - top - 1
     eye_box = [
@@ -820,7 +894,7 @@ def fit_front(source, name):
     crown_profile = crown_sides(rgb, mask, eye_axis, top, chin, width, hair, skin)
     if crown_profile:
         family["crownSides"] = crown_profile
-    fall = hair_fall(rgb, mask, center, top, chin, width, hair, skin)
+    fall = hair_fall(rgb, mask, eye_axis, top, chin, width, hair, skin)
     bob = fall and fall[-1][0] < 1.05
     # On a short bob the side locks visible below the ears belong to the
     # separate curtain. They must not pull the forehead cap across the cheek.
@@ -851,34 +925,35 @@ def fit_front(source, name):
         recipe["design"]["hairline"] = line
     # Hair visible outside both cheeks below the ears continues around the
     # occiput. Estimate the nape length independently of the forehead part.
-    ends = []
-    for side in (-1, 1):
-        for t in np.linspace(0.93, 0.65, 23):
-            y = round(top + t * (chin - top))
-            radius = (
-                width
-                * 0.5
-                * np.interp(
-                    t, np.linspace(0, 1, len(family["widths"])), family["widths"]
-                )
-            )
-            xs = (
-                np.rint(center + side * radius * np.linspace(0.74, 1, 19))
-                .astype(int)
-                .clip(0, w - 1)
-            )
-            colors = rgb[y, xs]
-            near = np.linalg.norm(colors - hair, axis=1)
-            if (
-                (near < 55) & (near + 18 < np.linalg.norm(colors - skin, axis=1))
-            ).sum() >= 4:
-                ends.append(t)
-                break
-    if len(ends) == 2:
-        family["nape"] = round(float(np.mean(ends)), 3)
+    nape = nape_height(rgb, mask, eye_axis, top, chin, width, skin, hair)
+    if nape is not None:
+        family["nape"] = nape
     if fall:
         recipe["design"]["hair"]["cut"] = "waves"
-        family["fallRows"] = fall
+        if bob and sections.get("nape") and sections.get("hair"):
+            # The fitted bob already joins the crown, part and underside. Use
+            # that construction on the family rig in its original drawing frame.
+            family["measuredBob"] = {
+                "frame": recipe["design"]["head"],
+                "skullWidth": design["head"][0],
+                "eyeAxis": round((eye_axis - center) * scale / head_width, 4),
+                "sections": {
+                    k: sections[k]
+                    for k in (
+                        "hair",
+                        "nape",
+                        "sidePart",
+                        "chin",
+                        "jaw",
+                        "locks",
+                        "ears",
+                        "nose",
+                    )
+                    if k in sections
+                },
+            }
+        else:
+            family["fallRows"] = fall
     if has_ink_outline(rgb, mask, (left, top, right, floor)):
         family["penOutline"] = True
         inked_sections(rgb, mask, center, crown, scale, arm_y, samples, family["body"])

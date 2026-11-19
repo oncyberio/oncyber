@@ -419,7 +419,7 @@ if __name__ == "__main__":
         default=Path(__file__).parent / "avatar_authoring/features",
         help="Reviewed native part definitions",
     )
-    parser.add_argument("--model", default="gpt-6.2-astra")
+    parser.add_argument("--model", help="Model for authoring observations")
     parser.add_argument("--rounds", type=int, choices=[1, 2, 3], default=2)
     parser.add_argument("--max-triangles", type=int, default=4000)
     parser.add_argument(
@@ -435,6 +435,8 @@ if __name__ == "__main__":
         help="Also save the versioned draw_cartoon instructions and schema",
     )
     args = parser.parse_args()
+    if not args.one_image and not args.model:
+        args.model = "gpt-6.2-astra"
     if args.one_image:
         if any(
             (

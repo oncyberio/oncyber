@@ -1,6 +1,7 @@
 """Build one candidate and allow one measured correction within a named family."""
 
 import json
+import os
 from hashlib import sha256
 from pathlib import Path
 from tempfile import mkdtemp
@@ -10,6 +11,7 @@ import numpy as np
 from jsonschema import ValidationError, validate
 from PIL import Image, ImageOps
 from playwright.sync_api import Error as BrowserError
+from playwright.sync_api import TimeoutError as BrowserTimeout
 from scipy import ndimage
 
 from .eye_review import portrait_pair
@@ -141,6 +143,7 @@ def portrait_metrics(source, native, family):
 def correct_portrait(recipe, source, native):
     """Correct the rendered skin or cloth pigment and skull outline in the eye plane."""
     from copy import deepcopy
+
     from .household import paint
 
     result = deepcopy(recipe)
@@ -343,7 +346,17 @@ def author_one(source, output, family, framing, name, args):
             )
         report.update(family=family, framing=framing)
         if args.openrouter:
-            args.model = openrouter_model(args.model)
+            fast = (
+                args.model
+                or os.environ.get("AVATAR_FAST_MODEL")
+                or "google/gemini-2.5-flash-lite"
+            )
+            args.model = openrouter_model(fast)
+            args.feature_model = getattr(args, "feature_model", None) or os.environ.get(
+                "AVATAR_FEATURE_MODEL"
+            )
+        elif remote and not getattr(args, "model", None):
+            args.model = os.environ.get("AVATAR_FAST_MODEL") or "gpt-6.2-astra"
         if framing == "portrait":
             obs = None
             for i in range(2):
@@ -393,7 +406,13 @@ def author_one(source, output, family, framing, name, args):
                     report["feature_used"] = key
                 candidate = dest / "candidate.json"
                 save(candidate, recipe)
-                native = render(candidate, dest, args.base, backend=args.renderer)
+                try:
+                    native = render(candidate, dest, args.base, backend=args.renderer)
+                except BrowserTimeout:
+                    # Retry the same recipe in a fresh browser. A lost frame
+                    # must not spend another model call or the one correction.
+                    report.setdefault("native_render_retries", []).append(dest.name)
+                    native = render(candidate, dest, args.base, backend=args.renderer)
                 title = (
                     "portrait-other-quarter"
                     if obs["yaw"] < -17

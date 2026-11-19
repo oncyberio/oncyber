@@ -2,6 +2,15 @@ import type { CartoonDesign } from "./cartoonCast";
 import { composition, landmarks } from "./referenceLandmarks";
 import { proportions } from "./cartoonProportions";
 
+export function measuredHouseholdBob(g: CartoonDesign) {
+    if (
+        g.hair.cut === "waves" &&
+        !g.household?.headband &&
+        !g.household?.eyePatch
+    )
+        return g.household?.measuredBob;
+}
+
 export function prepareHousehold(source: CartoonDesign): CartoonDesign {
     const design: CartoonDesign = {
         ...source,
@@ -70,7 +79,9 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
               scale *
               0.71
             : proportionsFit.waist;
-    const [width, skull] = g.head;
+    // The bob is transformed as one head at draw time. Register its measured
+    // ears and lips in the original frame when tailoring the body or stature.
+    const [width, skull] = measuredHouseholdBob(g)?.frame ?? g.head;
     const face = g.household;
     const lips = face.lips?.map(([x, upper, lower]) => [
         x * width,
@@ -172,7 +183,7 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
 
     const visibleArm = usePreset && g.household.portraitArm;
     const radius = visibleArm
-        ? (visibleArm.radius * skull) / 0.89
+        ? (visibleArm.radius * g.head[1]) / 0.89
         : usePreset
         ? scale *
           { "lean-teen": 8.1, child: 9.2, adult: 11, "adult-casual": 11 }[
@@ -185,13 +196,16 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
         cuff = visibleArm
             ? Math.min(
                   0.46,
-                  Math.max(0.09, (visibleArm.cuff * skull - shoulder) / upper)
+                  Math.max(
+                      0.09,
+                      (visibleArm.cuff * g.head[1] - shoulder) / upper
+                  )
               )
             : 0.32,
         armY = visibleArm
             ? Math.min(
                   neck + trunk * 0.48,
-                  Math.max(neck + 6, 12 + skull * (1 + visibleArm.level))
+                  Math.max(neck + 6, 12 + g.head[1] * (1 + visibleArm.level))
               )
             : neck + shoulder * 0.28;
     const xAt = (u: number) => shoulder + upper * u;

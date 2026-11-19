@@ -65,6 +65,90 @@ class FamilyTests(unittest.TestCase):
         mask[115:119] = False
         self.assertIsNone(jersey_neck(rgb, mask, orb))
 
+    def test_visor_and_skin_arcs_separate_a_painted_throat_from_the_orb(self):
+        from .sun_rays import fit_crew_to_orb
+        from .visor import visor_seed
+
+        for name, dye in (("solvi", "blue"), ("mora", "mint")):
+            with self.subTest(name=name):
+                path = (
+                    Path(__file__).parent / "targets/holdout-v1" / (name + "-full.webp")
+                )
+                rgb, mask = pixels(path, keep_components=True)
+                center, radius = visor_seed(rgb, mask)
+                orb = measure_sun_rays(
+                    rgb, mask, center, [radius, radius], orb_only=True
+                )
+                self.assertLess(abs(orb[2] / orb[3] - 1), 0.10)
+                recipe = {"proportions": {}}
+                fit_crew_to_orb(rgb, mask, orb, recipe, [350, 106, 60.5, 61.2])
+                collar = recipe["orbCollar"]
+                r, g, b = bytes.fromhex(collar["binding"][1:])
+                self.assertGreater(
+                    b if dye == "blue" else g, max(r, g if dye == "blue" else b)
+                )
+                self.assertLess(abs(recipe["kitFit"]["shoulders"]), 0.045)
+                self.assertNotEqual(collar["binding"], collar["skin"])
+
+    def test_lost_portrait_frame_reuses_the_paid_observation_and_same_recipe(self):
+        from playwright.sync_api import TimeoutError as BrowserTimeout
+
+        from . import one_image
+
+        source = Path(__file__).parent / "targets/holdout-v1/rowan-portrait.webp"
+        observation = one_image.propose_portrait(source, "rick-classic")
+        args = SimpleNamespace(
+            openrouter=True,
+            model=None,
+            endpoint=None,
+            adapter=None,
+            base="local",
+            renderer="webgl",
+            max_triangles=4000,
+        )
+        metrics = {
+            "head_iou": 0.91,
+            "rgb_mae": 12,
+            "ink_agreement": 0.8,
+            "visible_fraction": 0.91,
+        }
+        with (
+            TemporaryDirectory() as temp,
+            patch.dict(
+                one_image.os.environ,
+                {
+                    "AVATAR_FAST_MODEL": "demo/fast-vision",
+                    "AVATAR_FEATURE_MODEL": "demo/feature-vision",
+                },
+            ),
+            patch.object(
+                one_image, "openrouter_model", side_effect=lambda model: model
+            ) as catalog,
+            patch.object(
+                one_image,
+                "request_drawing",
+                return_value=(observation, {"usage": {"cost": 0.001}}),
+            ) as request,
+            patch.object(
+                one_image,
+                "render",
+                side_effect=[BrowserTimeout("frame"), {"triangles": 3000}],
+            ) as render,
+            patch.object(one_image, "portrait_metrics", return_value=metrics),
+        ):
+            _, report = one_image.author_one(
+                source, Path(temp), "rick-classic", "portrait", "Drawn", args
+            )
+        self.assertEqual(report["native_render_retries"], ["pass-1"])
+        self.assertTrue(report["accepted"])
+        self.assertEqual(report["selected_pass"], 1)
+        self.assertEqual(report["reported_provider_cost"], 0.001)
+        catalog.assert_called_once_with("demo/fast-vision")
+        self.assertEqual(args.feature_model, "demo/feature-vision")
+        self.assertEqual(request.call_count, 1)
+        self.assertEqual(render.call_count, 2)
+        self.assertEqual(render.call_args_list[0], render.call_args_list[1])
+
     def test_review_compares_two_passing_recipes_and_preserves_the_better_fit(self):
         author = runpy.run_path(str(Path(__file__).parents[1] / "author-cartoon.py"))[
             "author"

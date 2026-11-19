@@ -128,6 +128,14 @@ def measure_sun_rays(image, mask, center, radius, *, orb_only=False):
     cx, cy = (left + right) / 2, (top + bottom) / 2
     rx, ry = (right - left) / 2, (bottom - top) / 2
     contour = orb_contour(image, mask, center, radius)
+    if contour is None:
+        # Shaded paper can join the ray gaps to the orb in the foreground mask.
+        # Register the same two arcs on the connected skin instead. A narrow
+        # throat below the cheeks cannot set the vertical diameter.
+        origin = np.array([x0, y0])
+        local = orb_contour(rgb, skin_pixels, np.asarray(center) - origin, radius)
+        if local is not None:
+            contour = local + [x0, y0, 0, 0]
     if contour is not None:
         cx, cy, rx, ry = contour
     elif rx > 1.35 * ry or ry > 1.35 * rx:
@@ -366,17 +374,34 @@ def jersey_neck(rgb, mask, orb):
     # A visible paper gap anywhere just below the chin keeps the orb floating.
     if not mask[first:last, stripe].all():
         return
-    neck_rows = []
+    neck_rows, painted_rows = [], []
+    chin = np.median(rgb[round(cy + 0.66 * ry), stripe], axis=0)
+    chin_hue = chin - chin.mean()
     for y in range(first, min(last, round(cy + 1.25 * ry))):
         ids, _ = ndimage.label(mask[y])
         group = np.flatnonzero(ids == ids[x])
-        if (
-            len(group)
-            and 0.32 * rx < len(group) < 0.85 * rx
-            and abs(group.mean() - cx) < 0.14 * rx
-        ):
-            neck_rows.append((y, len(group) / (2 * rx)))
-    if len(neck_rows) < max(2, 0.055 * ry):
+        rows = neck_rows
+        if len(group) >= 0.85 * rx:
+            # Some backdrops join the outward rays to the shoulders. Keep a
+            # separate estimate from continuous skin for that case alone.
+            sample = np.median(rgb[y, stripe], axis=0)
+            hue = sample - sample.mean()
+            if hue @ chin_hue <= 0.9 * np.linalg.norm(chin_hue) * max(
+                24, np.linalg.norm(hue)
+            ):
+                continue
+            same = np.max(abs(rgb[y] - sample), axis=1) < 38
+            ids, _ = ndimage.label(mask[y] & same)
+            if not ids[x]:
+                continue
+            group = np.flatnonzero(ids == ids[x])
+            rows = painted_rows
+        if 0.32 * rx < len(group) < 0.85 * rx and abs(group.mean() - cx) < 0.14 * rx:
+            rows.append((y, len(group) / (2 * rx)))
+    required = max(2, 0.055 * ry)
+    if len(neck_rows) < required:
+        neck_rows = painted_rows
+    if len(neck_rows) < required:
         return
     color = np.median(rgb[first:last, stripe], axis=1)
     # The central binding has two color transitions. The second returns to
@@ -398,6 +423,42 @@ def jersey_neck(rgb, mask, orb):
             if score >= 42:
                 choices.append((score, i, length, dye, skin))
     if not choices:
+        # A self-colored binding meets the same fabric on both sides of the
+        # neckline. Locate the skin-to-shirt transition across the center only
+        # when that color continues onto both shoulders.
+        sides = np.rint(cx + np.array([-0.53, 0.53]) * rx).astype(int)
+        if sides[0] < width or sides[1] + width >= mask.shape[1]:
+            return
+        for i in range(
+            start, min(len(color) - width * 2, round(cy + 1.52 * ry) - first)
+        ):
+            skin = np.median(color[i - width : i], axis=0)
+            fabric = np.median(color[i : i + width], axis=0)
+            shoulder_y = min(len(mask) - width, first + i + 3 * width)
+            flank = [
+                np.median(
+                    rgb[
+                        shoulder_y : shoulder_y + width, side - width : side + width + 1
+                    ],
+                    axis=(0, 1),
+                )
+                for side in sides
+            ]
+            delta = fabric - np.asarray(flank)
+            # The binding is recessed beneath the chin. Match the garment hue
+            # while allowing that recess to darken all three channels together.
+            shade = delta.mean(axis=1)
+            follows = max(np.linalg.norm(delta - shade[:, None], axis=1))
+
+            contrast = np.linalg.norm(fabric - skin)
+            if (
+                contrast > 70
+                and follows < 25
+                and max(abs(shade)) < 55
+                and mask[shoulder_y, sides].all()
+            ):
+                choices.append((contrast - follows, i, width, fabric, skin))
+    if not choices:
         return
     _, i, length, dye, skin = max(choices, key=lambda c: c[0])
     throat_y = neck_rows[-1][0]
@@ -415,6 +476,36 @@ def jersey_neck(rgb, mask, orb):
         "skin": swatch(skin),
     }
     return collar, (first + i - cy) / ry - 1
+
+
+def fit_crew_to_orb(rgb, mask, orb, recipe, crown):
+    """Register the shirt and shoulder anchors to a visible neck in a full T-pose."""
+    neck = jersey_neck(rgb, mask, orb)
+    if not neck:
+        return
+    collar, below = neck
+    cx, cy, rx, ry = orb
+    x, r = round(cx), round(rx * 2.5)
+    if x - r < 0 or x + r >= mask.shape[1]:
+        return
+    at = np.flatnonzero(mask[:, x - r] & mask[:, x + r])
+    at = at[(at > cy + 1.08 * ry) & (at < cy + 2.5 * ry)]
+    if len(at) < 2 or np.ptp(at) > 0.55 * ry:
+        return
+    base_rx, base_ry = crown[2:]
+    y_scale = base_ry * recipe["proportions"].get("headHeight", 1)
+    chin = crown[1] + base_ry + y_scale * recipe.get("orbOffset", [0, 0])[1]
+    shoulder = chin + ((np.median(at) - cy) / ry - 1) * y_scale
+    binding = chin + below * y_scale - collar["drop"] * base_rx
+    recipe["orbCollar"] = collar
+    recipe["kitFit"] = {
+        "collar": round(float(np.clip((binding - 171) / 680, -0.045, 0.045)), 4),
+        "shoulders": round(float(np.clip((shoulder - 211) / 680, -0.045, 0.045)), 4),
+        "waist": 0,
+        "hem": 0,
+        "sock": 0,
+        "width": 1,
+    }
 
 
 def orb_edits(source, native, frame, recipe):
@@ -589,6 +680,10 @@ def kit_edits(source, native, recipe, gap=None):
         key: round(float(np.clip(fit.get(key, 0) + s, -0.045, 0.045)), 4)
         for key, s in zip(fields, delta)
     }
+    if recipe.get("orbCollar") and "collar" in fit:
+        # The first light pixel can be a sleeve highlight. A fitted circular
+        # binding already supplies the garment's center-front measurement.
+        values["collar"] = fit["collar"]
     if "chestWidth" in fit:
         values["chestWidth"] = fit["chestWidth"]
     values["width"] = round(

@@ -84,6 +84,22 @@ export interface CartoonDesign {
         };
         /** Height, outside radius and inner-front edge of a shoulder-length cut, in skull units. */
         fallRows?: [number, number, number][];
+        measuredBob?: {
+            frame: [number, number];
+            skullWidth: number;
+            eyeAxis: number;
+            sections: Pick<
+                NonNullable<NonNullable<CartoonDesign["fit"]>["sections"]>,
+                | "hair"
+                | "nape"
+                | "sidePart"
+                | "chin"
+                | "jaw"
+                | "locks"
+                | "ears"
+                | "nose"
+            >;
+        };
         creases?: [number, number][][];
         /** Visible eye rims and pupils in the local orbital frame, left to right. */
         orbits: {
@@ -91,6 +107,9 @@ export interface CartoonDesign {
             pupil: [number, number];
             lift?: number;
             observedGaze?: [number, number];
+            /** Pigment laid just outside the measured white. Width is a fraction of eye radius. */
+            rimInk?: { width: number; color: string };
+            browOccluded?: boolean;
             browRim?: [number, number][];
             browColor?: string;
             lid?: [number, number][];
@@ -356,7 +375,10 @@ export function tailorCartoon(
     // Other silhouettes use the existing parametric hair builder.
     if (
         !["crop", "part", "ponytail"].includes(tailored.hair.cut) &&
-        !(tailored.hair.cut === "waves" && tailored.household.fallRows)
+        !(
+            tailored.hair.cut === "waves" &&
+            (tailored.household.fallRows || tailored.household.measuredBob)
+        )
     ) {
         return { ...tailored, household: undefined, fit: undefined };
     }

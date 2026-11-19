@@ -10,7 +10,7 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
-from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
+from .sun_rays import fit_crew_to_orb, jersey_neck, measure_sun_rays, orb_swatches
 from .tracing import registered_print, shirt_mark, traced_print
 from .visor import measure_visor, visor_seed
 
@@ -650,6 +650,13 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
         ),
     )
     recipe, _metrics, overlay = candidates[best]
+    if best == "sunshine" and custom_jersey:
+        seed = visor_seed(image, mask)
+        if seed:
+            center, radius = seed
+            orb = measure_sun_rays(image, mask, center, [radius, radius], orb_only=True)
+            if orb is not None:
+                fit_crew_to_orb(image, mask, orb, recipe, FAMILIES[best]["crownRoot"])
     recipe["name"] = (name or path.stem.replace("-", " ").strip() or "Family avatar")[
         :60
     ]

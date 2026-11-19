@@ -67,6 +67,56 @@ test("measured fasteners and the opening belong to the button-front garment", ()
     expect(() => readAvatarFile(file)).toThrow();
 });
 
+test("the fitted bob uses the same editable eye sockets as the household", () => {
+    const file = JSON.parse(
+        readFileSync(
+            join(
+                __dirname,
+                "../../scripts/avatar_authoring/targets/holdout-v1/candidates/lark.recipe"
+            ),
+            "utf8"
+        )
+    );
+    const { recipe } = readAvatarFile(file);
+    const design = recipe.cartoon;
+    expect(design.household.measuredBob.sections).not.toHaveProperty("eyes");
+    const repaint = tailorCartoon(design, { outfit: { color: "#26757b" } });
+    expect(repaint.household.measuredBob).toEqual(design.household.measuredBob);
+    const taller = tailorCartoon(design, {
+        head: [design.head[0], design.head[1] * 1.12],
+    });
+    expect(taller.fit.sections.mouth).toEqual(design.fit.sections.mouth);
+    const headPositions = (cartoon: typeof design) => {
+        const rig = buildCharacter({ ...recipe, cartoon });
+        try {
+            const mesh = rig.scene.getObjectByProperty(
+                "isSkinnedMesh",
+                true
+            ) as T.SkinnedMesh;
+            const { position, skinIndex } = mesh.geometry.attributes;
+            const head = mesh.skeleton.bones.findIndex(
+                (b) => b.name === "head"
+            );
+            const result = [];
+            for (let i = 0; i < position.count; i++) {
+                if (skinIndex.getX(i) === head)
+                    result.push(position.getX(i), position.getY(i));
+            }
+            expect(result.length).toBeGreaterThan(100);
+            expect(mesh.geometry.index.count / 3).toBeLessThanOrEqual(4000);
+            return result;
+        } finally {
+            disposeAvatarGraph(rig.scene);
+        }
+    };
+    const sized = tailorCartoon(design, {
+        face: { eyeRadius: design.face.eyeRadius * 1.15 },
+    });
+    expect(headPositions(sized)).not.toEqual(headPositions(design));
+    delete file.design.household.measuredBob.sections.nape;
+    expect(() => readAvatarFile(file)).toThrow();
+});
+
 test.each(["full", "crowd"] as const)(
     "a traced shoe closes around the ankle on the animated %s mesh",
     (detail) => {
