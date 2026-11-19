@@ -1661,14 +1661,149 @@ function features(
                 );
     }
 }
-/** A contrasting outsole wraps from heel to toe at the height seen in the
- * drawing. Both pigments meet at the same ring, including underneath. */
+type MeasuredOutsole = NonNullable<
+    NonNullable<NonNullable<CartoonDesign["fit"]>["sections"]>["outsole"]
+>;
+
+/** Join the sock or bare ankle to the leather along a common closed opening.
+ * Heights are observed in front view. The shin and foot supply the depth. */
+function drawFittedFoot(
+    d: Drawing,
+    shoe: Section[],
+    shin: Section,
+    outsole: MeasuredOutsole,
+    collar: NonNullable<MeasuredOutsole["collar"]>,
+    center: number,
+    sign: number,
+    paint: string
+) {
+    const { rows } = outsole;
+    const left = rows[0][0],
+        right = rows.at(-1)[0],
+        width = right - left;
+    const ankle = ((shin[1] + shin[2]) / 2 - center) * sign;
+    const cuffY = Math.min(...collar.tops);
+    const exposed = rows.filter(
+        (r, i) => r[1] - collar.tops[i] > Math.max(1, width * 0.054)
+    );
+    const cuff = rows.filter(
+        (r, i) =>
+            collar.tops[i] < cuffY + Math.max(1.5, width * 0.046) &&
+            r[1] - collar.tops[i] > 1
+    );
+    const bounds = (samples: typeof rows): [number, number] =>
+        samples.length > 1
+            ? [samples[0][0], samples.at(-1)[0]]
+            : [ankle - width * 0.13, ankle + width * 0.13];
+    const toe = right - ankle >= ankle - left ? 1 : -1;
+    const ankleDepth = Math.min((shin[2] - shin[1]) * 0.36, width * 0.25);
+    const soleDepth = Math.min(
+        Math.max(...shoe.map((r) => r[3])),
+        width * 0.49
+    );
+
+    const heightAt = (x: number, channel: 1 | 2 | 3) => {
+        let i = 1;
+        while (i < rows.length - 1 && rows[i][0] < x) i++;
+        const a = rows[i - 1],
+            b = rows[i];
+        return T.MathUtils.lerp(
+            a[channel],
+            b[channel],
+            T.MathUtils.clamp((x - a[0]) / (b[0] - a[0]), 0, 1)
+        );
+    };
+    const count = d.s.detail === "full" ? 24 : 16;
+    const ring = (
+        [min, max]: [number, number],
+        depth: number,
+        forward: number,
+        sweep: number,
+        y: (x: number, sin: number) => number
+    ): Point[] =>
+        loop(count, (angle) => {
+            const x = T.MathUtils.lerp(min, max, (1 + Math.cos(angle)) / 2);
+            // Preserve outward normals on both mirrored feet in drawing space.
+            const sin = -sign * Math.sin(angle);
+            return [
+                center + sign * x,
+                y(x, sin),
+                (shin[4] ?? 0) +
+                    forward +
+                    toe * (x - ankle) * sweep +
+                    sin * depth,
+            ];
+        });
+    const cap = (r: Point[]) => {
+        const pole: Point = [0, 0, 0];
+        for (const [x, y, z] of r.slice(0, -1)) {
+            pole[0] += x / count;
+            pole[1] += y / count;
+            pole[2] += z / count;
+        }
+        return r.map(() => pole);
+    };
+    const cuffRing = ring(bounds(cuff), ankleDepth, 0, 0.08, () =>
+        Math.min(shin[0] - 1.5, cuffY)
+    );
+    const rim = ring(
+        bounds(exposed),
+        ankleDepth * 1.18,
+        width * 0.05,
+        0.48,
+        (x, sin) => heightAt(x, 1) + width * 0.035 * sin
+    );
+    const roof = ring(
+        [left + width * 0.018, right - width * 0.018],
+        soleDepth * 0.73,
+        width * 0.18,
+        0.83,
+        (x, sin) =>
+            T.MathUtils.lerp(
+                heightAt(x, 1),
+                heightAt(x, 2),
+                0.09 + 0.3 * Math.abs(sin)
+            )
+    );
+    const seam = ring([left, right], soleDepth, width * 0.21, 0.83, (x) =>
+        heightAt(x, 2)
+    );
+    const base = ring(
+        [left + width * 0.013, right - width * 0.013],
+        soleDepth * 0.96,
+        width * 0.21,
+        0.83,
+        (x) => heightAt(x, 3)
+    );
+    // The ink band is part of the shell and follows the opening during animation.
+    const piping = rim.map((p, i): Point => {
+        const q = roof[i];
+        const t = Math.min(
+            0.32,
+            (width * 0.024) /
+                Math.max(
+                    0.01,
+                    Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2])
+                )
+        );
+        return between(p, q, t);
+    });
+    d.s.surface(
+        [cap(cuffRing), cuffRing, rim],
+        collar.color,
+        true,
+        "perimeter"
+    );
+    d.s.surface([rim, piping], swatch(paint, ink, 0.71), true, "perimeter");
+    d.s.surface([piping, roof, seam], paint, true, "perimeter");
+    d.s.surface([seam, base, cap(base)], outsole.color, true, "perimeter");
+}
+
+/** Extend the painted sole around the heel and toe of a closed shoe. */
 function drawSole(
     d: Drawing,
     shoe: Section[],
-    outsole: NonNullable<
-        NonNullable<NonNullable<CartoonDesign["fit"]>["sections"]>["outsole"]
-    >,
+    outsole: MeasuredOutsole,
     center: number,
     sign: number,
     paint: string
@@ -1678,11 +1813,8 @@ function drawSole(
     const left = outsole.rows[0][0],
         right = outsole.rows.at(-1)[0];
     const upper: Point[][] = [],
-        wall: Point[][] = [],
-        nearUpper: Point[][] = [],
-        farUpper: Point[][] = [],
-        ankle: Point[][] = [];
-    for (const [i, [offset, top, seam, base]] of outsole.rows.entries()) {
+        wall: Point[][] = [];
+    for (const [offset, top, seam, base] of outsole.rows) {
         const x = center + sign * offset,
             t = (offset - left) / (right - left);
         const turn = Math.sqrt(Math.max(0, Math.sin(Math.PI * t)));
@@ -1704,31 +1836,7 @@ function drawSole(
         const sides = [-1, -0.72, 0, 0.72, 1].map((a) =>
             section(seam - (seam - top) * Math.sqrt(Math.max(0, 1 - a * a)), a)
         );
-        if (outsole.collar) {
-            const crest = outsole.collar.tops[i];
-            const opening = Math.min(
-                0.78,
-                (top - crest) / Math.max(2, (right - left) * 0.22)
-            );
-            const near = section(top, opening),
-                far = section(top, -opening);
-            nearUpper.push([
-                near,
-                section(top + (seam - top) * 0.35, 0.82),
-                sides.at(-1),
-            ]);
-            farUpper.push([
-                sides[0],
-                section(top + (seam - top) * 0.35, -0.82),
-                far,
-            ]);
-            ankle.push([
-                far,
-                section(crest, -opening * 0.65),
-                section(crest, opening * 0.65),
-                near,
-            ]);
-        } else upper.push(sides);
+        upper.push(sides);
         wall.push([
             sides[0],
             section(base, -0.97),
@@ -1736,11 +1844,7 @@ function drawSole(
             sides.at(-1),
         ]);
     }
-    if (outsole.collar) {
-        d.s.surface(nearUpper, paint, true, "perimeter");
-        d.s.surface(farUpper, paint, true, "perimeter");
-        d.s.surface(ankle, outsole.collar.color, true, "perimeter");
-    } else d.s.surface(upper, paint, true, "perimeter");
+    d.s.surface(upper, paint, true, "perimeter");
     d.s.surface(wall, outsole.color, true, "perimeter");
     d.s.line(
         wall.map((r) => r.at(-1)),
@@ -1996,8 +2100,22 @@ function clothing(d: Drawing, g: CartoonDesign) {
     }
     // Each stripe is part of the continuous shirt. Adjacent colors meet
     // on the same section, including at the side and back.
-    const hemEdge = (a: number) =>
-        hip + 4 - (measured?.hemRise ?? 0) * Math.sin(a) ** 2;
+    const hem = measured?.garmentEdges?.frontHem;
+    const hemEdge = (a: number) => {
+        const side = Math.sin(a);
+        if (!hem) return hip + 4 - (measured?.hemRise ?? 0) * side ** 2;
+        const t = ((side + 1) * (hem.length - 1)) / 2;
+        const i = Math.floor(t);
+        const front = T.MathUtils.lerp(
+            hem[i],
+            hem[Math.min(hem.length - 1, i + 1)],
+            t - i
+        );
+        // The split stops at the front. A continuous rear hem meets both side seams.
+        const back = T.MathUtils.lerp(hem[0], hem.at(-1), (side + 1) / 2);
+        return hip + 4 + bodyLength * (Math.cos(a) >= 0 ? front : back);
+    };
+    const hemFloor = hip + 4 + (hem ? Math.max(0, ...hem) * bodyLength : 0);
     let previous = edge;
     if (o.bands?.length) {
         for (const band of o.bands) {
@@ -2042,11 +2160,11 @@ function clothing(d: Drawing, g: CartoonDesign) {
     const mark = measured?.shirtMark;
     if (mark) drawMarkedShirt(d, mark, fabric, mark.box);
     else fabric();
-    if (measured?.hemRise)
+    if (hem || measured?.hemRise)
         d.wrap(
             rows,
             hemEdge,
-            () => hip + 4,
+            () => hemFloor,
             o.trousers,
             0,
             false,
@@ -2108,7 +2226,10 @@ function clothing(d: Drawing, g: CartoonDesign) {
             const seamX = -shoulder * 0.035;
             const levels = [
                 edge(0),
-                ...rows.map(([y]) => y).filter((y) => y > edge(0)),
+                ...rows
+                    .map(([y]) => y)
+                    .filter((y) => y > edge(0) && (!hem || y < hemEdge(0))),
+                ...(hem ? [hemEdge(0)] : []),
             ];
             d.s.ribbon(
                 levels.map((y) => [seamX, y, front(seamX, y) + 0.65]),
@@ -2141,7 +2262,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
         }
     }
     if (measured?.seams?.shirt) stitchLines(d, measured.seams.shirt, front);
-    if (measured?.hemRise) {
+    if (hem || measured?.hemRise) {
         const edge = loop(shirtSides, (a) =>
             sectionPoint(rows, a, hemEdge(a), 0.32)
         );
@@ -2224,6 +2345,30 @@ function clothing(d: Drawing, g: CartoonDesign) {
             }
             if (sleeve.length > 1 && skin.length > 1) {
                 const [x, y, r] = sleeve.at(-1);
+                const foldWidth = measured.garmentEdges?.rolledCuff;
+                if (foldWidth && cut - foldWidth > sleeve[0][0]) {
+                    const start = cut - foldWidth;
+                    const upper = sleeve.findIndex((row) => row[0] >= start);
+                    const p = sleeve[upper - 1],
+                        q = sleeve[upper];
+                    const t = (start - p[0]) / (q[0] - p[0]);
+                    const mid = T.MathUtils.lerp(p[1], q[1], t),
+                        radius = T.MathUtils.lerp(p[2], q[2], t);
+                    const inner = ring([start - 0.4, mid, radius * 1.015]);
+                    const fold = ring([start + 0.65, mid, radius * 1.105]);
+                    d.s.surface(
+                        [inner, fold],
+                        swatch(fabric, ink, 0.72),
+                        true,
+                        "perimeter"
+                    );
+                    d.s.surface(
+                        [fold, ring([x, y, r * 1.035])],
+                        fabric,
+                        true,
+                        "perimeter"
+                    );
+                }
                 d.s.surface(
                     [
                         ring([x - 0.55, y, r * 1.012]),
@@ -2526,16 +2671,25 @@ function clothing(d: Drawing, g: CartoonDesign) {
             );
             const start = shoe[0],
                 end = rows.at(-1);
+            if (measured.outsole?.collar) {
+                drawFittedFoot(
+                    d,
+                    shoe,
+                    end,
+                    measured.outsole,
+                    measured.outsole.collar,
+                    pelvisX,
+                    sideSign,
+                    o.shoes
+                );
+                continue;
+            }
             const floor = measured.outsole
                 ? Math.max(
                       start[0] + 3,
                       Math.min(...measured.outsole.rows.map((r) => r[1])) + 10
                   )
                 : start[0] + 3;
-            if (measured.outsole?.collar) {
-                drawSole(d, shoe, measured.outsole, pelvisX, sideSign, o.shoes);
-                continue;
-            }
             const ankleRows = measured.ankle?.map(([y, c, r]) =>
                 section([pelvisX + sign * c, y, 0], r)
             );

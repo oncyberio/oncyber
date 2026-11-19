@@ -1,4 +1,6 @@
 import * as T from "three/webgpu";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { recipeTransform } from "./recipes";
 import { fitCoatRow } from "./coatPanels";
 import { drawOrbVisor } from "./orbVisor";
@@ -64,6 +66,75 @@ test("measured fasteners and the opening belong to the button-front garment", ()
     file.design.outfit.top = "crew";
     expect(() => readAvatarFile(file)).toThrow();
 });
+
+test.each(["full", "crowd"] as const)(
+    "a traced shoe closes around the ankle on the animated %s mesh",
+    (detail) => {
+        const file = readFileSync(
+            join(
+                __dirname,
+                "../../scripts/avatar_authoring/targets/holdout-v1/candidates/lark.recipe"
+            ),
+            "utf8"
+        );
+        const { recipe } = readAvatarFile(JSON.parse(file));
+        const rig = buildCharacter(recipe, detail);
+        try {
+            const mesh = rig.scene.getObjectByProperty(
+                "isSkinnedMesh",
+                true
+            ) as T.SkinnedMesh;
+            const geometry = mesh.geometry;
+            const { position, skinIndex, skinWeight } = geometry.attributes;
+            for (const side of ["leftFoot", "rightFoot"]) {
+                const foot = mesh.skeleton.bones.findIndex(
+                    (b) => b.name === side
+                );
+                expect(foot).toBeGreaterThan(-1);
+                const edges = new Map<string, number>();
+                const box = new T.Box3();
+                const point = new T.Vector3();
+                const edgesAt = (vertex: number) => {
+                    point.fromBufferAttribute(position, vertex);
+                    box.expandByPoint(point);
+                    return point
+                        .toArray()
+                        .map((v) => Math.round(v * 100000))
+                        .join(",");
+                };
+                for (let i = 0; i < geometry.index.count; i += 3) {
+                    const tri = [0, 1, 2].map((j) =>
+                        geometry.index.getX(i + j)
+                    );
+                    if (
+                        !tri.every(
+                            (v) =>
+                                skinIndex.getX(v) === foot &&
+                                skinWeight.getX(v) > 0.999
+                        )
+                    )
+                        continue;
+                    const vertices = tri.map(edgesAt);
+                    for (let j = 0; j < 3; j++) {
+                        const edge = [vertices[j], vertices[(j + 1) % 3]]
+                            .sort()
+                            .join("/");
+                        edges.set(edge, (edges.get(edge) ?? 0) + 1);
+                    }
+                }
+                expect(edges.size).toBeGreaterThan(70);
+                // Check physical edges across pigment boundaries as well as within each color.
+                expect([...edges.values()].filter((n) => n !== 2)).toHaveLength(
+                    0
+                );
+                const size = box.getSize(point);
+                expect(size.z).toBeGreaterThan(size.x * 0.7);
+            }
+        } finally {
+            disposeAvatarGraph(rig.scene);
+        }
+    }
+);
 
 test("the branch crowd reproduces 100 distinct shapes from two seed families", () => {
     const seeds = [

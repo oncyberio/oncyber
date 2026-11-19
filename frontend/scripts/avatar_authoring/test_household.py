@@ -337,6 +337,47 @@ class HouseholdTests(unittest.TestCase):
                 )
                 self.assertEqual(collar["color"] != design["skin"], sock)
 
+    def test_inked_foot_recovers_the_outline_and_rejects_detached_marks(self):
+        from .household_front import inked_foot_columns
+
+        paper, cloth, leather, ink = [
+            np.array(c)
+            for c in ([246, 240, 233], [76, 87, 130], [127, 75, 60], [30, 24, 21])
+        ]
+        patch = np.tile(paper, (30, 48, 1))
+        patch[:5, 9:17] = cloth
+        patch[5:14, [10, 15]] = ink
+        patch[12:22, 9:31] = ink
+        patch[14:20, 11:29] = leather
+        patch[20:22, 10:30] = paper
+        patch[22, 9:31] = ink
+        patch[3:6, 26:29] = ink
+        dyed = (patch == leather).all(axis=2)
+        cols, hem = inked_foot_columns(
+            patch, np.ones(dyed.shape, bool), paper, dyed, leather, cloth, 13, 4, True
+        )
+        self.assertEqual(hem, 5)
+        toe, ankle = [cols[cols[:, 0] == x][0] for x in (27, 13)]
+        self.assertEqual(toe[1], 12)
+        self.assertEqual(ankle[1], 5)
+        self.assertEqual(ankle[-1], 22)
+        self.assertLess(ankle[1], ankle[2])
+        self.assertLess(ankle[3], ankle[4])
+
+    def test_roll_and_split_require_visible_cloth_evidence(self):
+        for name, rolled in (("lark", True), ("moss", False)):
+            with self.subTest(name=name):
+                source = VIEWS.parent / "holdout-v1" / (name + "-full.webp")
+                design = fit_front(source, "New garment study")[0]["design"]
+                edges = design["household"]["body"]["sections"].get("garmentEdges", {})
+                self.assertEqual("rolledCuff" in edges, rolled)
+                self.assertEqual("frontHem" in edges, rolled)
+                if rolled:
+                    hem = edges["frontHem"]
+                    self.assertLess(
+                        hem[12] + 0.075, min(max(hem[5:11]), max(hem[14:20]))
+                    )
+
     def test_visible_jersey_width_requires_both_edges_below_the_sleeve(self):
         from .portrait import jersey_chest_width
 

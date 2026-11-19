@@ -120,6 +120,12 @@ export interface CartoonDesign {
             leftReach?: number;
             pelvisX?: number;
             hemRise?: number;
+            garmentEdges?: {
+                /** Front hem offsets sampled left to right, in torso lengths. */
+                frontHem?: number[];
+                /** Width of the turned cuff in drawing units. */
+                rolledCuff?: number;
+            };
             seams?: { shirt?: Seam[]; trousers?: Seam[] };
             creases?: {
                 points: [number, number][];

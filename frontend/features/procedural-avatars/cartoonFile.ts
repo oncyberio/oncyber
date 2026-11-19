@@ -97,6 +97,12 @@ const fit = z.strictObject({
                 })
                 .optional(),
             hemRise: n(0, 75).optional(),
+            garmentEdges: z
+                .strictObject({
+                    frontHem: z.array(n(-0.24, 0.24)).length(25).optional(),
+                    rolledCuff: n(0.5, 90).optional(),
+                })
+                .optional(),
             leftReach: n(0.65, 1.45).optional(),
             pelvisX: n(-42, 42).optional(),
             creases: z
@@ -695,6 +701,7 @@ const householdBodyFit = fit
             leftReach: true,
             pelvisX: true,
             hemRise: true,
+            garmentEdges: true,
             crew: true,
             outsole: true,
             openHands: true,

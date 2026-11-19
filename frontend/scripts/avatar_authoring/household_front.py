@@ -25,6 +25,7 @@ BODY_SECTIONS = {
     "leftReach",
     "pelvisX",
     "hemRise",
+    "garmentEdges",
     "crew",
     "outsole",
     "openHands",
@@ -345,6 +346,78 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
         ]
 
 
+def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
+    """Read a split hem and a rolled cuff when the drawing shows their seams."""
+    sections = body["sections"]
+    edges = {}
+    length = body["hem"] - body["neckline"]
+    half_width = sections["torso"][-1][1] / scale
+    waist = center + sections.get("pelvisX", 0) / scale
+    hem = round(crown + (body["hem"] + 4 - 12) / scale)
+    reach = round(0.24 * length / scale)
+    if np.linalg.norm(fabric - trousers) > 58 and hem >= reach and reach >= 6:
+        # Locate the paint change on both sides of the placket. A front split
+        # has two lower corners with trouser pigment directly beneath each.
+        u = np.linspace(-0.84, 0.84, 33)
+        xs = np.rint(waist + u * half_width).astype(int).clip(0, rgb.shape[1] - 1)
+        patch = rgb[hem - reach : hem + reach + 1, xs]
+        cloth = np.linalg.norm(patch - fabric, axis=2)
+        pants = np.linalg.norm(patch - trousers, axis=2)
+        heights = np.full(len(u), np.nan)
+        for i in range(len(u)):
+            dyed = np.flatnonzero((cloth[:, i] < 65) & (cloth[:, i] + 15 < pants[:, i]))
+            if not len(dyed):
+                continue
+            last = dyed[-1]
+            below = np.flatnonzero(
+                (pants[last + 1 :, i] < 75)
+                & (pants[last + 1 :, i] + 15 < cloth[last + 1 :, i])
+            )
+            if len(below) and below[0] < reach * 0.42:
+                heights[i] = (last + (1 + below[0]) / 2 - reach) * scale / length
+        valid = np.isfinite(heights)
+        if valid.mean() > 0.7 and np.any(valid & (abs(u) < 0.10)):
+            heights = np.interp(u, u[valid], heights[valid])
+            notch = heights[abs(u) < 0.1].min()
+            if all(
+                heights[(u * side > 0.1) & (u * side < 0.49)].max() - notch > 0.07
+                for side in (-1, 1)
+            ):
+                # A fixed array over the front half makes the same edge usable
+                # on a wider or narrower torso. The plain back meets both sides.
+                edges["frontHem"] = (
+                    np.interp(np.linspace(-1, 1, 25), u, heights)
+                    .clip(-0.24, 0.24)
+                    .round(4)
+                    .tolist()
+                )
+
+    cut = sections["sleeve"]
+    arm = np.array(sections["arm"])
+    radius = np.interp(cut, arm[:, 0], arm[:, 2])
+    # A rolled cuff has an ink line across the sleeve, with cloth of the
+    # same hue before and after it. Sample the middle to exclude silhouette ink.
+    offsets = np.arange(3, min(cut - arm[0, 0], radius * 1.7), scale)
+    if len(offsets) < 5:
+        return edges
+    xs = np.rint(center + (cut - offsets) / scale).astype(int).clip(0, rgb.shape[1] - 1)
+    ys = np.interp(cut - offsets, arm[:, 0], arm[:, 1])
+    scan = crown + (ys + np.linspace(-0.46, 0.46, 9)[:, None] * radius - 12) / scale
+    colors = rgb[np.rint(scan).astype(int).clip(0, rgb.shape[0] - 1), xs]
+    luma = np.array([0.213, 0.715, 0.072])
+    dark = ((colors @ luma) < fabric @ luma - 26).mean(axis=0)
+    fabric_hits = (np.linalg.norm(colors - fabric, axis=2) < 38).mean(axis=0)
+    for i in np.flatnonzero(dark >= 0.55):
+        if (
+            i >= 2
+            and i + 2 < len(offsets)
+            and min(fabric_hits[i - 2], fabric_hits[i + 2]) >= 0.65
+        ):
+            edges["rolledCuff"] = round(float(offsets[i]), 2)
+            break
+    return edges
+
+
 def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
     """Trace the leather opening, sole and visible ankle separately on an inked foot."""
     from .tracing import simplify_columns
@@ -394,33 +467,51 @@ def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
     if not contrasting:
         cols[:, 2] = np.maximum(cols[:, 1], cols[:, 3] - max(1, width * 0.025))
         sole = shoe * 0.72
-    cols[:, 1:] = ndimage.gaussian_filter1d(cols[:, 1:], 0.8, axis=0, mode="nearest")
-
-    # The family rig puts the floor at the end of the original whole-figure
-    # registration. Keep that anchor when a soft outer edge is removed.
+    ankle_x = round((axis + offset) / scale + center) - x0
+    trousers = np.array(list(bytes.fromhex(outfit["trousers"][1:])))
+    traced = inked_foot_columns(
+        patch,
+        figure,
+        paper,
+        upper,
+        shoe,
+        trousers,
+        ankle_x,
+        radius / scale,
+        contrasting,
+    )
+    if traced is None:
+        # A solid boot can lack a separate ankle. Preserve its painted upper.
+        hem = 0
+        cols = np.column_stack((cols[:, 0], cols[:, 1], cols[:, 1:]))
+    else:
+        cols, hem = traced
+    cols[:, 1:] = ndimage.gaussian_filter1d(
+        ndimage.median_filter(cols[:, 1:], size=(3, 1)), 0.72, axis=0, mode="nearest"
+    )
+    # Keep the floor registered to the whole figure after discarding its paper halo.
     floor = np.where(figure)[0].max()
-    foot_scale = min(1.25, floor / max(1, cols[:, 3].max()))
+    foot_scale = min(1.25, (floor - hem) / max(1, cols[:, 4].max() - hem))
 
     def level(y):
-        return (y * foot_scale + y0 - crown) * scale + 12
+        return (hem + (y - hem) * foot_scale + y0 - crown) * scale + 12
 
     def lateral(x):
         return (x + x0 - center) * scale - offset
 
-    rows = simplify_columns(cols[:, 0], cols[:, 1:], 14, max(0.65, width * 0.012))
-    if len(rows) < 3:
-        return
-    sections["outsole"] = {
-        "rows": np.column_stack((lateral(rows[:, 0]), level(rows[:, 1:])))
+    # Decimate the ankle and leather together. Thinning the leather first
+    # can skip the column at which a low-cut shoe exposes the instep.
+    rows = simplify_columns(cols[:, 0], cols[:, 1:], 20, max(0.55, width * 0.011))
+    outsole = {
+        "rows": np.column_stack((lateral(rows[:, 0]), level(rows[:, 2:])))
         .round(2)
         .tolist(),
         "color": paint(sole),
     }
-    # The 3-D foot takes its depth and bone from the original foot block.
-    # Only its transverse limits come from the painted shoe, excluding the ankle.
+    sections["outsole"] = outsole
     shoe_rows = []
-    for y in np.linspace(cols[:, 1].min() + 0.1, cols[:, 3].max() - 0.3, 10):
-        xs = cols[(cols[:, 1] <= y) & (cols[:, 3] >= y), 0]
+    for y in np.linspace(cols[:, 2].min() + 0.1, cols[:, 4].max() - 0.3, 10):
+        xs = cols[(cols[:, 2] <= y) & (cols[:, 4] >= y), 0]
         if len(xs) > 1:
             shoe_rows.append(
                 [
@@ -432,14 +523,17 @@ def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
     if len(shoe_rows) >= 4:
         sections["shoe"] = np.round(shoe_rows, 2).tolist()
 
+    if (level(rows[:, 2]) - level(rows[:, 1]) > 1).sum() < 2:
+        return
+    if hem > 0 and level(hem + 1) > sections["leg"][-2][0]:
+        sections["leg"][-1][0] = round(float(level(hem + 1)), 2)
     # Sample inside the cuff along the shin axis. A pale sock must have
     # visible ink on both sides so blank paper cannot become clothing.
-    ankle_x = round((axis + offset) / scale + center) - x0
     near = cols[abs(cols[:, 0] - ankle_x) <= max(2, radius / scale * 0.25)]
     if not len(near):
         return
     ankle = []
-    for y in range(1, min(len(patch), round(np.median(near[:, 1])))):
+    for y in range(1, min(len(patch), round(np.median(near[:, 2])))):
         reach = max(2, round(radius / scale * 1.1))
         lo, hi = max(0, ankle_x - reach), min(patch.shape[1], ankle_x + reach + 1)
         if not lo < ankle_x < hi - 1:
@@ -457,35 +551,56 @@ def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
         dye = np.median(ankle, axis=0)
         if np.linalg.norm(dye - skin) > 45 and np.linalg.norm(dye - shoe) > 45:
             ankle_paint = dye
-    # Trace a single continuous upper from the cuff to the outsole. When
-    # a column has no ankle above the shoe, its leather meets at the crest.
-    # This also handles a low-cut flat whose sides rise around the instep.
-    tops = []
-    for x, top, _, _ in rows:
-        n = max(0, int(top))
-        col = round(x)
-        dyed = (np.linalg.norm(patch[:n, col] - ankle_paint, axis=1) < 47) & figure[
-            :n, col
-        ]
-        if np.linalg.norm(ankle_paint - paper) < 72:
-            # Pale socks occupy the strip between the inked sides of the
-            # ankle. Paper outside that strip can have identical pigment.
-            for y in np.flatnonzero(dyed):
-                reach = max(3, round(radius / scale * 1.15))
-                lo, hi = max(0, ankle_x - reach), min(patch.shape[1], ankle_x + reach)
-                dyed[y] = (
-                    lo <= col <= hi
-                    and edge[y, lo:col].any()
-                    and edge[y, col + 1 : hi].any()
-                )
-        hits = np.flatnonzero(dyed)
-        exposed = len(hits) >= 2 and n - hits[-1] <= max(4, width * 0.09)
-        start = top
-        if exposed:
-            start = -2 if hits[0] <= 3 else hits[0] - 1
-        tops.append(round(min(float(level(start)), float(level(top))), 2))
-    if sum(t < r[1] - 1 for t, r in zip(tops, sections["outsole"]["rows"])) >= 2:
-        sections["outsole"]["collar"] = {"tops": tops, "color": paint(ankle_paint)}
+    outsole["collar"] = {
+        "tops": level(rows[:, 1]).round(2).tolist(),
+        "color": paint(ankle_paint),
+    }
+
+
+def inked_foot_columns(
+    patch, figure, paper, leather, shoe, trousers, ankle_x, radius, contrasting
+):
+    """Follow connected ink from a measured trouser hem down to the floor."""
+    ys, xs = np.where(leather)
+    width = np.ptp(xs) + 1
+    x = np.arange(patch.shape[1])
+    near_foot = (x >= xs.min() - width * 0.12) & (x <= xs.max() + width * 0.12)
+    ink = (np.abs(patch - paper).max(axis=2) > 62) & figure & near_foot
+    shin = abs(x - ankle_x) <= max(2, radius * 0.65)
+    if not shin.any():
+        return None
+    dyed = np.linalg.norm(patch[: ys.min() + 1, shin] - trousers, axis=2) < 46
+    cuffs = np.flatnonzero(dyed.mean(axis=1) > 0.38)
+    hem = int(cuffs[-1] + 1) if len(cuffs) else 0
+
+    labels, count = ndimage.label(ink[hem:], np.ones((3, 3)))
+    if not count:
+        return None
+    overlap = np.bincount(labels[leather[hem:]], minlength=count + 1)
+    overlap[0] = 0
+    if overlap.max() < leather.sum() * 0.5:
+        return None
+    foot = np.zeros_like(figure)
+    foot[hem:] = labels == overlap.argmax()
+    # Pale socks and soles can match the paper between their two inked sides.
+    for y in np.flatnonzero(foot.any(axis=1)):
+        occupied = np.flatnonzero(foot[y])
+        foot[y, occupied[0] : occupied[-1] + 1] = True
+    luma = np.array([0.213, 0.715, 0.072])
+    near_leather = ndimage.distance_transform_edt(~leather) < max(2.2, width * 0.054)
+    upper = (leather | (near_leather & (patch @ luma < shoe @ luma - 16))) & foot
+    cols = []
+    for x in np.flatnonzero(upper.any(axis=0)):
+        crest, floor = np.flatnonzero(foot[:, x])[[0, -1]]
+        top, seam = np.flatnonzero(upper[:, x])[[0, -1]]
+        if floor <= crest:
+            continue
+        if not contrasting:
+            seam = max(top, floor - max(1, width * 0.025))
+        cols.append((x, crest, top, seam, floor))
+    if len(cols) < max(7, width * 0.72):
+        return None
+    return np.asarray(cols, dtype=float), hem
 
 
 def fit_front(source, name):
@@ -767,6 +882,17 @@ def fit_front(source, name):
     if has_ink_outline(rgb, mask, (left, top, right, floor)):
         family["penOutline"] = True
         inked_sections(rgb, mask, center, crown, scale, arm_y, samples, family["body"])
+        edges = garment_edges(
+            rgb,
+            center,
+            crown,
+            scale,
+            family["body"],
+            pigment(rgb, samples["shirt"]),
+            pigment(rgb, samples["trousers"]),
+        )
+        if edges:
+            family["body"]["sections"]["garmentEdges"] = edges
         fit_footwear(
             rgb, mask, center, crown, scale, family["body"], body["outfit"], skin
         )
