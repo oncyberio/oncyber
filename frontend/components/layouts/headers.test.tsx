@@ -238,3 +238,13 @@ test("the share card's size is claimed only where the share card is the image", 
     expect(width("/spaces/[id]", { id: "abc" })).toBeUndefined();
     expect(showsOwnImage("/about")).toBe(false);
 });
+
+test("a page that found nothing names no address", () => {
+    mockRouter = { pathname: "/", query: {} };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<Headers notFound />));
+    expect(container.querySelector('link[rel="canonical"]')).toBeNull();
+    expect(container.querySelector('meta[property="og:url"]')).toBeNull();
+    act(() => root.unmount());
+});

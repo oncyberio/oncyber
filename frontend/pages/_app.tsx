@@ -170,7 +170,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
     if (isGL)
         return (
             <>
-                <Headers />
+                <Headers notFound={!!pageProps?.notFound} />
                 <Component {...pageProps} />
             </>
         );
@@ -179,7 +179,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
         <ThemeProvider>
             <I18nProvider>
                 <SnackbarProvider>
-                    <Headers />
+                    <Headers notFound={!!pageProps?.notFound} />
                     <UserProvider {...pageProps}>
                         <OnboardingProvider>
                             <AIProvider>

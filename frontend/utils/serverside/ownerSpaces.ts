@@ -57,7 +57,8 @@ export function spaceLinks(
 export async function ownerSpaceLinks(
     ownerId: string,
     exceptId: string,
-    store = db
+    store = db,
+    { read = OWNER_SPACES_READ, listed = OWNER_SPACES_LISTED } = {}
 ): Promise<OwnerSpaceLink[]> {
     if (!ownerId) return [];
     try {
@@ -65,15 +66,44 @@ export async function ownerSpaceLinks(
             .collection("exhibits")
             .where("owner", "==", ownerId)
             .select(...FIELDS)
-            .limit(OWNER_SPACES_READ)
+            .limit(read)
             .get();
         return spaceLinks(
             snapshot.docs
                 .filter((doc) => doc.id !== exceptId)
-                .map((doc) => ({ id: doc.id, data: doc.data() }))
+                .map((doc) => ({ id: doc.id, data: doc.data() })),
+            listed
         );
     } catch (error) {
         console.error("[owner spaces]", error?.message || error);
         return [];
     }
+}
+
+/** Most spaces read for, and listed on, a profile link's page. */
+export const PROFILE_SPACES_READ = 30;
+export const PROFILE_SPACES_LISTED = 24;
+
+const PROFILE_CACHE_MS = 10 * 60 * 1000;
+const profileCache = new Map<string, { at: number; links: OwnerSpaceLink[] }>();
+
+/**
+ * A person's public spaces, for the links their profile page carries in
+ * its HTML. One bounded read, kept ten minutes per server.
+ */
+export async function profileSpaceLinks(
+    ownerId: string,
+    store = db,
+    now = Date.now()
+): Promise<OwnerSpaceLink[]> {
+    if (!ownerId) return [];
+    const hit = profileCache.get(ownerId);
+    if (hit && now - hit.at < PROFILE_CACHE_MS) return hit.links;
+    const links = await ownerSpaceLinks(ownerId, "", store, {
+        read: PROFILE_SPACES_READ,
+        listed: PROFILE_SPACES_LISTED,
+    });
+    if (profileCache.size >= 500) profileCache.clear();
+    profileCache.set(ownerId, { at: now, links });
+    return links;
 }

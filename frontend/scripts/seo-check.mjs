@@ -4,7 +4,7 @@
 // space's text is caught before it ships.
 //
 //   node scripts/seo-check.mjs https://www.oncyber.com
-//   node scripts/seo-check.mjs <preview url> --space /frahm-gallery
+//   node scripts/seo-check.mjs <preview url> --space /frahm-gallery --profile /@6529
 //
 // Without --space, three spaces are taken from the deployment's own
 // sitemap. Exit code 0 when every check passes, 1 when one fails.
@@ -101,6 +101,13 @@ export const PAGE_RULES = {
         ownDescription: true,
         summaryWords: 8,
         ownImage: true,
+    },
+    // /@name: the lobby with that person's panel, indexed as the person.
+    profile: {
+        canonical: "self",
+        types: ["ProfilePage"],
+        h1: true,
+        ownDescription: true,
     },
     template: {
         canonical: "self",
@@ -228,7 +235,7 @@ export async function main(argv) {
     );
     if (!origin) {
         console.error(
-            "Usage: node scripts/seo-check.mjs <origin> [--space /path]"
+            "Usage: node scripts/seo-check.mjs <origin> [--space /path] [--profile /@name]"
         );
         return 2;
     }
@@ -237,6 +244,7 @@ export async function main(argv) {
             .map((arg, index) => (arg === name ? argv[index + 1] : null))
             .filter(Boolean);
     const spaces = option("--space");
+    const profiles = option("--profile");
     if (!spaces.length) spaces.push(...(await spacesFromSitemap(origin, 3)));
 
     const home = await get(origin, "/");
@@ -259,6 +267,7 @@ export async function main(argv) {
         ["faq", "/docs/what-is-oncyber"],
         ["template", "/destinations/x1"],
         ...spaces.map((path) => ["space", path]),
+        ...profiles.map((path) => ["profile", path]),
         ["missing", "/this-link-does-not-exist-zz9"],
     ];
     let failed = 0;
@@ -272,7 +281,8 @@ export async function main(argv) {
         // The default title belongs to the home page.
         const failures = checkPage(kind, path, response, {
             ...defaults,
-            title: kind === "space" ? defaults.title : null,
+            title:
+                kind === "space" || kind === "profile" ? defaults.title : null,
         });
         if (failures.length) failed++;
         line(!failures.length, `${kind} ${path}`, failures.join("; "));

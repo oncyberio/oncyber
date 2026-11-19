@@ -1,7 +1,7 @@
 /** @jest-environment node */
 jest.mock("@utils/firebaseAdmin", () => ({ db: {} }));
 
-import { ownerSpaceLinks, spaceLinks } from "./ownerSpaces";
+import { ownerSpaceLinks, profileSpaceLinks, spaceLinks } from "./ownerSpaces";
 
 const doc = (id: string, data: any) => ({ id, data });
 
@@ -81,5 +81,34 @@ describe("ownerSpaceLinks", () => {
             } as any)
         ).toEqual([]);
         error.mockRestore();
+    });
+});
+
+describe("profileSpaceLinks", () => {
+    it("reads a person's spaces once, then answers from memory for a while", async () => {
+        const calls = { count: 0 };
+        const query: any = {
+            where: jest.fn(() => query),
+            select: jest.fn(() => query),
+            limit: jest.fn(() => query),
+            get: jest.fn(async () => {
+                calls.count++;
+                return {
+                    docs: [doc("a", { info: { headline: "One" } })].map(
+                        ({ id, data }) => ({ id, data: () => data })
+                    ),
+                };
+            }),
+        };
+        const db = { collection: jest.fn(() => query) } as any;
+        expect(await profileSpaceLinks("0xprofile", db, 1000)).toEqual([
+            { id: "a", name: "One", path: "/spaces/a" },
+        ]);
+        expect(query.limit).toHaveBeenCalledWith(30);
+        await profileSpaceLinks("0xprofile", db, 1000 + 9 * 60 * 1000);
+        expect(calls.count).toBe(1);
+        await profileSpaceLinks("0xprofile", db, 1000 + 11 * 60 * 1000);
+        expect(calls.count).toBe(2);
+        expect(await profileSpaceLinks("", db)).toEqual([]);
     });
 });

@@ -147,7 +147,9 @@ function LandingContent(props: LandingPageProps) {
     const { t } = useCyberTranslation();
     const grid = useMobileLayout() ? MOBILE_GRID : GRID;
     const router = useRouter();
-    const inLobby = router.query.lobby === "1";
+    // A profile link to nobody carries ?lobby=1 too (see next.config.js);
+    // its page is the not-found search, not the lobby.
+    const inLobby = router.query.lobby === "1" && !props.notFound;
     const [browseVisible, setBrowseVisible] = useState(!inLobby);
     const [lobbyReady, setLobbyReady] = useState(false);
     const [lobbyClosing, setLobbyClosing] = useState(false);
@@ -181,7 +183,7 @@ function LandingContent(props: LandingPageProps) {
     const visitedProfile =
         typeof router.query.profile === "string" ? props.profile : undefined;
     const closeProfile = useCallback(() => {
-        const { profile, ...query } = router.query;
+        const { profile, profileLink, ...query } = router.query;
         void router.replace({ pathname: router.pathname, query }, undefined, {
             shallow: true,
             scroll: false,
@@ -669,6 +671,12 @@ function LandingContent(props: LandingPageProps) {
             <h1 className="landing-title">
                 {props.notFound?.query
                     ? `Could not find \u201c${props.notFound.query}\u201d`
+                    : visitedProfile
+                    ? `${
+                          visitedProfile.username
+                              ? `@${visitedProfile.username}`
+                              : visitedProfile.id
+                      } on oncyber`
                     : "oncyber: explore 3D spaces, galleries and worlds"}
             </h1>
             {loadTemplates && !inLobby && (
@@ -910,6 +918,11 @@ function LandingContent(props: LandingPageProps) {
                     )}
                     <noscript>
                         <FallbackLinks>
+                            {/* The footer is drawn in the browser; this is
+                                its about link for whoever reads the HTML. */}
+                            <a href="/about">
+                                <span>About Oncyber</span>
+                            </a>
                             {[
                                 ...props.initialFeed.cards,
                                 ...(props.notFound?.sections ?? []),

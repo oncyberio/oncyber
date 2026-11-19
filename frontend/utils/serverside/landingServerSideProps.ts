@@ -14,6 +14,9 @@ import {
     fetchUserByWalletId,
 } from "@api/accounts/user/utils";
 import { findProfile } from "./visitedProfile";
+import { notFoundLanding } from "./notFoundLanding";
+import { profileSpaceLinks } from "./ownerSpaces";
+import { profileHandle } from "@utils/profileSeo";
 import {
     FeedCategory,
     LandingFeed,
@@ -175,13 +178,53 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
                   )
                 : null,
         ]);
+        const auth =
+            authResult.status === "fulfilled"
+                ? authResult.value.props
+                : { authenticated: false };
+        // The name came from a profile link (/@name, see next.config.js).
+        if (context.query.profileLink === "1") {
+            const asked = String(context.query.profile ?? "");
+            // Nobody by that name: a real 404, searching for the name.
+            if (!profile) {
+                const {
+                    lobby,
+                    profile: _name,
+                    profileLink,
+                    ...rest
+                } = context.query;
+                return {
+                    props: {
+                        ...auth,
+                        ...(await notFoundLanding(
+                            context.res,
+                            rest,
+                            `/@${asked}`
+                        )),
+                    },
+                };
+            }
+            // One address per person: their username when they have one.
+            const handle = profileHandle(profile);
+            if (handle && handle !== asked.replace(/^@/, ""))
+                return {
+                    redirect: {
+                        destination: `/@${encodeURIComponent(handle)}`,
+                        permanent: true,
+                    },
+                };
+        }
         return {
             props: {
-                ...(authResult.status === "fulfilled"
-                    ? authResult.value.props
-                    : { authenticated: false }),
+                ...auth,
                 ...feedProps,
-                ...(profile ? { profile } : {}),
+                ...(profile
+                    ? {
+                          profile,
+                          // Their spaces, as links in the page's HTML.
+                          profileSpaces: await profileSpaceLinks(profile.id),
+                      }
+                    : {}),
             },
         };
     });

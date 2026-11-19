@@ -110,12 +110,17 @@ export function defaultCanonical(pathname: string): string | null {
     return path ? searchUrl(path) : null;
 }
 
-export default function Headers() {
+export default function Headers({
+    notFound = false,
+}: {
+    /** The page answers 404: it names no address for search engines. */
+    notFound?: boolean;
+} = {}) {
     const shareImage = `${
         process.env.NEXT_PUBLIC_SITE_ORIGIN || "http://localhost:13000"
     }${SHARE_IMAGE_PATH}`;
     const router = useRouter();
-    const canonical = defaultCanonical(router?.pathname);
+    const canonical = notFound ? null : defaultCanonical(router?.pathname);
     const ownImage = showsOwnImage(router?.pathname, router?.query?.slug);
     const page = PAGE_META[router?.pathname];
     const title = page?.title || SITE_TITLE;

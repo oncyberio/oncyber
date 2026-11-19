@@ -368,6 +368,17 @@ const nextConfig = {
             },
         ];
 
+        // A profile link (/@name) is the lobby with that person's panel
+        // open: the address stays /@name, so it is the page search engines
+        // index. `profileLink` tells the page the name came from a link, so
+        // an unknown one answers 404 (utils/serverside/landingServerSideProps).
+        const profileRewrites = [
+            {
+                source: "/@:name",
+                destination: "/?lobby=1&profile=:name&profileLink=1",
+            },
+        ];
+
         // Docs as plain text for agents (see features/docs/content.ts).
         const docsRewrites = [
             { source: "/llms.txt", destination: "/api/docs/llms" },
@@ -396,6 +407,7 @@ const nextConfig = {
                         source: "/template",
                         destination: "/marketplace",
                     },
+                    ...profileRewrites,
                     ...sitemapRewrites,
                     ...docsRewrites,
                     ...posthogRewrites,
@@ -409,6 +421,7 @@ const nextConfig = {
                 source: "/templates",
                 destination: "/marketplace",
             },
+            ...profileRewrites,
             ...sitemapRewrites,
             ...docsRewrites,
             ...posthogRewrites,
