@@ -5,6 +5,7 @@ import families from "./families.json";
 
 import { drawDigit } from "./humanoidParts";
 import { fitCoatRow } from "./coatPanels";
+import { prepareCoatShadow } from "./garmentPrint";
 import { finish } from "./surfaces";
 import type { Point } from "./sculpt";
 import type { AvatarRecipe } from "./recipes";
@@ -422,7 +423,10 @@ export function drawFittedAvatar(
                     d.s.line(rows[0], 0.53, lapels.color);
                 }
             } else {
+                d.s.coatShadow = section.name === "coat";
+                if (d.s.coatShadow) prepareCoatShadow();
                 d.s.surface(rows, paint);
+                d.s.coatShadow = false;
                 if (outlined && lapels && section.name === "sleeve") {
                     // Meridians on the actual cuff-to-shoulder surface carry
                     // the two long pen strokes of an illustrated sleeve.

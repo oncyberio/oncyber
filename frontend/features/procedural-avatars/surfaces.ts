@@ -1,9 +1,10 @@
 import * as N from "three/tsl";
-import { garmentInk } from "./garmentPrint";
+import { coatShadowUV, garmentInk } from "./garmentPrint";
 
 /** The integer part of U identifies the finish or printed fabric.
  * Suppress subpixel marks as the avatar recedes to avoid shimmering in crowds. */
 export const finish = { enamel: 0, skin: 1, fiber: 2, cloth: 3 } as const;
+export const coatUVBase = 43;
 // Both crease tiles retain the skin finish in their low three bits.
 export const creaseUVBase = 41,
     frontalCreaseUVBase = 49;
@@ -30,13 +31,20 @@ export function portraitDirection() {
 type Direction = ReturnType<typeof N.transformNormalToView>;
 export function surfaceGrain(toView?: (n: Direction) => Direction) {
     const uv = N.uv();
+    const coat = uv.x
+        .greaterThanEqual(coatUVBase)
+        .and(uv.x.lessThan(coatUVBase + 1));
     const orbSurface = uv.x.lessThan(-48);
     const penOutline = uv.x.lessThan(-16).and(orbSurface.not());
     const st = N.vec2(
         N.select(
             orbSurface,
             uv.x.add(64),
-            N.select(penOutline, uv.x.add(48), uv.x)
+            N.select(
+                penOutline,
+                uv.x.add(48),
+                N.select(coat, uv.x.sub(coatUVBase - 19), uv.x)
+            )
         ),
         uv.y
     );
@@ -141,7 +149,20 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
     );
     // The engine multiplies colorNode by linear vertex paint after this step.
     // The ink replaces the fabric pigment while keeping its modeled lighting.
-    const ink = N.texture(garmentInk, N.vec2(N.fract(st.x), st.y));
+    // Fold at each vertex before interpolation. The welded seam goes from 1
+    // to 0 along the lining and both endpoints must sample the same clear ink.
+    const acrossCoat = N.abs(uv.y.mul(2).sub(1)).mul(
+        N.mix(1.12, 0.86, N.smoothstep(0.42, 0.62, uv.y))
+    );
+    const coatSample = N.varying(
+        N.vec2(N.min(acrossCoat, 1), u)
+            .mul(N.vec2(...coatShadowUV.span))
+            .add(N.vec2(...coatShadowUV.origin))
+    );
+    const ink = N.texture(
+        garmentInk,
+        N.select(coat, coatSample, N.vec2(u, st.y))
+    );
     const dye = N.vertexColor().rgb;
     const inkLight = N.smoothstep(-0.6, 1, N.normalView.y).mul(0.16).add(0.84);
     const pigment = N.mix(
@@ -242,7 +263,7 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
             )
         )
         .mul(lining)
-        .mul(N.select(printed, pigment, N.vec3(1)));
+        .mul(N.select(printed.or(coat), pigment, N.vec3(1)));
     const inset = st.x.greaterThanEqual(insetPupilUVBase);
     // Interpolate the skinned 3D offset before measuring distance to the view
     // ray. The globe and lids clip the round pigment at their real silhouettes.

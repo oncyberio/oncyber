@@ -3,6 +3,8 @@ import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json"
 import rigMap from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/baker/rigmap";
 import { bakeAvatarAnimation } from "@components/_3DExhibit-v2/three/factory/artwork/meshes/model/avatarAnimations";
 import { buildCharacter } from "./buildCharacter";
+import { coatShadowUV, garmentInk } from "./garmentPrint";
+import { coatUVBase } from "./surfaces";
 import { roundedProfileRows, type RoundedSection } from "./shapeRecipe";
 import { defineLook, type AvatarRecipe } from "./recipes";
 import { cartoonCast } from "./cartoonCast";
@@ -321,6 +323,41 @@ test("Rick’s lining and lit coat retain the source swatch on identical study g
     disposeAvatarGraph(study.scene);
     disposeAvatarGraph(painted.scene);
 });
+
+test.each(["full", "crowd"] as const)(
+    "Rick's %s coat has shaded folds and clear lining on the shared material",
+    (detail) => {
+        const rig = buildCharacter("rick-classic", detail);
+        const mesh = rig.scene.getObjectByProperty(
+            "isSkinnedMesh",
+            true
+        ) as T.SkinnedMesh;
+        const uv = mesh.geometry.attributes.uv;
+        const coat = Array.from({ length: uv.count }, (_, i) => i).filter(
+            (i) => Math.floor(uv.getX(i)) === coatUVBase
+        );
+        expect(coat.length).toBeGreaterThan(50);
+        expect(mesh.geometry.groups).toHaveLength(0);
+        const tile = garmentInk.image;
+        const shadow = (across: number, down: number) => {
+            const x = Math.floor(
+                (coatShadowUV.origin[0] + coatShadowUV.span[0] * across) *
+                    tile.width
+            );
+            const y = Math.floor(
+                (coatShadowUV.origin[1] + coatShadowUV.span[1] * down) *
+                    tile.height
+            );
+            return tile.data[(y * tile.width + x) * 4 + 3];
+        };
+        expect(shadow(0, 0.12)).toBeGreaterThan(shadow(0.14, 0.12) + 30);
+        expect(shadow(0.15, 0.79)).toBeGreaterThan(shadow(0.075, 0.79) + 35);
+        expect(shadow(0.15, 1)).toBeLessThan(shadow(0.15, 0.79) / 2);
+        expect(shadow(0.6, 0.8)).toBe(0);
+        expect(shadow(1, 0.5)).toBe(0);
+        disposeAvatarGraph(rig.scene);
+    }
+);
 
 test("the fitted undershirt stays a closed skinned surface after simplification", () => {
     const rig = buildCharacter({

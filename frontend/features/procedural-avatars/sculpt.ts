@@ -1,7 +1,13 @@
 import { createHandItems, type Hand, type GripOptions } from "./handItems";
 import { createGazePose, type PupilSpan } from "./gazePose";
 import { retopologize } from "./retopology";
-import { surfaceGrain, finish, pupilUVBase, type Finish } from "./surfaces";
+import {
+    coatUVBase,
+    surfaceGrain,
+    finish,
+    pupilUVBase,
+    type Finish,
+} from "./surfaces";
 import * as T from "three/webgpu";
 import * as N from "three/tsl";
 
@@ -102,6 +108,7 @@ export class Sculpt {
     private smoothNormals = new Map<number, Point>();
     surfaceNormal?: (x: number, y: number, z: number) => Point;
     lined = false;
+    coatShadow = false;
     illustrationInk = false;
     sculptedCartoon = false;
     inkedPortrait = false;
@@ -599,6 +606,8 @@ export class Sculpt {
                             : this.penOutline
                             ? -24
                             : 24;
+                else if (this.coatShadow)
+                    this.uvs[this.uvs.length - 2] += coatUVBase - finish.cloth;
                 else if (this.sourcePaint)
                     this.uvs[this.uvs.length - 2] += this.penOutline ? -32 : 16;
                 else if (this.illustrationInk)

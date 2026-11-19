@@ -28,6 +28,7 @@ const APP_PATHS = [
     "landing-carousel",
     "marketplace",
     "mints",
+    "preview",
     "privacy",
     "sitemap.xml",
     "spaces",

@@ -199,10 +199,58 @@ export function portraitInk(id: keyof typeof portraits) {
 
 const bandTiles = {
     armor: [0, 704, 144, 32],
-    lens: [144, 704, 96, 32],
+    // The lens is a one-dimensional ramp sampled at its middle row.
+    lens: [144, 704, 96, 8],
     barrel: [240, 704, 144, 32],
     vest: [384, 704, 128, 32],
 } satisfies Record<string, Tile>;
+// The spare rows below the lens hold a grayscale shadow mask in alpha. Both
+// garment sides and all instances share it, including recolored lab coats.
+const coatTile: Tile = [144, 712, 96, 24];
+export const coatShadowUV = {
+    origin: [(coatTile[0] + 2.5) / size, (coatTile[1] + 1.5) / atlasHeight],
+    span: [(coatTile[2] - 5) / size, (coatTile[3] - 3) / atlasHeight],
+} as const;
+let coatShadowReady = false;
+export function prepareCoatShadow() {
+    if (coatShadowReady) return;
+    const [left, top, width, height] = coatTile;
+    const soft = (distance: number, radius: number) =>
+        Math.exp(-((distance / radius) ** 2));
+    for (let j = 0; j < height; j++) {
+        const down = T.MathUtils.clamp((j - 1) / (height - 3), 0, 1);
+        const skirt = T.MathUtils.smoothstep(down, 0.31, 0.79);
+        const hem = 1 - T.MathUtils.smoothstep(down, 0.83, 1);
+        for (let i = 0; i < width; i++) {
+            // Centre back is zero. The cloth wraps toward the armhole, then
+            // the front lip, then back along the lining as this value grows.
+            const across = T.MathUtils.clamp((i - 2) / (width - 5), 0, 1);
+            const collar =
+                soft(across, 0.115) * soft(down - 0.12 + across * 0.19, 0.086);
+            const armhole =
+                soft(across - 0.32 + down * 0.23, 0.059) *
+                soft(down - 0.28, 0.22);
+            const seam = soft(across, 0.025 + down * 0.008);
+            const pleat = soft(
+                across - 0.072 - 0.1 * down,
+                0.029 + down * 0.013
+            );
+            const flank = soft(across - 0.31, 0.07) * soft(down - 0.74, 0.42);
+            const rear = 1 - T.MathUtils.smoothstep(across, 0.32, 0.45);
+            const shadow =
+                rear *
+                (0.3 * collar +
+                    0.21 * armhole +
+                    hem * ((0.04 + 0.1 * skirt) * seam + 0.3 * skirt * pleat) +
+                    0.1 * flank);
+            pixels[4 * ((top + j) * size + left + i) + 3] = Math.round(
+                255 * shadow
+            );
+        }
+    }
+    coatShadowReady = true;
+    garmentInk.needsUpdate = true;
+}
 const bands = new Set<string>();
 /** Small shared pigment strips for repeating bands and hardware. */
 export function paintStrip(
