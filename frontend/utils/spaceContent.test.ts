@@ -4,6 +4,7 @@ import {
     spaceContent,
     SPACE_CONTENT_LIMITS,
     uploadName,
+    withoutContents,
 } from "./spaceContent";
 
 const text = (value: string) => ({
@@ -213,5 +214,78 @@ describe("siblings", () => {
                 ],
             }).siblings
         ).toEqual([{ id: "a", name: "Frahm Flow", path: "/frahm-flow" }]);
+    });
+});
+
+describe("review fixes", () => {
+    it("leaves out a date no calendar holds instead of failing the page", () => {
+        const content = spaceContent({
+            createdAt: 1e20,
+            lastUpdatedAt: { _seconds: 1700000000 },
+        });
+        expect(content.created).toBeUndefined();
+        expect(content.modified).toBe("2023-11-14");
+    });
+
+    it("uses a work's original image when its preview is not a web address", () => {
+        const { artworks } = spaceContent({
+            artworks: {
+                a: nft({
+                    name: "One",
+                    image_preview_url: "ipfs://preview",
+                    image_url: "https://example.com/one.png",
+                }),
+                b: nft({
+                    name: "Two",
+                    image_preview_url: "https://example.com/two-small.png",
+                    image_url: "https://example.com/two.png",
+                }),
+            },
+        });
+        expect(artworks.map((work) => work.image)).toEqual([
+            "https://example.com/one.png",
+            "https://example.com/two-small.png",
+        ]);
+    });
+
+    it("links only to the creator's spaces on this site", () => {
+        const { siblings } = spaceContent({
+            id: "self",
+            ownerSpaces: [
+                { id: "a", name: "Fine", path: "/fine" },
+                { id: "b", name: "Other host", path: "//evil.example" },
+                { id: "c", name: "Backslash", path: "/\\evil.example" },
+                { id: "d", name: "No slash", path: "evil.example" },
+            ],
+        });
+        expect(siblings.map((link) => link.id)).toEqual(["a"]);
+    });
+
+    it("a gated space keeps its name and description and loses what is inside", () => {
+        const space = {
+            id: "s",
+            number_of_visits: 12,
+            info: { headline: "Members Only", description: "By invitation." },
+            artworks: {
+                a: text("The secret story on the wall"),
+                b: nft({ name: "Hidden Work" }),
+            },
+            portals: { p: { exhibitId: "ABCDEFGHIJKLMNOP" } },
+            ownerSpaces: [{ id: "x", name: "Other", path: "/other" }],
+            artistSearch: { names: ["Hidden Artist"] },
+        };
+        const shown = withoutContents(space);
+        expect(shown.info).toEqual(space.info);
+        expect(spaceContent(shown)).toEqual({
+            texts: [],
+            artworks: [],
+            artists: [],
+            portals: [],
+            siblings: [],
+            visits: 12,
+        });
+        // The space itself is not changed.
+        expect(spaceContent(space).texts).toHaveLength(1);
+        expect(withoutContents(null)).toBeNull();
     });
 });

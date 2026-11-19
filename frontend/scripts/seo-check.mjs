@@ -228,6 +228,15 @@ async function spacesFromSitemap(origin, count) {
     return [];
 }
 
+/** The domains people and search engines know the site by. */
+export function isProductionOrigin(origin) {
+    try {
+        return /^(www\.)?oncyber\.(com|io)$/i.test(new URL(origin).hostname);
+    } catch {
+        return false;
+    }
+}
+
 export async function main(argv) {
     const origin = (argv.find((arg) => /^https?:\/\//.test(arg)) || "").replace(
         /\/+$/,
@@ -245,7 +254,10 @@ export async function main(argv) {
             .filter(Boolean);
     const spaces = option("--space");
     const profiles = option("--profile");
-    if (!spaces.length) spaces.push(...(await spacesFromSitemap(origin, 3)));
+    // With no space named, three from the deployment's own sitemap. None
+    // found there is a failure, reported with the rest below.
+    const discovered = !spaces.length;
+    if (discovered) spaces.push(...(await spacesFromSitemap(origin, 3)));
 
     const home = await get(origin, "/");
     const homePage = readPage(home.html);
@@ -274,6 +286,15 @@ export async function main(argv) {
         console.log(
             `${ok ? "ok  " : "FAIL"} ${label}${detail ? `: ${detail}` : ""}`
         );
+
+    if (discovered && !spaces.length) {
+        failed++;
+        line(
+            false,
+            "spaces",
+            "the sitemap lists no space to check; name one with --space"
+        );
+    }
 
     for (const [kind, path] of pages) {
         const response = path === "/" ? home : await get(origin, path);
@@ -315,10 +336,21 @@ export async function main(argv) {
         line(ok, path, ok ? "" : `status ${response.status}, ${response.type}`);
     }
 
-    if (/noindex/i.test(home.robotsHeader))
-        console.log(
-            "note the whole deployment answers X-Robots-Tag: noindex (expected on previews, never on production)"
-        );
+    // A preview is kept out of search with this header; production with
+    // it would drop out of search entirely.
+    if (/noindex/i.test(home.robotsHeader)) {
+        if (isProductionOrigin(origin)) {
+            failed++;
+            line(
+                false,
+                "X-Robots-Tag",
+                "the production site answers noindex on every page"
+            );
+        } else
+            console.log(
+                "note the whole deployment answers X-Robots-Tag: noindex (expected on previews, never on production)"
+            );
+    }
     console.log(failed ? `\n${failed} failed` : "\nAll checks passed");
     return failed ? 1 : 0;
 }

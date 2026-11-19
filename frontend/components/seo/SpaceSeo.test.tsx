@@ -119,3 +119,21 @@ test("a page that shows one work by its id keeps the id in its address", () => {
         searchUrl("/art-blocks?id=172000777")
     );
 });
+
+test("a visitor the gate turns away is told the space's name, not what is inside", () => {
+    const html = renderToStaticMarkup(
+        <SpaceSeo experience={gallery} ownerName="frahm" gated />
+    );
+    expect(html).toContain("<title>Frahm Gallery</title>");
+    expect(html).toContain("Premium frames.");
+    // Neither the works nor the words on the walls.
+    expect(html).not.toContain("Frame 1");
+    expect(html).not.toContain("kunstkennerey");
+    expect(html).not.toContain("Welcome to the gallery");
+    // The same space, admitted, says all of it.
+    const open = renderToStaticMarkup(
+        <SpaceSeo experience={gallery} ownerName="frahm" />
+    );
+    expect(open).toContain("Frame 1");
+    expect(open).toContain("Welcome to the gallery");
+});

@@ -8,16 +8,16 @@ else; don't add a brand or a suffix to it.
 
 ## What each page carries
 
-| Page                                  | Title and description                                 | Canonical                                   | Structured data                                                         | Text in the HTML                                                                               | Built in                                                                                             |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Home `/`                              | Site title, the landing's own description             | `/`                                         | Organization, WebSite, ItemList of the featured spaces                  | An h1; the featured spaces in `noscript`                                                       | `components/layouts/headers.tsx`, `pages/landing-carousel.tsx`                                       |
-| Space `/<link>`, `/spaces/<id>`       | The space's name; its description and who it features | Its link, with `?id=` on single-work spaces | WebPage, CreativeWork (works, wall text, visits, dates), BreadcrumbList | Name, creator, description, wall texts, works, artists, the creator's other spaces, portals    | `components/seo/SpaceSeo.tsx`, `utils/spaceSeo.ts`, `utils/spaceContent.ts`                          |
-| Template `/destinations/<slug>`, mint | The template's name and description                   | Itself                                      | WebPage                                                                 | Name, author, description                                                                      | `components/seo/DestinationSeo.tsx`                                                                  |
-| Docs `/docs/...`                      | The page's own                                        | Itself                                      | TechArticle, or FAQPage for a page with `faq: true`                     | The page                                                                                       | `pages/docs/[[...slug]].tsx`, `features/docs/content.ts`                                             |
-| About `/about`                        | Its own (`utils/siteMeta.ts`)                         | Itself                                      | AboutPage and FAQPage, one question per section of `content/about.md`   | The page: what Oncyber is, the questions and answers, links to Discord, X, GitHub and the docs | `pages/about.tsx`, `features/docs/content.ts`                                                        |
-| Profile link `/@name`                 | `@name on oncyber`; who they are and how many spaces  | `/@name`; a wallet link redirects to it     | ProfilePage, with the person's spaces                                   | The lobby with the person's panel open; an h1 and links to their public spaces                 | `components/seo/ProfileSeo.tsx`, `utils/profileSeo.ts`, `utils/serverside/landingServerSideProps.ts` |
-| `/privacy`, `/studio`                 | Their own (`utils/siteMeta.ts`)                       | Themselves                                  |                                                                         | The page                                                                                       | `components/layouts/headers.tsx`                                                                     |
-| A link that finds nothing             | `Could not find "…"`                                  | None; `noindex`; status 404                 |                                                                         | The landing, searching for the link's words                                                    | `utils/serverside/notFoundLanding.ts`                                                                |
+| Page                                  | Title and description                                 | Canonical                                   | Structured data                                                         | Text in the HTML                                                                                    | Built in                                                                                             |
+| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Home `/`                              | Site title, the landing's own description             | `/`                                         | Organization, WebSite, ItemList of the featured spaces                  | An h1; the featured spaces in `noscript`                                                            | `components/layouts/headers.tsx`, `pages/landing-carousel.tsx`                                       |
+| Space `/<link>`, `/spaces/<id>`       | The space's name; its description and who it features | Its link, with `?id=` on single-work spaces | WebPage, CreativeWork (works, wall text, visits, dates), BreadcrumbList | Name, creator, description, wall texts, works, artists, the creator's other spaces, portals         | `components/seo/SpaceSeo.tsx`, `utils/spaceSeo.ts`, `utils/spaceContent.ts`                          |
+| Template `/destinations/<slug>`, mint | The template's name and description                   | Itself                                      | WebPage                                                                 | Name, author, description                                                                           | `components/seo/DestinationSeo.tsx`                                                                  |
+| Docs `/docs/...`                      | The page's own                                        | Itself                                      | TechArticle, or FAQPage for a page with `faq: true`                     | The page                                                                                            | `pages/docs/[[...slug]].tsx`, `features/docs/content.ts`                                             |
+| About `/about`                        | Its own (`utils/siteMeta.ts`)                         | Itself                                      | AboutPage and FAQPage, one question per section of `content/about.md`   | The page: what Oncyber is, the questions and answers, community, social, source-code and docs links | `pages/about.tsx`, `features/docs/content.ts`                                                        |
+| Profile link `/@name`                 | `@name on oncyber`; who they are and how many spaces  | `/@name`; a wallet link redirects to it     | ProfilePage, with the person's spaces                                   | The lobby with the person's panel open; an h1 and links to their public spaces                      | `components/seo/ProfileSeo.tsx`, `utils/profileSeo.ts`, `utils/serverside/landingServerSideProps.ts` |
+| `/privacy`, `/studio`                 | Their own (`utils/siteMeta.ts`)                       | Themselves                                  |                                                                         | The page                                                                                            | `components/layouts/headers.tsx`                                                                     |
+| A link that finds nothing             | `Could not find "…"`                                  | None; `noindex`; status 404                 |                                                                         | The landing, searching for the link's words                                                         | `utils/serverside/notFoundLanding.ts`                                                                |
 
 Every address in a canonical, `og:url`, the sitemap and structured data is
 on the search origin (`NEXT_PUBLIC_SEARCH_ORIGIN`, see `utils/siteUrl.ts`).
@@ -50,6 +50,18 @@ memory for ten minutes. `next.config.js` serves `/@name` as the lobby
 missing link. Closing the panel leaves the lobby at `/?lobby=1`, whose
 canonical is the home page.
 
+## What a gated or hidden space shows
+
+A visitor the gate turns away (password, token, invitation) gets the
+space's name, creator and own description, and none of what is inside: no
+works, wall texts, portals or sibling links, in the HTML or the structured
+data. Search engines and assistants are such visitors.
+
+Links to a creator's other spaces are read ahead of time, so a space made
+private or unlisted can stay listed for a while: up to ten minutes on its
+creator's profile link, and up to a day on the pages of their other spaces
+(until each page's cached view is next filled).
+
 The about page is written in `frontend/content/about.md`. Each `##`
 heading that ends in a question mark becomes a question on the page, in
 its structured data and in `llms-full.txt`, so edit the answers there.
@@ -58,12 +70,17 @@ its structured data and in `llms-full.txt`, so edit the answers there.
 
 ```sh
 pnpm -C frontend check:seo https://www.oncyber.com
-pnpm -C frontend check:seo <preview url> --space /frahm-gallery
+pnpm -C frontend check:seo <preview url> --space /frahm-gallery --profile /@6529
 ```
 
-It fetches each kind of page and fails when one has lost its title,
-description, canonical, structured data, h1 or text, when a missing link
-stops answering 404, or when `robots.txt`, the sitemap or `llms.txt` break.
-Without `--space` it takes three spaces from the deployment's own sitemap.
+It fetches each kind of page and fails when one has lost what that kind
+carries: every page its title, one description and its canonical; spaces,
+profiles, the home page, docs and the about page their structured data;
+spaces and profiles their h1 and text. It also fails when a missing link
+stops answering 404, when `robots.txt`, the sitemap or `llms.txt` break,
+and when the production site answers `X-Robots-Tag: noindex` (previews are
+expected to). Without `--space` it takes three spaces from the deployment's
+own sitemap, and fails when the sitemap lists none. A profile is checked
+only when one is named with `--profile`.
 Run it on the preview before merging a change to any file in the table
 above.

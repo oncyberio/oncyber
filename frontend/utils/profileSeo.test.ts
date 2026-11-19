@@ -43,6 +43,10 @@ describe("profileSeo", () => {
         expect(seo.path).toBe(`/@${profile.id}`);
         expect(seo.image).toBeNull();
         expect(profileHandle({ id: "abc" })).toBe("abc");
+        // The wallet is what a nameless profile's link is looked up by.
+        expect(profileHandle({ id: "abc", walletId: "0xwallet" })).toBe(
+            "0xwallet"
+        );
     });
 
     it("is nothing without an account", () => {

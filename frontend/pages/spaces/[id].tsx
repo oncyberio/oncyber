@@ -68,6 +68,7 @@ export default function Exhibit(props: {
                     experience={props.experience}
                     destination={props.dest}
                     ownerName={props.experience.ownerName}
+                    gated={!!props.gatingError}
                 />
                 <EmbeddedExperience
                     key={props.experience.id}
@@ -253,6 +254,7 @@ function NativeExhibit({
                 experience={experience}
                 destination={destination}
                 ownerName={_experience?.ownerName}
+                gated={!!gatingError}
             />
 
             <Container>

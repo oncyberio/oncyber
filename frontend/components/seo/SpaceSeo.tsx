@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import JsonLd from "@components/JsonLd";
 import { searchUrl } from "@utils/siteUrl";
-import { spaceContent } from "@utils/spaceContent";
+import { spaceContent, withoutContents } from "@utils/spaceContent";
 import { spaceSeo } from "@utils/spaceSeo";
 import { spaceShareImage } from "@utils/spaceShareImage";
 import { spaceStructuredData } from "@utils/structuredData";
@@ -16,14 +16,24 @@ import SpaceSummary from "./SpaceSummary";
  * left with the site's default title.
  */
 export default function SpaceSeo({
-    experience,
+    experience: full,
     destination,
     ownerName,
+    gated = false,
 }: {
     experience: any;
     destination?: { image?: string; name?: string } | null;
     ownerName?: string | null;
+    /**
+     * The gate turns this visitor away (password, token, invitation): the
+     * page then names the space and says nothing of what is inside it.
+     */
+    gated?: boolean;
 }) {
+    const experience = useMemo(
+        () => (gated ? withoutContents(full) : full),
+        [gated, full]
+    );
     const router = useRouter();
     const query = router?.query;
     const seo = useMemo(

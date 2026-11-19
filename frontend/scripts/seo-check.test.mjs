@@ -1,7 +1,13 @@
 // Run with: node --test scripts/seo-check.test.mjs (from frontend/)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkPage, checkRobots, readPage, sitemapLocs } from "./seo-check.mjs";
+import {
+    checkPage,
+    checkRobots,
+    isProductionOrigin,
+    readPage,
+    sitemapLocs,
+} from "./seo-check.mjs";
 
 const page = ({
     title = "Frahm Gallery",
@@ -142,4 +148,15 @@ test("reads the addresses a sitemap lists", () => {
         ),
         ["https://www.oncyber.com/a?x=1&y=2", "https://www.oncyber.com/b"]
     );
+});
+
+test("knows the production site from a preview", () => {
+    assert.equal(isProductionOrigin("https://www.oncyber.com"), true);
+    assert.equal(isProductionOrigin("https://oncyber.io/"), true);
+    assert.equal(
+        isProductionOrigin("https://oncyber-git-branch-oncyber.vercel.app"),
+        false
+    );
+    assert.equal(isProductionOrigin("http://localhost:13000"), false);
+    assert.equal(isProductionOrigin("not a url"), false);
 });

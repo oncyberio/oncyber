@@ -166,6 +166,12 @@ function LandingContent(props: LandingPageProps) {
     }, [inLobby]);
     const setLobby = useCallback(
         (open: boolean) => {
+            // A not-found page is the landing in search mode at the missing
+            // link's address: the lobby opens from the home page instead.
+            if (open && props.notFound) {
+                void router.push("/?lobby=1");
+                return;
+            }
             const query = { ...router.query };
             if (open) {
                 query.lobby = "1";
@@ -176,7 +182,7 @@ function LandingContent(props: LandingPageProps) {
                 scroll: false,
             });
         },
-        [router]
+        [router, props.notFound]
     );
     // A profile link (/@name) opens the lobby with their sidebar on the left.
     const visitedProfile =

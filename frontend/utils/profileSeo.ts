@@ -32,9 +32,12 @@ export interface ProfileSeo {
 const shortWallet = (id: string) =>
     id.length > 12 ? `${id.slice(0, 6)}…${id.slice(-4)}` : id;
 
-/** The handle a profile's address uses: the username, else the account id. */
+/**
+ * The handle a profile's address uses: the username, else the wallet the
+ * link is looked up by, else the account id.
+ */
 export function profileHandle(profile: ProfileForSeo): string {
-    return profile?.username || profile?.id || "";
+    return profile?.username || profile?.walletId || profile?.id || "";
 }
 
 export function profileSeo(

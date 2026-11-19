@@ -104,8 +104,11 @@ function isoDate(value: unknown): string | undefined {
             : typeof (value as any)?._seconds === "number"
             ? (value as any)._seconds * 1000
             : NaN;
-    return Number.isFinite(ms) && ms > 0
-        ? new Date(ms).toISOString().slice(0, 10)
+    if (!Number.isFinite(ms) || ms <= 0) return undefined;
+    // A number can be finite and still past what a date holds.
+    const date = new Date(ms);
+    return Number.isFinite(date.getTime())
+        ? date.toISOString().slice(0, 10)
         : undefined;
 }
 
@@ -160,7 +163,9 @@ export function spaceContent(space: any): SpaceContent {
         if (seenWork.has(key)) continue;
         seenWork.add(key);
         const description = named(data.description, limits.description);
-        const image = httpUrl(data.image_preview_url || data.image_url);
+        // The preview when it is a web address, else the original.
+        const image =
+            httpUrl(data.image_preview_url) || httpUrl(data.image_url);
         artworks.push({
             name,
             ...(creator ? { creator } : {}),
@@ -201,7 +206,8 @@ export function spaceContent(space: any): SpaceContent {
             (link: any) =>
                 typeof link?.name === "string" &&
                 typeof link?.path === "string" &&
-                link.path.startsWith("/") &&
+                // On this site: "//host" and "/\\host" leave it.
+                /^\/(?![/\\])/.test(link.path) &&
                 link.id !== space?.id
         )
         .slice(0, 12)
@@ -220,6 +226,23 @@ export function spaceContent(space: any): SpaceContent {
         ...(Number.isFinite(visits) && visits > 0 ? { visits } : {}),
         ...(created ? { created } : {}),
         ...(modified ? { modified } : {}),
+    };
+}
+
+/**
+ * A space as someone the gate turns away may know it: its name, creator and
+ * own description, and none of what is inside (works, wall texts, portals,
+ * the creator's other spaces). Search engines and assistants are such
+ * visitors, so this is all a gated space's page says.
+ */
+export function withoutContents<T extends Record<string, any>>(space: T): T {
+    if (!space) return space;
+    return {
+        ...space,
+        artworks: {},
+        portals: {},
+        ownerSpaces: [],
+        artistSearch: undefined,
     };
 }
 

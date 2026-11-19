@@ -114,3 +114,66 @@ describe("singleDisplayQuery", () => {
         expect(singleDisplayQuery(artBlocks, { id: ["1", "2"] })).toBe("");
     });
 });
+
+describe("review fixes", () => {
+    it("keeps the collection in a LooksRare address and out of an Art Blocks one", () => {
+        const query = { id: "42", contract: "0xabc" };
+        expect(
+            singleDisplayQuery({ info: { customLink: "art-blocks" } }, query)
+        ).toBe("?id=42");
+        expect(
+            singleDisplayQuery({ info: { customLink: "looksrare" } }, query)
+        ).toBe("?contract=0xabc&id=42");
+    });
+
+    it("does not feature wall texts or embedded pages as works", () => {
+        const seo = spaceSeo({
+            info: { headline: "Gallery" },
+            artworks: {
+                a: { data: { mime_type: "cyber/text", name: "Wall label" } },
+                b: { data: { mime_type: "embed/youtube", name: "A video" } },
+                c: { data: { mime_type: "image/png", name: "Real Work" } },
+            },
+        });
+        expect(seo.featuring).toEqual(["Real Work"]);
+    });
+
+    it("keeps a long description that has no space to cut at", () => {
+        const seo = spaceSeo({
+            info: { headline: "Gallery", description: "x".repeat(400) },
+        });
+        expect(seo.description).toBe("x".repeat(160));
+    });
+
+    it("lists only whole names, and none when none fits", () => {
+        const work = (name: string) => ({
+            data: { mime_type: "image/png", name },
+        });
+        const artworks = Object.fromEntries(
+            Array.from({ length: 30 }, (_, i) => [
+                `w${i}`,
+                work(`Artist Number ${i}`),
+            ])
+        );
+        const fits = spaceSeo({
+            info: { headline: "Gallery", description: "Short." },
+            artworks,
+        }).description;
+        expect(fits).toMatch(/Featuring NFTs from Artist Number 0, /);
+        expect(fits).toMatch(/Artist Number \d+ and many more$/);
+        const none = spaceSeo({
+            info: { headline: "Gallery", description: "y ".repeat(70).trim() },
+            artworks,
+        }).description;
+        expect(none).not.toMatch(/Featuring/);
+    });
+
+    it("gives a space with a reserved link its id address", () => {
+        expect(
+            spaceSeo({
+                id: "abc",
+                info: { headline: "X", customLink: "about" },
+            }).canonicalPath
+        ).toBe("/spaces/abc");
+    });
+});

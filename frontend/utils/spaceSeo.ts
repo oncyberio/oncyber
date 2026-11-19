@@ -30,15 +30,18 @@ export function singleDisplayQuery(
     query: Record<string, unknown> = {}
 ): string {
     const link = space?.info?.customLink;
-    if (!link || !GET_SINGLE_DISPLAY_EXPERIENCE({ custom_link: link }))
-        return "";
+    const display =
+        link && GET_SINGLE_DISPLAY_EXPERIENCE({ custom_link: link });
+    if (!display) return "";
     const safe = (value: unknown) =>
         typeof value === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(value)
             ? value
             : "";
     const id = safe(query.id);
     if (!id) return "";
-    const contract = safe(query.contract);
+    // Only LooksRare picks its work by collection and id; Art Blocks goes
+    // by id alone, so a stray ?contract= is not part of its address.
+    const contract = display.type === "looksrare" ? safe(query.contract) : "";
     return (
         "?" +
         new URLSearchParams({
@@ -75,6 +78,14 @@ export function spaceSeo(
     const names = Object.values(space?.artworks || {})
         .map((item: any) => {
             const data = item?.data;
+            // Wall texts and embedded pages are not works on show.
+            const type = String(data?.mime_type || "");
+            if (
+                type.startsWith("cyber/") ||
+                type.startsWith("embed/") ||
+                type === "text/html"
+            )
+                return null;
             return (
                 data?.creator?.user?.username ||
                 data?.contract?.name ||
@@ -87,22 +98,28 @@ export function spaceSeo(
         (name, index) => names.indexOf(name) === index
     );
     const keywords = featuring.join(", ");
+    // A long list is cut to the whole names that fit beside the base text;
+    // with room for none, the sentence is left out.
+    const listed =
+        keywords.length > 130
+            ? keywords
+                  .slice(0, Math.max(0, 130 - base.length))
+                  .split(",")
+                  .slice(0, -1)
+                  .join(",")
+            : keywords;
     const completion =
-        names.length > 0
-            ? "\nFeaturing NFTs from " +
-              (keywords.length > 130
-                  ? keywords
-                        .slice(0, 130 - base.length)
-                        .split(",")
-                        .slice(0, -1)
-                        .join(",")
-                  : keywords) +
-              " and many more"
+        names.length > 0 && listed.trim()
+            ? "\nFeaturing NFTs from " + listed + " and many more"
             : "";
+    // Cut at the last whole word, unless the text has no space to cut at.
+    const clipped = base.slice(0, 160);
     const full =
         base.length < 160
             ? base + completion
-            : base.slice(0, 160).split(" ").slice(0, -1).join(" ");
+            : clipped.includes(" ")
+            ? clipped.split(" ").slice(0, -1).join(" ")
+            : clipped;
     return {
         title,
         // One line: a description's own line breaks read as run-together

@@ -32,6 +32,25 @@ describe("spaceLinks", () => {
         ]);
     });
 
+    it("never builds a link that leaves the site", () => {
+        expect(
+            spaceLinks([
+                doc("a", {
+                    info: { headline: "Slashes", customLink: "//evil.example" },
+                }),
+                doc("b", {
+                    info: {
+                        headline: "Backslash",
+                        customLink: "\\evil.example",
+                    },
+                }),
+                doc("c", {
+                    info: { headline: "Spaces", customLink: "my space" },
+                }),
+            ]).map((link) => link.path)
+        ).toEqual(["/evil.example", "/evil.example", "/my%20space"]);
+    });
+
     it("keeps to the limit", () => {
         const many = Array.from({ length: 40 }, (_, i) =>
             doc(`s${i}`, { info: { headline: `Space ${i}` } })
@@ -110,5 +129,34 @@ describe("profileSpaceLinks", () => {
         await profileSpaceLinks("0xprofile", db, 1000 + 11 * 60 * 1000);
         expect(calls.count).toBe(2);
         expect(await profileSpaceLinks("", db)).toEqual([]);
+    });
+
+    it("does not remember a failed read", async () => {
+        let fail = true;
+        const query: any = {
+            where: jest.fn(() => query),
+            select: jest.fn(() => query),
+            limit: jest.fn(() => query),
+            get: jest.fn(async () => {
+                if (fail) throw new Error("firestore unavailable");
+                return {
+                    docs: [
+                        {
+                            id: "a",
+                            data: () => ({ info: { headline: "One" } }),
+                        },
+                    ],
+                };
+            }),
+        };
+        const db = { collection: jest.fn(() => query) } as any;
+        const error = jest.spyOn(console, "error").mockImplementation(() => {});
+        expect(await profileSpaceLinks("0xflaky", db, 1000)).toEqual([]);
+        fail = false;
+        // A moment later, inside the ten minutes, the spaces are read again.
+        expect(await profileSpaceLinks("0xflaky", db, 2000)).toEqual([
+            { id: "a", name: "One", path: "/spaces/a" },
+        ]);
+        error.mockRestore();
     });
 });
