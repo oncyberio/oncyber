@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { createHash } from "crypto";
+import { promises as fs } from "fs";
+import path from "path";
 import type { GetStaticPaths, GetStaticProps } from "next";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -187,7 +187,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         process.cwd(),
         "scripts/avatar_authoring/targets/holdout-v1/candidates"
     );
-    const candidate = await readFile(
+    const candidate = await fs.readFile(
         path.join(folder, entry.id + ".recipe"),
         "utf8"
     );
