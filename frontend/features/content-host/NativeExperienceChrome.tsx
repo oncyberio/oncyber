@@ -531,7 +531,6 @@ export default function NativeExperienceChrome({
                         "settings",
                         "users",
                         "voiceRequests",
-                        "profile-explore",
                     ].includes(currentTab) && (
                         <NativeVisitorPanel
                             key={currentTab}
@@ -549,6 +548,8 @@ export default function NativeExperienceChrome({
                             {children}
                         </NativeVisitorPanel>
                     )}
+                {/* Someone picked in the space: the person sidebar. */}
+                {currentTab === "profile-explore" && children}
                 {emotesOpen && (
                     <EmotePanelPosition>
                         <EmotePanel
