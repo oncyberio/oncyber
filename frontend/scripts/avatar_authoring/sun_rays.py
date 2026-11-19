@@ -419,27 +419,39 @@ def jersey_neck(rgb, mask, orb):
 
 def orb_edits(source, native, frame, recipe):
     from .fit import pixels
+    from .visor import front_orb_seed
 
-    def measure(path):
+    def measure(path, trace_rays=False):
         rgb, mask = pixels(path, keep_components=True)
         y, x = np.nonzero(mask)
         span, top, cx = np.ptp(y), y.min(), (x.min() + x.max()) / 2
-        x0, y0, x1, y1 = frame
-        center = [cx + (x0 + x1) * span / 2, top + (y0 + y1) * span / 2]
-        radius = (x1 - x0) * span * 0.47
+        center, radius = front_orb_seed(rgb, mask, frame)
         orb = measure_sun_rays(rgb, mask, center, [radius, radius], orb_only=True)
         if orb is not None:
-            return (orb - np.array([cx, top, 0, 0])) / span, orb_swatches(rgb, orb)
+            rays = (
+                measure_sun_rays(rgb, mask, center, [radius, radius])
+                if trace_rays
+                else None
+            )
+            return (orb - [cx, top, 0, 0]) / span, orb_swatches(rgb, orb), rays
 
-    expected, actual = measure(source), measure(native)
+    expected = measure(source, trace_rays=not recipe.get("sunRays"))
+    actual = measure(native)
     if expected is None or actual is None:
         return []
-    expected, ref_paint = expected
-    actual, draw_paint = actual
+    expected, ref_paint, rays = expected
+    actual, draw_paint, _ = actual
     ratio = expected[2:] / actual[2:]
     if not np.all((0.75 < ratio) & (ratio < 1.28)):
         return []
     edits = []
+    if rays:
+        # The orb and the individual painted rays are independently visible.
+        # A close body fit must not discard the observed ray count.
+        edges, pigment = rays
+        edits.append({"field": "sunRays", "value": edges})
+        if pigment != recipe["paints"].get("rays"):
+            edits.append({"field": "paints.rays", "value": pigment})
     differences = ref_paint - draw_paint
     if abs(differences).max() > 12:
 
@@ -480,10 +492,9 @@ def orb_edits(source, native, frame, recipe):
     shift = shift.clip(-0.35, 0.35).round(3)
     if np.max(abs(shift - recipe.get("orbOffset", [0, 0]))) > 0.018:
         edits.append({"field": "orbOffset", "value": shift.tolist()})
-    if (
-        recipe.get("sunRays")
-        and abs(recipe["proportions"].get("crownLength", 1) - 1) > 0.02
-    ):
+    if (rays or recipe.get("sunRays")) and abs(
+        recipe["proportions"].get("crownLength", 1) - 1
+    ) > 0.02:
         edits.append({"field": "proportions.crownLength", "value": 1})
     return edits
 

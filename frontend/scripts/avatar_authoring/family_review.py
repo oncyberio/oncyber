@@ -388,7 +388,12 @@ def registered_edits(recipe, source, directory, score, visual, gap, closed, miss
             orb_edits(source, directory / "front.png", score["eye_frame"], recipe)
         )
     if visual["rgb_mae"] > 15:
-        edits.extend(paint_edits(source, directory / "front.png", score, recipe))
+        measured_fields = {e["field"] for e in edits}
+        edits.extend(
+            e
+            for e in paint_edits(source, directory / "front.png", score, recipe)
+            if e["field"] not in measured_fields
+        )
     if visual.get("shirt_mark_agreement", 1) < 0.65:
         point = visual.get("shirt_mark_sample")
         edits.append(

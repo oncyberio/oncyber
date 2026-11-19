@@ -28,6 +28,22 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_marked_visor_registers_both_frames_independently_of_the_body_box(self):
+        from .visor import front_orb_seed
+
+        mask = np.zeros((200, 200), dtype=bool)
+        mask[10:188, 30:171] = True
+        rgb = np.full((200, 200, 3), 215.0)
+        rgb[38:59, 76:125] = 24
+        guide = [-0.18, 0.13, 0.18, 0.44]
+        # An unmarked stripe is ambiguous and uses the body registration.
+        fallback, _ = front_orb_seed(rgb, mask, guide)
+        self.assertGreater(fallback[1], 56)
+        rgb[46:51, 86:92] = rgb[46:51, 109:115] = 240
+        center, radius = front_orb_seed(rgb, mask, guide)
+        np.testing.assert_allclose(center, [100, 48])
+        self.assertAlmostEqual(radius, 49 / 1.9)
+
     def test_orb_fit_separates_the_throat_and_preserves_a_real_floating_gap(self):
         art = Image.new("RGB", (180, 185), "#d4d9e0")
         draw = ImageDraw.Draw(art)

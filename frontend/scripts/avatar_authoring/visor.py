@@ -118,19 +118,27 @@ def measure_visor(rgb, mask, orb):
     }
 
 
+def front_orb_seed(image, mask, frame):
+    """Prefer the visible lens and its two marks over the fitted rest-pose box."""
+    y, x = np.nonzero(mask)
+    span = np.ptp(y)
+    x0, y0, x1, y1 = frame
+    fallback = [
+        (x.max() + x.min()) / 2 + span * (x0 + x1) / 2,
+        y.min() + span * (y0 + y1) / 2,
+    ]
+    seed = visor_seed(image, mask)
+    if seed and np.linalg.norm(np.asarray(seed[0]) - fallback) < span * 0.12:
+        return seed
+    return fallback, (x1 - x0) * span * 0.47
+
+
 def trace_front_visor(path, frame):
     from .fit import pixels
     from .sun_rays import measure_sun_rays
 
     image, mask = pixels(path, keep_components=True)
-    y, x = np.nonzero(mask)
-    span = np.ptp(y)
-    x0, y0, x1, y1 = frame
-    center = [
-        (x.max() + x.min()) / 2 + span * (x0 + x1) / 2,
-        y.min() + span * (y0 + y1) / 2,
-    ]
-    radius = (x1 - x0) * span * 0.47
+    center, radius = front_orb_seed(image, mask, frame)
     return measure_visor(
         image,
         mask,
