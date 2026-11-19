@@ -1,8 +1,16 @@
 import { css } from "styled-components";
-import { baseTokens as base, studioTokens as studio } from "@styles/tokens";
+import {
+    baseTokens as base,
+    hasLicensedFonts,
+    studioTokens as studio,
+} from "@styles/tokens";
 
-export const studioFontFaces = css`
-    /* Keep studio weights independent of the legacy Aeonik/local font mappings. */
+/**
+ * Studio Aeonik is licensed (docs/fonts.md). A build without its files does
+ * not declare it, and the stack continues to the open fallback.
+ * Keeps studio weights independent of the legacy Aeonik/local font mappings.
+ */
+const studioAeonikFaces = css`
     @font-face {
         font-family: "Studio Aeonik";
         src: url("${base.font.files.regular}") format("opentype");
@@ -45,6 +53,10 @@ export const studioFontFaces = css`
         font-style: italic;
         font-display: swap;
     }
+`;
+
+export const studioFontFaces = css`
+    ${hasLicensedFonts ? studioAeonikFaces : ""}
     @font-face {
         font-family: "Studio Space Mono";
         src: url("${base.font.files.mono}") format("woff2");

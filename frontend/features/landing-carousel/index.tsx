@@ -62,6 +62,7 @@ import {
     useLandingBusy,
 } from "./activity";
 import { useCyberTranslation } from "@components/context/I18nContext";
+import { MOBILE_GRID_QUERY } from "./coverPreloads";
 
 const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 
@@ -71,7 +72,7 @@ const TemplateCatalog = dynamic(() => import("./components/TemplateCatalog"), {
 const GRID = { columns: 2, rows: 2 };
 /** Phones show one column of two cards instead of the 2×2 grid. */
 const MOBILE_GRID = { columns: 1, rows: 2 };
-const MOBILE_QUERY = "(max-width: 700px)";
+const MOBILE_QUERY = MOBILE_GRID_QUERY;
 
 function useMobileLayout() {
     const [mobile, setMobile] = useState(false);
@@ -142,8 +143,6 @@ function LandingContent(props: LandingPageProps) {
         loadMoreError,
         loadMore,
     } = discovery;
-    // Image-only fallback for WebGL failures; curvature is never a user mode.
-    const [flat, setFlat] = useState(false);
     const { t } = useCyberTranslation();
     const grid = useMobileLayout() ? MOBILE_GRID : GRID;
     const router = useRouter();
@@ -302,45 +301,9 @@ function LandingContent(props: LandingPageProps) {
     );
     // Only the matches page; more would land after the sections.
     const pagedHasMore = notFoundMode ? false : hasMore;
-    useEffect(() => {
-        if (loading || creating || inLobby) return;
-        let cancelled = false;
-        let frame: number;
-        let idle: number;
-        let timeout: number;
-        const clearScheduled = () => {
-            window.cancelAnimationFrame(frame);
-            if (idle !== undefined) window.cancelIdleCallback?.(idle);
-            window.clearTimeout(timeout);
-        };
-        const prepare = () => {
-            if (!cancelled && !document.hidden) warmLobbyAvatar();
-        };
-        const schedule = () => {
-            clearScheduled();
-            if (document.hidden) return;
-            // Let discovery paint before importing the avatar loader. The
-            // timeout also gives browsers without idle callbacks a quiet start.
-            frame = window.requestAnimationFrame(() => {
-                frame = window.requestAnimationFrame(() => {
-                    if (window.requestIdleCallback) {
-                        idle = window.requestIdleCallback(prepare, {
-                            timeout: 1200,
-                        });
-                    } else {
-                        timeout = window.setTimeout(prepare, 250);
-                    }
-                });
-            });
-        };
-        document.addEventListener("visibilitychange", schedule);
-        schedule();
-        return () => {
-            cancelled = true;
-            clearScheduled();
-            document.removeEventListener("visibilitychange", schedule);
-        };
-    }, [loading, creating, inLobby, warmLobbyAvatar]);
+    // The lobby's avatar and its animations are only fetched once a visitor
+    // reaches for Jump In (pointer, focus or press): most visitors of the
+    // grid never open the lobby, and the files competed with the covers.
     const emptyPageLoader = useRef(loadMore);
     emptyPageLoader.current = loadMore;
     useEffect(() => {
@@ -459,10 +422,12 @@ function LandingContent(props: LandingPageProps) {
             routeActivity(false);
         };
     }, [router.events, routeActivity]);
+    // Templates (a large catalog, plus prices and the visitor's own spaces)
+    // load once a visitor reaches for Create, not on every visit to the grid.
+    const prepareCreate = useCallback(() => setLoadTemplates(true), []);
     useEffect(() => {
-        // Prepare destinations while browsing, before the first Create click.
-        setLoadTemplates(true);
-    }, []);
+        if (step !== "explore") setLoadTemplates(true);
+    }, [step]);
     const goToStep = useCallback(
         (next: string) => {
             const query = { ...router.query };
@@ -587,6 +552,9 @@ function LandingContent(props: LandingPageProps) {
     const createControl = (
         <CreateControl
             id="open-create"
+            onPointerEnter={prepareCreate}
+            onPointerDown={prepareCreate}
+            onFocus={prepareCreate}
             onClick={toggleCreate}
             aria-pressed={creating}
             title={t(
@@ -632,6 +600,7 @@ function LandingContent(props: LandingPageProps) {
                     <button
                         className="jump-in"
                         onPointerEnter={warmLobbyAvatar}
+                        onPointerDown={warmLobbyAvatar}
                         onFocus={warmLobbyAvatar}
                         onClick={() => {
                             warmLobbyAvatar();
@@ -753,8 +722,6 @@ function LandingContent(props: LandingPageProps) {
                                 counterLabel={
                                     step === "gallery" ? "templates" : undefined
                                 }
-                                flat={flat}
-                                onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
                                 footerStart={aboutLink}

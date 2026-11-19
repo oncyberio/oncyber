@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { useLandingBusy } from "../activity";
-import { cellDimensions, cylinderMetrics, projectPoint } from "../three/layout";
+import { cellDimensions, cylinderMetrics, projectPoint } from "../grid/layout";
 import { useCyberTranslation } from "@components/context/I18nContext";
 
 export default function LoadingGrid({

@@ -1,8 +1,6 @@
 /** @jest-environment jsdom */
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { WebGLRenderer } from "three";
-import { CardPool } from "../three/pool";
 import { BUILD_CARDS } from "../buildOptions";
 import Scene from "./Scene";
 import { createColumnScroller } from "../columnScroller";
@@ -22,7 +20,7 @@ jest.mock("@components/InAppLink", () => ({
 jest.mock("./ExperienceCard", () => ({
     __esModule: true,
     default: require("react").forwardRef(
-        ({ card, flat, featured, ...props }, ref) => (
+        ({ card, featured, ...props }, ref) => (
             <a ref={ref} href={card.href} {...props}>
                 {card.title}
             </a>
@@ -38,23 +36,6 @@ jest.mock("../activity", () => {
         useLandingActivity: () => activity,
     };
 });
-jest.mock("three", () => ({
-    ...jest.requireActual("three"),
-    WebGLRenderer: jest.fn().mockImplementation(() => ({
-        setPixelRatio: jest.fn(),
-        setClearColor: jest.fn(),
-        setSize: jest.fn(),
-        render: jest.fn(),
-        dispose: jest.fn(),
-    })),
-}));
-jest.mock("../three/pool", () => ({
-    CardPool: jest.fn().mockImplementation(() => ({
-        group: new (require("three").Group)(),
-        update: jest.fn(),
-        dispose: jest.fn(),
-    })),
-}));
 jest.mock("../columnScroller", () => ({
     createColumnScroller: jest.fn(
         jest.requireActual("../columnScroller").createColumnScroller
@@ -81,8 +62,6 @@ function render(
                 contentKey={`explore:${key}`}
                 resetKey={key}
                 onCreate={navigate}
-                flat={false}
-                onFlatView={navigate}
                 columns={2}
                 visibleRows={2}
                 viewControls={null}
@@ -202,45 +181,42 @@ afterEach(() => {
     container.remove();
     jest.useRealTimers();
 });
-it("reuses its canvas, renderer, textures and drawing-buffer size while live search changes cards", () => {
+it("is drawn with page elements alone: no canvas, and each card placed in the layout pass", () => {
     render();
-    const canvas = container.querySelector("canvas");
-    const renderer = (WebGLRenderer as jest.Mock).mock.results[0].value;
-    const pool = (CardPool as jest.Mock).mock.results[0].value;
-    const sizes = renderer.setSize.mock.calls.length;
+    expect(container.querySelector("canvas")).toBeNull();
+    // Placed before another animation frame, so a card never paints unplaced.
+    const placed = [
+        ...container.querySelectorAll<HTMLElement>("[data-card-id]"),
+    ].filter((card) => card.style.visibility === "visible");
+    expect(placed.map((card) => card.dataset.cardId)).toEqual(
+        covers.map((card) => card.id)
+    );
+    for (const card of placed) {
+        expect(card.style.transform).toMatch(/^translate3d\(/);
+        expect(parseFloat(card.style.width)).toBeGreaterThan(0);
+    }
+});
+it("keeps a card's element while live search changes the cards around it", () => {
+    render();
+    const card = () => container.querySelector('[data-card-id="world-1"]');
+    const first = card();
     render([covers[1]], "first query");
     render([covers[2], covers[1]], "narrow query");
     render(covers, "cleared");
-    expect(container.querySelector("canvas")).toBe(canvas);
-    expect(WebGLRenderer).toHaveBeenCalledTimes(1);
-    expect(CardPool).toHaveBeenCalledTimes(1);
-    expect(renderer.setSize).toHaveBeenCalledTimes(sizes);
-    expect(renderer.dispose).not.toHaveBeenCalled();
-    expect(pool.dispose).not.toHaveBeenCalled();
-    // New card bindings are drawn in the layout pass, before another animation frame.
-    expect(pool.update).toHaveBeenLastCalledWith(
-        covers,
-        expect.any(Array),
-        expect.any(Object),
-        0,
-        "",
-        expect.any(Function)
-    );
+    act(() => jest.advanceTimersByTime(600));
+    expect(card()).not.toBeNull();
+    expect(first).not.toBeNull();
 });
-it("retains image resources while empty results hide the grid, and releases them on unmount", () => {
+it("keeps the grid mounted while empty results hide it", () => {
     render();
-    const renderer = (WebGLRenderer as jest.Mock).mock.results[0].value;
-    const pool = (CardPool as jest.Mock).mock.results[0].value;
     render(covers, "no results", false);
     expect((container.firstElementChild as HTMLElement).style.display).toBe(
         "none"
     );
-    expect(renderer.dispose).not.toHaveBeenCalled();
     render(covers, "cleared", true);
-    expect(WebGLRenderer).toHaveBeenCalledTimes(1);
-    act(() => root.render(null));
-    expect(renderer.dispose).toHaveBeenCalledTimes(1);
-    expect(pool.dispose).toHaveBeenCalledTimes(1);
+    expect((container.firstElementChild as HTMLElement).style.display).not.toBe(
+        "none"
+    );
 });
 
 it("does not prefetch a new feed using the hidden previous feed's range", () => {
@@ -266,12 +242,14 @@ it("publishes the rendered scroll progress through navigation, reversal, and res
     const viewport = container.querySelector('[role="region"]') as HTMLElement;
     expect(activity.getScrollProgress()).toBe(0);
     act(() => scroller.goTo(2));
+    let previous = 0;
     for (let i = 0; i < 8; i++) {
         act(() => jest.advanceTimersByTime(32));
-        const pool = (CardPool as jest.Mock).mock.results[0].value;
-        const rendered =
-            pool.update.mock.calls[pool.update.mock.calls.length - 1][3];
-        expect(activity.getScrollProgress()).toBe(rendered);
+        // Published as it is drawn: it only moves toward the target.
+        const progress = activity.getScrollProgress();
+        expect(progress).toBeGreaterThanOrEqual(previous);
+        expect(progress).toBeLessThanOrEqual(2);
+        previous = progress;
     }
     expect(activity.getScrollProgress()).toBe(2);
     act(() => {

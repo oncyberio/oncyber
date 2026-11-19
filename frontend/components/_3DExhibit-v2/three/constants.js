@@ -74,6 +74,8 @@ export {
     DEFAULT_PLAYER_AVATAR_PICTURE,
     SET_DEFAULT_AVATAR_PICTURE,
     IS_MULTIPLAYER_ENABLED,
+    WORLD_CREATED,
+    SET_WORLD_CREATED,
 } from "./shellconstants"
 
 export const USER_HEIGHT = 2.8
@@ -391,17 +393,8 @@ export const SET_USER_INTERACTED = (val) => {
 }
 
 
-let worldCreated = deferred()
-
-
-/** @type { Promise<import("./api").default> } */
-// @ts-ignore
-export const WORLD_CREATED = worldCreated.promise
-
-export const SET_WORLD_CREATED = (val) => {
-
-    worldCreated.resolve(val)
-}
+// WORLD_CREATED and SET_WORLD_CREATED are defined in shellconstants.js (the
+// shell's world store waits on the promise) and are re-exported above.
 
 
 let multiplayerInit = deferred()

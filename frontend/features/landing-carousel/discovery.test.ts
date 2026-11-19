@@ -15,7 +15,7 @@ import {
     createGridLayout,
     cylinderMetrics,
     projectPoint,
-} from "./three/layout";
+} from "./grid/layout";
 
 jest.mock("@utils/urlUtils", () => ({ resize: (url: string) => url }));
 

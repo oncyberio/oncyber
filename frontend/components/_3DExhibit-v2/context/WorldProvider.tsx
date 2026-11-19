@@ -7,7 +7,8 @@ import React, {
 } from "react";
 import type World from "@3gl/api";
 import { useIsoLayoutEffect } from "@components/hooks/useIsoLayoutEffect";
-import { WORLD_CREATED } from "../three/constants";
+// From the three-free module: this provider is reached from the app shell.
+import { WORLD_CREATED } from "../three/shellconstants";
 
 interface WorldContextState {
     ref: React.MutableRefObject<World>;
