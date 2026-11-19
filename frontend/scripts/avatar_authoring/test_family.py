@@ -232,6 +232,27 @@ class FamilyTests(unittest.TestCase):
         cleared = edited_recipe(out, [{"field": "shirtMark", "value": None}])
         self.assertEqual(cleared, base)
 
+    def test_one_ink_sample_recovers_detached_strokes_and_excludes_the_seam(self):
+        patch = Image.new("RGB", (97, 97), "#eee5dd")
+        ink = ImageDraw.Draw(patch)
+        ink.ellipse((22, 19, 71, 44), fill="#3484ed")
+        ink.polygon([(18, 55), (64, 49), (70, 53), (22, 60)], fill="#327ae1")
+        ink.rectangle((25, 63, 60, 67), fill="#3786ed")
+        ink.rectangle((0, 22, 3, 51), fill="#3484ed")
+        ink.rectangle((73, 44, 83, 54), fill="#7359aa")
+        base = {
+            "family": "sunshine",
+            "plainJersey": True,
+            "proportions": {},
+            "paints": {},
+        }
+        edits = [{"field": "shirtMark", "value": {"sample": [0.5, 0.3]}}]
+        graphic = edited_recipe(base, edits, np.array(patch, dtype=float))["shirtMark"]
+        self.assertEqual(len(graphic["islands"]), 2)
+        for stroke in graphic["islands"]:
+            self.assertGreater(min(y for _, y in stroke), 0.45)
+            self.assertGreater(min(x for x, _ in stroke), 0.15)
+
     def test_family_review_distinguishes_an_old_adapter_from_an_invalid_receipt(self):
         args = SimpleNamespace(model="fixture", adapter="/fixture")
         reply = {"model": "fixture", "arguments": {"landmarks": {}}}

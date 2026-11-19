@@ -6,10 +6,9 @@ import json
 import math
 
 from jsonschema import Draft202012Validator
-from scipy import ndimage
 
 from .family import FAMILIES
-from .tracing import garment_motif, outline_mark
+from .tracing import garment_motif, traced_print, validate_outline
 
 
 def record(properties):
@@ -341,35 +340,6 @@ REVISION_TOOL = {
 }
 
 
-def validate_outline(points):
-    """Ear clipping requires a simple polygon with area."""
-    if len(set(map(tuple, points))) != len(points):
-        raise ValueError("Shirt mark points must be distinct")
-    edges = list(zip(points, points[1:] + points[:1]))
-    area = sum(a[0] * b[1] - a[1] * b[0] for a, b in edges)
-    if abs(area) < 1e-7:
-        raise ValueError("Shirt mark needs a visible area")
-
-    def cross(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-
-    for i, (a, b) in enumerate(edges):
-        for j in range(i + 2, len(edges)):
-            if i == 0 and j == len(edges) - 1:
-                continue
-            c, d = edges[j]
-            if any(
-                max(a[k], b[k]) < min(c[k], d[k]) or max(c[k], d[k]) < min(a[k], b[k])
-                for k in (0, 1)
-            ):
-                continue
-            if (
-                cross(a, b, c) * cross(a, b, d) <= 0
-                and cross(c, d, a) * cross(c, d, b) <= 0
-            ):
-                raise ValueError("Shirt mark outline crosses itself")
-
-
 def edited_recipe(
     base, edits, source_patch=None, print_window=(0, 0, 1, 1), visor_from_source=None
 ):
@@ -425,29 +395,13 @@ def edited_recipe(
                         if source_patch is not None
                         else None
                     )
-                    if motif:
-                        region, paint = motif
-                        # Suppress source-pixel stair steps before triangulating the print.
-                        region = (
-                            ndimage.gaussian_filter(region.astype(float), 1.15) > 0.5
-                        )
-                        value = outline_mark(region, paint)
-                        if value:
-                            x0, y0, x1, y1 = print_window
-                            value["outline"] = [
-                                [
-                                    round(x0 + x * (x1 - x0), 4),
-                                    round(y0 + y * (y1 - y0), 4),
-                                ]
-                                for x, y in value["outline"]
-                            ]
-                    else:
-                        value = None
+                    value = traced_print(source_patch, motif, print_window)
                     if not value:
                         raise ValueError(
                             "Sample a point inside one solid shirt graphic"
                         )
-                validate_outline(value["outline"])
+                for path in [value["outline"], *value.get("islands", [])]:
+                    validate_outline(path)
                 recipe[field] = {**value, "color": value["color"].lower()}
         elif field == "visor":
             if value is None:

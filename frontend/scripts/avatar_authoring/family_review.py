@@ -19,19 +19,14 @@ from .fit import pixels
 from .lapel import has_contour_ink, lapel_edit, panel_edit
 from .review import render
 from .sun_rays import collar_closed, floating_gap, kit_edits, open_collar, orb_edits
-from .tracing import garment_motif, garment_patch
+from .tracing import (
+    garment_motif,
+    garment_patch,
+    print_frame,
+    print_islands,
+    registered_print,
+)
 from .visor import profile_gap, trace_front_visor
-
-
-def print_frame(bounds, window):
-    x0, y0, x1, y1 = bounds
-    left, top, right, bottom = window
-    return [
-        x0 + (x1 - x0) * left,
-        y0 + (y1 - y0) * top,
-        x0 + (x1 - x0) * right,
-        y0 + (y1 - y0) * bottom,
-    ]
 
 
 def compare_images(
@@ -142,18 +137,12 @@ def compare_images(
                     matches.append(agreement(expected, rendered))
         metrics["eye_pigment_agreement"] = min(matches, default=0)
     if shirt_frame:
-        patches = [garment_patch(rgb, mask, shirt_frame) for rgb, mask in images]
-        marks = [garment_motif(patch) for patch in patches]
-        if marks[0] is None:
-            window = [-0.10, -0.32, 1.10, 1.14]
-            extended = [
-                garment_patch(rgb, mask, print_frame(shirt_frame, window))
-                for rgb, mask in images
-            ]
-            extra = garment_motif(extended[0])
-            if extra is not None:
-                patches, marks = extended, [extra, garment_motif(extended[1])]
-                metrics["shirt_window"] = window
+        window, patch, reference_mark = registered_print(*images[0], shirt_frame)
+        rendered = garment_patch(*images[1], print_frame(shirt_frame, window))
+        patches = [patch, rendered]
+        marks = [reference_mark, garment_motif(rendered)]
+        if window != [0, 0, 1, 1]:
+            metrics["shirt_window"] = window
         for i in (0, 1):
             if marks[i] is None and marks[1 - i] is not None:
                 y, x = np.unravel_index(
@@ -174,7 +163,17 @@ def compare_images(
         if any(mark is not None for mark in marks):
             match = 0
             if all(mark is not None for mark in marks):
-                (ma, ca), (mb, cb) = marks
+
+                def painted_area(patch, mark):
+                    region, pigment = mark
+                    region = region.copy()
+                    for _, component, _ in print_islands(patch, mark):
+                        region |= component
+                    return region, pigment
+
+                (ma, ca), (mb, cb) = [
+                    painted_area(p, m) for p, m in zip(patches, marks)
+                ]
                 # Native lighting can shift pigments slightly; compare the
                 # shape and the paint so a wrong-colored logo also fails.
                 color_match = float(

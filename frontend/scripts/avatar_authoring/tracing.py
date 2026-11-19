@@ -1281,3 +1281,152 @@ def garment_motif(patch, point=None):
                     return match
             continue
         return region, paint
+
+
+def validate_outline(points):
+    """Ear clipping requires a simple polygon with area."""
+    if len(set(map(tuple, points))) != len(points):
+        raise ValueError("Shirt mark points must be distinct")
+    edges = list(zip(points, points[1:] + points[:1]))
+    area = sum(a[0] * b[1] - a[1] * b[0] for a, b in edges)
+    if abs(area) < 1e-7:
+        raise ValueError("Shirt mark needs a visible area")
+
+    def cross(a, b, c):
+        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+    for i, (a, b) in enumerate(edges):
+        for j in range(i + 2, len(edges)):
+            if i == 0 and j == len(edges) - 1:
+                continue
+            c, d = edges[j]
+            if any(
+                max(a[k], b[k]) < min(c[k], d[k]) or max(c[k], d[k]) < min(a[k], b[k])
+                for k in (0, 1)
+            ):
+                continue
+            if (
+                cross(a, b, c) * cross(a, b, d) <= 0
+                and cross(c, d, a) * cross(c, d, b) <= 0
+            ):
+                raise ValueError("Shirt mark outline crosses itself")
+
+
+def print_islands(patch, mark):
+    """Recover detached strokes printed with the same ink as the main motif."""
+    primary, pigment = mark
+    labels, _ = ndimage.label(
+        np.linalg.norm(patch - pigment, axis=2) < 60, np.ones((3, 3))
+    )
+    separation = ndimage.distance_transform_edt(~primary)
+    reach = max(4, np.sqrt(primary.sum()) * 0.80)
+    found = []
+    for label, box in enumerate(ndimage.find_objects(labels), 1):
+        if box is None:
+            continue
+        region = labels[box] == label
+        size = region.sum()
+        if (
+            size < max(23, 0.03 * primary.sum())
+            or size > primary.sum() * 1.2
+            or np.any(primary[box] & region)
+            or separation[box][region].min() > reach
+            or any(edge.start == 0 or edge.stop == 97 for edge in box)
+        ):
+            continue
+        if np.linalg.norm(np.median(patch[box][region], axis=0) - pigment) > 32:
+            continue
+        full = labels == label
+        # Thin strokes need less smoothing than the solid primary emblem.
+        smooth = ndimage.gaussian_filter(full.astype(float), 0.72) > 0.46
+        pieces, count = ndimage.label(smooth)
+        if not count:
+            continue
+        main = pieces == np.bincount(pieces.ravel())[1:].argmax() + 1
+        filled = ndimage.binary_fill_holes(main)
+        # Rasterized ink has pinholes and diagonal pixel joins. Retain real
+        # counters and separated shapes for a representation that supports them.
+        if (smooth ^ filled).sum() > max(4, size * 0.012):
+            continue
+        contour = outline_mark(filled, pigment)
+        if contour:
+            found.append((size, full, contour["outline"]))
+    return sorted(found, key=lambda item: -item[0])[:3]
+
+
+def print_frame(bounds, window):
+    x0, y0, x1, y1 = bounds
+    left, top, right, bottom = window
+    return [
+        x0 + (x1 - x0) * left,
+        y0 + (y1 - y0) * top,
+        x0 + (x1 - x0) * right,
+        y0 + (y1 - y0) * bottom,
+    ]
+
+
+def registered_print(rgb, mask, frame):
+    """Find the motif in the fitted shirt, allowing a wider view of its strokes."""
+    window = [0, 0, 1, 1]
+    patch = garment_patch(rgb, mask, frame)
+    mark = garment_motif(patch)
+    if mark is None:
+        search = [-0.10, -0.32, 1.10, 1.14]
+        wide = garment_patch(rgb, mask, print_frame(frame, search))
+        extra = garment_motif(wide)
+        if extra is None:
+            return window, patch, None
+        window, patch, mark = search, wide, extra
+    # Follow the same painted point when expanding the crop. A second
+    # swatch at the sleeve or neckline can otherwise replace the emblem.
+    wide_window = [-0.20, -0.35, 1.20, 1.25]
+    wide = garment_patch(rgb, mask, print_frame(frame, wide_window))
+    y, x = np.unravel_index(
+        ndimage.distance_transform_edt(mark[0]).argmax(), mark[0].shape
+    )
+    garment_xy = np.array(window[:2]) + np.array([x, y]) / 96 * np.subtract(
+        window[2:], window[:2]
+    )
+    sample = (garment_xy - wide_window[:2]) / np.subtract(
+        wide_window[2:], wide_window[:2]
+    )
+    expanded = garment_motif(wide, sample)
+    if expanded is not None and print_islands(wide, expanded):
+        return wide_window, wide, expanded
+    return window, patch, mark
+
+
+def traced_print(patch, motif, window):
+    """Place the primary fill and up to three related strokes on one fabric."""
+    if motif is None:
+        return None
+    region, paint = motif
+    mark = outline_mark(
+        ndimage.gaussian_filter(region.astype(float), 1.15) > 0.5, paint
+    )
+    if not mark:
+        return None
+    x0, y0, x1, y1 = window
+
+    def place(path):
+        return [
+            [round(x0 + x * (x1 - x0), 4), round(y0 + y * (y1 - y0), 4)]
+            for x, y in path
+        ]
+
+    mark["outline"] = place(mark["outline"])
+    try:
+        validate_outline(mark["outline"])
+    except ValueError:
+        return None
+    islands = []
+    for _, _, path in print_islands(patch, motif):
+        path = place(path)
+        try:
+            validate_outline(path)
+        except ValueError:
+            continue
+        islands.append(path)
+    if islands:
+        mark["islands"] = islands
+    return mark

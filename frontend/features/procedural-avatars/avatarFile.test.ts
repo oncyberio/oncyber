@@ -220,6 +220,44 @@ test("family members retain a single skinned mesh, both grips and their own clot
     }
 });
 
+test("disconnected shirt strokes add skinned fabric detail in the same material", () => {
+    const islands = [
+        [
+            [0.2, 0.86],
+            [0.76, 0.76],
+            [0.55, 0.94],
+        ],
+    ];
+    const build = (shirtMark: unknown) =>
+        buildCharacter(
+            readAvatarFile({ ...scientist, shirtMark }).recipe,
+            "crowd"
+        );
+    const actors = [build(mark), build({ ...mark, islands })];
+    try {
+        const meshes = actors.map(
+            (actor) =>
+                actor.scene.getObjectByProperty(
+                    "isSkinnedMesh",
+                    true
+                ) as T.SkinnedMesh
+        );
+        expect(meshes[1].geometry.index.count).toBeGreaterThan(
+            meshes[0].geometry.index.count
+        );
+        expect(meshes[1].geometry.groups).toHaveLength(0);
+        expect(Array.isArray(meshes[1].material)).toBe(false);
+        expect(() =>
+            readAvatarFile({
+                ...scientist,
+                shirtMark: { ...mark, islands: Array(4).fill(islands[0]) },
+            })
+        ).toThrow();
+    } finally {
+        actors.forEach((actor) => disposeAvatarGraph(actor.scene));
+    }
+});
+
 test("a narrower Sunshine jersey carries the shoulder socket with its sleeve", () => {
     const transform = recipeTransform(
         {

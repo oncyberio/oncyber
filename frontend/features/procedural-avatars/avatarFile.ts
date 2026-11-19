@@ -12,6 +12,12 @@ import type { AvatarRecipe } from "./recipes";
 
 const scale = z.number().min(0.65).max(1.5).optional();
 const swatch = z.string().regex(/^#[0-9a-f]{6}$/i);
+const printOutline = z
+    .array(
+        z.tuple([z.number().min(-0.5).max(1.5), z.number().min(-0.5).max(1.5)])
+    )
+    .min(3)
+    .max(32);
 const familyFile = z.strictObject({
     version: z.literal(1),
     name: z.string().trim().min(1).max(60),
@@ -165,15 +171,8 @@ const familyFile = z.strictObject({
         .optional(),
     shirtMark: shirtMarkSchema
         .extend({
-            outline: z
-                .array(
-                    z.tuple([
-                        z.number().min(-0.5).max(1.5),
-                        z.number().min(-0.5).max(1.5),
-                    ])
-                )
-                .min(3)
-                .max(32),
+            outline: printOutline,
+            islands: z.array(printOutline).min(1).max(3).optional(),
         })
         .optional(),
     paints: z.record(z.string().max(16), swatch),

@@ -1,8 +1,8 @@
 """Evaluate frozen full and portrait inputs without exposing withheld bodies during fitting."""
 
 import argparse
-from hashlib import sha256
 import json
+from hashlib import sha256
 from pathlib import Path
 
 from avatar_authoring.family_review import compare_images
@@ -18,8 +18,8 @@ def manifest_digest(manifest):
 
 
 def comparison_sheet(summary, manifest, root, output):
-    from PIL import Image, ImageDraw, ImageFont
     from avatar_authoring.family_sheet import view_tile
+    from PIL import Image, ImageDraw, ImageFont
 
     cases = [c for c in manifest["cases"] if c["id"] in summary["cases"]]
     if not cases:
@@ -238,8 +238,26 @@ def record_preview(args):
         )
         if "visible_portrait" in selected:
             data["visible_portrait"] = selected["visible_portrait"]
-        if selected["accepted"]:
-            evidence = folder / selected["directory"] / "approval/evidence.json"
+        if "front" in selected:
+            data["front_checks"] = [
+                {
+                    field: attempt["front"][field]
+                    for field in (
+                        "silhouette_iou",
+                        "head_iou",
+                        "head_edge_agreement",
+                        "body_edge_agreement",
+                        "rgb_mae",
+                        "eye_pigment_agreement",
+                        "shirt_mark_agreement",
+                    )
+                    if field in attempt["front"]
+                }
+                for attempt in study["passes"]
+                if "front" in attempt
+            ]
+        evidence = folder / selected["directory"] / "approval/evidence.json"
+        if selected["accepted"] or evidence.is_file():
             report = json.loads(evidence.read_bytes())
             if (
                 report["reference"] != case["reference_sha256"]

@@ -3,7 +3,7 @@ import { frontOfLoft, type Drawing, type XY } from "./drawing";
 import type { Point } from "./sculpt";
 import families from "./families.json";
 
-export type ShirtMark = { outline: XY[]; color: string };
+export type ShirtMark = { outline: XY[]; islands?: XY[][]; color: string };
 
 /** Sutherland–Hodgman clipping in the drawing plane, retaining fabric depth. */
 function clipToStamp(face: Point[], corners: Vector2[]) {
@@ -44,17 +44,24 @@ export function drawMarkedShirt(
     box: number[] = families[d.id as keyof typeof families].shirtBox
 ) {
     const [left, top, right, bottom] = box;
-    const path = mark.outline.map(
-        ([u, v]) =>
-            new Vector2(left + u * (right - left), top + v * (bottom - top))
+    const paths = [mark.outline, ...(mark.islands ?? [])].map((outline) =>
+        outline.map(
+            ([u, v]) =>
+                new Vector2(left + u * (right - left), top + v * (bottom - top))
+        )
     );
-    const stamp = ShapeUtils.triangulateShape(path, []);
+    const points = paths.flat();
+    const stamp = paths.flatMap((path) =>
+        ShapeUtils.triangulateShape(path, []).map((indices) =>
+            indices.map((i) => path[i])
+        )
+    );
     const preserve = d.s.preserveVertex;
     const uv = d.s.printUV;
-    const x0 = Math.min(...path.map((p) => p.x)) - (right - left) * 0.4;
-    const x1 = Math.max(...path.map((p) => p.x)) + (right - left) * 0.4;
-    const y0 = Math.min(...path.map((p) => p.y)) - (bottom - top) * 0.2;
-    const y1 = Math.max(...path.map((p) => p.y)) + (bottom - top) * 0.2;
+    const x0 = Math.min(...points.map((p) => p.x)) - (right - left) * 0.4;
+    const x1 = Math.max(...points.map((p) => p.x)) + (right - left) * 0.4;
+    const y0 = Math.min(...points.map((p) => p.y)) - (bottom - top) * 0.2;
+    const y1 = Math.max(...points.map((p) => p.y)) + (bottom - top) * 0.2;
     d.s.preserveVertex = (x, y, z) =>
         (z >= 0 && x >= x0 && x <= x1 && y >= y0 && y <= y1) ||
         !!preserve?.(x, y, z);
@@ -76,11 +83,8 @@ export function drawMarkedShirt(
                         (k) => (face[0][k] + face[1][k] + face[2][k]) / 3
                     );
                     if (Math.abs(front(x, y) - z) > 0.05) continue;
-                    for (const indices of stamp) {
-                        const polygon = clipToStamp(
-                            face,
-                            indices.map((j) => path[j])
-                        );
+                    for (const triangle of stamp) {
+                        const polygon = clipToStamp(face, triangle);
                         for (let j = 1; j + 1 < polygon.length; j++) {
                             const q = [polygon[0], polygon[j], polygon[j + 1]];
                             const area =

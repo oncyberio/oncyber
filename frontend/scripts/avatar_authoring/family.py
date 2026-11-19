@@ -11,7 +11,7 @@ from scipy.spatial import cKDTree
 
 from .fit import pixels
 from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
-from .tracing import shirt_mark
+from .tracing import registered_print, shirt_mark, traced_print
 from .visor import measure_visor, visor_seed
 
 HERE = Path(__file__).resolve().parent
@@ -518,6 +518,9 @@ class Family:
                 oy,
                 unit,
             )
+            if recipe.get("plainJersey"):
+                window, patch, motif = registered_print(image, mask, shirt_frame)
+                mark = traced_print(patch, motif, window) or mark
             if mark:
                 recipe["shirtMark"] = mark
         eyes = xy[self.eye]
