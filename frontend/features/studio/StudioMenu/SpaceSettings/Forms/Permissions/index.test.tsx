@@ -77,33 +77,45 @@ test("opening the tab saves no avatar size", () => {
     expect(mockStore.updateExhibitParams).not.toHaveBeenCalled();
 });
 
+// The field is in metres; the saved size is 0 to 1 across 1 m to 4.5 m.
 test.each([
     [
-        "the space's own size",
+        "the space's own height",
         { avatarSize: 0.8 },
         { avatarSize: 0.2286 },
-        "0.8",
+        "3.8",
     ],
-    ["the destination's size", {}, { avatarSize: 0.2286 }, "0.2286"],
-    ["0.5 when neither has one", {}, {}, "0.5"],
+    ["the destination's height", {}, { avatarSize: 0.2286 }, "1.8"],
+    ["2.75 m when neither has one", {}, {}, "2.75"],
 ])("it shows %s", (_name, space, destination, shown) => {
     mockSpace = space;
     mockDestination = destination;
     open();
 
     expect(sizeInput().value).toBe(shown);
+    expect(sizeInput().min).toBe("1");
+    expect(sizeInput().max).toBe("4.5");
 });
 
-test("a size the owner types is saved to the space", () => {
+test("a height the owner types is saved to the space as a size", () => {
     mockDestination = { avatarSize: 0.2286 };
     open();
-    type("0.4");
+    type("1.7");
     wait();
 
     expect(mockStore.updateExhibitParams).toHaveBeenCalledTimes(1);
     expect(mockStore.updateExhibitParams).toHaveBeenCalledWith({
-        avatarSize: 0.4,
+        avatarSize: 0.2,
     });
+});
+
+test("typing the height already shown saves nothing", () => {
+    mockDestination = { avatarSize: 0.2286 };
+    open();
+    type("1.8");
+    wait();
+
+    expect(mockStore.updateExhibitParams).not.toHaveBeenCalled();
 });
 
 test("an emptied field saves nothing", () => {
