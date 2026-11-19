@@ -29,12 +29,59 @@ def skull_depth(widths):
     return {"chin": round(0.15 + 0.13 * jaw, 3), "forehead": 0.115, "cheek": 0.065}
 
 
-def mouth_bands(strip, teeth):
+def fit_frontal_features(design, lobes, units_per_pixel):
+    """Seat the measured ear lobes and restore the ink margin outside each eye white."""
+    household = design["household"]
+    face = design["face"]
+    width = design["head"][0]
+    radius = width * face["eyeRadius"]
+    margin = max(0.78, radius * 0.075) + 0.5 * units_per_pixel
+    face["eyeRadius"] = round(min(0.24, (radius + margin) / width), 4)
+    ears = [
+        np.round(lobe, 4).tolist()
+        for lobe in lobes
+        if 0.22 <= abs(lobe[0]) <= 0.7
+        and 0.35 <= lobe[1] <= 0.88
+        and 0.01 <= lobe[2] <= 0.19
+        and 0.02 <= lobe[3] <= 0.22
+    ]
+    if ears:
+        household["ears"] = ears
+        if "portraitPreset" in household and len(ears) == 2:
+            # The measured ear already owns the outer arc on these rows.
+            # A skull fitted to that same outline hides the pinna in the cap.
+            profile = np.array(household["widths"])
+            t = np.linspace(0, 1, len(profile))
+            radii = []
+            for x, y, rx, ry in ears:
+                distance = np.minimum(1, abs(t - y) / (1.45 * ry))
+                blend = 1 - distance**2 * (3 - 2 * distance)
+                root = abs(x) - rx * 0.20
+                radii.append(
+                    np.minimum(profile * 0.5, root) * blend
+                    + profile * 0.5 * (1 - blend)
+                )
+            household["widths"] = np.sum(radii, axis=0).round(4).tolist()
+    household["depth"] = skull_depth(household["widths"])
+
+
+def mouth_bands(strip, teeth, pigments=None):
     """Bound the cavity inside both lips before finding teeth and tongue."""
     color = np.median(strip, axis=1)
     near = (np.linalg.norm(color - teeth, axis=1) < 49) & (np.ptp(color, axis=1) < 31)
     red = color[:, 0] - color[:, 1]
     cavity = (red > 31) & (color[:, 1] < 86)
+    tongue_mask = cavity & (color[:, 0] > 120)
+    if pigments and "cavity" in pigments:
+        dark = np.array(pigments["cavity"])
+        cavity = np.linalg.norm(color - dark, axis=1) < 70
+        tongue_mask = np.zeros(len(color), dtype=bool)
+        if "tongue" in pigments:
+            target = np.array(pigments["tongue"])
+            tongue_mask = (np.linalg.norm(color - target, axis=1) < 53) & (
+                color[:, 0] > dark[0] + 26
+            )
+            cavity |= tongue_mask
     inside = np.flatnonzero(near | cavity)
     if not len(inside):
         return [0.5] * 5
@@ -45,9 +92,7 @@ def mouth_bands(strip, teeth):
     lower = np.flatnonzero(near & (t >= middle))
     gum = upper[-1] + 1 if len(upper) else first
     lower_gum = lower[0] if len(lower) else last
-    tongue = np.flatnonzero(
-        cavity & (color[:, 0] > 120) & (t >= middle) & (t < lower_gum)
-    )
+    tongue = np.flatnonzero(tongue_mask & (t >= middle) & (t < lower_gum))
     start = tongue[0] if len(tongue) else lower_gum
     return (
         (np.array([first, gum, start, lower_gum, last]) / len(strip)).round(3).tolist()
@@ -69,6 +114,7 @@ def scalp_boundary(
     projected_centers=None,
     hidden=None,
     band_color=None,
+    eyes=(),
 ):
     """Intersect each skull meridian with visible cap pigment before the first exposed skin."""
     if np.linalg.norm(skin - hair) < 35:
@@ -92,6 +138,19 @@ def scalp_boundary(
         ds = np.linalg.norm(v - skin, axis=1)
         locks = (dh < 62) & (dh + 18 < ds) & mask[ys, xs]
         exposed = (ds < 65) & (ds + 13 < dh) & mask[ys, xs]
+        # An outlined eye can occupy the whole area immediately below a
+        # fringe. Its white marks the end of the bang as clearly as skin.
+        for eye in eyes:
+            if eye:
+                l, upper, r, lower = eye
+                exposed |= (
+                    (xs >= l)
+                    & (xs < r)
+                    & (ys >= upper)
+                    & (ys < lower)
+                    & (v.min(1) > 164)
+                    & (np.ptp(v, axis=1) < 41)
+                )
         if band_color is not None:
             # Pale aqua and peach can be closer than a JPEG skin tolerance.
             # A crown accessory can cross a meridian before the visible forehead.
@@ -417,6 +476,7 @@ def fit_portrait(source, observations, figure=None, rgb=None):
             yaw=np.deg2rad(guide["yaw"]),
             projected_centers=centers,
             hidden=design["hairline"],
+            eyes=guide.get("eyes", []) if "portrait_preset" in guide else (),
             band_color=pigment(rgb, guide["band_sample"])
             if "band_sample" in guide
             else None,
@@ -575,7 +635,14 @@ def fit_portrait(source, observations, figure=None, rgb=None):
         lips = []
         painted = guide.get("tooth_sample")
         bands = []
-        teeth = pigment(rgb, painted) if painted else None
+        pigments = guide.get("mouth_pigments")
+        teeth = (
+            np.array(pigments["teeth"])
+            if pigments
+            else pigment(rgb, painted)
+            if painted
+            else None
+        )
         for col in np.unique(
             np.rint(np.linspace(0, len(cols) - 1, 17 if painted else 9)).astype(int)
         ):
@@ -584,7 +651,7 @@ def fit_portrait(source, observations, figure=None, rgb=None):
             if painted:
                 a, b = ys[0], ys[-1]
                 strip = patch[a : b + 1, max(0, cx - 1) : cx + 2]
-                bands.append(mouth_bands(strip, teeth))
+                bands.append(mouth_bands(strip, teeth, pigments))
             lips.append(
                 [
                     (cx - mid) / (width * np.cos(yaw)),
@@ -615,6 +682,10 @@ def fit_portrait(source, observations, figure=None, rgb=None):
                 "teeth": paint(teeth),
                 "bands": edges.round(3).tolist(),
             }
+            if pigments and "cavity" in pigments:
+                design["household"]["lipInk"] = paint(pigments["cavity"])
+            if pigments and "tongue" in pigments:
+                design["household"]["mouthPaint"]["tongue"] = paint(pigments["tongue"])
             if "tongue_sample" in guide:
                 design["household"]["mouthPaint"]["tongue"] = paint(
                     pigment(rgb, guide["tongue_sample"])

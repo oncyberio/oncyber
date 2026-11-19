@@ -106,6 +106,20 @@ def edit_schema(family=None, construction=None):
         branches.append(fields(["orbPaint"], record({"top": color, "bottom": color})))
         branches.append(
             fields(
+                ["orbCollar"],
+                record(
+                    {
+                        "radius": bounded(0.16, 0.43),
+                        "drop": bounded(0.04, 0.24),
+                        "band": bounded(0.02, 0.12),
+                        "binding": color,
+                        "skin": color,
+                    }
+                ),
+            )
+        )
+        branches.append(
+            fields(
                 ["visor"],
                 {"anyOf": [{"type": "string", "enum": ["trace"]}, {"type": "null"}]},
             )
@@ -473,6 +487,7 @@ def edited_recipe(
             "limbWidth",
             "kitFit",
             "orbPaint",
+            "orbCollar",
         ):
             recipe[field] = copy.deepcopy(value)
         elif field == "penOutline":

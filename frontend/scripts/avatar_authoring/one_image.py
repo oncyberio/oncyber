@@ -21,6 +21,7 @@ from .household_front import fit_front
 from .portrait import compile_portrait, propose_portrait
 from .provider import openrouter_model, request_drawing, review_family
 from .review import render
+from .visor import visor_seed
 
 point = {
     "type": "array",
@@ -149,6 +150,42 @@ def correct_portrait(recipe, source, native):
     shared = a & b & ac & bc
     if family == "sunshine":
         swatches = [(result["paints"], key) for key in ("skin", "rays", "shirt")]
+        if "orbPaint" in result:
+            from .sun_rays import correct_ray_edges, orb_contour, orb_swatches
+
+            # Both images are registered to the full visor width, even when
+            # the source stops at the shoulders. Use separate forehead and
+            # chin samples so an under-chin hue cannot tint the forehead.
+            actual = orb_contour(br, b, (95.5, 95.5), (56, 56))
+            target = orb_contour(ar, a, (95.5, 95.5), (56, 56))
+            if target is not None and actual is not None:
+                fitted = result["proportions"]
+                fitted["headHeight"] = round(
+                    float(
+                        np.clip(
+                            fitted.get("headHeight", 1)
+                            * (target[3] / target[2])
+                            / (actual[3] / actual[2]),
+                            0.65,
+                            1.5,
+                        )
+                    ),
+                    4,
+                )
+                if result.get("sunRays"):
+                    pigment = np.array(
+                        list(bytes.fromhex(result["paints"]["rays"][1:]))
+                    )
+                    result["sunRays"] = correct_ray_edges(
+                        result["sunRays"],
+                        pigment,
+                        (ar, a, ac & bc, target),
+                        (br, b, ac & bc, actual),
+                    )
+                delta = orb_swatches(ar, target) - orb_swatches(br, actual)
+                for key, change in zip(("top", "bottom"), delta):
+                    value = np.array(list(bytes.fromhex(result["orbPaint"][key][1:])))
+                    result["orbPaint"][key] = paint(np.clip(value + change, 0, 255))
     else:
         design = result["design"]
         swatches = [
@@ -233,37 +270,9 @@ def recognize_input(source, family="auto", framing="auto"):
     top, bottom = int(y.min()), int(y.max())
     h, w = mask.shape
     height = max(1, bottom - top)
-    region = np.indices(mask.shape)[0] < top + 0.66 * height
-    luminous = (rgb.min(2) > 150) & (np.ptp(rgb, axis=2) < 46)
-    dark, n = ndimage.label(mask & region & (rgb.max(2) < 108))
-    lenses = []
-    for label, sl in enumerate(ndimage.find_objects(dark), 1):
-        if sl is None:
-            continue
-        ys, xs = sl
-        width, depth = xs.stop - xs.start, ys.stop - ys.start
-        if not (width > max(10, 0.09 * height) and 1.45 < width / depth < 4.6):
-            continue
-        component = dark[sl] == label
-        if component.mean() < 0.42:
-            continue
-        holes, n_marks = ndimage.label(
-            ndimage.binary_fill_holes(component) & luminous[sl]
-        )
-        major = (
-            np.where(
-                np.bincount(holes.ravel(), minlength=n_marks + 1)[1:]
-                > max(2, 0.009 * width * depth)
-            )[0]
-            + 1
-        )
-        centers = [np.where(holes == m)[1].mean() / width for m in major]
-        if any(0.12 < c < 0.44 for c in centers) and any(
-            0.56 < c < 0.88 for c in centers
-        ):
-            lenses.append(width)
+    visor = visor_seed(rgb, mask)
     if family == "auto":
-        if lenses:
+        if visor:
             family = "sunshine"
         elif (
             len(
@@ -285,8 +294,8 @@ def recognize_input(source, family="auto", framing="auto"):
         touches = (
             bottom >= h - 2 and mask[max(top, bottom - 2) : bottom + 1].mean() > 0.12
         )
-        if lenses and family == "sunshine":
-            face_ratio = max(lenses) / height
+        if visor and family == "sunshine":
+            face_ratio = 1.9 * visor[1] / height
             framing = "portrait" if touches or face_ratio > 0.32 else "full"
         else:
             eyes = portrait_pair(
@@ -499,18 +508,17 @@ def author_one(source, output, family, framing, name, args):
                     if changed != dest:
                         dest = changed
                         report["passes"].append(entry(dest, revised))
-        selected = best_pass(report["passes"])
-        dest = directory / selected["directory"]
-        report["selected_pass"] = 1 + report["passes"].index(selected)
-        report["accepted"] = selected["accepted"]
-        report["candidate"] = str((dest / "candidate.json").relative_to(directory))
-        if report["accepted"]:
-            (directory / "recipe.json").write_bytes(
-                (dest / "candidate.json").read_bytes()
-            )
     except (ValueError, OSError, RuntimeError, ValidationError, BrowserError) as exc:
         report["error"] = str(exc)
     finally:
+        if report["passes"]:
+            selected = best_pass(report["passes"])
+            candidate = directory / selected["directory"] / "candidate.json"
+            report["selected_pass"] = 1 + report["passes"].index(selected)
+            report["accepted"] = selected["accepted"]
+            report["candidate"] = str(candidate.relative_to(directory))
+            if report["accepted"]:
+                (directory / "recipe.json").write_bytes(candidate.read_bytes())
         report["seconds"] = round(monotonic() - started, 2)
         charges = [(call.get("usage") or {}).get("cost") for call in report["calls"]]
         report["reported_provider_cost"] = (

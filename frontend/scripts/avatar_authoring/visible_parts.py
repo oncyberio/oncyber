@@ -6,6 +6,25 @@ from scipy import ndimage
 from .household import pigment
 
 
+def inked_cheeks(rgb, mask, head, skin):
+    """Identify an ink silhouette on exposed cheeks, independent of hair color."""
+    left, top, right, chin = head
+    h = chin - top
+    depth = max(2, round(0.036 * h))
+    votes = []
+    for y in np.linspace(top + 0.55 * h, top + 0.96 * h, 36).round().astype(int):
+        row = np.flatnonzero(mask[y, left:right]) + left
+        if len(row) <= 2 * depth:
+            continue
+        for x, direction in ((row[0], 1), (row[-1], -1)):
+            strip = rgb[y, x + direction * np.arange(depth + 1)]
+            inside = strip[-1]
+            if np.linalg.norm(inside - skin) < 81:
+                edge = np.min(strip[:-1].mean(1))
+                votes.append(edge < 105 and inside.mean() - edge > 44)
+    return len(votes) >= 8 and np.mean(votes) > 0.55
+
+
 def open_smile(rgb, eyes, crown, chin, skin):
     """Require bright enamel inside a connected, dark mouth below both eyes."""
     centers = np.array([[(a + c) / 2, (b + d) / 2] for a, b, c, d in eyes])
@@ -47,6 +66,32 @@ def open_smile(rgb, eyes, crown, chin, skin):
         ty, tx = np.unravel_index(depth.argmax(), depth.shape)
         x0, y0 = left + xs.start, top + ys.start
         box = [x0, y0, x0 + w, y0 + h]
+        # Small enamel strips can be narrower than a five-pixel swatch. Take
+        # their color from the interior of their own connected paint region.
+        enamel = colors[teeth]
+        pigments = {"teeth": np.percentile(enamel, 75, axis=0).round().tolist()}
+        core = ndimage.binary_erosion(area) & ~teeth
+        if core.any():
+            cavity = np.median(
+                colors[core & (colors.mean(2) <= np.median(colors[core].mean(1)))],
+                axis=0,
+            )
+            if np.all(np.isfinite(cavity)):
+                pigments["cavity"] = cavity.round().tolist()
+                tongue = (
+                    core
+                    & (np.indices(core.shape)[0] > 0.50 * h)
+                    & (colors[:, :, 0] > cavity[0] + 36)
+                    & (colors[:, :, 0] - colors[:, :, 1] > 40)
+                    & (colors[:, :, 2] < 151)
+                )
+                islands, count = ndimage.label(tongue)
+                if count:
+                    island = islands == (1 + np.bincount(islands.ravel())[1:].argmax())
+                    if island.sum() >= max(4, 0.045 * area.sum()):
+                        pigments["tongue"] = (
+                            np.median(colors[island], axis=0).round().tolist()
+                        )
         candidates.append(
             (
                 teeth.sum(),
@@ -54,6 +99,7 @@ def open_smile(rgb, eyes, crown, chin, skin):
                     "mouth_box": box,
                     "mouth_y": round(y0 + h / 2),
                     "tooth_sample": [x0 + int(tx), y0 + int(ty)],
+                    "mouth_pigments": pigments,
                 },
             )
         )
@@ -85,6 +131,71 @@ def visible_torso(rgb, mask, head, shirt_xy):
     if len(samples) < max(3, 0.065 * height):
         return None
     return round(float(np.percentile(samples, 30)), 4)
+
+
+def visible_arm(rgb, mask, head, skin, cloth):
+    """Measure a horizontal bare forearm meeting a short sleeve in a cropped T-pose."""
+    left, top, right, chin = head
+    height = chin - top
+    cx = (left + right) / 2
+    start, stop = (
+        max(0, round(chin - 0.08 * height)),
+        min(len(mask), round(chin + 0.69 * height)),
+    )
+    if stop - start < 0.16 * height or np.linalg.norm(skin - cloth) < 42:
+        return
+    arms = []
+    for side in (-1, 1):
+        bare, covered = [], []
+        for x in range(
+            max(0, round(cx - 1.6 * height)),
+            min(mask.shape[1], round(cx + 1.6 * height)),
+        ):
+            distance = (x - cx) * side / height
+            if distance < 0.26:
+                continue
+            labels, _ = ndimage.label(mask[start:stop, x])
+            for sl in ndimage.find_objects(labels):
+                row = sl[0]
+                if (
+                    row.start < 1
+                    or row.stop >= stop - start
+                    or not 0.055 * height <= row.stop - row.start <= 0.37 * height
+                ):
+                    continue
+                y = start + (row.start + row.stop - 1) / 2
+                if not chin - 0.01 * height <= y <= chin + 0.55 * height:
+                    continue
+                middle = np.median(rgb[round(y) - 1 : round(y) + 2, x], axis=0)
+                ds, dc = np.linalg.norm(middle - skin), np.linalg.norm(middle - cloth)
+                if ds < 77 and ds + 14 < dc:
+                    bare.append(
+                        (
+                            distance,
+                            (y - chin) / height,
+                            (row.stop - row.start) / (2 * height),
+                        )
+                    )
+                elif dc < 75 and dc + 14 < ds:
+                    covered.append(distance)
+        if len(bare) < max(4, 0.065 * height) or not covered:
+            continue
+        bare = np.array(sorted(bare))
+        cuff = bare[0, 0]
+        if not 0.33 < cuff < 1.25 or not any(cuff - 0.13 < x < cuff for x in covered):
+            continue
+        if np.ptp(bare[:, 1]) > 0.075:
+            continue
+        arms.append([cuff, np.median(bare[:, 1]), np.median(bare[:, 2])])
+    if not arms:
+        return
+    cuff, level, radius = np.median(arms, axis=0)
+    if 0.03 <= level <= 0.46 and 0.026 <= radius <= 0.14:
+        return dict(
+            zip(
+                ("cuff", "level", "radius"), np.round([cuff, level, radius], 4).tolist()
+            )
+        )
 
 
 def visible_placket(rgb, head, fabric):

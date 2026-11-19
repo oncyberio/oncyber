@@ -240,6 +240,43 @@ test("an asymmetric crown changes its marked tips at both detail levels and pres
     }
 });
 
+test("a measured jersey collar builds a separate throat only on mascot recipes", () => {
+    const orbCollar = {
+        radius: 0.28,
+        drop: 0.16,
+        band: 0.06,
+        binding: "#dda555",
+        skin: "#76b699",
+    };
+    expect(() => readAvatarFile({ ...scientist, orbCollar })).toThrow();
+    expect(() =>
+        readAvatarFile({ ...vesper, orbCollar: { ...orbCollar, radius: -1 } })
+    ).toThrow();
+    const plain = readAvatarFile(vesper).recipe;
+    const fitted = readAvatarFile({ ...vesper, orbCollar }).recipe;
+    for (const lod of ["full", "crowd"] as const) {
+        const avatars = [plain, fitted, plain].map((recipe) =>
+            buildCharacter(recipe, lod)
+        );
+        try {
+            const triangles = avatars.map(({ scene }) => {
+                const mesh = scene.getObjectByProperty(
+                    "isSkinnedMesh",
+                    true
+                ) as T.SkinnedMesh;
+                expect(mesh.skeleton.getBoneByName("neck")).toBeDefined();
+                expect(Array.isArray(mesh.material)).toBe(false);
+                return mesh.geometry.index.count / 3;
+            });
+            expect(triangles[1]).toBeGreaterThan(triangles[0]);
+            expect(triangles[1]).toBeLessThan(triangles[0] + 200);
+            expect(triangles[2]).toBe(triangles[0]);
+        } finally {
+            avatars.forEach(({ scene }) => disposeAvatarGraph(scene));
+        }
+    }
+});
+
 test("a single orb rig keeps its closed ray facets, two pigments and grips in both meshes", () => {
     const doc = { ...vesper, orbPaint: { top: "#7bd0a6", bottom: "#15675d" } };
     const fit = readAvatarFile(doc).recipe;

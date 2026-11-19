@@ -18,6 +18,7 @@ for (const [name, { template: id }] of Object.entries(families)) {
         template: id,
         crownOutline: fit?.crownOutline,
         sunRays: fit?.sunRays,
+        visor: fit?.visor,
     });
     const geometry = d.s.geometry();
     const { points, runs } = d.s.record;

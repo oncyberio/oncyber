@@ -13,6 +13,42 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_cropped_arm_uses_both_sleeve_edges_and_the_exposed_skin_radius(self):
+        from .visible_parts import visible_arm
+
+        art = Image.new("RGB", (190, 145), "#f1eee2")
+        draw = ImageDraw.Draw(art)
+        draw.rectangle((0, 108, 189, 118), fill="#d39e7d")
+        draw.rectangle((51, 106, 139, 121), fill="#3a7188")
+        draw.rectangle((70, 102, 120, 144), fill="#3a7188")
+        rgb = np.asarray(art, dtype=float)
+        mask = (rgb != rgb[0, 0]).any(axis=2)
+        head = [50, 10, 140, 95]
+        arm = visible_arm(rgb, mask, head, rgb[112, 4], rgb[112, 90])
+        self.assertAlmostEqual(arm["cuff"], 45 / 85, delta=0.025)
+        self.assertAlmostEqual(arm["level"], 18 / 85, places=3)
+        self.assertAlmostEqual(arm["radius"], 5.5 / 85, places=3)
+        self.assertIsNone(
+            visible_arm(rgb[:109], mask[:109], head, rgb[112, 4], rgb[112, 90])
+        )
+
+    def test_enamel_and_tongue_are_sampled_inside_the_open_mouth(self):
+        from .visible_parts import open_smile
+
+        art = Image.new("RGB", (120, 128), "#df9c77")
+        draw = ImageDraw.Draw(art)
+        draw.ellipse((43, 79, 77, 96), fill="#4a232b")
+        draw.line((50, 82, 70, 82), fill="#fff4ed", width=2)
+        draw.ellipse((53, 89, 67, 93), fill="#bc4b55")
+        rgb = np.asarray(art, dtype=float)
+        result = open_smile(
+            rgb, [(37, 44, 53, 60), (67, 44, 83, 60)], 12, 115, rgb[0, 0]
+        )
+        colors = result["mouth_pigments"]
+        self.assertEqual(colors["teeth"], [255, 244, 237])
+        self.assertEqual(colors["cavity"], [74, 35, 43])
+        self.assertEqual(colors["tongue"], [188, 75, 85])
+
     def test_gpt_image_front_recovers_an_unregistered_head_garment_and_closed_collar(
         self,
     ):

@@ -191,6 +191,277 @@
                     "triangles": 1439
                 }
             }
+        },
+        "measured_parts_replay": {
+            "transport": "deterministic",
+            "model_calls": 0,
+            "reported_provider_cost": null,
+            "cases": {
+                "moss": {
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "selected_pass": 2,
+                    "passes": [false, false],
+                    "visible_checks_passed": false,
+                    "full_body_silhouette_iou": 0.8786,
+                    "full_body_rgb_mae": 32.0,
+                    "candidate_sha256": "e0cc80e0c81dcc968d4598bcf9d93ebd46a3c371fd0852c98dd3927da9739faa",
+                    "seconds": 33.69,
+                    "error": null,
+                    "triangles": 3372,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ]
+                },
+                "lark": {
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "selected_pass": 2,
+                    "passes": [false, false],
+                    "visible_checks_passed": false,
+                    "full_body_silhouette_iou": 0.88,
+                    "full_body_rgb_mae": 38.12,
+                    "candidate_sha256": "8d4cd7429e7a5343b3583043f59b1ea040abd3dc8c756838914ddc28229447f5",
+                    "seconds": 21.75,
+                    "error": null,
+                    "triangles": 3250,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ]
+                },
+                "rowan": {
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "selected_pass": 1,
+                    "passes": [true],
+                    "visible_checks_passed": true,
+                    "full_body_silhouette_iou": 0.6227,
+                    "full_body_rgb_mae": 49.68,
+                    "candidate_sha256": "cf53dda814c0c5481713f61e9b38c3f8ada13693937340304a98f17191d48d5c",
+                    "seconds": 8.84,
+                    "error": null,
+                    "triangles": 2924,
+                    "visible_portrait": {
+                        "head_iou": 0.9164,
+                        "rgb_mae": 25.69,
+                        "ink_agreement": 0.6876,
+                        "visible_fraction": 1.0
+                    },
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.6227,
+                            "triangles": 2924,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.6928
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.6259,
+                            "triangles": 2924,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.6939
+                        }
+                    },
+                    "evidence_sha256": "c5a9d7b15e5ea4e705b1a24c0784abc20d00a2da3f0840784b8b7680894972aa"
+                },
+                "poe": {
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "selected_pass": 2,
+                    "passes": [false, true],
+                    "visible_checks_passed": true,
+                    "full_body_silhouette_iou": 0.6643,
+                    "full_body_rgb_mae": 40.03,
+                    "candidate_sha256": "cd775cc16d7895dd971a60d23ab9ab60d616cb998c81ca7d0a63aec18cd9655b",
+                    "seconds": 22.16,
+                    "error": null,
+                    "triangles": 3247,
+                    "visible_portrait": {
+                        "head_iou": 0.8621,
+                        "rgb_mae": 23.77,
+                        "ink_agreement": 0.8656,
+                        "visible_fraction": 1.0
+                    },
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.6643,
+                            "triangles": 3247,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7185
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.6642,
+                            "triangles": 3247,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7185
+                        }
+                    },
+                    "evidence_sha256": "196201d2354625013190d8cc11dd665321d1c8aa80bce8333192b0ec850a5c5e"
+                },
+                "solvi": {
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "selected_pass": 2,
+                    "passes": [false, false],
+                    "visible_checks_passed": false,
+                    "full_body_silhouette_iou": 0.7729,
+                    "full_body_rgb_mae": 33.6,
+                    "candidate_sha256": "397f253e30e957cd639c57b17242d18ffc75afc84c7cc95c526582eeb1c887f1",
+                    "seconds": 28.55,
+                    "error": null,
+                    "triangles": 1625,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ]
+                },
+                "mora": {
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "selected_pass": 2,
+                    "passes": [false, false],
+                    "visible_checks_passed": false,
+                    "full_body_silhouette_iou": 0.7595,
+                    "full_body_rgb_mae": 25.62,
+                    "candidate_sha256": "94fce4af120fe644936040d8c39f1ef378b06643e25c93fd90f0113e4cc5480e",
+                    "seconds": 46.59,
+                    "error": null,
+                    "triangles": 1452,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ]
+                },
+                "reed": {
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "selected_pass": 1,
+                    "passes": [true],
+                    "visible_checks_passed": true,
+                    "full_body_silhouette_iou": 0.7486,
+                    "full_body_rgb_mae": 38.57,
+                    "candidate_sha256": "d7a11f83f6cd2965f4794a7e1c37eeee12b31786153b1e461ad730db4eb3f9a8",
+                    "seconds": 16.68,
+                    "error": null,
+                    "triangles": 1601,
+                    "visible_portrait": {
+                        "head_iou": 0.8707,
+                        "rgb_mae": 25.25,
+                        "ink_agreement": 0.9883,
+                        "visible_fraction": 0.8802
+                    },
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.7486,
+                            "triangles": 1601,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7349
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.7489,
+                            "triangles": 1601,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7349
+                        }
+                    },
+                    "evidence_sha256": "ee4f1a969dab8738d51641f4c883148ddcce10e8556edf5e06f18489033fa222"
+                },
+                "indigo": {
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "selected_pass": 1,
+                    "passes": [true],
+                    "visible_checks_passed": true,
+                    "full_body_silhouette_iou": 0.7831,
+                    "full_body_rgb_mae": 41.02,
+                    "candidate_sha256": "e7cb3348c760b0de882a49ddaa1cfbde7817bd10b8729d9aa9eab54fc6a3157c",
+                    "seconds": 13.99,
+                    "error": null,
+                    "triangles": 1543,
+                    "visible_portrait": {
+                        "head_iou": 0.866,
+                        "rgb_mae": 25.81,
+                        "ink_agreement": 0.978,
+                        "visible_fraction": 0.9115
+                    },
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.7831,
+                            "triangles": 1543,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.7833,
+                            "triangles": 1543,
+                            "walk_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        }
+                    },
+                    "evidence_sha256": "0779323ae854bdb4cb7c0a543483352f59a0ba3d7dafd6ff5b30795bd2047af6"
+                }
+            },
+            "independent_first_pass": 0,
+            "independent_within_one_correction": 0,
+            "crowd": {
+                "base_recipes": [
+                    "rowan",
+                    "poe",
+                    "reed",
+                    "indigo",
+                    "mora",
+                    "solvi",
+                    "jessica",
+                    "nia-bell"
+                ],
+                "variants": 100,
+                "backends": {
+                    "WebGLBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "frameCalls": "2",
+                        "visible": "100",
+                        "backend": "WebGLBackend",
+                        "authored": "100",
+                        "triangles": "165803",
+                        "readyMs": "3353",
+                        "uniqueRecipesLoaded": 100
+                    },
+                    "WebGPUBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "frameCalls": "2",
+                        "visible": "100",
+                        "backend": "WebGPUBackend",
+                        "authored": "100",
+                        "triangles": "165803",
+                        "readyMs": "3853",
+                        "uniqueRecipesLoaded": 100
+                    }
+                }
+            }
         }
     }
 }

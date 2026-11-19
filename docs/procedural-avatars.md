@@ -99,6 +99,10 @@ Use `review-avatar-release.py candidate.json reference.webp /tmp/avatar-review -
 
 The fixture freezes four drawings per family. Each family has two full T-poses and two restricted portrait inputs. The evaluator opens the complete drawing for a portrait only after candidate selection. Compare inferred body proportions separately from visible portrait likeness. The first local run passed all automated likeness checks on **0 of 8**. The replay informed the mouth, shirt width and jersey changes. Those cases are now calibration examples for any subsequent evaluation. No candidate from this trial entered the catalogue. For a benchmark release review, generate evidence against the withheld full drawing after fitting and store the decision in the candidate pass’s `approval/` directory. Run `benchmark-avatar-holdout.py OUTPUT --score-reviews` to count independent first-pass and one-correction approvals without invoking the author again.
 
+On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. All four full-body inputs missed the visible gates. The four passing portraits also missed the silhouette gate against their withheld full bodies. Independent approvals remain at **0/8**. The deterministic run took 8.84–46.59 seconds per drawing and made zero provider calls. The recorded scores, candidate hashes and two-backend measurements are in [the replay results](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json).
+
+On the branch preview, open `/preview/studies/rowan` to compare the supplied reference with the exact candidate in the native viewer. Each study supports rotation, portraits, walking, crouching and the right-hand attachment. The eight study recipes are separate from the installed avatar catalogue. To export selected recipes from a new run, use `benchmark-avatar-holdout.py OUTPUT --export-candidates DIRECTORY`.
+
 ![Eight reference drawings and their native replays](avatar-family-benchmark.webp)
 
 ## Draw a recipe from a T-pose

@@ -14,7 +14,7 @@ import {
     type XY,
 } from "./drawing";
 import type { Point } from "./sculpt";
-import { avatarStyles, styleOf, type CrewNeck } from "./styles";
+import { avatarStyles, crewOpening, styleOf, type CrewNeck } from "./styles";
 import { finish } from "./surfaces";
 import { drawRoundedProfile, type RoundedSection } from "./roundedProfile";
 export { roundedProfileRows, type RoundedSection } from "./roundedProfile";
@@ -205,13 +205,21 @@ export function trouserLeg(
     return profileDepth(profile);
 }
 export type GarmentPrints = Partial<Record<PrintName, PrintPath[]>>;
+export interface OrbCollar {
+    radius: number;
+    drop: number;
+    band: number;
+    skin: string;
+    binding: string;
+}
 export function drawShapeRecipe(
     d: Drawing,
     recipe: ShapeRecipe,
     prints?: GarmentPrints,
     shirtMark?: ShirtMark,
     sunRays?: XY[][],
-    visor?: OrbVisor
+    visor?: OrbVisor,
+    orbCollar?: OrbCollar
 ) {
     d.s.palette(
         Object.fromEntries(
@@ -321,6 +329,16 @@ export function drawShapeRecipe(
                 backs.set(part.name, (x, y) => -back(x, y));
             }
         } else if ("profile" in part) {
+            const [cx, , rx] = families.sunshine.crownRoot;
+            const first = part.profile[0];
+            const inset = part.name === "jersey" && orbCollar;
+            const neckline = part.neckline && {
+                ...(part.neckline.fit ?? avatarStyles[styleOf[d.id]].neckline),
+                ...(inset && {
+                    width: (2.45 * inset.radius * rx) / (first[2] - first[1]),
+                    frontDrop: inset.drop * rx,
+                }),
+            };
             surface = part.inseam
                 ? trouserLeg(d, part, pigment)
                 : d.body(
@@ -331,17 +349,62 @@ export function drawShapeRecipe(
                       part.caps,
                       0,
                       part.neckline && {
-                          neckline:
-                              part.neckline.fit ??
-                              avatarStyles[styleOf[d.id]].neckline,
-                          binding: recipe.palette[part.neckline.binding].color,
+                          neckline,
+                          binding: inset
+                              ? inset.binding
+                              : recipe.palette[part.neckline.binding].color,
                           interior:
                               recipe.palette[part.neckline.interior].color,
+                          bandWidth: inset ? inset.band * rx : undefined,
                       },
                       shirtMark && part.name === "jersey"
                           ? (emit) => drawMarkedShirt(d, shirtMark, emit)
                           : undefined
                   );
+            if (inset && neckline) {
+                const count = part.sides ?? 28;
+                const rim = crewOpening(first, neckline, count);
+                const radius = inset.radius * rx;
+                const tube = (y: number, scale: number): Point[] =>
+                    rim.map((_, j) => {
+                        const a = ((j % count) * 2 * Math.PI) / count;
+                        return [
+                            cx + radius * scale * Math.sin(a),
+                            y,
+                            (first[4] ?? 0) +
+                                radius * scale * 0.78 * Math.cos(a),
+                        ];
+                    });
+                // Blend the visible throat into the animated opening. Its
+                // lower edge shares the crew rim exactly in the rest pose.
+                const bottom = first[0];
+                const top = bottom - 0.53 * rx;
+                const tone = d.s.tone,
+                    uv = d.s.printUV;
+                d.s.printUV = undefined;
+                d.drape("neck", part.bone, top, bottom);
+                d.s.tone = (_, y) =>
+                    0.78 +
+                    0.22 *
+                        T.MathUtils.smoothstep(
+                            y,
+                            bottom - 0.13 * rx,
+                            bottom + neckline.frontDrop
+                        );
+                d.s.surface(
+                    [
+                        tube(top, 0),
+                        tube(top, 0.95),
+                        tube(bottom - 0.05 * rx, 1),
+                        rim,
+                    ],
+                    inset.skin,
+                    true
+                );
+                d.bind(part.bone);
+                d.s.tone = tone;
+                d.s.printUV = uv;
+            }
             if (part.name) backs.set(part.name, profileDepth(part.profile, -1));
         } else if ("across" in part) {
             const sections = part.across;

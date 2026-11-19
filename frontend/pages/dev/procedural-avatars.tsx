@@ -664,20 +664,22 @@ export default function AvatarStudy({
                         ? "Rick and Morty style study"
                         : "Avatar studies"}
                 </h1>
-                <Link
-                    href={
-                        customSubjects?.[0]?.source.startsWith("drawn-")
-                            ? "/dev/procedural-crowd?cast=cartoon&guest=" +
-                              encodeURIComponent(
-                                  customSubjects[0].source.slice(6)
-                              )
-                            : cartoonOnly
-                            ? "/dev/procedural-crowd?cast=cartoon"
-                            : "/dev/procedural-crowd"
-                    }
-                >
-                    100-recipe crowd
-                </Link>
+                {!customSubjects?.[0]?.source.startsWith("preview-") && (
+                    <Link
+                        href={
+                            customSubjects?.[0]?.source.startsWith("drawn-")
+                                ? "/dev/procedural-crowd?cast=cartoon&guest=" +
+                                  encodeURIComponent(
+                                      customSubjects[0].source.slice(6)
+                                  )
+                                : cartoonOnly
+                                ? "/dev/procedural-crowd?cast=cartoon"
+                                : "/dev/procedural-crowd"
+                        }
+                    >
+                        100-recipe crowd
+                    </Link>
+                )}
                 <label className="reference">
                     Compare reference
                     <input

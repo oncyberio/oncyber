@@ -10,9 +10,9 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
-from .sun_rays import measure_sun_rays
+from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
 from .tracing import shirt_mark
-from .visor import measure_visor
+from .visor import measure_visor, visor_seed
 
 HERE = Path(__file__).resolve().parent
 FAMILIES = json.loads(
@@ -255,7 +255,7 @@ class Family:
         if 8 <= len(keep) <= 80:
             return rim[sorted(keep)].round(3).tolist()
 
-    def fit(self, image, mask, fit_hair=True, custom_jersey=False):
+    def fit(self, image, mask, fit_hair=True, custom_jersey=False, fitted_orb=None):
         ys, xs = np.nonzero(mask)
         unit = (ys.max() - ys.min()) / (SIDES - 32)
         # Leave enough horizontal room for long arms and retain image aspect.
@@ -365,7 +365,24 @@ class Family:
             and fitted_jaw.cost < fixed_jaw.cost * 0.98
         ):
             params = fitted_jaw.x
+        offset = None
+        if fitted_orb is not None:
+            cx, cy, rx, ry = FAMILIES[self.key]["crownRoot"]
+            # The torso fixes the drawing scale. The visor and both intact
+            # arcs independently fix the height, breadth and pivot of the orb.
+            scale = params[0] * unit
+            params[5:7] = np.clip(
+                fitted_orb[2:] / [rx * scale * params[3], ry * scale], 0.65, 1.5
+            )
+            params[7:] = 1
+            drawn = self.warp(np.array([[cx, cy]]), True, params)[0] * unit + [ox, oy]
+            projected = (
+                np.array([rx * params[3] * params[5], ry * params[6]]) * params[0]
+            )
+            offset = np.clip((fitted_orb[:2] - drawn) / unit / projected, -0.35, 0.35)
         xy = self.warp(self.points, self.head, params, self.crown)
+        if offset is not None:
+            xy[self.head] += offset * projected
         valid = self.raster(xy, face_ids, size) > 0
         cranial = np.arange(SIDES)[:, None] <= xy[self.head, 1].max()
 
@@ -476,6 +493,8 @@ class Family:
             "proportions": transforms,
             "paints": palette,
         }
+        if offset is not None:
+            recipe["orbOffset"] = offset.round(4).tolist()
         shirt_frame = None
         if custom_jersey and self.key == "sunshine":
             recipe["plainJersey"] = True
@@ -533,33 +552,46 @@ class Family:
             "paint_samples": coverage,
             "paint_probes": probes,
         }
-        if fit_hair and self.key == "sunshine" and 0.62 < metrics["head_iou"] < 0.91:
+        if fit_hair and self.key == "sunshine" and metrics["head_iou"] < 0.97:
             cx, cy, rx, ry = FAMILIES[self.key]["crownRoot"]
             orb = self.warp(
                 np.asarray([[cx, cy], [cx + rx, cy], [cx, cy + ry]]), True, params
             )
             center = orb[0] * unit + [ox, oy]
             size = (orb[[1, 2], [0, 1]] - orb[0]) * unit
+            seed = visor_seed(image, mask)
+            if seed:
+                center, radius = seed
+                size = [radius, radius]
             result = measure_sun_rays(image, mask, center, size)
             if result:
                 rays, swatch = result
-                source = compile_families({"family": self.key, "sunRays": rays})[
-                    self.key
-                ]
+                ellipse = measure_sun_rays(image, mask, center, size, orb_only=True)
+                visor = measure_visor(image, mask, ellipse)
+                source = compile_families(
+                    {"family": self.key, "sunRays": rays, "visor": visor}
+                )[self.key]
                 updated, measured, view = Family(self.key, source).fit(
-                    image, mask, fit_hair=False, custom_jersey=custom_jersey
+                    image,
+                    mask,
+                    fit_hair=False,
+                    custom_jersey=custom_jersey,
+                    fitted_orb=ellipse if visor else None,
                 )
                 if (
                     measured["head_iou"] > metrics["head_iou"] + 0.024
                     and measured["silhouette_iou"] >= metrics["silhouette_iou"]
                 ):
-                    visor = measure_visor(
-                        image,
-                        mask,
-                        measure_sun_rays(image, mask, center, size, orb_only=True),
-                    )
                     if visor:
                         updated["visor"] = visor
+                        colors = orb_swatches(image, ellipse).round().astype("uint8")
+                        updated["orbPaint"] = {
+                            k: "#" + c.tobytes().hex()
+                            for k, c in zip(("top", "bottom"), colors)
+                        }
+                        neck = jersey_neck(image, mask, ellipse)
+                        if neck:
+                            updated["orbCollar"] = neck[0]
                     updated["sunRays"] = rays
                     updated["paints"]["rays"] = swatch
                     measured["original_head_iou"] = metrics["head_iou"]

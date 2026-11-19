@@ -4,7 +4,42 @@ import numpy as np
 from scipy import ndimage
 
 
+def visor_seed(rgb, mask):
+    """Find a horizontal dark visor containing two bright enclosed marks."""
+    ys = np.nonzero(mask)[0]
+    if not len(ys):
+        return
+    stop = min(len(mask), round(ys.min() + 0.72 * np.ptp(ys)) + 1)
+    dark, _ = ndimage.label(mask[:stop] & (rgb[:stop].max(2) < 108))
+    candidates = []
+    for i, box in enumerate(ndimage.find_objects(dark), 1):
+        sy, sx = box
+        width, height = sx.stop - sx.start, sy.stop - sy.start
+        if width < 12 or not 1.45 < width / height < 4.6:
+            continue
+        component = dark[box] == i
+        if component.mean() < 0.42:
+            continue
+        white = (rgb[box].min(2) > 150) & (np.ptp(rgb[box], axis=2) < 46)
+        holes = ndimage.binary_fill_holes(component) & white
+        marks, n = ndimage.label(holes)
+        areas = np.bincount(marks.ravel(), minlength=n + 1)
+        centers = [
+            np.nonzero(marks == k)[1].mean() / width
+            for k in np.flatnonzero(areas[1:] > 0.009 * width * height) + 1
+        ]
+        if any(x < 0.46 for x in centers) and any(x > 0.54 for x in centers):
+            candidates.append(
+                (width, ((sx.start + sx.stop - 1) / 2, (sy.start + sy.stop - 1) / 2))
+            )
+    if candidates:
+        span, center = max(candidates)
+        return center, span / 1.9
+
+
 def measure_visor(rgb, mask, orb):
+    from .family import FAMILIES
+
     if orb is None:
         return
     cx, cy, rx, ry = orb
@@ -65,7 +100,16 @@ def measure_visor(rgb, mask, orb):
             or not all(0.07 < t < 0.28 for t in mark[2:])
         ):
             return
-        marks.append(np.round(mark, 3).tolist())
+        # Input bounds include the diagonal strokes' end caps on a raised
+        # surface. Store the centerline in the orb plane used by drawOrbVisor.
+        mascot = FAMILIES["sunshine"]
+        glyph = mascot["visorGlyph"]
+        projected = 1 + glyph["lift"] / np.array(mascot["crownRoot"][2:])
+        centerline = np.array(mark).reshape(2, 2) / projected
+        centerline[1] = np.maximum(
+            0.07, (centerline[1] + 0.5 / np.array([rx, ry])) / (1 + glyph["stroke"])
+        )
+        marks.append(centerline.round(3).ravel().tolist())
     return {
         "center": round(float(center), 3),
         "span": round(float(span), 3),

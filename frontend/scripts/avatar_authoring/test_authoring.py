@@ -741,6 +741,24 @@ class AuthoringTests(unittest.TestCase):
         passed = {**first, "accepted": True}
         self.assertIs(best_pass([first, passed]), passed)
 
+    def test_second_unknown_part_cannot_start_another_extension_call(self):
+        from types import SimpleNamespace
+        from .feature_library import resolve_feature
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            calls = [{"operation": "compose_native_part", "usage": {"cost": 0.01}}]
+            with self.assertRaisesRegex(ValueError, "one family extension"):
+                resolve_feature(
+                    SimpleNamespace(feature_library=folder, feature_model="strong"),
+                    "extra fringe",
+                    {"family": "rick-classic"},
+                    folder / "source.png",
+                    folder,
+                    calls,
+                )
+            self.assertEqual(len(calls), 1)
+
     def test_release_reuses_registration_only_for_the_measured_image_and_recipe(self):
         from .release import digest, registration_from_source
 

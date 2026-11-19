@@ -18,6 +18,7 @@ export function drawOrbVisor(
     white: string
 ) {
     const [ox, oy, rx, ry] = families.sunshine.crownRoot;
+    const glyph = families.sunshine.visorGlyph;
     const point = (u: number, v: number, lift: number): Point => {
         const longitude = Math.asin(
             Math.max(-0.998, Math.min(0.998, u / Math.sqrt(1 - v * v)))
@@ -85,16 +86,16 @@ export function drawOrbVisor(
     quads.length = 0;
     for (const [cx, cy, rx, ry] of visor.marks)
         for (const sign of [-1, 1]) {
-            const glyph = (t: number, w: number) =>
+            const stroke = (t: number, w: number) =>
                 point(
-                    cx + rx * (t + w * 0.19),
-                    cy + ry * sign * (t - w * 0.19),
-                    5.65
+                    cx + rx * (t + w * glyph.stroke),
+                    cy + ry * sign * (t - w * glyph.stroke),
+                    glyph.lift
                 );
             for (let i = 0; i < 4; i++) {
                 const a = i * 0.5 - 1,
                     b = a + 0.5;
-                quad(glyph(a, -1), glyph(b, -1), glyph(b, 1), glyph(a, 1));
+                quad(stroke(a, -1), stroke(b, -1), stroke(b, 1), stroke(a, 1));
             }
         }
     // Keep the tiny projected strokes intact even when the crowd LOD

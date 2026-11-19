@@ -9,7 +9,7 @@ import {
     type CastMember,
 } from "./cartoonCast";
 import type { ShirtMark } from "./shirtMark";
-import type { ShapeRecipe } from "./shapeRecipe";
+import type { OrbCollar, ShapeRecipe } from "./shapeRecipe";
 import type { ReferenceLayout } from "./referenceProportions";
 import type { Character } from "./catalog";
 import { styleOf, type avatarStyles } from "./styles";
@@ -33,6 +33,7 @@ export interface AvatarRecipe {
     };
     visor?: OrbVisor;
     orbPaint?: { top: string; bottom: string };
+    orbCollar?: OrbCollar;
     armSpan?: number;
     limbWidth?: { arms: number; legs: number };
     sleeveCut?: { radius: number; lift: number };

@@ -81,6 +81,15 @@ const familyFile = z.strictObject({
         })
         .optional(),
     orbPaint: z.strictObject({ top: swatch, bottom: swatch }).optional(),
+    orbCollar: z
+        .strictObject({
+            radius: z.number().min(0.16).max(0.43),
+            drop: z.number().min(0.04).max(0.24),
+            band: z.number().min(0.02).max(0.12),
+            skin: swatch,
+            binding: swatch,
+        })
+        .optional(),
     limbWidth: z
         .strictObject({
             arms: z.number().min(0.72).max(1.4),
@@ -265,7 +274,11 @@ export function readAvatarFile(input: unknown): {
         )
             throw new Error("This family has no lab coat");
         if (
-            (file.orbOffset || file.kitFit || file.orbPaint || file.visor) &&
+            (file.orbOffset ||
+                file.kitFit ||
+                file.orbPaint ||
+                file.visor ||
+                file.orbCollar) &&
             family.template !== "sunshine"
         )
             throw new Error("Only the mascot has a floating head");
@@ -317,6 +330,9 @@ export function readAvatarFile(input: unknown): {
                 }),
                 ...(file.orbPaint && {
                     orbPaint: file.orbPaint as AvatarRecipe["orbPaint"],
+                }),
+                ...(file.orbCollar && {
+                    orbCollar: file.orbCollar as AvatarRecipe["orbCollar"],
                 }),
                 ...(file.limbWidth && {
                     limbWidth: file.limbWidth as AvatarRecipe["limbWidth"],

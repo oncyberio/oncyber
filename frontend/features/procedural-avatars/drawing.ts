@@ -577,6 +577,7 @@ export class Drawing {
             binding: string;
             interior: string;
             center?: number;
+            bandWidth?: number;
         },
         drawFabric?: (emit: () => Point[][]) => void
     ): Depth {
@@ -606,7 +607,8 @@ export class Drawing {
                 color,
                 collar.binding,
                 collar.interior,
-                collar.center
+                collar.center,
+                collar.bandWidth && { width: collar.bandWidth }
             );
             this.s.printUV = uv;
             rows.shift();

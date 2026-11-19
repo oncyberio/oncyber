@@ -701,6 +701,13 @@ const householdFile = file.extend({
             household: z.strictObject({
                 jawWidths: z.array(n(0.04, 1.15)).length(8).optional(),
                 shirtHalfWidth: n(0.17, 0.98).optional(),
+                portraitArm: z
+                    .strictObject({
+                        cuff: n(0.33, 1.25),
+                        level: n(0.03, 0.46),
+                        radius: n(0.026, 0.14),
+                    })
+                    .optional(),
                 portraitPreset: z
                     .enum(["child", "lean-teen", "adult"])
                     .optional(),

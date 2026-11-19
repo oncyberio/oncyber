@@ -1065,7 +1065,8 @@ export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
             recipe?.plainJersey ? plainKitInk : sunshineInk,
             recipe?.shirtMark,
             recipe?.sunRays,
-            recipe?.visor
+            recipe?.visor,
+            recipe?.orbCollar
         );
         return;
     }
@@ -1102,13 +1103,15 @@ function compiled(id: Character, recipe: AvatarRecipe) {
         !recipe.shapes && !recipe.layout && !recipe.garments && !recipe.cartoon;
     const customParts =
         fixed &&
-        (recipe.shirtMark ||
+        (recipe.plainJersey ||
+            recipe.shirtMark ||
             recipe.crownOutline ||
             recipe.sunRays ||
             recipe.eyeInk ||
             recipe.lapels ||
             recipe.penOutline ||
             recipe.visor ||
+            recipe.orbCollar ||
             recipe.coatPanels ||
             recipe.sleeveCut);
     const cache = customParts ? markedTemplates : templates;
@@ -1117,6 +1120,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
         (customParts
             ? JSON.stringify([
                   id,
+                  recipe.plainJersey,
                   recipe.shirtMark,
                   recipe.crownOutline,
                   recipe.sunRays,
@@ -1124,6 +1128,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
                   recipe.lapels,
                   recipe.penOutline,
                   recipe.visor,
+                  recipe.orbCollar,
                   recipe.coatPanels,
                   recipe.sleeveCut,
               ])

@@ -1,16 +1,22 @@
 """Compile the visible head of a portrait and infer the hidden body from its family."""
 
 import numpy as np
-from scipy import ndimage
 
 from .eye_review import portrait_pair
+from .family import FAMILIES
 from .fit import pixels
-from .household import fit_portrait, paint
-from .sun_rays import measure_sun_rays
-from .visor import measure_visor
-from .visible_parts import open_smile, visible_torso, visible_placket
-from .household_front import painted_brow
-from .tracing import garment_motif, outline_mark
+from .household import fit_frontal_features, fit_portrait, paint, pigment
+from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
+from .visor import measure_visor, visor_seed
+from .visible_parts import (
+    inked_cheeks,
+    open_smile,
+    visible_arm,
+    visible_torso,
+    visible_placket,
+)
+from .household_front import has_ink_outline, painted_brow
+from .tracing import ear_lobes, garment_motif, nose_stroke, outline_mark
 
 PRESETS = {
     "child": ("child", 520, 150),
@@ -41,15 +47,10 @@ def propose_portrait(source, family):
     if family == "sunshine":
         # The visor is the largest dark region high on the figure. Its span
         # estimates the orb even when short rays protrude on one side.
-        dark, n = ndimage.label(
-            mask & (rgb.max(2) < 108) & (np.indices(mask.shape)[0] < h * 0.72)
-        )
-        if not n:
+        seed = visor_seed(rgb, mask)
+        if not seed:
             raise ValueError("Cannot locate the visor")
-        region = dark == np.bincount(dark.ravel())[1:].argmax() + 1
-        y, x = np.where(region)
-        cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
-        radius = (np.ptp(x) + 1) / 1.9
+        (cx, cy), radius = seed
         if not 0.10 * w < radius < w * 0.48:
             raise ValueError("A measurable floating visor is required")
         head = [cx - radius, cy - radius, cx + radius, cy + radius]
@@ -170,13 +171,21 @@ def compile_portrait(source, family, name, obs):
                 mark = None
         else:
             mark = None
+        _, _, base_rx, base_ry = FAMILIES[family]["crownRoot"]
         result = {
             "version": 1,
             "style": "family",
             "plainJersey": True,
             "family": family,
             "name": name,
-            "proportions": {},
+            "proportions": {
+                "headHeight": round(
+                    float(np.clip((ry / rx) / (base_ry / base_rx), 0.65, 1.5)), 4
+                )
+            },
+            "orbPaint": dict(
+                zip(("top", "bottom"), map(paint, orb_swatches(rgb, orb)))
+            ),
             "paints": {
                 "skin": paints["skin"],
                 "rays": paints["hair"],
@@ -188,6 +197,32 @@ def compile_portrait(source, family, name, obs):
             result["shirtMark"] = mark
         if rays:
             result["sunRays"], result["paints"]["rays"] = rays
+        neck = jersey_neck(rgb, mask, orb)
+        if neck:
+            collar, below_chin = neck
+            result["orbCollar"] = collar
+            # In the mascot's drawing space the crew rim starts at 171 and
+            # the chin at 167.2. Move the shirt to the drawn neck length.
+            collar_shift = float(
+                np.clip(
+                    (
+                        below_chin * base_ry * result["proportions"]["headHeight"]
+                        - collar["drop"] * base_rx
+                        - 3.8
+                    )
+                    / 680,
+                    -0.045,
+                    0.045,
+                )
+            )
+            result["kitFit"] = {
+                "collar": round(collar_shift, 4),
+                "shoulders": round(collar_shift, 4),
+                "waist": 0,
+                "hem": 0,
+                "sock": 0,
+                "width": 1,
+            }
         return result
     build, stature, head = PRESETS[obs["body"]]
     pair = portrait_pair(rgb, (left, top, right + 1, chin + 1))
@@ -246,7 +281,56 @@ def compile_portrait(source, family, name, obs):
         body["mouth"] = "speaking"
         guide.update(mark)
     recipe = fit_portrait(source, guide, mask, rgb)
-    for orbit, observed in zip(recipe["design"]["household"]["orbits"], pair):
+    design = recipe["design"]
+    household = design["household"]
+    # The full-body family measures pinnae, the nose crease and the ink margin
+    # around each eyeball. These measurements also exist above a portrait crop.
+    if abs(obs["yaw"]) < 5:
+        skull_width = height * design["head"][0] / design["head"][1]
+        skin, hair = (pigment(rgb, colors[key]) for key in ("skin", "hair"))
+        centers = np.array(
+            [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (e["bounds"] for e in pair)]
+        )
+        cx, eye_y = centers.mean(0)
+        near = np.linalg.norm(rgb - skin, axis=2)
+        exposed = mask & (near < 75) & (near + 18 < np.linalg.norm(rgb - hair, axis=2))
+        ears = ear_lobes(exposed, cx, eye_y, chin, skull_width)
+        lobes = [
+            [
+                (ex - cx) / skull_width,
+                (ey - top) / height,
+                rx / skull_width,
+                ry / height,
+            ]
+            for _, ex, ey, rx, ry in ears
+        ]
+        fit_frontal_features(design, lobes, design["head"][1] / height)
+        nose = nose_stroke(
+            rgb, skin, eye_y, (cx, guide["nose_y"]), guide["mouth_y"], skull_width
+        )
+        if nose is not None:
+            stroke = nose[0].copy()
+            stroke[:, 0] = (
+                stroke[:, 0] - (stroke[:, 0].min() + stroke[:, 0].max()) / 2
+            ) / skull_width
+            stroke[:, 1] = (stroke[:, 1] - top) / height
+            if (
+                np.all((0.35 <= stroke[:, 1]) & (stroke[:, 1] <= 0.84))
+                and stroke[:, 1].max() >= 0.42
+                and np.ptp(stroke[:, 0]) > 0.003
+            ):
+                household["noseStroke"] = stroke.round(4).tolist()
+                design["face"]["noseBase"] = round(float(stroke[:, 1].max()), 4)
+        if has_ink_outline(rgb, mask, (left, top, right, chin)) or inked_cheeks(
+            rgb, mask, (left, top, right, chin), skin
+        ):
+            household["penOutline"] = True
+        arm = visible_arm(
+            rgb, mask, (left, top, right, chin), skin, pigment(rgb, colors["shirt"])
+        )
+        if arm and design["outfit"]["top"] != "tank":
+            household["portraitArm"] = arm
+    for orbit, observed in zip(household["orbits"], pair):
         brow = painted_brow(rgb, observed["bounds"])
         if brow:
             orbit.update(brow)

@@ -4,7 +4,13 @@ import numpy as np
 from scipy import ndimage
 
 from .eye_review import portrait_pair
-from .household import fit_portrait, paint, pigment, scalp_boundary, skull_depth
+from .household import (
+    fit_frontal_features,
+    fit_portrait,
+    paint,
+    pigment,
+    scalp_boundary,
+)
 
 BODY_SECTIONS = {
     "torso",
@@ -25,8 +31,8 @@ BODY_SECTIONS = {
 }
 
 
-def illustrated_torso(rgb, mask, bounds):
-    """Two distant sections must show dark edge paint beside lighter fabric."""
+def has_ink_outline(rgb, mask, bounds):
+    """Two distant sections must show dark edge paint beside lighter pigment."""
     _, top, _, bottom = bounds
     height = bottom - top
     for lo, hi in ((0.36, 0.47), (0.58, 0.85)):
@@ -441,32 +447,16 @@ def fit_front(source, name):
                 .tolist(),
                 **({"tongue": opening["tongue"]} if opening.get("tongue") else {}),
             }
-    # The measured radius ends on the last white pixel. The native eye uses
-    # an outer contour with an ink margin inside it. Recover that contour.
-    face = recipe["design"]["face"]
-    radius = head_width * face["eyeRadius"]
-    margin = max(0.78, radius * 0.075) + 0.5 * scale
-    face["eyeRadius"] = round(min(0.24, (radius + margin) / head_width), 4)
-    lobes = []
-    for x, y, rx, ry in sections.get("ears", []):
-        lobe = [
+    lobes = [
+        [
             x / head_width,
             (y - 12 + (crown - top) * scale) / head_height,
             rx / head_width,
             ry / head_height,
         ]
-        if (
-            0.22 <= abs(lobe[0]) <= 0.7
-            and 0.35 <= lobe[1] <= 0.88
-            and 0.01 <= lobe[2] <= 0.19
-            and 0.02 <= lobe[3] <= 0.22
-        ):
-            lobes.append([round(v, 4) for v in lobe])
-    if lobes:
-        family["ears"] = lobes
-    # A compact skull, visible lower jaw and exposed forehead constrain a
-    # plausible depth prior even when the input supplies only the frontal cut.
-    family["depth"] = skull_depth(family["widths"])
+        for x, y, rx, ry in sections.get("ears", [])
+    ]
+    fit_frontal_features(recipe["design"], lobes, scale)
     family["body"] = {
         k: v
         for k, v in measured.items()
@@ -531,7 +521,7 @@ def fit_front(source, name):
     if fall:
         recipe["design"]["hair"]["cut"] = "waves"
         family["fallRows"] = fall
-    if illustrated_torso(rgb, mask, (left, top, right, floor)):
+    if has_ink_outline(rgb, mask, (left, top, right, floor)):
         family["penOutline"] = True
         inked_sections(rgb, mask, center, crown, scale, arm_y, samples, family["body"])
         if body["outfit"]["top"] == "crew":

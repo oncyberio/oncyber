@@ -16,11 +16,39 @@ from .family_review import compare_images, eyes_match, family_study
 from .fit import pixels
 from .provider import DrawingOnlyAdapter, review_family
 from .rounded import register_cranium
-from .sun_rays import collar_closed, floating_gap, measure_sun_rays, open_collar
+from .sun_rays import (
+    collar_closed,
+    floating_gap,
+    jersey_neck,
+    measure_sun_rays,
+    open_collar,
+    orb_contour,
+)
 from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_orb_fit_separates_the_throat_and_preserves_a_real_floating_gap(self):
+        art = Image.new("RGB", (180, 185), "#d4d9e0")
+        draw = ImageDraw.Draw(art)
+        draw.polygon(
+            [(15, 150), (73, 121), (108, 121), (164, 151), (160, 184), (15, 184)],
+            fill="#77449a",
+        )
+        draw.rectangle((80, 103, 100, 130), fill="#65ad87")
+        draw.rectangle((79, 130, 101, 134), fill="#eabe32")
+        draw.ellipse((56, 37, 124, 113), fill="#9bdac3")
+        draw.rounded_rectangle((54, 64, 126, 86), radius=5, fill="#1c1820")
+        rgb = np.asarray(art, dtype=float)
+        mask = (rgb != rgb[0, 0]).any(axis=2)
+        orb = orb_contour(rgb, mask, (90, 78), (36, 40))
+        np.testing.assert_allclose(orb, [90, 75, 34.5, 38.5], atol=1.2)
+        collar, _ = jersey_neck(rgb, mask, orb)
+        self.assertEqual(collar["binding"], "#eabe32")
+        self.assertAlmostEqual(collar["radius"], 10.5 / 34.5, delta=0.04)
+        mask[115:119] = False
+        self.assertIsNone(jersey_neck(rgb, mask, orb))
+
     def test_review_compares_two_passing_recipes_and_preserves_the_better_fit(self):
         author = runpy.run_path(str(Path(__file__).parents[1] / "author-cartoon.py"))[
             "author"

@@ -163,21 +163,34 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
         ? ((reach[0] + reach[1]) * scale) / 2
         : height * 0.447 - shoulder;
 
-    const radius = usePreset
+    const visibleArm = usePreset && g.household.portraitArm;
+    const radius = visibleArm
+        ? (visibleArm.radius * skull) / 0.89
+        : usePreset
         ? scale * { "lean-teen": 8.1, child: 9.2, adult: 11 }[preset]
         : shoulder * (g.build === "lean" ? 0.17 : 0.21);
     const ankle = height - 16,
         leg = waist * (g.build === "lean" ? 0.38 : 0.42);
     const spread = waist * 0.67,
-        cuff = 0.32,
-        armY = neck + shoulder * 0.28;
+        cuff = visibleArm
+            ? Math.min(
+                  0.46,
+                  Math.max(0.09, (visibleArm.cuff * skull - shoulder) / upper)
+              )
+            : 0.32,
+        armY = visibleArm
+            ? Math.min(
+                  neck + trunk * 0.48,
+                  Math.max(neck + 6, 12 + skull * (1 + visibleArm.level))
+              )
+            : neck + shoulder * 0.28;
     const xAt = (u: number) => shoulder + upper * u;
     const arm: [number, number, number][] = [
         [-0.085, 0.85],
         [0, 1.02],
-        [0.16, 1.04],
+        [cuff / 2, 1.04],
         [cuff, 1.01],
-        [0.34, 0.89],
+        [cuff + 0.02, 0.89],
         [0.5, 0.84],
         [0.62, 0.9],
         [0.8, 0.78],
@@ -205,7 +218,12 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
                 [neck - 1, shoulder * 0.41],
                 [neck + 5, shoulder * 0.8],
                 [armY, shoulder],
-                [neck + trunk * 0.23, shoulder * 1.02],
+                [
+                    visibleArm
+                        ? Math.max(neck + trunk * 0.23, armY + 1)
+                        : neck + trunk * 0.23,
+                    shoulder * 1.02,
+                ],
                 [
                     neck + trunk * 0.57,
                     waist * (g.build === "regular" ? 1.12 : 1),

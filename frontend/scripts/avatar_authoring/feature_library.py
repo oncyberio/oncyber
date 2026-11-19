@@ -46,6 +46,7 @@ def apply_feature(recipe, definition):
             "design.outfit.top",
             "shirtMark",
             "sunRays",
+            "orbCollar",
             "visor",
             "crownOutline",
         }:
@@ -89,6 +90,10 @@ def resolve_feature(args, name, recipe, source, folder, receipts):
     target = location(library, recipe, name) if library else None
     if target and target.exists():
         return apply_feature(recipe, json.loads(target.read_bytes()))
+    if any(call.get("operation") == "compose_native_part" for call in receipts):
+        raise ValueError(
+            f"The study already used its one family extension; still missing {name}"
+        )
     if not getattr(args, "feature_model", None):
         raise ValueError(f"Family needs a reusable feature: {name}")
     strong = copy(args)
@@ -105,7 +110,7 @@ def resolve_feature(args, name, recipe, source, folder, receipts):
     }
     prompt = (
         f"Fit only the visible feature {name!r} for this {recipe['family']} {construction} avatar. "
-        "Use one to four native edits for a headband, eye patch, buttoned polo, chest emblem, crown, visor or rays. "
+        "Use one to four native edits for a headband, eye patch, buttoned polo, chest emblem, crown, visor, jersey collar or rays. "
         "Give transferable local coordinates and pigments. Return no edits if it requires another geometry primitive. "
         f"The current drawing is {json.dumps(recipe)}"
     )

@@ -119,9 +119,32 @@ def benchmark(args):
     return summary
 
 
+def export_candidates(output, manifest, destination):
+    """Copy the exact measured recipes for a preview without installing them in the catalogue."""
+    report = json.loads((output / "holdout.json").read_bytes())
+    if manifest_digest(manifest) != report["manifest_sha256"]:
+        raise ValueError("The replay belongs to a different benchmark")
+    archive = {}
+    for case in manifest["cases"]:
+        key = case["id"]
+        row = report["cases"][key]
+        folder = output / row["study"]
+        study = json.loads((folder / "study.json").read_bytes())
+        candidate = folder / study["candidate"]
+        if (
+            study["source_sha256"] != case["input_sha256"]
+            or digest(candidate) != row["candidate_sha256"]
+        ):
+            raise ValueError(f"{key} differs from the measured candidate")
+        archive[key] = candidate.read_bytes()
+    destination.mkdir(exist_ok=True, parents=True)
+    for key, contents in archive.items():
+        (destination / (key + ".recipe")).write_bytes(contents)
+
+
 def score_reviews(args):
     """Read independent release decisions on frozen candidates without invoking an author."""
-    from avatar_authoring.release import require_release
+    from avatar_authoring.release import check_evidence, require_release
 
     manifest = json.loads(args.manifest.read_bytes())
     summary_path = args.output / "holdout.json"
@@ -154,17 +177,25 @@ def score_reviews(args):
                     case["family"],
                     case["framing"],
                 ):
-                    state = "awaiting independent review"
-                    if (directory / "approval/visual-review.json").is_file():
+                    state = "awaiting native full-body evidence"
+                    approval = directory / "approval"
+                    if (approval / "evidence.json").is_file():
                         try:
-                            evidence = require_release(
-                                directory / "candidate.json", directory / "approval"
-                            )
-                            if evidence["reference"] != case["reference_sha256"]:
+                            candidate = directory / "candidate.json"
+                            reviewed = (approval / "visual-review.json").is_file()
+                            evidence = (
+                                require_release if reviewed else check_evidence
+                            )(candidate, approval)
+                            if (
+                                evidence["reference"] != case["reference_sha256"]
+                                or evidence["framing"] != "full"
+                            ):
                                 raise ValueError(
                                     "Benchmark review must use the withheld full drawing"
                                 )
-                            state = "passed"
+                            state = (
+                                "passed" if reviewed else "awaiting independent review"
+                            )
                         except (KeyError, ValueError, OSError) as exc:
                             state = f"failed review: {exc}"
                 decisions.append(state)
@@ -191,6 +222,11 @@ if __name__ == "__main__":
         help="Score both attempts against saved native release decisions",
     )
     parser.add_argument("--case")
+    parser.add_argument(
+        "--export-candidates",
+        type=Path,
+        help="Export the selected recipe bytes from a completed replay for branch review",
+    )
     parser.add_argument("--family", choices=["rick-classic", "sunshine"])
     provider = parser.add_mutually_exclusive_group()
     provider.add_argument("--adapter")
@@ -210,6 +246,11 @@ if __name__ == "__main__":
     parser.add_argument("--renderer", choices=["webgl", "auto"], default="webgl")
     parser.add_argument("--max-triangles", type=int, default=4000)
     opts = parser.parse_args()
+    if opts.export_candidates:
+        export_candidates(
+            opts.output, json.loads(opts.manifest.read_bytes()), opts.export_candidates
+        )
+        raise SystemExit(0)
     if opts.score_reviews:
         import math
 

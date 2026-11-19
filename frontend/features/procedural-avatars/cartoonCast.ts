@@ -40,6 +40,8 @@ export interface CartoonDesign {
     household?: {
         /** Visible shirt half-width beneath the sleeves in head-height units. */
         shirtHalfWidth?: number;
+        /** Short-sleeve cuff distance, arm center below the chin and bare radius in head heights. */
+        portraitArm?: { cuff: number; level: number; radius: number };
         portraitPreset?: "child" | "lean-teen" | "adult";
         /** Skull widths from crown to chin, as fractions of its largest width. */
         widths: number[];

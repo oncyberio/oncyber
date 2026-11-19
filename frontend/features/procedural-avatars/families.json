@@ -20,6 +20,7 @@
         "template": "sunshine",
         "eyeLine": 105,
         "crownRoot": [350, 106, 60.5, 61.2],
+        "visorGlyph": { "lift": 5.65, "stroke": 0.19 },
         "paints": {
             "skin": ["#f32685", "#bc1765", "#ff2e90", "#c21b59"],
             "rays": ["#df2076"],
