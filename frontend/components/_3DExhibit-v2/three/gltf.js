@@ -1,3 +1,4 @@
+import { proceduralCharacter } from "@features/procedural-avatars/catalog";
 import Loader from "@3loader"
 
 import { VRMUtils } from '@pixiv/three-vrm';
@@ -105,6 +106,7 @@ class GLTF {
 
 	            const ext = this.get_url_extension(url).toLowerCase()
 
+	            const character = proceduralCharacter(url)
 	            const ISGLB = ext == 'glb'
 
 	            const ISVRM = ext == 'vrm'
@@ -156,7 +158,7 @@ class GLTF {
 	            }
 
 
-	            if ( this[current.name] == null && ( ISGLB == true || ISVRM == true || current.force == true ) ) {
+	            if ( this[current.name] == null && ( ISGLB == true || ISVRM == true || character || current.force == true ) ) {
 
 	            	console.log(url)
 	            	console.log(url)
@@ -186,7 +188,7 @@ class GLTF {
 								// avatar is stored (VRMMesh, Baker).
 								await loadBakerAnimations()
 
-								VRMUtils.removeUnnecessaryVertices( res.scene )
+								if (!res.userData.proceduralCharacter) VRMUtils.removeUnnecessaryVertices( res.scene )
 
 								if( res.datas?.isHighQuality == false ) {
 
@@ -347,7 +349,13 @@ class GLTF {
 
 		if( model == null ) {
 
+			const character = proceduralCharacter(name)
 			res = await Loader.loadGLTF( name )
+			if (character) {
+				const source = this[name].userData.vrm
+				res.userData.vrm.baseScaleRatio = source.baseScaleRatio
+				res.userData.vrm.absoluteRatio = source.absoluteRatio
+			}
 		}
 
 		res.userData.vrmExpressionManager  = null 
@@ -362,7 +370,7 @@ class GLTF {
 
 	    res.datas = this.validate( res )
 
-		VRMUtils.removeUnnecessaryVertices( res.scene )
+		if (!res.userData.proceduralCharacter) VRMUtils.removeUnnecessaryVertices( res.scene )
 
 		if( res.datas?.isHighQuality == false ) {
 
@@ -585,6 +593,7 @@ class GLTF {
             const gltf = this[name];
             const scenes = new Set([gltf?.scene, ...(gltf?.pool || []).map(item => item.scene)]);
             for (const scene of scenes) {
+                scene?.vrm?.releaseItems?.();
                 scene?.removeFromParent();
                 scene?.mixer?.stopAllAction();
                 scene?.mixer?.uncacheRoot(scene);
@@ -694,7 +703,7 @@ class GLTF {
 			}
 		})
 
-		const isHighQuality = currentvrm.userData.vrmSpringBoneManager?.joints.size > 5 || currentvrm.userData.vrmNodeConstraintManager?.constraints.size > 5
+		const isHighQuality = !!currentvrm.userData.proceduralCharacter || currentvrm.userData.vrmSpringBoneManager?.joints.size > 5 || currentvrm.userData.vrmNodeConstraintManager?.constraints.size > 5
 
 		// isHighQuality = false
 

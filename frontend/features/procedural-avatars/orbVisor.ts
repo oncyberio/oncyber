@@ -1,0 +1,106 @@
+import families from "./families.json";
+import type { Drawing } from "./drawing";
+import type { Point } from "./sculpt";
+
+export interface OrbVisor {
+    center: number;
+    span: number;
+    rows: [number, number][];
+    marks: [number, number, number, number][];
+}
+
+/** Front artwork defines the lens hem and glyphs. All layers share the orb's
+ * curvature, including the strap beyond the silhouette of a frontal drawing. */
+export function drawOrbVisor(
+    d: Drawing,
+    visor: OrbVisor,
+    ink: string,
+    white: string
+) {
+    const [ox, oy, rx, ry] = families.sunshine.crownRoot;
+    const point = (u: number, v: number, lift: number): Point => {
+        const longitude = Math.asin(
+            Math.max(-0.998, Math.min(0.998, u / Math.sqrt(1 - v * v)))
+        );
+        return at(longitude, v, lift);
+    };
+    const at = (angle: number, v: number, lift: number): Point => {
+        const radial = Math.sqrt(1 - v * v);
+        return [
+            ox + (rx + lift) * radial * Math.sin(angle),
+            oy + (ry + lift) * v,
+            -5 + (60.4 + lift) * radial * Math.cos(angle),
+        ];
+    };
+    const quads: Point[] = [];
+    const quad = (a: Point, b: Point, c: Point, e: Point) =>
+        quads.push(a, b, c, a, c, e);
+    const rim = visor.rows;
+    // The band passes fully around the sphere. Its top edge meets both lenses.
+    const level = (rim[0][0] + rim[rim.length - 1][0]) * 0.5 + 0.04;
+    for (let i = 0; i < 32; i++) {
+        const a = (i * Math.PI) / 16,
+            b = ((i + 1) * Math.PI) / 16;
+        quad(
+            at(a, level, 2),
+            at(b, level, 2),
+            at(b, level + 0.105, 2),
+            at(a, level + 0.105, 2)
+        );
+    }
+    const knot = (i: number, t: number, lift: number) =>
+        point(
+            visor.center + visor.span * ((2 * i) / (rim.length - 1) - 1),
+            rim[i][0] * (1 - t) + rim[i][1] * t,
+            lift
+        );
+    for (let i = 0; i < rim.length - 1; i++) {
+        for (let j = 0; j < 4; j++) {
+            const a = j / 4,
+                b = (j + 1) / 4;
+            quad(
+                knot(i, a, 3.5),
+                knot(i + 1, a, 3.5),
+                knot(i + 1, b, 3.5),
+                knot(i, b, 3.5)
+            );
+        }
+        for (const edge of [0, 1])
+            quad(
+                knot(i, edge, 3.5),
+                knot(i + 1, edge, 3.5),
+                knot(i + 1, edge, 0.2),
+                knot(i, edge, 0.2)
+            );
+    }
+    for (const i of [0, rim.length - 1])
+        quad(
+            knot(i, 0, 3.5),
+            knot(i, 1, 3.5),
+            knot(i, 1, 0.2),
+            knot(i, 0, 0.2)
+        );
+    d.s.fineDetail = true;
+    d.s.triangles(quads, ink);
+    quads.length = 0;
+    for (const [cx, cy, rx, ry] of visor.marks)
+        for (const sign of [-1, 1]) {
+            const glyph = (t: number, w: number) =>
+                point(
+                    cx + rx * (t + w * 0.19),
+                    cy + ry * sign * (t - w * 0.19),
+                    5.65
+                );
+            for (let i = 0; i < 4; i++) {
+                const a = i * 0.5 - 1,
+                    b = a + 0.5;
+                quad(glyph(a, -1), glyph(b, -1), glyph(b, 1), glyph(a, 1));
+            }
+        }
+    // Keep the tiny projected strokes intact even when the crowd LOD
+    // simplifies the neighboring shell differently.
+    d.s.preserveVertex = () => true;
+    d.s.triangles(quads, white);
+    d.s.preserveVertex = undefined;
+    d.s.fineDetail = false;
+}

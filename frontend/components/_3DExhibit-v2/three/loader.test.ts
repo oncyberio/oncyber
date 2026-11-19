@@ -499,3 +499,39 @@ test("an avatar load can keep its downloaded bytes for the bake worker", async (
     const room = await engine.loadGLTF("https://example.com/room.glb");
     expect(room.sourceBytes).toBeUndefined();
 });
+
+test("native player and studio load independent procedural rigs without model bytes", async () => {
+    Object.assign(window.location, { origin: "https://oncyber.io" });
+    const url = "/models/procedural/morty";
+    expect(engine.prefetchModel(url)).toBe(false);
+    const first = await engine.loadGLTF(url);
+    const next = await engine.loadGLTF("https://oncyber.io" + url);
+    expect(first.userData.proceduralCharacter).toBe("morty");
+    const bone = (model) => model.userData.vrm.humanoid.getNormalizedBoneNode("head");
+    expect(bone(first)).not.toBe(bone(next));
+    expect(engine.gltfLoader.parse).not.toHaveBeenCalled();
+    expect(cacheStorages.room.fetch).not.toHaveBeenCalled();
+});
+
+test("native authored avatars share their drawing while each player gets a separate rig", async () => {
+    const recipe = require("../../../public/lobby/procedural/recipes/mara-venn.json");
+    const url = "/models/procedural/drawn-mara-venn";
+    Object.assign(window.location, { origin: "https://oncyber.io" });
+    const fetchRecipe = jest.fn().mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify(recipe),
+    });
+    globalThis.fetch = fetchRecipe;
+    const [first, second] = await Promise.all([
+        engine.loadGLTF(url),
+        engine.loadGLTF("https://oncyber.io" + url),
+    ]);
+    expect(fetchRecipe).toHaveBeenCalledTimes(1);
+    expect(fetchRecipe).toHaveBeenCalledWith("/lobby/procedural/recipes/mara-venn.json", { redirect: "error" });
+    expect(first.scene).not.toBe(second.scene);
+    expect(first.userData.vrm.humanoid.getNormalizedBoneNode("rightHand")).not.toBe(
+        second.userData.vrm.humanoid.getNormalizedBoneNode("rightHand")
+    );
+    expect(engine.gltfLoader.parse).not.toHaveBeenCalled();
+    expect(cacheStorages.room.fetch).not.toHaveBeenCalled();
+});

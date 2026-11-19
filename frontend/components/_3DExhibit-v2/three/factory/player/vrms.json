@@ -98,7 +98,6 @@
         "description": "Cyber Brokers Genesis Mechs: Bunny Suave.",
         "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmYF7MBeYxQD7Jxmr6L2YAjiPysKEsbvtujjciKXw3gWQ9?filename=1692637206950.vrm"
     },
-
     "fred": {
         "id": "fred",
         "name": "Fred",
@@ -1100,5 +1099,166 @@
         "image": "https://cyber.mypinata.cloud/ipfs/QmeWyVz83b2hcC2wekuNnGDsSBpDw8ezpmSPRtLGgt96Sa?filename=1697560481-u1697560480.684.jpg",
         "description": "Paladin Punks",
         "urlCompressed": "https://cyber.mypinata.cloud/ipfs/QmTLWvpa22qk8mrgExcXfKUY7HTeWC33qYUyDVKcKe4BiD?filename=1697560483659.vrm"
+    },
+    "procedural-sunshine": {
+        "id": "procedural-sunshine",
+        "name": "Summer (procedural Sunshine)",
+        "url": "/models/procedural/sunshine",
+        "image": "/lobby/procedural/sunshine.png",
+        "description": "Vertex-painted procedural study of the default Summer avatar."
+    },
+    "procedural-morty": {
+        "id": "procedural-morty",
+        "name": "Morty Smith",
+        "url": "/models/procedural/morty",
+        "image": "/lobby/procedural/morty.png",
+        "description": "Procedural humanoid, drawn at runtime."
+    },
+    "procedural-summer": {
+        "id": "procedural-summer",
+        "name": "Summer Smith",
+        "url": "/models/procedural/summer",
+        "image": "/lobby/procedural/summer.png",
+        "description": "Procedural humanoid, drawn at runtime."
+    },
+    "procedural-cast-morty-smith": {
+        "id": "procedural-cast-morty-smith",
+        "name": "Morty Smith",
+        "url": "/models/procedural/cast-morty-smith",
+        "image": "/lobby/procedural/cast-morty-smith.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-summer-smith": {
+        "id": "procedural-cast-summer-smith",
+        "name": "Summer Smith",
+        "url": "/models/procedural/cast-summer-smith",
+        "image": "/lobby/procedural/cast-summer-smith.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-beth-smith": {
+        "id": "procedural-cast-beth-smith",
+        "name": "Beth Smith",
+        "url": "/models/procedural/cast-beth-smith",
+        "image": "/lobby/procedural/cast-beth-smith.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-jerry-smith": {
+        "id": "procedural-cast-jerry-smith",
+        "name": "Jerry Smith",
+        "url": "/models/procedural/cast-jerry-smith",
+        "image": "/lobby/procedural/cast-jerry-smith.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-inez-vale": {
+        "id": "procedural-cast-inez-vale",
+        "name": "Inez Vale",
+        "url": "/models/procedural/cast-inez-vale",
+        "image": "/lobby/procedural/cast-inez-vale.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-oren-pike": {
+        "id": "procedural-cast-oren-pike",
+        "name": "Oren Pike",
+        "url": "/models/procedural/cast-oren-pike",
+        "image": "/lobby/procedural/cast-oren-pike.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-mai-calder": {
+        "id": "procedural-cast-mai-calder",
+        "name": "Mai Calder",
+        "url": "/models/procedural/cast-mai-calder",
+        "image": "/lobby/procedural/cast-mai-calder.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-nell-torres": {
+        "id": "procedural-cast-nell-torres",
+        "name": "Nell Torres",
+        "url": "/models/procedural/cast-nell-torres",
+        "image": "/lobby/procedural/cast-nell-torres.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-otis-reed": {
+        "id": "procedural-cast-otis-reed",
+        "name": "Otis Reed",
+        "url": "/models/procedural/cast-otis-reed",
+        "image": "/lobby/procedural/cast-otis-reed.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-rick-classic": {
+        "id": "procedural-rick-classic",
+        "name": "Rick Sanchez (classic)",
+        "url": "/models/procedural/rick-classic",
+        "image": "/lobby/procedural/rick-classic.png",
+        "description": "Procedural humanoid, drawn at runtime."
+    },
+    "procedural-rick": {
+        "id": "procedural-rick",
+        "name": "Rick Sanchez",
+        "url": "/models/procedural/rick",
+        "image": "/lobby/procedural/rick.png",
+        "description": "Procedural humanoid, drawn at runtime."
+    },
+    "procedural-lux": {
+        "id": "procedural-lux",
+        "name": "Lux",
+        "url": "/models/procedural/lux",
+        "image": "/lobby/procedural/lux.png",
+        "description": "Procedural streetwear avatar."
+    },
+    "procedural-remy": {
+        "id": "procedural-remy",
+        "name": "Remy",
+        "url": "/models/procedural/remy",
+        "image": "/lobby/procedural/remy.png",
+        "description": "Procedural streetwear avatar."
+    },
+    "procedural-vale": {
+        "id": "procedural-vale",
+        "name": "Vale",
+        "url": "/models/procedural/vale",
+        "image": "/lobby/procedural/vale.png",
+        "description": "Procedural streetwear avatar."
+    },
+    "procedural-vesper": {
+        "id": "procedural-vesper",
+        "name": "Vesper",
+        "url": "/models/procedural/drawn-vesper",
+        "image": "/lobby/procedural/vesper.webp",
+        "description": "Procedural Sunshine mascot."
+    },
+    "procedural-citrine": {
+        "id": "procedural-citrine",
+        "name": "Citrine",
+        "url": "/models/procedural/drawn-citrine",
+        "image": "/lobby/procedural/citrine.webp",
+        "description": "Procedural Sunshine mascot."
+    },
+    "procedural-dr-lichen": {
+        "id": "procedural-dr-lichen",
+        "name": "Dr Lichen",
+        "url": "/models/procedural/drawn-dr-lichen",
+        "image": "/lobby/procedural/dr-lichen.webp",
+        "description": "Procedural scientist."
+    },
+    "procedural-halo": {
+        "id": "procedural-halo",
+        "name": "Halo",
+        "url": "/models/procedural/drawn-halo",
+        "image": "/lobby/procedural/halo.webp",
+        "description": "Procedural Sunshine mascot."
+    },
+    "procedural-cast-evil-morty": {
+        "id": "procedural-cast-evil-morty",
+        "name": "Evil Morty",
+        "url": "/models/procedural/cast-evil-morty",
+        "image": "/lobby/procedural/cast-evil-morty.png",
+        "description": "Procedural cartoon humanoid."
+    },
+    "procedural-cast-jessica": {
+        "id": "procedural-cast-jessica",
+        "name": "Jessica",
+        "url": "/models/procedural/cast-jessica",
+        "image": "/lobby/procedural/cast-jessica.png",
+        "description": "Procedural cartoon humanoid."
     }
 }

@@ -1,0 +1,22 @@
+{
+    "swatches": {
+        "#c5b2a4": "#dfbca2",
+        "#d4c8bc": "#e6bfa4",
+        "#d5c9bd": "#d9b499",
+        "#aad4ea": "#b2d8e6",
+        "#fefefe": "#fff0ce",
+        "#ececec": "#fff0d0",
+        "#9adad8": "#a4d2c3",
+        "#7a6438": "#93693f",
+        "#303030": "#523930",
+        "#3b3b3d": "#40333a"
+    },
+    "lining": "#b69b84",
+    "cheek": { "offset": 32, "y": 132, "rx": 13, "ry": 9, "strength": 0.45 },
+    "contact": [
+        { "offset": [0, 179, 12], "radii": [24, 15, 24], "opacity": 0.31 },
+        { "offset": [0, 143, 48], "radii": [10, 7, 13], "opacity": 0.16 },
+        { "offset": [-18, 91, 39], "radii": [18, 5, 16], "opacity": 0.15 },
+        { "offset": [18, 91, 39], "radii": [18, 5, 16], "opacity": 0.15 }
+    ]
+}

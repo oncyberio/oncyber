@@ -1,4 +1,5 @@
 // @ts-check
+import { loadRecipeForUrl, proceduralCharacter } from "@features/procedural-avatars/catalog";
 
 import {
 
@@ -231,7 +232,7 @@ class Loader {
      */
     prefetchModel(url, hints = {}) {
         const signal = this.sessionSignal;
-        if (!url || !signal || signal.aborted) return false;
+        if (!url || !signal || signal.aborted || proceduralCharacter(url)) return false;
         const key = normalizeModelUrl(url);
         if (!usesFetchedBytes(key)) return false;
         if (this.prefetchedModels.has(key)) return true;
@@ -359,6 +360,15 @@ class Loader {
 
         const signal = options.signal || this.sessionSignal;
         CHECK_ABORT_SIGNAL(signal);
+        const character = proceduralCharacter(url);
+        if (character) {
+            const { buildCharacter } = await import("@features/procedural-avatars/buildCharacter");
+            CHECK_ABORT_SIGNAL(signal);
+            const recipe = await loadRecipeForUrl(url);
+            CHECK_ABORT_SIGNAL(signal);
+            const vrm = buildCharacter(recipe);
+            return { scene: vrm.scene, scenes: [vrm.scene], animations: [], userData: { vrm, proceduralCharacter: recipe.template } };
+        }
         var gltf = null
 
         try {

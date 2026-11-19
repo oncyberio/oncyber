@@ -1,3 +1,5 @@
+import { proceduralCharacter } from "@features/procedural-avatars/catalog";
+import type { RecipeCrowdBatch } from "@features/procedural-avatars/crowdBatch";
 import { isLobbyIdle } from "../idleVariants";
 import { LOBBY_MOTION_CLIPS } from "../motionNames";
 import { LOBBY_TRANSITIONS } from "../advancedMotion";
@@ -255,6 +257,7 @@ function configureCrowdReveal(material: THREE.NodeMaterial) {
 /** Shared GPU animation for the crowd; the local player can stay immediate/live. */
 export class LobbyAvatarCrowd {
     private entries = new Map<string, Entry>();
+    private recipePages: RecipeCrowdBatch[] = [];
     private disposed = false;
     private enabled: boolean;
     private maxTextureSize: number;
@@ -315,6 +318,27 @@ export class LobbyAvatarCrowd {
     async create(url: string, options: Options = {}): Promise<LobbyAvatar> {
         if (this.disposed || options.signal?.aborted) throw cancelled();
         if (!this.enabled) return this.createLiveAvatar(url, options);
+        if (proceduralCharacter(url)) {
+            const { RecipeCrowdBatch } = await import(
+                "@features/procedural-avatars/crowdBatch"
+            );
+            if (this.disposed || options.signal?.aborted) throw cancelled();
+            const avatar = await createAvatar(url, {
+                ...options,
+                proceduralDetail: "crowd",
+            });
+            if (this.disposed || options.signal?.aborted) {
+                avatar.dispose();
+                throw cancelled();
+            }
+            if (!proceduralCharacter(avatar.sourceUrl)) return avatar;
+            let page = this.recipePages.find((p) => p.size < CAPACITY);
+            if (!page) {
+                page = new RecipeCrowdBatch(this.scene, this.coordinateSystem);
+                this.recipePages.push(page);
+            }
+            return page.add(avatar);
+        }
         let entry = this.entries.get(url);
         if (!entry) {
             const owned: Entry = { refs: 0, promise: undefined };
@@ -959,6 +983,21 @@ export class LobbyAvatarCrowd {
             this.coordinateSystem,
             camera.reversedDepth ?? false
         );
+        this.recipePages = this.recipePages.filter((page) => {
+            if (!page.size) {
+                page.dispose();
+                return false;
+            }
+            page.flush(camera);
+            this.stats.instances += page.size;
+            this.stats.visible += page.visible;
+            this.stats.batches += page.visible ? 1 : 0;
+            this.stats.models += page.size;
+            this.stats.crowdPages++;
+            this.stats.textureBytes += page.paletteBytes;
+            this.stats.animationUploads += page.visible ? 1 : 0;
+            return true;
+        });
         for (const entry of this.entries.values()) {
             // Resolved models are attached by the create promise below.
             const model = entry.model;
@@ -1121,6 +1160,8 @@ export class LobbyAvatarCrowd {
     dispose() {
         if (this.disposed) return;
         this.disposed = true;
+        this.recipePages.forEach((page) => page.dispose());
+        this.recipePages = [];
         for (const entry of this.entries.values()) {
             if (entry.model) this.disposeModel(entry.model);
             void entry.promise

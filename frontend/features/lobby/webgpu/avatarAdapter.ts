@@ -1,3 +1,8 @@
+import { castCacheKey } from "@features/procedural-avatars/cartoonCast";
+import {
+    loadRecipeForUrl,
+    proceduralCharacter,
+} from "@features/procedural-avatars/catalog";
 import {
     FLASH_ANIMATION_NAME,
     FLASH_HOLD_TIME_MS,
@@ -89,7 +94,12 @@ export interface LobbyBakedClip {
     parts: Float32Array[];
 }
 
+type EquipItem = ReturnType<
+    typeof import("@features/procedural-avatars/buildCharacter").buildCharacter
+>["equipItem"];
 export interface LobbyAvatar {
+    setGazePose?: (weight: number) => void;
+    equipItem?: EquipItem;
     root: THREE.Group;
     height: number;
     sourceUrl: string;
@@ -126,6 +136,7 @@ export interface LobbyAvatar {
 }
 
 export interface AvatarOptions {
+    proceduralDetail?: "full" | "crowd";
     signal?: AbortSignal;
     scale?: number;
     profilePhoto?: string;
@@ -135,6 +146,9 @@ export interface AvatarOptions {
 // legacy for the rest of this app. Runtime imports are isolated by the WebGPU
 // webpack layer; keep that compatibility cast at the loader boundary only.
 interface ModernVRM {
+    setGazePose?: (weight: number) => void;
+    equipItem?: EquipItem;
+    releaseItems?: () => void;
     scene: THREE.Group;
     humanoid: {
         getNormalizedBoneNode(name: string): THREE.Object3D | null;
@@ -350,11 +364,18 @@ function retargetAnimation(
     return new THREE.AnimationClip("vrmAnimation", clip.duration, tracks);
 }
 
-async function parseAvatar(url: string): Promise<LobbyAvatar> {
-    const [data, basics] = await Promise.all([
-        avatarBytes(url),
-        getMotionClips(),
-    ]);
+async function loadHumanoid(
+    url: string,
+    detail: "full" | "crowd",
+    character: Awaited<ReturnType<typeof loadRecipeForUrl>>
+): Promise<ModernVRM> {
+    if (character) {
+        const { buildCharacter } = await import(
+            "@features/procedural-avatars/buildCharacter"
+        );
+        return buildCharacter(character, detail);
+    }
+    const data = await avatarBytes(url);
     const draco = new DRACOLoader().setDecoderPath("/draco/");
     const loader = (new GLTFLoader() as unknown as ModernAvatarLoader)
         .setCrossOrigin("anonymous")
@@ -381,6 +402,74 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         draco.dispose();
     }
 
+    return vrm;
+}
+
+interface RecipeMotion {
+    hipsHeight: number;
+    actions: {
+        clip: THREE.AnimationClip;
+        metadata: LobbyClipMetadata;
+        timeScale: number;
+        loop: THREE.AnimationActionLoopStyles;
+        repetitions: number;
+        clamp: boolean;
+    }[];
+}
+const recipeMotion = new Map<string, Promise<RecipeMotion>>();
+// Retargeted clips and contact metadata can be shared by distinct meshes whose
+// actual bind poses match. Mixers, actions and bones remain per avatar.
+const fittedMotion = new Map<string, RecipeMotion>();
+function bindPoseKey(root: THREE.Object3D, floor: number) {
+    const mesh = root.getObjectByProperty(
+        "isSkinnedMesh",
+        true
+    ) as THREE.SkinnedMesh;
+    if (!mesh?.skeleton) return;
+    return JSON.stringify([
+        floor,
+        mesh.skeleton.bones.map((bone) => [
+            bone.name,
+            bone.parent?.name,
+            bone.matrixWorld.elements,
+        ]),
+    ]);
+}
+function sharedRecipeMotion(template: string) {
+    let ready = recipeMotion.get(template);
+    if (!ready) {
+        // Use the canonical rig so the first visitor's proportions cannot change
+        // another visitor's turns. Contacts are normalized to the reference gait.
+        let motions: RecipeMotion;
+        ready = parseAvatar(
+            "/models/procedural/" + template,
+            "crowd",
+            (value) => {
+                motions = value;
+            }
+        )
+            .then((source) => {
+                source.dispose();
+                return motions;
+            })
+            .catch((error) => {
+                recipeMotion.delete(template);
+                throw error;
+            });
+        recipeMotion.set(template, ready);
+    }
+    return ready;
+}
+async function parseAvatar(
+    url: string,
+    detail: "full" | "crowd" = "full",
+    captureMotion?: (motion: RecipeMotion) => void
+): Promise<LobbyAvatar> {
+    const sourceRecipe = loadRecipeForUrl(url);
+    const [vrm, basics] = await Promise.all([
+        sourceRecipe.then((recipe) => loadHumanoid(url, detail, recipe)),
+        getMotionClips(),
+    ]);
     const root = new THREE.Group();
     root.name = "oncyber-lobby-avatar";
     root.add(vrm.scene);
@@ -478,60 +567,127 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
     }
 
     // Retarget before applying display scale, so hips translations are scaled once.
-    Object.keys(basics).forEach(addAction);
-    for (const { clip, metadata } of authorLobbyTransitions(
-        THREE as unknown as Parameters<typeof authorLobbyTransitions>[0],
-        actions.get("IDLE")?.getClip() as unknown as Parameters<
-            typeof authorLobbyTransitions
-        >[1],
-        actions.get("WALK")?.getClip() as unknown as Parameters<
-            typeof authorLobbyTransitions
-        >[2],
-        lookup as unknown as Parameters<typeof createProceduralRig>[2]
-    )) {
-        const action = mixer.clipAction(clip as unknown as THREE.AnimationClip);
-        action.setLoop(THREE.LoopOnce, 1);
-        action.clampWhenFinished = true;
-        actions.set(clip.name, action);
-        motionClips[clip.name] = metadata;
+    const recipe =
+        detail === "crowd" && !captureMotion ? await sourceRecipe : undefined;
+    const rigKey =
+        recipe &&
+        (castCacheKey(recipe) ??
+            (!recipe.layout ? recipe.template : undefined));
+    const fittedKey =
+        !rigKey && recipe?.cartoon?.household
+            ? bindPoseKey(vrm.scene, bounds.min.y)
+            : undefined;
+    const shared = rigKey
+        ? await sharedRecipeMotion(rigKey)
+        : fittedKey && fittedMotion.get(fittedKey);
+    const hipsHeight = lookup("hips")?.position.y ?? 1;
+    if (shared) {
+        const scale = hipsHeight / shared.hipsHeight;
+        for (const record of shared.actions) {
+            const original = record.clip;
+            const tracks = original.tracks.map((track) => {
+                if (scale === 1 || track.name !== "hips.position") return track;
+                const adjusted = track.clone();
+                for (let i = 0; i < adjusted.values.length; i++)
+                    adjusted.values[i] *= scale;
+                return adjusted;
+            });
+            const action = mixer.clipAction(
+                new THREE.AnimationClip(
+                    original.name,
+                    original.duration,
+                    tracks
+                )
+            );
+            action.setLoop(record.loop, record.repetitions);
+            action.setEffectiveTimeScale(record.timeScale);
+            action.clampWhenFinished = record.clamp;
+            actions.set(original.name, action);
+            motionClips[original.name] = record.metadata;
+        }
+    } else {
+        Object.keys(basics).forEach(addAction);
+        for (const { clip, metadata } of authorLobbyTransitions(
+            THREE as unknown as Parameters<typeof authorLobbyTransitions>[0],
+            actions.get("IDLE")?.getClip() as unknown as Parameters<
+                typeof authorLobbyTransitions
+            >[1],
+            actions.get("WALK")?.getClip() as unknown as Parameters<
+                typeof authorLobbyTransitions
+            >[2],
+            lookup as unknown as Parameters<typeof createProceduralRig>[2]
+        )) {
+            const action = mixer.clipAction(
+                clip as unknown as THREE.AnimationClip
+            );
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = true;
+            actions.set(clip.name, action);
+            motionClips[clip.name] = metadata;
+        }
     }
     vrm.scene.position.y -= bounds.min.y;
-    root.scale.setScalar(1.8 / rawHeight);
-    await calibrateLobbyContacts(
-        THREE as unknown as Parameters<typeof authorLobbyTransitions>[0],
-        root as unknown as Parameters<typeof createProceduralRig>[1],
-        Array.from(actions.values(), (action) =>
-            action.getClip()
-        ) as unknown as Parameters<typeof calibrateLobbyContacts>[2],
-        motionClips,
-        lookup as unknown as Parameters<typeof createProceduralRig>[2]
-    );
-    const turns = await authorMovingTurns(
-        THREE as unknown as Parameters<typeof authorMovingTurns>[0],
-        root as unknown as Parameters<typeof authorMovingTurns>[1],
-        Array.from(actions.values(), (action) =>
-            action.getClip()
-        ) as unknown as Parameters<typeof authorMovingTurns>[2],
-        motionClips,
-        lookup as unknown as Parameters<typeof authorMovingTurns>[4]
-    );
-    for (const { clip, metadata } of turns) {
-        const action = mixer.clipAction(clip as unknown as THREE.AnimationClip);
-        action.setLoop(
-            metadata.loop ? THREE.LoopRepeat : THREE.LoopOnce,
-            metadata.loop ? Infinity : 1
+    const displayHeight = proceduralCharacter(url) ? rawHeight : 1.8;
+    root.scale.setScalar(displayHeight / rawHeight);
+    if (!shared) {
+        await calibrateLobbyContacts(
+            THREE as unknown as Parameters<typeof authorLobbyTransitions>[0],
+            root as unknown as Parameters<typeof createProceduralRig>[1],
+            Array.from(actions.values(), (action) =>
+                action.getClip()
+            ) as unknown as Parameters<typeof calibrateLobbyContacts>[2],
+            motionClips,
+            lookup as unknown as Parameters<typeof createProceduralRig>[2]
         );
-        action.clampWhenFinished = !metadata.loop;
-        actions.set(clip.name, action);
-        motionClips[clip.name] = metadata;
+        const turns = await authorMovingTurns(
+            THREE as unknown as Parameters<typeof authorMovingTurns>[0],
+            root as unknown as Parameters<typeof authorMovingTurns>[1],
+            Array.from(actions.values(), (action) =>
+                action.getClip()
+            ) as unknown as Parameters<typeof authorMovingTurns>[2],
+            motionClips,
+            lookup as unknown as Parameters<typeof authorMovingTurns>[4]
+        );
+        for (const { clip, metadata } of turns) {
+            const action = mixer.clipAction(
+                clip as unknown as THREE.AnimationClip
+            );
+            action.setLoop(
+                metadata.loop ? THREE.LoopRepeat : THREE.LoopOnce,
+                metadata.loop ? Infinity : 1
+            );
+            action.clampWhenFinished = !metadata.loop;
+            actions.set(clip.name, action);
+            motionClips[clip.name] = metadata;
+        }
+        await calibrateLobbyContacts(
+            THREE as unknown as Parameters<typeof calibrateLobbyContacts>[0],
+            root as unknown as Parameters<typeof authorMovingTurns>[1],
+            turns.map((t) => t.clip),
+            motionClips,
+            lookup as unknown as Parameters<typeof authorMovingTurns>[4]
+        );
+        if (captureMotion || fittedKey) {
+            const result: RecipeMotion = {
+                hipsHeight,
+                actions: [...actions].map(([name, action]) => ({
+                    clip: action.getClip(),
+                    metadata: motionClips[name],
+                    timeScale: action.getEffectiveTimeScale(),
+                    loop: action.loop,
+                    repetitions: action.repetitions,
+                    clamp: action.clampWhenFinished,
+                })),
+            };
+            if (fittedKey) {
+                if (fittedMotion.size >= 16 && !fittedMotion.has(fittedKey)) {
+                    fittedMotion.delete(fittedMotion.keys().next().value);
+                }
+                fittedMotion.set(fittedKey, result);
+            }
+            captureMotion?.(result);
+        }
     }
-    await calibrateLobbyContacts(
-        THREE as unknown as Parameters<typeof calibrateLobbyContacts>[0],
-        root as unknown as Parameters<typeof authorMovingTurns>[1],
-        turns.map((t) => t.clip),
-        motionClips,
-        lookup as unknown as Parameters<typeof authorMovingTurns>[4]
-    );
     vrm.scene.traverse((object) => {
         if ((object as THREE.Mesh).isMesh) object.frustumCulled = false;
     });
@@ -1056,8 +1212,10 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         lookup("hips") as unknown as Parameters<typeof createMotionInertia>[2]
     );
     const avatar: LobbyAvatar = {
+        setGazePose: vrm.setGazePose,
+        equipItem: vrm.equipItem,
         root,
-        height: 1.8,
+        height: displayHeight,
         sourceUrl: url,
         bakeParts,
         bakeClip: bakeSupported ? bakeClip : undefined,
@@ -1195,6 +1353,7 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
             disposed = true;
             mixer.stopAllAction();
             mixer.uncacheRoot(vrm.scene);
+            vrm.releaseItems?.();
             root.removeFromParent();
             disposeAvatarGraph(root);
             actions.clear();
@@ -1204,9 +1363,12 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
     return avatar;
 }
 
-async function parseWithFallback(url: string) {
+async function parseWithFallback(
+    url: string,
+    detail: "full" | "crowd" = "full"
+) {
     try {
-        return await parseAvatar(url);
+        return await parseAvatar(url, detail);
     } catch (error) {
         if (url === LOCAL_FALLBACK_AVATAR_URL) throw error;
         return parseAvatar(LOCAL_FALLBACK_AVATAR_URL);
@@ -1290,9 +1452,10 @@ export async function createAvatar(
 ): Promise<LobbyAvatar> {
     if (options.signal?.aborted)
         throw new DOMException("Avatar loading cancelled", "AbortError");
-    const warm = prepared.get(url);
+    const warm = options.proceduralDetail !== "crowd" && prepared.get(url);
     if (warm) prepared.delete(url);
-    const avatar = await (warm || parseWithFallback(url));
+    const avatar = await (warm ||
+        parseWithFallback(url, options.proceduralDetail));
     if (options.signal?.aborted) {
         avatar.dispose();
         throw new DOMException("Avatar loading cancelled", "AbortError");

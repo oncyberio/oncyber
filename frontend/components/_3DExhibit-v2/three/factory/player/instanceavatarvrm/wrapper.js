@@ -196,6 +196,8 @@ export default class AnimatedWrapper {
 
 				if( this.highQualityMeshes.poolUsed == true && override == false ) {
 
+					this.highQualityMeshes.vrm?.releaseItems?.()
+
 					this.highQualityMeshes.poolUsed = false
 				}
 
@@ -801,6 +803,8 @@ export default class AnimatedWrapper {
 		if ( this.isHighQuality ) {
 
 			this.visible = false
+
+			this.highQualityMeshes.vrm?.releaseItems?.()
 
 			this.highQualityMeshes.poolUsed = false
 
