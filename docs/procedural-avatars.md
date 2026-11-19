@@ -93,7 +93,7 @@ python frontend/scripts/review-avatar-release.py candidate.json portrait.webp /t
 python frontend/scripts/review-avatar-release.py candidate.json portrait.webp /tmp/avatar-review --decision decision.json
 ```
 
-Use `--register-feature feature.json` on an approved candidate to publish that part into the local authoring library. Future candidates still pass their own review. Replacing an installed recipe additionally requires the SHA-256 of its current contents with `--replace-digest`.
+Use `review-avatar-release.py candidate.json reference.webp /tmp/avatar-review --install my-character` to install the exact reviewed recipe. Use `--register-feature feature.json` on an approved candidate to publish that part into the local authoring library. Future candidates still pass their own review. Replacing an installed recipe additionally requires the SHA-256 of its current contents with `--replace-digest`.
 
 ### Eight-reference benchmark
 

@@ -37,7 +37,25 @@ if __name__ == "__main__":
     provider.add_argument("--adapter")
     provider.add_argument("--openrouter", action="store_true")
     provider.add_argument("--endpoint")
+    parser.add_argument(
+        "--install",
+        metavar="SLUG",
+        help="Install the exact reviewed recipe in the native catalogue",
+    )
+    parser.add_argument(
+        "--replace-digest", help="Digest of the installed recipe to replace"
+    )
     args = parser.parse_args()
+    if (
+        sum(
+            bool(v)
+            for v in (args.register_feature, args.decision, args.model, args.install)
+        )
+        > 1
+    ):
+        parser.error("Choose one release action")
+    if args.replace_digest and not args.install:
+        parser.error("--replace-digest requires --install")
     if args.model and (
         not any((args.adapter, args.openrouter, args.endpoint))
         or args.decision
@@ -46,7 +64,22 @@ if __name__ == "__main__":
         parser.error(
             "A vision review requires one provider and existing native evidence"
         )
-    if args.register_feature:
+    if args.install:
+        from avatar_authoring.install import install
+        from avatar_authoring.release import require_release
+
+        report = require_release(args.recipe, args.folder)
+        if digest(args.reference) != report["reference"]:
+            parser.error("The reference differs from the approved release")
+        print(
+            install(
+                args.recipe,
+                args.install,
+                release=args.folder,
+                previous=args.replace_digest,
+            )
+        )
+    elif args.register_feature:
         from avatar_authoring.feature_library import register_feature
 
         print(
