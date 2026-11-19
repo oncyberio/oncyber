@@ -15,6 +15,12 @@ import Dropdown from "@ui/components/Dropdown";
 import Input from "@ui/components/Input";
 import { useDebouncedValue } from "@components/hooks/usDebouncedValue";
 import { tx } from "@components/context/I18nContext";
+import {
+    MAXIMUM_VRM_BOX,
+    MINIMUM_VRM_BOX,
+    avatarHeightToSize,
+    avatarSizeToHeight,
+} from "@components/_3DExhibit-v2/three/utils/avatarHeight";
 
 const labelStyle = {
     fontWeight: 400,
@@ -40,11 +46,12 @@ export function Permissions() {
         avatarSize: "avatar-size",
     };
 
-    // The space's own size, or else the one its destination was saved with.
-    const [avatarSize, setAvatarSize] = useState<number>(
-        params?.avatarSize || destination?.avatarSize || 0.5
+    // Shown in metres and saved as a size from 0 to 1. It starts from the
+    // space's own size, or else the one its destination was saved with.
+    const [avatarHeight, setAvatarHeight] = useState<number>(() =>
+        avatarSizeToHeight(params?.avatarSize || destination?.avatarSize || 0.5)
     );
-    const debouncedAvatarSize = useDebouncedValue(avatarSize, 500);
+    const debouncedAvatarHeight = useDebouncedValue(avatarHeight, 500);
 
     const handleChangeOption = useEventCallback(
         async (setting: string, value: any) => {
@@ -65,22 +72,25 @@ export function Permissions() {
         []
     );
 
-    // Only a size the owner typed is saved. Opening this tab used to save
+    // Only a height the owner typed is saved. Opening this tab used to save
     // the size on show, which replaced the destination's with 0.5.
-    const savedAvatarSize = useRef(avatarSize);
+    const savedAvatarHeight = useRef(avatarHeight);
 
     useEffect(() => {
         if (
-            debouncedAvatarSize === savedAvatarSize.current ||
-            !Number.isFinite(debouncedAvatarSize)
+            debouncedAvatarHeight === savedAvatarHeight.current ||
+            !Number.isFinite(debouncedAvatarHeight)
         ) {
             return;
         }
 
-        savedAvatarSize.current = debouncedAvatarSize;
+        savedAvatarHeight.current = debouncedAvatarHeight;
 
-        handleChangeOption("avatarSize", debouncedAvatarSize);
-    }, [debouncedAvatarSize]);
+        handleChangeOption(
+            "avatarSize",
+            avatarHeightToSize(debouncedAvatarHeight)
+        );
+    }, [debouncedAvatarHeight]);
 
     return (
         <Container submitting={false}>
@@ -147,16 +157,16 @@ export function Permissions() {
                     />
                 </FormLabelWrapper>
                 <FormSep />
-                <FormInfo>{tx("Avatar Size")}</FormInfo>
+                <FormInfo>{tx("Avatar height")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        {tx("Default avatar size for visitors")}
+                        {tx("How tall visitors stand, in metres")}
                     </FormLabel>
                     <Input
                         type="number"
-                        min="0.01"
+                        min={MINIMUM_VRM_BOX}
                         step="0.05"
-                        max="1"
+                        max={MAXIMUM_VRM_BOX}
                         width="70px"
                         background="#27282c"
                         color="#fff"
@@ -165,9 +175,11 @@ export function Permissions() {
                             color: "#fff",
                         }}
                         disabled={!canEdit}
-                        value={Number.isFinite(avatarSize) ? avatarSize : ""}
+                        value={
+                            Number.isFinite(avatarHeight) ? avatarHeight : ""
+                        }
                         onChange={(e) => {
-                            setAvatarSize(parseFloat(e.target.value));
+                            setAvatarHeight(parseFloat(e.target.value));
                         }}
                     />
                 </FormLabelWrapper>
