@@ -757,6 +757,8 @@ export const UPLOADER_TYPES = {
 
     PLAYER_SPEED: asConst("PLAYER_SPEED"),
 
+    AVATAR_SIZE: asConst("AVATAR_SIZE"),
+
     BACKGROUND_TYPE: asConst("BACKGROUND_TYPE"),
 
     SKY_ENABLED: asConst("SKY_ENABLED"),
@@ -938,8 +940,9 @@ export var SET_COMPRESSED_SUPPORT = function( values ){
     console.log( 'COMPRESSED_SUPPORT', COMPRESSED_SUPPORT )
 }
 
-export const MINIMUM_VRM_BOX = 1.0
-export const MAXIMUM_VRM_BOX = 4.5
+import { MINIMUM_VRM_BOX, MAXIMUM_VRM_BOX } from "./utils/avatarHeight"
+
+export { MINIMUM_VRM_BOX, MAXIMUM_VRM_BOX }
 
 export const MINIMUM_MIX_RATIO = (1 * MINIMUM_VRM_BOX ) / MAXIMUM_VRM_BOX
 

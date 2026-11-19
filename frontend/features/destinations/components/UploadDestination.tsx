@@ -1,6 +1,5 @@
 import styled from "styled-components";
-import { deepClone } from "@utils/js";
-import { DefaultRoomParameters } from "@3utils/defaultroomparameters";
+import { newDestinationParameters } from "@3utils/defaultroomparameters";
 import { DropGlb } from "@features/spaces/create/components/DestinationSelector/Uploader/DropGlb";
 import { useUploader } from "@features/spaces/create/components/DestinationSelector/Uploader/UploaderProvider";
 import { useRooms } from "@features/spaces/create/components/DestinationSelector/useRooms";
@@ -16,7 +15,7 @@ export default function UploadDestination({
     const { updateRoom } = useRooms();
     function select(file: File, isFuture: boolean) {
         const destination = {
-            params: { ...deepClone(DefaultRoomParameters), isFuture },
+            params: { ...newDestinationParameters(), isFuture },
         } as Destination;
         editPhysics(
             destination,
