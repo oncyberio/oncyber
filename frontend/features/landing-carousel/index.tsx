@@ -148,7 +148,6 @@ function LandingContent(props: LandingPageProps) {
         loadMore,
     } = discovery;
     // Image-only fallback for WebGL failures; curvature is never a user mode.
-    const [flat, setFlat] = useState(false);
     const [gridChoice, setGridChoice] = useState(0);
     const { t } = useCyberTranslation();
     const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
@@ -717,8 +716,6 @@ function LandingContent(props: LandingPageProps) {
                                 counterLabel={
                                     step === "gallery" ? "templates" : undefined
                                 }
-                                flat={flat}
-                                onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
                                 footerStart={gridControls}

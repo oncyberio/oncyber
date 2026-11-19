@@ -13,6 +13,7 @@ import Icon from "./Icon";
 import { useActivitySignal } from "../activity";
 import { coverSources } from "../coverSources";
 import { useCyberTranslation } from "@components/context/I18nContext";
+import CollageCover from "./CollageCover";
 
 export function CoverImage({ card }: { card: LandingCard }) {
     const [failed, setFailed] = useState<string[]>([]);
@@ -65,7 +66,6 @@ export function CoverImage({ card }: { card: LandingCard }) {
 
 interface Props extends AnchorHTMLAttributes<HTMLAnchorElement> {
     card: LandingCard;
-    flat?: boolean;
     featured?: boolean;
     /** The corner arrow opens the space in a new tab; the card body stays in-page. */
     arrowOpensNewTab?: boolean;
@@ -127,7 +127,7 @@ function isOwnCard(card: { id: string; title: string; buildStatus?: string }) {
 
 const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
     function ExperienceCard(
-        { card, flat, featured, arrowOpensNewTab = false, ...props },
+        { card, featured, arrowOpensNewTab = false, ...props },
         ref
     ) {
         const { t, i18n } = useCyberTranslation();
@@ -149,7 +149,6 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
             <Card
                 as={card.href ? "a" : "article"}
                 ref={ref}
-                $flat={flat}
                 $featured={featured}
                 data-template-status={card.templateStatus}
                 data-opening={card.opening || undefined}
@@ -172,7 +171,11 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
                 aria-disabled={!card.href || undefined}
                 {...props}
             >
-                {flat && <CoverImage card={card} />}
+                {card.collage?.length >= 2 ? (
+                    <CollageCover card={card} />
+                ) : (
+                    <CoverImage card={card} />
+                )}
                 <div className="card-shade" />
                 {card.opening && (
                     <div className="card-loading" role="status">
@@ -281,7 +284,7 @@ const ExperienceCard = forwardRef<HTMLAnchorElement, Props>(
 );
 export default ExperienceCard;
 
-const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
+const Card = styled.a<{ $featured?: boolean }>`
     position: absolute;
     display: block;
     top: 0;
@@ -298,9 +301,10 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
     &[aria-disabled="true"] {
         cursor: default;
     }
-    background: ${({ $flat }) => ($flat ? "#161a1c" : "transparent")};
+    background: #161a1c;
     -webkit-tap-highlight-color: transparent;
-    img {
+    img,
+    .collage-cover {
         width: 100%;
         height: calc(100% - var(--caption-height, 54px));
         object-fit: cover;
@@ -502,7 +506,8 @@ const Card = styled.a<{ $flat?: boolean; $featured?: boolean }>`
         opacity: 1;
         transform: translate(0);
     }
-    &:hover img {
+    &:hover img,
+    &:hover .collage-cover {
         transform: scale(1.035);
     }
     &:focus-visible {

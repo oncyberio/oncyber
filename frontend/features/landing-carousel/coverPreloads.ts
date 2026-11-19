@@ -15,22 +15,18 @@ export interface CoverPreload {
 /**
  * The covers on the first screen of the grid, for `<link rel="preload">`.
  *
- * The grid is drawn by a script that arrives after the page, and it fetches
- * each cover when it starts. Naming the first covers in the HTML lets the
- * browser download them while the scripts load, so they are already there
- * when the grid asks. Cards fill a column before the next one: a phone shows
- * the first two, a wider screen the first four.
- *
- * The grid fetches a cover with `fetch` in CORS mode and without
- * credentials (three's ImageBitmapLoader); the page's preload has to ask the
- * same way (`as="fetch"`, `crossOrigin="anonymous"`) to be the one it uses.
+ * The cards are placed by a script that arrives after the page. Naming the
+ * first covers in the HTML lets the browser download them while the scripts
+ * load, so each picture is already there when its card appears. Cards fill
+ * a column before the next one: a phone shows the first two, a wider screen
+ * the first four.
  */
 export function firstScreenCovers(
     cards: Pick<LandingCard, "id" | "imageUrls" | "collage">[] = []
 ): CoverPreload[] {
     const seen = new Set<string>();
     return cards.slice(0, 4).flatMap((card, index) => {
-        // A collage draws several covers through image elements instead.
+        // A collage shows several smaller covers instead.
         if (card.collage?.length >= 2) return [];
         const href = coverSources(card)[0];
         if (!href || seen.has(href)) return [];

@@ -25,10 +25,12 @@ export default function LandingCarousel(props: LandingPageProps) {
                     <link
                         key={`cover-preload:${cover.href}`}
                         rel="preload"
-                        as="fetch"
+                        as="image"
                         href={cover.href}
                         media={cover.media}
-                        crossOrigin="anonymous"
+                        // Ahead of the scripts, which the pictures used to
+                        // wait behind.
+                        fetchPriority="high"
                     />
                 ))}
             </Head>

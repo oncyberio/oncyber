@@ -29,13 +29,8 @@ jest.mock("../landing-carousel/hooks/useDestinationPreviews", () => ({
 }));
 jest.mock("../landing-carousel/components/ExperienceCard", () => ({
     __esModule: true,
-    default: jest.fn(({ card, flat, ...props }) => (
-        <a
-            href={card.href}
-            data-card-id={card.id}
-            data-flat={String(flat)}
-            {...props}
-        >
+    default: jest.fn(({ card, ...props }) => (
+        <a href={card.href} data-card-id={card.id} {...props}>
             {card.title}
         </a>
     )),
@@ -201,7 +196,6 @@ test("refreshes the seeded feed without changing the lobby URL", () => {
     expect(container.querySelector("#lobby-explore-title").textContent).toBe(
         "Popular"
     );
-    expect(cardLink().getAttribute("data-flat")).toBe("true");
     click("Close search");
     expect(onClose).toHaveBeenCalledTimes(1);
 });
