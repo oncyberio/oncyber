@@ -1066,7 +1066,8 @@ export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
             recipe?.shirtMark,
             recipe?.sunRays,
             recipe?.visor,
-            recipe?.orbCollar
+            recipe?.orbCollar,
+            recipe?.shortsCut
         );
         return;
     }
@@ -1112,6 +1113,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
             recipe.penOutline ||
             recipe.visor ||
             recipe.orbCollar ||
+            recipe.shortsCut ||
             recipe.coatPanels ||
             recipe.sleeveCut);
     const cache = customParts ? markedTemplates : templates;
@@ -1129,6 +1131,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
                   recipe.penOutline,
                   recipe.visor,
                   recipe.orbCollar,
+                  recipe.shortsCut,
                   recipe.coatPanels,
                   recipe.sleeveCut,
               ])

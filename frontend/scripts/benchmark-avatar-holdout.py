@@ -6,6 +6,8 @@ from hashlib import sha256
 from pathlib import Path
 
 from avatar_authoring.family_review import compare_images
+from avatar_authoring.fit import pixels
+from avatar_authoring.sun_rays import kit_landmarks, shorts_cut
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest
 
@@ -209,6 +211,16 @@ def score_reviews(args):
     return result
 
 
+def visible_shorts(path):
+    rgb, mask = pixels(path, keep_components=True)
+    cut = shorts_cut(rgb, mask, kit_landmarks(rgb, mask))
+    if cut is not None:
+        return {
+            "rise": round(float(cut[0]), 4),
+            "hem_to_waist": round(float(cut[1]), 4),
+        }
+
+
 def record_preview(args):
     """Record the exact exported, rendered study bytes alongside the frozen inputs."""
     root = args.manifest.parent
@@ -284,6 +296,14 @@ def record_preview(args):
                 }
                 for mode, v in report["backends"].items()
             }
+            if "shortsCut" in json.loads(candidate.read_bytes()):
+                data["visible_shorts"] = {
+                    "reference": visible_shorts(root / case["evaluation_reference"]),
+                    **{
+                        mode: visible_shorts(evidence.parent / mode / "front.png")
+                        for mode in report["backends"]
+                    },
+                }
         rows[key] = data
     seed_digest = sha256(b"\n".join(seeds)).hexdigest()
     crowd = json.loads(args.crowd_evidence.read_bytes())

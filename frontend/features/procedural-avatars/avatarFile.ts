@@ -46,6 +46,12 @@ const familyFile = z.strictObject({
         .min(8)
         .max(80)
         .optional(),
+    shortsCut: z
+        .strictObject({
+            rise: z.number().min(0.2).max(0.93),
+            hemSpan: z.number().min(0.75).max(1.32),
+        })
+        .optional(),
     kitFit: z
         .strictObject({
             collar: z.number().min(-0.045).max(0.045),
@@ -276,6 +282,7 @@ export function readAvatarFile(input: unknown): {
         if (
             (file.orbOffset ||
                 file.kitFit ||
+                file.shortsCut ||
                 file.orbPaint ||
                 file.visor ||
                 file.orbCollar) &&
@@ -322,6 +329,9 @@ export function readAvatarFile(input: unknown): {
                 template: family.template as Character,
                 ...file.proportions,
                 palette,
+                ...(file.shortsCut && {
+                    shortsCut: file.shortsCut as AvatarRecipe["shortsCut"],
+                }),
                 ...(file.kitFit && {
                     kitFit: file.kitFit as AvatarRecipe["kitFit"],
                 }),

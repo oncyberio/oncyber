@@ -212,6 +212,39 @@ export interface OrbCollar {
     skin: string;
     binding: string;
 }
+/** Positions along each short leg, measured from the waist to its hem. */
+export interface ShortsCut {
+    rise: number;
+    hemSpan: number;
+}
+function fitShortLeg(
+    part: ShapeRecipe["parts"][number],
+    cut?: ShortsCut,
+    waistbandY?: number
+): ShapeRecipe["parts"][number] {
+    if (!cut || !("profile" in part) || !part.inseam) return part;
+    const waist = part.profile[0],
+        hem = part.profile.at(-1);
+    const center = part.inseam.center;
+    const side = (waist[1] + waist[2]) / 2 < center ? 1 : 2;
+    const length = hem[0] - waist[0];
+    // The visible rise includes the waistband above the leg panels.
+    const top = waistbandY ?? waist[0];
+    const forkY = T.MathUtils.lerp(top, hem[0], cut.rise);
+    const flare = (waist[side] - center) * cut.hemSpan - (hem[side] - center);
+    return {
+        ...part,
+        profile: part.profile.map((row) => {
+            const fitted: Section = [...row];
+            fitted[side] += (flare * (row[0] - waist[0])) / length;
+            return fitted;
+        }),
+        inseam: {
+            center,
+            drop: T.MathUtils.clamp(forkY - waist[0], 1, length - 1),
+        },
+    };
+}
 export function drawShapeRecipe(
     d: Drawing,
     recipe: ShapeRecipe,
@@ -219,7 +252,8 @@ export function drawShapeRecipe(
     shirtMark?: ShirtMark,
     sunRays?: XY[][],
     visor?: OrbVisor,
-    orbCollar?: OrbCollar
+    orbCollar?: OrbCollar,
+    shortsCut?: ShortsCut
 ) {
     d.s.palette(
         Object.fromEntries(
@@ -237,14 +271,22 @@ export function drawShapeRecipe(
     const surfaces = new Map<string, Depth>();
     const backs = new Map<string, Depth>();
     let raysDrawn = false;
-    for (const part of recipe.parts) {
+    const band =
+        shortsCut &&
+        recipe.parts.find((part) => "name" in part && part.name === "waist");
+    const waistbandY =
+        band && "profile" in band ? band.profile[0][0] : undefined;
+    for (const source of recipe.parts) {
+        const part = fitShortLeg(source, shortsCut, waistbandY);
         d.bind(part.bone);
         d.s.crown = part.bone === "head" && part.paint === "rays";
         d.s.printUV = undefined;
         if ("name" in part && ("profile" in part || "across" in part)) {
             const name = part.name as PrintName,
                 paths = prints?.[name];
-            if (paths)
+            // Measured shorts carry their own fork and hem. The stock kit's
+            // printed seam follows the original cut.
+            if (paths && !(shortsCut && "inseam" in part && part.inseam))
                 d.s.printUV = garmentMapping(
                     name,
                     "across" in part ? part.across : part.profile,

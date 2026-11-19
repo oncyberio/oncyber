@@ -103,6 +103,12 @@ def edit_schema(family=None, construction=None):
         # Published fits predate the separately observed upper-shirt width.
         fit["properties"]["chestWidth"] = bounded(0.70, 1.30)
         branches.append(fields(["kitFit"], fit))
+        branches.append(
+            fields(
+                ["shortsCut"],
+                record({"rise": bounded(0.20, 0.93), "hemSpan": bounded(0.75, 1.32)}),
+            )
+        )
         branches.append(fields(["orbPaint"], record({"top": color, "bottom": color})))
         branches.append(
             fields(
@@ -449,6 +455,7 @@ def edited_recipe(
             "coatPanels",
             "limbWidth",
             "kitFit",
+            "shortsCut",
             "orbPaint",
             "orbCollar",
         ):

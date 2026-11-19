@@ -23,6 +23,7 @@ from .sun_rays import (
     measure_sun_rays,
     open_collar,
     orb_contour,
+    shorts_cut,
 )
 from .visor import measure_visor, profile_gap
 
@@ -418,6 +419,30 @@ class FamilyTests(unittest.TestCase):
         self.assertEqual(len(rays), 11)
         angles = np.sort(np.arctan2(*np.mean(rays, axis=1)[:, ::-1].T))
         self.assertGreater(np.min(np.diff(angles)), 0.16)
+
+    def test_shorts_measure_the_visible_gap_and_outer_hem(self):
+        mask = np.zeros((201, 160), dtype=bool)
+        mask[:, 63:97] = True
+        mask[118:131, 59:101] = True
+        mask[123:, 76:84] = False
+        # An ink mark or isolated hole above the fork is not the leg opening.
+        mask[108:110, 76:84] = False
+        marks = np.array([0, 0, 0.50, 0.65, 0, 34 / 200])
+        rgb = np.full((*mask.shape, 3), 212.0)
+        rgb[mask] = [19, 60, 140]
+        # Gray paper between the legs can survive the foreground extractor.
+        mask[123:130, 76:84] = True
+        rise, width = shorts_cut(rgb, mask, marks)
+        self.assertAlmostEqual(rise, 23 / 30)
+        self.assertAlmostEqual(width, 41 / 33)
+        separate = mask.copy()
+        separate[123:, 76:84] = False
+        np.testing.assert_allclose(
+            shorts_cut(np.zeros_like(rgb), separate, marks), [rise, width]
+        )
+        mask[111:131, 76:84] = True
+        rgb[111:131, 76:84] = [19, 60, 140]
+        self.assertIsNone(shorts_cut(rgb, mask, marks))
 
     def test_a_small_visible_collar_gap_moves_only_the_collar(self):
         gap = {"source": 0.0047, "native": 0}

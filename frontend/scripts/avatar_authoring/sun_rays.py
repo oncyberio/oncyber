@@ -590,11 +590,8 @@ def orb_edits(source, native, frame, recipe):
     return edits
 
 
-def kit_landmarks(path):
+def kit_landmarks(rgb, m):
     """Read the pale jersey, dark shorts, exposed legs and sock bands of this kit."""
-    from .fit import pixels
-
-    rgb, m = pixels(path, keep_components=True)
     y, x = np.nonzero(m)
     top, h, mid = y.min(), np.ptp(y), (x.min() + x.max()) / 2
     u = (np.arange(m.shape[1]) - mid) / h
@@ -631,6 +628,77 @@ def kit_landmarks(path):
     )
 
 
+def shorts_cut(rgb, mask, landmarks):
+    """Measure the first sustained opening between the two hems of a full kit."""
+    if landmarks is None:
+        return
+    body_y = np.flatnonzero(mask.any(axis=1))
+    height = np.ptp(body_y)
+    waist, hem = np.rint(body_y[0] + landmarks[2:4] * height).astype(int)
+    length = hem - waist
+    if length < 12:
+        return
+    spans = [np.flatnonzero(row) for row in mask[waist : hem + 1]]
+    if any(len(row) < 3 for row in spans):
+        return
+    mid = round(np.median([(row[0] + row[-1]) / 2 for row in spans]))
+    width = height * landmarks[5]
+    x = np.abs(np.arange(mask.shape[1]) - mid)
+    center = x <= max(1, round(width * 0.012))
+    legs = (x > 0.17 * width) & (x < 0.34 * width)
+    below_hem = slice(hem + round(0.05 * length), hem + round(0.2 * length))
+    below = rgb[below_hem, center]
+    if not below.size or not legs.any():
+        return
+    paper = np.median(below, axis=(0, 1))
+    fabric = np.median(
+        rgb[waist + round(0.12 * length) : waist + round(0.42 * length), legs],
+        axis=(0, 1),
+    )
+    cloth = mask[waist : hem + 1] & (x < 0.65 * width)
+    if np.linalg.norm(paper - fabric) >= 35:
+        # A cast shadow can connect the legs in the foreground mask. Read
+        # its color just below the hem and the cloth on the neighboring legs.
+        colors = rgb[waist : hem + 1]
+        cloth &= np.linalg.norm(colors - fabric, axis=2) < np.linalg.norm(
+            colors - paper, axis=2
+        )
+    elif mask[below_hem, center].mean() > 0.15:
+        # Transparent pixels may store the garment RGB. An empty alpha gap
+        # still supplies its silhouette. An ambiguous opaque gap cannot.
+        return
+    gap = cloth[:, center].mean(1) < 0.55
+    run = max(2, round(length * 0.035))
+    labels, count = ndimage.label(gap)
+    # Use the opening connected to the hem. Holes higher in the garment
+    # can come from the background remover or a highlight in the fabric.
+    if not count or not np.any(labels[-run:] == count):
+        return
+    opening = np.flatnonzero(labels == count)
+    if len(opening) < run or opening[0] < length * 0.14:
+        return
+
+    def span(a, b):
+        rows = cloth[round(length * a) : round(length * b)]
+        return (
+            np.median([np.ptp(np.flatnonzero(row)) for row in rows if row.any()])
+            if rows.any()
+            else 0
+        )
+
+    waist_span, lower_span = span(0.09, 0.20), span(0.78, 0.93)
+    if min(waist_span, lower_span) < width * 0.55:
+        return
+    return np.array([opening[0] / length, lower_span / waist_span])
+
+
+def fitted_shorts(measure):
+    return {
+        "rise": round(float(np.clip(measure[0], 0.20, 0.93)), 3),
+        "hemSpan": round(float(np.clip(measure[1], 0.75, 1.32)), 3),
+    }
+
+
 def collar_closed(gap):
     # At the 610px native body height, a registered gap of .003 spans at
     # least two pixels. Keep that clearance when the source orb is detached.
@@ -661,7 +729,12 @@ def open_collar(recipe, gap):
 
 
 def kit_edits(source, native, recipe, gap=None):
-    target, current = kit_landmarks(source), kit_landmarks(native)
+    from .fit import pixels
+
+    source_image, native_image = (
+        pixels(path, keep_components=True) for path in (source, native)
+    )
+    target, current = kit_landmarks(*source_image), kit_landmarks(*native_image)
     if target is None or current is None:
         return []
     fields = ["collar", "shoulders", "waist", "hem", "sock"]
@@ -689,9 +762,36 @@ def kit_edits(source, native, recipe, gap=None):
     values["width"] = round(
         float(np.clip(fit.get("width", 1) * target[5] / current[5], 0.78, 1.25)), 3
     )
+    edits = []
     if max(abs(delta)) > 0.003 or abs(target[5] / current[5] - 1) > 0.035:
-        return [{"field": "kitFit", "value": values}]
-    return []
+        edits.append({"field": "kitFit", "value": values})
+    cut = recipe.get("shortsCut")
+    if cut:
+        wanted, seen = (
+            shorts_cut(*source_image, target),
+            shorts_cut(*native_image, current),
+        )
+        if wanted is not None and seen is not None:
+            # Waist displacement tapers toward the hem on the shared rig.
+            # Compensate for the concurrent width correction in this pass.
+            prior_width, next_width = fit.get("width", 1), values["width"]
+
+            def hem_to_waist(width):
+                return (1 + 0.38 * (width - 1)) / width
+
+            fit_cut = fitted_shorts(
+                [
+                    cut["rise"] + wanted[0] - seen[0],
+                    cut["hemSpan"]
+                    * wanted[1]
+                    / seen[1]
+                    * hem_to_waist(prior_width)
+                    / hem_to_waist(next_width),
+                ]
+            )
+            if fit_cut != cut:
+                edits.append({"field": "shortsCut", "value": fit_cut})
+    return edits
 
 
 def floating_gap(path, eye_frame):

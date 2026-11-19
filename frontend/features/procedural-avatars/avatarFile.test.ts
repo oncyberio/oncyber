@@ -501,6 +501,33 @@ test("an asymmetric crown changes its marked tips at both detail levels and pres
     }
 });
 
+test("measured shorts own their cut at both detail levels and preserve the shared template", () => {
+    const base = readAvatarFile(vesper).recipe;
+    const shortsCut = { rise: 0.88, hemSpan: 1.14 };
+    const cut = readAvatarFile({ ...vesper, shortsCut }).recipe;
+    expect(() => readAvatarFile({ ...scientist, shortsCut })).toThrow();
+    expect(() =>
+        readAvatarFile({ ...vesper, shortsCut: { ...shortsCut, rise: 1 } })
+    ).toThrow();
+    for (const lod of ["full", "crowd"] as const) {
+        const actors = [base, cut, base].map((r) => buildCharacter(r, lod));
+        try {
+            const positions = actors.map(({ scene }) => {
+                const mesh = scene.getObjectByProperty(
+                    "isSkinnedMesh",
+                    true
+                ) as T.SkinnedMesh;
+                expect(mesh.geometry.groups).toHaveLength(0);
+                return mesh.geometry.getAttribute("position").array;
+            });
+            expect(positions[0]).not.toEqual(positions[1]);
+            expect(positions[0]).toEqual(positions[2]);
+        } finally {
+            actors.forEach(({ scene }) => disposeAvatarGraph(scene));
+        }
+    }
+});
+
 test("a measured jersey collar builds a separate throat only on mascot recipes", () => {
     const orbCollar = {
         radius: 0.28,

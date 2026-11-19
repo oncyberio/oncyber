@@ -10,7 +10,15 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
-from .sun_rays import fit_crew_to_orb, jersey_neck, measure_sun_rays, orb_swatches
+from .sun_rays import (
+    fit_crew_to_orb,
+    fitted_shorts,
+    jersey_neck,
+    kit_landmarks,
+    measure_sun_rays,
+    orb_swatches,
+    shorts_cut,
+)
 from .tracing import registered_print, shirt_mark, traced_print
 from .visor import measure_visor, visor_seed
 
@@ -651,6 +659,9 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
     )
     recipe, _metrics, overlay = candidates[best]
     if best == "sunshine" and custom_jersey:
+        cut = shorts_cut(image, mask, kit_landmarks(image, mask))
+        if cut is not None:
+            recipe["shortsCut"] = fitted_shorts(cut)
         seed = visor_seed(image, mask)
         if seed:
             center, radius = seed
