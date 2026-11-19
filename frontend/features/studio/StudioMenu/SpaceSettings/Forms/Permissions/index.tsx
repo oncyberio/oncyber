@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { Toggle } from "@features/studio/components/Toggle";
@@ -25,7 +25,7 @@ const labelStyle = {
 
 export function Permissions() {
     //
-    const { exhibit, exhibitStore, userRole, baseAnalyticsEvent } =
+    const { exhibit, exhibitStore, userRole, baseAnalyticsEvent, destination } =
         useCurrentExhibit();
 
     const params = exhibit.params || {};
@@ -40,8 +40,9 @@ export function Permissions() {
         avatarSize: "avatar-size",
     };
 
+    // The space's own size, or else the one its destination was saved with.
     const [avatarSize, setAvatarSize] = useState<number>(
-        params?.avatarSize || 0.5
+        params?.avatarSize || destination?.avatarSize || 0.5
     );
     const debouncedAvatarSize = useDebouncedValue(avatarSize, 500);
 
@@ -64,7 +65,20 @@ export function Permissions() {
         []
     );
 
+    // Only a size the owner typed is saved. Opening this tab used to save
+    // the size on show, which replaced the destination's with 0.5.
+    const savedAvatarSize = useRef(avatarSize);
+
     useEffect(() => {
+        if (
+            debouncedAvatarSize === savedAvatarSize.current ||
+            !Number.isFinite(debouncedAvatarSize)
+        ) {
+            return;
+        }
+
+        savedAvatarSize.current = debouncedAvatarSize;
+
         handleChangeOption("avatarSize", debouncedAvatarSize);
     }, [debouncedAvatarSize]);
 
@@ -151,7 +165,7 @@ export function Permissions() {
                             color: "#fff",
                         }}
                         disabled={!canEdit}
-                        value={avatarSize}
+                        value={Number.isFinite(avatarSize) ? avatarSize : ""}
                         onChange={(e) => {
                             setAvatarSize(parseFloat(e.target.value));
                         }}

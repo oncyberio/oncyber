@@ -1,10 +1,9 @@
 import { showConfirm } from "@components/Dialogs";
 import { useEventCallback } from "@components/hooks/useEventCallback";
-import { deepClone } from "@utils/js";
 import { useRouter } from "next/router";
 import { isMod } from "pages/api/social/isMod";
 import styled from "styled-components";
-import { DefaultRoomParameters } from "@3utils/defaultroomparameters";
+import { newDestinationParameters } from "@3utils/defaultroomparameters";
 import { DropGlb } from "./DropGlb";
 import { Destination, useUploader } from "./UploaderProvider";
 import { tx } from "@components/context/I18nContext";
@@ -30,7 +29,7 @@ export function UploadNewRoom({
         };
 
         const newDestination: Destination = {
-            params: { ...deepClone(DefaultRoomParameters), isFuture },
+            params: { ...newDestinationParameters(), isFuture },
         } as any;
 
         editPhysics(newDestination, uPath, (destination) => {
