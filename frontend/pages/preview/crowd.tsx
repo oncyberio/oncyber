@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import type { GetStaticProps } from "next";
@@ -21,5 +22,8 @@ export const getStaticProps: GetStaticProps = async () => {
             fs.readFile(path.join(dir, id + ".recipe"), "utf8")
         )
     );
-    return { props: { seeds } };
+    const seedDigest = createHash("sha256")
+        .update(seeds.join("\n"))
+        .digest("hex");
+    return { props: { seeds, seedDigest } };
 };

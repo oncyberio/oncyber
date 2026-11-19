@@ -318,7 +318,35 @@ class HouseholdTests(unittest.TestCase):
         )
         self.assertGreater(design["household"]["shirtHalfWidth"], 0.4)
         self.assertIn("mouthPaint", design["household"])
+        self.assertEqual(design["household"]["portraitPreset"], "adult-casual")
         self.assertNotIn("body", design["household"])
+
+    def test_foot_opening_distinguishes_a_pale_sock_from_bare_skin(self):
+        for subject, sock in (("moss", True), ("lark", False)):
+            with self.subTest(subject=subject):
+                source = VIEWS.parent / "holdout-v1" / (subject + "-full.webp")
+                design = fit_front(source, "New foot study")[0]["design"]
+                sole = design["household"]["body"]["sections"]["outsole"]
+                collar = sole["collar"]
+                self.assertEqual(len(collar["tops"]), len(sole["rows"]))
+                self.assertTrue(
+                    all(y <= row[1] for y, row in zip(collar["tops"], sole["rows"]))
+                )
+                self.assertGreater(
+                    max(row[1] - y for y, row in zip(collar["tops"], sole["rows"])), 4
+                )
+                self.assertEqual(collar["color"] != design["skin"], sock)
+
+    def test_visible_jersey_width_requires_both_edges_below_the_sleeve(self):
+        from .portrait import jersey_chest_width
+
+        mask = np.zeros((104, 120), dtype=bool)
+        mask[83:, 42:79] = True
+        measured = jersey_chest_width(mask, (60, 38, 20, 20), 0, 1)
+        self.assertLess(measured, 0.85)
+        self.assertIsNone(jersey_chest_width(mask[:84], (60, 38, 20, 20), 0, 1))
+        mask[83:] = True
+        self.assertIsNone(jersey_chest_width(mask, (60, 38, 20, 20), 0, 1))
 
     def test_data_feature_fits_two_family_members_without_changing_their_heads(self):
         from .feature_library import apply_feature

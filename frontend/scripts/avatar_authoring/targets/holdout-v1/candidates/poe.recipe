@@ -5,7 +5,7 @@
   "family": "rick-classic",
   "construction": "household",
   "design": {
-    "height": 640,
+    "height": 590,
     "head": [
       146.3,
       144
@@ -76,7 +76,7 @@
         0.6668,
         0.748,
         0.7996,
-        0.8414,
+        0.836,
         0.8654,
         0.8531,
         0.8381,
@@ -457,7 +457,7 @@
           "browColor": "#3c2416"
         }
       ],
-      "portraitPreset": "adult",
+      "portraitPreset": "adult-casual",
       "jawWidths": [
         0.8927,
         0.8718,

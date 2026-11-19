@@ -139,7 +139,24 @@ export function drawHouseholdHead(
             const visible = MathUtils.smoothstep(t, 0.56, 0.67);
             cheekRadius = MathUtils.lerp(r, Math.min(r, measured), visible);
         }
-        const x = (cheekRadius + reach) * Math.sin(angle) + lean;
+        let x = (cheekRadius + reach) * Math.sin(angle) + lean;
+        const crown = g.household.crownSides;
+        if (crown && t < 0.44) {
+            const u = (t / 0.44) * (crown.length - 1);
+            const k = Math.min(crown.length - 2, Math.floor(u));
+            const left = MathUtils.lerp(crown[k][0], crown[k + 1][0], u - k);
+            const right = MathUtils.lerp(crown[k][1], crown[k + 1][1], u - k);
+            const axis = (width * (left + right)) / 2;
+            const radius = Math.max(
+                cheekRadius * 0.97,
+                (width * (right - left)) / 2
+            );
+            x = MathUtils.lerp(
+                axis + radius * Math.sin(angle),
+                x,
+                MathUtils.smoothstep(t, 0.34, 0.44)
+            );
+        }
         // A front drawing measures x and y at the temple, even where the cap
         // continues behind an ear. Displace only its depth on this meridian.
         const nape = g.household.nape;
@@ -202,7 +219,7 @@ export function drawHouseholdHead(
                 );
             })
         );
-    const cap = rings(10, true),
+    const cap = rings(g.household.crownSides ? 16 : 10, true),
         jaw = rings(13, false);
     if (g.household.jawWidths) {
         // Close the hair overhang in its own pigment. Skin spanning this rim
@@ -210,6 +227,16 @@ export function drawHouseholdHead(
         cap.push(jaw[0]);
     } else jaw[0] = cap.at(-1);
     const seam = new Set(jaw[0].map((p) => p.map(Math.fround).join("/")));
+    if (g.household.crownSides) {
+        for (const row of cap)
+            for (const j of [
+                Math.round(sides / 4),
+                Math.round((3 * sides) / 4),
+            ]) {
+                const p = row[j];
+                if (tOf(p[1]) < 0.44) seam.add(p.map(Math.fround).join("/"));
+            }
+    }
     const preserve = d.s.preserveVertex,
         normal = d.s.surfaceNormal,
         tone = d.s.tone;

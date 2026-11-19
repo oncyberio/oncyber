@@ -42,9 +42,11 @@ export interface CartoonDesign {
         shirtHalfWidth?: number;
         /** Short-sleeve cuff distance, arm center below the chin and bare radius in head heights. */
         portraitArm?: { cuff: number; level: number; radius: number };
-        portraitPreset?: "child" | "lean-teen" | "adult";
+        portraitPreset?: "child" | "lean-teen" | "adult" | "adult-casual";
         /** Skull widths from crown to chin, as fractions of its largest width. */
         widths: number[];
+        /** Lateral hair limits along the upper 44% of the skull, in skull widths. */
+        crownSides?: [number, number][];
         /** Skin widths at 60%, 65%, …, 95% of crown-to-chin height. */
         jawWidths?: number[];
         /** Front-view lobe centers and radii in fractions of skull width and height. */
@@ -194,6 +196,7 @@ export interface CartoonDesign {
                 locks?: [number, number][][];
             };
             outsole?: {
+                collar?: { tops: number[]; color: string };
                 rows: [number, number, number, number][];
                 color: string;
             };
@@ -628,7 +631,9 @@ export function cartoonLayout(d: CartoonDesign): ReferenceLayout {
     const leg = (s: number): [Point, Point, Point] => {
         if (sections) {
             const thigh = pelvisX + s * sections.leg[0][1];
-            const [ankleY, ankleOffset] = sections.shoe[0];
+            const [ankleY, ankleOffset] = sections.outsole?.collar
+                ? sections.ankle?.[0] ?? sections.leg.at(-1)
+                : sections.shoe[0];
             const ankle = pelvisX + s * ankleOffset;
             const knee = referenceBends(d.parts?.legs).knee;
             return [

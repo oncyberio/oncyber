@@ -100,9 +100,10 @@ def edit_schema(family=None, construction=None):
             k: bounded(-0.045, 0.045)
             for k in ("collar", "shoulders", "waist", "hem", "sock")
         }
-        branches.append(
-            fields(["kitFit"], record({**kit, "width": bounded(0.78, 1.25)}))
-        )
+        fit = record({**kit, "width": bounded(0.78, 1.25)})
+        # Published fits predate the separately observed upper-shirt width.
+        fit["properties"]["chestWidth"] = bounded(0.70, 1.30)
+        branches.append(fields(["kitFit"], fit))
         branches.append(fields(["orbPaint"], record({"top": color, "bottom": color})))
         branches.append(
             fields(

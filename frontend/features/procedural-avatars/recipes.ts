@@ -29,6 +29,7 @@ export interface AvatarRecipe {
         waist: number;
         hem: number;
         sock: number;
+        chestWidth?: number;
         width: number;
     };
     visor?: OrbVisor;
@@ -301,6 +302,16 @@ export function recipeTransform(
                 0,
                 Math.min(1, (y - 219) / 67, (484 - y) / 122)
             );
+            if (kit.chestWidth !== undefined) {
+                // Move the shoulder socket and attached sleeve together. The
+                // forearm keeps its length and the shorts have their own width.
+                const chest = Math.max(
+                    0,
+                    Math.min(1, (y - 161) / 30, (376 - y) / 44)
+                );
+                const shoulder = Math.max(-84, Math.min(84, x - origin));
+                x += shoulder * (kit.chestWidth - 1) * chest;
+            }
             x += (x - origin) * (kit.width - 1) * taper;
             y += (shifts[span] * (1 - t) + shifts[span + 1] * t) * (floor - 10);
         }

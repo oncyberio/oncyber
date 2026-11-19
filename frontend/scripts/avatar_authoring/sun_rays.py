@@ -578,6 +578,8 @@ def kit_edits(source, native, recipe, gap=None):
         key: round(float(np.clip(fit.get(key, 0) + s, -0.045, 0.045)), 4)
         for key, s in zip(fields, delta)
     }
+    if "chestWidth" in fit:
+        values["chestWidth"] = fit["chestWidth"]
     values["width"] = round(
         float(np.clip(fit.get("width", 1) * target[5] / current[5], 0.78, 1.25)), 3
     )

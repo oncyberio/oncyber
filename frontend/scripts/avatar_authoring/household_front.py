@@ -159,6 +159,47 @@ def outlined_collar(
     }
 
 
+def crown_sides(rgb, mask, axis, top, chin, width, hair, skin):
+    """Read the swept crown outside the convex skull, retaining its depth in the rig."""
+    xs = np.arange(
+        max(0, round(axis - width * 0.8)),
+        min(mask.shape[1], round(axis + width * 0.8) + 1),
+    )
+    if len(xs) < 12 or np.linalg.norm(hair - skin) < 48:
+        return None
+    ys = np.arange(top, min(len(mask), round(top + (chin - top) * 0.46) + 1))
+    patch = rgb[np.ix_(ys, xs)]
+    dh = np.linalg.norm(patch - hair, axis=2)
+    ds = np.linalg.norm(patch - skin, axis=2)
+    cap = (dh < 65) & (dh + 15 < ds) & mask[np.ix_(ys, xs)]
+    labels, count = ndimage.label(cap, np.ones((3, 3)))
+    if not count:
+        return None
+    # Black parting ink can divide a single haircut into two large locks.
+    # Reunite only pigment islands rooted in the upper crown.
+    sizes = np.bincount(labels.ravel())
+    rooted = np.unique(labels[: max(1, round((chin - top) * 0.23))])
+    cap = np.isin(labels, [i for i in rooted if i and sizes[i] >= cap.sum() * 0.045])
+    bounds = []
+    for y, row in enumerate(cap):
+        hit = xs[row]
+        if len(hit) >= 2:
+            bounds.append([y, hit[0], hit[-1]])
+    if len(bounds) < 9 or bounds[0][0] > (chin - top) * 0.075:
+        return None
+    y, left, right = np.asarray(bounds).T
+    # Once the face opening moves off the part, the two outer edges must
+    # still bracket the forehead. A single sideburn cannot size the skull.
+    if min(np.max(axis - left), np.max(right - axis)) < width * 0.30:
+        return None
+    t = np.linspace(y[0], (chin - top) * 0.44, 12)
+    edges = np.column_stack(
+        [np.interp(t, y, (v - axis) / width) for v in (left, right)]
+    )
+    edges[0] = np.mean(edges[0])
+    return np.clip(edges, -0.85, 0.85).round(4).tolist()
+
+
 def hair_fall(rgb, mask, center, top, chin, width, hair, skin):
     """Sample a joined curtain only when locks flank the neck beyond the chin."""
     if np.linalg.norm(hair - skin) < 42:
@@ -304,6 +345,149 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
         ]
 
 
+def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
+    """Trace the leather opening, sole and visible ankle separately on an inked foot."""
+    from .tracing import simplify_columns
+
+    sections = body["sections"]
+    offset = sections.get("pelvisX", 0)
+    x0 = max(0, round(center + offset / scale))
+    cuff, axis, radius = sections["leg"][-1]
+    y0 = max(0, round(crown + (cuff - 12) / scale))
+    patch = rgb[y0:, x0:]
+    figure = mask[y0:, x0:]
+    shoe = np.array(list(bytes.fromhex(outfit["shoes"][1:])))
+    paper = np.median(np.vstack((rgb[0], rgb[-1])), axis=0)
+    if np.linalg.norm(shoe - paper) < 85 or np.linalg.norm(shoe - skin) < 45:
+        return
+    distance = np.linalg.norm(patch - shoe, axis=2)
+    labels, count = ndimage.label((distance < 39) & figure, np.ones((3, 3)))
+    if not count:
+        return
+    counts = np.bincount(labels.ravel())[1:]
+    upper = labels == (1 + counts.argmax())
+    yy, xx = np.where(upper)
+    width = np.ptp(xx) + 1
+    if width < 10 or np.ptp(yy) < 4 or abs(np.median(xx) * scale - axis) > radius * 2:
+        return
+
+    # The paper can be the same colour as the outsole. Its painted bottom
+    # edge, directly below the upper on each column, locates the real floor.
+    edge = (np.abs(patch - paper).max(axis=2) > 68) & figure
+    slabs, band = [], []
+    for x in np.unique(xx):
+        dyed = np.flatnonzero(upper[:, x])
+        if len(dyed) < 2:
+            continue
+        top, last = dyed[0], dyed[-1]
+        low = min(len(patch), last + max(4, round(width * 0.21)))
+        rim = np.flatnonzero(edge[last:low, x])
+        floor = last + (rim[-1] if len(rim) else 0)
+        slabs.append([x, max(0, top - 1), last, floor])
+        if floor - last >= max(4, width * 0.075):
+            band.append(patch[(last + floor) // 2, x])
+    if len(slabs) < max(7, width * 0.72):
+        return
+    sole = np.median(band, axis=0) if len(band) >= width * 0.4 else shoe * 0.72
+    contrasting = np.linalg.norm(sole - shoe) > 48 and len(band) >= width * 0.4
+    cols = np.array(slabs, dtype=float)
+    if not contrasting:
+        cols[:, 2] = np.maximum(cols[:, 1], cols[:, 3] - max(1, width * 0.025))
+        sole = shoe * 0.72
+    cols[:, 1:] = ndimage.gaussian_filter1d(cols[:, 1:], 0.8, axis=0, mode="nearest")
+
+    # The family rig puts the floor at the end of the original whole-figure
+    # registration. Keep that anchor when a soft outer edge is removed.
+    floor = np.where(figure)[0].max()
+    foot_scale = min(1.25, floor / max(1, cols[:, 3].max()))
+
+    def level(y):
+        return (y * foot_scale + y0 - crown) * scale + 12
+
+    def lateral(x):
+        return (x + x0 - center) * scale - offset
+
+    rows = simplify_columns(cols[:, 0], cols[:, 1:], 14, max(0.65, width * 0.012))
+    if len(rows) < 3:
+        return
+    sections["outsole"] = {
+        "rows": np.column_stack((lateral(rows[:, 0]), level(rows[:, 1:])))
+        .round(2)
+        .tolist(),
+        "color": paint(sole),
+    }
+    # The 3-D foot takes its depth and bone from the original foot block.
+    # Only its transverse limits come from the painted shoe, excluding the ankle.
+    shoe_rows = []
+    for y in np.linspace(cols[:, 1].min() + 0.1, cols[:, 3].max() - 0.3, 10):
+        xs = cols[(cols[:, 1] <= y) & (cols[:, 3] >= y), 0]
+        if len(xs) > 1:
+            shoe_rows.append(
+                [
+                    level(y),
+                    lateral((xs.min() + xs.max()) / 2),
+                    (np.ptp(xs) + 1) * scale / 2,
+                ]
+            )
+    if len(shoe_rows) >= 4:
+        sections["shoe"] = np.round(shoe_rows, 2).tolist()
+
+    # Sample inside the cuff along the shin axis. A pale sock must have
+    # visible ink on both sides so blank paper cannot become clothing.
+    ankle_x = round((axis + offset) / scale + center) - x0
+    near = cols[abs(cols[:, 0] - ankle_x) <= max(2, radius / scale * 0.25)]
+    if not len(near):
+        return
+    ankle = []
+    for y in range(1, min(len(patch), round(np.median(near[:, 1])))):
+        reach = max(2, round(radius / scale * 1.1))
+        lo, hi = max(0, ankle_x - reach), min(patch.shape[1], ankle_x + reach + 1)
+        if not lo < ankle_x < hi - 1:
+            continue
+        left = np.flatnonzero(edge[y, lo:ankle_x])
+        right = np.flatnonzero(edge[y, ankle_x + 1 : hi])
+        if not len(left) or not len(right):
+            continue
+        # The sock interior is brighter than both ink boundaries.
+        l, r = lo + left[-1], ankle_x + 1 + right[0]
+        if r - l >= max(4, radius / scale * 0.4):
+            ankle.extend(patch[y, l + 1 : r])
+    ankle_paint = skin
+    if len(ankle) >= 6:
+        dye = np.median(ankle, axis=0)
+        if np.linalg.norm(dye - skin) > 45 and np.linalg.norm(dye - shoe) > 45:
+            ankle_paint = dye
+    # Trace a single continuous upper from the cuff to the outsole. When
+    # a column has no ankle above the shoe, its leather meets at the crest.
+    # This also handles a low-cut flat whose sides rise around the instep.
+    tops = []
+    for x, top, _, _ in rows:
+        n = max(0, int(top))
+        col = round(x)
+        dyed = (np.linalg.norm(patch[:n, col] - ankle_paint, axis=1) < 47) & figure[
+            :n, col
+        ]
+        if np.linalg.norm(ankle_paint - paper) < 72:
+            # Pale socks occupy the strip between the inked sides of the
+            # ankle. Paper outside that strip can have identical pigment.
+            for y in np.flatnonzero(dyed):
+                reach = max(3, round(radius / scale * 1.15))
+                lo, hi = max(0, ankle_x - reach), min(patch.shape[1], ankle_x + reach)
+                dyed[y] = (
+                    lo <= col <= hi
+                    and edge[y, lo:col].any()
+                    and edge[y, col + 1 : hi].any()
+                )
+        hits = np.flatnonzero(dyed)
+        exposed = len(hits) >= 2 and n - hits[-1] <= max(4, width * 0.09)
+        start = top
+        if exposed:
+            start = -2 if hits[0] <= 3 else hits[0] - 1
+        tops.append(round(min(float(level(start)), float(level(top))), 2))
+    if sum(t < r[1] - 1 for t, r in zip(tops, sections["outsole"]["rows"])) >= 2:
+        sections["outsole"]["collar"] = {"tops": tops, "color": paint(ankle_paint)}
+
+
 def fit_front(source, name):
     """Use the family skull around measured eyes and retain the drawn T-pose body."""
     from .draft import propose
@@ -316,17 +500,19 @@ def fit_front(source, name):
         or obs["top"] not in ("crew", "tank", "polo")
     ):
         raise ValueError("The drawing needs a different hair or garment construction.")
-    design = fit(source, obs)["design"]
     rgb, mask = pixels(source)
     h, w = mask.shape
+    left, top, right, floor = bounds(mask)
+    # Use one coordinate origin from hair to soles. A swept crown can begin
+    # above the central scalp landmark and otherwise shifts the arms upward.
+    design = fit(source, obs, crown_y=top)["design"]
 
     def xy(p):
         return [round(p["x"] * (w - 1) / 1000), round(p["y"] * (h - 1) / 1000)]
 
     lm = {k: xy(v) for k, v in obs["landmarks"].items()}
     samples = {k: xy(v) for k, v in obs["samples"].items()}
-    left, top, right, floor = bounds(mask)
-    crown, chin = lm["crown"][1], lm["chin"][1]
+    crown, chin = top, lm["chin"][1]
     # The contour is measured from the visible cap, including its uppermost strand.
     center = (lm["leftCheek"][0] + lm["rightCheek"][0]) / 2
     scale = 608 / (floor - crown)
@@ -444,8 +630,8 @@ def fit_front(source, name):
         values = np.column_stack(
             (
                 (rows[:, 0] - mid) / head_width,
-                (upper - 12 + (crown - top) * scale) / head_height,
-                (lower - 12 + (crown - top) * scale) / head_height,
+                (upper - 12) / head_height,
+                (lower - 12) / head_height,
             )
         )
         # At whole-body resolution the jaw ink and lip edge each occupy a
@@ -474,7 +660,7 @@ def fit_front(source, name):
     lobes = [
         [
             x / head_width,
-            (y - 12 + (crown - top) * scale) / head_height,
+            (y - 12) / head_height,
             rx / head_width,
             ry / head_height,
         ]
@@ -516,6 +702,9 @@ def fit_front(source, name):
         (boxes[:, 2].max() - cx + 3) / H,
         (boxes[:, 3].max() - top + 3) / H,
     ]
+    crown_profile = crown_sides(rgb, mask, eye_axis, top, chin, width, hair, skin)
+    if crown_profile:
+        family["crownSides"] = crown_profile
     fall = hair_fall(rgb, mask, center, top, chin, width, hair, skin)
     bob = fall and fall[-1][0] < 1.05
     # On a short bob the side locks visible below the ears belong to the
@@ -578,6 +767,9 @@ def fit_front(source, name):
     if has_ink_outline(rgb, mask, (left, top, right, floor)):
         family["penOutline"] = True
         inked_sections(rgb, mask, center, crown, scale, arm_y, samples, family["body"])
+        fit_footwear(
+            rgb, mask, center, crown, scale, family["body"], body["outfit"], skin
+        )
         if body["outfit"]["top"] == "crew":
             collar = outlined_collar(
                 rgb,

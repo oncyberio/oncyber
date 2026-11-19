@@ -362,6 +362,7 @@
     "waist": 0,
     "hem": 0,
     "sock": 0,
-    "width": 1
+    "width": 1,
+    "chestWidth": 0.7694
   }
 }

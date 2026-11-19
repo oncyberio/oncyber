@@ -48,6 +48,7 @@ const familyFile = z.strictObject({
             hem: z.number().min(-0.045).max(0.045),
             sock: z.number().min(-0.045).max(0.045),
             width: z.number().min(0.78).max(1.25),
+            chestWidth: z.number().min(0.7).max(1.3).optional(),
         })
         .optional(),
     visor: z

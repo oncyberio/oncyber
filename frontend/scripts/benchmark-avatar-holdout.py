@@ -207,6 +207,116 @@ def score_reviews(args):
     return result
 
 
+def record_preview(args):
+    """Record the exact exported, rendered study bytes alongside the frozen inputs."""
+    root = args.manifest.parent
+    manifest = json.loads(args.manifest.read_bytes())
+    summary = json.loads((args.output / "holdout.json").read_bytes())
+    if summary["manifest_sha256"] != manifest_digest(manifest):
+        raise ValueError("The replay belongs to a different benchmark")
+    scores = score_reviews(args)
+    archive = json.loads((root / "results.json").read_bytes())
+    rows, hashes, seeds = {}, {}, []
+    for case in manifest["cases"]:
+        key = case["id"]
+        row = summary["cases"][key]
+        folder = args.output / row["study"]
+        study = json.loads((folder / "study.json").read_bytes())
+        selected = study["passes"][row["selected_pass"] - 1]
+        candidate = root / "candidates" / (key + ".recipe")
+        sha = digest(candidate)
+        if sha != row["candidate_sha256"] or sha != digest(folder / study["candidate"]):
+            raise ValueError(f"{key} preview differs from the native study")
+        hashes[key] = sha
+        seeds.append(candidate.read_bytes())
+        data = {
+            k: v for k, v in row.items() if k not in ("study", "independent_review")
+        }
+        data.update(
+            triangles=selected["native"]["triangles"],
+            release_checks=scores["cases"][key],
+        )
+        if "visible_portrait" in selected:
+            data["visible_portrait"] = selected["visible_portrait"]
+        if selected["accepted"]:
+            evidence = folder / selected["directory"] / "approval/evidence.json"
+            report = json.loads(evidence.read_bytes())
+            if (
+                report["reference"] != case["reference_sha256"]
+                or report["recipe"] != sha
+            ):
+                raise ValueError(
+                    f"{key} release evidence differs from the selected recipe"
+                )
+            data["evidence_sha256"] = digest(evidence)
+            data["native_release"] = {
+                mode: {
+                    "source_silhouette_iou": v["reference_metrics"]["silhouette_iou"],
+                    **{
+                        f: v["native"][f]
+                        for f in (
+                            "triangles",
+                            "moving_steps",
+                            "hand",
+                            "crouch_height_ratio",
+                        )
+                    },
+                }
+                for mode, v in report["backends"].items()
+            }
+        rows[key] = data
+    seed_digest = sha256(b"\n".join(seeds)).hexdigest()
+    crowd = json.loads(args.crowd_evidence.read_bytes())
+    if set(crowd) != {"WebGPUBackend", "WebGLBackend"} or any(
+        v.get("seedDigest") != seed_digest
+        or v["calls"] != "1"
+        or v["shadowCalls"] != "1"
+        or min(
+            v["uniqueRecipesLoaded"], v["occupiedColorCells"], v["occupiedShadowCells"]
+        )
+        != 100
+        for v in crowd.values()
+    ):
+        raise ValueError(
+            "Crowd evidence must cover these exact eight seeds on both backends"
+        )
+    obj = json.loads((args.benchmarks / "obj/rick-obj-metrics.json").read_bytes())
+    views = obj["views"].values()
+    transports = sorted({row["transport"] for row in rows.values()})
+    costs = [row["reported_provider_cost"] for row in rows.values()]
+    archive["runs"][args.record_preview] = {
+        "transport": transports[0] if len(transports) == 1 else transports,
+        "model_calls": sum(len(r["model_calls"]) for r in rows.values()),
+        "reported_provider_cost": sum(costs)
+        if all(isinstance(c, (int, float)) for c in costs)
+        else None,
+        "cases": rows,
+        "independent_first_pass": scores["first_pass"],
+        "independent_within_one_correction": scores["within_one_correction"],
+        "crowd": {
+            "base_recipes": list(rows),
+            "variants": 100,
+            "route": "/preview/crowd?shadows=1",
+            "backends": crowd,
+        },
+        "benchmarks": {
+            "rick_source_triangles": obj["source_triangles"],
+            "rick_views": len(views),
+            "minimum_rick_silhouette_iou": min(v["silhouette_iou"] for v in views),
+            "maximum_rick_layer_intrusion_pixels": max(
+                max(v["layer_intrusion_pixels"].values()) for v in views
+            ),
+            "sunshine": json.loads((args.benchmarks / "sunshine.json").read_bytes()),
+        },
+    }
+    archive["preview"] = {"run": args.record_preview, "candidate_sha256": hashes}
+    archive["independent_approvals"] = scores["within_one_correction"]
+    path = root / "results.json"
+    temp = path.with_suffix(".json.tmp")
+    temp.write_text(json.dumps(archive, indent=4, allow_nan=False) + "\n")
+    temp.replace(path)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
@@ -245,7 +355,27 @@ if __name__ == "__main__":
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--renderer", choices=["webgl", "auto"], default="webgl")
     parser.add_argument("--max-triangles", type=int, default=4000)
+    parser.add_argument(
+        "--record-preview",
+        metavar="RUN",
+        help="Record retested preview candidates and both rendering passes",
+    )
+    parser.add_argument(
+        "--crowd-evidence",
+        type=Path,
+        help="Report from verify-cartoon-crowd.py --preview --shadows",
+    )
+    parser.add_argument(
+        "--benchmarks",
+        type=Path,
+        help="Matched Rick OBJ and Sunshine VRM reference comparisons",
+    )
     opts = parser.parse_args()
+    if opts.record_preview:
+        if not opts.crowd_evidence or not opts.benchmarks:
+            parser.error("--record-preview needs --crowd-evidence and --benchmarks")
+        record_preview(opts)
+        raise SystemExit(0)
     if opts.export_candidates:
         export_candidates(
             opts.output, json.loads(opts.manifest.read_bytes()), opts.export_candidates

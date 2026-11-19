@@ -1,6 +1,7 @@
 """Compile the visible head of a portrait and infer the hidden body from its family."""
 
 import numpy as np
+from scipy import ndimage
 
 from .eye_review import portrait_pair
 from .family import FAMILIES
@@ -23,6 +24,46 @@ PRESETS = {
     "lean-teen": ("lean", 612, 142),
     "adult": ("regular", 640, 144),
 }
+
+
+def jersey_chest_width(mask, orb, collar_shift, head_height):
+    """Fit a visible shirt below the sleeves in units of one orb radius."""
+    cx, cy, rx, ry = orb
+    # Transverse half-widths of the Sunshine jersey pattern at its sewn
+    # stations. A crop may end anywhere between the underarm and the waist.
+    stations = [243, 273, 306, 337]
+    pattern = [83, 77.5, 70.5, 67.5]
+    ratios = []
+    for y in range(
+        max(0, round(cy + 2.28 * ry)), min(len(mask), round(cy + 3.48 * ry))
+    ):
+        axis = round(cx)
+        labels, _ = ndimage.label(mask[y])
+        if not 0 <= axis < len(labels) or not labels[axis]:
+            continue
+        left, right = np.flatnonzero(labels == labels[axis])[[0, -1]]
+        radius = (right - left + 1) / 2
+        if (
+            left < 2
+            or right >= len(labels) - 2
+            or abs((right + left) / 2 - cx) > rx * 0.13
+            or not 0.64 < radius / rx < 1.56
+        ):
+            continue
+        # The head height pivot is the chin. Convert back to the pattern's
+        # vertical units before looking up the expected width of the cloth.
+        station = 167.2 + ((y - cy) / ry - 1) * 61.2 * head_height - 680 * collar_shift
+        expected = np.interp(station, stations, pattern)
+        ratios.append(radius / rx * 60.5 / expected)
+    if (
+        len(ratios) < max(5, ry * 0.12)
+        or np.ptp(np.percentile(ratios, [10, 90])) > 0.13
+    ):
+        return None
+    ratio = float(np.median(ratios))
+    return (
+        round(float(np.clip(ratio, 0.70, 1.30)), 4) if abs(ratio - 1) >= 0.035 else None
+    )
 
 
 def sample_region(rgb, mask, x, y, radius):
@@ -223,6 +264,11 @@ def compile_portrait(source, family, name, obs):
                 "sock": 0,
                 "width": 1,
             }
+            width = jersey_chest_width(
+                mask, orb, collar_shift, result["proportions"]["headHeight"]
+            )
+            if width:
+                result["kitFit"]["chestWidth"] = width
         return result
     build, stature, head = PRESETS[obs["body"]]
     pair = portrait_pair(rgb, (left, top, right + 1, chin + 1))
@@ -321,6 +367,14 @@ def compile_portrait(source, family, name, obs):
         )
         if arm and design["outfit"]["top"] != "tank":
             household["portraitArm"] = arm
+            if obs["body"] == "adult":
+                # Match the visible arm axis to the shoulder station in the
+                # independently fitted everyday body. Preserve the measured skull.
+                household["portraitPreset"] = "adult-casual"
+                standing = 12 + design["head"][1] * (1 + arm["level"]) / 0.293
+                design["height"] = round(
+                    float(np.clip(standing, stature * 0.88, stature * 1.12))
+                )
     for orbit, observed in zip(household["orbits"], pair):
         brow = painted_brow(rgb, observed["bounds"])
         if brow:

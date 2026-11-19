@@ -1,4 +1,5 @@
 import Head from "next/head";
+import type { BufferGeometry, Material, Mesh } from "three/webgpu";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -9,10 +10,17 @@ import {
 } from "@features/procedural-avatars/catalog";
 import type { LobbyAvatar } from "@features/lobby/webgpu/avatarAdapter";
 
-export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
+export default function ProceduralCrowdStudy({
+    seeds,
+    seedDigest,
+}: {
+    seeds?: string[];
+    seedDigest?: string;
+}) {
     const router = useRouter();
     const cartoon = router.query.cast === "cartoon";
     const canvas = useRef<HTMLCanvasElement>(null);
+    const shadowOnly = useRef(false);
     const [message, setMessage] = useState("Preparing recipes…");
     useEffect(() => {
         const local: ReturnType<typeof previewRecipe>[] = [];
@@ -49,11 +57,47 @@ export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
             const camera = new T.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
             const crowd = new LobbyAvatarCrowd(scene, renderer),
                 avatars: LobbyAvatar[] = [];
+            const shadows = params.get("shadows") === "1";
+            const shadowLight = shadows
+                ? new T.DirectionalLight(0xffffff, 1.6)
+                : undefined;
+            const backdrop = shadows
+                ? new T.Mesh(
+                      new T.PlaneGeometry(90, 90),
+                      new T.MeshLambertNodeMaterial({ color: 0xe8e2d6 })
+                  )
+                : undefined;
+            if (shadowLight && backdrop) {
+                renderer.shadowMap.enabled = true;
+                shadowLight.castShadow = true;
+                shadowLight.position.set(-6, 8, -26);
+                Object.assign(shadowLight.shadow.camera, {
+                    left: -20,
+                    right: 20,
+                    top: 20,
+                    bottom: -20,
+                    near: 0.1,
+                    far: 70,
+                });
+                shadowLight.shadow.camera.updateProjectionMatrix();
+                shadowLight.shadow.mapSize.set(1024, 1024);
+                backdrop.rotation.y = Math.PI;
+                backdrop.position.z = 0.9;
+                backdrop.receiveShadow = true;
+                scene.add(
+                    shadowLight,
+                    backdrop,
+                    new T.AmbientLight(0xffffff, 0.45)
+                );
+            }
             let frame = 0;
             dispose = () => {
                 cancelAnimationFrame(frame);
                 crowd.dispose();
                 avatars.forEach((a) => a.dispose());
+                backdrop?.geometry.dispose();
+                backdrop?.material.dispose();
+                shadowLight?.dispose();
                 renderer.dispose();
             };
             const cols = Math.ceil(Math.sqrt(count)),
@@ -124,10 +168,14 @@ export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
                     requestAnimationFrame(() => resolve())
                 );
             }
+            const caster = scene.getObjectByName("Procedural avatar crowd") as
+                | Mesh<BufferGeometry, Material>
+                | undefined;
             const readyMs = performance.now() - start;
             let last = 0,
                 frames = 0,
-                avatarCalls = 0;
+                avatarCalls = 0,
+                shadowCalls = 0;
             const draw = (now: number) => {
                 if (stopped) return;
                 const el = canvas.current,
@@ -160,33 +208,63 @@ export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
                 if (frames === 0)
                     scene.traverse((object) => {
                         const mesh = object as InstanceType<typeof T.Mesh>;
-                        if (!mesh.isMesh) return;
-                        let before = 0;
+                        if (!mesh.isMesh || mesh === backdrop) return;
+                        let before = 0,
+                            beforeShadow = 0,
+                            drawingShadow = false;
+                        mesh.onBeforeShadow = () => {
+                            drawingShadow = true;
+                            beforeShadow = renderer.info.render.drawCalls;
+                        };
+                        mesh.onAfterShadow = () => {
+                            shadowCalls +=
+                                renderer.info.render.drawCalls - beforeShadow;
+                            drawingShadow = false;
+                        };
                         mesh.onBeforeRender = () => {
                             before = renderer.info.render.drawCalls;
                         };
                         mesh.onAfterRender = () => {
-                            avatarCalls +=
-                                renderer.info.render.drawCalls - before;
+                            if (!drawingShadow)
+                                avatarCalls +=
+                                    renderer.info.render.drawCalls - before;
                         };
                     });
-                avatarCalls = 0;
+                if (
+                    shadowLight &&
+                    caster &&
+                    caster.material.colorWrite === shadowOnly.current
+                ) {
+                    caster.material.colorWrite = !shadowOnly.current;
+                    caster.material.depthWrite = !shadowOnly.current;
+                    caster.material.needsUpdate = true;
+                }
+                avatarCalls = shadowCalls = 0;
                 renderer.info.reset();
                 renderer.render(scene, camera);
                 const stats = renderer.info.render;
                 el.dataset.calls = String(avatarCalls);
+                if (shadows) {
+                    el.dataset.shadowCalls = String(shadowCalls);
+                    el.dataset.shadowOnly = String(shadowOnly.current);
+                }
                 el.dataset.frameCalls = String(stats.drawCalls);
                 el.dataset.visible = String(crowd.stats.visible);
                 el.dataset.backend = backend;
                 el.dataset.authored = String(local.length || authored.length);
                 if (local.length) el.dataset.distinct = String(distinct);
+                if (seedDigest) el.dataset.seedDigest = seedDigest;
                 el.dataset.triangles = String(stats.triangles);
                 el.dataset.readyMs = String(Math.round(readyMs));
                 if (frames++ === 0)
                     setMessage(
                         `${
                             crowd.stats.visible
-                        } recipes · ${avatarCalls} avatar draw · ${
+                        } recipes · ${avatarCalls} avatar color draw${
+                            shadows
+                                ? ` · ${shadowCalls} avatar shadow draw`
+                                : ""
+                        } · ${
                             stats.drawCalls
                         } total draws · ${stats.triangles.toLocaleString()} triangles · ${backend}`
                     );
@@ -209,6 +287,17 @@ export default function ProceduralCrowdStudy({ seeds }: { seeds?: string[] }) {
             </Head>
             <header>
                 <h1>Recipe crowd</h1>
+                {router.query.shadows === "1" && (
+                    <label>
+                        <input
+                            type="checkbox"
+                            onChange={(event) => {
+                                shadowOnly.current = event.target.checked;
+                            }}
+                        />
+                        Shadows only
+                    </label>
+                )}
                 <Link
                     href={
                         seeds

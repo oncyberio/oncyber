@@ -99,11 +99,28 @@ Use `review-avatar-release.py candidate.json reference.webp /tmp/avatar-review -
 
 The fixture freezes four drawings per family. Each family has two full T-poses and two restricted portrait inputs. The evaluator opens the complete drawing for a portrait only after candidate selection. Compare inferred body proportions separately from visible portrait likeness. The first local run passed all automated likeness checks on **0 of 8**. The replay informed the mouth, shirt width and jersey changes. Those cases are now calibration examples for any subsequent evaluation. No candidate from this trial entered the catalogue. For a benchmark release review, generate evidence against the withheld full drawing after fitting and store the decision in the candidate pass’s `approval/` directory. Run `benchmark-avatar-holdout.py OUTPUT --score-reviews` to count independent first-pass and one-correction approvals without invoking the author again.
 
-On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. All four full-body inputs missed the visible gates. The four passing portraits also missed the silhouette gate against their withheld full bodies. Independent approvals remain at **0/8**. The deterministic run took 10.73–44.00 seconds per drawing and made zero provider calls. The fitter now measures both ears on Lark and Moss, follows the edges of pale forearms, and recovers Lark's four fasteners and collar opening. Lark's full-body silhouette overlap fell from 0.8800 to 0.8692. The hair, shoes and inferred proportions still need work. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
+On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. Moss, Lark, Solvi and Mora missed the full-body gates. All four portraits walked, crouched and held an item on both backends. Their inferred bodies missed the withheld full-body reference check. Independent approvals remain at **0/8**. The deterministic run took 12.71–46.53 seconds per drawing and made zero provider calls. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
 
-On the branch preview, open `/preview/studies/rowan` to compare the supplied reference with the exact candidate in the native viewer. Each study supports rotation, portraits, walking, crouching and the right-hand attachment. The eight study recipes are separate from the installed avatar catalogue. To export selected recipes from a new run, use `benchmark-avatar-holdout.py OUTPUT --export-candidates DIRECTORY`.
+| Portrait input | Previous full-body silhouette IoU | Current IoU |
+| -------------- | --------------------------------: | ----------: |
+| Rowan          |                            0.6227 |      0.8144 |
+| Poe            |                            0.6643 |      0.7991 |
+| Reed           |                            0.7486 |      0.7644 |
+| Indigo         |                            0.7831 |      0.8029 |
 
-Open `/preview/crowd` to animate 100 variations of those same eight drawings. The page loads the eight seed recipes and varies cloth pigment and head proportions locally. In headless Chromium with SwiftShader, WebGPU and WebGL2 each submitted one avatar draw in the color pass, two total draws and 172,175 triangles. Load-to-ready took 3.68 seconds on WebGPU and 4.05 seconds on WebGL2. Use `verify-cartoon-crowd.py OUTPUT --preview` to reproduce the measurement on the branch route.
+The casual adult Rick-family body uses trouser, arm and shoe proportions measured on Nia Bell, Nori Quill and Mara Venn, with cuff taper from Rick’s OBJ. The fitter applies this body when it can see a sleeve and a bare arm in an adult portrait. Full drawings can supply a continuous shoe upper, an exposed ankle or sock, and a separate sole. Sunshine portraits measure the jersey below the sleeve against the orb diameter. The shader and rig move the shoulder socket and sleeve together. The full-body studies still miss details in the hair, eyes, shirt graphics and proportions.
+
+Open `/preview/studies/rowan` on the branch preview to compare the reference and candidate in the native viewer. Each study supports rotation, portraits, walking, crouching and the right-hand attachment. The eight study recipes stay outside the installed avatar catalogue.
+
+Open `/preview/crowd?shadows=1` to animate 100 variations of those eight recipes. Select **Shadows only** to inspect each cast silhouette. In headless Chromium with SwiftShader, both WebGPU and WebGL2 submitted one avatar draw for color and one for the directional shadow map. Both screenshots contained figures or shadows in all 100 projected positions. The renderer submitted four total draws and 349,601 triangles per frame with the receiver and shadows enabled. Load-to-ready took 3.97 seconds on WebGPU and 3.85 seconds on WebGL2.
+
+Use the following commands after the eight-case benchmark and native release captures. The crowd test verifies the digest of the eight exported recipes. The last command records the results consulted by the branch preview.
+
+```sh
+python frontend/scripts/benchmark-avatar-holdout.py OUTPUT --export-candidates frontend/scripts/avatar_authoring/targets/holdout-v1/candidates
+python frontend/scripts/verify-cartoon-crowd.py OUTPUT/batch --preview --shadows
+python frontend/scripts/benchmark-avatar-holdout.py OUTPUT --record-preview RUN_ID --crowd-evidence OUTPUT/batch/crowd.json --benchmarks BENCHMARK_DIR
+```
 
 ![Eight reference drawings and their native replays](avatar-family-benchmark.webp)
 

@@ -45,6 +45,7 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
     const scale =
         (g.height - neck) / (composition[template].floor - reference.neck[1]);
     const usePreset = !!preset && !g.household.body;
+    const casual = usePreset && preset === "adult-casual";
     const visibleWidth =
         usePreset && g.household.shirtHalfWidth
             ? g.household.shirtHalfWidth * g.head[1]
@@ -54,7 +55,11 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
         (usePreset
             ? ((reference.arms[1][0][0] - reference.arms[0][0][0]) * scale) / 2
             : proportionsFit.shoulder);
-    const hip = usePreset
+    // Median neck-to-hem and shoulder-to-wrist lengths of the measured
+    // full-body Nia, Nori and Mara fits, in neck-to-floor and stature units.
+    const hip = casual
+        ? neck + (g.height - neck) * 0.306
+        : usePreset
         ? neck + (reference.hip[1] - reference.neck[1]) * scale
         : proportionsFit.hip;
     const waist =
@@ -159,7 +164,9 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
             Math.hypot(...root.map((v, i) => v - elbow[i])) +
             Math.hypot(...hand.map((v, i) => v - elbow[i]))
     );
-    const upper = usePreset
+    const upper = casual
+        ? (height - 12) * 0.31
+        : usePreset
         ? ((reach[0] + reach[1]) * scale) / 2
         : height * 0.447 - shoulder;
 
@@ -167,9 +174,12 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
     const radius = visibleArm
         ? (visibleArm.radius * skull) / 0.89
         : usePreset
-        ? scale * { "lean-teen": 8.1, child: 9.2, adult: 11 }[preset]
+        ? scale *
+          { "lean-teen": 8.1, child: 9.2, adult: 11, "adult-casual": 11 }[
+              preset
+          ]
         : shoulder * (g.build === "lean" ? 0.17 : 0.21);
-    const ankle = height - 16,
+    const ankle = height - (casual ? (height - 12) * 0.039 : 16),
         leg = waist * (g.build === "lean" ? 0.38 : 0.42);
     const spread = waist * 0.67,
         cuff = visibleArm
@@ -196,6 +206,47 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
         [0.8, 0.78],
         [1, 0.53],
     ].map(([u, r]) => [xAt(u), armY + radius * 0.14 * u, radius * r]);
+    // A cropped tee gives the ribcage width. Use the measured seat-width
+    // prior under a narrow tee while keeping broader shirts on their own scale.
+    const seat = Math.max(waist, Math.min(waist * 1.2, (height - 12) * 0.074));
+    const fork = hip + legLength * 0.09;
+    const legSections: Sections["leg"] = casual
+        ? [
+              [0, 0.6, 0.526],
+              [0.18, 0.66, 0.52],
+              [0.42, 0.75, 0.427],
+              [0.62, 0.84, 0.417],
+              [0.81, 0.91, 0.445],
+              [1, 0.97, 0.473],
+          ].map(([t, x, r]) => [fork + (ankle - fork) * t, seat * x, seat * r])
+        : [
+              [hip, spread * 0.76, leg * 1.12],
+              [hip + leg * 1.45, spread * 0.9, leg * 1.06],
+              [hip + legLength * 0.3, spread, leg * 0.9],
+              [hip + legLength * 0.48, spread * 1.05, leg * 0.83],
+              [hip + legLength * 0.66, spread * 1.11, leg * 0.87],
+              [ankle + 2, spread * 1.17, leg * 0.68],
+          ];
+    // Seat, knee and foot offsets come from the same measured trousers.
+    // The straight cuff uses the classic OBJ's shin-to-knee radius ratio.
+    const shoes: Sections["shoe"] = casual
+        ? [
+              [0, 0.97, 0.34],
+              [0.35, 1.04, 0.44],
+              [0.72, 1.18, 0.57],
+              [0.9, 1.23, 0.54],
+              [1, 1.25, 0.45],
+          ].map(([t, x, r]) => [
+              ankle + (height - ankle) * t,
+              seat * x,
+              seat * r,
+          ])
+        : [
+              [ankle, spread * 1.17, leg * 0.6],
+              [height - 10, spread * 1.18, leg * 0.8],
+              [height - 4, spread * 1.21, leg],
+              [height, spread * 1.21, leg * 0.94],
+          ];
     return {
         // Use low-error body edges for the last few collapses on a detailed
         // cut. The shared simplifier protects facial paint, hands and seams.
@@ -234,25 +285,16 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
             pelvis: [
                 [hip - 5, waist],
                 [hip + 6, waist * 1.02],
-                [hip + leg * 0.95, waist * 0.94],
+                [casual ? fork : hip + leg * 0.95, waist * 0.94],
             ],
-            leg: [
-                [hip, spread * 0.76, leg * 1.12],
-                [hip + leg * 1.45, spread * 0.9, leg * 1.06],
-                [hip + legLength * 0.3, spread, leg * 0.9],
-                [hip + legLength * 0.48, spread * 1.05, leg * 0.83],
-                [hip + legLength * 0.66, spread * 1.11, leg * 0.87],
-                [ankle + 2, spread * 1.17, leg * 0.68],
-            ],
-            shoe: [
-                [ankle, spread * 1.17, leg * 0.6],
-                [height - 10, spread * 1.18, leg * 0.8],
-                [height - 4, spread * 1.21, leg],
-                [height, spread * 1.21, leg * 0.94],
-            ],
+            leg: legSections,
+            shoe: shoes,
             arm,
             sleeve: xAt(cuff),
-            handScale: Math.max(0.75, radius / 9.6),
+            handScale: casual
+                ? Math.max(0.75, Math.min(2.4, radius / 8))
+                : Math.max(0.75, radius / 9.6),
+            ...(casual ? { pelvisX: 0 } : {}),
             ...(g.outfit.top === "crew"
                 ? {
                       crew: {

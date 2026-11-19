@@ -130,7 +130,7 @@ def bounds(mask):
     return (int(xs.min()), int(ys.min()), int(xs.max() + 1), int(ys.max() + 1))
 
 
-def fit(path, obs, measure=True):
+def fit(path, obs, measure=True, *, crown_y=None):
     Draft202012Validator(
         observations_v1
         if isinstance(obs, dict) and obs.get("version") == 1
@@ -176,7 +176,7 @@ def fit(path, obs, measure=True):
 
     x0, y0, x1, y1 = bounds(mask)
     cx = (lm["leftCheek"][0] + lm["rightCheek"][0]) * 0.5
-    crown = lm["crown"][1]
+    crown = lm["crown"][1] if crown_y is None else crown_y
     chin = lm["chin"][1]
     shoulderY = lm["shoulder"][1]
     hem = lm["hem"][1]

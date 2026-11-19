@@ -1678,8 +1678,11 @@ function drawSole(
     const left = outsole.rows[0][0],
         right = outsole.rows.at(-1)[0];
     const upper: Point[][] = [],
-        wall: Point[][] = [];
-    for (const [offset, top, seam, base] of outsole.rows) {
+        wall: Point[][] = [],
+        nearUpper: Point[][] = [],
+        farUpper: Point[][] = [],
+        ankle: Point[][] = [];
+    for (const [i, [offset, top, seam, base]] of outsole.rows.entries()) {
         const x = center + sign * offset,
             t = (offset - left) / (right - left);
         const turn = Math.sqrt(Math.max(0, Math.sin(Math.PI * t)));
@@ -1701,7 +1704,31 @@ function drawSole(
         const sides = [-1, -0.72, 0, 0.72, 1].map((a) =>
             section(seam - (seam - top) * Math.sqrt(Math.max(0, 1 - a * a)), a)
         );
-        upper.push(sides);
+        if (outsole.collar) {
+            const crest = outsole.collar.tops[i];
+            const opening = Math.min(
+                0.78,
+                (top - crest) / Math.max(2, (right - left) * 0.22)
+            );
+            const near = section(top, opening),
+                far = section(top, -opening);
+            nearUpper.push([
+                near,
+                section(top + (seam - top) * 0.35, 0.82),
+                sides.at(-1),
+            ]);
+            farUpper.push([
+                sides[0],
+                section(top + (seam - top) * 0.35, -0.82),
+                far,
+            ]);
+            ankle.push([
+                far,
+                section(crest, -opening * 0.65),
+                section(crest, opening * 0.65),
+                near,
+            ]);
+        } else upper.push(sides);
         wall.push([
             sides[0],
             section(base, -0.97),
@@ -1709,7 +1736,11 @@ function drawSole(
             sides.at(-1),
         ]);
     }
-    d.s.surface(upper, paint, true, "perimeter");
+    if (outsole.collar) {
+        d.s.surface(nearUpper, paint, true, "perimeter");
+        d.s.surface(farUpper, paint, true, "perimeter");
+        d.s.surface(ankle, outsole.collar.color, true, "perimeter");
+    } else d.s.surface(upper, paint, true, "perimeter");
     d.s.surface(wall, outsole.color, true, "perimeter");
     d.s.line(
         wall.map((r) => r.at(-1)),
@@ -2501,6 +2532,10 @@ function clothing(d: Drawing, g: CartoonDesign) {
                       Math.min(...measured.outsole.rows.map((r) => r[1])) + 10
                   )
                 : start[0] + 3;
+            if (measured.outsole?.collar) {
+                drawSole(d, shoe, measured.outsole, pelvisX, sideSign, o.shoes);
+                continue;
+            }
             const ankleRows = measured.ankle?.map(([y, c, r]) =>
                 section([pelvisX + sign * c, y, 0], r)
             );

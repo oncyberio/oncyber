@@ -356,6 +356,12 @@ const fit = z.strictObject({
                 .optional(),
             outsole: z
                 .strictObject({
+                    collar: z
+                        .strictObject({
+                            tops: z.array(n(0, 950)).min(3).max(32),
+                            color: paint,
+                        })
+                        .optional(),
                     rows: ordered(
                         z.tuple([n(-100, 300), n(0, 950), n(0, 950), n(0, 950)])
                     ).refine((rows) =>
@@ -365,6 +371,12 @@ const fit = z.strictObject({
                     ),
                     color: paint,
                 })
+                .refine(
+                    ({ collar, rows }) =>
+                        !collar ||
+                        (collar.tops.length === rows.length &&
+                            collar.tops.every((y, i) => y <= rows[i][1]))
+                )
                 .optional(),
             nape: ordered(z.tuple([n(-350, 350), n(-100, 500)])).optional(),
             chin: ordered(z.tuple([n(-200, 200), n(0, 400)])).optional(),
@@ -707,6 +719,13 @@ const householdFile = file.extend({
                 cut: z.enum(["crop", "part", "ponytail", "waves"]),
             }),
             household: z.strictObject({
+                crownSides: z
+                    .array(z.tuple([n(-0.85, 0.85), n(-0.85, 0.85)]))
+                    .length(12)
+                    .refine((rows) =>
+                        rows.every(([left, right]) => left <= right)
+                    )
+                    .optional(),
                 jawWidths: z.array(n(0.04, 1.15)).length(8).optional(),
                 shirtHalfWidth: n(0.17, 0.98).optional(),
                 portraitArm: z
@@ -717,7 +736,7 @@ const householdFile = file.extend({
                     })
                     .optional(),
                 portraitPreset: z
-                    .enum(["child", "lean-teen", "adult"])
+                    .enum(["child", "lean-teen", "adult", "adult-casual"])
                     .optional(),
                 widths: z
                     .array(n(0, 1.15))

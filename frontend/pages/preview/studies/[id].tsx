@@ -192,11 +192,8 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         path.join(folder, entry.id + ".recipe"),
         "utf8"
     );
-    const record = results.runs.garment_replay.cases[entry.id];
-    if (
-        createHash("sha256").update(candidate).digest("hex") !==
-        record.candidate_sha256
-    )
+    const measuredHash = results.preview.candidate_sha256[entry.id];
+    if (createHash("sha256").update(candidate).digest("hex") !== measuredHash)
         throw Error("The preview recipe differs from the measured candidate");
     async function image(name: string): Promise<string> {
         const asset = await import(

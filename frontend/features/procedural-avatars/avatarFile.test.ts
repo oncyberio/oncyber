@@ -220,6 +220,35 @@ test("family members retain a single skinned mesh, both grips and their own clot
     }
 });
 
+test("a narrower Sunshine jersey carries the shoulder socket with its sleeve", () => {
+    const transform = recipeTransform(
+        {
+            template: "sunshine",
+            kitFit: {
+                collar: 0,
+                shoulders: 0,
+                waist: 0,
+                hem: 0,
+                sock: 0,
+                width: 1,
+                chestWidth: 0.8,
+            },
+        },
+        350,
+        690,
+        [350, 167, 0],
+        [350, 380, 0]
+    );
+    const before: Point = [447, 211, 0],
+        wrist: Point = [635, 211, 0];
+    expect(transform(before)[0]).toBeLessThan(before[0]);
+    expect(transform(wrist)[0] - transform(before)[0]).toBeCloseTo(
+        wrist[0] - before[0]
+    );
+    expect(transform([402, 106, 0], true)).toEqual([402, 106, 0]);
+    expect(transform([389, 530, 0])).toEqual([389, 530, 0]);
+});
+
 test("a crown edit extends rays beyond the scalp while preserving their roots and the face", () => {
     const transform = recipeTransform(
         { template: "sunshine", crownLength: 1.5 },

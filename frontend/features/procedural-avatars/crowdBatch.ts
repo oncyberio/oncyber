@@ -70,13 +70,17 @@ export class RecipeCrowdBatch {
                 read(x.add(3), y)
             );
         };
-        const skin = (N.Fn as Function)(() => {
+        const paletteMatrix = (N.Fn as Function)(() => {
             const m = matrix(rig.x).toVar();
             N.If(rig.z.greaterThan(0), () => {
                 m.assign(
                     m.mul(N.float(1).sub(rig.z)).add(matrix(rig.y).mul(rig.z))
                 );
             });
+            return m;
+        });
+        const skin = (N.Fn as Function)(() => {
+            const m = paletteMatrix();
             const tile = N.floor(N.uv().x);
             N.If(
                 N.uv()
@@ -101,7 +105,7 @@ export class RecipeCrowdBatch {
         const cell = N.abs(N.positionView.negate().mod(0.016).sub(0.008)).div(
             0.008
         );
-        material.opacityNode = N.float(1).sub(
+        const revealOpacity = N.float(1).sub(
             N.step(
                 reveal.x.sub(
                     reveal.y.mul(N.max(N.max(cell.x, cell.y), cell.z))
@@ -109,11 +113,21 @@ export class RecipeCrowdBatch {
                 N.positionWorld.y
             )
         );
+        // Three renders the light's depth pass with an override material.
+        // Its vertices must read the same actor and bone palette as the color pass.
+        Object.assign(material, {
+            opacityNode: revealOpacity,
+            castShadowPositionNode: paletteMatrix().mul(
+                N.vec4(N.positionLocal, 1)
+            ).xyz,
+            maskShadowNode: revealOpacity.greaterThan(0.001),
+        });
         material.alphaTest = 0.001;
         this.material = material;
         this.mesh = new T.Mesh(new T.BufferGeometry(), material);
         this.mesh.name = "Procedural avatar crowd";
         this.mesh.frustumCulled = false;
+        this.mesh.castShadow = true;
         this.mesh.visible = false;
         scene.add(this.mesh);
     }
