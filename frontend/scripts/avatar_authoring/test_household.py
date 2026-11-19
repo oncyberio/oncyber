@@ -220,6 +220,10 @@ class HouseholdTests(unittest.TestCase):
         )
         design = candidate["design"]
         self.assertEqual(design["mouth"], "speaking")
+        self.assertEqual(design["outfit"]["top"], "polo")
+        self.assertTrue(
+            all(orbit.get("browRim") for orbit in design["household"]["orbits"])
+        )
         self.assertGreater(design["household"]["shirtHalfWidth"], 0.4)
         self.assertIn("mouthPaint", design["household"])
         self.assertNotIn("body", design["household"])

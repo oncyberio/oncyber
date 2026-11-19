@@ -140,6 +140,25 @@ def portrait_metrics(source, native, family):
     }
 
 
+def best_pass(attempts):
+    from .family_trials import merit
+
+    def rank(p):
+        if "front" in p:
+            score = merit(p["front"])
+        else:
+            v = p["visible_portrait"]
+            score = min(
+                v["head_iou"] / 0.86,
+                28 / max(v["rgb_mae"], 0.01),
+                v["ink_agreement"] / 0.68,
+                v["visible_fraction"] / 0.7,
+            )
+        return p["accepted"], score
+
+    return max(attempts, key=rank)
+
+
 def author_one(source, output, family, framing, name, args):
     if family not in ("rick-classic", "sunshine") or framing not in (
         "full",
@@ -331,7 +350,10 @@ def author_one(source, output, family, framing, name, args):
                     if changed != dest:
                         dest = changed
                         report["passes"].append(entry(dest, revised))
-        report["accepted"] = report["passes"][-1]["accepted"]
+        selected = best_pass(report["passes"])
+        dest = directory / selected["directory"]
+        report["selected_pass"] = 1 + report["passes"].index(selected)
+        report["accepted"] = selected["accepted"]
         report["candidate"] = str((dest / "candidate.json").relative_to(directory))
         if report["accepted"]:
             (directory / "recipe.json").write_bytes(

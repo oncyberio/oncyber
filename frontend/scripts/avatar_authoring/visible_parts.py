@@ -85,3 +85,29 @@ def visible_torso(rgb, mask, head, shirt_xy):
     if len(samples) < max(3, 0.065 * height):
         return None
     return round(float(np.percentile(samples, 30)), 4)
+
+
+def visible_placket(rgb, head, fabric):
+    """A polo placket has a vertical ink stroke between two cloth-colored edges."""
+    left, top, right, chin = head
+    height = chin - top
+    center = (right + left) / 2
+    start = round(chin + 0.18 * height)
+    stop = min(len(rgb), round(chin + 0.57 * height))
+    if stop - start < 0.17 * height:
+        return False
+    cloth = pigment(rgb, fabric)
+    offset = max(3, round(height * 0.04))
+    for x in range(
+        max(offset, round(center - 0.08 * height)),
+        min(rgb.shape[1] - offset, round(center + 0.08 * height)),
+    ):
+        middle = rgb[start:stop, x]
+        edges = rgb[start:stop, [x - offset, x + offset]]
+        has_ink = (middle @ [0.2126, 0.7152, 0.0722]) < 0.61 * (
+            cloth @ [0.2126, 0.7152, 0.0722]
+        )
+        fabric_edges = (np.linalg.norm(edges - cloth, axis=2) < 48).all(axis=1)
+        if np.count_nonzero(has_ink & fabric_edges) >= 0.16 * height:
+            return True
+    return False

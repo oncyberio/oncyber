@@ -705,6 +705,31 @@ class AuthoringTests(unittest.TestCase):
         self.assertTrue(all(26 <= y <= 29 for _, y in points))
         self.assertAlmostEqual(width, 2)
 
+    def test_bounded_correction_can_retain_a_better_first_portrait(self):
+        from .one_image import best_pass
+
+        first = {
+            "accepted": False,
+            "visible_portrait": {
+                "head_iou": 0.91,
+                "rgb_mae": 32,
+                "ink_agreement": 0.7,
+                "visible_fraction": 1,
+            },
+        }
+        second = {
+            "accepted": False,
+            "visible_portrait": {
+                "head_iou": 0.75,
+                "rgb_mae": 34,
+                "ink_agreement": 0.5,
+                "visible_fraction": 1,
+            },
+        }
+        self.assertIs(best_pass([first, second]), first)
+        passed = {**first, "accepted": True}
+        self.assertIs(best_pass([first, passed]), passed)
+
     def test_promotion_checks_reference_motion_views_and_previous_digest(self):
         from .release import CHECKS, VIEWS, check_evidence, digest, record_decision
 

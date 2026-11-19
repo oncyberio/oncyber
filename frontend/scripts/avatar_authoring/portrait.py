@@ -8,7 +8,8 @@ from .fit import pixels
 from .household import fit_portrait, paint
 from .sun_rays import measure_sun_rays
 from .visor import measure_visor
-from .visible_parts import open_smile, visible_torso
+from .visible_parts import open_smile, visible_torso, visible_placket
+from .household_front import painted_brow
 from .tracing import garment_motif, outline_mark
 
 PRESETS = {
@@ -112,7 +113,9 @@ def propose_portrait(source, family):
         "hair": unit(hair),
         "shirt": unit(shirt),
         "body": "adult",
-        "top": "crew",
+        "top": "polo"
+        if family == "rick-classic" and visible_placket(rgb, head, shirt)
+        else "crew",
         "cut": "crop",
         "yaw": 0,
         "missing": "",
@@ -243,6 +246,10 @@ def compile_portrait(source, family, name, obs):
         body["mouth"] = "speaking"
         guide.update(mark)
     recipe = fit_portrait(source, guide, mask, rgb)
+    for orbit, observed in zip(recipe["design"]["household"]["orbits"], pair):
+        brow = painted_brow(rgb, observed["bounds"])
+        if brow:
+            orbit.update(brow)
     breadth = visible_torso(rgb, mask, (left, top, right, chin), colors["shirt"])
     if breadth is not None:
         recipe["design"]["household"]["shirtHalfWidth"] = breadth
