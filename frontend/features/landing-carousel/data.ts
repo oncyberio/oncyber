@@ -8,6 +8,11 @@ import {
     LandingFeed,
 } from "./types";
 
+// A card in the 2×2 grid is about 455 CSS px wide on a wide screen and is
+// drawn at up to 1.75 device pixels each, so 800 covers it. WebP at that
+// size is a little over half the bytes of the 1024 JPEG it replaces.
+const WORLD_COVER_WIDTH = 800;
+
 export const FEED_CATEGORIES: { value: FeedCategory; label: string }[] = [
     { value: "most-visited", label: "Popular" },
     { value: "latest", label: "Latest" },
@@ -90,7 +95,9 @@ export function toLandingCards(exhibits: any[]): LandingCard[] {
                 [info.cHeroImg, info.fHeroImg, info.heroImg]
                     .map(imageUrl)
                     .filter(Boolean)
-                    .map((url) => resize(url, 1024))
+                    .map((url) =>
+                        resize(url, WORLD_COVER_WIDTH, undefined, "webp")
+                    )
             )
         );
         const customLink =
