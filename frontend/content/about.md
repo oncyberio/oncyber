@@ -1,8 +1,6 @@
 ---
-title: What is Oncyber?
-description: Oncyber in plain words: 3D spaces you make and visit in the browser, a shared lobby, avatars, and how spaces, creators and links work.
-order: 6
-faq: true
+title: About Oncyber
+description: Oncyber is a place on the web where people make and visit 3D spaces: galleries for art, worlds built in the browser, and a shared lobby. What it is, how it works and where to find us.
 ---
 
 # What is Oncyber?

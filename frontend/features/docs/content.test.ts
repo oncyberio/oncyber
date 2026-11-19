@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { allDocs, faqOf, llmsFullText, llmsText } from "./content";
+import { aboutPage, allDocs, faqOf, llmsFullText, llmsText } from "./content";
 
 const ORIGIN = "https://www.oncyber.com";
 
@@ -28,22 +28,33 @@ describe("faqOf", () => {
             {
                 question: "Is it free?",
                 answer: "Yes. See the Studio and this.",
+                markdown: "Yes. See the [Studio](/studio) and `this`.",
             },
         ]);
     });
 });
 
-describe("the docs", () => {
-    it("include the plain-words page, written as questions and answers", () => {
-        const page = allDocs().find((doc) => doc.slug === "what-is-oncyber");
+describe("the about page", () => {
+    it("opens with a statement, then questions and answers", () => {
+        const page = aboutPage();
+        expect(page.title).toBe("About Oncyber");
+        expect(page.lead).toMatch(/^Oncyber is a place on the web/);
         expect(page.faq.length).toBeGreaterThanOrEqual(8);
         expect(page.faq[0].question).toBe("What is Oncyber?");
         for (const { answer } of page.faq) {
             expect(answer.length).toBeGreaterThan(20);
             expect(answer).not.toMatch(/[[\]`]/);
         }
-        // Other pages are not question pages.
-        expect(allDocs().find((doc) => !doc.slug).faq).toBeUndefined();
+        // Answers keep their links for the page itself.
+        expect(
+            page.faq.find((entry) => /make a space/.test(entry.question))
+                .markdown
+        ).toContain("[Studio](/studio)");
+    });
+
+    it("is not one of the docs pages", () => {
+        expect(allDocs().map((doc) => doc.slug)).not.toContain("about");
+        expect(allDocs().every((doc) => doc.faq === undefined)).toBe(true);
     });
 });
 
@@ -71,7 +82,7 @@ describe("llmsText", () => {
             `- [Starry Night](${ORIGIN}/spaces/abc) by rayan_oncyber`
         );
         expect(text).toContain(`${ORIGIN}/llms-full.txt`);
-        expect(text).toContain(`${ORIGIN}/docs/what-is-oncyber.md`);
+        expect(text).toContain(`[About](${ORIGIN}/about)`);
     });
 
     it("leaves the section out when no space could be read", () => {
@@ -82,6 +93,8 @@ describe("llmsText", () => {
 describe("llmsFullText", () => {
     it("holds every page with its address", () => {
         const text = llmsFullText(ORIGIN);
+        expect(text).toContain(`Source: ${ORIGIN}/about`);
+        expect(text).toContain("## Is Oncyber free?");
         for (const doc of allDocs())
             expect(text).toContain(
                 `Source: ${ORIGIN}/docs${doc.slug ? `/${doc.slug}` : ""}`

@@ -36,9 +36,9 @@ export const CANONICAL_ROUTES = new Map([
 export const PAGE_META: Record<string, { title: string; description: string }> =
     {
         "/about": {
-            title: "About oncyber: show your art and NFTs in 3D spaces",
+            title: "About oncyber: 3D spaces you make and visit in the browser",
             description:
-                "The easiest way for artists and collectors to show their NFTs in fully immersive 3D experiences, for free. Import your assets from your wallet, place them in a space and share the link.",
+                "Oncyber is a place on the web where people make and visit 3D spaces: galleries for art, worlds built in the browser, and a shared lobby. What it is, how it works and where to find us.",
         },
         "/studio": {
             title: "Studio · oncyber",

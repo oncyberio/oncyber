@@ -10,7 +10,7 @@ export interface DocPage {
     order: number;
     body: string;
     /** Questions and answers, when the page is written as them (`faq: true`). */
-    faq?: { question: string; answer: string }[];
+    faq?: FaqEntry[];
 }
 
 /** Markdown as plain text: links keep their words, marks go. */
@@ -30,16 +30,55 @@ function oneLine(text: string): string {
         .trim();
 }
 
+export interface FaqEntry {
+    question: string;
+    /** The answer as plain text. */
+    answer: string;
+    /** The answer as written, with its links. */
+    markdown: string;
+}
+
 /** Each "## Question?" heading with the text under it. */
-export function faqOf(body: string): { question: string; answer: string }[] {
+export function faqOf(body: string): FaqEntry[] {
     return body
         .split(/^## /m)
         .slice(1)
         .map((section) => {
             const [heading, ...rest] = section.split("\n");
-            return { question: plain(heading), answer: plain(rest.join("\n")) };
+            const markdown = rest.join("\n").trim();
+            return {
+                question: plain(heading),
+                answer: plain(markdown),
+                markdown,
+            };
         })
         .filter(({ question, answer }) => question.endsWith("?") && answer);
+}
+
+/** The about page (/about): what Oncyber is, in plain words. */
+export interface AboutPage {
+    title: string;
+    description: string;
+    /** The opening statement, before the questions. */
+    lead: string;
+    faq: FaqEntry[];
+    /** The whole page as Markdown, for llms-full.txt. */
+    body: string;
+}
+
+export function aboutPage(): AboutPage {
+    const page = parse(
+        "about",
+        fs.readFileSync(path.join(process.cwd(), "content", "about.md"), "utf8")
+    );
+    const [opening] = page.body.split(/^## /m);
+    return {
+        title: page.title,
+        description: page.description,
+        lead: plain(opening.replace(/^# .*$/m, "")),
+        faq: faqOf(page.body),
+        body: page.body,
+    };
 }
 
 const DIR = path.join(process.cwd(), "content", "docs");
@@ -102,7 +141,7 @@ export function llmsText(origin: string, featured: FeaturedSpace[] = []) {
         `- [Explore spaces](${origin}/): staff picks and the most visited spaces; search by name, creator or collection with ${origin}/?q=<words>`,
         `- [The lobby](${origin}/?lobby=1): the shared 3D world where visitors meet, chat, talk and travel to spaces together`,
         `- [Studio](${origin}/studio): build a gallery or a world in the browser and publish it, for free`,
-        `- [About](${origin}/about): what Oncyber is for and how showing art in a space works`,
+        `- [About](${origin}/about): what Oncyber is, in plain questions and answers, and where to find the team`,
         `- A space lives at ${origin}/<its-link> or ${origin}/spaces/<id>; a creator's profile at ${origin}/@<name>`,
         `- [Sitemap](${origin}/sitemap.xml): every public space`,
         "",
@@ -152,6 +191,12 @@ export function llmsFullText(origin: string) {
         "# Oncyber docs",
         "",
         `> ${home?.description || ""}`,
+        "",
+        "---",
+        "",
+        `Source: ${origin}/about`,
+        "",
+        aboutPage().body.trim(),
         "",
         ...docs.flatMap((doc) => [
             "---",

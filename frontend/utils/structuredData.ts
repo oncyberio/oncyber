@@ -19,6 +19,7 @@ export const SITE_SOCIALS = [
     "https://twitter.com/oncyber",
     "https://www.instagram.com/oncyber",
     "https://github.com/oncyberio/oncyber",
+    "https://discord.gg/3dEQXmAXnv",
 ];
 
 /** One line of plain text: no markup, no line breaks, capped at a word. */
@@ -278,6 +279,27 @@ export function docStructuredData(doc: {
             { name: "Docs", path: "/docs" },
             ...(doc.slug ? [{ name: doc.title, path }] : []),
         ]),
+    };
+}
+
+/** The about page: the questions people ask about the site, answered. */
+export function aboutStructuredData(
+    faq: { question: string; answer: string }[]
+): Json {
+    const url = searchUrl("/about");
+    return {
+        "@context": CONTEXT,
+        "@type": ["AboutPage", "FAQPage"],
+        "@id": url,
+        url,
+        name: `About ${SITE_NAME}`,
+        isPartOf: { "@id": siteId() },
+        about: { "@id": orgId() },
+        mainEntity: faq.map(({ question, answer }) => ({
+            "@type": "Question",
+            name: question,
+            acceptedAnswer: { "@type": "Answer", text: answer },
+        })),
     };
 }
 

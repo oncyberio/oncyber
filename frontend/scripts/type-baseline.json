@@ -1,5 +1,5 @@
 {
-    "total": 408,
+    "total": 404,
     "errors": {
         "components/DesignSystem/menus/tabs.tsx TS2339": 6,
         "components/DesignSystem/menus/tabs.tsx TS2769": 1,
@@ -197,8 +197,6 @@
         "features/studio/components/AIEditController/index.tsx TS2554": 1,
         "features/studio/services/ExhibitStore.navigation.test.ts TS2345": 1,
         "features/studio/utils/index.ts TS2339": 2,
-        "pages/about.tsx TS2339": 3,
-        "pages/about.tsx TS2741": 1,
         "pages/api/_v2/accounts/user/utils/index.test.ts TS2345": 1,
         "pages/api/_v2/accounts/user/utils/index.ts TS2367": 1,
         "pages/api/_v2/factory/services/generateSignature.ts TS2339": 1,

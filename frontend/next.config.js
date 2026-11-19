@@ -374,8 +374,10 @@ const nextConfig = {
         // an unknown one answers 404 (utils/serverside/landingServerSideProps).
         const profileRewrites = [
             {
-                source: "/@:name",
-                destination: "/?lobby=1&profile=:name&profileLink=1",
+                // The parameter is named for the query key it fills, so the
+                // page's query holds nothing else from the link.
+                source: "/@:profile",
+                destination: "/?lobby=1&profile=:profile&profileLink=1",
             },
         ];
 

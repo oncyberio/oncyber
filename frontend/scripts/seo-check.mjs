@@ -259,12 +259,11 @@ export async function main(argv) {
 
     const pages = [
         ["home", "/"],
-        ["page", "/about"],
+        ["faq", "/about"],
         ["page", "/privacy"],
         ["app", "/studio"],
         ["doc", "/docs"],
         ["doc", "/docs/avatars"],
-        ["faq", "/docs/what-is-oncyber"],
         ["template", "/destinations/x1"],
         ...spaces.map((path) => ["space", path]),
         ...profiles.map((path) => ["profile", path]),
