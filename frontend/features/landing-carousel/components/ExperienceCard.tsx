@@ -312,6 +312,11 @@ const Card = styled.a<{ $featured?: boolean }>`
         inset: 0;
         transition: transform var(--oc-enter) var(--oc-ease);
     }
+    /* The grid marks cards off its stage: their covers wait until shown. */
+    &[data-offstage] img,
+    &[data-offstage] .collage-cover {
+        display: none;
+    }
     .cover-placeholder {
         position: absolute;
         inset: 0 0 var(--caption-height, 54px);

@@ -340,6 +340,8 @@ export default function Scene({
             const nearbyCells = cellsInColumns(layout, renderFrom, renderTo);
             for (const element of linksRef.current.values()) {
                 element.style.visibility = "hidden";
+                // A card off the stage does not fetch its cover.
+                element.toggleAttribute("data-offstage", true);
                 element.tabIndex = -1;
             }
             for (const cell of nearbyCells) {
@@ -349,6 +351,7 @@ export default function Scene({
                 const visible =
                     Math.abs(dims.x) < metrics.width / 2 + metrics.cardWidth;
                 element.style.visibility = visible ? "visible" : "hidden";
+                element.toggleAttribute("data-offstage", !visible);
                 if (isSetupCard(cards[cell.index])) {
                     element.toggleAttribute(
                         "inert",
