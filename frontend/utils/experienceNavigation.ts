@@ -253,13 +253,42 @@ export function goToLobby(fallback: () => void) {
     });
 }
 
+/** The landing's address is the 3D lobby with `lobby=1`, the 2D grid without. */
+function landingView(href: string): "lobby" | "grid" | null {
+    let url: URL;
+    try {
+        url = new URL(href, window.location.origin);
+    } catch {
+        return null;
+    }
+    if (!["/", "/landing-carousel"].includes(url.pathname)) return null;
+    return url.searchParams.get("lobby") === "1" ? "lobby" : "grid";
+}
+
 /** Keep the back arrow separate from the home action. Never assume a long
- * browser history belongs to Oncyber, or navigate out of an unentered frame. */
-export function goToPreviousExperience(fallback: () => void) {
+ * browser history belongs to Oncyber, or navigate out of an unentered frame.
+ *
+ * Back returns the way the visitor came: to the previous world, to the 3D
+ * lobby (`lobby`) when they travelled from it, and to the 2D main page when
+ * they came from its grid or opened the world by its link (`home`). Without
+ * `home`, every way out of the worlds is `lobby`. */
+export function goToPreviousExperience(lobby: () => void, home?: () => void) {
+    // A world inside the lobby's frame came from the lobby, wherever its own
+    // short history points.
+    if (window.parent !== window) home = undefined;
     const previous = history.previous();
     if (previous) {
-        if (["/", "/landing-carousel"].includes(pathOf(previous.href))) {
-            fallback();
+        const landing = landingView(previous.href);
+        if (landing === "lobby" || (landing && !home)) {
+            lobby();
+            return;
+        }
+        if (landing) {
+            // The grid is the entry before this one: going back to it keeps
+            // the search and the place the visitor had scrolled to.
+            if (pendingDeparture || pendingLobbyReturn()) return;
+            history.beginBack();
+            window.history.back();
             return;
         }
         departBeforeNavigation((view) => {
@@ -294,8 +323,13 @@ export function goToPreviousExperience(fallback: () => void) {
                 previous.origin === window.location.origin &&
                 previous.href !== window.location.href
             ) {
-                if (["/", "/landing-carousel"].includes(previous.pathname)) {
-                    fallback();
+                const landing = landingView(previous.href);
+                if (landing === "lobby" || (landing && !home)) {
+                    lobby();
+                    return;
+                }
+                if (landing) {
+                    window.history.back();
                     return;
                 }
                 departBeforeNavigation(() => window.history.back());
@@ -305,5 +339,6 @@ export function goToPreviousExperience(fallback: () => void) {
             /* An invalid referrer is not a navigation target. */
         }
     }
-    fallback();
+    // Opened by its link, with nothing of ours behind it.
+    (home ?? lobby)();
 }

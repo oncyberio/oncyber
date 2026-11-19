@@ -4,6 +4,11 @@ import Link from "next/link";
 import styled from "styled-components";
 import JsonLd from "@components/JsonLd";
 import ExperienceControlIcon from "@ui/components/ExperienceControlIcon";
+import CopyPromptButton, {
+    contributePrompt,
+} from "@features/docs/CopyPromptButton";
+import Icon from "@features/landing-carousel/components/Icon";
+import { experienceControl } from "@features/content-host/experienceChrome";
 import Markdown from "@features/docs/markdown";
 import type { FaqEntry } from "@features/docs/content";
 import {
@@ -57,6 +62,8 @@ const FEATURES = [
 
 export const DISCORD_URL = SITE_SOCIALS.find((url) => url.includes("discord"));
 
+const GITHUB_URL = "https://github.com/oncyberio/oncyber";
+
 /** Where the team and the community are. */
 const PLACES = [
     {
@@ -72,7 +79,7 @@ const PLACES = [
     {
         name: "GitHub",
         detail: "oncyberio/oncyber",
-        href: "https://github.com/oncyberio/oncyber",
+        href: GITHUB_URL,
     },
     { name: "Docs", detail: "Run it, extend it, contribute", href: "/docs" },
 ];
@@ -90,6 +97,10 @@ export default function About({ lead, faq }: Props) {
         <Page>
             <JsonLd id="about" data={aboutStructuredData(faq)} />
             <header className="about-top">
+                {/* The way back, where a space has it and drawn the same. */}
+                <Link href="/" className="back" aria-label="Back to Oncyber">
+                    <Icon name="back" size={17} />
+                </Link>
                 <Link href="/" className="brand" aria-label="Oncyber home">
                     <img
                         className="symbol"
@@ -116,16 +127,27 @@ export default function About({ lead, faq }: Props) {
                     <h1>A place on the web to make and visit 3D spaces.</h1>
                     <p className="lead">{lead}</p>
                     <div className="actions">
-                        <Link href="/" className="action white">
+                        <CopyPromptButton
+                            agents={["claude", "codex", "cursor"]}
+                            className="action white"
+                            prompt={contributePrompt}
+                        />
+                        <Link href="/" className="action">
                             Explore worlds
                         </Link>
                         <Link href="/?lobby=1" className="action">
                             Jump In
                         </Link>
-                        <Link href="/studio" className="action">
-                            Create a space
-                        </Link>
                     </div>
+                    <a
+                        className="source"
+                        href={GITHUB_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        Open source on GitHub
+                        <span aria-hidden="true"> ↗</span>
+                    </a>
                 </section>
 
                 <section aria-labelledby="about-features">
@@ -224,6 +246,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
 
 const Page = styled.div`
     ${brandFoundation}
+    position: relative;
     min-height: 100vh;
     background: var(--oc-canvas);
     color: var(--oc-secondary);
@@ -235,7 +258,7 @@ const Page = styled.div`
         color: inherit;
         text-decoration: none;
     }
-    a:focus-visible {
+    a:focus-visible:not(.back) {
         outline: 2px solid var(--oc-accent);
         outline-offset: 3px;
         border-radius: ${base.radius.inset}px;
@@ -246,6 +269,12 @@ const Page = styled.div`
         display: flex;
         justify-content: center;
         padding: 56px 24px 0;
+    }
+    .back {
+        ${experienceControl}
+        position: absolute;
+        top: 24px;
+        left: 24px;
     }
     .brand {
         display: flex;
@@ -318,6 +347,50 @@ const Page = styled.div`
     }
     .action.white {
         ${whiteAction}
+    }
+    /* Under the actions, where the code is. */
+    .source {
+        display: inline-block;
+        margin-top: 20px;
+        font: 400 12px/16px var(--oc-mono);
+        letter-spacing: 0.02em;
+        color: var(--oc-muted);
+        transition: color 150ms ease;
+    }
+    .source:hover {
+        color: var(--oc-ink);
+    }
+    /* The main action copies a prompt for a coding agent, under the marks
+       of the agents it works in. */
+    .copy-prompt {
+        gap: 10px;
+        padding-left: 12px;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .copy-prompt .agents {
+        display: flex;
+        gap: 5px;
+    }
+    .copy-prompt img {
+        display: block;
+        width: 18px;
+        height: 18px;
+    }
+    .copy-prompt img[data-white] {
+        filter: invert(1);
+    }
+    /* The label keeps the width of its longer wording, so the row stays
+       still when it changes to Copied. */
+    .copy-prompt > span:last-child {
+        display: inline-grid;
+        text-align: left;
+    }
+    .copy-prompt > span:last-child::after {
+        content: "Copy for AI";
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
     }
 
     /* Section labels in the quiet mono voice. */
@@ -472,6 +545,21 @@ const Page = styled.div`
     @media (max-width: ${base.breakpoint.phone}px) {
         .about-top {
             padding-top: 40px;
+        }
+        .back {
+            top: 22px;
+            left: 16px;
+        }
+        /* The main action takes a row; the two ways in share the next. */
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .actions .copy-prompt {
+            grid-column: 1 / -1;
         }
         .brand .wordmark {
             display: none;

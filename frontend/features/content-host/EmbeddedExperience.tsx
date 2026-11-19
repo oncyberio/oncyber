@@ -122,13 +122,19 @@ function ContentDocument({
         pendingRef.current = null;
         setPending(null);
     }, []);
-    const leave = useCallback(() => {
-        revokeDocument();
-        setRuntime(null);
-        document.exitPointerLock?.();
-        if (onExit) onExit();
-        else void router.push("/?lobby=1");
-    }, [onExit, router, revokeDocument]);
+    const leaveTo = useCallback(
+        (href: string) => {
+            revokeDocument();
+            setRuntime(null);
+            document.exitPointerLock?.();
+            if (onExit) onExit();
+            else void router.push(href);
+        },
+        [onExit, router, revokeDocument]
+    );
+    const leave = useCallback(() => leaveTo("/?lobby=1"), [leaveTo]);
+    // The back button of a visitor who did not come from the lobby.
+    const leaveHome = useCallback(() => leaveTo("/"), [leaveTo]);
     const failDocument = useCallback((message: string, code: string) => {
         revokeDocument();
         setRuntime(null);
@@ -473,6 +479,7 @@ function ContentDocument({
             <ExperienceShell
                 title={title}
                 onExit={leave}
+                onHome={leaveHome}
                 status={
                     error
                         ? "Could not load"
