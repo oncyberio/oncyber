@@ -60,7 +60,12 @@ jest.mock(
 );
 jest.mock(
     "@3utils/defaultroomparameters",
-    () => ({ DefaultRoomParameters: { testDefault: true } }),
+    () => ({
+        newDestinationParameters: () => ({
+            testDefault: true,
+            avatarSize: 0.2286,
+        }),
+    }),
     { virtual: true }
 );
 jest.mock("@utils/js", () => ({
@@ -154,7 +159,8 @@ it.each([false, true])(
         expect(mockEdit).not.toHaveBeenCalled();
         click(isFuture ? "Choose Kitbash" : "Choose gallery");
         expect(mockEdit).toHaveBeenCalledWith(
-            { params: { testDefault: true, isFuture } },
+            // A new upload starts in metres, with a 1.8 m avatar.
+            { params: { testDefault: true, avatarSize: 0.2286, isFuture } },
             { fileURL: "blob:gallery" },
             expect.any(Function)
         );

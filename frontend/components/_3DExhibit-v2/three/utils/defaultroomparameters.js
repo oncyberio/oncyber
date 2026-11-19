@@ -1,5 +1,9 @@
 // import DefaultRoomParameters from '@3utils/defaultroomparameters.js'
 
+import { deepClone } from "@utils/js";
+
+import { METER_AVATAR_SIZE } from "./avatarHeight";
+
 export const DefaultRoomParameters = {
     user_height: 2.3,
     near: 0.5,
@@ -113,3 +117,18 @@ export const DefaultRoomParameters = {
         opacity: 1,
     },
 };
+
+/**
+ * What a newly uploaded destination starts from: the defaults above, in
+ * metres, with a 1.8 m avatar.
+ *
+ * The avatar size is not part of `DefaultRoomParameters` on purpose. Those
+ * are merged into every destination that loads, and the ones saved before
+ * this keep the avatar size they have always had.
+ */
+export function newDestinationParameters() {
+    return {
+        ...deepClone(DefaultRoomParameters),
+        avatarSize: METER_AVATAR_SIZE,
+    };
+}

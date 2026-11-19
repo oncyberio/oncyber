@@ -50,6 +50,12 @@ export interface RoomParameters {
     thumbnail?: string;
     capacity: number;
     user_height?: number;
+    /**
+     * How tall avatars stand here, from 0 to 1 across the avatar height
+     * range (see `@3utils/avatarHeight`). Unset on destinations saved before
+     * uploads defaulted to metres: visitors keep their own size there.
+     */
+    avatarSize?: number;
     nonFungible?: boolean;
     near: number;
     far: number;
