@@ -38,6 +38,8 @@ import type { RoundedSection } from "./roundedProfile";
 export interface CartoonDesign {
     height: number;
     household?: {
+        /** Visible shirt half-width beneath the sleeves in head-height units. */
+        shirtHalfWidth?: number;
         portraitPreset?: "child" | "lean-teen" | "adult";
         /** Skull widths from crown to chin, as fractions of its largest width. */
         widths: number[];

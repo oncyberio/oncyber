@@ -20,6 +20,7 @@ import type { StreetLook } from "./streetwearRecipes";
 export interface AvatarRecipe {
     template: Character;
     shirtMark?: ShirtMark;
+    plainJersey?: true;
     /** Hair rim in the fitted scalp plane, normalized by the family scalp radii. */
     crownOutline?: [number, number][];
     kitFit?: {

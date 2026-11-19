@@ -16,6 +16,7 @@ const familyFile = z.strictObject({
     version: z.literal(1),
     name: z.string().trim().min(1).max(60),
     style: z.literal("family"),
+    plainJersey: z.literal(true).optional(),
     family: z
         .string()
         .refine((key) => Object.hasOwn(families, key), "Unknown avatar family"),
@@ -217,7 +218,9 @@ export function readAvatarFile(input: unknown): {
         }
         const file = familyFile.parse(input);
         const family = families[file.family as keyof typeof families];
-        if (file.shirtMark && !family.plainShirt)
+        if (file.plainJersey && family.template !== "sunshine")
+            throw new Error("A plain jersey requires the Sunshine kit");
+        if (file.shirtMark && !family.plainShirt && !file.plainJersey)
             throw new Error("This family uses its printed jersey");
         if (
             file.proportions.eyes !== undefined &&
@@ -340,6 +343,7 @@ export function readAvatarFile(input: unknown): {
                 ...(file.crownOutline && {
                     crownOutline: file.crownOutline as [number, number][],
                 }),
+                ...(file.plainJersey && { plainJersey: true }),
                 ...(file.shirtMark && {
                     shirtMark: file.shirtMark as ShirtMark,
                 }),

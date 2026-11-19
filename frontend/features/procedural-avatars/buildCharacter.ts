@@ -1029,6 +1029,10 @@ const sunshineInk = Object.fromEntries(
             })),
     ])
 ) as GarmentPrints;
+const plainKitInk = { ...sunshineInk };
+delete plainKitInk.jersey;
+delete plainKitInk.leftUpperArmSleeve;
+delete plainKitInk.rightUpperArmSleeve;
 export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
     if (recipe?.cartoon) {
         drawCartoonHumanoid(d, recipe.cartoon);
@@ -1058,7 +1062,7 @@ export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
         drawShapeRecipe(
             d,
             sunshineShape,
-            sunshineInk,
+            recipe?.plainJersey ? plainKitInk : sunshineInk,
             recipe?.shirtMark,
             recipe?.sunRays,
             recipe?.visor

@@ -45,17 +45,26 @@ function householdBody(g: CartoonDesign): CartoonDesign["fit"] {
     const scale =
         (g.height - neck) / (composition[template].floor - reference.neck[1]);
     const usePreset = !!preset && !g.household.body;
-    const shoulder = usePreset
-        ? ((reference.arms[1][0][0] - reference.arms[0][0][0]) * scale) / 2
-        : proportionsFit.shoulder;
+    const visibleWidth =
+        usePreset && g.household.shirtHalfWidth
+            ? g.household.shirtHalfWidth * g.head[1]
+            : undefined;
+    const shoulder =
+        visibleWidth ??
+        (usePreset
+            ? ((reference.arms[1][0][0] - reference.arms[0][0][0]) * scale) / 2
+            : proportionsFit.shoulder);
     const hip = usePreset
         ? neck + (reference.hip[1] - reference.neck[1]) * scale
         : proportionsFit.hip;
-    const waist = usePreset
-        ? Math.abs(reference.legs[1][0][0] - reference.legs[0][0][0]) *
-          scale *
-          0.71
-        : proportionsFit.waist;
+    const waist =
+        visibleWidth != null
+            ? visibleWidth / 1.08
+            : usePreset
+            ? Math.abs(reference.legs[1][0][0] - reference.legs[0][0][0]) *
+              scale *
+              0.71
+            : proportionsFit.waist;
     const [width, skull] = g.head;
     const face = g.household;
     const lips = face.lips?.map(([x, upper, lower]) => [

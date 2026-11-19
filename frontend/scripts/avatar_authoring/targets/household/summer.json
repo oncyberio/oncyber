@@ -1,0 +1,82 @@
+{
+    "name": "Summer Smith",
+    "yaw": 32,
+    "height_range": [37, 191],
+    "skin": [118, 141],
+    "hair": [130, 47],
+    "shirt": [137, 244],
+    "nose_y": 131,
+    "mouth_y": 157,
+    "head_region": [
+        [75, 68],
+        [89, 47],
+        [115, 35],
+        [147, 35],
+        [164, 44],
+        [173, 65],
+        [177, 94],
+        [169, 125],
+        [166, 160],
+        [154, 185],
+        [134, 194],
+        [110, 188],
+        [92, 177],
+        [84, 151],
+        [75, 130],
+        [69, 110]
+    ],
+    "body": {
+        "height": 616,
+        "build": "lean",
+        "skull": "oval",
+        "head": [103, 143],
+        "brow": "knit",
+        "nose": "straight",
+        "mouth": "speaking",
+        "hair": {
+            "cut": "ponytail"
+        },
+        "hairline": [0.66, 0.47, 0.25, 0.146, 0.125, 0.13, 0.18, 0.36, 0.6],
+        "outfit": {
+            "top": "tank",
+            "trousers": "#f0e9e4",
+            "shoes": "#282427",
+            "trim": "#ca679f",
+            "footwear": "flat"
+        },
+        "face": {
+            "mouthWidth": 0.18,
+            "chinTaper": 0.14,
+            "noseProjection": 1.1
+        },
+        "eyes": "wide",
+        "gaze": 0,
+        "stance": "relaxed",
+        "freckles": false,
+        "spectacles": false,
+        "lashes": true
+    },
+    "brows": [
+        [
+            [109, 77],
+            [118, 80],
+            [128, 83],
+            [131, 77]
+        ],
+        [
+            [144, 78],
+            [146, 83],
+            [150, 84],
+            [157, 83],
+            [164, 82]
+        ]
+    ],
+    "nose_stroke": [
+        [140, 109],
+        [142, 115],
+        [146, 130],
+        [145, 132],
+        [132, 131]
+    ],
+    "mouth_box": [108, 148, 148, 165]
+}

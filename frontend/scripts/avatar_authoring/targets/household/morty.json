@@ -1,0 +1,83 @@
+{
+    "name": "Morty Smith",
+    "yaw": -31,
+    "height_range": [21, 161],
+    "skin": [162, 122],
+    "hair": [172, 39],
+    "shirt": [150, 204],
+    "nose_y": 113,
+    "mouth_y": 135,
+    "head_region": [
+        [111, 53],
+        [116, 29],
+        [148, 18],
+        [184, 21],
+        [218, 45],
+        [231, 74],
+        [231, 119],
+        [212, 132],
+        [202, 141],
+        [178, 159],
+        [147, 163],
+        [121, 155],
+        [95, 133],
+        [89, 111],
+        [89, 73]
+    ],
+    "body": {
+        "height": 484,
+        "build": "child",
+        "skull": "round",
+        "head": [120, 142],
+        "brow": "worried",
+        "nose": "button",
+        "mouth": "uncertain",
+        "hair": {
+            "cut": "crop"
+        },
+        "hairline": [0.69, 0.48, 0.28, 0.195, 0.175, 0.19, 0.26, 0.49, 0.69],
+        "outfit": {
+            "top": "crew",
+            "trousers": "#2e4266",
+            "shoes": "#ede9dd",
+            "trim": "#d8be51",
+            "footwear": "sneaker"
+        },
+        "face": {
+            "mouthWidth": 0.13,
+            "chinTaper": 0.025,
+            "noseProjection": 0.87
+        },
+        "eyes": "wide",
+        "gaze": 0,
+        "stance": "relaxed",
+        "freckles": false,
+        "spectacles": false,
+        "lashes": false
+    },
+    "brows": [
+        [
+            [107, 63],
+            [112, 65],
+            [119, 64],
+            [124, 62]
+        ],
+        [
+            [150, 65],
+            [154, 70],
+            [162, 73],
+            [170, 77],
+            [178, 80]
+        ]
+    ],
+    "nose_stroke": [
+        [122, 103],
+        [119, 105],
+        [116, 109],
+        [117, 112],
+        [120, 113],
+        [124, 112],
+        [127, 110]
+    ],
+    "mouth_box": [111, 124, 138, 141]
+}

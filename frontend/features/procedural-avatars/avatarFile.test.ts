@@ -247,6 +247,13 @@ test("a single orb rig keeps its closed ray facets, two pigments and grips in bo
     expect(fit.palette["#c21b59"]).toBe(doc.orbPaint.bottom);
     expect(() => readAvatarFile({ ...doc, eyeInk: "#111111" })).toThrow();
     expect(() => readAvatarFile({ ...doc, shirtMark: mark })).toThrow();
+    const customKit = readAvatarFile({
+        ...doc,
+        plainJersey: true,
+        shirtMark: mark,
+    }).recipe;
+    expect(customKit.plainJersey).toBe(true);
+    expect(customKit.shirtMark).toEqual(mark);
     expect(() =>
         readAvatarFile({
             ...doc,

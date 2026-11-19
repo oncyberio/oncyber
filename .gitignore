@@ -65,6 +65,7 @@ cloud-functions/**/*.log
 !scripts/gallery-maintenance/Dockerfile
 
 # Local compiler state and diagnostic captures
+frontend/scripts/**/__pycache__/
 *.tsbuildinfo
 /tasks/analyzer/*.har
 /tasks/splines/build.zip

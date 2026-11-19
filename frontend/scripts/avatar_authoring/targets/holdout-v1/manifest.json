@@ -1,0 +1,90 @@
+{
+    "version": 1,
+    "generator": "GPT Image",
+    "cases": [
+        {
+            "id": "moss",
+            "name": "Moss",
+            "family": "rick-classic",
+            "framing": "full",
+            "input": "moss-full.webp",
+            "input_sha256": "a77fc8c03db312d356de234316497df54bd6421c18b1bc3eeee7d2855205832f",
+            "evaluation_reference": "moss-full.webp",
+            "reference_sha256": "a77fc8c03db312d356de234316497df54bd6421c18b1bc3eeee7d2855205832f"
+        },
+        {
+            "id": "lark",
+            "name": "Lark",
+            "family": "rick-classic",
+            "framing": "full",
+            "input": "lark-full.webp",
+            "input_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c",
+            "evaluation_reference": "lark-full.webp",
+            "reference_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c"
+        },
+        {
+            "id": "rowan",
+            "name": "Rowan",
+            "family": "rick-classic",
+            "framing": "portrait",
+            "input": "rowan-portrait.webp",
+            "input_sha256": "abb5773944338115dbe7168d93b2a1817f59489db7361029d6a51b4af70c31e2",
+            "evaluation_reference": "rowan-full.webp",
+            "reference_sha256": "fae43e70ace0b6da093e95e3211cc4b71f9220aa932baaedc248fc3841f3b597"
+        },
+        {
+            "id": "poe",
+            "name": "Poe",
+            "family": "rick-classic",
+            "framing": "portrait",
+            "input": "poe-portrait.webp",
+            "input_sha256": "15714de19e5af52d43040458e6624b2469c529e72711b40dc4a6a59e6b95fc51",
+            "evaluation_reference": "poe-full.webp",
+            "reference_sha256": "716c4e03a739704f2bb80309d2d32984e7b5a547348590889599cb022db8703c"
+        },
+        {
+            "id": "solvi",
+            "name": "Solvi",
+            "family": "sunshine",
+            "framing": "full",
+            "input": "solvi-full.webp",
+            "input_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6",
+            "evaluation_reference": "solvi-full.webp",
+            "reference_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6"
+        },
+        {
+            "id": "mora",
+            "name": "Mora",
+            "family": "sunshine",
+            "framing": "full",
+            "input": "mora-full.webp",
+            "input_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa",
+            "evaluation_reference": "mora-full.webp",
+            "reference_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa"
+        },
+        {
+            "id": "reed",
+            "name": "Reed",
+            "family": "sunshine",
+            "framing": "portrait",
+            "input": "reed-portrait.webp",
+            "input_sha256": "dc18f98af7b2eea54ac7635a4807f607d3d0609fb5ae621d54f33c7a8a29012a",
+            "evaluation_reference": "reed-full.webp",
+            "reference_sha256": "a63dc202b89d462dbd0f07748ace21890ddb9b666c082cfa9b2de25fd3e1e769"
+        },
+        {
+            "id": "indigo",
+            "name": "Indigo",
+            "family": "sunshine",
+            "framing": "portrait",
+            "input": "indigo-portrait.webp",
+            "input_sha256": "5016d5710168b42d04713849f3810c3950d7964f08660070cc09b56311b529ed",
+            "evaluation_reference": "indigo-full.webp",
+            "reference_sha256": "43e1e7265c83256365f70cbd60bf49d103d81829241e0a7d78e460b483eac80d"
+        }
+    ],
+    "sheets": {
+        "rick-classic": "4e3f956a9c0a2e335155328b5bbedd07cac67ab0a1959dc5913f9b317bb1c193",
+        "sunshine": "33bcec8b30955ac2c4ce02b59d804aea233cd79faf3c6b32828ffc3174846bd7"
+    }
+}
