@@ -1884,10 +1884,482 @@
                     }
                 }
             }
+        },
+        "shoulder_fit_replay": {
+            "transport": "deterministic",
+            "model_calls": 0,
+            "reported_provider_cost": null,
+            "cases": {
+                "moss": {
+                    "transport": "deterministic",
+                    "seconds": 21.1,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "12ea296e4cf025b885277bd6c80b0419daddd0cf419671eaa1cb776b253c1826",
+                    "full_body_silhouette_iou": 0.8897,
+                    "full_body_rgb_mae": 28.24,
+                    "triangles": 3426,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.8897,
+                            "head_iou": 0.9097,
+                            "head_edge_agreement": 0.7721,
+                            "body_edge_agreement": 0.6496,
+                            "rgb_mae": 30.47,
+                            "eye_pigment_agreement": 0.6154
+                        },
+                        {
+                            "silhouette_iou": 0.8897,
+                            "head_iou": 0.9097,
+                            "head_edge_agreement": 0.7733,
+                            "body_edge_agreement": 0.6597,
+                            "rgb_mae": 28.24,
+                            "eye_pigment_agreement": 0.5824
+                        }
+                    ],
+                    "evidence_sha256": "1161f503ef6a0d350726c5fee5c2eda15162ae28047fb77774a3dc9a68006763",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8897,
+                            "triangles": 3426,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.707
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8897,
+                            "triangles": 3426,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.707
+                        }
+                    }
+                },
+                "lark": {
+                    "transport": "deterministic",
+                    "seconds": 21.4,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "2af76ffe397b9150bc75afa34233203d1619edf90fdf0665a0fd3884c6e05345",
+                    "full_body_silhouette_iou": 0.883,
+                    "full_body_rgb_mae": 34.25,
+                    "triangles": 3664,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.883,
+                            "head_iou": 0.9102,
+                            "head_edge_agreement": 0.7086,
+                            "body_edge_agreement": 0.5803,
+                            "rgb_mae": 35.55,
+                            "eye_pigment_agreement": 0.1828
+                        },
+                        {
+                            "silhouette_iou": 0.883,
+                            "head_iou": 0.9102,
+                            "head_edge_agreement": 0.7037,
+                            "body_edge_agreement": 0.5876,
+                            "rgb_mae": 34.25,
+                            "eye_pigment_agreement": 0.1828
+                        }
+                    ],
+                    "evidence_sha256": "fb575477eb89148fc7da4360ef6789c8b934264bbe6b647e7c812f3da3b2bc1d",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.883,
+                            "triangles": 3664,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.6984
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8828,
+                            "triangles": 3664,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.6984
+                        }
+                    }
+                },
+                "rowan": {
+                    "transport": "deterministic",
+                    "seconds": 9.03,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "6a213e0cce3f86ea10bf3d964c7b15bafec6ddb06810456b2389e7daa139dd5f",
+                    "full_body_silhouette_iou": 0.8144,
+                    "full_body_rgb_mae": 49.55,
+                    "triangles": 3060,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.9167,
+                        "rgb_mae": 25.66,
+                        "ink_agreement": 0.6887,
+                        "visible_fraction": 1.0
+                    },
+                    "evidence_sha256": "d488cff4d49b6d8dcf7ad250134935a86da63086288b677de92b5cc8089d2573",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8144,
+                            "triangles": 3060,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7087
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8144,
+                            "triangles": 3060,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7087
+                        }
+                    }
+                },
+                "poe": {
+                    "transport": "deterministic",
+                    "seconds": 20.99,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, true],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "5110bacee66408e70815e0a69909650759ba6d18f3c2c4b6120e3be89d61593c",
+                    "full_body_silhouette_iou": 0.7991,
+                    "full_body_rgb_mae": 41.56,
+                    "triangles": 3254,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.8625,
+                        "rgb_mae": 23.79,
+                        "ink_agreement": 0.8642,
+                        "visible_fraction": 1.0
+                    },
+                    "evidence_sha256": "5426ebb4e8023e6895c85bb1a826c7722a30a81bd6941b6348665ed5640ecb55",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.7991,
+                            "triangles": 3254,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7459
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.799,
+                            "triangles": 3254,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7459
+                        }
+                    }
+                },
+                "solvi": {
+                    "transport": "deterministic",
+                    "seconds": 27.94,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "c2ac2b4abe642d77aa19138bec3b1980b040a12ec964d470ed651f7ec8bb0fac",
+                    "full_body_silhouette_iou": 0.8207,
+                    "full_body_rgb_mae": 25.71,
+                    "triangles": 1734,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.799,
+                            "head_iou": 0.7364,
+                            "head_edge_agreement": 0.4437,
+                            "body_edge_agreement": 0.494,
+                            "rgb_mae": 27.58,
+                            "eye_pigment_agreement": 0.9211,
+                            "shirt_mark_agreement": 0.3857
+                        },
+                        {
+                            "silhouette_iou": 0.8207,
+                            "head_iou": 0.756,
+                            "head_edge_agreement": 0.4641,
+                            "body_edge_agreement": 0.5533,
+                            "rgb_mae": 25.71,
+                            "eye_pigment_agreement": 0.9211,
+                            "shirt_mark_agreement": 0.858
+                        }
+                    ],
+                    "evidence_sha256": "7ab9bd296deebf7e74bc1328e7e2e2686fa64a53b1991f142b61f837b820cdfe",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8207,
+                            "triangles": 1734,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.725
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8209,
+                            "triangles": 1734,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7234
+                        }
+                    }
+                },
+                "mora": {
+                    "transport": "deterministic",
+                    "seconds": 33.22,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "680628a3b6df3a6fb664586d8fbc1d3edce0266a0994eab67a5a15ee23ef0b23",
+                    "full_body_silhouette_iou": 0.8428,
+                    "full_body_rgb_mae": 23.39,
+                    "triangles": 1466,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.7508,
+                            "head_iou": 0.5757,
+                            "head_edge_agreement": 0.3524,
+                            "body_edge_agreement": 0.0969,
+                            "rgb_mae": 33.73,
+                            "eye_pigment_agreement": 0.6124,
+                            "shirt_mark_agreement": 0
+                        },
+                        {
+                            "silhouette_iou": 0.8428,
+                            "head_iou": 0.8096,
+                            "head_edge_agreement": 0.5891,
+                            "body_edge_agreement": 0.2647,
+                            "rgb_mae": 23.39,
+                            "eye_pigment_agreement": 0.953,
+                            "shirt_mark_agreement": 0.7028
+                        }
+                    ],
+                    "evidence_sha256": "2330b1001f43f40000559fc8f82a42d3fe396a190c2c2cc1d624c1dc2c8e6173",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8428,
+                            "triangles": 1466,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7381
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8429,
+                            "triangles": 1466,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7365
+                        }
+                    }
+                },
+                "reed": {
+                    "transport": "deterministic",
+                    "seconds": 14.84,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "1394184ace39438a502bbb5ce79168d9b3df528535e181245826d4c7c8de4183",
+                    "full_body_silhouette_iou": 0.765,
+                    "full_body_rgb_mae": 37.51,
+                    "triangles": 1607,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.8768,
+                        "rgb_mae": 25.18,
+                        "ink_agreement": 0.9883,
+                        "visible_fraction": 0.8802
+                    },
+                    "evidence_sha256": "e821341bdf567805825e6387ffaf996969c866f6990d5bd1526966733b18b67d",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.765,
+                            "triangles": 1607,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7349
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.765,
+                            "triangles": 1607,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7349
+                        }
+                    }
+                },
+                "indigo": {
+                    "transport": "deterministic",
+                    "seconds": 21.06,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "0bbd2b9b9e191fd922e0b1af4d577b84c4693e670332a22d0e75f51cfaabd8c5",
+                    "full_body_silhouette_iou": 0.8031,
+                    "full_body_rgb_mae": 39.99,
+                    "triangles": 1545,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.882,
+                        "rgb_mae": 25.97,
+                        "ink_agreement": 0.978,
+                        "visible_fraction": 0.9115
+                    },
+                    "evidence_sha256": "0831aed14d99e7d33fd6828dbbb0e16b91954b1cbbb7e3f7239e39e5aae3934a",
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8031,
+                            "triangles": 1545,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8019,
+                            "triangles": 1545,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        }
+                    }
+                }
+            },
+            "independent_first_pass": 0,
+            "independent_within_one_correction": 0,
+            "crowd": {
+                "base_recipes": [
+                    "moss",
+                    "lark",
+                    "rowan",
+                    "poe",
+                    "solvi",
+                    "mora",
+                    "reed",
+                    "indigo"
+                ],
+                "variants": 100,
+                "route": "/preview/crowd?shadows=1",
+                "backends": {
+                    "WebGLBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "shadowCalls": "1",
+                        "shadowOnly": "false",
+                        "frameCalls": "4",
+                        "visible": "100",
+                        "backend": "WebGLBackend",
+                        "authored": "100",
+                        "distinct": "100",
+                        "seedDigest": "dfd2e9513e17352c5f8311ef0fc339e129f7050029089136308e0acb59b5ecd1",
+                        "triangles": "352433",
+                        "readyMs": "4640",
+                        "uniqueRecipesLoaded": 100,
+                        "occupiedColorCells": 100,
+                        "occupiedShadowCells": 100
+                    },
+                    "WebGPUBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "shadowCalls": "1",
+                        "shadowOnly": "false",
+                        "frameCalls": "4",
+                        "visible": "100",
+                        "backend": "WebGPUBackend",
+                        "authored": "100",
+                        "distinct": "100",
+                        "seedDigest": "dfd2e9513e17352c5f8311ef0fc339e129f7050029089136308e0acb59b5ecd1",
+                        "triangles": "352433",
+                        "readyMs": "4475",
+                        "uniqueRecipesLoaded": 100,
+                        "occupiedColorCells": 100,
+                        "occupiedShadowCells": 100
+                    }
+                }
+            },
+            "benchmarks": {
+                "rick_source_triangles": 2116586,
+                "rick_views": 15,
+                "minimum_rick_silhouette_iou": 0.9594,
+                "maximum_rick_layer_intrusion_pixels": 0,
+                "sunshine": {
+                    "front": {
+                        "iou": 0.9521,
+                        "color_mae": 16.7
+                    },
+                    "profile": {
+                        "iou": 0.9255,
+                        "color_mae": 23.13
+                    },
+                    "back": {
+                        "iou": 0.9532,
+                        "color_mae": 14.11
+                    }
+                }
+            }
         }
     },
     "preview": {
-        "run": "printed_kit_replay",
+        "run": "shoulder_fit_replay",
         "candidate_sha256": {
             "moss": "12ea296e4cf025b885277bd6c80b0419daddd0cf419671eaa1cb776b253c1826",
             "lark": "2af76ffe397b9150bc75afa34233203d1619edf90fdf0665a0fd3884c6e05345",

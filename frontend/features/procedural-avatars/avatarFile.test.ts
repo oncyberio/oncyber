@@ -303,6 +303,33 @@ test("a crown edit extends rays beyond the scalp while preserving their roots an
     expect(transform(tip, true, false, true)[2]).toBe(tip[2]);
 });
 
+test("fitting the jersey collar moves the wrist and cuff by the shoulder displacement", () => {
+    const transform = recipeTransform(
+        {
+            template: "sunshine",
+            kitFit: {
+                collar: -0.04,
+                shoulders: 0.015,
+                waist: -0.02,
+                hem: 0,
+                sock: 0,
+                width: 1,
+            },
+        },
+        350,
+        690,
+        [350, 147, 0],
+        [350, 358, 0]
+    );
+    for (const x of [101, 599]) {
+        const top = transform([x, 201, 5]),
+            bottom = transform([x, 220, 5]);
+        expect(bottom[1] - top[1]).toBeCloseTo(19);
+        expect(top[1] - 201).toBeCloseTo(0.015 * 680);
+    }
+    expect(transform([350, 171, 0])[1] - 171).toBeCloseTo(-0.04 * 680);
+});
+
 test("an asymmetric crown changes its marked tips at both detail levels and preserves the scalp", () => {
     const crownProfile = [1.5, 1.2, 1, 0.8, 0.5, 0.8, 1, 1.2];
     const doc = { ...scientist, proportions: { crownProfile } };

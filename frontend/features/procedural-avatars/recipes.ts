@@ -313,7 +313,21 @@ export function recipeTransform(
                 x += shoulder * (kit.chestWidth - 1) * chest;
             }
             x += (x - origin) * (kit.width - 1) * taper;
-            y += (shifts[span] * (1 - t) + shifts[span + 1] * t) * (floor - 10);
+            const trunkShift = shifts[span] * (1 - t) + shifts[span + 1] * t;
+            // Across the shoulder seam, carry the arm by its socket. Mapping
+            // the wrist through the collar-to-waist stretch would also scale
+            // its thickness and tilt the grip as the collar moves.
+            const sleeve = Math.max(
+                0,
+                Math.min(
+                    1,
+                    (Math.abs(point[0] - origin) - 56) / 50,
+                    (271 - point[1]) / 25
+                )
+            );
+            y +=
+                (trunkShift + sleeve * (kit.shoulders - trunkShift)) *
+                (floor - 10);
         }
         if (eyes && recipe.eyeShape && recipe.template === "rick-classic") {
             const [offset, cy, radius, irisOffset, irisY] =
