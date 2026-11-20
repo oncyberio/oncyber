@@ -11,7 +11,8 @@ from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
 from avatar_authoring.household_front import trouser_opening
 from avatar_authoring.jersey_sleeve import jersey_sleeve
-from avatar_authoring.sun_rays import kit_landmarks, shorts_cut
+from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
+from avatar_authoring.visor import visor_seed
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest, verified_captures
 
@@ -225,6 +226,31 @@ def visible_shorts(path):
         }
 
 
+def orb_meridian_luma_step(path):
+    """Largest adjacent luma step near the frontal meridian on visible bare skin."""
+    rgb, mask = pixels(path, keep_components=True)
+    seed = visor_seed(rgb, mask)
+    if not seed:
+        return None
+    center, radius = seed
+    orb = measure_sun_rays(rgb, mask, center, [radius, radius], orb_only=True)
+    if orb is None:
+        return None
+    x, y, rx, ry = orb
+    columns = np.arange(round(x - 0.18 * rx), round(x + 0.18 * rx) + 1)
+    if len(columns) < 2 or columns[0] < 0 or columns[-1] >= mask.shape[1]:
+        return None
+    steps = []
+    # Sample exposed forehead and chin, avoiding the lens and its contact edge.
+    for fraction in (-0.7, -0.6, -0.5, 0.53, 0.63, 0.73):
+        row = round(y + fraction * ry)
+        if row < 1 or row + 1 >= mask.shape[0]:
+            return None
+        luma = rgb[row - 1 : row + 2, columns].mean(axis=0) @ [0.2126, 0.7152, 0.0722]
+        steps.append(float(np.abs(np.diff(luma)).max()))
+    return round(max(steps), 2)
+
+
 def compare_jersey_sleeves(reference, native):
     """Compare both sleeves in units of standing height relative to the arm axis."""
     images = [pixels(path, keep_components=True) for path in (reference, native)]
@@ -375,6 +401,14 @@ def record_preview(args):
             for mode, v in report["backends"].items()
         }
         recipe = json.loads(candidate.read_bytes())
+        if "visor" in recipe:
+            data["orb_meridian_luma_step"] = {
+                "reference": orb_meridian_luma_step(reference),
+                **{
+                    mode: orb_meridian_luma_step(evidence.parent / mode / "front.png")
+                    for mode in report["backends"]
+                },
+            }
         if "jerseySleeve" in recipe:
             data["jersey_sleeves"] = {
                 mode: compare_jersey_sleeves(

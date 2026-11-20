@@ -697,6 +697,28 @@ test("a single orb rig keeps its closed ray facets, two pigments and grips in bo
                 ) as T.SkinnedMesh;
             const regular = mesh(full),
                 fewer = mesh(short);
+            // The sphere is one closed surface after either simplification.
+            // An open longitude produces a hard lighting seam down the face.
+            const { index, attributes } = regular.geometry;
+            const orbEdges = new Map<string, number>();
+            for (let i = 0; i < index.count; i += 3) {
+                const face = [
+                    index.getX(i),
+                    index.getX(i + 1),
+                    index.getX(i + 2),
+                ];
+                if (!face.every((v) => attributes.uv.getX(v) < -48)) continue;
+                for (let j = 0; j < 3; j++) {
+                    const a = face[j],
+                        b = face[(j + 1) % 3];
+                    const edge = [Math.min(a, b), Math.max(a, b)].join("/");
+                    orbEdges.set(edge, (orbEdges.get(edge) ?? 0) + 1);
+                }
+            }
+            expect(orbEdges.size).toBeGreaterThan(0);
+            expect([...orbEdges.values()].every((count) => count === 2)).toBe(
+                true
+            );
             expect(regular.geometry.groups).toHaveLength(0);
             expect(regular.geometry.index.count).toBeGreaterThan(
                 fewer.geometry.index.count

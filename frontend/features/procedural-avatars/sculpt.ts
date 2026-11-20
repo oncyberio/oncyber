@@ -697,6 +697,9 @@ export class Sculpt {
             xyz: number[] = [],
             uv: number[] = [],
             index: number[] = [];
+        // The orb has procedural grain in its own coordinates. A wrapped
+        // longitude UV would split the front meridian before simplification.
+        const wrap = this.orbSurface ? new Map<number, number>() : undefined;
         let prev = 0,
             oldCount = 0;
         for (let r = 0; r <= rings; r++) {
@@ -711,8 +714,9 @@ export class Sculpt {
                 const u = count ? j / count : 0.5,
                     a = 2 * Math.PI * u;
                 xyz.push(rad * Math.sin(a), Math.cos(theta), rad * Math.cos(a));
-                uv.push(u, 1 - r / rings);
+                uv.push(wrap ? (1 + rad * Math.sin(a)) / 2 : u, 1 - r / rings);
             }
+            if (wrap && count) wrap.set(first + count, first);
             if (r) {
                 let a = 0,
                     b = 0;
@@ -737,7 +741,7 @@ export class Sculpt {
         g.setAttribute("position", new T.Float32BufferAttribute(xyz, 3));
         g.setAttribute("normal", new T.Float32BufferAttribute(xyz, 3));
         g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
-        g.setIndex(index);
+        g.setIndex(wrap ? index.map((i) => wrap.get(i) ?? i) : index);
         g.scale(...radii)
             .rotateZ(tilt)
             .translate(...p);
