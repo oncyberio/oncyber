@@ -122,7 +122,25 @@ def wrist_position(mask, shoulder_x, shoulder_y, right, height):
         fall = thickness[i - step : i].max() - thickness[i]
         if min(rise, fall) > max(1, thickness[i] * 0.036):
             troughs.append((min(rise, fall) / (thickness[i] + 1), x))
-    return max(troughs)[1] if troughs else right - reach * 0.22
+    wrist = max(troughs)[1] if troughs else right - reach * 0.22
+    if wrist > shoulder_x + 0.84 * reach:
+        # A raised thumb creates a second trough between the thumb and
+        # fingers. Trace the *first* sustained widening from the bare forearm.
+        def at(fraction):
+            return max(0, round(shoulder_x + fraction * reach) - start)
+
+        forearm = thickness[at(0.55) : at(0.67)]
+        palm = thickness[at(0.67) : round(wrist) - start]
+        if len(forearm) and len(palm):
+            forearm_width = np.median(forearm)
+            wide = np.flatnonzero(palm > forearm_width * 1.25)
+            for run in np.split(wide, np.flatnonzero(np.diff(wide) > 1) + 1):
+                if len(run) < 0.055 * reach or np.max(palm[run]) < forearm_width * 1.48:
+                    continue
+                narrow = np.flatnonzero(palm[: run[0]] < forearm_width * 1.07)
+                if len(narrow):
+                    return start + at(0.67) + narrow[-1]
+    return wrist
 
 
 def trouser_landmarks(rgb, mask, top, bottom, arm_bottom, eyes):
@@ -414,6 +432,25 @@ def propose(path, name):
         vote = (dark & jaw_zone).sum(axis=1)[chin_band]
         if vote.max() > face_w * 0.06:
             chin = chin_band[vote.argmax()]
+    # A wide neck over an open collar can run into the shirt before the skin
+    # narrows. Do not use the shoulders below it as part of the skull's hull.
+    row = round(chin)
+    sides = x[row] - face_x
+    cloth = np.linalg.norm(rgb[row] - shirt, axis=1) < 44
+    if all(
+        np.any(cloth & mask[row] & (side * sides > face_w * 0.78)) for side in (-1, 1)
+    ):
+        zone = abs(sides) < face_w * 0.24
+        levels = np.arange(round(eye_y + (chin - eye_y) * 0.53), row + 1)
+        below = np.minimum(levels + max(2, round(face_w * 0.028)), h - 1)
+        # The mouth has a full cheek on each side. The chin stroke has a
+        # narrower column of neck skin immediately below it.
+        narrow = (skin_width[below] > face_w * 0.20) & (
+            skin_width[below] < face_w * 0.68
+        )
+        vote = dark[levels][:, zone].sum(1) * narrow
+        if len(vote) and vote.max() >= face_w * 0.12:
+            chin = float(levels[vote.argmax()])
     # A cowlick can be the highest point of the figure without being the
     # crown of the skull. Locate the first substantial scalp at face center.
     scalp_rows = np.flatnonzero(
@@ -432,6 +469,26 @@ def propose(path, name):
     hair = sample(
         "hair", (box[0], top, box[2], eye_y), np.linalg.norm(rgb - skin, axis=2) > 62
     )
+    # On a shallow crew cut a large eye white can win the pigment vote.
+    # Sample again above the eyelids only if the proposed swatch hit an eye.
+    if all(apertures):
+        hx, hy = samples["hair"]
+        if any(
+            abs(hx - e["center"][0]) <= e["size"][0] * 0.52
+            and abs(hy - e["center"][1]) <= e["size"][1] * 0.52
+            for e in apertures
+        ):
+            eyelid = min(e["center"][1] - 0.58 * e["size"][1] for e in apertures)
+            hair = sample(
+                "hair",
+                (
+                    max(box[0], face_x - face_w * 0.65),
+                    top,
+                    min(box[2], face_x + face_w * 0.65),
+                    eyelid,
+                ),
+                np.linalg.norm(rgb - skin, axis=2) > 62,
+            )
     hair_pixels = (
         mask
         & (np.linalg.norm(rgb - hair, axis=2) < 47)

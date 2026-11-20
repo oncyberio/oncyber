@@ -454,7 +454,7 @@ def author_one(source, output, family, framing, name, args):
             else:
                 household = False
             if household:
-                recipe, score = fit_front(source, name)
+                recipe, score = fit_front(source, name, observation=drawing)
             else:
                 recipe, measures, _ = fit_family(
                     source, family, name, custom_jersey=True

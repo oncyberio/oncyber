@@ -139,6 +139,15 @@ export interface CartoonDesign {
             leftReach?: number;
             pelvisX?: number;
             hemRise?: number;
+            shirtCut?: {
+                /** Attachment station on the measured sleeve and center of each torso row. */
+                station: number;
+                shoulderTop: number;
+                centers: number[];
+                /** Skin opening sampled from the standing collar to its point: Y, left X, right X. */
+                opening?: [number, number, number][];
+                wings?: [number, number][][];
+            };
             garmentEdges?: {
                 /** Front hem offsets sampled left to right, in torso lengths. */
                 frontHem?: number[];
@@ -293,6 +302,7 @@ export interface CartoonDesign {
         bands?: { start: number; end: number; color: string; bend?: number }[];
         /** Fraction of torso length below the throat for the polo opening. */
         placketDepth?: number;
+        placketEnd?: number;
         /** Fastener heights along a button-front shirt, measured from throat to hem. */
         buttons?: number[];
         buttonColor?: string;
@@ -372,8 +382,12 @@ export function tailorCartoon(
     if (tailored.outfit.top !== "polo") {
         delete tailored.outfit.buttons;
         delete tailored.outfit.placketDepth;
+        delete tailored.outfit.placketEnd;
         delete tailored.outfit.buttonColor;
-    } else if (!tailored.outfit.buttons) delete tailored.outfit.buttonColor;
+    } else if (!tailored.outfit.buttons) {
+        delete tailored.outfit.buttonColor;
+        delete tailored.outfit.placketEnd;
+    }
     if (!base.household) return tailored;
     // Other silhouettes use the existing parametric hair builder.
     if (

@@ -4,7 +4,10 @@ import path from "path";
 import type { GetStaticPaths, GetStaticProps } from "next";
 import { useState } from "react";
 import manifest from "../../../../scripts/avatar_authoring/targets/holdout-v1/manifest.json";
+import followups from "../../../../scripts/avatar_authoring/targets/holdout-v1/followup-studies.json";
 import archive from "../../../../scripts/avatar_authoring/targets/holdout-v1/results.json";
+
+const studyCases = [...manifest.cases, ...followups.cases];
 
 const criteria = {
     likeness: "Likeness",
@@ -296,15 +299,15 @@ export const getStaticPaths: GetStaticPaths = () => ({
     paths:
         process.env.NODE_ENV === "development" ||
         process.env.VERCEL_ENV === "preview"
-            ? manifest.cases.map((c) => ({ params: { id: c.id } }))
+            ? studyCases.map((c) => ({ params: { id: c.id } }))
             : [],
     fallback: false,
 });
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-    const entry = manifest.cases.find((c) => c.id === params?.id);
+    const entry = studyCases.find((c) => c.id === params?.id);
     if (!entry) return { notFound: true };
     const run = archive.runs[archive.preview.run];
-    const receipt = run.cases[entry.id];
+    const receipt = run.cases[entry.id] ?? followups.receipts[entry.id];
     if (!receipt?.review_assets) return { notFound: true };
     const images = {} as Images;
     const root = path.join(

@@ -35,6 +35,14 @@ def edit_schema(family=None, construction=None):
     def bounded(lo, hi):
         return {"type": "number", "minimum": lo, "maximum": hi}
 
+    def pair(low, high):
+        return {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {"type": "number", "minimum": low, "maximum": high},
+        }
+
     branches = [
         fields(["proportions.armSpan"], bounded(0.8, 1.25)),
         fields(
@@ -90,15 +98,6 @@ def edit_schema(family=None, construction=None):
             )
         )
     if family != "rick-classic":
-
-        def pair(low, high):
-            return {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 2,
-                "items": {"type": "number", "minimum": low, "maximum": high},
-            }
-
         kit = {
             k: bounded(-0.045, 0.045)
             for k in ("collar", "shoulders", "waist", "hem", "sock")
@@ -253,6 +252,7 @@ def edit_schema(family=None, construction=None):
     if family != "sunshine" and construction in (None, "household"):
         household = [
             fields(["armHeightOffset"], bounded(-7, 7)),
+            fields(["shirtSideOffset"], pair(-7, 7)),
             fields(
                 [
                     "design.skin",
@@ -304,12 +304,16 @@ def edit_schema(family=None, construction=None):
                 {"anyOf": [bounded(0.1, 0.4), {"type": "null"}]},
             ),
             fields(
+                ["design.outfit.placketEnd"],
+                {"anyOf": [bounded(0.1, 1), {"type": "null"}]},
+            ),
+            fields(
                 ["design.outfit.buttons"],
                 {
                     "anyOf": [
                         {
                             "type": "array",
-                            "items": bounded(0.2, 0.96),
+                            "items": bounded(0.1, 0.96),
                             "minItems": 1,
                             "maxItems": 6,
                         },
@@ -375,6 +379,29 @@ def edited_recipe(
                 row[1] = round(row[1] + value, 2)
                 if not 0 <= row[1] <= 950:
                     raise ValueError("Arm elevation is outside the drawing")
+        elif field == "shirtSideOffset":
+            body = recipe["design"]["household"].get("body")
+            sections = body and body["sections"]
+            cut = sections and sections.get("shirtCut")
+            if not cut or len(cut["centers"]) != len(sections["torso"]):
+                raise ValueError("Shirt side offsets require a fitted sleeve and torso")
+            station = next(
+                (
+                    row
+                    for row in sections["arm"]
+                    if row[0] == cut["station"] and row[0] <= sections["sleeve"]
+                ),
+                None,
+            )
+            if station is None:
+                raise ValueError("Shirt shoulder must join a fitted sleeve")
+            for i, row in enumerate(sections["torso"]):
+                # Carry the chest up to the sleeve join, leaving the neck intact.
+                t = min(1, max(0, (row[0] - station[1]) / station[2]))
+                row[1] = round(row[1] + (value[1] - value[0]) * 0.5 * t, 2)
+                cut["centers"][i] = round(cut["centers"][i] + sum(value) * 0.5 * t, 2)
+                if not 2 <= row[1] <= 140 or abs(cut["centers"][i]) > 42:
+                    raise ValueError("Fitted shirt edges are outside the torso")
         elif field.startswith("design."):
             if (
                 field == "design.hair.cut"
@@ -397,6 +424,7 @@ def edited_recipe(
                     "design.outfit.buttons",
                     "design.outfit.buttonColor",
                     "design.outfit.placketDepth",
+                    "design.outfit.placketEnd",
                 )
                 and value is None
             ):
@@ -515,7 +543,7 @@ def edited_recipe(
         if outfit["top"] != "polo":
             if any(
                 outfit.get(k) is not None and "design.outfit." + k in seen
-                for k in ("buttons", "placketDepth", "buttonColor")
+                for k in ("buttons", "placketDepth", "placketEnd", "buttonColor")
             ):
                 raise ValueError(
                     "Shirt fasteners and opening depth require a collared shirt"
@@ -523,10 +551,16 @@ def edited_recipe(
             outfit.pop("buttons", None)
             outfit.pop("buttonColor", None)
             outfit.pop("placketDepth", None)
+            outfit.pop("placketEnd", None)
         elif any(b - a < 0.035 for a, b in itertools.pairwise(buttons)):
             raise ValueError("Shirt buttons must run from the collar to the hem")
         elif not buttons:
             if outfit.get("buttonColor") and "design.outfit.buttonColor" in seen:
                 raise ValueError("Fastener paint requires shirt buttons")
+            if outfit.get("placketEnd") and "design.outfit.placketEnd" in seen:
+                raise ValueError("A measured placket needs buttons")
             outfit.pop("buttonColor", None)
+            outfit.pop("placketEnd", None)
+        elif outfit.get("placketEnd", 1) < buttons[-1]:
+            raise ValueError("The placket ends before the last button")
     return recipe

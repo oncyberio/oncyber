@@ -56,6 +56,7 @@ test("measured fasteners and the opening belong to the button-front garment", ()
         buttons: [0.28, 0.51, 0.74],
         buttonColor: "#eddbc7",
         placketDepth: 0.21,
+        placketEnd: 0.81,
     });
     const original = readAvatarFile(file).recipe.cartoon;
     expect(original.outfit.buttonColor).toBe("#eddbc7");
@@ -63,6 +64,10 @@ test("measured fasteners and the opening belong to the button-front garment", ()
     expect(crew.outfit.buttons).toBeUndefined();
     expect(crew.outfit.buttonColor).toBeUndefined();
     expect(crew.outfit.placketDepth).toBeUndefined();
+    expect(crew.outfit.placketEnd).toBeUndefined();
+    file.design.outfit.placketEnd = 0.6;
+    expect(() => readAvatarFile(file)).toThrow();
+    file.design.outfit.placketEnd = 0.81;
     file.design.outfit.top = "crew";
     expect(() => readAvatarFile(file)).toThrow();
 });
@@ -116,6 +121,65 @@ test("the fitted bob uses the same editable eye sockets as the household", () =>
     delete file.design.household.measuredBob.sections.nape;
     expect(() => readAvatarFile(file)).toThrow();
 });
+
+test.each(["full", "crowd"] as const)(
+    "the fitted %s shirt follows the chest and both upper arms through its shoulder",
+    (detail) => {
+        for (const name of ["moss", "lark"]) {
+            const file = JSON.parse(
+                readFileSync(
+                    join(
+                        __dirname,
+                        "../../scripts/avatar_authoring/targets/holdout-v1/candidates/",
+                        name + ".recipe"
+                    ),
+                    "utf8"
+                )
+            );
+            const { recipe } = readAvatarFile(file);
+            const cut = recipe.cartoon.fit.sections.shirtCut;
+            expect(cut.centers).toHaveLength(
+                recipe.cartoon.fit.sections.torso.length
+            );
+            const actor = buildCharacter(recipe, detail);
+            try {
+                const mesh = actor.scene.getObjectByProperty(
+                    "isSkinnedMesh",
+                    true
+                ) as T.SkinnedMesh;
+                const { position, normal, skinIndex, skinWeight } =
+                    mesh.geometry.attributes;
+                const movingShoulders = new Set<string>();
+                for (let i = 0; i < skinIndex.count; i++) {
+                    const weight = skinWeight.getZ(i);
+                    if (weight < 0.05 || weight > 0.95) continue;
+                    const upper = mesh.skeleton.bones[skinIndex.getZ(i)].name;
+                    if (
+                        mesh.skeleton.bones[skinIndex.getY(i)].name ===
+                            "chest" &&
+                        skinWeight.getY(i) > 0.05
+                    )
+                        movingShoulders.add(upper);
+                }
+                expect(movingShoulders).toEqual(
+                    new Set(["rightUpperArm", "leftUpperArm"])
+                );
+                expect(position.array.every(Number.isFinite)).toBe(true);
+                expect(normal.array.every(Number.isFinite)).toBe(true);
+                expect(mesh.geometry.groups).toHaveLength(0);
+                expect(mesh.geometry.index.count / 3).toBeLessThanOrEqual(4000);
+            } finally {
+                disposeAvatarGraph(actor.scene);
+            }
+            const sections = file.design.household.body.sections;
+            sections.shirtCut.station += 0.02;
+            expect(() => readAvatarFile(file)).toThrow();
+            sections.shirtCut.station = cut.station;
+            sections.shirtCut.centers.pop();
+            expect(() => readAvatarFile(file)).toThrow();
+        }
+    }
+);
 
 test.each(["full", "crowd"] as const)(
     "a traced shoe closes around the ankle on the animated %s mesh",

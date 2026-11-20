@@ -8,7 +8,10 @@ import { readAvatarFile } from "@features/procedural-avatars/avatarFile";
 import { previewRecipe } from "@features/procedural-avatars/catalog";
 import type { Subject } from "../../dev/procedural-avatars";
 import manifest from "../../../scripts/avatar_authoring/targets/holdout-v1/manifest.json";
+import followups from "../../../scripts/avatar_authoring/targets/holdout-v1/followup-studies.json";
 import results from "../../../scripts/avatar_authoring/targets/holdout-v1/results.json";
+
+const studyCases = [...manifest.cases, ...followups.cases];
 
 const Viewer = dynamic(() => import("../../dev/procedural-avatars"), {
     ssr: false,
@@ -44,11 +47,11 @@ export default function RecipeReview({
         ]);
         return local.release;
     }, [candidate]);
-    const entry = manifest.cases.find((c) => c.id === id);
+    const entry = studyCases.find((c) => c.id === id);
     return (
         <>
             <nav aria-label="Avatar studies">
-                {manifest.cases.map(({ id: slug, name }) => (
+                {studyCases.map(({ id: slug, name }) => (
                     <a
                         key={slug}
                         href={`/preview/studies/${slug}`}
@@ -188,13 +191,13 @@ export const getStaticPaths: GetStaticPaths = () => ({
     paths:
         process.env.NODE_ENV === "development" ||
         process.env.VERCEL_ENV === "preview"
-            ? manifest.cases.map(({ id }) => ({ params: { id } }))
+            ? studyCases.map(({ id }) => ({ params: { id } }))
             : [],
     fallback: false,
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-    const entry = manifest.cases.find((c) => c.id === params?.id);
+    const entry = studyCases.find((c) => c.id === params?.id);
     if (!entry) return { notFound: true };
     const folder = path.join(
         process.cwd(),
@@ -204,7 +207,9 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         path.join(folder, entry.id + ".recipe"),
         "utf8"
     );
-    const measuredHash = results.preview.candidate_sha256[entry.id];
+    const measuredHash =
+        results.preview.candidate_sha256[entry.id] ??
+        followups.receipts[entry.id]?.candidate_sha256;
     if (createHash("sha256").update(candidate).digest("hex") !== measuredHash)
         throw Error("The preview recipe differs from the measured candidate");
     async function image(name: string): Promise<string> {

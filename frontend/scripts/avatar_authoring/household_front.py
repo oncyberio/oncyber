@@ -734,13 +734,14 @@ def inked_foot_columns(
     return np.asarray(cols, dtype=float), hem
 
 
-def fit_front(source, name):
+def fit_front(source, name, observation=None):
     """Use the family skull around measured eyes and retain the drawn T-pose body."""
     from .draft import propose
     from .fit import bounds, fit, pixels
     from .inked_hand import fit_inked_hands
+    from .shirt_cut import fit_shirt_cut
 
-    obs = propose(source, name)
+    obs = propose(source, name) if observation is None else observation
     if (
         obs["unsupported"]
         or obs["haircut"] == "spikes"
@@ -1063,6 +1064,19 @@ def fit_front(source, name):
             )
             if collar:
                 family["body"]["sections"]["crew"] = collar
+        cut = fit_shirt_cut(
+            rgb,
+            mask,
+            center,
+            crown,
+            scale,
+            family["body"],
+            pigment(rgb, samples["shirt"]),
+            skin,
+            body["outfit"]["top"],
+        )
+        if cut:
+            family["body"]["sections"]["shirtCut"] = cut
     score = {
         "head_fraction": (chin - top) / H,
         "eye_frame": list(map(float, eye_box)),
@@ -1084,6 +1098,12 @@ def review_edits(recipe, source, native, score, visual):
             edits.append({"field": "design." + field, "value": value})
 
     body = design["household"].get("body")
+    if body and body["sections"].get("shirtCut"):
+        from .shirt_cut import shirt_side_offset
+
+        shift = shirt_side_offset(source, native, design)
+        if shift:
+            edits.append({"field": "shirtSideOffset", "value": shift})
     if body and body["sections"].get("palmContours"):
         levels = [arm_centerlines(p, body, design["height"]) for p in (source, native)]
         if all(v is not None for v in levels):

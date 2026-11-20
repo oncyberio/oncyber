@@ -143,6 +143,7 @@ export class Sculpt {
         start: number;
         end: number;
         weight?: (x: number, y: number, z: number) => number;
+        fromTorso?: boolean;
     };
     paintBand?: { height: number; color: string };
     skinShadows: { center: Point; radii: Point; opacity: number }[] = [];
@@ -642,7 +643,7 @@ export class Sculpt {
                     0,
                     0
                 );
-            } else if (this.drape) {
+            } else if (this.drape && !this.drape.fromTorso) {
                 this.joints.push(
                     this.joint,
                     this.ids.get(this.drape.name),
@@ -674,13 +675,19 @@ export class Sculpt {
                     0,
                     1
                 );
+                const arm = this.drape?.fromTorso ? drapeWeights[i] : 0;
                 this.joints.push(
                     this.ids.get(lower ? "hips" : "spine"),
                     this.ids.get(lower ? "spine" : "chest"),
-                    0,
+                    arm ? this.ids.get(this.drape.name) : 0,
                     0
                 );
-                this.weights.push(1 - weight, weight, 0, 0);
+                this.weights.push(
+                    (1 - arm) * (1 - weight),
+                    (1 - arm) * weight,
+                    arm,
+                    0
+                );
             } else {
                 this.joints.push(this.joint, 0, 0, 0);
                 this.weights.push(1, 0, 0, 0);

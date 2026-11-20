@@ -118,6 +118,32 @@ const fit = z.strictObject({
                 })
                 .optional(),
             hemRise: n(0, 75).optional(),
+            shirtCut: z
+                .strictObject({
+                    station: n(5, 195),
+                    shoulderTop: n(15, 500),
+                    wings: z
+                        .array(
+                            z
+                                .array(z.tuple([n(-100, 100), n(15, 530)]))
+                                .length(5)
+                        )
+                        .length(2)
+                        .optional(),
+                    centers: z.array(n(-42, 42)).min(2).max(64),
+                    opening: ordered(
+                        z.tuple([n(15, 530), n(-55, 48), n(-48, 55)])
+                    )
+                        .refine(
+                            (rows) =>
+                                rows.length === 7 &&
+                                rows.every(([, l, r], i) =>
+                                    i === 6 ? l === r : l < r
+                                )
+                        )
+                        .optional(),
+                })
+                .optional(),
             garmentEdges: z
                 .strictObject({
                     frontHem: z.array(n(-0.24, 0.24)).length(25).optional(),
@@ -483,6 +509,28 @@ const fit = z.strictObject({
     hairLength: n(0.45, 2),
 });
 
+/** A sewn shoulder must meet a real sleeve ring and the corresponding torso sections. */
+function validShirtCut(
+    sections: Pick<
+        z.infer<typeof fit>["sections"],
+        "shirtCut" | "torso" | "arm" | "sleeve"
+    >
+) {
+    const cut = sections?.shirtCut;
+    if (!cut) return true;
+    const socket = sections.arm.find(
+        ([x]) => x === cut.station && x <= sections.sleeve
+    );
+    return (
+        !!socket &&
+        cut.centers.length === sections.torso.length &&
+        Math.abs(cut.shoulderTop - (socket[1] - socket[2])) <= socket[2] &&
+        (!cut.wings || !!cut.opening)
+    );
+}
+const shirtCutError =
+    "A fitted shirt must join its sleeve and torso, with collar wings attached to an opening.";
+
 const partSource = z.enum(["classic", "sunshine"]);
 const design = z
     .strictObject({
@@ -530,9 +578,10 @@ const design = z
                 footwear: z.enum(["sneaker", "flat", "boot"]).optional(),
                 bands: z.array(band).max(3).optional(),
                 placketDepth: n(0.1, 0.4).optional(),
+                placketEnd: n(0.1, 1).optional(),
                 buttonColor: paint.optional(),
                 buttons: z
-                    .array(n(0.2, 0.96))
+                    .array(n(0.1, 0.96))
                     .min(1)
                     .max(6)
                     .refine(
@@ -551,6 +600,8 @@ const design = z
             .refine(
                 (o) =>
                     (!o.buttonColor || !!o.buttons) &&
+                    (o.placketEnd === undefined ||
+                        (!!o.buttons && o.placketEnd >= o.buttons.at(-1))) &&
                     (o.placketDepth === undefined || o.top === "polo"),
                 "Measured fastener paint and opening depth require the matching garment"
             ),
@@ -588,6 +639,12 @@ const design = z
     })
     .superRefine((value, ctx) => {
         const sections = value.fit.sections;
+        if (!validShirtCut(sections))
+            ctx.addIssue({
+                code: "custom",
+                path: ["fit", "sections", "shirtCut"],
+                message: shirtCutError,
+            });
         const coat = sections?.coat;
         if (
             coat &&
@@ -728,6 +785,7 @@ const householdBodyFit = fit
             pelvisX: true,
             hemRise: true,
             garmentEdges: true,
+            shirtCut: true,
             crew: true,
             outsole: true,
             openHands: true,
@@ -736,7 +794,8 @@ const householdBodyFit = fit
         }),
         palmRoll: n(-90, 90).optional(),
         handPitch: n(-30, 30).optional(),
-    });
+    })
+    .refine((body) => validShirtCut(body.sections), shirtCutError);
 const householdFile = file.extend({
     style: z.literal("family"),
     family: z.literal("rick-classic"),

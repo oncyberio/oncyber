@@ -1,0 +1,121 @@
+{
+    "cases": [
+        {
+            "id": "finch",
+            "name": "Finch",
+            "family": "rick-classic",
+            "framing": "full",
+            "input": "finch-full.webp",
+            "evaluation_reference": "finch-full.webp",
+            "input_sha256": "ec0645ba7b11733886f04e19c29d6be2bec13f0f6c3faa74066ecd33f6d5223f",
+            "reference_sha256": "ec0645ba7b11733886f04e19c29d6be2bec13f0f6c3faa74066ecd33f6d5223f"
+        }
+    ],
+    "receipts": {
+        "finch": {
+            "candidate_sha256": "6068e3936d2dfc331a74c06ba6225b90381c8bdfb1ee906da919eae91fcbdf40",
+            "evidence_sha256": "ae49b966331b98081bda35752e2b3589712c600ec4bdcef4d439cc5c0458d144",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "506a06100f781d43bc112ba1befef5a06266241d55f4f292156c6db791486006",
+                    "walk": "7550dbc8a0b0d40bb2abe07715aa6407dc3e0981a1ccf7358c08b3c4083b1561"
+                },
+                "WebGPUBackend": {
+                    "views": "4ac644eb9254d0dd0e63b19f31f0646a6c7e601394d9a7f9a89850914dd3e184",
+                    "walk": "1f49057b28803927d163adbdcd998b7de03f394e8a9546021e28c6cd52e5baf5"
+                }
+            }
+        }
+    },
+    "trials": {
+        "finch": {
+            "target_generator": "GPT Image",
+            "image_model_version": null,
+            "image_generation_cost": null,
+            "decoded_rgb_sha256": "b6eea8a75121219ff5086da9af1a94d99faa0ae314ca4bdb4ff19b42fdaf7c2d",
+            "fresh": {
+                "source_sha256": "93d36c6596539177457bd4553acf4b14e33a36157f53c983377866e2409c8dc1",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 37.57,
+                "candidate_sha256": "699bbcc949013a4d06e594ae95270b7d86fbe741fd0b9ab124a4fdaf66198406",
+                "selected_pass": 2,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 3537,
+                        "front": {
+                            "silhouette_iou": 0.9005,
+                            "head_iou": 0.7277,
+                            "head_edge_agreement": 0.5606,
+                            "body_edge_agreement": 0.6699,
+                            "rgb_mae": 30.01,
+                            "eye_pigment_agreement": 0.3582,
+                            "globe_measurements": {
+                                "position": 0.4099,
+                                "aperture_log_error": 0.3083,
+                                "gaze": 0.0084,
+                                "pupil_log_error": 0.0608,
+                                "source_ink": 0.7453,
+                                "native_ink": 0.7845
+                            }
+                        }
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 3527,
+                        "front": {
+                            "silhouette_iou": 0.9005,
+                            "head_iou": 0.7277,
+                            "head_edge_agreement": 0.5562,
+                            "body_edge_agreement": 0.6681,
+                            "rgb_mae": 28.75,
+                            "eye_pigment_agreement": 0.2533,
+                            "globe_measurements": {
+                                "position": 0.4099,
+                                "aperture_log_error": 0.2184,
+                                "gaze": 0.0069,
+                                "pupil_log_error": 0.0646,
+                                "source_ink": 0.7453,
+                                "native_ink": 0.5849
+                            }
+                        }
+                    }
+                ]
+            },
+            "calibration": {
+                "source_sha256": "ec0645ba7b11733886f04e19c29d6be2bec13f0f6c3faa74066ecd33f6d5223f",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 51.57,
+                "candidate_sha256": "6068e3936d2dfc331a74c06ba6225b90381c8bdfb1ee906da919eae91fcbdf40",
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": true,
+                        "triangles": 3650,
+                        "front": {
+                            "silhouette_iou": 0.9444,
+                            "head_iou": 0.9284,
+                            "head_edge_agreement": 0.7608,
+                            "body_edge_agreement": 0.6938,
+                            "rgb_mae": 25.36,
+                            "eye_pigment_agreement": 0.7143,
+                            "globe_measurements": {
+                                "position": 0.0809,
+                                "aperture_log_error": 0.0594,
+                                "gaze": 0.0132,
+                                "pupil_log_error": 0.0211,
+                                "source_ink": 0.7453,
+                                "native_ink": 0.5679
+                            }
+                        }
+                    }
+                ]
+            },
+            "independent_review": "pending"
+        }
+    }
+}

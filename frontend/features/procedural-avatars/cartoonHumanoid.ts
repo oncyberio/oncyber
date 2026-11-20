@@ -1,4 +1,5 @@
 import { stripCuts } from "./sculpt";
+import { drawCollarWing, drawShirtYoke, sleeveRing } from "./shirtYoke";
 import { drawMarkedShirt } from "./shirtMark";
 import * as T from "three/webgpu";
 import {
@@ -1958,13 +1959,25 @@ function clothing(d: Drawing, g: CartoonDesign) {
             T.MathUtils.smoothstep(y, neck, hip)
         );
     const crew = o.top === "crew" ? measured?.crew : undefined;
-    const shirtSides = measured && o.top === "crew" ? 16 : 24;
+    const cut = measured?.shirtCut;
+    const station =
+        cut &&
+        cut.centers.length === measured.torso.length &&
+        !measured.coat &&
+        !o.bands?.length &&
+        !o.stripes?.length &&
+        (crew || (placket && cut.opening)) &&
+        measured.arm.find(
+            (row) => row[0] === cut.station && row[0] <= measured.sleeve
+        );
+    const centers = station && cut.centers;
+    const shirtSides = station || (measured && o.top === "crew") ? 16 : 24;
     const rows: Section[] = measured
         ? measured.torso.map(
-              ([y, r]): Section => [
+              ([y, r], i): Section => [
                   y,
-                  centerAt(y) - r,
-                  centerAt(y) + r,
+                  (centers?.[i] ?? centerAt(y)) - r,
+                  (centers?.[i] ?? centerAt(y)) + r,
                   depth *
                       Math.max(
                           g.household && y > hip - 8 ? 0.89 : 0.48,
@@ -2000,7 +2013,14 @@ function clothing(d: Drawing, g: CartoonDesign) {
     const bottom = crew
         ? Math.max(crew.top + crew.drop + 2, jaw + 1)
         : neck + 9;
-    const neckRows: Section[] = crew
+    const opening = station && !crew ? cut.opening : undefined;
+    const neckRows: Section[] = opening
+        ? [
+              [jaw - 13, -10, 10, 11],
+              [jaw - 4, -10.7, 10.7, 10.6],
+              [opening[0][0], opening[0][1], opening[0][2], 10.5],
+          ]
+        : crew
         ? [
               [
                   jaw - Math.max(14, g.head[1] * 0.14),
@@ -2027,7 +2047,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
               [neck - 3, -10.4, 10.4, 10.8],
               [neck + 9, -15, 15, 14],
           ];
-    d.body(neckRows, g.skin, false, crew ? 16 : 14);
+    if (!opening) d.body(neckRows, g.skin, false, crew ? 16 : 14);
     d.torso();
     d.s.tone = (x, y, z) => {
         const t = (y - neck) / bodyLength,
@@ -2050,7 +2070,44 @@ function clothing(d: Drawing, g: CartoonDesign) {
                 )
         );
     };
-    const front = profileDepth(rows);
+    const bodyFront = profileDepth(rows);
+    const neckDepth = Math.max(14, depth * 0.55);
+    const openingPoint = (a: number): Point => {
+        const u = Math.sin(a),
+            v = Math.cos(a);
+        if (crew)
+            return [
+                crew.center + (crew.radius + crew.binding) * u,
+                crew.top +
+                    Math.max(0, v) * (crew.drop + crew.binding) +
+                    Math.max(0, -v) * 1.8,
+                (neckDepth + 0.7 * crew.binding) * v,
+            ];
+        const [top, left, right] = opening[0],
+            center = (left + right) / 2;
+        if (v <= 1e-7)
+            return [center + (right - left) * 0.5 * u, top - 1.8 * v, 10.5 * v];
+        const t =
+            (1 - Math.abs(Math.asin(u)) / (Math.PI / 2)) * (opening.length - 1);
+        const i = Math.max(0, Math.floor(t)),
+            p = opening[i],
+            q = opening[Math.min(i + 1, opening.length - 1)];
+        const y = T.MathUtils.lerp(p[0], q[0], t - i),
+            side = u < 0 ? 1 : 2;
+        return [
+            T.MathUtils.lerp(p[side], q[side], t - i),
+            y,
+            (neckDepth + (y - top) * 0.21) * v,
+        ];
+    };
+    const yoke =
+        station && drawShirtYoke(d, g, rows, shirtSides, station, openingPoint);
+    const front: Depth = yoke
+        ? (x, y) => {
+              const z = yoke.front(x, y);
+              return Number.isFinite(z) ? z : bodyFront(x, y);
+          }
+        : bodyFront;
     // Join the crew opening to the upper chest below its lowest front edge.
     // A horizontal cap at the throat folds the collar back into the shirt.
     const crewJoinY = rows[0][0] + Math.min(18, bodyLength * 0.09);
@@ -2094,18 +2151,57 @@ function clothing(d: Drawing, g: CartoonDesign) {
         const rz = Math.max(14, depth * 0.55) / neckShape.depth;
         const cut: Section = [crew?.top ?? rows[0][0] - 0.8, -rx, rx, rz];
         const seam = loop(shirtSides, (a) =>
-            sectionPoint(rows, a, crewJoin(a))
+            yoke ? openingPoint(a) : sectionPoint(rows, a, crewJoin(a))
         );
         d.crewCollar(
             cut,
             seam,
             neckShape,
             o.color,
-            crew ? o.trim : swatch(o.trim, ink, 0.14),
+            yoke && !crew.ink
+                ? swatch(o.trim, ink, 0.85)
+                : crew
+                ? o.trim
+                : swatch(o.trim, ink, 0.14),
             g.skin,
             crew?.center,
             crew && { width: crew.binding, ink: crew.ink }
         );
+    } else if (yoke) {
+        const rim = loop(shirtSides, openingPoint);
+        const [top, left, right] = opening[0];
+        const neckRing = loop(shirtSides, (a) => [
+            (left + right) / 2 + ((right - left) / 2) * Math.sin(a),
+            top,
+            10.5 * Math.cos(a),
+        ]);
+        const throat = neckRows
+            .slice(0, -1)
+            .map(([y, l, r, z]) =>
+                loop(shirtSides, (a) => [
+                    (l + r) / 2 + ((r - l) / 2) * Math.sin(a),
+                    y,
+                    z * Math.cos(a),
+                ])
+            );
+        const transition = neckRing.map(
+            ([x, y, z], i): Point => [
+                T.MathUtils.lerp(x, rim[i][0], 0.48),
+                T.MathUtils.lerp(y, rim[i][1], 0.48),
+                T.MathUtils.lerp(z, rim[i][2], 0.29),
+            ]
+        );
+        const fabricTone = d.s.tone;
+        d.drape("head", "chest", jaw - 7, top);
+        d.s.tone = (_, y) => 1 - 0.17 * Math.exp(-((y - jaw - 2) ** 2) / 95);
+        d.s.surface(
+            [...throat, neckRing, transition, rim],
+            g.skin,
+            false,
+            "both"
+        );
+        d.s.tone = fabricTone;
+        d.torso();
     } else {
         const [y, l, r, rz] = rows[0],
             skin = jacket ? o.trim : g.skin;
@@ -2144,7 +2240,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
         return hip + 4 + bodyLength * (Math.cos(a) >= 0 ? front : back);
     };
     const hemFloor = hip + 4 + (hem ? Math.max(0, ...hem) * bodyLength : 0);
-    let previous = edge;
+    let previous = yoke ? yoke.joinY : edge;
     if (o.bands?.length) {
         for (const band of o.bands) {
             const prior = previous;
@@ -2203,16 +2299,28 @@ function clothing(d: Drawing, g: CartoonDesign) {
         for (const sign of [-1, 1]) {
             // Sample the same angular knots as the fabric at the open placket.
             const rim = [3, 2, 1, 0].map((n) => {
-                const a = (sign * n * Math.PI) / 12;
-                return sectionPoint(rows, a, edge(a), 0.44);
+                const a = (sign * n * Math.PI) / (yoke ? 6 : 12);
+                return yoke
+                    ? openingPoint(a)
+                    : sectionPoint(rows, a, edge(a), 0.44);
             });
-            if (jacket) {
+            if (yoke && opening) {
+                drawCollarWing(
+                    d,
+                    cut,
+                    sign,
+                    openingPoint,
+                    yoke.front,
+                    swatch(o.color, ink, 0.82),
+                    swatch(o.color, o.trim, 0.4)
+                );
+            } else if (jacket) {
                 d.s.ribbon(rim, 0.85, swatch(o.color, ink, 0.36));
             } else if (o.buttons) {
                 // A turned-down collar has a point on the chest. Its inner
                 // edge follows the open neckline all the way to the placket.
                 const inner = rim.map(
-                    ([x, y]): Point => [x, y, front(x, y) + 0.9]
+                    ([x, y, z]): Point => [x, y, (yoke ? z : front(x, y)) + 0.9]
                 );
                 const wing = inner.map(([x, y], i): Point => {
                     const outward = [0, 0.22, 0.34, 0][i];
@@ -2252,12 +2360,22 @@ function clothing(d: Drawing, g: CartoonDesign) {
         }
         if (placket && o.buttons) {
             const seamX = -shoulder * 0.035;
+            const overlapEnd =
+                o.placketEnd !== undefined
+                    ? neck + o.placketEnd * bodyLength
+                    : hem
+                    ? hemEdge(0)
+                    : undefined;
             const levels = [
-                edge(0),
+                yoke ? openingPoint(0)[1] : edge(0),
                 ...rows
                     .map(([y]) => y)
-                    .filter((y) => y > edge(0) && (!hem || y < hemEdge(0))),
-                ...(hem ? [hemEdge(0)] : []),
+                    .filter(
+                        (y) =>
+                            y > (yoke ? openingPoint(0)[1] : edge(0)) &&
+                            (overlapEnd === undefined || y < overlapEnd)
+                    ),
+                ...(overlapEnd === undefined ? [] : [overlapEnd]),
             ];
             d.s.ribbon(
                 levels.map((y) => [seamX, y, front(seamX, y) + 0.65]),
@@ -2321,39 +2439,24 @@ function clothing(d: Drawing, g: CartoonDesign) {
                     sign * e[0] - arm,
                     sign * e[0] + arm
                 );
-            const armDepth = (x: number) => {
-                const along = sign * x;
-                const [start, end] =
-                    along <= sign * a[0]
-                        ? [[0, 0, 0], a]
-                        : along <= sign * e[0]
-                        ? [a, e]
-                        : [e, w];
-                return T.MathUtils.lerp(
-                    start[2],
-                    end[2],
-                    T.MathUtils.clamp(
-                        (along - sign * start[0]) /
-                            Math.max(0.001, sign * (end[0] - start[0])),
-                        0,
-                        1
-                    )
-                );
-            };
-            const ring = ([x, y, r]: [number, number, number]) => {
-                const along = fittedArmX(g, sign, x);
-                const z = armDepth(along);
-                return loop(12, (t) => [
-                    along,
-                    y + r * Math.sin(t),
-                    z + r * 0.94 * Math.cos(t),
-                ]);
-            };
+            const ring = (row: [number, number, number]) =>
+                sleeveRing(d, g, side, row, station ? 8 : 12);
             const fabric = measured.coat?.sleeves ?? o.color;
             const cut = o.top === "tank" ? 0 : measured.sleeve;
             const sleeve = measured.arm.filter((row) => row[0] <= cut + 0.02),
                 skin = measured.arm.filter((row) => row[0] >= cut - 0.02);
-            if (sleeve.length > 1) {
+            if (station) {
+                const outer = sleeve
+                    .filter((row) => row[0] >= station[0])
+                    .map(ring);
+                if (outer.length > 1)
+                    d.s.surface(
+                        sign > 0 ? outer.reverse() : outer,
+                        fabric,
+                        false,
+                        "both"
+                    );
+            } else if (sleeve.length > 1) {
                 const first = sleeve[0];
                 const innerX = crew
                     ? Math.min(

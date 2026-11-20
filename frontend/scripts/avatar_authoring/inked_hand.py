@@ -15,6 +15,13 @@ def inked_hand(rgb, mask, wrist, end, skin):
     bottom = min(mask.shape[0], round(wy + length * 0.42) + 1)
     if top >= bottom:
         return None
+    # An upright thumb can cross the usual palm window. Follow its outer
+    # stroke before dividing ink bands so its tip does not vanish mid-ray.
+    across = slice(wx + round(length * 0.24), wx + round(length * 0.68))
+    if mask[top, across].any():
+        top = max(0, round(wy - length * 0.70))
+    if mask[bottom - 1, across].any():
+        bottom = min(mask.shape[0], round(wy + length * 0.70) + 1)
     patch = rgb[top:bottom, wx : end + 1]
     luma = np.array([0.2126, 0.7152, 0.0722])
     ink = (patch @ luma < (skin @ luma) * 0.70) & mask[top:bottom, wx : end + 1]
@@ -95,42 +102,71 @@ def inked_hand(rgb, mask, wrist, end, skin):
     if any(f is None for f in fingers):
         return None
     start = int(thumb[len(thumb) // 2])
-    branches = [
-        ray(start, band, length * 0.23, 0.10, fingertip=False) for band in bands[start]
-    ]
-    for side, branch in enumerate(branches):
-        other = branches[1 - side]
-        if (
-            branch
-            and branch[2] < length * 0.72
-            and (other is None or other[2] > branch[2] + length * 0.1)
-        ):
-            if side:
-                fingers.reverse()
-            if len(fingers) == 3:
-                # A fourth bone chain still curls around the grip. Its rest
-                # projection is hidden behind the last visible finger.
-                fingers.append([*fingers[-1][:4], fingers[-1][4] * 0.80])
-            # The widest part of the palm includes the thumb pad. At its
-            # distal end the ink separating the thumb supplies the free edge.
-            palm = []
-            for fraction in (0, 0.13, 0.28, 0.41, 0.52):
-                col = round(length * fraction)
-                pen = np.flatnonzero(ink[:, col])
-                if len(pen) < 2:
-                    return None
-                low = pen[0] + top - wrist[1]
-                high = pen[-1] + top - wrist[1]
-                if fraction >= 0.41 and len(bands[col]) >= 2:
-                    center, radius = bands[col][-1 if side else 0]
-                    if side:
-                        high = center - radius + 0.5
-                    else:
-                        low = center + radius - 0.5
-                if high - low < 2:
-                    return None
-                palm.append([col, low, high])
-            return np.asarray([branch, *fingers]), np.asarray(palm, dtype=float)
+
+    def thumb_branch(col, minimum, separated=False):
+        if len(bands[col]) != 2:
+            return None
+        branches = [
+            ray(col, band, length * 0.23, minimum, fingertip=False)
+            for band in bands[col]
+        ]
+        for side, branch in enumerate(branches):
+            other = branches[1 - side]
+            if not branch or branch[2] >= length * 0.72:
+                continue
+            if separated:
+                outer = fingers[-1 if side else 0]
+                if (1 if side else -1) * (branch[3] - outer[3]) < outer[
+                    4
+                ] * 0.45 or branch[4] > np.median([f[4] for f in fingers]) * 1.85:
+                    continue
+                if bands[col][1 - side][1] > branch[4] * 1.45:
+                    return side, branch
+            if other is None or other[2] > branch[2] + length * 0.1:
+                return side, branch
+        return None
+
+    thumb_ray = thumb_branch(start, 0.10)
+    beyond_web = thumb_ray is None
+    if beyond_web:
+        # The crease at the thumb web can split one band into three for a
+        # column. Trace the already separate thumb farther out on the palm.
+        for col in range(int(thumb[-1]) + 1, round(length * 0.49)):
+            thumb_ray = thumb_branch(col, 0.075, separated=True)
+            if thumb_ray:
+                break
+    if thumb_ray:
+        side, branch = thumb_ray
+        if side:
+            fingers.reverse()
+        if len(fingers) == 3:
+            # A fourth bone chain still curls around the grip. Its rest
+            # projection is hidden behind the last visible finger.
+            fingers.append([*fingers[-1][:4], fingers[-1][4] * 0.80])
+        # The widest part of the palm includes the thumb pad. At its
+        # distal end the ink separating the thumb supplies the free edge.
+        palm = []
+        for fraction in (0, 0.13, 0.28, 0.41, 0.52):
+            col = round(length * fraction)
+            pen = np.flatnonzero(ink[:, col])
+            if len(pen) < 2:
+                return None
+            low = pen[0] + top - wrist[1]
+            high = pen[-1] + top - wrist[1]
+            if (
+                fraction >= 0.41
+                and len(bands[col]) >= 2
+                and (not beyond_web or col <= branch[2] + branch[4])
+            ):
+                center, radius = bands[col][-1 if side else 0]
+                if side:
+                    high = center - radius + 0.5
+                else:
+                    low = center + radius - 0.5
+            if high - low < 2:
+                return None
+            palm.append([col, low, high])
+        return np.asarray([branch, *fingers]), np.asarray(palm, dtype=float)
     return None
 
 

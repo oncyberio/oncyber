@@ -248,38 +248,59 @@ def button_front(rgb, center, neck, hem, cloth, skin):
     seams[:, offset:-offset] = (
         ink[:, offset:-offset] & is_cloth[:, : -2 * offset] & is_cloth[:, 2 * offset :]
     )
-    candidates = []
-    highlights = (tone > cloth_tone + 35) & ~is_cloth
-    labels, _ = ndimage.label(highlights, np.ones((3, 3)))
-    for label, (ys, xs) in enumerate(ndimage.find_objects(labels), 1):
-        w, h = xs.stop - xs.start, ys.stop - ys.start
-        if max(w, h) > max(3, 0.055 * length) or not 0.4 <= w / h <= 2.5:
-            continue
-        local = labels[ys, xs] == label
-        if local.sum() < 2:
-            continue
-        y, x = np.mean(np.nonzero(local), axis=1) + [ys.start, xs.start]
-        at = (top + y - neck) / length
-        if 0.2 <= at <= 0.96:
-            candidates.append(
-                (x, y, at, np.percentile(patch[ys, xs][local], 85, axis=0))
-            )
-    aligned = []
-    for x, _, _, _ in candidates:
-        group = [b for b in candidates if abs(b[0] - x) <= max(1.2, 0.015 * length)]
-        if len(group) < 2 or len(group) > 6:
-            continue
-        positions = np.array([b[2] for b in group])
-        if np.min(np.diff(positions)) < 0.055 or np.ptp(positions) < 0.19:
-            continue
-        lo, hi = round(group[0][1]), round(group[-1][1]) + 1
-        dx = max(2, round(0.075 * length))
-        strip = seams[lo:hi, max(0, round(x) - dx) : round(x) + dx + 1]
-        if strip.any(axis=1).mean() >= 0.70:
+
+    # Either a light fastener or a separate dark button can sit on the same
+    # sewn overlap. Detect light paint first, then independent dark islands.
+    def button_column(dots, dark):
+        labels, _ = ndimage.label(dots, np.ones((3, 3)))
+        candidates = []
+        for label, (ys, xs) in enumerate(ndimage.find_objects(labels), 1):
+            w, h = xs.stop - xs.start, ys.stop - ys.start
+            if max(w, h) > max(3, 0.055 * length) or not 0.4 <= w / h <= 2.5:
+                continue
+            local = labels[ys, xs] == label
+            if local.sum() < (max(3, 0.00011 * length**2) if dark else 2):
+                continue
+            y, x = np.mean(np.nonzero(local), axis=1) + [ys.start, xs.start]
+            at = (top + y - neck) / length
+            if (0.1 if dark else 0.2) <= at <= 0.96:
+                candidates.append(
+                    (x, y, at, np.percentile(patch[ys, xs][local], 85, axis=0))
+                )
+        aligned = []
+        for x, _, _, _ in candidates:
+            group = [b for b in candidates if abs(b[0] - x) <= max(1.2, 0.015 * length)]
+            if not 2 <= len(group) <= 6:
+                continue
+            positions = np.array([b[2] for b in group])
+            if np.min(np.diff(positions)) < 0.055 or np.ptp(positions) < (
+                0.075 if dark else 0.19
+            ):
+                continue
+            lo, hi = round(group[0][1]), round(group[-1][1]) + 1
+            dx = max(2, round(0.075 * length))
+            xmin = max(0, round(x) - dx)
+            strip = seams[lo:hi, xmin : round(x) + dx + 1]
+            if not strip.size or strip.any(axis=1).mean() < 0.70:
+                continue
+            if dark:
+                # The line must persist beside the buttons. Printed dots do
+                # not supply a parallel seam in a different column.
+                counts = strip.mean(axis=0)
+                counts[
+                    np.abs(np.arange(len(counts)) + xmin - x) < max(2, 0.012 * length)
+                ] = 0
+                if counts.max() < 0.7:
+                    continue
             aligned.append(group)
-    if not aligned:
+        return max(aligned, key=len) if aligned else None
+
+    group = button_column((tone > cloth_tone + 35) & ~is_cloth, False)
+    dark = group is None
+    if dark:
+        group = button_column(ink, True)
+    if not group:
         return None
-    group = max(aligned, key=len)
     column = int(np.rint(np.median([b[0] for b in group])))
     # The last exposed skin just above the fasteners locates the V opening.
     core = patch[
@@ -290,6 +311,16 @@ def button_front(rgb, center, neck, hem, cloth, skin):
         "buttons": [round(b[2], 4) for b in group],
         "buttonColor": np.median([b[3] for b in group], axis=0),
     }
+    if dark:
+        last = round(group[-1][1])
+        # Follow the overlap only while ink persists beyond the final button.
+        sx = max(0, column - round(0.075 * length))
+        strip = seams[:, sx : column + round(0.075 * length) + 1]
+        runs = np.flatnonzero(~strip[last:].any(axis=1))
+        if len(runs):
+            end = (top + last + runs[0] - neck) / length
+            if group[-1][2] < end < 0.88:
+                result["placketEnd"] = round(end, 4)
     if len(exposed):
         runs = np.split(exposed, np.flatnonzero(np.diff(exposed) > 1) + 1)
         neckline = next(

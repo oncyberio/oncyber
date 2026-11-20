@@ -14,6 +14,7 @@ from avatar_authoring.kit_footwear import compare_footwear
 from avatar_authoring.kit_hand import kit_hand
 from avatar_authoring.inked_hand import compare_hand_contours
 from avatar_authoring.jersey_sleeve import jersey_sleeve
+from avatar_authoring.shirt_cut import compare_shirt_cut
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
 from avatar_authoring.visor import measure_visor, visor_seed
 from avatar_authoring.one_image import author_one, save
@@ -566,6 +567,18 @@ def record_preview(args):
         ):
             data["inked_hands"] = {
                 mode: compare_hand_contours(
+                    reference, evidence.parent / mode / "front.png", design
+                )
+                for mode in report["backends"]
+            }
+        if (
+            design.get("household", {})
+            .get("body", {})
+            .get("sections", {})
+            .get("shirtCut")
+        ):
+            data["shirt_cut"] = {
+                mode: compare_shirt_cut(
                     reference, evidence.parent / mode / "front.png", design
                 )
                 for mode in report["backends"]

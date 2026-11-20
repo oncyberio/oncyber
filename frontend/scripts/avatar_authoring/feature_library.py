@@ -45,6 +45,7 @@ def apply_feature(recipe, definition):
             "design.outfit.buttons",
             "design.outfit.buttonColor",
             "design.outfit.placketDepth",
+            "design.outfit.placketEnd",
             "design.outfit.top",
             "shirtMark",
             "sunRays",
