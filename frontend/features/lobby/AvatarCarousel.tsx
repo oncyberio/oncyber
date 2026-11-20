@@ -9,7 +9,6 @@ import {
     lobbyPanelCard,
     lobbyPanelFooter,
     lobbyPanelIconButton,
-    lobbyPanelSurface,
 } from "./lobbyPanelStyles";
 
 export type LobbyAvatarChoice = {
@@ -118,7 +117,6 @@ export default function AvatarCarousel({
     const tabs = useRef(new Map<AvatarTab, HTMLButtonElement>());
     const ids = useId();
     const items = allItems.filter((item) => tabOf(item) === tab);
-    const ownedCount = allItems.filter((item) => item.owned).length;
     const [activeId, setActiveId] = useState(selectedId);
     const [focusedId, setFocusedId] = useState(selectedId);
     const [edges, setEdges] = useState({ start: true, end: false });
@@ -439,19 +437,6 @@ export default function AvatarCarousel({
                                 onKeyDown={(event) => onTabKeyDown(event, id)}
                             >
                                 {label}
-                                {id === "owned" &&
-                                    (ownedCount > 0 ? (
-                                        <span className="tab-count">
-                                            {ownedCount}
-                                        </span>
-                                    ) : (
-                                        ownedLoading && (
-                                            <span
-                                                className="tab-spinner"
-                                                aria-hidden
-                                            />
-                                        )
-                                    ))}
                             </button>
                         ))}
                     </div>
@@ -588,9 +573,6 @@ export default function AvatarCarousel({
     );
 }
 
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
 const enter = keyframes`
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -659,57 +641,62 @@ const Shell = styled.section`
         clip-path: inset(50%);
         white-space: nowrap;
     }
+    /* Two plain labels in the middle of the heading; the hint sits to
+       their left and the page arrows to their right. */
+    .avatar-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+    .avatar-hint {
+        grid-area: 1 / 1;
+        justify-self: start;
+    }
+    .avatar-heading nav {
+        grid-area: 1 / 3;
+        justify-self: end;
+    }
     .avatar-tabs {
-        ${lobbyPanelSurface}
-        --prompt-glass-blur: ${lobby.glass.panelBlur}px;
+        grid-area: 1 / 2;
         display: flex;
-        flex-shrink: 0;
-        gap: 2px;
-        padding: 3px;
-        border-radius: ${lobby.panel.cardRadius}px;
-        box-shadow: none;
-        text-shadow: none;
+        gap: 4px;
     }
     .avatar-tabs [role="tab"] {
         position: relative;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        min-width: 72px;
-        height: 28px;
+        height: 32px;
         padding: 0 12px;
-        border-radius: ${lobby.panel.cardRadius - 3}px;
+        border-radius: ${lobby.panel.iconRadius}px;
         background: transparent;
-        color: ${lobby.color.secondary};
-        font-size: 12px;
+        color: ${base.color.muted};
+        font-size: 13px;
         font-weight: 500;
         line-height: 20px;
-        transition: color ${base.motion.fast}ms ease,
-            background ${base.motion.fast}ms ease;
+        text-shadow: ${lobby.glass.textShadow};
+        transition: color ${base.motion.fast}ms ease;
     }
     .avatar-tabs [role="tab"]:hover {
-        color: ${lobby.color.ink};
-    }
-    .avatar-tabs [role="tab"][aria-selected="true"] {
-        background: ${base.color.line.soft};
-        color: ${lobby.color.ink};
-    }
-    .tab-count {
-        font-family: var(--oc-mono, "SFMono-Regular", monospace);
-        font-size: 10px;
-        font-variant-numeric: tabular-nums;
-        line-height: 16px;
         color: ${lobby.color.secondary};
     }
-    .tab-spinner {
-        width: 10px;
-        height: 10px;
-        border: 1.5px solid ${base.color.line.default};
-        border-top-color: ${lobby.color.ink};
-        border-radius: 50%;
-        animation: ${spin} 800ms linear infinite;
+    .avatar-tabs [role="tab"][aria-selected="true"] {
+        color: ${lobby.color.ink};
+    }
+    /* A short line marks the current label; nothing is filled or boxed. */
+    .avatar-tabs [role="tab"]::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 3px;
+        width: 14px;
+        height: 1.5px;
+        border-radius: 1px;
+        background: ${lobby.color.ink};
+        opacity: 0;
+        transform: translateX(-50%) scaleX(0.4);
+        transition: opacity ${base.motion.fast}ms ease,
+            transform ${base.motion.fast}ms ease;
+    }
+    .avatar-tabs [role="tab"][aria-selected="true"]::after {
+        opacity: 1;
+        transform: translateX(-50%);
     }
     .avatar-empty {
         display: grid;
@@ -883,7 +870,10 @@ const Shell = styled.section`
             display: none;
         }
         .avatar-tabs [role="tab"] {
-            height: 38px;
+            height: 44px;
+        }
+        .avatar-tabs [role="tab"]::after {
+            bottom: 8px;
         }
         .arrow {
             width: 44px;

@@ -664,9 +664,10 @@ or resizing. Keep the small progress track, selected/loading label and Done
 control below.
 
 The picker's heading is a two-tab switch: Free (the catalog) and Owned (the
-visitor's uploads and wallet avatars, with their count). It is a small glass
-pill with a quiet fill on the current tab; Left/Right, Home and End move
-between tabs and Down steps into the cards. It opens on the tab holding the
+visitor's uploads and wallet avatars). It is two plain text labels centred in
+the heading, with no box, fill or count: the current label is in ink over a
+short line, the other is muted. Left/Right, Home and End move between tabs
+and Down steps into the cards. It opens on the tab holding the
 avatar being worn. The panel keeps its two-row height on both tabs so the
 switch never moves; four or fewer avatars sit on one row, and an empty Owned
 tab says why in one line. Pictures are requested at card size (288 px WebP
