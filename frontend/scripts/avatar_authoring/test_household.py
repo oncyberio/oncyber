@@ -316,6 +316,23 @@ class HouseholdTests(unittest.TestCase):
             recipe,
         )
 
+    def test_lateral_pupils_route_and_measure_without_requiring_a_round_globe(self):
+        from .one_image import recognize_input
+        from .portrait import propose_portrait
+
+        source = VIEWS.parent / "holdout-v1/tess-full.webp"
+        self.assertEqual(recognize_input(source), ("rick-classic", "full"))
+        recipe, _ = fit_front(source, "One-image transfer")
+        design = recipe["design"]
+        self.assertNotIn("useHouseholdDepth", design["household"]["measuredBob"])
+        self.assertLess(design["gaze"], -0.60)
+        with TemporaryDirectory() as tmp:
+            crop = Path(tmp) / "portrait.png"
+            with Image.open(source) as image:
+                image.crop((370, 0, 870, 460)).save(crop)
+            self.assertEqual(recognize_input(crop), ("rick-classic", "portrait"))
+            self.assertEqual(len(propose_portrait(crop, "rick-classic")["head"]), 4)
+
     def test_one_reusable_button_front_carries_its_opening_and_fastener_paint(self):
         from .feature_library import apply_feature
 

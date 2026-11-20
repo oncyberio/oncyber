@@ -4,7 +4,7 @@ import numpy as np
 from scipy import ndimage
 
 from .crown import crown_edges
-from .eye_review import portrait_pair
+from .guide import source_eyes
 from .family import FAMILIES
 from .fit import pixels
 from .fringe import forehead_fringe
@@ -238,7 +238,7 @@ def propose_portrait(source, family):
         skin = sample_region(rgb, mask, cx, cy - radius * 0.62, radius * 0.12)
         hair = sample_region(rgb, mask, cx, top + 3, 5)
     else:
-        pair = portrait_pair(rgb, (0, top, w, min(h, round(0.84 * h))))
+        pair = source_eyes(rgb, mask, (0, top, w, min(h, round(0.84 * h))))
         if len(pair) != 2:
             raise ValueError("Cannot locate two distinct eyes in the portrait")
         eyes = np.array(
@@ -377,7 +377,7 @@ def compile_portrait(source, family, name, obs):
             result["shirtMark"] = mark
         return result
     build, stature, head = PRESETS[obs["body"]]
-    pair = portrait_pair(rgb, (left, top, right + 1, chin + 1))
+    pair = source_eyes(rgb, mask, (left, top, right + 1, chin + 1))
     if len(pair) != 2:
         raise ValueError("Both eyes must be measurable")
     eyes = [

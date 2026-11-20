@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .eye_review import portrait_pair
-from .eyes import suggest_eye_centers
+from .eyes import paired_openings, suggest_eye_centers
 from .fit import bounds, pixels
 
 
@@ -40,6 +40,24 @@ def suggested_landmarks(rgb, mask, box):
         for a, b, c, d in (eye["bounds"] for eye in found)
     ]
     return centers if all(x0 <= x < x1 and y0 <= y < y1 for x, y in centers) else []
+
+
+def source_eyes(rgb, mask, box):
+    eyes = portrait_pair(rgb, box)
+    if len(eyes) == 2:
+        return eyes
+    # A lateral gaze can merge a pupil into the exterior ink. Keep the
+    # measured white and recover the dot from its thickness inside the hull.
+    x0, y0, x1, y1 = box
+    found = paired_openings(rgb[y0:y1, x0:x1], mask[y0:y1, x0:x1])
+    result = []
+    for eye in found:
+        cx, cy = eye["center"]
+        w, h = eye["size"]
+        x = round(cx - (w - 1) / 2) + x0
+        y = round(cy - (h - 1) / 2) + y0
+        result.append({"bounds": [x, y, x + w, y + h]})
+    return result
 
 
 def draw_guide(path, destination):

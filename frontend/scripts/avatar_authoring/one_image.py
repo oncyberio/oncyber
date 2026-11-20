@@ -14,11 +14,11 @@ from playwright.sync_api import Error as BrowserError
 from playwright.sync_api import TimeoutError as BrowserTimeout
 from scipy import ndimage
 
-from .eye_review import portrait_pair
 from .family import fit_family
 from .family_edits import record
 from .family_review import apply_source_edits, assess_native, revise_family
 from .fit import pixels
+from .guide import source_eyes
 from .household_front import fit_front
 from .portrait import compile_portrait, propose_portrait
 from .provider import (
@@ -101,7 +101,7 @@ def portrait_sample(path, family):
             cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
         half = 1.65
     else:
-        pair = portrait_pair(rgb, (0, 0, w, h))
+        pair = source_eyes(rgb, mask, (0, 0, w, h))
         if len(pair) != 2:
             raise ValueError("Cannot register both eyes")
         centers = np.array(
@@ -296,8 +296,9 @@ def recognize_input(source, family="auto", framing="auto"):
             family = "sunshine"
         elif (
             len(
-                portrait_pair(
+                source_eyes(
                     rgb,
+                    mask,
                     (int(x.min()), top, int(x.max() + 1), round(top + 0.65 * height)),
                 )
             )
@@ -318,8 +319,10 @@ def recognize_input(source, family="auto", framing="auto"):
             face_ratio = 1.9 * visor[1] / height
             framing = "portrait" if touches or face_ratio > 0.32 else "full"
         else:
-            eyes = portrait_pair(
-                rgb, (int(x.min()), top, int(x.max() + 1), round(top + 0.78 * height))
+            eyes = source_eyes(
+                rgb,
+                mask,
+                (int(x.min()), top, int(x.max() + 1), round(top + 0.78 * height)),
             )
             gap = 0.0
             if len(eyes) == 2:

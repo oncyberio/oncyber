@@ -6,7 +6,8 @@ from scipy import ndimage
 from .crown import crown_edges
 from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
-from .eye_review import lid_pupil, portrait_pair
+from .eye_review import lid_pupil
+from .guide import source_eyes
 from .household import (
     fit_frontal_features,
     fit_portrait,
@@ -854,7 +855,7 @@ def fit_front(source, name, observation=None):
         ):
             body["outfit"]["top"] = "tank"
     body["hair"]["cut"] = "crop"
-    actual = portrait_pair(rgb, (max(0, head_left), top, min(w, head_right), chin))
+    actual = source_eyes(rgb, mask, (max(0, head_left), top, min(w, head_right), chin))
     if len(actual) != 2:
         raise ValueError("Two separate eye whites are required.")
     guide["eyes"] = [
@@ -1065,7 +1066,6 @@ def fit_front(source, name, observation=None):
             # The fitted bob already joins the crown, part and underside. Use
             # that construction on the family rig in its original drawing frame.
             family["measuredBob"] = {
-                "useHouseholdDepth": True,
                 "frame": recipe["design"]["head"],
                 "skullWidth": design["head"][0],
                 "eyeAxis": round((eye_axis - center) * scale / head_width, 4),
@@ -1084,6 +1084,10 @@ def fit_front(source, name, observation=None):
                     if k in sections
                 },
             }
+            # A round, exposed white constrains the sagittal globe. A lowered
+            # lid hides that extent while the underlying skull remains stable.
+            if recipe["design"]["eyes"] == "wide":
+                family["measuredBob"]["useHouseholdDepth"] = True
         else:
             family["fallRows"] = fall
     if has_ink_outline(rgb, mask, (left, top, right, floor)):

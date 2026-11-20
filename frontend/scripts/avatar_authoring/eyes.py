@@ -188,8 +188,8 @@ def turned_eyes(image, frontal):
     return result
 
 
-def suggest_eye_centers(rgb, mask):
-    """Suggest a pair for the coordinate guide only if both pupils are visible."""
+def paired_openings(rgb, mask):
+    """Locate two matching sclerae when each contains a measurable pupil."""
     h, w = mask.shape
     eyes = [
         eye
@@ -215,8 +215,16 @@ def suggest_eye_centers(rgb, mask):
                 rank = min(aw * ah, bw * bh) / (
                     1 + abs(ay - by) / mean_width + abs(span / mean_width - 1.35)
                 )
-                pairs.append((rank, [a["center"], b["center"]]))
-    return sorted(max(pairs, key=lambda pair: pair[0])[1]) if pairs else []
+                pairs.append((rank, [a, b]))
+    return (
+        sorted(max(pairs, key=lambda pair: pair[0])[1], key=lambda eye: eye["center"])
+        if pairs
+        else []
+    )
+
+
+def suggest_eye_centers(rgb, mask):
+    return [eye["center"] for eye in paired_openings(rgb, mask)]
 
 
 def compare_gaze(reference, native, anchors):
