@@ -186,6 +186,72 @@ test.each(["full", "crowd"] as const)(
     }
 );
 
+test.each(["full", "crowd"] as const)(
+    "an inked %s hand keeps overlapping fingers articulated through a grip",
+    (detail) => {
+        const file = JSON.parse(
+            readFileSync(
+                join(
+                    __dirname,
+                    "../../scripts/avatar_authoring/targets/holdout-v1/candidates/moss.recipe"
+                ),
+                "utf8"
+            )
+        );
+        const { recipe } = readAvatarFile(file);
+        const sections = recipe.cartoon.fit.sections;
+        expect(sections.palmContours.every((palm) => palm?.length === 5)).toBe(
+            true
+        );
+        const rig = buildCharacter(recipe, detail);
+        try {
+            const mesh = rig.scene.getObjectByProperty(
+                "isSkinnedMesh",
+                true
+            ) as T.SkinnedMesh;
+            expect(mesh.geometry.groups).toHaveLength(0);
+            for (const [i, side] of (["right", "left"] as const).entries()) {
+                const rays = sections.openHands[i];
+                expect(rays[4].slice(0, 4)).toEqual(rays[3].slice(0, 4));
+                const ring = rig.humanoid.getNormalizedBoneNode(
+                    side + "RingDistal"
+                );
+                const little = rig.humanoid.getNormalizedBoneNode(
+                    side + "LittleDistal"
+                );
+                expect(
+                    ring
+                        .getWorldPosition(new T.Vector3())
+                        .distanceTo(little.getWorldPosition(new T.Vector3()))
+                ).toBeGreaterThan(0.002);
+                for (const bone of [ring, little]) {
+                    const at = mesh.skeleton.bones.indexOf(bone);
+                    const ids = mesh.geometry.attributes.skinIndex;
+                    const weights = mesh.geometry.attributes.skinWeight;
+                    expect(
+                        Array.from(
+                            { length: ids.count },
+                            (_, v) =>
+                                (ids.getX(v) === at && weights.getX(v) > 0) ||
+                                (ids.getY(v) === at && weights.getY(v) > 0)
+                        ).some(Boolean)
+                    ).toBe(true);
+                }
+                const open = little.quaternion.clone();
+                const item = new T.Group();
+                rig.equipItem(side, item, { radius: 0.013 });
+                expect(item.parent.parent).toBe(
+                    rig.humanoid.getNormalizedBoneNode(side + "Hand")
+                );
+                expect(little.quaternion.angleTo(open)).toBeGreaterThan(0.01);
+                rig.equipItem(side, null);
+            }
+        } finally {
+            disposeAvatarGraph(rig.scene);
+        }
+    }
+);
+
 test("the branch crowd reproduces 100 distinct shapes from two seed families", () => {
     const seeds = [
         JSON.stringify(jessica),

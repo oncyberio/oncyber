@@ -53,7 +53,13 @@ export default function AvatarStudy({
         customSubjects ?? (cartoonOnly ? castSubjects : studySubjects);
     const host = useRef<HTMLDivElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
-    const [closeup, setCloseup] = useState(false);
+    const [closeup, setCloseup] = useState<"portrait" | "hand" | null>(() =>
+        customSubjects &&
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("focus") === "hand"
+            ? "hand"
+            : null
+    );
     const [view, setView] = useState<View>(
         customSubjects ? "authored" : "rick-classic"
     );
@@ -325,6 +331,14 @@ export default function AvatarStudy({
                 scene.add(model.root);
             }
             setHasGaze(models.length === 1 && !!models[0].setGazePose);
+            const handNodes = models.map((model) =>
+                (["right", "left"] as const).map((side) => ({
+                    wrist: model.root.getObjectByName(side + "Hand"),
+                    tip: model.root.getObjectByName(side + "MiddleDistal"),
+                }))
+            );
+            const wristCenter = new T.Vector3(),
+                fingertip = new T.Vector3();
             const metrics = models.map((model) => {
                 let triangles = 0;
                 model.root.traverse((object) => {
@@ -411,31 +425,41 @@ export default function AvatarStudy({
                     setStatus("Loading the bundled reference VRM…");
                     void loadOriginal();
                 }
-                const portrait = closeup && !lineup && !compare;
+                const portrait = closeup === "portrait" && !lineup && !compare;
+                const hand =
+                    closeup === "hand" && view === "authored"
+                        ? handNodes[index]?.[itemHand === "left" ? 1 : 0]
+                        : undefined;
+                const focusHand = !!(hand?.wrist && hand.tip);
                 const layout =
                     view === "authored" ? subjects[index]?.layout : undefined;
                 const headHeight = layout
                     ? (models[index].height * layout.landmarks.jaw[1]) /
                       layout.origin.floor
                     : undefined;
-                const half = Math.max(
-                    portrait
-                        ? headHeight
-                            ? headHeight * 0.94
-                            : 0.325
-                        : lineup
-                        ? (street ? 375 : 382) * cmPerPixel * 0.01
-                        : models[index].height * 0.56,
-                    (compare
-                        ? 2.12
-                        : portrait
-                        ? 0.28
-                        : lineup
-                        ? 425 * cmPerPixel * 0.01
-                        : view === "sunshine"
-                        ? 1.03
-                        : 0.56) / aspect
-                );
+                const half = focusHand
+                    ? Math.max(
+                          models[index].height * 0.088,
+                          (models[index].height * 0.095) / aspect
+                      )
+                    : Math.max(
+                          portrait
+                              ? headHeight
+                                  ? headHeight * 0.94
+                                  : 0.325
+                              : lineup
+                              ? (street ? 375 : 382) * cmPerPixel * 0.01
+                              : models[index].height * 0.56,
+                          (compare
+                              ? 2.12
+                              : portrait
+                              ? 0.28
+                              : lineup
+                              ? 425 * cmPerPixel * 0.01
+                              : view === "sunshine"
+                              ? 1.03
+                              : 0.56) / aspect
+                      );
                 const center = portrait
                     ? models[index].height -
                       (headHeight ? headHeight * 0.65 : 0.24)
@@ -589,6 +613,15 @@ export default function AvatarStudy({
                         ? "loading"
                         : motion;
                 lastMotion = motion;
+                if (focusHand) {
+                    hand.wrist.getWorldPosition(wristCenter);
+                    hand.tip.getWorldPosition(fingertip);
+                    wristCenter.lerp(fingertip, 0.56);
+                    camera.position.copy(wristCenter);
+                    camera.position.z -= 5;
+                    camera.lookAt(wristCenter);
+                    camera.updateMatrixWorld();
+                }
                 renderer.render(scene, camera);
                 canvas.current.dataset.coatMask = String(
                     scene.overrideMaterial === coatMask
@@ -630,14 +663,14 @@ export default function AvatarStudy({
                 canvas.current.dataset.motionStep = String(motionStep);
                 if (view === "authored")
                     canvas.current.dataset.reviewCamera = JSON.stringify({
-                        center,
+                        center: focusHand ? wristCenter.y : center,
                         height: half * 2,
                         pixels: element.clientHeight,
                     });
                 canvas.current.dataset.framing = [
                     view,
                     angle,
-                    portrait ? "portrait" : "body",
+                    focusHand ? "hand" : portrait ? "portrait" : "body",
                 ].join("/");
                 frame = requestAnimationFrame(draw);
             };
@@ -874,11 +907,23 @@ export default function AvatarStudy({
                         view === "streetwear" ||
                         (view === "sunshine" && compareSun)
                     }
-                    aria-pressed={closeup}
-                    onClick={() => setCloseup(!closeup)}
+                    aria-pressed={closeup === "portrait"}
+                    onClick={() =>
+                        setCloseup(closeup === "portrait" ? null : "portrait")
+                    }
                 >
-                    {closeup ? "Full body" : "Portrait"}
+                    {closeup === "portrait" ? "Full body" : "Portrait"}
                 </button>
+                {view === "authored" && (
+                    <button
+                        aria-pressed={closeup === "hand"}
+                        onClick={() =>
+                            setCloseup(closeup === "hand" ? null : "hand")
+                        }
+                    >
+                        {closeup === "hand" ? "Full body" : "Inspect hand"}
+                    </button>
+                )}
                 <button onClick={() => setPaused(!paused)}>
                     {paused ? "Play" : "Pause"}
                 </button>

@@ -10,6 +10,7 @@ import numpy as np
 from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
 from avatar_authoring.household_front import trouser_opening
+from avatar_authoring.inked_hand import compare_hand_contours
 from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
 from avatar_authoring.visor import visor_seed
@@ -401,6 +402,19 @@ def record_preview(args):
             for mode, v in report["backends"].items()
         }
         recipe = json.loads(candidate.read_bytes())
+        design = recipe.get("design", {})
+        if (
+            design.get("household", {})
+            .get("body", {})
+            .get("sections", {})
+            .get("palmContours")
+        ):
+            data["inked_hands"] = {
+                mode: compare_hand_contours(
+                    reference, evidence.parent / mode / "front.png", design
+                )
+                for mode in report["backends"]
+            }
         if "visor" in recipe:
             data["orb_meridian_luma_step"] = {
                 "reference": orb_meridian_luma_step(reference),

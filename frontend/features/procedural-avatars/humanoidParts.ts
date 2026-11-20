@@ -4,6 +4,7 @@ import sunshine from "./sunshine.json";
 import sunshineJoints from "./sunshine-rig.json";
 import { headDepth, type Drawing, type Section, type XY } from "./drawing";
 import type { Point } from "./sculpt";
+import type { OpenHand } from "./referenceLandmarks";
 
 export type PartSource = "classic" | "sunshine";
 type Part = "thigh" | "shin" | "foot" | "palm";
@@ -271,7 +272,8 @@ export function drawDigit(
     radii: number[],
     paint: string,
     cap: number,
-    sides = name === "Little" ? 4 : 5
+    sides = name === "Little" ? 4 : 5,
+    pads = false
 ) {
     const bones = (
         name === "Thumb"
@@ -284,6 +286,34 @@ export function drawDigit(
         .sub(new T.Vector3(...path.at(-2)))
         .normalize();
     d.bind(bones[0]);
+    if (pads) {
+        const pad = radii.at(-1);
+        const sections = [
+            ...path,
+            tip
+                .clone()
+                .addScaledVector(tangent, pad * 0.64)
+                .toArray() as Point,
+            tip.addScaledVector(tangent, pad).toArray() as Point,
+        ];
+        const widths = [...radii, pad * 0.72, 0];
+        // The palm covers the first ring of the long fingers. Only the thumb
+        // needs a buried lead-in where it emerges from the side of the palm.
+        if (name === "Thumb") {
+            const root = new T.Vector3(...path[0]);
+            const back = root
+                .clone()
+                .sub(new T.Vector3(...path[1]))
+                .normalize();
+            sections.unshift(
+                root.addScaledVector(back, radii[0] * 1.5).toArray() as Point
+            );
+            widths.unshift(radii[0] * 0.26);
+            bones.unshift(bones[0]);
+        }
+        d.s.sweep(sections, widths, paint, sides, bones, true);
+        return;
+    }
     d.s.sweep(
         [...path, tip.addScaledVector(tangent, cap).toArray() as Point],
         [...radii, 0],
@@ -300,7 +330,10 @@ export function drawFittedHand(
     side: string,
     paint: string,
     source: PartSource,
-    wristRadius: number
+    wristRadius: number,
+    rays?: OpenHand,
+    palm?: Point[],
+    wristRows?: Point[][]
 ) {
     const joint = (bone: string) =>
         new T.Vector3(...d.sourceJoints.get(side + bone).point);
@@ -321,7 +354,7 @@ export function drawFittedHand(
     const maxDepth = Math.max(...profile.map((p) => p[3]));
     const sides = d.s.detail === "crowd" ? 6 : 8;
     const thenarReach = thumb.dot(across);
-    const rows = [0, 0.24, 0.55, 0.8, 1].map((t) => {
+    const rows = [0, 0.24, 0.55, 0.8, 1].map((t, row) => {
         const [, left, right, depth] = sample(
             profile,
             T.MathUtils.lerp(profile[0][0], profile.at(-1)[0], t)
@@ -338,6 +371,33 @@ export function drawFittedHand(
             (depth / maxDepth) * Math.max(fingerWidth, half * 0.44),
             fade
         );
+        if (palm) {
+            const [x, upper, lower] = palm[row];
+            // Keep the benchmark palm depth and roll. Register its projected
+            // outline to the ink, using the forearm's ring phase at the wrist.
+            const widthY = across.y * width,
+                thickY = normal.y * thickness;
+            const span = Math.max(0.01, Math.hypot(widthY, thickY));
+            const tilt =
+                (widthY * across.z * width + thickY * normal.z * thickness) /
+                span;
+            const depth =
+                (Math.abs(across.y * normal.z - across.z * normal.y) *
+                    width *
+                    thickness) /
+                span;
+            const count = wristRows?.[0].length ?? sides + 1;
+            return Array.from({ length: count }, (_, i): Point => {
+                const t = (2 * Math.PI * i) / (count - 1);
+                return [
+                    wrist.x + (side === "right" ? -x : x),
+                    wrist.y +
+                        (upper + lower) / 2 +
+                        ((lower - upper) * Math.sin(t)) / 2,
+                    axis.z + tilt * Math.sin(t) + depth * Math.cos(t),
+                ];
+            });
+        }
         return Array.from({ length: sides + 1 }, (_, i): Point => {
             const angle = (i * Math.PI * 2) / sides;
             const thenar =
@@ -351,10 +411,46 @@ export function drawFittedHand(
                 .toArray() as Point;
         });
     });
-    const cap = middle.clone().lerp(wrist, -0.065).toArray() as Point;
-    d.bind(side + "Hand");
-    d.s.surface([...rows, rows.at(-1).map(() => cap)], paint);
-    for (const finger of classic.fingers) {
+    const lastRow = rows.at(-1);
+    const cap = palm
+        ? (new T.Vector3(...lastRow[0])
+              .lerp(new T.Vector3(...lastRow[(lastRow.length - 1) / 2]), 0.5)
+              .toArray() as Point)
+        : (middle.clone().lerp(wrist, -0.065).toArray() as Point);
+    const closed = [...rows];
+    if (palm) {
+        // Round the distal palm into the knuckles. A planar end cap remains
+        // visible between two fingers when the hand turns edge-on.
+        const reach =
+            (side === "right" ? -1 : 1) *
+            Math.min(wristRadius, palm.at(-1)[0] * 0.15);
+        closed.push(
+            lastRow.map(
+                (p): Point => [
+                    cap[0] + reach * 0.65,
+                    T.MathUtils.lerp(cap[1], p[1], 0.68),
+                    T.MathUtils.lerp(cap[2], p[2], 0.68),
+                ]
+            )
+        );
+        cap[0] += reach;
+    }
+    closed.push(lastRow.map(() => cap));
+    if (wristRows && palm) {
+        const sign = side === "right" ? -1 : 1;
+        d.drape(side + "LowerArm", side + "Hand", 0, 1);
+        d.s.drape.weight = (x) =>
+            T.MathUtils.smoothstep(
+                sign * (x - wrist.x),
+                sign * (wristRows[0][0][0] - wrist.x),
+                palm[1][0]
+            );
+        d.s.surface([...wristRows, ...closed.slice(1)], paint, true, "start");
+    } else {
+        d.bind(side + "Hand");
+        d.s.surface(closed, paint);
+    }
+    for (const [i, finger] of classic.fingers.entries()) {
         const names =
             finger.name === "Thumb"
                 ? ["Metacarpal", "Proximal", "Distal"]
@@ -371,20 +467,30 @@ export function drawFittedHand(
                               p.sweep
                       )
                       .widths.slice(0, 4);
-        const radius = fingerWidth * (finger.name === "Little" ? 0.8 : 1);
+        const measured = rays?.[i][4];
+        d.s.thinSkinOutline = !!measured && finger.name === "Thumb";
+        const radius =
+            measured != null
+                ? measured * 1.22
+                : fingerWidth * (finger.name === "Little" ? 0.8 : 1);
+        let segments = d.s.detail === "crowd" || radius < 2.6 ? 4 : 5;
+        if (measured) segments = finger.name === "Thumb" ? sides : 5;
+        if (finger.name === "Little") segments = 4;
         drawDigit(
             d,
             side,
             finger.name,
             [...path, end].map((v) => v.toArray() as Point),
             radii.map((value) =>
-                Math.max(radius * 0.33, (value / radii[0]) * radius)
+                measured
+                    ? Math.max(radius * 0.94, (value / radii[0]) * radius)
+                    : Math.max(radius * 0.33, (value / radii[0]) * radius)
             ),
             paint,
             radius * 0.48,
-            d.s.detail === "crowd" || radius < 2.6 || finger.name === "Little"
-                ? 4
-                : 5
+            segments,
+            !!measured && finger.name !== "Little"
         );
+        d.s.thinSkinOutline = false;
     }
 }

@@ -17,7 +17,8 @@ export const composition = {
     rick: { x: 683, floor: 704 },
     sunshine: { x: 350, floor: 690 },
 };
-export type OpenHand = [number, number, number, number][];
+/** Knuckle x/y, fingertip x/y and optional observed radius in the drawing. */
+export type OpenHand = [number, number, number, number, number?][];
 export type Chain = [Point, Point, Point];
 export type Landmarks = {
     restJoints?: Record<string, number[]>;

@@ -13,9 +13,30 @@ export const shirtMarkSchema = z.strictObject({
         .max(32),
 });
 const openHand = z
-    .array(z.tuple([n(0, 140), n(-140, 140), n(0, 190), n(-190, 190)]))
+    .array(
+        z.union([
+            z.tuple([n(0, 140), n(-140, 140), n(0, 190), n(-190, 190)]),
+            z.tuple([
+                n(0, 140),
+                n(-140, 140),
+                n(0, 190),
+                n(-190, 190),
+                n(0.2, 30),
+            ]),
+        ])
+    )
     .length(5)
     .refine((rows) => rows.every(([root, , tip]) => root < tip))
+    .nullable();
+const palmContour = z
+    .array(z.tuple([n(0, 140), n(-140, 140), n(-140, 140)]))
+    .length(5)
+    .refine((rows) =>
+        rows.every(
+            ([x, top, bottom], i) =>
+                top < bottom && (i === 0 ? x === 0 : x > rows[i - 1][0])
+        )
+    )
     .nullable();
 const band = z.strictObject({
     start: fraction,
@@ -442,6 +463,7 @@ const fit = z.strictObject({
             ankle: ordered(transverse).optional(),
             sleeve: n(0, 450),
             openHands: z.tuple([openHand, openHand]).optional(),
+            palmContours: z.tuple([palmContour, palmContour]).optional(),
             handScale: n(0.65, 2.4),
         })
         .optional(),
@@ -707,6 +729,7 @@ const householdBodyFit = fit
             crew: true,
             outsole: true,
             openHands: true,
+            palmContours: true,
             seams: true,
         }),
         palmRoll: n(-90, 90).optional(),

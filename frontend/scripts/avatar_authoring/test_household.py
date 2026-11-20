@@ -13,6 +13,29 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_touching_fingers_keep_the_hidden_digit_and_reject_an_unmarked_hand(self):
+        from .fit import pixels
+        from .inked_hand import inked_hand
+
+        path = Path(__file__).parent / "targets/holdout-v1/moss-full.webp"
+        rgb, mask = pixels(path)
+        wrist = (542, 156)
+        skin = np.median(rgb[151:156, 543:547].reshape(-1, 3), axis=0)
+        fan, palm = inked_hand(rgb, mask, wrist, 606, skin)
+        self.assertEqual(fan.shape, (5, 5))
+        self.assertTrue(np.all(fan[:, 2] > fan[:, 0]))
+        self.assertLess(fan[0, 2], fan[1, 2])
+        np.testing.assert_allclose(fan[-1, :4], fan[-2, :4])
+        self.assertLess(fan[-1, 4], fan[-2, 4])
+        self.assertTrue(np.all(np.diff(palm[:, 0]) > 0))
+        reflected, _ = inked_hand(
+            rgb[::-1], mask[::-1], (542, len(rgb) - 157), 606, skin
+        )
+        self.assertGreater(fan[0, 3], fan[3, 3])
+        self.assertLess(reflected[0, 3], reflected[3, 3])
+        rgb[mask] = skin
+        self.assertIsNone(inked_hand(rgb, mask, wrist, 606, skin))
+
     def test_one_pixel_trouser_gap_follows_paper_past_a_pocket(self):
         from .household_front import trouser_opening
 

@@ -706,6 +706,7 @@ def fit_front(source, name):
     """Use the family skull around measured eyes and retain the drawn T-pose body."""
     from .draft import propose
     from .fit import bounds, fit, pixels
+    from .inked_hand import fit_inked_hands
 
     obs = propose(source, name)
     if (
@@ -999,6 +1000,9 @@ def fit_front(source, name):
     if has_ink_outline(rgb, mask, (left, top, right, floor)):
         family["penOutline"] = True
         inked_sections(rgb, mask, center, crown, scale, arm_y, samples, family["body"])
+        fit_inked_hands(
+            rgb, mask, center, crown, scale, (left, right), skin, family["body"]
+        )
         edges = garment_edges(
             rgb,
             center,
@@ -1038,6 +1042,7 @@ def fit_front(source, name):
 
 def review_edits(recipe, source, native, score, visual):
     from .family_eyes import eye_measures
+    from .inked_hand import arm_centerlines
 
     edits = []
     design = recipe["design"]
@@ -1046,6 +1051,23 @@ def review_edits(recipe, source, native, score, visual):
         if value != previous:
             edits.append({"field": "design." + field, "value": value})
 
+    body = design["household"].get("body")
+    if body and body["sections"].get("palmContours"):
+        levels = [arm_centerlines(p, body, design["height"]) for p in (source, native)]
+        if all(v is not None for v in levels):
+            offset = levels[0] - levels[1]
+            # Move the shared sleeve, wrist and grip only when both arms agree.
+            if (
+                np.prod(offset) > 0
+                and np.ptp(offset) < 2
+                and 0.8 < abs(offset.mean()) <= 7
+            ):
+                edits.append(
+                    {
+                        "field": "armHeightOffset",
+                        "value": round(float(offset.mean()), 2),
+                    }
+                )
     if visual["rgb_mae"] > 12:
         from .household_registration import dye, frame, role_masks, swatches
 

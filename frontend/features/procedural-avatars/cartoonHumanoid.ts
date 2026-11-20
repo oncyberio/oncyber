@@ -2284,6 +2284,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
         const a = point(side + "UpperArm"),
             e = point(side + "LowerArm"),
             w = point(side + "Hand");
+        let wristRows: Point[][];
         const arm =
                 g.fit?.armRadius ??
                 shoulder * (g.build === "broad" ? 0.2 : 0.205),
@@ -2387,13 +2388,22 @@ function clothing(d: Drawing, g: CartoonDesign) {
             }
             if (skin.length > 1) {
                 const rings = skin.map(ring);
-                const [x, y] = skin.at(-1);
-                rings.push(
-                    rings
-                        .at(-1)
-                        .map((): Point => [fittedArmX(g, sign, x), y, w[2]])
-                );
-                d.s.surface(rings, g.skin);
+                if (
+                    measured.palmContours?.[sign < 0 ? 0 : 1] &&
+                    rings.length >= 3 &&
+                    sign * (rings.at(-2)[0][0] - e[0]) >= arm
+                ) {
+                    wristRows = rings.slice(-2);
+                    d.s.surface(rings.slice(0, -1), g.skin, true, "end");
+                } else {
+                    const [x, y] = skin.at(-1);
+                    rings.push(
+                        rings
+                            .at(-1)
+                            .map((): Point => [fittedArmX(g, sign, x), y, w[2]])
+                    );
+                    d.s.surface(rings, g.skin);
+                }
             }
         } else {
             if (o.top === "tank") {
@@ -2565,7 +2575,10 @@ function clothing(d: Drawing, g: CartoonDesign) {
             side,
             g.skin,
             g.parts?.hands ?? "classic",
-            measured?.arm.at(-1)[2] ?? arm * 0.55
+            measured?.arm.at(-1)[2] ?? arm * 0.55,
+            measured?.openHands?.[side === "right" ? 0 : 1],
+            measured?.palmContours?.[side === "right" ? 0 : 1],
+            wristRows
         );
         const sign = side === "right" ? -1 : 1;
         const thigh = point(side + "UpperLeg"),

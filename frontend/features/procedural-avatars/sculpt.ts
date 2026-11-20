@@ -197,6 +197,7 @@ export class Sculpt {
     pupil = false;
     eyeStroke = false;
     penOutline = false;
+    thinSkinOutline = false;
     orbSurface = false;
     familyPart?: string;
     crown = false;
@@ -223,7 +224,7 @@ export class Sculpt {
         this.space.copy(matrix);
     }
 
-    private add(g: T.BufferGeometry, color: string) {
+    private add(g: T.BufferGeometry, color: string, keepNormals = false) {
         const kind = this.finishes.get(color) ?? finish.enamel;
         const local = g.getAttribute("position");
         const normals = g.getAttribute("normal");
@@ -490,7 +491,7 @@ export class Sculpt {
         const baseTint = tint.clone();
         const normal = new T.Vector3();
         for (let i = 0; i < pos.count; i++) {
-            if (this.surfaceNormal)
+            if (this.surfaceNormal || keepNormals)
                 this.smoothNormals.set(base + i, [
                     normals.getX(i),
                     normals.getY(i),
@@ -600,8 +601,8 @@ export class Sculpt {
                 if (this.orbSurface) this.uvs[this.uvs.length - 2] -= 64;
                 else if (this.eyeStroke) this.uvs[this.uvs.length - 2] -= 8;
                 else if (
-                    this.inkedPortrait &&
-                    this.fineDetail &&
+                    ((this.inkedPortrait && this.fineDetail) ||
+                        this.thinSkinOutline) &&
                     !printedUV &&
                     (kind === finish.skin || kind === finish.fiber)
                 )
@@ -755,11 +756,13 @@ export class Sculpt {
         radii: number[],
         color: string,
         sides = 7,
-        bones?: string[]
+        bones?: string[],
+        roundNormals = false
     ) {
         const pts = path.map(vec),
             xyz: number[] = [],
             uv: number[] = [],
+            normals: number[] = [],
             skin: number[] = [],
             indices: number[] = [];
         let axis: T.Vector3;
@@ -775,6 +778,12 @@ export class Sculpt {
                         : new T.Vector3(0, 1, 0);
             axis.addScaledVector(tangent, -axis.dot(tangent)).normalize();
             const other = tangent.clone().cross(axis);
+            const first = Math.max(0, i - 1),
+                last = Math.min(pts.length - 1, i + 1);
+            const slope = roundNormals
+                ? (radii[last] - radii[first]) /
+                  Math.max(0.0001, pts[first].distanceTo(pts[last]))
+                : 0;
             for (let j = 0; j < sides; j++) {
                 const angle = (2 * Math.PI * j) / sides;
                 xyz.push(
@@ -784,6 +793,18 @@ export class Sculpt {
                         .addScaledVector(other, radii[i] * Math.sin(angle))
                         .toArray()
                 );
+                if (roundNormals) {
+                    const n =
+                        radii[i] === 0
+                            ? tangent
+                            : axis
+                                  .clone()
+                                  .multiplyScalar(Math.cos(angle))
+                                  .addScaledVector(other, Math.sin(angle))
+                                  .addScaledVector(tangent, -slope)
+                                  .normalize();
+                    normals.push(n.x, n.y, n.z);
+                }
                 uv.push(j / sides, i / (pts.length - 1));
                 if (bones) {
                     const next = Math.min(i, bones.length - 1),
@@ -808,8 +829,10 @@ export class Sculpt {
         if (bones)
             g.setAttribute("jointPair", new T.Float32BufferAttribute(skin, 3));
         g.setIndex(indices);
-        g.computeVertexNormals();
-        this.add(g, color);
+        if (roundNormals)
+            g.setAttribute("normal", new T.Float32BufferAttribute(normals, 3));
+        else g.computeVertexNormals();
+        this.add(g, color, roundNormals);
     }
     tube(
         a: Point,

@@ -194,7 +194,12 @@ export function drawingRig(
                   .normalize()
                   .multiplyScalar(sign);
         const fan = l.openHands?.[i];
-        const roll = fan ? Math.sign(fan[0][3] - fan[3][3]) * 82 : l.palmRoll;
+        // Contour ink can separate fingers which overlap in the picture.
+        // The roll measured from their palm preserves depth between those joints.
+        const roll = fan
+            ? Math.sign(fan[0][3] - fan[3][3]) *
+              (fan[0][4] != null ? Math.abs(l.palmRoll ?? 45) : 82)
+            : l.palmRoll;
         if (roll !== undefined && l.handScale)
             spread.applyAxisAngle(
                 handDirection,
@@ -246,6 +251,15 @@ export function drawingRig(
                         sign * T.MathUtils.lerp(digit[0], digit[2], t);
                     point[1] =
                         wrist[1] + T.MathUtils.lerp(digit[1], digit[3], t);
+                    if (digit[4] && thumb) {
+                        // Bury the metacarpal in the thenar pad. The distal
+                        // thumb still emerges in front of the other fingers.
+                        point[2] = T.MathUtils.lerp(
+                            wrist[2],
+                            point[2],
+                            0.35 + 0.65 * t
+                        );
+                    }
                 }
                 const parent = j ? side + finger + names[j - 1] : side + "Hand";
                 add(side + finger + names[j], parent, point, handQ);

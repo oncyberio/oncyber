@@ -248,6 +248,7 @@ def edit_schema(family=None, construction=None):
         )
     if family != "sunshine" and construction in (None, "household"):
         household = [
+            fields(["armHeightOffset"], bounded(-7, 7)),
             fields(
                 [
                     "design.skin",
@@ -362,7 +363,15 @@ def edited_recipe(
         if field in seen:
             raise ValueError(f"Repeated family field {field}")
         seen.add(field)
-        if field.startswith("design."):
+        if field == "armHeightOffset":
+            body = recipe["design"]["household"].get("body")
+            if not body or not body.get("sections", {}).get("arm"):
+                raise ValueError("Arm elevation requires measured T-pose arms")
+            for row in body["sections"]["arm"]:
+                row[1] = round(row[1] + value, 2)
+                if not 0 <= row[1] <= 950:
+                    raise ValueError("Arm elevation is outside the drawing")
+        elif field.startswith("design."):
             if (
                 field == "design.hair.cut"
                 and value == "waves"

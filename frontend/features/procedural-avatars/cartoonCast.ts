@@ -248,6 +248,7 @@ export interface CartoonDesign {
             sleeve: number;
             handScale: number;
             openHands?: ReferenceLayout["landmarks"]["openHands"];
+            palmContours?: [Point[] | null, Point[] | null];
         };
     };
     stance: "relaxed" | "guarded" | "hip" | "open";
