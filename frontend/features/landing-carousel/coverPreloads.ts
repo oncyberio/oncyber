@@ -25,11 +25,12 @@ export interface CoverPreload {
  * a column before the next one: a phone shows the first two, a wider screen
  * the first four.
  */
+/** What the preloads read from a card; a card may leave the optional ones out. */
+type CoverCard = Pick<LandingCard, "id" | "imageUrls"> &
+    Partial<Pick<LandingCard, "collage" | "room" | "buildStatus">>;
+
 export function firstScreenCovers(
-    cards: Pick<
-        LandingCard,
-        "id" | "imageUrls" | "collage" | "room" | "buildStatus"
-    >[] = [],
+    cards: CoverCard[] = [],
     filters?: Partial<DiscoveryFilters>
 ): CoverPreload[] {
     // The server sends a category's feed. A search or a chain, owner or
@@ -55,9 +56,7 @@ export function firstScreenCovers(
  * is one, else one from a catalog the browser fetches later, which cannot
  * be named here.
  */
-function firstCover(
-    card: Pick<LandingCard, "id" | "imageUrls" | "room" | "buildStatus">
-): string | undefined {
+function firstCover(card: CoverCard): string | undefined {
     if (
         card.room &&
         !card.buildStatus &&
