@@ -179,6 +179,18 @@ def record_decision(recipe, source, folder, decision):
         raise ValueError(
             "The reviewer must identify the current evidence and reference"
         )
+    if decision.get("reference", report["reference"]) != report["reference"]:
+        raise ValueError("The visual assessment names another reference")
+    if (
+        decision.get("kind") not in ("vision", "human")
+        or not isinstance(decision.get("reviewer"), str)
+        or not decision["reviewer"].strip()
+        or not isinstance(decision.get("checks"), dict)
+        or any(type(decision["checks"].get(check)) is not bool for check in CHECKS)
+    ):
+        raise ValueError(
+            "A reviewer and a pass or miss on every visual check are required"
+        )
     # Preserve a failed visual assessment for the next round as well.
     decision = {**decision, "reference": report["reference"]}
     (folder / "visual-review.json").write_text(json.dumps(decision, indent=2) + "\n")

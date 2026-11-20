@@ -519,7 +519,7 @@ def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
 
 def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
     """Trace the leather opening, sole and visible ankle separately on an inked foot."""
-    from .tracing import simplify_columns
+    from .tracing import lace_strokes, simplify_columns
 
     sections = body["sections"]
     offset = sections.get("pelvisX", 0)
@@ -600,13 +600,38 @@ def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
 
     # Decimate the ankle and leather together. Thinning the leather first
     # can skip the column at which a low-cut shoe exposes the instep.
-    rows = simplify_columns(cols[:, 0], cols[:, 1:], 20, max(0.55, width * 0.011))
+    rows = simplify_columns(cols[:, 0], cols[:, 1:], 9, max(0.55, width * 0.011))
     outsole = {
         "rows": np.column_stack((lateral(rows[:, 0]), level(rows[:, 2:])))
         .round(2)
         .tolist(),
         "color": paint(sole),
     }
+    laces = []
+    for stroke in lace_strokes(patch, cols, shoe):
+        xs, ys = stroke.T
+        knots = np.linspace(xs[0], xs[-1], min(5, len(xs)))
+        levels = np.interp(knots, xs, ndimage.gaussian_filter1d(ys.astype(float), 0.9))
+        laces.append(
+            {
+                "points": np.column_stack((lateral(knots), level(levels)))
+                .round(2)
+                .tolist(),
+                "color": paint(np.median(patch[ys, xs], axis=0)),
+                "radius": round(float(np.clip(scale * 0.68, 0.35, 1.6)), 2),
+            }
+        )
+    if laces:
+        outsole["laces"] = laces
+    # Match the border in leather, outsole and the low opening of an unlined flat.
+    contour = []
+    for x, _, _, base_y in slabs:
+        contour.append(patch[int(base_y), int(x)])
+    dark = np.asarray(contour)
+    luma = dark @ [0.213, 0.715, 0.072]
+    border = np.median(dark[luma <= np.percentile(luma, 35)], axis=0)
+    if border.mean() + 10 < shoe.mean():
+        outsole["ink"] = paint(border)
     sections["outsole"] = outsole
     shoe_rows = []
     for y in np.linspace(cols[:, 2].min() + 0.1, cols[:, 4].max() - 0.3, 10):
@@ -682,6 +707,7 @@ def inked_foot_columns(
     foot = np.zeros_like(figure)
     foot[hem:] = labels == overlap.argmax()
     # Pale socks and soles can match the paper between their two inked sides.
+    grounded = foot.copy()
     for y in np.flatnonzero(foot.any(axis=1)):
         occupied = np.flatnonzero(foot[y])
         foot[y, occupied[0] : occupied[-1] + 1] = True
@@ -690,10 +716,16 @@ def inked_foot_columns(
     upper = (leather | (near_leather & (patch @ luma < shoe @ luma - 16))) & foot
     cols = []
     for x in np.flatnonzero(upper.any(axis=0)):
-        crest, floor = np.flatnonzero(foot[:, x])[[0, -1]]
-        top, seam = np.flatnonzero(upper[:, x])[[0, -1]]
-        if floor <= crest:
+        crest = np.flatnonzero(foot[:, x])[0]
+        # Paper open below the arch separates the heel from the forefoot.
+        contact = np.flatnonzero(grounded[:, x])
+        if not len(contact):
             continue
+        floor = contact[-1]
+        top, seam = np.flatnonzero(upper[:, x])[[0, -1]]
+        if floor <= crest or top > floor:
+            continue
+        seam = min(seam, floor)
         if not contrasting:
             seam = max(top, floor - max(1, width * 0.025))
         cols.append((x, crest, top, seam, floor))

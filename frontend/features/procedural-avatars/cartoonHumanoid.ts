@@ -1,3 +1,4 @@
+import { stripCuts } from "./sculpt";
 import { drawMarkedShirt } from "./shirtMark";
 import * as T from "three/webgpu";
 import {
@@ -1670,8 +1671,8 @@ type MeasuredOutsole = NonNullable<
     NonNullable<NonNullable<CartoonDesign["fit"]>["sections"]>["outsole"]
 >;
 
-/** Join the sock or bare ankle to the leather along a common closed opening.
- * Heights are observed in front view. The shin and foot supply the depth. */
+/** Sweep a closed sagittal section through the drawing's heel, ankle and toe.
+ * Both pigment boundaries follow the observed front contour at every station. */
 function drawFittedFoot(
     d: Drawing,
     shoe: Section[],
@@ -1682,126 +1683,148 @@ function drawFittedFoot(
     sign: number,
     paint: string
 ) {
-    const { rows } = outsole;
+    const rows = outsole.rows;
     const left = rows[0][0],
         right = rows.at(-1)[0],
         width = right - left;
     const ankle = ((shin[1] + shin[2]) / 2 - center) * sign;
-    const cuffY = Math.min(...collar.tops);
-    const exposed = rows.filter(
-        (r, i) => r[1] - collar.tops[i] > Math.max(1, width * 0.054)
-    );
-    const cuff = rows.filter(
-        (r, i) =>
-            collar.tops[i] < cuffY + Math.max(1.5, width * 0.046) &&
-            r[1] - collar.tops[i] > 1
-    );
-    const bounds = (samples: typeof rows): [number, number] =>
-        samples.length > 1
-            ? [samples[0][0], samples.at(-1)[0]]
-            : [ankle - width * 0.13, ankle + width * 0.13];
     const toe = right - ankle >= ankle - left ? 1 : -1;
     const ankleDepth = Math.min((shin[2] - shin[1]) * 0.36, width * 0.25);
     const soleDepth = Math.min(
         Math.max(...shoe.map((r) => r[3])),
         width * 0.49
     );
-
-    const heightAt = (x: number, channel: 1 | 2 | 3) => {
-        let i = 1;
-        while (i < rows.length - 1 && rows[i][0] < x) i++;
-        const a = rows[i - 1],
-            b = rows[i];
-        return T.MathUtils.lerp(
-            a[channel],
-            b[channel],
-            T.MathUtils.clamp((x - a[0]) / (b[0] - a[0]), 0, 1)
-        );
-    };
-    const count = d.s.detail === "full" ? 16 : 12;
-    const ring = (
-        [min, max]: [number, number],
-        depth: number,
-        forward: number,
-        sweep: number,
-        y: (x: number, sin: number) => number
-    ): Point[] =>
-        loop(count, (angle) => {
-            const x = T.MathUtils.lerp(min, max, (1 + Math.cos(angle)) / 2);
-            // Preserve outward normals on both mirrored feet in drawing space.
-            const sin = -sign * Math.sin(angle);
-            return [
+    const cuff = Math.min(...collar.tops);
+    const measured = rows.map(([x, top, seam, base], i) => {
+        const crest = collar.tops[i];
+        const u = (x - left) / width;
+        const round = 2 * Math.sqrt(Math.max(0, u * (1 - u)));
+        const exposed = T.MathUtils.smoothstep(top - crest, 0, width * 0.085);
+        const leg =
+            exposed *
+            (1 - T.MathUtils.smoothstep(crest - cuff, 0, width * 0.17));
+        const turn = toe * (x - ankle);
+        const midZ = (shin[4] ?? 0) + turn * 0.58;
+        const soleR = soleDepth * round;
+        const ankleR =
+            ankleDepth *
+            Math.sqrt(Math.max(0, 1 - ((x - ankle) / (width * 0.38)) ** 2)) *
+            round;
+        const soleZ = midZ + width * 0.1;
+        const peakY = crest - 2 * leg;
+        const weltHeight = Math.min(width * 0.026, (base - seam) * 0.22);
+        function side(direction: number) {
+            const point = (y: number, z: number): Point => [
                 center + sign * x,
-                y(x, sin),
-                (shin[4] ?? 0) +
-                    forward +
-                    toe * (x - ankle) * sweep +
-                    sin * depth,
+                y,
+                z,
             ];
-        });
-    const cap = (r: Point[]) => {
-        const pole: Point = [0, 0, 0];
-        for (const [x, y, z] of r.slice(0, -1)) {
-            pole[0] += x / count;
-            pole[1] += y / count;
-            pole[2] += z / count;
-        }
-        return r.map(() => pole);
-    };
-    const cuffRing = ring(bounds(cuff), ankleDepth, 0, 0.08, () =>
-        Math.min(shin[0] - 1.5, cuffY)
-    );
-    const rim = ring(
-        bounds(exposed),
-        ankleDepth * 1.18,
-        width * 0.05,
-        0.48,
-        (x, sin) => heightAt(x, 1) + width * 0.035 * sin
-    );
-    const roof = ring(
-        [left + width * 0.018, right - width * 0.018],
-        soleDepth * 0.73,
-        width * 0.18,
-        0.83,
-        (x, sin) =>
-            T.MathUtils.lerp(
-                heightAt(x, 1),
-                heightAt(x, 2),
-                0.09 + 0.3 * Math.abs(sin)
-            )
-    );
-    const seam = ring([left, right], soleDepth, width * 0.21, 0.83, (x) =>
-        heightAt(x, 2)
-    );
-    const base = ring(
-        [left + width * 0.013, right - width * 0.013],
-        soleDepth * 0.96,
-        width * 0.21,
-        0.83,
-        (x) => heightAt(x, 3)
-    );
-    // The ink band is part of the shell and follows the opening during animation.
-    const piping = rim.map((p, i): Point => {
-        const q = roof[i];
-        const t = Math.min(
-            0.32,
-            (width * 0.024) /
-                Math.max(
-                    0.01,
-                    Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2])
+            const peak = point(peakY, midZ + direction * leg * ankleR * 0.86);
+            const throat = point(
+                top,
+                T.MathUtils.lerp(
+                    peak[2],
+                    midZ + direction * (0.61 * ankleR + 0.32 * soleR),
+                    exposed
                 )
-        );
-        return between(p, q, t);
+            );
+            const wall = point(seam, soleZ + direction * soleR);
+            const vamp = point(
+                T.MathUtils.lerp(top, seam, 0.38),
+                T.MathUtils.lerp(throat[2], wall[2], 0.8)
+            );
+            const lip = between(
+                throat,
+                vamp,
+                Math.min(
+                    0.32,
+                    (width * 0.024) /
+                        Math.max(
+                            0.01,
+                            Math.hypot(vamp[1] - top, vamp[2] - throat[2])
+                        )
+                )
+            ) as Point;
+            const edge = point(seam + weltHeight, soleZ + direction * soleR);
+            const floor = point(base, soleZ + direction * soleR * 0.94);
+            return {
+                peak,
+                throat,
+                lip,
+                vamp,
+                wall,
+                edge,
+                floor,
+                tread: point(
+                    base - weltHeight,
+                    soleZ + direction * soleR * 0.96
+                ),
+            };
+        }
+        return { front: side(1), rear: side(-1) };
     });
-    d.s.surface(
-        [cap(cuffRing), cuffRing, rim],
-        collar.color,
-        true,
-        "perimeter"
-    );
-    d.s.surface([rim, piping], swatch(paint, ink, 0.71), true, "perimeter");
-    d.s.surface([piping, roof, seam], paint, true, "perimeter");
-    d.s.surface([seam, base, cap(base)], outsole.color, true, "perimeter");
+    // Decimate paint and geometry together. Older recipes can have up to 32
+    // stations. Keep the same heel, instep and toe edges on every color band.
+    const contours = measured.map(({ front, rear }) => [
+        front.peak,
+        front.throat,
+        front.vamp,
+        front.wall,
+        front.floor,
+        rear.wall,
+    ]);
+    const limit = d.s.detail === "full" ? 8 : 7;
+    let cuts = rows.map((_, i) => i);
+    let error = width * 0.016;
+    while (cuts.length > limit) {
+        cuts = stripCuts(
+            rows.length,
+            contours[0].length,
+            (i, j) => contours[i][j],
+            error,
+            Infinity
+        );
+        error *= 1.22;
+    }
+    const sections = cuts.map((i) => measured[i]);
+    // Preserve the winding on both feet. Each band meets its neighbor on the
+    // same points, from the shin opening to the tread under the toe.
+    if (sign > 0) sections.reverse();
+    type Side = (typeof sections)[number]["front"];
+    const band = (
+        color: string,
+        path: (front: Side, rear: Side) => Point[]
+    ) => {
+        const grid = sections.map(({ front, rear }) => path(front, rear));
+        d.s.surface(grid, color, true, "perimeter");
+        return grid;
+    };
+    const edgeInk = outsole.ink ?? swatch(paint, ink, 0.72);
+    band(collar.color, (f, r) => [r.peak, f.peak]);
+    band(collar.color, (f) => [f.peak, f.throat]);
+    band(edgeInk, (f) => [f.throat, f.lip]);
+    const upper = band(paint, (f) => [f.lip, f.vamp, f.wall]);
+    if (rows.some(([, , seam, base]) => base - seam > width * 0.055)) {
+        band(edgeInk, (f) => [f.wall, f.edge]);
+        band(outsole.color, (f) => [f.edge, f.tread]);
+        band(edgeInk, (f) => [f.tread, f.floor]);
+        band(outsole.color, (f, r) => [f.floor, r.floor]);
+        band(edgeInk, (_, r) => [r.floor, r.tread]);
+        band(outsole.color, (_, r) => [r.tread, r.edge]);
+        band(edgeInk, (_, r) => [r.edge, r.wall]);
+    } else {
+        band(outsole.color, (f, r) => [f.wall, f.floor, r.floor, r.wall]);
+    }
+    band(paint, (_, r) => [r.wall, r.vamp, r.lip]);
+    band(edgeInk, (_, r) => [r.lip, r.throat]);
+    band(collar.color, (_, r) => [r.throat, r.peak]);
+    if (outsole.laces?.length) {
+        const strokes = outsole.laces.map((lace) => ({
+            ...lace,
+            points: lace.points.map(([x, y]): XY => [center + sign * x, y]),
+        }));
+        stitchLines(d, strokes, frontOfLoft(upper));
+    }
 }
 
 /** Extend the painted sole around the heel and toe of a closed shoe. */

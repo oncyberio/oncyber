@@ -862,6 +862,11 @@ class AuthoringTests(unittest.TestCase):
                 "checks": dict.fromkeys(CHECKS, False),
                 "evidence": digest(root / "evidence.json"),
             }
+            before = (root / "visual-review.json").read_bytes()
+            for field, value in (("reference", "other drawing"), ("checks", {})):
+                with self.assertRaises(ValueError):
+                    record_decision(source, reference, root, {**decision, field: value})
+                self.assertEqual((root / "visual-review.json").read_bytes(), before)
             with self.assertRaisesRegex(ValueError, "reference comparison"):
                 record_decision(source, reference, root, decision)
             self.assertFalse(

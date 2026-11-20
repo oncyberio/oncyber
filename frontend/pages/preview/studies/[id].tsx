@@ -82,6 +82,12 @@ export default function RecipeReview({
                             />
                         </details>
                     )}
+                    <a
+                        className="evidence"
+                        href={`/preview/studies/${id}/review`}
+                    >
+                        Review recorded views and motion
+                    </a>
                 </aside>
                 <div className="viewer">
                     {subjects ? (
@@ -118,6 +124,12 @@ export default function RecipeReview({
                 a:focus-visible,
                 a:hover {
                     text-decoration: underline;
+                }
+                a.evidence {
+                    color: #313932;
+                    text-decoration: underline;
+                    display: inline-block;
+                    margin: 16px 0;
                 }
                 .review {
                     display: grid;

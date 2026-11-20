@@ -420,6 +420,30 @@ class HouseholdTests(unittest.TestCase):
                     max(row[1] - y for y, row in zip(collar["tops"], sole["rows"])), 4
                 )
                 self.assertEqual(collar["color"] != design["skin"], sock)
+                self.assertEqual(bool(sole.get("laces")), sock)
+                if sock:
+                    self.assertGreaterEqual(len(sole["laces"]), 2)
+                    self.assertNotEqual(sole["ink"], sole["color"])
+
+    def test_laces_follow_matching_ink_on_the_vamp(self):
+        from .tracing import lace_strokes
+
+        shoe = np.array([108, 76, 64])
+        patch = np.tile(shoe, (36, 51, 1))
+        cols = np.column_stack((np.arange(2, 49), np.tile([5, 8, 29, 32], (47, 1))))
+        for x in range(16, 32):
+            y = 15 - (x - 16) // 6
+            patch[y, x] = [35, 25, 20]
+        self.assertFalse(lace_strokes(patch, cols, shoe))
+        for x in range(18, 34):
+            y = 19 - (x - 18) // 6
+            patch[y, x] = [35, 25, 20]
+        strokes = lace_strokes(patch, cols, shoe)
+        self.assertEqual(len(strokes), 2)
+        for stroke in strokes:
+            self.assertTrue(np.all(patch[stroke[:, 1], stroke[:, 0], 0] == 35))
+        patch[7:9] = [35, 25, 20]
+        self.assertEqual(len(lace_strokes(patch, cols, shoe)), 2)
 
     def test_inked_foot_recovers_the_outline_and_rejects_detached_marks(self):
         from .household_front import inked_foot_columns
@@ -447,6 +471,16 @@ class HouseholdTests(unittest.TestCase):
         self.assertEqual(ankle[-1], 22)
         self.assertLess(ankle[1], ankle[2])
         self.assertLess(ankle[3], ankle[4])
+
+        # A small open arch under the leather must extend up to its own edge.
+        patch[19:23, 19:22] = paper
+        patch[18, 19:22] = ink
+        dyed = (patch == leather).all(axis=2)
+        arch, _ = inked_foot_columns(
+            patch, np.ones(dyed.shape, bool), paper, dyed, leather, cloth, 13, 4, True
+        )
+        heel, gap, toe = (arch[arch[:, 0] == x][0, -1] for x in (17, 20, 24))
+        self.assertLess(gap, min(heel, toe))
 
     def test_roll_and_split_require_visible_cloth_evidence(self):
         for name, rolled in (("lark", True), ("moss", False)):

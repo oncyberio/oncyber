@@ -1127,6 +1127,65 @@ def chin_ink(rgb, skin, cx, mouth, chin, width):
     return None
 
 
+def lace_strokes(patch, cols, leather):
+    """Track adjacent transverse strokes on the vamp, clear of the shoe opening and sole."""
+    lo, hi = cols[[0, -1], 0].astype(int)
+    width = hi - lo + 1
+    if width < 16:
+        return []
+    luma = patch @ [0.213, 0.715, 0.072]
+    depth = max(2, round(width * 0.075))
+    tones = ndimage.grey_closing(luma, size=(2 * depth + 1, 1)) - luma
+    traces = []
+    for row in cols:
+        col, _, edge, bottom, _ = row
+        x = int(col)
+        peaks, _ = find_peaks(
+            tones[:, x],
+            height=max(10, leather @ [0.213, 0.715, 0.072] * 0.16),
+            prominence=7,
+        )
+        levels = [y for y in peaks if edge + width * 0.037 < y < bottom - width * 0.045]
+        available = [
+            (abs(y - t[-1][1]), i, y)
+            for i, t in enumerate(traces)
+            for y in levels
+            if x - t[-1][0] <= 2 and abs(y - t[-1][1]) <= 1.25 * (x - t[-1][0])
+        ]
+        used = set()
+        for _, i, y in sorted(available):
+            if i not in used and y in levels:
+                traces[i].append((x, y))
+                levels.remove(y)
+                used.add(i)
+        traces.extend([[(x, y)] for y in levels])
+    candidates = []
+    for trace in traces:
+        a = np.asarray(trace)
+        dx, dy = np.ptp(a, axis=0)
+        if (
+            width * 0.12 <= dx <= width * 0.58
+            and len(a) >= dx * 0.74
+            and dy <= dx * 0.62
+        ):
+            candidates.append(a)
+    matched = []
+    for a in candidates:
+        for b in candidates:
+            if a is b:
+                continue
+            x = np.intersect1d(a[:, 0], b[:, 0])
+            if len(x) < max(3, min(len(a), len(b)) * 0.45):
+                continue
+            delta = np.interp(x, a[:, 0], a[:, 1]) - np.interp(x, b[:, 0], b[:, 1])
+            if width * 0.035 <= abs(np.median(delta)) <= width * 0.20 and np.ptp(
+                delta
+            ) <= max(2, width * 0.065):
+                matched.append(a)
+                break
+    return sorted(matched, key=lambda a: np.mean(a[:, 1]))[:5]
+
+
 def shoe_sections(rgb, figure, shoe, skin, cx, ankle):
     """Trace the upper, sidewall and outsole in lateral slices of one flat shoe."""
     y0 = max(0, round(ankle))

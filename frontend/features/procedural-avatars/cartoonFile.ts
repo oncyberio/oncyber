@@ -383,6 +383,8 @@ const fit = z.strictObject({
                 .optional(),
             outsole: z
                 .strictObject({
+                    ink: paint.optional(),
+                    laces: seams.optional(),
                     collar: z
                         .strictObject({
                             tops: z.array(n(0, 950)).min(3).max(32),

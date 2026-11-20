@@ -221,6 +221,8 @@ export interface CartoonDesign {
                 locks?: [number, number][][];
             };
             outsole?: {
+                ink?: string;
+                laces?: Seam[];
                 collar?: { tops: number[]; color: string };
                 rows: [number, number, number, number][];
                 color: string;

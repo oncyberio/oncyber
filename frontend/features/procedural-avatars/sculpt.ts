@@ -42,7 +42,7 @@ const light = new T.Vector3(-0.68, 0.55, 0.68).normalize();
 
 /** Reduce a whole strip with a shared set of cuts. Adjacent faces stay joined.
  * The largest 3D deviation across the strip controls each retained cut. */
-function stripCuts(
+export function stripCuts(
     count: number,
     width: number,
     point: (i: number, j: number) => Point,

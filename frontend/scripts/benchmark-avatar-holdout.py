@@ -401,6 +401,54 @@ def visible_trouser_opening(path):
         return round((opening - top) / height, 4)
 
 
+def export_review_views(folder, destination, key, report):
+    """Offer the captured turns and motion on demand, bound to the archived evidence."""
+    from shutil import copyfile
+    from PIL import Image, ImageDraw, ImageFont
+    from avatar_authoring.family_sheet import view_tile
+
+    destination.mkdir(parents=True, exist_ok=True)
+    font = ImageFont.truetype("DejaVuSans.ttf", 17)
+    assets = {}
+    for backend, capture in report["backends"].items():
+        source = folder / backend
+        prefix = destination / (key + "-" + backend)
+        sheet = Image.new("RGB", (1440, 926), "#eee9e1")
+        labels = ImageDraw.Draw(sheet)
+        for index, (view, label) in enumerate(
+            (
+                ("front", "Front"),
+                ("quarter", "35°"),
+                ("profile", "Profile"),
+                ("back", "Back"),
+            )
+        ):
+            x = index * 360
+            tile = view_tile(source / (view + ".png"), (352, 330))
+            sheet.paste(
+                tile, (x + (360 - tile.width) // 2, 30 + (330 - tile.height) // 2)
+            )
+            labels.text((x + 9, 6), label, font=font, fill="#262521")
+        with Image.open(source / "turnaround.png") as turns:
+            sheet.paste(turns.convert("RGB"), (0, 366))
+        pose = view_tile(source / "crouch.png", (392, 490))
+        sheet.paste(
+            pose, (1040 + (400 - pose.width) // 2, 407 + (490 - pose.height) // 2)
+        )
+        labels.text(
+            (1050, 377), "Crouch and right-hand grip", font=font, fill="#262521"
+        )
+        still = prefix.with_name(prefix.name + "-views.webp")
+        motion = prefix.with_name(prefix.name + "-walk.webp")
+        sheet.save(still, "WEBP", quality=92, method=6)
+        copyfile(source / "walk.webp", motion)
+        assets[backend] = {
+            "views": digest(still),
+            "walk": capture["views"]["walk.webp"],
+        }
+    return assets
+
+
 def record_preview(args):
     """Record the exact exported, rendered study bytes alongside the frozen inputs."""
     root = args.manifest.parent
@@ -462,6 +510,9 @@ def record_preview(args):
                 f"{key} native evidence and frozen full-body reference differ"
             )
         data["evidence_sha256"] = digest(evidence)
+        data["review_assets"] = export_review_views(
+            evidence.parent, root / "reviews", key, report
+        )
         data["native_release"] = {
             mode: {
                 "source_silhouette_iou": v["reference_metrics"]["silhouette_iou"],
