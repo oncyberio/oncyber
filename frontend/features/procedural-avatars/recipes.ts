@@ -70,6 +70,7 @@ export interface AvatarRecipe {
     layout?: ReferenceLayout;
     /** Tailor the existing streetwear patterns in their template's reference coordinates. */
     streetPattern?: StreetPattern;
+    inspectClothingFit?: boolean;
     garments?: Partial<
         Pick<
             StreetLook,

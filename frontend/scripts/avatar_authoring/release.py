@@ -2,12 +2,11 @@
 
 import hashlib
 import json
-from pathlib import Path
 
 from .family_review import compare_images, eyes_match, native_front
-from .sun_rays import collar_closed
 from .one_image import portrait_metrics
 from .review import render
+from .sun_rays import collar_closed
 
 CHECKS = ("likeness", "profile", "eyes", "garments", "body", "motion", "grip")
 GRIP_VIEWS = ("grip-right.png", "grip-left.png")
@@ -23,6 +22,36 @@ VIEWS = (
     "walk.webp",
     "crouch.png",
 )
+
+
+def wardrobe_views(native):
+    if "layer_triangles" not in native:
+        return ()
+    return (
+        "camera.json",
+        "profile-mask.png",
+        "mask.png",
+        "portrait-profile.png",
+        "idle-back.png",
+        "front-body-fit.png",
+        *(
+            f"{v}-{layer}.png"
+            for v in ("front", "profile", "crouch")
+            for layer in ("body", "bottoms")
+        ),
+        *(
+            f"{v}-fit.png"
+            for v in (
+                "front",
+                "quarter",
+                "profile",
+                "back",
+                "walk",
+                "crouch",
+                "idle-back",
+            )
+        ),
+    )
 
 
 def digest(path):
@@ -91,7 +120,9 @@ def registration_from_source(recipe, source):
 
 def add_turn_guide(report, recipe, folder, guide):
     from shutil import copyfile
+
     from PIL import Image
+
     from .turn_guides import compare_turns
 
     with Image.open(guide) as image:
@@ -148,7 +179,10 @@ def evidence(
         result["backends"][backend] = {
             "reference_metrics": measured,
             "native": native,
-            "views": {v: digest(dest / v) for v in (*VIEWS, *GRIP_VIEWS)},
+            "views": {
+                v: digest(dest / v)
+                for v in (*VIEWS, *GRIP_VIEWS, *wardrobe_views(native))
+            },
         }
     if turn_guide is not None:
         add_turn_guide(result, recipe, folder, turn_guide)
@@ -174,6 +208,7 @@ def verified_captures(recipe, folder):
         views = (*VIEWS, *GRIP_VIEWS) if "grip_test" in item["native"] else VIEWS
         if guide is not None:
             views = (*views, "portrait-profile.png", "turns.webp")
+        views = (*views, *wardrobe_views(item["native"]))
         if set(item["views"]) != set(views) or any(
             digest(folder / backend / name) != item["views"][name] for name in views
         ):
@@ -252,7 +287,9 @@ def record_decision(recipe, source, folder, decision):
 def export_review_views(folder, destination, key, report):
     """Offer the captured turns and motion on demand, bound to the archived evidence."""
     from shutil import copyfile
+
     from PIL import Image, ImageDraw, ImageFont
+
     from .family_sheet import view_tile
 
     destination.mkdir(parents=True, exist_ok=True)
@@ -325,9 +362,10 @@ def export_review_views(folder, destination, key, report):
 
 
 def vision_decision(recipe, source, folder, args):
+    from PIL import Image, ImageDraw, ImageOps
+
     from .family_edits import record
     from .provider import openrouter_model, request_drawing
-    from PIL import Image, ImageOps, ImageDraw
 
     report = verified_captures(recipe, folder)
     if report["reference"] != digest(source):

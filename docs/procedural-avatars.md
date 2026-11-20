@@ -2,7 +2,9 @@
 
 ## Measured streetwear
 
-Vale is the first fitted member of the spiked-hair, oversized-tee and pooled-denim family. Open the [Vale study](/preview/studies/vale-streetwear) for the GPT Image turnaround, native front and profile comparison, recorded walk and both hand grips. Use the [playable preview](/preview/vale) to move around the space.
+Vale is the first fitted member of the spiked-hair, oversized-tee and pooled-denim family. The study opens on the underlying figure. Rotate the camera or pause a walk, then switch between the base body, jeans and shoes, and the full outfit to inspect the same pose. The portrait gallery compares the eyes, fringe, jaw and ear against the drawing. [Vale study](/preview/studies/vale-streetwear) · [Playable space](/preview/vale)
+
+The body has a continuous shoulder and hip surface, articulated hands, shaped knees and bare feet. Hidden anatomy is inferred from the reference proportions. The tee has sewn armholes, an open collar and lined cuffs. Two local rig joints let the lower sleeve hang as the upper arm turns. The jeans have a shared seat and an inseam between the legs. Fully covered body triangles and their unused vertices are removed from the playable mesh. The study retains all three index ranges so a clothing change preserves the camera, skeleton and held item.
 
 Start with a full-body orthographic front T-pose and a left-facing profile on the same sheet. Keep the figure height, floor, hair, outfit and proportions consistent. Fit the seams, toe opening, cloth light, crown tips, fringe and shirt graphics from the drawing. The family supplies anatomy, hidden garment surfaces, hands and the rig. The calibrated cut assumes a low tilted belt, an ankle-length pooled pant and three major spikes on either side. A different cut needs its own calibration.
 
@@ -17,9 +19,9 @@ python frontend/scripts/review-streetwear.py \
   /tmp/vale.json /tmp/vale-captures /tmp/vale-study --split 979 --slug vale
 ```
 
-The fitter writes a texture-free JSON recipe. The renderer constructs one skinned mesh with vertex colors. The review measures the silhouette against each supplied view after aligning height, floor and horizontal center. The 35-degree and rear views are native inspection renders of the inferred geometry. The image and captures load on the study page only.
+The fitter writes a texture-free JSON recipe. The renderer constructs one skinned mesh with vertex colors. The review records front and profile silhouette overlap, registered face close-ups, progressive dressing in two poses, motion and both hand grips on WebGL2 and WebGPU. The clothing fit pass marks covered anatomy pink. The undressed front view is a positive control. Side views can show skin through the sleeve opening. [Native measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/measurements.json)
 
-The Vale recipe is 19,392 bytes (6,109 bytes gzipped) and the close mesh has 4,980 triangles. The recorded 100-variation stress test includes different head widths, spike lengths, hair lengths and shirt colors. WebGPU and WebGL2 each produced one avatar color draw and one shadow draw. The full crowd took 14–17 seconds to become ready in software Chromium. That timing covers all 100 generated bodies. Reproduce it with `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows`. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
+The Vale recipe is 19,392 bytes (6,109 bytes gzipped). The bare study draw uses 2,839 triangles. Jeans and shoes bring it to 4,047, and the playable outfit uses 4,839. Each stage uses one skinned draw. The crowd test varies head width, spike length, hair length and shirt color across 100 recipes. It records assembly time, color and shadow draw calls, and checks the rendered pixels for every figure and its shadow on each backend. Run `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows` to reproduce it. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
 
 ## Rick and Morty family
 

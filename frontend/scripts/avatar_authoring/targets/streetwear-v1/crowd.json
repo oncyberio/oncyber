@@ -8,8 +8,8 @@
         "visible": "100",
         "backend": "WebGLBackend",
         "authored": "100",
-        "triangles": "755307",
-        "readyMs": "17064",
+        "triangles": "748147",
+        "readyMs": "32374",
         "uniqueRecipesLoaded": 100,
         "occupiedColorCells": 100,
         "sourceRecipes": {
@@ -26,8 +26,8 @@
         "visible": "100",
         "backend": "WebGPUBackend",
         "authored": "100",
-        "triangles": "755307",
-        "readyMs": "14357",
+        "triangles": "748147",
+        "readyMs": "21689",
         "uniqueRecipesLoaded": 100,
         "occupiedColorCells": 100,
         "sourceRecipes": {

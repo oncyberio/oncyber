@@ -17,6 +17,7 @@ from avatar_authoring.release import (
     verified_captures,
 )
 from PIL import Image, ImageDraw, ImageFont, ImageOps
+from scipy import ndimage
 
 
 def frame(image, mask, width):
@@ -41,6 +42,107 @@ def frame(image, mask, width):
         size, Image.Transform.EXTENT, box, Image.Resampling.NEAREST
     )
     return rgb, np.asarray(matte) > 0
+
+
+def body_and_clothes(folder, output):
+    paper = "#f6f3ef"
+    canvas = Image.new("RGB", (1320, 1014), paper)
+    draw = ImageDraw.Draw(canvas)
+    font = ImageFont.truetype("DejaVuSans.ttf", 23)
+    for col, title in enumerate(("Base body", "Jeans and shoes", "Full outfit")):
+        draw.text((col * 440 + 15, 12), title, font=font, fill="#332f2e")
+    for row, (name, title) in enumerate(
+        (("front", "T-pose"), ("crouch", "Crouch · right-hand grip"))
+    ):
+        images = [
+            Image.open(folder / (name + suffix + ".png")).convert("RGB")
+            for suffix in ("-body", "-bottoms", "")
+        ]
+        masks = [
+            np.abs(np.asarray(im).astype(np.int16) - im.getpixel((0, 0))).max(axis=2)
+            > 17
+            for im in images
+        ]
+        y, x = np.nonzero(np.logical_or.reduce(masks))
+        box = (x.min() - 12, y.min() - 12, x.max() + 13, y.max() + 13)
+        top = 45 + row * 483
+        draw.text((14, top), title, font=font, fill="#585350")
+        for col, im in enumerate(images):
+            tile = im.crop(box)
+            tile.thumbnail((433, 438), Image.Resampling.LANCZOS)
+            canvas.paste(
+                tile,
+                (
+                    440 * col + (440 - tile.width) // 2,
+                    top + 34 + (438 - tile.height) // 2,
+                ),
+            )
+    canvas.save(output, quality=91, method=6)
+
+
+def face_gallery(folder, targets, output):
+    # Anchor matching crops at the iris centers. Use the orthographic cameras
+    # to keep a millimetre on the face the same size in both drawings and renders.
+    cameras = json.loads((folder / "camera.json").read_text())
+    body, portrait = cameras["body"], cameras["portrait"]
+    matte = np.asarray(Image.open(folder / "mask.png").convert("L")) > 127
+    px_per_unit = (
+        (np.ptp(np.nonzero(matte)[0]) + 1)
+        / 1000
+        * (body["height"] / body["pixels"])
+        / (portrait["height"] / portrait["pixels"])
+    )
+    panels = [
+        ("Drawing · front", targets["front"][0], 1, "front"),
+        ("Native · front", "portrait", px_per_unit, "front"),
+        ("Native · 35°", "portrait-quarter", px_per_unit, "quarter"),
+        ("Native · profile", "portrait-profile", px_per_unit, "profile"),
+        ("Drawing · profile", targets["profile"][0], 1, "profile"),
+    ]
+    canvas = Image.new("RGB", (1200, 278), "#f6f3ef")
+    draw = ImageDraw.Draw(canvas)
+    font = ImageFont.truetype("DejaVuSans.ttf", 18)
+    for i, (title, subject, scale, angle) in enumerate(panels):
+        native = isinstance(subject, str)
+        image = (
+            Image.open(folder / (subject + ".png")).convert("RGB")
+            if native
+            else subject
+        )
+        rgb = np.asarray(image).astype(np.int16)
+        r, g, b = rgb.transpose(2, 0, 1)
+        yy = np.indices(r.shape)[0]
+        irises = (
+            (b - r > 16)
+            & (b - g > 3)
+            & (yy < image.height * (0.73 if native else 0.17))
+        )
+        labels, n = ndimage.label(irises)
+        area = np.bincount(labels.ravel())[1:]
+        blobs = np.argsort(area)[::-1]
+        if not n or not area[blobs[0]]:
+            raise ValueError(f"No iris pigment in {title}")
+        # Ignore isolated blue antialiasing pixels on the ink and paper.
+        keep = [blobs[0] + 1]
+        if angle != "profile" and n > 1 and area[blobs[1]] > area[blobs[0]] * 0.3:
+            keep.append(blobs[1] + 1)
+        y, x = np.nonzero(np.isin(labels, keep))
+        if len(x) < 3:
+            raise ValueError(f"Cannot register the eyes in {title}")
+        cx = (np.percentile(x, 5) + np.percentile(x, 95)) / 2
+        cy = np.median(y)
+        width = 144 * scale
+        left = cx - width * {"front": 0.5, "quarter": 0.56, "profile": 0.66}[angle]
+        top = cy - width * 0.47
+        tile = image.transform(
+            (240, 240),
+            Image.Transform.EXTENT,
+            (left, top, left + width, top + width),
+            Image.Resampling.BICUBIC,
+        )
+        canvas.paste(tile, (i * 240, 38))
+        draw.text((i * 240 + 8, 8), title, font=font, fill="#332f2e")
+    canvas.save(output, quality=94, method=6)
 
 
 def review(args):
@@ -75,6 +177,15 @@ def review(args):
         native = capture["native"]
         if native["triangles"] > args.budget:
             raise ValueError(f"{backend} exceeded {args.budget} triangles")
+        # Looking along the arm can reveal skin inside a real opening. A larger
+        # exposed island in a closed panel is a fit regression at this camera.
+        control = native["clothing_fit_control"]["pixels"]
+        for view, fit in native["clothing_fit"].items():
+            tolerance = 0.006 if view in ("profile", "quarter") else 0.0015
+            if fit["largest_patch"] > control * tolerance:
+                raise ValueError(
+                    f"{backend} {view}: inspect the {fit['largest_patch']}-pixel skin patch in the fit pass"
+                )
         metrics = {}
         offset = 0
         for angle, (drawing, reference) in targets.items():
@@ -102,6 +213,21 @@ def review(args):
     canvas.thumbnail((2048, 1100), Image.Resampling.LANCZOS)
     canvas.save(comparison, quality=92, method=6)
     result["comparison_sha256"] = digest(comparison)
+    assets = {}
+    for name, make in [
+        (
+            "body-and-clothes",
+            lambda path: body_and_clothes(args.captures / "WebGLBackend", path),
+        ),
+        (
+            "face",
+            lambda path: face_gallery(args.captures / "WebGLBackend", targets, path),
+        ),
+    ]:
+        path = args.destination / (args.slug + "-" + name + ".webp")
+        make(path)
+        assets[name] = digest(path)
+    result["studies"] = assets
     result["captures"] = export_review_views(
         args.captures, args.destination, args.slug, report
     )

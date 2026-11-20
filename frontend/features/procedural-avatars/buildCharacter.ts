@@ -1036,6 +1036,8 @@ delete plainKitInk.leftUpperArmSleeve;
 delete plainKitInk.rightUpperArmSleeve;
 export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
     if (recipe?.streetPattern) {
+        d.s.coveredSkin = [];
+        d.s.inspectWardrobe = !!recipe.inspectClothingFit;
         drawMeasuredStreetwear(d, recipe.streetPattern);
         return;
     }

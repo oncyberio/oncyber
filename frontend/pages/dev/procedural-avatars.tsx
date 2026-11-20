@@ -29,6 +29,7 @@ export type Subject = {
     posedTPose?: boolean;
     orbScale?: number;
     coat?: boolean;
+    wardrobe?: "body" | "dressed";
 };
 const studySubjects: Subject[] = characters.map((c) => ({
     ...c,
@@ -54,13 +55,23 @@ export default function AvatarStudy({
         customSubjects ?? (cartoonOnly ? castSubjects : studySubjects);
     const host = useRef<HTMLDivElement>(null);
     const canvas = useRef<HTMLCanvasElement>(null);
-    const [closeup, setCloseup] = useState<"portrait" | "hand" | null>(() =>
-        customSubjects &&
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).get("focus") === "hand"
-            ? "hand"
-            : null
+    const defaultLayer = customSubjects?.[0]?.wardrobe;
+    const [closeup, setCloseup] = useState<"portrait" | "hand" | null>(null);
+    const [wardrobe, setWardrobe] = useState<"body" | "bottoms" | "dressed">(
+        defaultLayer ?? "dressed"
     );
+    useEffect(() => {
+        if (!defaultLayer) return;
+        const params = new URLSearchParams(window.location.search);
+        const layer = params.get("layer"),
+            focus = params.get("focus");
+        setWardrobe(
+            layer === "body" || layer === "bottoms" || layer === "dressed"
+                ? layer
+                : defaultLayer
+        );
+        if (focus === "portrait" || focus === "hand") setCloseup(focus);
+    }, [defaultLayer]);
     const [view, setView] = useState<View>(
         customSubjects ? "authored" : "rick-classic"
     );
@@ -70,6 +81,7 @@ export default function AvatarStudy({
     const [motion, setMotion] = useState(
         customSubjects ? "T-pose" : "Reference"
     );
+    const [checkFit, setCheckFit] = useState(false);
     const [rawPaint, setRawPaint] = useState(false);
     const [silhouettes, setSilhouettes] = useState<boolean | "coat">(false);
     const [compareSun, setCompareSun] = useState(false);
@@ -93,6 +105,8 @@ export default function AvatarStudy({
         compareSun,
         silhouettes,
         rawPaint,
+        wardrobe,
+        checkFit,
         itemHand,
     });
     controls.current = {
@@ -106,6 +120,8 @@ export default function AvatarStudy({
         compareSun,
         silhouettes,
         rawPaint,
+        wardrobe,
+        checkFit,
         itemHand,
     };
     useEffect(() => {
@@ -158,6 +174,16 @@ export default function AvatarStudy({
                     | InstanceType<typeof T.BufferAttribute>
                     | InstanceType<typeof T.InterleavedBufferAttribute>;
             let bakedMaterial: typeof studyMesh.material;
+            let wardrobeMesh: typeof studyMesh,
+                wardrobeMaterial: typeof studyMesh.material;
+            const fitMaterial = new T.MeshBasicNodeMaterial({
+                side: T.DoubleSide,
+            });
+            const minCoverage = nodes.uniform(0.9);
+            fitMaterial.colorNode = nodes
+                .attribute("coveredSkin", "float")
+                .greaterThan(minCoverage)
+                .select(nodes.vec3(1, 0, 1), nodes.vec3(0.08, 0.09, 0.1));
             let previousRaw = false;
             const ownedItems: InstanceType<typeof T.Mesh>[] = [];
             // One lathed, vertex-painted microphone shared by the study's hands.
@@ -283,6 +309,8 @@ export default function AvatarStudy({
                     studyMesh.geometry.setAttribute("color", bakedPaint);
                     studyMesh.material = bakedMaterial;
                 }
+                if (wardrobeMesh) wardrobeMesh.material = wardrobeMaterial;
+                fitMaterial.dispose();
                 rawMaterial.dispose();
                 for (const model of models) model.dispose();
                 original?.dispose();
@@ -327,6 +355,12 @@ export default function AvatarStudy({
                     bakedPaint = studyMesh.geometry.getAttribute("color");
                     bakedMaterial = studyMesh.material;
                 }
+                if (customSubjects?.[0]?.wardrobe)
+                    wardrobeMesh = model.root.getObjectByProperty(
+                        "isSkinnedMesh",
+                        true
+                    ) as typeof studyMesh;
+                if (wardrobeMesh) wardrobeMaterial = wardrobeMesh.material;
                 models.push(model);
                 ownedItems.push(new T.Mesh(micGeometry, micMaterial));
                 scene.add(model.root);
@@ -360,6 +394,7 @@ export default function AvatarStudy({
             const referenceFloor = models.map(() => 0);
             let previous = performance.now(),
                 lastView = "",
+                lastLayer = "",
                 lastMotion = "";
             const draw = (now: number) => {
                 if (stopped) return;
@@ -374,6 +409,8 @@ export default function AvatarStudy({
                     compareSun,
                     silhouettes,
                     rawPaint,
+                    wardrobe,
+                    checkFit,
                     itemHand,
                 } = controls.current;
                 const dt = Math.min(0.05, (now - previous) / 1000);
@@ -392,6 +429,14 @@ export default function AvatarStudy({
                 const elapsed = step ? 0.09 : paused ? 0 : dt;
                 previousControls = controls.current;
                 dirty = false;
+                if (wardrobeMesh) {
+                    const inspect = checkFit;
+                    minCoverage.value = wardrobe === "bottoms" ? 1.9 : 0.65;
+                    wardrobeMesh.material = inspect
+                        ? fitMaterial
+                        : wardrobeMaterial;
+                    canvas.current.dataset.fitCheck = String(inspect);
+                }
                 const raw = view === "rick-classic" && rawPaint;
                 if (raw !== previousRaw) {
                     studyMesh.geometry.setAttribute(
@@ -605,14 +650,30 @@ export default function AvatarStudy({
                         if (motion === "Crouch") poseCrouched(original);
                         else original.update(elapsed, motion);
                 }
-                if (lastView !== view) {
+                if (lastView !== view || lastLayer !== wardrobe) {
+                    lastLayer = wardrobe;
+                    const layers = wardrobeMesh?.geometry.userData.wardrobe;
+                    if (layers) {
+                        wardrobeMesh.geometry.setDrawRange(
+                            layers[wardrobe].start,
+                            layers[wardrobe].count
+                        );
+                        canvas.current.dataset.layer = wardrobe;
+                        canvas.current.dataset.layerTriangles = String(
+                            layers[wardrobe].count / 3
+                        );
+                    }
                     const stats = lineup
                         ? metrics.filter((_, i) => models[i].root.visible)
                         : [metrics[index]];
                     setDetail(
-                        stats
-                            .reduce((sum, item) => sum + item.triangles, 0)
-                            .toLocaleString() +
+                        (layers
+                            ? layers[wardrobe].count / 3
+                            : stats.reduce(
+                                  (sum, item) => sum + item.triangles,
+                                  0
+                              )
+                        ).toLocaleString() +
                             " triangles · " +
                             stats.length +
                             " skinned mesh" +
@@ -794,6 +855,39 @@ export default function AvatarStudy({
                 </div>
             </section>
             <footer>
+                {customSubjects?.[0]?.wardrobe && (
+                    <div
+                        className="wardrobe"
+                        role="group"
+                        aria-label="Clothing layers"
+                    >
+                        {(["body", "bottoms", "dressed"] as const).map(
+                            (layer, i) => (
+                                <button
+                                    key={layer}
+                                    aria-pressed={wardrobe === layer}
+                                    onClick={() => setWardrobe(layer)}
+                                >
+                                    {
+                                        [
+                                            "Base body",
+                                            "Jeans and shoes",
+                                            "Full outfit",
+                                        ][i]
+                                    }
+                                </button>
+                            )
+                        )}
+                        <button
+                            aria-pressed={checkFit}
+                            onClick={() => setCheckFit(!checkFit)}
+                            title="Pink marks skin under the garment, including areas visible through an opening"
+                        >
+                            Check clothing fit
+                        </button>
+                    </div>
+                )}
+
                 <label>
                     Subject
                     <select

@@ -29,6 +29,8 @@ interface Props {
     fullBody: string;
     evidence?: {
         comparison: string;
+        layers: string;
+        face: string;
         triangles: number;
         frontOverlap: number;
         profileOverlap: number;
@@ -57,6 +59,7 @@ export default function RecipeReview({
                 orbScale: recipe.orbScale,
                 posedTPose: true,
                 coat: !!recipe.cartoon?.fit?.sections?.coat,
+                wardrobe: recipe.streetPattern ? "body" : undefined,
             },
         ]);
         return local.release;
@@ -113,6 +116,31 @@ export default function RecipeReview({
                                 {evidence.triangles.toLocaleString("en-US")}{" "}
                                 triangles · one skinned mesh
                             </p>
+                            {[
+                                {
+                                    src: evidence.face,
+                                    title: "Face from the drawing, front, 35° and profile",
+                                },
+                                {
+                                    src: evidence.layers,
+                                    title: "Body and clothing layers in T-pose and crouch",
+                                },
+                            ].map(({ src, title }) => (
+                                <figure key={src}>
+                                    <figcaption>{title}</figcaption>
+                                    <a
+                                        href={src}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <img
+                                            src={src}
+                                            alt={title}
+                                            loading="lazy"
+                                        />
+                                    </a>
+                                </figure>
+                            ))}
                             <figure>
                                 <figcaption>
                                     Drawing and native render
@@ -318,6 +346,11 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                     comparison: await asset(
                         "vale-comparison",
                         report.comparison_sha256
+                    ),
+                    face: await asset("vale-face", report.studies.face),
+                    layers: await asset(
+                        "vale-body-and-clothes",
+                        report.studies["body-and-clothes"]
                     ),
                     triangles: benchmark.triangles,
                     frontOverlap:

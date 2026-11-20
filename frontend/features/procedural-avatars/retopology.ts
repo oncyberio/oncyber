@@ -319,11 +319,17 @@ export function retopologize(
         for (const v of targetNeighbors) neighbors.add(v);
         for (const v of neighbors) offer(to, v);
     }
-    const kept: number[] = [];
     const index: number[] = [];
     for (let f = 0; f < total; f++)
         if (faces[3 * f] >= 0)
             index.push(faces[3 * f], faces[3 * f + 1], faces[3 * f + 2]);
+    return compactIndexedGeometry(g, index);
+}
+
+/** Keep precisely the vertices used by these triangles, in original vertex order. */
+export function compactIndexedGeometry(g: T.BufferGeometry, index: number[]) {
+    const kept: number[] = [];
+    const n = g.attributes.position.count;
     const used = new Uint8Array(n),
         remap = new Uint32Array(n);
     for (const i of index) used[i] = 1;

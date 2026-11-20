@@ -68,6 +68,9 @@ export default function CartoonAuthor() {
                             !drawing.recipe.cartoon ||
                             !!drawing.recipe.cartoon.fit?.sections,
                         coat: !!drawing.recipe.cartoon?.fit?.sections?.coat,
+                        wardrobe: drawing.recipe.streetPattern
+                            ? "dressed"
+                            : undefined,
                         name: drawing.name,
                         template: drawing.recipe.template,
                         source: entry.slug,

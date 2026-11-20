@@ -1,42 +1,26 @@
 import * as T from "three/webgpu";
-import {
-    Drawing,
-    ellipse,
-    frontOfLoft,
-    lift,
-    type Depth,
-    type XY,
-} from "./drawing";
+import { Drawing, frontOfLoft, lift, type Depth, type XY } from "./drawing";
 import type { Point } from "./sculpt";
 import { finish } from "./surfaces";
+import { streetYoke } from "./streetShoulder";
+import { drawStreetBody, streetFrame, ring } from "./streetBody";
 import { measuredStreetHead } from "./measuredStreetHead";
-import {
-    type StreetPattern,
-    sheetScale,
-    streetShade,
-} from "./streetwearPattern";
+import { type StreetPattern, streetShade } from "./streetwearPattern";
 
 const tau = 2 * Math.PI,
     mix = T.MathUtils.lerp;
-const ring = (count: number, at: (angle: number) => Point) =>
-    Array.from({ length: count + 1 }, (_, i) =>
-        at((tau * (i % count)) / count)
-    );
 const signed = (v: number, p: number) =>
     Math.sign(v) * Math.pow(Math.abs(v), p);
-const frame = () =>
-    new T.Matrix4()
-        .makeScale(sheetScale, sheetScale, sheetScale)
-        .setPosition(350, 0, 0);
 function horizontal(
     y: number,
     width: number,
     front: number,
     back: number,
     slope = 0,
-    warp = 0
+    warp = 0,
+    segments = 24
 ) {
-    return ring(24, (a) => {
+    return ring(segments, (a) => {
         const x = width * signed(Math.sin(a), 0.91),
             c = Math.cos(a);
         const z = (front - back) / 2 + ((front + back) / 2) * signed(c, 0.9);
@@ -114,8 +98,14 @@ function foldRings(
     }
     return result;
 }
+function shirtSocket(p: StreetPattern, s: number) {
+    return ring(16, (a) => [
+        s * (p.arm.shoulder + 45),
+        p.arm.height + 28 - 65 * Math.cos(a),
+        6 + 54 * Math.sin(a),
+    ]);
+}
 function shirt(d: Drawing, p: StreetPattern) {
-    d.torso();
     const first = p.shirt[0],
         last = p.shirt.at(-1);
     const top = ring(24, (a) => [
@@ -155,11 +145,28 @@ function shirt(d: Drawing, p: StreetPattern) {
             0.1 * Math.cos(0.07 * x + 0.013 * y + 0.02 * z) -
             0.07 * Math.cos(0.05 * x - 0.015 * y)
     );
-    const rows = foldRings(body, d.s.detail === "full" ? 14 : 27, tint);
+    const join = body.findIndex((row, i) => i > 0 && row[0][1] >= 330);
+    const rows = foldRings(
+        body.slice(join),
+        d.s.detail === "full" ? 14 : 27,
+        tint
+    );
+    d.s.tone = tint;
+    const upperFront = streetYoke(
+        d,
+        top,
+        rows[0],
+        (s) => shirtSocket(p, s),
+        p.colors.tee,
+        p.arm.shoulder
+    );
+    d.drape("chest", "hips", 345, last[0] + 19);
+
     d.s.tone = tint;
     d.s.surface(rows, p.colors.tee, false, "perimeter");
     d.s.tone = undefined;
-    const cloth = frontOfLoft(rows);
+    const lowerFront = frontOfLoft(rows);
+    const cloth: Depth = (x, y) => Math.max(upperFront(x, y), lowerFront(x, y));
     const binding = top.map(
         ([x, y, z]): Point => [x * 1.22, y + 4, (z - 20) * 1.23 + 20]
     );
@@ -200,129 +207,106 @@ function shirt(d: Drawing, p: StreetPattern) {
         0.9 + 0.12 * Math.sin(x * 0.045 + 0.23 * y + 0.02 * z);
     d.s.surface(under, p.colors.under);
     d.s.tone = undefined;
-    d.s.endTorso();
 }
 
-function arms(d: Drawing, p: StreetPattern) {
-    const { shoulder, elbow, wrist, height, cuff, hem } = p.arm;
+/** Each open cuff has a hem bone at the arm axis. Its local correction
+ * keeps the underside hanging when the shoulder rotates, without dragging
+ * the shirt front or bending the sleeve with the fingers. */
+function sleeves(d: Drawing, p: StreetPattern) {
+    const { shoulder, height, cuff, hem } = p.arm;
+    const settle: (() => void)[] = [];
     for (const s of [-1, 1]) {
         const side = s < 0 ? "right" : "left",
             arm = side + "UpperArm",
-            fore = side + "LowerArm";
+            hemBone = side + "SleeveHem";
+        const upper = d.s.bones.find((b) => b.name === arm);
+        const end = d.rig.joints.get(side + "LowerArm").rest,
+            start = d.rig.joints.get(arm).rest;
+        const pivot = start
+            .clone()
+            .lerp(end, (cuff - shoulder) / (p.arm.elbow - shoulder));
+        const bone = d.s.bone(hemBone, arm, pivot.toArray() as Point, false);
+        const relative = new T.Quaternion(),
+            identity = new T.Quaternion();
+        settle.push(() => {
+            relative
+                .copy(upper.parent.quaternion)
+                .multiply(upper.quaternion)
+                .invert();
+            bone.quaternion.copy(identity).slerp(relative, 0.61);
+        });
         d.bind(arm);
         d.s.drape = {
-            name: "upperChest",
-            matrix: d.matrixFor("upperChest"),
+            name: hemBone,
+            matrix: d.matrixFor(arm),
             start: 0,
             end: 1,
-            weight: (x) =>
-                1 -
-                T.MathUtils.smoothstep(
-                    Math.abs(x),
-                    shoulder - 23,
-                    shoulder + 36
-                ),
+            weight: (x, y) =>
+                T.MathUtils.smoothstep(Math.abs(x), shoulder + 46, cuff - 6) *
+                T.MathUtils.smoothstep(y, height - 6, hem - 9),
         };
-        const sleeve = [
-            [shoulder - 24, 220, 344, 46],
-            [shoulder + 13, 215, 357, 53],
-            [shoulder + 32, 222, 346, 52],
-            [cuff - 37, 228, 349, 46],
-            [cuff, 232, hem, 43],
-        ];
-        const rings = sleeve.map(([x, top, bot, depth], i) =>
+        const ringAt = (x: number, t: number) =>
             ring(16, (a) => {
-                const end = i === sleeve.length - 1 ? 1 : 0,
-                    c = Math.cos(a),
-                    h = (bot - top) / 2;
+                const c = Math.cos(a),
+                    sn = Math.sin(a),
+                    top = height - 32 + 5 * t;
+                const bottom = mix(height + 94, hem, t);
                 return [
-                    s * (x - (15 * end * (1 - Math.sin(a))) / 2),
-                    (top + bot) / 2 - h * Math.sin(a),
-                    depth * c + 5 + 4 * Math.sin(2 * a + i * 0.6),
+                    s * (x - (12 * t * (1 - c)) / 2),
+                    mix(top, bottom, (1 - c) / 2),
+                    6 + (49 - 6 * t) * sn + 2.3 * t * Math.sin(3 * a + 0.6),
                 ];
-            })
-        );
+            });
+        const root = shirtSocket(p, s);
+        const rows = [
+            root,
+            ringAt(mix(shoulder + 45, cuff, 0.35), 0.35),
+            ringAt(mix(shoulder + 45, cuff, 0.72), 0.72),
+            ringAt(cuff, 1),
+        ];
         d.s.tone = (x, y, z) =>
-            0.88 + 0.09 * Math.sin(y * 0.029 - Math.abs(x) * 0.039 + 0.025 * z);
-        d.s.surface(rings, p.colors.tee);
+            0.94 + 0.09 * Math.sin(y * 0.028 - Math.abs(x) * 0.044 + 0.026 * z);
+        d.s.surface(rows, p.colors.tee, false, "both");
         d.s.tone = undefined;
-        const rim = rings.at(-1);
-        d.s.surface(
-            [
-                rim,
-                rim.map(
-                    ([x, y, z]): Point => [
-                        x - s * 4,
-                        mix(y, (hem + 232) / 2, 0.08),
-                        z * 0.91,
-                    ]
-                ),
-            ],
-            streetShade(p.colors.tee, "#2b2426", "#19171b")
+        const rim = rows.at(-1);
+        const turned = rim.map(
+            ([x, y, z]): Point => [
+                x - s * 2,
+                mix(y, height + 35, 0.033),
+                z * 0.964,
+            ]
+        );
+        const inner = turned.map(
+            ([x, y, z]): Point => [
+                x - s * 11,
+                mix(y, height + 32, 0.087),
+                z * 0.92,
+            ]
         );
         d.s.surface(
-            [
-                rim.map(
-                    ([x, y, z]): Point => [
-                        x - s * 4,
-                        mix(y, (hem + 232) / 2, 0.08),
-                        z * 0.91,
-                    ]
-                ),
-                rim.map((): Point => [s * (cuff - 8), height + 8, 4]),
-            ],
-            streetShade(p.colors.tee, "#2b2426", "#292327")
+            [rim, turned],
+            streetShade(p.colors.tee, "#2b2426", "#19171b"),
+            false,
+            "both"
         );
-        d.bind(arm);
-        d.s.drape = {
-            name: fore,
-            matrix: d.matrixFor(fore),
-            start: 0,
-            end: 1,
-            weight: (x) =>
-                T.MathUtils.smoothstep(Math.abs(x), elbow - 22, elbow + 24),
-        };
-        const armRows = [
-            [shoulder + 13, 14, 17, 0],
-            [cuff - 14, 17, 17, 0],
-            [elbow + 17, 17.5, 18, 1],
-            [mix(elbow, wrist, 0.63), 12.6, 14, 2],
-            [wrist + 3, 9.6, 12, 3],
-        ].map(([x, r, rz, dy]) =>
-            ring(12, (a) => [
-                s * x,
-                height + dy + r * Math.sin(a),
-                1 + rz * Math.cos(a),
-            ])
-        );
-        d.s.gradient = {
-            top: height - 10,
-            bottom: height + 19,
-            from: p.colors.skin,
-            to: streetShade(p.colors.skin, "#fdd8b6", "#e8b48c"),
-        };
-        d.s.surface(armRows, p.colors.skin);
-        d.s.gradient = undefined;
-        // The native phalanges keep their own skin weights and grip/release.
-        d.bind(side + "Hand");
-        d.s.referenceFrame = undefined;
-        const w = d.sourceJoints.get(side + "Hand").point;
-        const tip = d.sourceJoints.get(side + "MiddleProximal").point;
+        // The loose cuff narrows to the inner armscye around the actual biceps.
+        // Looking down the open sleeve reveals fabric in shadow and the forearm.
+        const lining = ring(16, (a) => [
+            s * (shoulder + 40),
+            height + 2 - 25 * Math.cos(a),
+            1 + 25 * Math.sin(a),
+        ]);
         d.s.surface(
-            [0, 0.43, 1].map((t, i) =>
-                ring(12, (a) => [
-                    mix(w[0], tip[0], t),
-                    mix(w[1], tip[1], t) + [6.7, 8, 5.2][i] * Math.sin(a),
-                    mix(w[2], tip[2], t) + [8.3, 13.6, 12.4][i] * Math.cos(a),
-                ])
-            ),
-            p.colors.skin
+            [turned, inner, lining],
+            streetShade(p.colors.tee, "#2b2426", "#30282b"),
+            false,
+            "both"
         );
-        d.fingers(side, p.colors.skin, 3.75, d.s.detail === "full");
-        d.s.referenceFrame = frame();
     }
+    d.s.afterPose = () => {
+        for (const update of settle) update();
+    };
 }
-
 function footwear(d: Drawing, p: StreetPattern, sign: number) {
     const foot = p.shoe,
         cx = sign * foot.center;
@@ -379,17 +363,15 @@ function trousers(d: Drawing, p: StreetPattern) {
     // between the two leg tubes, even when one thigh swings forward.
     d.bind("hips");
     const waist = p.jeans[1][2];
+    const cuts = d.s.detail === "full" ? 20 : 16;
     const seat = [
-        horizontal(521, waist - 8, 90, 36, belt.slope),
-        horizontal(560, waist - 4, 91, 35, belt.slope),
-        horizontal(591, waist + 1, 94, 37),
-        horizontal(618, waist + 1, 91, 34),
-        horizontal(642, 81, 89, 29),
-        horizontal(660, 38, 83, 26),
-        horizontal(670, 6, 69, 18),
+        horizontal(521, waist - 8, 90, 36, belt.slope, 0, cuts),
+        horizontal(560, waist - 4, 91, 35, belt.slope, 0, cuts),
+        horizontal(591, waist + 1, 94, 48, 0, 0, cuts),
+        horizontal(618, waist + 1, 91, 48, 0, 0, cuts),
     ];
     const seatFront = frontOfLoft(seat);
-    d.s.surface(seat, p.colors.denim);
+    d.s.surface(seat, p.colors.denim, false, "end");
     const fronts = [seatFront];
     for (const s of [-1, 1]) {
         const side = s < 0 ? "right" : "left";
@@ -402,7 +384,7 @@ function trousers(d: Drawing, p: StreetPattern) {
             return mix(y0, y1, T.MathUtils.clamp((x - lo) / (hi - lo), 0, 1));
         };
         const garment = p.jeans.map(([y, inner, outer, f, b, tilt], i) =>
-            ring(d.s.detail === "full" ? 20 : 16, (a) => {
+            ring(cuts, (a) => {
                 const leg = T.MathUtils.smoothstep(y, split - 55, split + 15),
                     u = Math.sin(a),
                     c = Math.cos(a);
@@ -419,7 +401,7 @@ function trousers(d: Drawing, p: StreetPattern) {
                     (inside + outside) / 2 + ((outside - inside) / 2) * u,
                     leg
                 );
-                const rear = b,
+                const rear = b + 13 * (1 - T.MathUtils.smoothstep(y, 679, 744)),
                     fore =
                         y >= 898
                             ? Math.max(
@@ -476,80 +458,136 @@ function trousers(d: Drawing, p: StreetPattern) {
                 (1 - contact * T.MathUtils.smoothstep(z, 32, 88))
             );
         };
-        const splitRow = p.jeans.findIndex((r) => r[0] >= knee);
+        // Both halves inherit the exact hip ring and share a curved inseam
+        // across the saddle. The pelvis stays inside even in a wide stride.
+        const socket = ring(cuts, (a) => {
+            const u = Math.sin(a),
+                c = Math.cos(a);
+            return [
+                s * (waist + 1) * signed(Math.max(0, u), 0.91),
+                618 + 43 * Math.max(0, -u),
+                21.5 + 69.5 * signed(c, 0.9),
+            ];
+        });
+        const splitRow = p.jeans.findIndex((r) => r[0] >= 670);
+        const kneeRow = p.jeans.findIndex((r) => r[0] >= 705);
+        const bootRow = p.jeans.findIndex((r) => r[0] >= 857);
         const upper = foldRings(
-                garment.slice(0, splitRow + 1),
-                d.s.detail === "full" ? 14 : 29,
-                tint
-            ),
-            lower = foldRings(
-                garment.slice(splitRow),
-                d.s.detail === "full" ? 12 : 24,
-                tint
-            );
-        lower[0] = upper.at(-1);
-        const face = frontOfLoft([...upper, ...lower.slice(1)]);
+            [socket, ...garment.slice(splitRow, kneeRow + 1)],
+            18,
+            tint
+        );
+        const middle = foldRings(
+            garment.slice(kneeRow, bootRow + 1),
+            d.s.detail === "full" ? 14 : 26,
+            tint
+        );
+        const lower = foldRings(
+            garment.slice(bootRow),
+            d.s.detail === "full" ? 13 : 25,
+            tint
+        );
+        middle[0] = upper.at(-1);
+        lower[0] = middle.at(-1);
+        const panels = [upper, middle, lower],
+            face = frontOfLoft([
+                ...upper,
+                ...middle.slice(1),
+                ...lower.slice(1),
+            ]);
+        const bindPanel = (i: number) => {
+            if (i === 0) {
+                d.bind("hips");
+                d.s.drape = {
+                    name: side + "UpperLeg",
+                    matrix: d.matrixFor(side + "UpperLeg"),
+                    start: 0,
+                    end: 1,
+                    weight: (x, y) =>
+                        T.MathUtils.smoothstep(y, 618, 696) *
+                        mix(
+                            T.MathUtils.smoothstep(Math.abs(x), 0, 28),
+                            1,
+                            T.MathUtils.smoothstep(y, 663, 697)
+                        ),
+                };
+            } else if (i === 1)
+                d.drape(
+                    side + "UpperLeg",
+                    side + "LowerLeg",
+                    knee - 43,
+                    knee + 53
+                );
+            else {
+                d.drape(side + "LowerLeg", side + "Foot", 910, 984);
+                d.s.drape.weight = (_x, y, z) =>
+                    0.7 *
+                    T.MathUtils.smoothstep(y, 905, 978) *
+                    T.MathUtils.smoothstep(z, -48, 82);
+            }
+        };
         const color = p.colors.denim;
         d.s.tone = tint;
-        // Hold the color extrema at the knee and cuff through edge collapse.
         d.s.preserveVertex = (x, y, z) =>
-            z > 35 && y > 630 && (tint(x, y, z) < 0.78 || tint(x, y, z) > 1.12);
-        d.drape("hips", side + "UpperLeg", belt.height + 10, knee - 35);
-        d.s.surface(upper, color, false, "perimeter");
-        d.drape(
-            side + "UpperLeg",
-            side + "LowerLeg",
-            p.jeans[splitRow][0],
-            p.jeans[splitRow][0] + 54
-        );
-        const bottom = lower.at(-1);
-        d.s.surface(
-            [
-                ...lower,
-                bottom.map(
-                    ([x, y, z]): Point => [
-                        mix(x, s * p.shoe.center, 0.045),
-                        y - 1,
-                        z * 0.96,
-                    ]
-                ),
-            ],
-            color,
-            false,
-            "perimeter"
-        );
+            z > 42 && y > 695 && (tint(x, y, z) < 0.71 || tint(x, y, z) > 1.19);
+        for (const [i, panel] of panels.entries()) {
+            bindPanel(i);
+            const hem = panel.at(-1);
+            d.s.surface(
+                i === 2
+                    ? [
+                          ...panel,
+                          hem.map(
+                              ([x, y, z]): Point => [
+                                  mix(x, s * p.shoe.center, 0.045),
+                                  y - 1,
+                                  z * 0.96,
+                              ]
+                          ),
+                      ]
+                    : panel,
+                color,
+                false,
+                "perimeter"
+            );
+        }
         d.s.tone = undefined;
         d.s.preserveVertex = undefined;
         fronts.push(face);
         const shadow = new T.Color(color).multiplyScalar(0.62).getStyle();
         const creases = s < 0 ? p.creases.rightLeg : p.creases.leftLeg;
-        // Clip the fitted fold to each half of the moving knee. Both halves
-        // use the exact drape weights of the cloth they touch.
-        for (const below of [false, true]) {
-            const yCut = p.jeans[splitRow][0];
-            if (below)
-                d.drape(side + "UpperLeg", side + "LowerLeg", yCut, yCut + 54);
-            else
-                d.drape("hips", side + "UpperLeg", belt.height + 10, knee - 35);
+        for (const [i, [lo, hi]] of [
+            [0, p.jeans[kneeRow][0]],
+            [p.jeans[kneeRow][0], p.jeans[bootRow][0]],
+            [p.jeans[bootRow][0], 1008],
+        ].entries()) {
+            bindPanel(i);
             for (const loop of creases) {
                 if (d.s.detail === "crowd" && loop.length < 9) continue;
-                const edge: XY[] = [];
-                for (let i = 0; i < loop.length; i++) {
-                    const a = loop[i],
-                        b = loop[(i + 1) % loop.length];
-                    if (a[1] >= yCut === below) edge.push([a[0], a[1]]);
-                    if (a[1] >= yCut !== b[1] >= yCut)
-                        edge.push([
-                            mix(a[0], b[0], (yCut - a[1]) / (b[1] - a[1])),
-                            yCut,
-                        ]);
+                let edge = loop as XY[];
+                for (const [limit, dir] of [
+                    [lo, 1],
+                    [hi, -1],
+                ]) {
+                    const clipped: XY[] = [];
+                    for (let j = 0; j < edge.length; j++) {
+                        const a = edge[j],
+                            b = edge[(j + 1) % edge.length],
+                            keep = (a[1] - limit) * dir >= 0;
+                        if (keep) clipped.push(a);
+                        if (keep !== (b[1] - limit) * dir >= 0)
+                            clipped.push([
+                                mix(a[0], b[0], (limit - a[1]) / (b[1] - a[1])),
+                                limit,
+                            ]);
+                    }
+                    edge = clipped;
                 }
                 if (
                     edge.length >= 3 &&
                     edge.every(([x, y]) => Number.isFinite(face(x, y)))
-                ) {
+                )
                     d.decal(edge, lift(face, 0.85), shadow);
-                }
             }
         }
         footwear(d, p, s);
@@ -619,12 +657,24 @@ function trousers(d: Drawing, p: StreetPattern) {
     for (let x = -w + 10; x < w - 2; x += 15) {
         for (const offset of [-6.4, 6.4]) {
             const y = h + x * belt.slope + offset;
-            d.decal(ellipse(x, y, 3, 3), lift(leather, 1), "#d8d0be");
-            d.decal(
-                ellipse(x - 0.7, y - 1, 1.25, 1),
-                lift(leather, 1.5),
-                "#ffefda"
+            const stud = Array.from(
+                { length: 8 },
+                (_, j): XY => [
+                    x + 3 * Math.cos((tau * j) / 8),
+                    y + 3 * Math.sin((tau * j) / 8),
+                ]
             );
+            d.decal(stud, lift(leather, 1), "#d8d0be");
+            if (d.s.detail === "full")
+                d.decal(
+                    [
+                        [x - 1.85, y - 0.51],
+                        [x - 0.93, y - 1.94],
+                        [x + 0.48, y - 1.08],
+                    ],
+                    lift(leather, 1.38),
+                    "#ffefda"
+                );
         }
     }
     for (const x of [-48, 62, 98]) {
@@ -676,7 +726,8 @@ function trousers(d: Drawing, p: StreetPattern) {
 }
 
 export function drawMeasuredStreetwear(d: Drawing, p: StreetPattern) {
-    d.s.referenceFrame = frame();
+    d.s.triangleBudget = d.s.detail === "full" ? 5450 : 4000;
+    d.s.referenceFrame = streetFrame();
     d.s.illustrationInk = false;
     d.s.sculptedCartoon = true;
     d.s.thinSkinOutline = true;
@@ -687,26 +738,15 @@ export function drawMeasuredStreetwear(d: Drawing, p: StreetPattern) {
         [p.colors.tee]: finish.cloth,
         [p.colors.under]: finish.cloth,
     });
-    d.drape("head", "upperChest", 176, 212);
-    d.s.gradient = {
-        top: 178,
-        bottom: 214,
-        from: streetShade(p.colors.skin, "#fdd8b6", "#dfaa87"),
-        to: p.colors.skin,
-    };
-    d.s.surface(
-        [
-            horizontal(164, 18, 39, 12),
-            horizontal(183, 17, 36, 13),
-            horizontal(202, 21, 36, 18),
-            horizontal(219, 30, 37, 22),
-        ],
-        p.colors.skin
-    );
-    d.s.gradient = undefined;
+    drawStreetBody(d, p);
+    const mouthAccessory = measuredStreetHead(d, p);
+    d.s.endLayer("body");
+    d.s.sourcePaint = false;
+    d.s.sculptedCartoon = true;
     trousers(d, p);
+    d.s.endLayer("bottoms");
     shirt(d, p);
-    arms(d, p);
-    measuredStreetHead(d, p);
+    sleeves(d, p);
+    mouthAccessory();
     d.s.referenceFrame = undefined;
 }

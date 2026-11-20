@@ -78,6 +78,55 @@ def capture_grips(page, stage, dest, set_angle):
     return {"minimum_curl_radians": curls, "released": True}
 
 
+def clothing_fit_pixels(page, stage, dest, view):
+    """The fit material marks only anatomy inside the intended garment footprint."""
+    button = page.get_by_role("button", name="Check clothing fit", exact=True)
+    button.click()
+    page.wait_for_function(
+        "document.querySelector('.stage canvas').dataset.fitCheck==='true'"
+    )
+    path = dest / f"{view}-fit.png"
+    stage.screenshot(path=path)
+    rgb = np.asarray(Image.open(path).convert("RGB"))
+    visible = (rgb[:, :, 0] > 190) & (rgb[:, :, 1] < 70) & (rgb[:, :, 2] > 190)
+    foreground = np.abs(rgb.astype(np.int16) - rgb[0, 0]).max(axis=2) > 15
+    if foreground.sum() < rgb.shape[0] * rgb.shape[1] * 0.005:
+        raise ValueError("The fit pass rendered an empty figure")
+    areas = np.bincount(ndimage.label(visible)[0].ravel())[1:]
+    button.click()
+    page.wait_for_function(
+        "document.querySelector('.stage canvas').dataset.fitCheck==='false'"
+    )
+    return {"pixels": int(visible.sum()), "largest_patch": int(max(areas, default=0))}
+
+
+def capture_wardrobe(page, stage, dest, view, result):
+    """Hold the camera and pose while revealing successive index ranges."""
+    counts = {}
+    for layer, label in [
+        ("body", "Base body"),
+        ("bottoms", "Jeans and shoes"),
+        ("dressed", "Full outfit"),
+    ]:
+        page.get_by_role("button", name=label, exact=True).click()
+        page.wait_for_function(
+            "l=>document.querySelector('.stage canvas').dataset.layer===l", arg=layer
+        )
+        counts[layer] = int(stage.get_attribute("data-layer-triangles"))
+        if layer == "body" and view == "front":
+            control = clothing_fit_pixels(page, stage, dest, "front-body")
+            if control["pixels"] < 1000:
+                raise ValueError(
+                    "The undressed positive control did not show the covered body"
+                )
+            result["clothing_fit_control"] = control
+        if layer != "dressed":
+            stage.screenshot(path=dest / f"{view}-{layer}.png")
+    if not 0 < counts["body"] < counts["bottoms"] < counts["dressed"]:
+        raise ValueError("The wardrobe did not reveal successively larger layers")
+    return counts
+
+
 def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False):
     dest.mkdir(parents=True, exist_ok=True)
     set_angle = run_path(
@@ -108,6 +157,7 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
             .get("fit", {})
             .get("sections", {})
         )
+        layers = page.get_by_role("group", name="Clothing layers").count() > 0
         cameras = {}
         for angle, title in (
             []
@@ -125,6 +175,14 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
                 arg=angle,
             )
             stage.screenshot(path=dest / (title + ".png"))
+            if layers and title in ("front", "profile"):
+                result["layer_triangles"] = capture_wardrobe(
+                    page, stage, dest, title, result
+                )
+            if layers:
+                result.setdefault("clothing_fit", {})[title] = clothing_fit_pixels(
+                    page, stage, dest, title
+                )
             if title == "front":
                 cameras["body"] = json.loads(stage.get_attribute("data-review-camera"))
             page.get_by_role("button", name="Compare silhouettes").click()
@@ -256,6 +314,10 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
                 return frames
 
             frames = gait_frames()
+            if layers:
+                result["clothing_fit"]["walk"] = clothing_fit_pixels(
+                    page, stage, dest, "walk"
+                )
             differences = [
                 (
                     np.abs(np.array(a, dtype="int16") - np.array(b, dtype="int16")).max(
@@ -295,6 +357,25 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
                 "document.querySelector('.stage canvas').dataset.pose==='Crouch' && document.querySelector('.stage canvas').dataset.grip==='right'"
             )
             stage.screenshot(path=dest / "crouch.png")
+            if layers:
+                capture_wardrobe(page, stage, dest, "crouch", result)
+                result["clothing_fit"]["crouch"] = clothing_fit_pixels(
+                    page, stage, dest, "crouch"
+                )
+            if layers:
+                page.get_by_role("button", name="Switch to left hand").click()
+                page.get_by_role("button", name="Release microphone").click()
+                page.get_by_label("Motion", exact=True).select_option("IDLE")
+                set_angle(page.get_by_label("Rotation", exact=False), 180)
+                page.wait_for_function(
+                    "document.querySelector('.stage canvas').dataset.pose==='IDLE'"
+                )
+                for _ in range(3):
+                    page.get_by_role("button", name="Advance 90 ms").click()
+                stage.screenshot(path=dest / "idle-back.png")
+                result["clothing_fit"]["idle_back"] = clothing_fit_pixels(
+                    page, stage, dest, "idle-back"
+                )
             _, standing_mask = pixels(dest / "front.png", keep_components=True)
             _, crouch_mask = pixels(dest / "crouch.png", keep_components=True)
             height = lambda mask: int(np.ptp(np.where(mask)[0])) + 1

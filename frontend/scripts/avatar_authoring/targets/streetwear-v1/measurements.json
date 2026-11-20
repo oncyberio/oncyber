@@ -6,11 +6,50 @@
     "backends": {
         "WebGLBackend": {
             "silhouette_iou": {
-                "front": 0.9297,
-                "profile": 0.9076
+                "front": 0.9182,
+                "profile": 0.8974
             },
-            "triangles": 4980,
+            "triangles": 4839,
             "backend": "WebGLBackend",
+            "clothing_fit_control": {
+                "pixels": 35113,
+                "largest_patch": 35113
+            },
+            "layer_triangles": {
+                "body": 2839,
+                "bottoms": 4047,
+                "dressed": 4839
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 80,
+                    "largest_patch": 80
+                },
+                "profile": {
+                    "pixels": 10,
+                    "largest_patch": 2
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "crouch": {
+                    "pixels": 21,
+                    "largest_patch": 13
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
             "grip_test": {
                 "minimum_curl_radians": {
                     "right": 0.55,
@@ -20,15 +59,54 @@
             },
             "moving_steps": 11,
             "hand": "right",
-            "crouch_height_ratio": 0.8279
+            "crouch_height_ratio": 0.8274
         },
         "WebGPUBackend": {
             "silhouette_iou": {
-                "front": 0.9296,
-                "profile": 0.9077
+                "front": 0.9197,
+                "profile": 0.8962
             },
-            "triangles": 4980,
+            "triangles": 4839,
             "backend": "WebGPUBackend",
+            "clothing_fit_control": {
+                "pixels": 35113,
+                "largest_patch": 35113
+            },
+            "layer_triangles": {
+                "body": 2839,
+                "bottoms": 4047,
+                "dressed": 4839
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 79,
+                    "largest_patch": 79
+                },
+                "profile": {
+                    "pixels": 7,
+                    "largest_patch": 1
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 1,
+                    "largest_patch": 1
+                },
+                "crouch": {
+                    "pixels": 20,
+                    "largest_patch": 13
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
             "grip_test": {
                 "minimum_curl_radians": {
                     "right": 0.55,
@@ -38,18 +116,22 @@
             },
             "moving_steps": 11,
             "hand": "right",
-            "crouch_height_ratio": 0.8279
+            "crouch_height_ratio": 0.8288
         }
     },
-    "comparison_sha256": "a99990349377c163904dbf0590032785caff96bcd49327ee1147894053583306",
+    "comparison_sha256": "45a718fae9eff8711e34f728738a780075840c5e1b712d28b94dd7b049115bb5",
+    "studies": {
+        "body-and-clothes": "31c25dd633909978f02175e6c42a7b82fb8ff05668f00d1e1ae0ff2750abe848",
+        "face": "48dd8c4857d16c87f9fce6338365519d7b3cf19ae4643c188e21a180c6824c99"
+    },
     "captures": {
         "WebGLBackend": {
-            "views": "28713230071804657d8a8583646e80fa2d6d9ba3b2715211f84dfcde13f7989d",
-            "walk": "6d107d357b0bc0d496d7c63b4c013d9953386cc517ba95c67064c7b9b5559dc7"
+            "views": "9fd7c1b9eb3b13ea3038d9c5db7a4db6e20db6488a3c37553d308903903c469b",
+            "walk": "6fb8e9dc3ec413a1a38776ecf7258da276bf527d8046d7ba24dd0490d0aea811"
         },
         "WebGPUBackend": {
-            "views": "1e895810990c990f6bc5bf16a1c03ddb6ee776f785e249008ab3d4a2bfc2df1f",
-            "walk": "ce78427cdbde31c40f72b40db1b35386a4b24d7631e25ac88ace6dd3c61fd8c2"
+            "views": "b56572d045e7f0090965fccdc2cd34a933b6863577ab0c8c962287035f6127cc",
+            "walk": "745ba7b5d9cf8c11fed2be0e3db0d26a36851df7a1c8e44847d7ce1467fe543b"
         }
     }
 }

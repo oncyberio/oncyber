@@ -1,6 +1,6 @@
 import { createHandItems, type Hand, type GripOptions } from "./handItems";
 import { createGazePose, type PupilSpan } from "./gazePose";
-import { retopologize } from "./retopology";
+import { compactIndexedGeometry, retopologize } from "./retopology";
 import {
     coatUVBase,
     surfaceGrain,
@@ -101,6 +101,14 @@ export class Sculpt {
     private anchors = new Map<string, T.Vector3>();
     private ids = new Map<string, number>();
     private positions: number[] = [];
+    coveredSkin?: number[];
+    inspectWardrobe = false;
+    coverage?: (x: number, y: number, z: number) => number;
+    afterPose?: () => void;
+    private layerEnds?: Map<string, number>;
+    endLayer(layer: string) {
+        (this.layerEnds ??= new Map()).set(layer, this.positions.length / 3);
+    }
     private indices: number[] = [];
     private finishes = new Map<string, Finish>();
     private uvs: number[] = [];
@@ -165,9 +173,10 @@ export class Sculpt {
         this.scene.add(this.frame);
     }
 
-    bone(name: string, parent: string | null, anchor: Point) {
+    bone(name: string, parent: string | null, anchor: Point, humanoid = true) {
         const bone = new T.Bone();
         bone.name = name;
+        if (!humanoid) bone.userData.garment = true;
         const world = vec(anchor);
         this.anchors.set(name, world);
         bone.position.copy(world);
@@ -177,6 +186,7 @@ export class Sculpt {
         holder.add(bone);
         this.ids.set(name, this.bones.length);
         this.bones.push(bone);
+        return bone;
     }
 
     private referenceItem?: { side: Hand; firstVertex: number };
@@ -427,6 +437,16 @@ export class Sculpt {
                       this.printUV(local.getX(i), local.getY(i), uv.getY(i))
                   )
                 : null;
+        if (this.coveredSkin) {
+            for (let i = 0; i < local.count; i++)
+                this.coveredSkin.push(
+                    this.coverage?.(
+                        local.getX(i),
+                        local.getY(i),
+                        local.getZ(i)
+                    ) ?? 0
+                );
+        }
         if (this.referenceFrame) g.applyMatrix4(this.referenceFrame);
         if (this.record) {
             this.record.runs.push({
@@ -1190,7 +1210,7 @@ export class Sculpt {
         // Preserve its analytic normals through the final mesh compaction.
         for (const [i, n] of this.smoothNormals)
             g.attributes.normal.setXYZ(i, ...n);
-        const kept = retopologize(
+        let kept = retopologize(
             g,
             this.simplification.fraction * (this.detail === "full" ? 1 : 0.74),
             this.simplification.error * (this.detail === "full" ? 1 : 1.55),
@@ -1212,6 +1232,46 @@ export class Sculpt {
                 : undefined,
             this.sculptedCartoon
         );
+        if (this.layerEnds && this.coveredSkin) {
+            const labels = kept.map((i) => this.coveredSkin[i]);
+            const index = g.index,
+                bodyEnd = this.layerEnds.get("body"),
+                bottomsEnd = this.layerEnds.get("bottoms");
+            const body: number[] = [],
+                bottoms: number[] = [],
+                dressed: number[] = [];
+            for (let i = 0; i < index.count; i += 3) {
+                const a = index.getX(i),
+                    b = index.getX(i + 1),
+                    c = index.getX(i + 2);
+                const first = kept[a],
+                    covered = Math.min(labels[a], labels[b], labels[c]);
+                if (first < bodyEnd && this.inspectWardrobe) body.push(a, b, c);
+                if (first < bottomsEnd && covered < 2 && this.inspectWardrobe)
+                    bottoms.push(a, b, c);
+                if (covered < 1) dressed.push(a, b, c);
+            }
+            if (this.inspectWardrobe) {
+                // Concatenate alternative draws once. Revealing a layer changes only the draw range.
+                g.setAttribute(
+                    "coveredSkin",
+                    new T.Float32BufferAttribute(labels, 1)
+                );
+                g.setIndex([...dressed, ...body, ...bottoms]);
+                g.userData.wardrobe = {
+                    dressed: { start: 0, count: dressed.length },
+                    body: { start: dressed.length, count: body.length },
+                    bottoms: {
+                        start: dressed.length + body.length,
+                        count: bottoms.length,
+                    },
+                };
+                g.setDrawRange(0, dressed.length);
+            } else {
+                const visible = compactIndexedGeometry(g, dressed);
+                kept = visible.map((i) => kept[i]);
+            }
+        }
         if (this.hasCorneas) g.userData.hasCorneas = true;
         if (this.hasSkinCreases) g.userData.hasSkinCreases = true;
         if (this.pupilSpans.length) {
@@ -1292,17 +1352,20 @@ export class Sculpt {
         this.frame.rotation.y = Math.PI;
         this.scene.updateMatrixWorld(true);
         const { bones, ids } = this;
+        const humanBones = bones.filter((node) => !node.userData.garment);
         const capture = () =>
-            bones.map((b) => ({
+            humanBones.map((b) => ({
                 position: b.position.clone(),
                 rotation: b.quaternion.clone(),
             }));
         const rest = capture();
-        const restore = (pose: ReturnType<typeof capture>) =>
-            bones.forEach((b, i) => {
+        const restore = (pose: ReturnType<typeof capture>) => {
+            humanBones.forEach((b, i) => {
                 b.position.copy(pose[i].position);
                 b.quaternion.copy(pose[i].rotation);
             });
+            this.afterPose?.();
+        };
         let items: ReturnType<typeof createHandItems>;
         const equipItem = (
             side: Hand,
@@ -1324,9 +1387,11 @@ export class Sculpt {
             scene: this.scene,
             humanoid: {
                 getNormalizedBoneNode: (name: string) =>
-                    bones[ids.get(name)] ?? null,
+                    bones[ids.get(name)]?.userData.garment
+                        ? null
+                        : bones[ids.get(name)] ?? null,
                 rawHumanBones: Object.fromEntries(
-                    bones.map((node) => [node.name, { node }])
+                    humanBones.map((node) => [node.name, { node }])
                 ),
                 getRawPose: capture,
                 setRawPose: restore,
@@ -1338,7 +1403,10 @@ export class Sculpt {
             setGazePose: createGazePose(g),
             equipItem,
             releaseItems: () => items?.clear(),
-            update: () => items?.update(),
+            update: () => {
+                this.afterPose?.();
+                items?.update();
+            },
         };
     }
 }

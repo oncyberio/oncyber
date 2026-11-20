@@ -31,7 +31,10 @@ export function previewCartoon(design: CartoonDesign) {
 }
 export function previewRecipe(recipe: AvatarRecipe) {
     const slug = "preview-" + crypto.randomUUID();
-    authoredRecipes.set(slug, recipe);
+    authoredRecipes.set(
+        slug,
+        recipe.streetPattern ? { ...recipe, inspectClothingFit: true } : recipe
+    );
     return {
         slug,
         recipe,
