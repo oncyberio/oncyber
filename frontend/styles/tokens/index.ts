@@ -1,4 +1,4 @@
-export { baseTokens } from "./base";
+export { baseTokens, hasLicensedFonts } from "./base";
 export type { BaseTokens } from "./base";
 export { actionTokens } from "./action";
 export { landingTokens } from "./landing";

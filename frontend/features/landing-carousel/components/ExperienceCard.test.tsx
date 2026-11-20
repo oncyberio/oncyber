@@ -64,25 +64,62 @@ it("tracks failed covers by URL so refreshed search metadata does not inherit an
     );
 });
 
-it.each([false, true])(
-    "shows availability on the card with flat=%s",
-    (flat) => {
-        const card = {
-            ...BUILD_CARDS[0],
-            id: "template-room",
-            templateStatus: "uncollected" as const,
-            actionLabel: "View gallery details",
-        };
-        act(() => root.render(<ExperienceCard card={card} flat={flat} />));
-        const element = container.querySelector(
-            '[data-template-status="uncollected"]'
-        );
-        expect(element.getAttribute("aria-description")).toBe("Not collected");
-        expect(element.querySelector(".template-pill").textContent).toBe(
-            "Not collected"
-        );
-    }
-);
+it("shows availability on the card", () => {
+    const card = {
+        ...BUILD_CARDS[0],
+        id: "template-room",
+        templateStatus: "uncollected" as const,
+        actionLabel: "View gallery details",
+    };
+    act(() => root.render(<ExperienceCard card={card} />));
+    const element = container.querySelector(
+        '[data-template-status="uncollected"]'
+    );
+    expect(element.getAttribute("aria-description")).toBe("Not collected");
+    expect(element.querySelector(".template-pill").textContent).toBe(
+        "Not collected"
+    );
+});
+
+it("draws its own picture, and a collage when the card has several covers", () => {
+    const card = { ...BUILD_CARDS[0], imageUrls: ["/one.jpg"] };
+    act(() => root.render(<ExperienceCard card={card} />));
+    expect(container.querySelector("img").getAttribute("src")).toBe("/one.jpg");
+    expect(container.querySelector(".collage-cover")).toBeNull();
+
+    const many = { ...card, collage: ["/a.jpg", "/b.jpg", "/c.jpg"] };
+    // Off screen, the collage names no picture yet.
+    let show: () => void;
+    (global as any).IntersectionObserver = class {
+        constructor(callback) {
+            show = () => callback([{ isIntersecting: true }]);
+        }
+        observe() {}
+        disconnect() {}
+    };
+    act(() => root.render(<ExperienceCard card={many} />));
+    const collage = container.querySelector(".collage-cover");
+    expect(
+        [...collage.querySelectorAll("image")].map((image) =>
+            image.getAttribute("href")
+        )
+    ).toEqual([null, null, null]);
+    act(() => show());
+    expect(
+        [...collage.querySelectorAll("image")].map((image) =>
+            image.getAttribute("href")
+        )
+    ).toEqual(["/a.jpg", "/b.jpg", "/c.jpg"]);
+    // A white rule between each pair of strips.
+    expect(collage.querySelectorAll("line")).toHaveLength(2);
+
+    // A cover that fails gives its place up; under two, the plain cover.
+    act(() => Simulate.error(collage.querySelector("image")));
+    expect(container.querySelectorAll(".collage-cover image")).toHaveLength(2);
+    act(() => Simulate.error(container.querySelector(".collage-cover image")));
+    expect(container.querySelector(".collage-cover")).toBeNull();
+    expect(container.querySelector("img").getAttribute("src")).toBe("/one.jpg");
+});
 
 it.each([false, true])(
     "shows destination publication status at either density (featured=%s)",

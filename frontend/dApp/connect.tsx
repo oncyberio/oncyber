@@ -417,10 +417,10 @@ export async function connectSolana(): Promise<SolanaConnection> {
         import("@solana/wallet-adapter-phantom"),
         import("@solana/wallet-adapter-react-ui"),
         import("@solana/web3.js"),
+        // The wallet modal's stylesheet, which also pulls a web font. Loaded
+        // with the modal, so pages that never open it don't fetch it.
+        import("./solanaWalletStyles"),
     ]);
-
-    // Default styles that can be overridden by your app
-    require("@solana/wallet-adapter-react-ui/styles.css");
 
     const wallet: Wallet = await new Promise((resolve, reject) => {
         let container = (window as any)

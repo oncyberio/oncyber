@@ -32,7 +32,12 @@ runs:
 -   Without it, it does nothing and the site renders with the open fallbacks.
     Forks build and run unchanged.
 
-`next.config.js` only preloads the licensed files when they are present.
+`next.config.js` sees whether the files are present and sets
+`NEXT_PUBLIC_LICENSED_FONTS`. Only a build that has them preloads them and
+declares their font faces (`frontend/styles/licensed-fonts.css`, and the
+faces in `frontend/styles/brand` and the studio's foundation). A build
+without them declares none, so no visitor's browser asks for a font file
+that is not there.
 
 ## Oncyber's own deployments
 

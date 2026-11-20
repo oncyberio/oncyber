@@ -12,7 +12,7 @@
 
 import conf from "./utils/params";
 
-import { asConst } from "@utils/js";
+import { asConst, deferred } from "@utils/js";
 
 import { soloDefaultSpaces } from "../utils/constants";
 
@@ -22,6 +22,22 @@ import {
 } from "../ui/ControlPanel/Raffle/raffles/rtfktRaffleConstants";
 
 export const CINEMATIC = conf.cinematic == true;
+
+const worldCreated = deferred();
+
+/**
+ * Resolves with the world's API once the engine has built it. Kept here so
+ * the shell's world store (hooks/WorldStore.ts, which the app-wide AI
+ * provider reaches) can wait on it without importing three.js.
+ *
+ * @type { Promise<import("./api").default> }
+ */
+// @ts-ignore
+export const WORLD_CREATED = worldCreated.promise;
+
+export const SET_WORLD_CREATED = (val) => {
+    worldCreated.resolve(val);
+};
 
 export var EDIT_MODE = conf.edit == true;
 

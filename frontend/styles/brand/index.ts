@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components";
 import { brandTokens as brand } from "./tokens";
 import { actionTokens as action } from "@styles/tokens/action";
-import { baseTokens as base } from "@styles/tokens/base";
+import { baseTokens as base, hasLicensedFonts } from "@styles/tokens/base";
 import { landingTokens as landing } from "@styles/tokens/landing";
 
 /**
@@ -203,8 +203,11 @@ export const ActionButton = styled.button.attrs((props: any) => ({
     ${({ $shape }) => $shape === "pill" && pillAction}
 `;
 
-/** The Oncyber Sans and Mono faces. Part of `brandFoundation`. */
-export const brandFonts = css`
+/**
+ * Oncyber Sans is licensed (docs/fonts.md). A build without its files does
+ * not declare it, and the stack continues to Space Grotesk.
+ */
+const brandSansFaces = css`
     @font-face {
         font-family: "Oncyber Sans";
         src: url("${base.font.files.regular}") format("opentype");
@@ -219,6 +222,11 @@ export const brandFonts = css`
         font-style: normal;
         font-display: swap;
     }
+`;
+
+/** The Oncyber Sans and Mono faces. Part of `brandFoundation`. */
+export const brandFonts = css`
+    ${hasLicensedFonts ? brandSansFaces : ""}
     @font-face {
         font-family: "Oncyber Mono";
         src: url("${base.font.files.mono}") format("woff2");
