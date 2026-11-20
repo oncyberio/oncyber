@@ -10,6 +10,7 @@ import numpy as np
 from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
 from avatar_authoring.household_front import trouser_opening
+from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.sun_rays import kit_landmarks, shorts_cut
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest, verified_captures
@@ -224,6 +225,55 @@ def visible_shorts(path):
         }
 
 
+def compare_jersey_sleeves(reference, native):
+    """Compare both sleeves in units of standing height relative to the arm axis."""
+    images = [pixels(path, keep_components=True) for path in (reference, native)]
+    kits = [kit_landmarks(*frame) for frame in images]
+    cut = jersey_sleeve(*images[0], kits[0])
+    if cut is None or kits[1] is None:
+        return None
+    reach = cut["reach"]
+    y, u = np.mgrid[-0.40:0.40:96j, 0.52:1.16:128j]
+    masks, colors = [], []
+    for (rgb, mask), kit in zip(images, kits):
+        ys, xs = np.nonzero(mask)
+        height = np.ptp(ys)
+        arm = ys.min() + kit[1] * height
+        mid = (xs.max() + xs.min()) / 2
+        rows = np.rint(arm + y * reach * height).astype(int)
+        cols = np.rint(mid + np.stack([-u, u]) * reach * height).astype(int)
+        if (
+            rows.min() < 0
+            or cols.min() < 0
+            or rows.max() >= mask.shape[0]
+            or cols.max() >= mask.shape[1]
+        ):
+            return None
+        masks.append(mask[rows, cols])
+        colors.append(rgb[rows, cols])
+    a, b = masks
+    metrics = {
+        "silhouette_iou": round(
+            np.count_nonzero(a & b) / max(1, np.count_nonzero(a | b)), 4
+        )
+    }
+    top, bottom = cut["rows"][-1]
+    v = (2 * y - top - bottom) / (bottom - top)
+    t = u + cut["tilt"] * v
+    bands = np.zeros_like(u, dtype=bool)
+    # Sample away from the ink boundary, on both sleeves at their source positions.
+    for band in cut["bands"]:
+        margin = min(0.012, 0.2 * (band["end"] - band["start"]))
+        bands |= (
+            (t > band["start"] + margin) & (t < band["end"] - margin) & (abs(v) < 0.55)
+        )
+    if bands.any():
+        metrics["cuff_rgb_mae"] = round(
+            float(abs(colors[0] - colors[1])[:, bands].mean()), 2
+        )
+    return metrics
+
+
 def visible_trouser_opening(path):
     """Locate the fork on a rendered T-pose independently of the authored pattern."""
     rgb, mask = pixels(path, keep_components=True)
@@ -324,7 +374,15 @@ def record_preview(args):
             }
             for mode, v in report["backends"].items()
         }
-        if "shortsCut" in json.loads(candidate.read_bytes()):
+        recipe = json.loads(candidate.read_bytes())
+        if "jerseySleeve" in recipe:
+            data["jersey_sleeves"] = {
+                mode: compare_jersey_sleeves(
+                    reference, evidence.parent / mode / "front.png"
+                )
+                for mode in report["backends"]
+            }
+        if "shortsCut" in recipe:
             data["visible_shorts"] = {
                 "reference": visible_shorts(reference),
                 **{

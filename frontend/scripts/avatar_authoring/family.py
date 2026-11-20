@@ -10,6 +10,7 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
+from .jersey_sleeve import jersey_sleeve
 from .sun_rays import (
     fit_crew_to_orb,
     fitted_shorts,
@@ -506,6 +507,20 @@ class Family:
         shirt_frame = None
         if custom_jersey and self.key == "sunshine":
             recipe["plainJersey"] = True
+            sleeve = jersey_sleeve(image, mask, kit_landmarks(image, mask))
+            if sleeve is not None:
+                # Undo the photographic scale and horizontal build separately.
+                # The rig reapplies these proportions when the sleeve is worn.
+                span = sleeve.pop("reach") * (SIDES - 32) / (params[0] * params[3])
+                rows = np.asarray(sleeve["rows"]) * params[3]
+                if 55 <= span <= 190 and np.all(
+                    (abs(rows) >= 0.055) & (abs(rows) <= 0.55)
+                ):
+                    recipe["jerseySleeve"] = {
+                        **sleeve,
+                        "rows": rows.round(4).tolist(),
+                        "span": round(float(span), 2),
+                    }
         if FAMILIES[self.key]["plainShirt"] or recipe.get("plainJersey"):
             box = np.asarray(FAMILIES[self.key]["shirtBox"]).reshape(2, 2)
             rect = self.warp(box, np.zeros(2, dtype=bool), params)
@@ -659,7 +674,8 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
     )
     recipe, _metrics, overlay = candidates[best]
     if best == "sunshine" and custom_jersey:
-        cut = shorts_cut(image, mask, kit_landmarks(image, mask))
+        landmarks = kit_landmarks(image, mask)
+        cut = shorts_cut(image, mask, landmarks)
         if cut is not None:
             recipe["shortsCut"] = fitted_shorts(cut)
         seed = visor_seed(image, mask)

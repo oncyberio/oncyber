@@ -420,6 +420,32 @@ class FamilyTests(unittest.TestCase):
         angles = np.sort(np.arctan2(*np.mean(rays, axis=1)[:, ::-1].T))
         self.assertGreater(np.min(np.diff(angles)), 0.16)
 
+    def test_jersey_sleeves_require_two_visible_arms_and_follow_the_drawn_bands(self):
+        from .jersey_sleeve import jersey_sleeve
+
+        paper, skin = [215, 214, 212], [78, 134, 52]
+        image = np.full((423, 401, 3), paper, dtype=float)
+        image[10, 200] = image[410, 200] = skin
+        image[139:151, 43:358] = skin
+        across = np.abs(np.arange(401) - 200)
+        image[132:158, across <= 66] = [245, 209, 138]
+        image[132:158, (across > 58) & (across <= 66)] = [34, 72, 190]
+
+        def fit():
+            return jersey_sleeve(image, (image != paper).any(axis=2), [0, 0.335])
+
+        result = fit()
+        self.assertAlmostEqual(result["reach"], 0.166, delta=0.005)
+        self.assertEqual(result["bands"][0]["color"], "#2248be")
+        self.assertAlmostEqual(result["bands"][0]["start"], 0.88, delta=0.03)
+        self.assertEqual(result["bands"][0]["end"], 1)
+        np.testing.assert_allclose(result["armhole"], [-1, 1])
+        self.assertEqual(len(result["rows"]), 5)
+        image[132:158, (across > 58) & (across <= 66)] = [245, 209, 138]
+        self.assertEqual(fit()["bands"], [])
+        image[130:163, 42:135] = paper
+        self.assertIsNone(fit())
+
     def test_shorts_measure_the_visible_gap_and_outer_hem(self):
         mask = np.zeros((201, 160), dtype=bool)
         mask[:, 63:97] = True

@@ -1,3 +1,4 @@
+import { drawJerseySleeve, type JerseySleeve } from "./jerseySleeve";
 import { drawOrbVisor, type OrbVisor } from "./orbVisor";
 import families from "./families.json";
 import { drawMarkedShirt, type ShirtMark } from "./shirtMark";
@@ -269,16 +270,25 @@ export function drawShapeRecipe(
     sunRays?: XY[][],
     visor?: OrbVisor,
     orbCollar?: OrbCollar,
-    shortsCut?: ShortsCut
+    shortsCut?: ShortsCut,
+    jerseySleeve?: JerseySleeve
 ) {
-    d.s.palette(
-        Object.fromEntries(
-            Object.values(recipe.palette).map((p) => [
-                p.color,
-                finish[p.finish],
-            ])
-        )
+    const finishes = Object.fromEntries(
+        Object.values(recipe.palette).map((p) => [p.color, finish[p.finish]])
     );
+    if (jerseySleeve) {
+        // The source dye is absolute. Give it a separate paint key if its
+        // swatch coincides with a recolorable template role such as skin.
+        jerseySleeve = {
+            ...jerseySleeve,
+            bands: jerseySleeve.bands.map((band) => {
+                const color = new T.Color(band.color).getStyle();
+                finishes[color] = finish.cloth;
+                return { ...band, color };
+            }),
+        };
+    }
+    d.s.palette(finishes);
     d.s.ambientByPaint = Object.fromEntries(
         Object.values(recipe.palette)
             .filter((p) => p.ambient !== undefined)
@@ -321,6 +331,14 @@ export function drawShapeRecipe(
                 : undefined;
         d.s.blend = part.blend;
         const pigment = recipe.palette[part.paint].color;
+        if (
+            jerseySleeve &&
+            "across" in part &&
+            part.name?.endsWith("UpperArmSleeve")
+        ) {
+            drawJerseySleeve(d, part.bone, jerseySleeve, pigment);
+            continue;
+        }
         if (
             visor &&
             part.bone === "head" &&
@@ -465,7 +483,36 @@ export function drawShapeRecipe(
             }
             if (part.name) backs.set(part.name, profileDepth(part.profile, -1));
         } else if ("across" in part) {
-            const sections = part.across;
+            let sections = part.across;
+            if (
+                jerseySleeve &&
+                part.bone.endsWith("UpperArm") &&
+                part.paint === "pink"
+            ) {
+                // Keep the upper arm inside a short opening through motion.
+                const center = d.sourceJoints.get("upperChest").point[0];
+                const left = part.bone === "leftUpperArm";
+                const elbow = left ? sections.at(-1) : sections[0];
+                const middle = (elbow[1] + elbow[2]) * 0.5;
+                const radius = (elbow[2] - elbow[1]) * 0.5;
+                const [top, bottom] = jerseySleeve.armhole ?? [-1, 1];
+                const arm: Section = [
+                    center + (left ? 1 : -1) * jerseySleeve.span,
+                    middle + radius * top,
+                    middle + radius * bottom,
+                    elbow[3] * (bottom - top) * 0.5,
+                    elbow[4],
+                ];
+                const inner: Section = [...arm];
+                // The arm starts just inside the slanted cuff, on the
+                // fully arm-weighted rings. Extending it into the shoulder
+                // lets the hidden skin pierce the blended cloth in a crouch.
+                inner[0] =
+                    center +
+                    (1 - Math.abs(jerseySleeve.tilt) - 0.045) *
+                        (arm[0] - center);
+                sections = left ? [inner, arm, elbow] : [elbow, arm, inner];
+            }
             if (part.name) {
                 const front = profileDepth(sections),
                     back = profileDepth(sections, -1);

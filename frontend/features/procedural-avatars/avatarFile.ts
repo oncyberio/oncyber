@@ -46,6 +46,42 @@ const familyFile = z.strictObject({
         .min(8)
         .max(80)
         .optional(),
+    jerseySleeve: z
+        .strictObject({
+            span: z.number().min(55).max(190),
+            armhole: z
+                .tuple([
+                    z.number().min(-1.8).max(-0.3),
+                    z.number().min(0.3).max(1.8),
+                ])
+                .optional(),
+            rows: z
+                .array(
+                    z.tuple([
+                        z.number().min(-0.55).max(-0.055),
+                        z.number().min(0.055).max(0.55),
+                    ])
+                )
+                .length(5),
+            tilt: z.number().min(-0.09).max(0.09),
+            bands: z
+                .array(
+                    z.strictObject({
+                        start: z.number().min(0.68).max(1),
+                        end: z.number().min(0.68).max(1),
+                        color: swatch,
+                    })
+                )
+                .max(3)
+                .refine((bands) =>
+                    bands.every(
+                        (b, i) =>
+                            b.end - b.start >= 0.009 &&
+                            (i === 0 || b.start >= bands[i - 1].end)
+                    )
+                ),
+        })
+        .optional(),
     shortsCut: z
         .strictObject({
             rise: z.number().min(0.2).max(0.93),
@@ -283,6 +319,7 @@ export function readAvatarFile(input: unknown): {
             (file.orbOffset ||
                 file.kitFit ||
                 file.shortsCut ||
+                file.jerseySleeve ||
                 file.orbPaint ||
                 file.visor ||
                 file.orbCollar) &&
@@ -329,6 +366,10 @@ export function readAvatarFile(input: unknown): {
                 template: family.template as Character,
                 ...file.proportions,
                 palette,
+                ...(file.jerseySleeve && {
+                    jerseySleeve:
+                        file.jerseySleeve as AvatarRecipe["jerseySleeve"],
+                }),
                 ...(file.shortsCut && {
                     shortsCut: file.shortsCut as AvatarRecipe["shortsCut"],
                 }),

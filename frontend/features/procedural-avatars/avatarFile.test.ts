@@ -4,10 +4,10 @@ import { join } from "path";
 import { recipeTransform } from "./recipes";
 import { fitCoatRow } from "./coatPanels";
 import { drawOrbVisor } from "./orbVisor";
-import type { Drawing } from "./drawing";
+import { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 import { readAvatarFile } from "./avatarFile";
-import { buildCharacter } from "./buildCharacter";
+import { buildCharacter, drawCharacter } from "./buildCharacter";
 import { disposeAvatarGraph } from "../lobby/webgpu/avatarResources";
 import { loadRecipeForUrl, proceduralCharacter } from "./catalog";
 import { cranialStations, cranialDepth } from "./cranialBase";
@@ -524,6 +524,97 @@ test("measured shorts own their cut at both detail levels and preserve the share
             expect(positions[0]).toEqual(positions[2]);
         } finally {
             actors.forEach(({ scene }) => disposeAvatarGraph(scene));
+        }
+    }
+});
+
+test("jersey cuts and bindings survive both levels of detail on the articulated mesh", () => {
+    const cut = {
+        span: 122,
+        rows: [
+            [-0.27, 0.36],
+            [-0.24, 0.25],
+            [-0.2, 0.22],
+            [-0.17, 0.21],
+            [-0.14, 0.21],
+        ],
+        armhole: [-1.05, 1.1],
+        tilt: 0.05,
+        bands: [{ start: 0.88, end: 1, color: "#3273ca" }],
+    };
+    const recipe = (jerseySleeve = cut) =>
+        readAvatarFile({ ...vesper, jerseySleeve }).recipe;
+    expect(() => readAvatarFile({ ...scientist, jerseySleeve: cut })).toThrow();
+    expect(() =>
+        recipe({ ...cut, bands: [...cut.bands, ...cut.bands] })
+    ).toThrow();
+    // Any exposed upper-arm skin must rotate with the cuff. Skin extending
+    // into the mixed chest/shoulder rings pierced the jersey during a crouch.
+    const drawing = new Drawing("sunshine");
+    drawing.s.record = { points: [], runs: [] };
+    drawCharacter(drawing, recipe());
+    const { points, runs } = drawing.s.record;
+    const center = drawing.sourceJoints.get("upperChest").point[0];
+    for (const bone of ["rightUpperArm", "leftUpperArm"]) {
+        const arm = runs.find((r) => r.bone === bone);
+        expect(arm).toBeDefined();
+        const offsets = Array.from(
+            { length: arm.count },
+            (_, i) => Math.abs(points[(arm.start + i) * 3] - center) / cut.span
+        );
+        expect(Math.min(...offsets)).toBeGreaterThan(0.85);
+        expect(Math.min(...offsets)).toBeLessThan(1 - Math.abs(cut.tilt));
+    }
+    for (const detail of ["full", "crowd"] as const) {
+        const base = readAvatarFile(vesper).recipe;
+        const actors = [
+            base,
+            recipe(),
+            recipe({ ...cut, bands: [{ ...cut.bands[0], color: "#fca629" }] }),
+            base,
+        ].map((r) => buildCharacter(r, detail));
+        try {
+            const meshes = actors.map(
+                (actor) =>
+                    actor.scene.getObjectByProperty(
+                        "isSkinnedMesh",
+                        true
+                    ) as T.SkinnedMesh
+            );
+            const [old, blue, gold, reused] = meshes.map((m) => m.geometry);
+            expect(blue.groups).toHaveLength(0);
+            expect(blue.attributes.position.array).not.toEqual(
+                old.attributes.position.array
+            );
+            expect(reused.attributes.position.array).toEqual(
+                old.attributes.position.array
+            );
+            expect(blue.attributes.position.array).toEqual(
+                gold.attributes.position.array
+            );
+            expect(blue.attributes.color.array).not.toEqual(
+                gold.attributes.color.array
+            );
+            const joints = blue.getAttribute("skinIndex"),
+                weights = blue.getAttribute("skinWeight");
+            for (const name of ["rightUpperArm", "leftUpperArm"]) {
+                const bones = meshes[1].skeleton.bones;
+                const shoulder = bones.findIndex((b) => b.name === name),
+                    chest = bones.findIndex((b) => b.name === "upperChest");
+                let attached = false;
+                for (let i = 0; i < joints.count; i++) {
+                    if (
+                        joints.getX(i) === chest &&
+                        joints.getY(i) === shoulder &&
+                        weights.getY(i) > 0 &&
+                        weights.getY(i) < 1
+                    )
+                        attached = true;
+                }
+                expect(attached).toBe(true);
+            }
+        } finally {
+            actors.forEach((actor) => disposeAvatarGraph(actor.scene));
         }
     }
 });
