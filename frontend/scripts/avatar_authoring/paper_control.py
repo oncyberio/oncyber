@@ -86,3 +86,56 @@ def crown_paper_control(reference, native):
             for t in (12, 19, 27)
         },
     }
+
+
+def clear_arm_paper(rgb, mask, tolerance):
+    """Trim paper along each T-pose arm normal up to the first painted edge."""
+    top = np.median(rgb[:3], axis=0)
+    bottom = np.median(rgb[-3:], axis=0)
+    v = np.linspace(0, 1, len(rgb))[:, None, None]
+    paper = (1 - v) * top + v * bottom
+    near = np.max(abs(rgb - paper), axis=2) < tolerance
+    above = np.logical_and.accumulate(near, axis=0)
+    below = np.logical_and.accumulate(near[::-1], axis=0)[::-1]
+    return mask & ~(above | below)
+
+
+def arm_paper_control(reference, native):
+    """Compare exposed forearms at fixed fractions of full T-pose stature."""
+
+    def mattes(path):
+        rgb, mask = pixels(path, keep_components=True)
+        yy, xx = np.nonzero(mask)
+        if len(yy) == 0:
+            return None
+        height = np.ptp(yy)
+        axis = (xx.min() + xx.max()) / 2
+        # Sample both bare forearms between the outer sleeve and wrist.
+        columns = np.arange(94, 126)
+        xs = np.rint(axis + np.r_[-columns[::-1], columns] * height / 384).astype(int)
+        ys = np.rint(yy.min() + np.arange(77, 163) * height / 384).astype(int)
+        if xs.min() < 0 or xs.max() >= mask.shape[1] or ys.max() >= len(mask):
+            return None
+        grid = np.ix_(ys, xs)
+        arm, art = mask[grid], rgb[grid]
+        if (arm[:3] | arm[-3:]).any() or not arm.any(axis=0).all():
+            return None
+        with Image.open(path) as im:
+            has_alpha = np.mean(np.asarray(im.convert("RGBA"))[:, :, 3] < 10) > 0.05
+        return {
+            t: arm if t == 0 or has_alpha else clear_arm_paper(art, arm, t)
+            for t in (0, 12, 19, 27)
+        }
+
+    source, rendered = mattes(reference), mattes(native)
+    if source is None or rendered is None:
+        return None
+    return {
+        str(t): {
+            "iou": round(float((a & b).sum() / max(1, (a | b).sum())), 4),
+            "reference_median_rows": float(np.median(a.sum(axis=0))),
+            "native_median_rows": float(np.median(b.sum(axis=0))),
+        }
+        for t, a in source.items()
+        for b in [rendered[t]]
+    }

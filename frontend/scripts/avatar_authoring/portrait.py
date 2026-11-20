@@ -6,6 +6,7 @@ from scipy import ndimage
 from .eye_review import portrait_pair
 from .family import FAMILIES
 from .fit import pixels
+from .fringe import forehead_fringe
 from .jersey_sleeve import bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
@@ -444,6 +445,19 @@ def compile_portrait(source, family, name, obs):
             [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (e["bounds"] for e in pair)]
         )
         cx, eye_y = centers.mean(0)
+        fringe = forehead_fringe(
+            rgb,
+            mask,
+            cx,
+            top,
+            height,
+            skull_width,
+            skin,
+            hair,
+            [e["bounds"] for e in pair],
+        )
+        if fringe:
+            household["fringe"] = fringe
         lobes = frontal_lobes(rgb, mask, skin, hair, cx, eye_y, top, chin, skull_width)
         fit_frontal_features(
             design, lobes, design["head"][1] / height, separate_ears=True

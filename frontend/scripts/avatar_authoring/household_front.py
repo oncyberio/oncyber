@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import ndimage
 
+from .fringe import forehead_fringe
 from .eye_review import portrait_pair
 from .household import (
     fit_frontal_features,
@@ -68,7 +69,13 @@ def painted_brow(rgb, bounds):
     area = rgb[ty : max(ty, y - 2), lx : min(rgb.shape[1], round(cx + 1.12 * rx))]
     if not area.size:
         return None
-    labels, _ = ndimage.label(area.max(2) < 84, structure=np.ones((3, 3)))
+    ink = area.max(2) < 84
+    # A fringe and a brow can share both paint and a connected component.
+    # Read only runs separated from the top of the search window by skin.
+    # An exposed brow can taper into the fringe at either end.
+    clipped = np.logical_and.accumulate(ink, axis=0)
+    ink = ink & ~clipped
+    labels, _ = ndimage.label(ink, structure=np.ones((3, 3)))
     parts = []
     for label, box in enumerate(ndimage.find_objects(labels), start=1):
         if box is None:
@@ -999,6 +1006,20 @@ def fit_front(source, name, observation=None):
                 wrap = float(np.clip((abs(angle) - 0.85) / 0.42, 0, 1))
                 line[i] = round(max(line[i], (ear[1] - ear[3] * 0.78) * wrap), 4)
         recipe["design"]["hairline"] = line
+    if line and not bob:
+        fringe = forehead_fringe(
+            rgb,
+            mask,
+            eye_axis,
+            top,
+            chin - top,
+            width,
+            skin,
+            hair,
+            [e["bounds"] for e in actual],
+        )
+        if fringe:
+            family["fringe"] = fringe
     # Hair visible outside both cheeks below the ears continues around the
     # occiput. Estimate the nape length independently of the forehead part.
     nape = nape_height(rgb, mask, eye_axis, top, chin, width, skin, hair)

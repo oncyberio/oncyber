@@ -4,6 +4,43 @@ import { cranialStations } from "./cranialBase";
 import { frontOfLoft, type Drawing, type Section } from "./drawing";
 import type { Point } from "./sculpt";
 
+/** Place both edges of short sideburns on the existing longitude budget. */
+function placeFringeMeridians(angles: number[], knots: number[][]) {
+    const sides = angles.length;
+    const bend = knots.map(([a, t], i) => {
+        if (!i || i === knots.length - 1) return 1;
+        const [l, y0] = knots[i - 1],
+            [r, y1] = knots[i + 1];
+        return Math.abs(t - MathUtils.lerp(y0, y1, (a - l) / (r - l)));
+    });
+    // Reserve a meridian for both ends of a narrow lock. Two sharp
+    // corners can be closer than the spacing of the regular head grid.
+    const lateral = Math.round(sides / 4);
+    for (const side of [-1, 1]) {
+        const arc = [0, Math.PI / 2];
+        const candidates = knots
+            .map(([a], i) => ({ angle: side * a, bend: bend[i] }))
+            .filter(({ angle }) => angle > 0 && angle < Math.PI / 2)
+            .sort((a, b) => b.bend - a.bend);
+        for (const { angle } of candidates) {
+            if (arc.length > lateral) break;
+            if (arc.every((a) => Math.abs(a - angle) > 0.015)) arc.push(angle);
+        }
+        arc.sort((a, b) => a - b);
+        while (arc.length <= lateral) {
+            let widest = 1;
+            for (let i = 2; i < arc.length; i++) {
+                if (arc[i] - arc[i - 1] > arc[widest] - arc[widest - 1])
+                    widest = i;
+            }
+            arc.splice(widest, 0, (arc[widest] + arc[widest - 1]) / 2);
+        }
+        for (let i = 1; i <= lateral; i++)
+            angles[side > 0 ? i : sides - i] =
+                side > 0 ? arc[i] : 2 * Math.PI - arc[i];
+    }
+}
+
 /** A closed Rick-family skull for an intact cheek and a cap or tied hairstyle.
  * Both pigments terminate on the same boundary ring, including behind the ears. */
 export function drawHouseholdHead(
@@ -207,14 +244,93 @@ export function drawHouseholdHead(
         : d.s.detail === "crowd"
         ? 26
         : 38;
+    const angles = Array.from(
+        { length: sides },
+        (_, j) => (j * 2 * Math.PI) / sides
+    );
+    const cuts = angles.map(hem);
+    const fringe = g.household.fringe;
+    const displacements: Point[] = [];
+    if (fringe) {
+        // Lay the frontal outline on a fixed chart. The outline can bend
+        // vertically at a sideburn, where an ellipse at the tip is much
+        // narrower than one at the root. Sorting by the inferred longitude
+        // there would reverse the two corners of the lock.
+        const half = Math.max(0.5, ...fringe.map(([u]) => Math.abs(u) + 0.01));
+        const knots = fringe.map(([u, t]) => [Math.asin(u / half), t]);
+        placeFringeMeridians(angles, knots);
+        for (let j = 0; j < sides; j++) {
+            const a = Math.atan2(Math.sin(angles[j]), Math.cos(angles[j]));
+            if (Math.abs(a) > Math.PI / 2 + 1e-8) continue;
+            let u = half * Math.sin(a);
+            let t: number;
+            if (u < fringe[0][0] - 1e-8 || u > fringe.at(-1)[0] + 1e-8) {
+                const [edge, y] = a < 0 ? knots[0] : knots.at(-1);
+                const end = (Math.sign(a) * Math.PI) / 2;
+                const across = (a - edge) / (end - edge);
+                t = MathUtils.lerp(
+                    y,
+                    hem(end),
+                    MathUtils.smoothstep(across, 0, 1)
+                );
+                const start = Math.abs(half * Math.sin(edge));
+                const temple = Math.abs(point(end, hem(end), true)[0]) / width;
+                u =
+                    Math.sign(a) *
+                    MathUtils.lerp(
+                        start,
+                        Math.max(start, temple),
+                        Math.sin((across * Math.PI) / 2)
+                    );
+            } else {
+                const i = Math.max(
+                    1,
+                    fringe.findIndex(([x]) => x + 1e-8 >= u)
+                );
+                const [x0, y0] = fringe[i - 1],
+                    [x1, y1] = fringe[i];
+                t = MathUtils.lerp(
+                    y0,
+                    y1,
+                    MathUtils.clamp((u - x0) / (x1 - x0), 0, 1)
+                );
+            }
+            cuts[j] = t;
+            let lo = -Math.PI / 2,
+                hi = Math.PI / 2;
+            for (let k = 0; k < 12; k++) {
+                const mid = (lo + hi) / 2;
+                if (point(mid, t, true)[0] < u * width) lo = mid;
+                else hi = mid;
+            }
+            const base = point(a, t, true);
+            displacements[j] = [
+                u * width - base[0],
+                12 + height * t - base[1],
+                point((lo + hi) / 2, t, true)[2] - base[2],
+            ];
+        }
+    }
+    const sewnPoint = (j: number, t: number, hair: boolean): Point => {
+        const k = j % sides,
+            p = point(angles[k], t, hair);
+        if (!displacements[k]) return p;
+        const w = 1 - MathUtils.smoothstep(Math.abs(t - cuts[k]), 0, 0.22);
+        return [
+            p[0] + w * displacements[k][0],
+            p[1] + w * displacements[k][1],
+            p[2] + w * displacements[k][2],
+        ];
+    };
     const rings = (steps: number, hair: boolean) =>
         Array.from({ length: steps + 1 }, (_, i) =>
             Array.from({ length: sides + 1 }, (_, j): Point => {
-                const a = ((j % sides) * Math.PI * 2) / sides;
                 const u = 0.5 - 0.5 * Math.cos((Math.PI * i) / steps);
-                return point(
-                    a,
-                    hair ? u * hem(a) : MathUtils.lerp(hem(a), 1, u),
+                return sewnPoint(
+                    j,
+                    hair
+                        ? u * cuts[j % sides]
+                        : MathUtils.lerp(cuts[j % sides], 1, u),
                     hair
                 );
             })
@@ -275,12 +391,16 @@ export function drawHouseholdHead(
     // Give the temple boundary the fine painted edge of the source drawing.
     // Both edges follow the skull, including the side hidden in a single still.
     const boundary = cap.at(g.household.jawWidths ? -2 : -1);
-    const hairBand = boundary.map((_, j): Point => {
-        const a = ((j % sides) * Math.PI * 2) / sides;
-        return point(a, hem(a) - Math.min(0.0045, 0.55 / height), true);
-    });
+    const hairBand = boundary.map(
+        (_, j): Point =>
+            sewnPoint(
+                j,
+                cuts[j % sides] - Math.min(0.0045, 0.55 / height),
+                true
+            )
+    );
     const liftEdge = (p: Point, j: number): Point => {
-        const a = ((j % sides) * Math.PI * 2) / sides;
+        const a = angles[j % sides];
         return [p[0] + 0.22 * Math.sin(a), p[1], p[2] + 0.22 * Math.cos(a)];
     };
     d.s.surface(

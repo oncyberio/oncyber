@@ -13,6 +13,58 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_painted_brow_follows_the_exposed_run_below_a_dark_fringe(self):
+        from .household_front import painted_brow
+
+        art = np.full((100, 100, 3), [221.0, 157, 110])
+        art[:39, 26:73] = [39, 27, 21]
+        art[41:44, 33:63] = [42, 28, 22]
+        # One end of the eyebrow touches the hair. The large patch clipped
+        # by the top of the search window cannot become an eyebrow.
+        art[36:43, 61:65] = [39, 27, 21]
+        bounds = (32, 51, 66, 73)
+        brow = painted_brow(art, bounds)
+        self.assertIsNotNone(brow)
+        y = 62 + 11 * np.array(brow["browRim"])[:, 1]
+        self.assertTrue(np.all((y >= 40.9) & (y <= 44)))
+        art[39:49] = [221, 157, 110]
+        self.assertIsNone(painted_brow(art, bounds))
+
+    def test_forehead_trace_keeps_the_sideburn_and_excludes_the_brow(self):
+        from .fringe import forehead_fringe
+
+        skin = np.array([222.0, 167, 112])
+        dye = np.array([47.0, 30, 22])
+        art = np.full((110, 140, 3), skin)
+        yy, xx = np.indices(art.shape[:2])
+        end = np.interp(xx, [35, 38, 58, 92, 97, 99], [62, 34, 33, 20, 24, 58])
+        art[(yy < end) & (xx >= 29) & (xx <= 104)] = dye
+        art[37:40, 44:62] = dye
+        mask = np.ones(yy.shape, dtype=bool)
+        trace = np.array(forehead_fringe(art, mask, 67, 0, 100, 90, skin, dye))
+        self.assertTrue(np.all(np.diff(trace[:, 0]) > 0))
+        self.assertLessEqual(len(trace), 16)
+        self.assertGreater(trace[0, 1], 0.56)
+        self.assertAlmostEqual(
+            np.interp(-0.13, trace[:, 0], trace[:, 1]), 0.33, delta=0.02
+        )
+        self.assertIsNone(forehead_fringe(art, mask, 67, 0, 100, 90, skin, skin))
+
+    def test_forearm_paper_control_keeps_pale_cloth_inside_ink(self):
+        from .paper_control import clear_arm_paper
+
+        x = np.arange(21)
+        paper = np.tile((219 + x % 4).astype(float)[None, :, None], (30, 1, 3))
+        art = paper.copy()
+        art[8:22] -= 7
+        art[11:19] = paper[11:19]
+        art[[11, 18]] = [64, 44, 33]
+        raw = np.zeros(art.shape[:2], dtype=bool)
+        raw[8:22] = True
+        clean = clear_arm_paper(art, raw, 12)
+        self.assertTrue(clean[11:19].all())
+        self.assertEqual(clean.sum(), 8 * len(x))
+
     def test_touching_fingers_keep_the_hidden_digit_and_reject_an_unmarked_hand(self):
         from .fit import pixels
         from .inked_hand import inked_hand

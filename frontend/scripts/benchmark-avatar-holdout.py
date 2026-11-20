@@ -19,7 +19,7 @@ from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cu
 from avatar_authoring.visor import measure_visor, visor_seed
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest, verified_captures
-from avatar_authoring.paper_control import crown_paper_control
+from avatar_authoring.paper_control import arm_paper_control, crown_paper_control
 
 
 def manifest_digest(manifest):
@@ -534,6 +534,11 @@ def record_preview(args):
             raise ValueError(
                 f"{key} native evidence and frozen full-body reference differ"
             )
+        if case["family"] == "rick-classic" and case["framing"] == "full":
+            data["forearm_paper_control"] = {
+                mode: arm_paper_control(reference, evidence.parent / mode / "front.png")
+                for mode in report["backends"]
+            }
         data["evidence_sha256"] = digest(evidence)
         data["review_assets"] = export_review_views(
             evidence.parent, root / "reviews", key, report

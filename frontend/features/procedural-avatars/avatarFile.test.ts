@@ -5,6 +5,7 @@ import { recipeTransform } from "./recipes";
 import { fitCoatRow } from "./coatPanels";
 import { drawOrbVisor, orbContactUV } from "./orbVisor";
 import { Drawing } from "./drawing";
+import { drawHouseholdHead } from "./householdHead";
 import type { Point } from "./sculpt";
 import { readAvatarFile } from "./avatarFile";
 import { buildCharacter, drawCharacter } from "./buildCharacter";
@@ -390,6 +391,49 @@ test("crowd detail keeps the pupil offsets baked into the household cornea", () 
         disposeAvatarGraph(model.scene);
     }
 });
+
+test.each(["full", "crowd"] as const)(
+    "a narrow sideburn has two distinct sewn corners on the %s head",
+    (detail) => {
+        const file = JSON.parse(JSON.stringify(morty));
+        const fringe = [
+            [-0.32, 0.61],
+            [-0.29, 0.3],
+            [0, 0.23],
+            [0.26, 0.14],
+            [0.31, 0.57],
+        ];
+        file.design.hair.cut = "part";
+        file.design.household.fringe = fringe;
+        const { recipe } = readAvatarFile(file);
+        const g = recipe.cartoon;
+        const drawing = new Drawing(recipe.template);
+        drawing.s.detail = detail;
+        let cap: Point[][], jaw: Point[][];
+        drawing.s.surface = (rows, color) => {
+            if (color === g.hair.color) cap = rows;
+            if (color === g.skin) jaw = rows;
+            return rows;
+        };
+        drawHouseholdHead(drawing, g, headSections(g));
+        const hem = cap.at(-1);
+        expect(hem).toEqual(jaw[0]);
+        expect(hem[0]).toEqual(hem.at(-1));
+        for (const [x, t] of fringe)
+            expect(
+                hem.some(
+                    (p) =>
+                        Math.abs(p[0] / g.head[0] - x) < 0.001 &&
+                        Math.abs((p[1] - 12) / g.head[1] - t) < 0.001
+                )
+            ).toBe(true);
+        expect(hem.length).toBe(detail === "full" ? 39 : 27);
+        file.design.household.fringe = fringe.slice(3);
+        expect(() => readAvatarFile(file)).toThrow();
+        file.design.household.fringe = [fringe[1], fringe[0]];
+        expect(() => readAvatarFile(file)).toThrow();
+    }
+);
 
 test("household files reject a collapsed skull, a zero-width nose and a folded orbit", () => {
     for (const invalidate of [

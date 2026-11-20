@@ -812,6 +812,18 @@ const householdFile = file.extend({
                 cut: z.enum(["crop", "part", "ponytail", "waves"]),
             }),
             household: z.strictObject({
+                fringe: z
+                    .array(z.tuple([n(-0.55, 0.55), n(0.06, 0.73)]))
+                    .min(2)
+                    .max(16)
+                    .refine(
+                        (points) =>
+                            points.length >= 2 &&
+                            points[0][0] < 0 &&
+                            points.at(-1)[0] > 0 &&
+                            points.every(([x], i) => !i || x > points[i - 1][0])
+                    )
+                    .optional(),
                 crownSides: z
                     .array(z.tuple([n(-0.85, 0.85), n(-0.85, 0.85)]))
                     .length(12)
