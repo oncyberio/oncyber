@@ -663,6 +663,16 @@ projected corners and focus outlines. Update the curve only while scrolling
 or resizing. Keep the small progress track, selected/loading label and Done
 control below.
 
+The picker's heading is a two-tab switch: Free (the catalog) and Owned (the
+visitor's uploads and wallet avatars, with their count). It is a small glass
+pill with a quiet fill on the current tab; Left/Right, Home and End move
+between tabs and Down steps into the cards. It opens on the tab holding the
+avatar being worn. The panel keeps its two-row height on both tabs so the
+switch never moves; four or fewer avatars sit on one row, and an empty Owned
+tab says why in one line. Pictures are requested at card size (288 px WebP
+from hosts that resize), the first two screens at once and the rest as they
+come near; the other tab's first screen is fetched in the background.
+
 Dragging, swiping, wheel input and page controls browse without changing the
 avatar. Arrow keys move focus through the visible grid; Home/End reach its
 first/last choice. Click, Enter or Space selects the focused card. Reveal the

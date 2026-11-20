@@ -1,6 +1,7 @@
 import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
+import { warmAvatarThumbs } from "./avatarThumb";
 import { flashWallets } from "./useFlashNfts";
 import React, {
     useCallback,
@@ -258,6 +259,10 @@ export default function Lobby({
             ),
         [ownedAvatars.items]
     );
+    // Reaching for the avatar button fetches the picker's first screen, so
+    // it opens with pictures in place.
+    const warmAvatarPictures = () =>
+        warmAvatarThumbs(avatarChoices.slice(0, 8).map((item) => item.img));
     useEffect(() => {
         controlsElement.current?.toggleAttribute("inert", avatarOpen);
     }, [avatarOpen]);
@@ -1209,6 +1214,8 @@ export default function Lobby({
                                     ref={avatarButton}
                                     aria-label="Choose avatar"
                                     aria-expanded={avatarOpen}
+                                    onPointerEnter={warmAvatarPictures}
+                                    onFocus={warmAvatarPictures}
                                     onClick={() => {
                                         setFlashOpen(false);
                                         stopFlash();
@@ -1426,6 +1433,11 @@ export default function Lobby({
                             selectedId={avatar?.id}
                             loading={avatarLoading}
                             ownedLoading={ownedAvatars.loading}
+                            ownedHint={
+                                authenticated && !isAnonymous
+                                    ? undefined
+                                    : "Sign in to wear avatars you upload or hold in your wallet."
+                            }
                             error={avatarError || ownedAvatars.error}
                             onSelect={(item) => {
                                 if (item.id === avatar?.id) return;
