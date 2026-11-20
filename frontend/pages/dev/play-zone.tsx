@@ -38,7 +38,8 @@ import {
  * size of ball, an arena too small for where people are) plays the round
  * backwards to its start first.
  *
- * ?server=ws://127.0.0.1:2570   the play server
+ * ?server=ws://127.0.0.1:2570   the play server (a path such as /play-socket
+ *                               means this page's own address)
  * ?renderer=webgl               the WebGL2 backend
  * ?start=ball-pit               start that game on arrival
  *
@@ -134,7 +135,19 @@ export default function PlayZoneCheck() {
 
     useEffect(() => {
         if (!router.isReady || !host.current) return;
-        const server = String(router.query.server || "ws://127.0.0.1:2570");
+        // On this machine the play server is next door. Anywhere else (a
+        // shared preview of a development server) it is reached through the
+        // page's own address, at /play-socket.
+        const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+        const asked = String(
+            router.query.server ||
+                (local ? "ws://127.0.0.1:2570" : "/play-socket")
+        );
+        const server = asked.startsWith("/")
+            ? `${location.protocol === "https:" ? "wss" : "ws"}://${
+                  location.host
+              }${asked}`
+            : asked;
         const forceWebGL = router.query.renderer === "webgl";
         const startId = String(router.query.start || "");
         let disposed = false;
