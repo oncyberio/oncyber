@@ -85,16 +85,16 @@
             }
         },
         "brin": {
-            "candidate_sha256": "242d616fff149c54985ce22e8ee66c3c03d4f35ce30d893a28348f2e225594cc",
-            "evidence_sha256": "16bdbf364711b121edaf1dddc7da5baf5c0350f13b465ca8a0b0e1b71ffc5b51",
+            "candidate_sha256": "bf41b7c3055ff4722c079340c43df7892536c38466e5f324d57ee2232d0eae6c",
+            "evidence_sha256": "0e633172bddcde237089b3b0fa85089daabff5124ae0685aa8912a8f912108da",
             "review_assets": {
                 "WebGLBackend": {
-                    "views": "5374b6cc8e944ec4665d95105ed5ca020fee32ce2cf9407a286f883526de6e5f",
-                    "walk": "d144867a3812f0deb1034312b550245da1a668ec77adf3a9ef5787de6d46138f"
+                    "views": "5f7c4a767d0712113176c9a182ac1d40ac87a65808c19d870680e35fbe0257ff",
+                    "walk": "e3d56336ff90cfbada45e44f5a5976abfe99f43eb1b56a4c260a4b9090733599"
                 },
                 "WebGPUBackend": {
-                    "views": "efc0c3dce93e973d28d453a4d44a6191bc1fd7f23a9a5fba004c9bcdd469174d",
-                    "walk": "be0fc5c8bccfb942d0f0a908f7d208bbe3e491413fd05c1cb526168164b924bd"
+                    "views": "97faa4e426c68a74ce569f09e9d886df36bc22a02a8e5fdb6d9ea6e6c9767f47",
+                    "walk": "f04dc32cbfea6bf1b6704d642842a6c4f6509a835a4562928d1b474f8324252f"
                 }
             }
         }
@@ -515,9 +515,98 @@
                 "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
                 "transport": "deterministic",
                 "reported_provider_cost": null,
+                "seconds": 67.1,
+                "model_calls": [],
+                "selected_pass": 2,
+                "candidate_sha256": "bf41b7c3055ff4722c079340c43df7892536c38466e5f324d57ee2232d0eae6c",
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2589,
+                        "front": {
+                            "silhouette_iou": 0.8202,
+                            "head_iou": 0.9139,
+                            "head_edge_agreement": 0.3869,
+                            "body_edge_agreement": 0.3186,
+                            "rgb_mae": 30.29,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.7756,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            },
+                            "open_hands": {
+                                "matched": true,
+                                "hands": [
+                                    {
+                                        "separated_digits": 5,
+                                        "max_tip_error_in_hand_lengths": 0.016,
+                                        "length_error_in_half_spans": 0.0121,
+                                        "max_radius_log_error": 0.1638,
+                                        "matched": true
+                                    },
+                                    {
+                                        "separated_digits": 5,
+                                        "max_tip_error_in_hand_lengths": 0.016,
+                                        "length_error_in_half_spans": 0.0121,
+                                        "max_radius_log_error": 0.1638,
+                                        "matched": true
+                                    }
+                                ]
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2606,
+                        "front": {
+                            "silhouette_iou": 0.8684,
+                            "head_iou": 0.9174,
+                            "head_edge_agreement": 0.3859,
+                            "body_edge_agreement": 0.3904,
+                            "rgb_mae": 26.14,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.7551,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            },
+                            "open_hands": {
+                                "matched": true,
+                                "hands": [
+                                    {
+                                        "separated_digits": 5,
+                                        "max_tip_error_in_hand_lengths": 0.0364,
+                                        "length_error_in_half_spans": 0.0052,
+                                        "max_radius_log_error": 0.1274,
+                                        "matched": true
+                                    },
+                                    {
+                                        "separated_digits": 5,
+                                        "max_tip_error_in_hand_lengths": 0.0242,
+                                        "length_error_in_half_spans": 0.0134,
+                                        "max_radius_log_error": 0.1362,
+                                        "matched": true
+                                    }
+                                ]
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement."
+                    }
+                ]
+            },
+            "independent_review": "pending",
+            "stance": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
                 "seconds": 56.49,
                 "model_calls": [],
                 "selected_pass": 2,
+                "candidate_sha256": "242d616fff149c54985ce22e8ee66c3c03d4f35ce30d893a28348f2e225594cc",
                 "passes": [
                     {
                         "accepted": false,
@@ -557,10 +646,79 @@
                         },
                         "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement."
                     }
-                ],
-                "candidate_sha256": "242d616fff149c54985ce22e8ee66c3c03d4f35ce30d893a28348f2e225594cc"
+                ]
             },
-            "independent_review": "pending"
+            "open_hands": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 39.95,
+                "model_calls": [],
+                "selected_pass": 2,
+                "candidate_sha256": "f10f402b64adb5f81c2a3bbbc7d438656f5271568cea31b147b96c1eb13418e9",
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2581,
+                        "front": {
+                            "silhouette_iou": 0.8065,
+                            "head_iou": 0.9139,
+                            "head_edge_agreement": 0.3869,
+                            "body_edge_agreement": 0.3366,
+                            "rgb_mae": 30.33,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.8131,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2596,
+                        "front": {
+                            "silhouette_iou": 0.8488,
+                            "head_iou": 0.9174,
+                            "head_edge_agreement": 0.3859,
+                            "body_edge_agreement": 0.4112,
+                            "rgb_mae": 26.08,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.7959,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement."
+                    }
+                ]
+            },
+            "hand_and_jersey": {
+                "registered_stature": 1600,
+                "x0_in_statures": 0.274,
+                "y0_in_statures": 0.349,
+                "width": 225,
+                "height": 180,
+                "source": {
+                    "hand_iou": [1.0, 1.0],
+                    "separated_digits": [5, 5],
+                    "jersey_width_in_statures": [0.1474, 0.1466, 0.1722]
+                },
+                "previous": {
+                    "hand_iou": [0.7033, 0.6932],
+                    "separated_digits": [null, null],
+                    "jersey_width_in_statures": [0.2013, 0.198, 0.1817]
+                },
+                "current": {
+                    "hand_iou": [0.8113, 0.8245],
+                    "separated_digits": [5, 5],
+                    "jersey_width_in_statures": [0.1473, 0.1473, 0.1718]
+                }
+            }
         }
     }
 }

@@ -10,7 +10,7 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
-from .jersey_sleeve import jersey_sleeve
+from .jersey_sleeve import JERSEY_HALF_WIDTHS, JERSEY_ROWS, jersey_sleeve, jersey_widths
 from .kit_footwear import kit_footwear
 from .kit_hand import kit_hand
 from .sun_rays import (
@@ -509,7 +509,26 @@ class Family:
         shirt_frame = None
         if custom_jersey and self.key == "sunshine":
             recipe["plainJersey"] = True
-            sleeve = jersey_sleeve(image, mask, kit_landmarks(image, mask))
+            cloth = kit_landmarks(image, mask)
+            widths = jersey_widths(mask, cloth)
+            if widths is not None:
+                # Project the actual stock jersey sections through the fitted body.
+                stock = 2 * np.interp([249, 281, 331], JERSEY_ROWS, JERSEY_HALF_WIDTHS)
+                ratios = widths * (SIDES - 32) / (stock * params[0] * params[3])
+                if (
+                    np.all((ratios > 0.57) & (ratios < 1.48))
+                    and max(abs(ratios - 1)) > 0.06
+                ):
+                    recipe["kitFit"] = {
+                        "collar": 0,
+                        "shoulders": 0,
+                        "waist": 0,
+                        "hem": 0,
+                        "sock": 0,
+                        "width": 1,
+                        "jerseySides": np.clip(ratios, 0.65, 1.32).round(4).tolist(),
+                    }
+            sleeve = jersey_sleeve(image, mask, cloth)
             if sleeve is not None:
                 # Undo the photographic scale and horizontal build separately.
                 # The rig reapplies these proportions when the sleeve is worn.
@@ -670,12 +689,14 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
             candidates[k][1]["silhouette_iou"], candidates[k][1]["head_iou"]
         ),
     )
-    recipe, _metrics, overlay = candidates[best]
+    recipe, metrics, overlay = candidates[best]
     if best == "sunshine" and custom_jersey:
         landmarks = kit_landmarks(image, mask)
         hand = kit_hand(image, mask, landmarks)
         if hand:
             recipe["kitHand"] = hand
+            if hand.get("spread"):
+                metrics["source_finger_spread"] = hand["spread"]
         footwear = kit_footwear(image, mask, landmarks)
         if footwear:
             recipe["kitFootwear"] = footwear

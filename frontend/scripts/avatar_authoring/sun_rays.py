@@ -573,6 +573,7 @@ def fit_crew_to_orb(rgb, mask, orb, recipe, crown):
     binding = chin + below * y_scale - collar["drop"] * base_rx
     recipe["orbCollar"] = collar
     recipe["kitFit"] = {
+        **recipe.get("kitFit", {}),
         "collar": round(float(np.clip((binding - 171) / 680, -0.045, 0.045)), 4),
         "shoulders": round(float(np.clip((shoulder - 211) / 680, -0.045, 0.045)), 4),
         "waist": 0,
@@ -929,8 +930,32 @@ def kit_edits(source, native, recipe, gap=None):
     values["width"] = round(
         float(np.clip(fit.get("width", 1) * target[5] / current[5], 0.78, 1.25)), 3
     )
+    from .jersey_sleeve import jersey_widths
+
+    original = fit.get("jerseySides")
+    if original:
+        values["jerseySides"] = original
+    seams_changed = False
+    if recipe.get("plainJersey") and recipe.get("jerseySleeve"):
+        a = jersey_widths(source_image[1], target)
+        b = jersey_widths(native_image[1], current)
+        if a is not None and b is not None:
+            # The simultaneous waist correction also scales the outer edge.
+            widths = np.asarray(original if original else [1, 1, 1])
+            taper = np.clip((np.array([249, 281, 331]) - 219) / 67, 0, 1)
+            compensation = (1 + taper * (fit.get("width", 1) - 1)) / (
+                1 + taper * (values["width"] - 1)
+            )
+            sides = np.clip(widths * a / b * compensation, 0.65, 1.32)
+            seams_changed = bool(max(abs(sides - widths)) > 0.025)
+            if seams_changed:
+                values["jerseySides"] = sides.round(4).tolist()
     edits = []
-    if max(abs(delta)) > 0.003 or abs(target[5] / current[5] - 1) > 0.035:
+    if (
+        seams_changed
+        or max(abs(delta)) > 0.003
+        or abs(target[5] / current[5] - 1) > 0.035
+    ):
         edits.append({"field": "kitFit", "value": values})
     cut = recipe.get("shortsCut")
     if cut:

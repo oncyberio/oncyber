@@ -128,6 +128,33 @@ const familyFile = z.strictObject({
                     z.number().min(0.2).max(1.8),
                 ])
                 .optional(),
+            spread: z
+                .strictObject({
+                    length: z.number().min(0.14).max(0.29),
+                    wrist: z.number().min(0.075).max(0.22),
+                    digits: z
+                        .array(
+                            z.tuple([
+                                z.number().min(0.05).max(0.5),
+                                z.number().min(-0.74).max(0.74),
+                                z.number().min(0.22).max(1),
+                                z.number().min(-0.74).max(0.74),
+                                z.number().min(0.025).max(0.105),
+                            ])
+                        )
+                        .length(5)
+                        .refine((digits) => {
+                            if (digits.length !== 5) return false;
+                            const sign = Math.sign(digits[4][3] - digits[0][3]);
+                            return digits.every(
+                                ([x, , tip, y], i) =>
+                                    tip > x + 0.06 &&
+                                    (!i ||
+                                        (y - digits[i - 1][3]) * sign >= 0.055)
+                            );
+                        }),
+                })
+                .optional(),
             band: z
                 .strictObject({
                     center: z.number().min(0.71).max(0.86),
@@ -154,6 +181,13 @@ const familyFile = z.strictObject({
             sock: z.number().min(-0.045).max(0.045),
             width: z.number().min(0.78).max(1.25),
             chestWidth: z.number().min(0.7).max(1.3).optional(),
+            jerseySides: z
+                .tuple([
+                    z.number().min(0.65).max(1.32),
+                    z.number().min(0.65).max(1.32),
+                    z.number().min(0.65).max(1.32),
+                ])
+                .optional(),
         })
         .optional(),
     visor: z

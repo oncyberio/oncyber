@@ -44,6 +44,7 @@ def reference_passes(framing, score):
             and score["head_edge_agreement"] >= 0.68
             and score["body_edge_agreement"] >= 0.65
             and ("eye_pigment_agreement" not in score or eyes_match(score))
+            and score.get("open_hands", {}).get("matched", True)
             and score.get("shirt_mark_agreement", 1) >= 0.65
             and not collar_closed(score.get("floating_gap"))
             and score["rgb_mae"] <= 28
@@ -63,7 +64,10 @@ def registration_from_source(recipe, source):
             "recipe_sha256"
         ) == digest(recipe):
             measured = study.get("candidates", {}).get(family)
-            if measured:
+            if measured and (
+                not data.get("kitHand", {}).get("spread")
+                or measured.get("source_finger_spread")
+            ):
                 return measured
     if data.get("construction") == "household":
         from .household_front import fit_front

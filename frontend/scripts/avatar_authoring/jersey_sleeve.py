@@ -1,7 +1,26 @@
 """Measure a matched pair of short jersey sleeves on a frontal T-pose."""
 
+import json
+from pathlib import Path
+
 import numpy as np
 from scipy import ndimage
+
+
+# The portrait and full-body fitters sample the same sewn jersey as the runtime.
+def jersey_pattern():
+    shape = (
+        Path(__file__).resolve().parents[2]
+        / "features/procedural-avatars/sunshine.json"
+    )
+    parts = json.loads(shape.read_bytes())["parts"]
+    profile = next(p["profile"] for p in parts if p.get("name") == "jersey")
+    rows = np.asarray(profile, dtype=float)
+    torso = rows[rows[:, 0] >= 243]
+    return torso[:, 0], (torso[:, 2] - torso[:, 1]) / 2
+
+
+JERSEY_ROWS, JERSEY_HALF_WIDTHS = jersey_pattern()
 
 
 def bare_arms(rgb, mask, center, chin, scale_height, skin, cloth):
@@ -242,3 +261,35 @@ def visible_jersey_score(source, front):
         if both.any()
         else 255.0,
     }
+
+
+def jersey_widths(mask, landmarks):
+    """Full widths below the two armholes, at the midriff and above the hem."""
+    if landmarks is None:
+        return None
+    ys, xs = np.where(mask)
+    if not len(ys) or np.ptp(ys) < 120:
+        return None
+    height = np.ptp(ys)
+    mid = (xs.min() + xs.max()) / 2
+    shoulder, hem = landmarks[1:3]
+    if not 0.09 < hem - shoulder < 0.27:
+        return None
+    result = []
+    for station in (0.32, 0.56, 0.94):
+        y = round(ys.min() + height * (shoulder + station * (hem - shoulder)))
+        widths = []
+        for row in mask[y - 2 : y + 3]:
+            hits = np.flatnonzero(row)
+            runs = np.split(hits, np.flatnonzero(np.diff(hits) > 1) + 1)
+            for run in runs:
+                if not len(run) or not run[0] < mid < run[-1]:
+                    continue
+                left, right = mid - run[0], run[-1] - mid
+                width = (left + right) / height
+                if 0.09 < width < 0.26 and min(left, right) / max(left, right) > 0.78:
+                    widths.append(width)
+        if len(widths) < 3 or np.ptp(widths) > 0.014:
+            return None
+        result.append(np.median(widths))
+    return np.asarray(result)

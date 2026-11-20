@@ -220,7 +220,13 @@ export class Drawing {
             };
         this.sourceJoints =
             recipe && Object.keys(recipe).length > 1
-                ? drawingRig(id, undefined, recipe.layout).joints
+                ? drawingRig(
+                      id,
+                      recipe.kitHand?.spread
+                          ? { template: id, kitHand: recipe.kitHand }
+                          : undefined,
+                      recipe.layout
+                  ).joints
                 : this.rig.joints;
         if (recipe && Object.keys(recipe).length > 1) {
             this.s.transform = this.rig.transform;

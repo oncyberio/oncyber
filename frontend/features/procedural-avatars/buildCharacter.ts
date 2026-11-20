@@ -1153,7 +1153,9 @@ function compiled(id: Character, recipe: AvatarRecipe) {
     if (template) return template;
     const d = new Drawing(
         id,
-        recipe.layout ? { template: id, layout: recipe.layout } : undefined
+        recipe.layout || recipe.kitHand?.spread
+            ? { template: id, layout: recipe.layout, kitHand: recipe.kitHand }
+            : undefined
     );
     d.s.detail = "crowd";
     d.s.record = { points: [], runs: [] };

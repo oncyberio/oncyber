@@ -8,7 +8,7 @@ from .family import FAMILIES
 from .fit import pixels
 from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
-from .jersey_sleeve import bare_arms, measure_sleeves
+from .jersey_sleeve import JERSEY_ROWS, JERSEY_HALF_WIDTHS, bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
@@ -35,8 +35,6 @@ def jersey_chest_width(mask, orb, collar_shift, head_height):
     cx, cy, rx, ry = orb
     # Transverse half-widths of the Sunshine jersey pattern at its sewn
     # stations. A crop may end anywhere between the underarm and the waist.
-    stations = [243, 273, 306, 337]
-    pattern = [83, 77.5, 70.5, 67.5]
     ratios = []
     for y in range(
         max(0, round(cy + 2.28 * ry)), min(len(mask), round(cy + 3.48 * ry))
@@ -57,7 +55,7 @@ def jersey_chest_width(mask, orb, collar_shift, head_height):
         # The head height pivot is the chin. Convert back to the pattern's
         # vertical units before looking up the expected width of the cloth.
         station = 167.2 + ((y - cy) / ry - 1) * 61.2 * head_height - 680 * collar_shift
-        expected = np.interp(station, stations, pattern)
+        expected = np.interp(station, JERSEY_ROWS, JERSEY_HALF_WIDTHS)
         ratios.append(radius / rx * 60.5 / expected)
     if (
         len(ratios) < max(5, ry * 0.12)

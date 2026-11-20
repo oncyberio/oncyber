@@ -696,6 +696,94 @@ test.each(["crowd", "full"] as const)(
     }
 );
 
+test.each(["full", "crowd"] as const)(
+    "five measured fingertips extend, wrap a handle and release at %s detail",
+    (detail) => {
+        const digits = [
+            [0.19, -0.15, 0.52, -0.41, 0.065],
+            [0.43, -0.11, 0.92, -0.21, 0.053],
+            [0.43, -0.01, 1, 0, 0.054],
+            [0.43, 0.09, 0.93, 0.21, 0.053],
+            [0.43, 0.22, 0.74, 0.37, 0.048],
+        ];
+        const hand = {
+            wristRadius: 0.0187,
+            padRadius: 0.0156,
+            spread: { length: 0.249, wrist: 0.129, digits },
+        };
+        const file = {
+            ...scientist,
+            family: "sunshine",
+            paints: {},
+            proportions: { build: 0.75, armSpan: 0.89 },
+            kitHand: hand,
+        };
+        expect(() =>
+            readAvatarFile({
+                ...file,
+                kitHand: {
+                    ...hand,
+                    spread: { ...hand.spread, digits: digits.slice(1) },
+                },
+            })
+        ).toThrow();
+        expect(() =>
+            readAvatarFile({
+                ...file,
+                kitHand: {
+                    ...hand,
+                    spread: {
+                        ...hand.spread,
+                        digits: [digits[0], ...digits.slice(1).reverse()],
+                    },
+                },
+            })
+        ).toThrow();
+        const rig = buildCharacter(readAvatarFile(file).recipe, detail);
+        try {
+            for (const side of ["left", "right"] as const) {
+                const joint = (name: string) =>
+                    rig.humanoid.getNormalizedBoneNode(side + name);
+                const wrist = joint("Hand");
+                const inPalm = (name: string) =>
+                    wrist.worldToLocal(
+                        joint(name).getWorldPosition(new T.Vector3())
+                    );
+                const names = ["Thumb", "Index", "Middle", "Ring", "Little"];
+                const reaches = names.map((name) => inPalm(name + "Distal"));
+                for (let i = 1; i < names.length; i++)
+                    expect(reaches[i - 1].y - reaches[i].y).toBeGreaterThan(
+                        0.007
+                    );
+                expect(Math.abs(reaches[1].z - reaches[4].z)).toBeLessThan(
+                    0.007
+                );
+                const item = new T.Group();
+                rig.equipItem(side, item, { radius: 0.013 });
+                const mount = item.parent;
+                const axis = new T.Vector3(0, 1, 0).applyQuaternion(
+                    mount.quaternion
+                );
+                const toHandle = (p: T.Vector3) => {
+                    const v = p.clone().sub(mount.position);
+                    return v.addScaledVector(axis, -v.dot(axis)).length();
+                };
+                for (const i of [1, 2, 3, 4]) {
+                    const closed = inPalm(names[i] + "Distal");
+                    expect(toHandle(closed)).toBeLessThan(toHandle(reaches[i]));
+                }
+                rig.releaseItems();
+                for (const [i, name] of names.entries())
+                    expect(
+                        inPalm(name + "Distal").distanceTo(reaches[i])
+                    ).toBeLessThan(1e-6);
+            }
+        } finally {
+            disposeAvatarGraph(rig.scene);
+        }
+    }
+);
+
 test("a crown edit extends rays beyond the scalp while preserving their roots and the face", () => {
     const transform = recipeTransform(
         { template: "sunshine", crownLength: 1.5 },

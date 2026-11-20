@@ -17,9 +17,17 @@ from .family_edits import edited_recipe
 from .family_eyes import eye_agreement, eye_edits
 from .fit import pixels
 from .jersey_print import projected_print
+from .kit_hand import compare_open_hands
 from .lapel import has_contour_ink, lapel_edit, panel_edit
 from .review import render
-from .sun_rays import collar_closed, floating_gap, kit_edits, open_collar, orb_edits
+from .sun_rays import (
+    collar_closed,
+    floating_gap,
+    kit_edits,
+    kit_landmarks,
+    open_collar,
+    orb_edits,
+)
 from .tracing import (
     garment_motif,
     garment_patch,
@@ -294,6 +302,11 @@ def native_front(source, candidate, family, score, preview=None):
         ]
         if original is not None and drawn is not None:
             visual["floating_gap"] = {"source": original, "native": drawn}
+        if score.get("source_finger_spread"):
+            rgb, mask = pixels(candidate, keep_components=True)
+            visual["open_hands"] = compare_open_hands(
+                score["source_finger_spread"], rgb, mask, kit_landmarks(rgb, mask)
+            )
     return visual
 
 
@@ -322,6 +335,8 @@ def failed_front_checks(visual):
         "body_edge_agreement": 0.65,
     }
     misses = [key for key, minimum in thresholds.items() if visual[key] < minimum]
+    if "open_hands" in visual and not visual["open_hands"]["matched"]:
+        misses.append("open hands")
     if not eyes_match(visual):
         misses.append("eyes")
     if visual["rgb_mae"] > 28:

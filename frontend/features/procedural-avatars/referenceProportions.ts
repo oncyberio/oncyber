@@ -1,4 +1,5 @@
 import * as T from "three/webgpu";
+import { spreadKitJoints } from "./kitFingerPose";
 import type { Character } from "./catalog";
 import { recipeTransform, type AvatarRecipe } from "./recipes";
 import type { Point } from "./sculpt";
@@ -36,7 +37,7 @@ export function drawingRig(
     const raw = layout?.landmarks ?? landmarks[id],
         base = layout?.origin ?? composition[id],
         joints = new Map<string, DrawingJoint>();
-    const fitPoint = recipeTransform(
+    const fitBody = recipeTransform(
         recipe,
         base.x,
         base.floor,
@@ -44,6 +45,44 @@ export function drawingRig(
         raw.hip,
         layout?.eyeLine
     );
+    const spreadJoints =
+        id === "sunshine" && raw.restJoints && recipe.kitHand?.spread
+            ? spreadKitJoints(raw.restJoints, recipe.kitHand.spread)
+            : undefined;
+    // Preserve measured finger directions when the torso and arm span scale
+    // independently. Register the hand to the fitted center-to-tip distance.
+    const wrist = spreadJoints?.leftHand;
+    const fittedWrist = wrist && fitBody(wrist);
+    const handStart = raw.arms[1][1][0] - base.x;
+    const handReach =
+        wrist && (wrist[0] - base.x) / (1 - recipe.kitHand.spread.length);
+    const handScale =
+        wrist &&
+        (fitBody([base.x + handReach, wrist[1], wrist[2]])[0] - base.x) /
+            handReach;
+    const fitPoint: typeof fitBody = (point, head, eyes, crown, pupil) => {
+        const result = fitBody(point, head, eyes, crown, pupil);
+        if (!wrist || head) return result;
+        const distance = Math.abs(point[0] - base.x);
+        if (
+            distance <= handStart ||
+            Math.abs(point[1] - wrist[1]) > handReach * 0.3
+        )
+            return result;
+        const weight = T.MathUtils.smoothstep(
+            distance,
+            handStart,
+            wrist[0] - base.x
+        );
+        const hand: Point = [
+            base.x + (point[0] - base.x) * handScale,
+            fittedWrist[1] + (point[1] - wrist[1]) * handScale,
+            fittedWrist[2] + (point[2] - wrist[2]) * handScale,
+        ];
+        return hand.map((v, i) =>
+            T.MathUtils.lerp(result[i], v, weight)
+        ) as Point;
+    };
     const limbs = new Map<
         string,
         { a: Point; b: Point; scale: number; axis: number }
@@ -139,7 +178,9 @@ export function drawingRig(
         orientation = new T.Quaternion()
     ) => {
         if (raw.restJoints?.[name]) {
-            point = move(raw.restJoints[name] as Point);
+            point = move(
+                (spreadJoints?.[name] ?? raw.restJoints[name]) as Point
+            );
             orientation = new T.Quaternion();
         }
         const prior = joints.get(parent);

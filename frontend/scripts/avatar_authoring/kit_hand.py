@@ -3,6 +3,8 @@
 import numpy as np
 from scipy import ndimage
 
+from .tracing import open_hand
+
 
 def measure_wrist(rgb, mask, mid, axis_y, height, side):
     # Separate the pigments from the local paper above and below the limb.
@@ -46,11 +48,7 @@ def measure_wrist(rgb, mask, mid, axis_y, height, side):
     for index in range(1, count + 1):
         stripe = np.flatnonzero(labeled == index)
         width = len(stripe) / span
-        if (
-            not 0.008 <= width <= 0.062
-            or stripe[0] == 0
-            or stripe[-1] == len(t) - 1
-        ):
+        if not 0.008 <= width <= 0.062 or stripe[0] == 0 or stripe[-1] == len(t) - 1:
             continue
         # Require the color to cross the wrist, with exposed skin on both sides.
         core = stripe[len(stripe) // 2]
@@ -104,6 +102,71 @@ def measure_wrist(rgb, mask, mid, axis_y, height, side):
     return wrist_radius, pad_radius, bands[0] if bands else None, light
 
 
+def finger_fan(rgb, mask, mid, axis, height, span, side):
+    """Measure the same five visible finger rays as the cartoon fitter.
+
+    Keep outside paper connected through open gaps. Enclosed highlights and
+    the skin of a pale palm should stay inside its outline.
+    """
+    start = round(mid + side * 0.67 * span)
+    stop = np.clip(round(mid + side * 1.04 * span), -1, mask.shape[1])
+    xs = np.arange(start, stop, side)
+    ys = np.arange(
+        max(0, axis - round(0.1 * height)), min(len(mask), axis + round(0.1 * height))
+    )
+    if len(xs) < 30 or len(ys) < 12:
+        return None
+    grid = np.ix_(ys, xs)
+    art = rgb[grid]
+    v = np.linspace(0, 1, len(ys))[:, None, None]
+    paper = (1 - v) * np.median(art[:3], axis=0) + v * np.median(art[-3:], axis=0)
+    near = np.max(abs(art - paper), axis=2) < 20
+    seeds = np.zeros_like(near)
+    seeds[[0, -1]] = near[[0, -1]]
+    seeds[:, -1] = near[:, -1]
+    clean = mask[grid] & ~ndimage.binary_propagation(seeds, mask=near)
+    widths = clean.sum(axis=0)
+    tips = np.flatnonzero(widths >= 2)
+    stations = np.flatnonzero(
+        (abs(xs - mid) > span * 0.72) & (abs(xs - mid) < span * 0.86)
+    )
+    if not len(tips) or not len(stations) or min(widths[stations]) < 2:
+        return None
+    smooth = ndimage.median_filter(widths, size=5)
+    wrist = stations[smooth[stations] <= min(smooth[stations]) + 1][-1]
+    center = int(np.median(np.flatnonzero(clean[:, wrist])))
+    length = tips[-1] - wrist
+    rays = open_hand(clean, (wrist, center), tips[-1])
+    if rays is None or not 0.14 <= length / span <= 0.29:
+        return None
+    radii = []
+    for ax, ay, bx, by in rays:
+        # Where the shafts have separated, measure diameter normal to the ray.
+        widths = []
+        for t in (0.70, 0.75, 0.80):
+            col = wrist + round(ax + t * (bx - ax))
+            row = center + ay + t * (by - ay)
+            ix = np.flatnonzero(clean[:, col])
+            runs = np.split(ix, np.flatnonzero(np.diff(ix) > 1) + 1)
+            matches = [r for r in runs if len(r) and r[0] - 1 <= row <= r[-1] + 1]
+            if len(matches) == 1:
+                widths.append(len(matches[0]) * (bx - ax) / np.hypot(bx - ax, by - ay))
+        if len(widths) < 2:
+            return None
+        radii.append(np.median(widths) / (2 * length))
+    digits = np.column_stack((rays / length, radii))
+    # A double contour or an ambiguous ordering should keep the family hand.
+    direction = np.sign(digits[-1, 3] - digits[0, 3])
+    if (
+        min(radii) < 0.025
+        or max(radii) > 0.105
+        or np.max(abs(digits[:, [1, 3]])) > 0.74
+        or np.any(np.diff(digits[:, 3]) * direction < 0.055)
+    ):
+        return None
+    return length / span, digits, clean[:, wrist].sum() / (2 * length)
+
+
 def kit_hand(rgb, mask, landmarks):
     if landmarks is None:
         return None
@@ -125,11 +188,33 @@ def kit_hand(rgb, mask, landmarks):
     }
     if a[3] is not None and b[3] is not None and np.max(abs(a[3] - b[3])) < 0.30:
         hand["light"] = np.round(np.clip((a[3] + b[3]) / 2, 0.2, 1.8), 3).tolist()
+    fans = [
+        finger_fan(rgb, mask, mid, axis, height, np.ptp(xx) / 2, side)
+        for side in (-1, 1)
+    ]
+    if all(f is not None for f in fans):
+        (span_a, rays_a, wrist_a), (span_b, rays_b, wrist_b) = fans
+        wrist = (wrist_a + wrist_b) / 2
+        if (
+            abs(span_a - span_b) < 0.03
+            and np.max(abs(rays_a - rays_b)) < 0.09
+            and abs(wrist_a - wrist_b) < 0.04
+            and 0.075 <= wrist <= 0.22
+        ):
+            hand["spread"] = {
+                "length": round(float((span_a + span_b) / 2), 4),
+                "wrist": round(float(wrist), 4),
+                "digits": np.round((rays_a + rays_b) / 2, 4).tolist(),
+            }
     a, b = a[2], b[2]
-    if a and b and (
-        abs(a[0] - b[0]) >= 0.018
-        or abs(a[1] - b[1]) >= 0.02
-        or np.linalg.norm(a[2] - b[2]) >= 52
+    if (
+        a
+        and b
+        and (
+            abs(a[0] - b[0]) >= 0.018
+            or abs(a[1] - b[1]) >= 0.02
+            or np.linalg.norm(a[2] - b[2]) >= 52
+        )
     ):
         return hand
     if a or b:
@@ -143,3 +228,38 @@ def kit_hand(rgb, mask, landmarks):
         if len(bands) == 1:
             hand["band"]["side"] = "right" if a else "left"
     return hand
+
+
+def compare_open_hands(observed, rgb, mask, landmarks):
+    """Check the native contours of both open hands against their measured source."""
+    yy, xx = np.where(mask)
+    if not len(yy) or landmarks is None:
+        return {"matched": False, "hands": []}
+    height = np.ptp(yy)
+    axis = round(yy.min() + landmarks[1] * height)
+    mid, span = (xx.min() + xx.max()) / 2, np.ptp(xx) / 2
+    expected = np.asarray(observed["digits"])
+    hands = []
+    for side in (-1, 1):
+        actual = finger_fan(rgb, mask, mid, axis, height, span, side)
+        if actual is None:
+            hands.append({"matched": False, "separated_digits": None})
+            continue
+        length, digits, _ = actual
+        span_error = abs(observed["length"] - length)
+        tip_error = np.linalg.norm(expected[:, 2:4] - digits[:, 2:4], axis=1).max()
+        radius_error = np.max(abs(np.log(digits[:, 4] / expected[:, 4])))
+        hands.append(
+            {
+                "separated_digits": 5,
+                "max_tip_error_in_hand_lengths": round(float(tip_error), 4),
+                "length_error_in_half_spans": round(float(span_error), 4),
+                "max_radius_log_error": round(float(radius_error), 4),
+                "matched": bool(
+                    tip_error <= 0.10
+                    and span_error <= 0.035
+                    and radius_error <= np.log(1.5)
+                ),
+            }
+        )
+    return {"matched": all(s["matched"] for s in hands), "hands": hands}

@@ -2,6 +2,7 @@ import * as T from "three/webgpu";
 import { type Drawing, type Section } from "./drawing";
 import { drawDigit } from "./humanoidParts";
 import { composition } from "./referenceLandmarks";
+import { kitDigits, type FingerSpread } from "./kitFingerPose";
 import type { Point } from "./sculpt";
 
 export interface KitHand {
@@ -10,6 +11,7 @@ export interface KitHand {
     padRadius: number;
     /** Upper and lower diffuse luminance relative to the center of the drawn forearm. */
     light?: [number, number];
+    spread?: FingerSpread;
     /** Lateral position and width in half-spans from chest center to fingertip. */
     band?: {
         center: number;
@@ -47,7 +49,9 @@ export function drawKitPalm(
         wx = at(wrist[0]),
         knuckles = at(middle[0]),
         length = knuckles - wx;
-    const radius = hand.wristRadius * stature,
+    const radius = hand.spread
+            ? hand.spread.wrist * (tip - wx)
+            : hand.wristRadius * stature,
         finger = hand.padRadius * stature;
     const palmDepth = Math.abs(index[2] - little[2]) / 2 + finger;
     const spreadZ = (index[2] + little[2]) / 2;
@@ -87,6 +91,37 @@ export function drawKitPalm(
         ],
         [knuckles + finger * 1.22, middle[1], 0, 0, spreadZ],
     ];
+    if (hand.spread) {
+        const top = Math.min(index[1], little[1]);
+        const bottom = Math.max(index[1], little[1]);
+        const handLength = tip - wx;
+        const pad = hand.spread.digits[2][4] * handLength;
+        const center = (top + bottom) / 2;
+        const half = (bottom - top) / 2 + pad;
+        const depth = Math.max(pad * 1.45, radius * 0.7);
+        const atPalm = (t: number) => T.MathUtils.lerp(wx, knuckles, t);
+        rows.splice(
+            3,
+            rows.length - 3,
+            [
+                atPalm(0.42),
+                T.MathUtils.lerp(wrist[1], center, 0.45),
+                T.MathUtils.lerp(radius, half, 0.55),
+                depth,
+                wrist[2],
+            ],
+            [atPalm(0.88), center, half, depth, middle[2]],
+            [knuckles + 0.6 * pad, center, half, depth * 0.94, middle[2]],
+            [
+                knuckles + 1.55 * pad,
+                center,
+                half * 0.85,
+                depth * 0.64,
+                middle[2],
+            ],
+            [knuckles + 2.0 * pad, center, 0, 0, middle[2]]
+        );
+    }
     const band =
         !hand.band?.side || hand.band.side === side ? hand.band : undefined;
     const bandCenter = band ? tip * band.center : 0;
@@ -181,7 +216,23 @@ export function drawKitDigit(
         Ring: 0.93,
         Little: 0.8,
     };
-    const radius = hand.padRadius * stature * factors[finger];
+    let radius = hand.padRadius * stature * factors[finger];
+    if (hand.spread) {
+        const joint = (name: string) => d.sourceJoints.get(side + name).point;
+        const chain =
+            finger === "Thumb"
+                ? ["Metacarpal", "Proximal", "Distal"]
+                : ["Proximal", "Intermediate", "Distal"];
+        const [a, b, c] = chain.map((name) => joint(finger + name));
+        const end = c.map((n, i) => 2 * n - b[i]) as Point;
+        path = [a, b, c, end];
+        const ray =
+            hand.spread.digits[
+                kitDigits.findIndex((digit) => digit === finger)
+            ];
+        const handLength = Math.abs((end[0] - joint("Hand")[0]) / ray[2]);
+        radius = handLength * ray[4];
+    }
     const tip = new T.Vector3(...path.at(-1));
     const tangent = tip
         .clone()

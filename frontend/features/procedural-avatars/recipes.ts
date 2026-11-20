@@ -34,6 +34,8 @@ export interface AvatarRecipe {
         hem: number;
         sock: number;
         chestWidth?: number;
+        /** Widths of the sewn jersey below the armhole, at midriff and hem. */
+        jerseySides?: [number, number, number];
         width: number;
     };
     shortsCut?: ShortsCut;
@@ -257,6 +259,8 @@ export function recipeTransform(
         kit.sock,
         0,
     ];
+    const seamRows = [218, 249, 281, 331, 369];
+    const seamWidths = kit && kit.jerseySides && [1, ...kit.jerseySides, 1];
     return (
         point: Point,
         head = false,
@@ -308,6 +312,20 @@ export function recipeTransform(
                 x += Math.sign(x - origin) * reach * (recipe.armSpan - 1);
         }
         if (kit && !head && y > stations[0] && y < floor) {
+            if (seamWidths && y > seamRows[0] && y < seamRows[4]) {
+                // The sleeve root and upper shorts join the same closed sections.
+                const next = seamRows.findIndex((row) => row >= y);
+                const t =
+                    (y - seamRows[next - 1]) /
+                    (seamRows[next] - seamRows[next - 1]);
+                const width =
+                    seamWidths[next - 1] * (1 - t) + seamWidths[next] * t;
+                const side = Math.max(
+                    0,
+                    Math.min(1, (155 - Math.abs(point[0] - origin)) / 54)
+                );
+                x += (x - origin) * (width - 1) * side;
+            }
             const span = Math.max(0, stations.findIndex((v) => v >= y) - 1);
             const t =
                 (y - stations[span]) / (stations[span + 1] - stations[span]);

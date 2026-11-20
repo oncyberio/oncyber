@@ -109,6 +109,12 @@ def edit_schema(family=None, construction=None):
         fit = record({**kit, "width": bounded(0.78, 1.25)})
         # Published fits predate the separately observed upper-shirt width.
         fit["properties"]["chestWidth"] = bounded(0.70, 1.30)
+        fit["properties"]["jerseySides"] = {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": bounded(0.65, 1.32),
+        }
         branches.append(fields(["kitFit"], fit))
         branches.append(
             fields(

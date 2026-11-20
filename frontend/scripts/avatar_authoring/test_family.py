@@ -101,6 +101,53 @@ class FamilyTests(unittest.TestCase):
         self.assertIsNone(kit_hand(rgb, (rgb != paper).any(axis=2), None))
         self.assertIsNone(kit_hand(rgb, np.zeros(rgb.shape[:2], dtype=bool), marks))
 
+    def test_two_open_palms_share_the_five_visible_shafts_only_when_both_are_clear(
+        self,
+    ):
+        from .kit_hand import compare_open_hands, kit_hand
+        from .sun_rays import kit_landmarks
+
+        target = Path(__file__).parent / "targets/holdout-v1/brin-full.webp"
+        rgb, mask = pixels(target, keep_components=True)
+        marks = kit_landmarks(rgb, mask)
+        observed = kit_hand(rgb, mask, marks)["spread"]
+        self.assertTrue(compare_open_hands(observed, rgb, mask, marks)["matched"])
+        self.assertEqual(len(observed["digits"]), 5)
+        rays = np.asarray(observed["digits"])
+        self.assertTrue(np.all(np.diff(rays[:, 3]) > 0.1))
+        self.assertGreater(rays[0, 4], rays[-1, 4])
+        self.assertGreater(observed["wrist"], 1.5 * max(rays[:, 4]))
+        flipped = kit_hand(rgb[:, ::-1], mask[:, ::-1], marks)["spread"]
+        np.testing.assert_allclose(flipped["digits"], rays, atol=0.005)
+        # Occlude the shafts on one side, retaining the same full-body framing.
+        yy, xx = np.where(mask)
+        edge = xx.min() + np.ptp(xx) * 0.10
+        palm = (np.indices(mask.shape)[1] < edge) & (
+            abs(np.indices(mask.shape)[0] - (yy.min() + marks[1] * np.ptp(yy)))
+            < np.ptp(yy) * 0.032
+        )
+        mask[palm] = True
+        rgb[palm] = [230, 150, 93]
+        self.assertNotIn("spread", kit_hand(rgb, mask, marks) or {})
+        self.assertFalse(compare_open_hands(observed, rgb, mask, marks)["matched"])
+
+    def test_jersey_side_seams_require_three_stable_paired_edges(self):
+        from .jersey_sleeve import jersey_widths
+
+        height, center = 400, 120
+        mask = np.zeros((height + 1, 241), dtype=bool)
+        mask[:, center] = True
+        mask[117:123, 5:-5] = True
+        for y in range(123, 205):
+            radius = round(29 + abs(y - 163) / 8)
+            mask[y, center - radius : center + radius + 1] = True
+        marks = [0, 0.3, 0.5]
+        widths = jersey_widths(mask, marks)
+        np.testing.assert_allclose(widths, [62 / 400, 58 / 400, 66 / 400], atol=0.006)
+        mask[140:153, center + 5 :] = False
+        self.assertIsNone(jersey_widths(mask, marks))
+        self.assertIsNone(jersey_widths(mask, None))
+
     def test_crown_paper_control_preserves_enclosed_light_paint(self):
         from .paper_control import clear_crown_paper
 
