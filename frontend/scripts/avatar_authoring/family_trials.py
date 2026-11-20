@@ -27,6 +27,10 @@ def merit(metrics):
         (metrics.get("shirt_mark_agreement", 1), 0.65),
         (28 / max(1, metrics["rgb_mae"]), 1),
     ]
+    if "shirt_strokes" in metrics:
+        scores.append((min(metrics["shirt_strokes"]["coverage"]), 0.65))
+    if "open_hands" in metrics:
+        scores.append((float(metrics["open_hands"]["matched"]), 1))
     if metrics.get("globe_measurements", {}).get("paired_pupils") is False:
         scores[4] = (0, 1)
     elif "globe_measurements" in metrics:

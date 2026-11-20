@@ -16,7 +16,7 @@ from .family_body import body_edits, sleeve_cut
 from .family_edits import edited_recipe
 from .family_eyes import eye_agreement, eye_edits
 from .fit import pixels
-from .jersey_print import projected_print
+from .jersey_print import projected_print, stroke_coverage
 from .kit_hand import compare_open_hands
 from .lapel import has_contour_ink, lapel_edit, panel_edit
 from .review import render
@@ -302,6 +302,15 @@ def native_front(source, candidate, family, score, preview=None):
         ]
         if original is not None and drawn is not None:
             visual["floating_gap"] = {"source": original, "native": drawn}
+        if score.get("stroke_mark"):
+            strokes = stroke_coverage(
+                pixels(source, keep_components=True),
+                pixels(candidate, keep_components=True),
+                score["shirt_frame"],
+                score["stroke_mark"],
+            )
+            if strokes:
+                visual["shirt_strokes"] = strokes
         if score.get("source_finger_spread"):
             rgb, mask = pixels(candidate, keep_components=True)
             visual["open_hands"] = compare_open_hands(
@@ -335,6 +344,8 @@ def failed_front_checks(visual):
         "body_edge_agreement": 0.65,
     }
     misses = [key for key, minimum in thresholds.items() if visual[key] < minimum]
+    if not visual.get("shirt_strokes", {}).get("matched", True):
+        misses.append("shirt strokes")
     if "open_hands" in visual and not visual["open_hands"]["matched"]:
         misses.append("open hands")
     if not eyes_match(visual):
@@ -409,7 +420,9 @@ def registered_edits(recipe, source, directory, score, visual, gap, closed, miss
             for e in paint_edits(source, directory / "front.png", score, recipe)
             if e["field"] not in measured_fields
         )
-    if visual.get("shirt_mark_agreement", 1) < 0.65:
+    if visual.get("shirt_mark_agreement", 1) < 0.65 or not visual.get(
+        "shirt_strokes", {}
+    ).get("matched", True):
         point = visual.get("shirt_mark_sample")
         mark = None
         if (

@@ -607,6 +607,8 @@ def record_preview(args):
                         "rgb_mae",
                         "eye_pigment_agreement",
                         "shirt_mark_agreement",
+                        "shirt_strokes",
+                        "open_hands",
                     )
                     if field in attempt["front"]
                 }
@@ -713,6 +715,12 @@ def record_preview(args):
                     for mode in report["backends"]
                 },
             }
+        for feature in ("shirt_strokes", "open_hands"):
+            if any(feature in v["reference_metrics"] for v in report["backends"].values()):
+                data[feature] = {
+                    mode: v["reference_metrics"].get(feature)
+                    for mode, v in report["backends"].items()
+                }
         if "jerseySleeve" in recipe:
             data["jersey_sleeves"] = {
                 mode: compare_jersey_sleeves(

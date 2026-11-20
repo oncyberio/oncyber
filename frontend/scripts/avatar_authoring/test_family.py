@@ -702,6 +702,38 @@ class FamilyTests(unittest.TestCase):
         )
         self.assertGreater(np.min(np.diff(angles)), 0.16)
 
+    def test_multi_stroke_jersey_checks_each_separate_fill_and_skips_the_collar(self):
+        from .jersey_print import multi_stroke_print, stroke_coverage
+
+        image = np.full((450, 403, 3), 236.0)
+        mask = np.zeros(image.shape[:2], dtype=bool)
+        mask[10:411, 106:297] = True
+        frame = [-0.2, 0.20, 0.2, 0.65]
+        dye = [45, 95, 197]
+
+        def paint(a, box):
+            x0, y0, x1, y1 = box
+            a[
+                round(90 + 180 * y0) : round(90 + 180 * y1),
+                round(121 + 160 * x0) : round(121 + 160 * x1),
+            ] = dye
+
+        # Same dye on a neckline sitting above the printable chest.
+        paint(image, [0.27, -0.075, 0.73, -0.015])
+        outline = [[0.25, 0.18], [0.75, 0.18], [0.75, 0.44], [0.25, 0.44]]
+        paint(image, [0.25, 0.18, 0.75, 0.44])
+        paint(image, [0.24, 0.50, 0.70, 0.54])
+        mark = {"color": "#2d5fc5", "outline": outline}
+        incomplete = image.copy()
+        paint(image, [0.23, 0.60, 0.72, 0.66])
+        source = (image, mask)
+        fitted = multi_stroke_print(source, frame, mark)
+        self.assertEqual(len(fitted["islands"]), 2)
+        self.assertTrue(stroke_coverage(source, source, frame, fitted)["matched"])
+        miss = stroke_coverage(source, (incomplete, mask), frame, fitted)
+        self.assertFalse(miss["matched"])
+        self.assertEqual(min(miss["coverage"]), 0.0)
+
     def test_projected_jersey_print_preserves_a_counter_and_corrects_native_displacement(
         self,
     ):

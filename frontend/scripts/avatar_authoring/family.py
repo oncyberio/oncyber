@@ -10,6 +10,7 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
+from .jersey_print import multi_stroke_print
 from .jersey_sleeve import JERSEY_HALF_WIDTHS, JERSEY_ROWS, jersey_sleeve, jersey_widths
 from .kit_footwear import kit_footwear
 from .kit_hand import kit_hand
@@ -507,6 +508,7 @@ class Family:
         if offset is not None:
             recipe["orbOffset"] = offset.round(4).tolist()
         shirt_frame = None
+        stroke_mark = None
         if custom_jersey and self.key == "sunshine":
             recipe["plainJersey"] = True
             cloth = kit_landmarks(image, mask)
@@ -565,6 +567,9 @@ class Family:
             if recipe.get("plainJersey"):
                 window, patch, motif = registered_print(image, mask, shirt_frame)
                 mark = traced_print(patch, motif, window) or mark
+                if mark:
+                    stroke_mark = multi_stroke_print((image, mask), shirt_frame, mark)
+                    mark = stroke_mark or mark
             if mark:
                 recipe["shirtMark"] = mark
         eyes = xy[self.eye]
@@ -599,6 +604,11 @@ class Family:
             "paint_samples": coverage,
             "paint_probes": probes,
         }
+        if stroke_mark:
+            metrics["stroke_mark"] = {
+                "color": stroke_mark["color"],
+                "outline": stroke_mark["outline"],
+            }
         if fit_hair and self.key == "sunshine" and metrics["head_iou"] < 0.97:
             cx, cy, rx, ry = FAMILIES[self.key]["crownRoot"]
             orb = self.warp(
