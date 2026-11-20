@@ -36,5 +36,9 @@ export function encodePose(pose: Pose): Uint8Array;
 export function encodeSnapshotParts(frame: Omit<Snapshot, "poses"> & { poses: Uint8Array[] }, maxBytes?: number): Uint8Array[];
 export function encodeSnapshots(frame: Snapshot, maxBytes?: number): Uint8Array[];
 export function decodeSnapshot(bytes: Binary): (Snapshot & { chunk: number }) | null;
+/** Wraps one play zone frame (protocol/play-zone) as a lobby datagram. */
+export function encodePlayFrame(frame: Binary): Uint8Array;
+/** The play zone frame inside a lobby datagram, or null when it is another kind. */
+export function decodePlayFrame(bytes: Binary): Uint8Array | null;
 export function encodeControl(type: string, data: any, options?: ControlOptions): Uint8Array;
 export function createControlDecoder(onMessage: (message: Control) => void, options?: ControlOptions): { push(bytes: Binary): void; finish(): void };

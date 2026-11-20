@@ -9,6 +9,11 @@ const number = (name: string, fallback: number) => {
     if (!Number.isInteger(n) || n < 1) throw new Error(`${name} must be a positive integer`);
     return n;
 };
+/** LOBBY_PLAY_ORIGIN="x,z" places the zone; unset, the server's own default is used. */
+const playOrigin = () => {
+    const [x, z] = (process.env.LOBBY_PLAY_ORIGIN || "").split(",").map(Number);
+    return Number.isFinite(x) && Number.isFinite(z) ? { x, z } : undefined;
+};
 createWorldServer({
     port: number("LOBBY_WORLD_PORT", 2575),
     wsBase: number("LOBBY_WORLD_WS_BASE", 2576),
@@ -33,6 +38,9 @@ createWorldServer({
         .filter(Boolean),
     certPath: process.env.LOBBY_WORLD_CERT,
     keyPath: process.env.LOBBY_WORLD_KEY,
+    // A play zone in the room, off unless asked for. LOBBY_PLAY_OPEN=1 lets
+    // anyone change the game (for trying it locally); otherwise only admins.
+    play: process.env.LOBBY_PLAY === "1" ? { open: process.env.LOBBY_PLAY_OPEN === "1", origin: playOrigin() } : null,
 })
     .then((world) => {
         console.log(`Shared world v2 ready ${JSON.stringify(world.address)}`);

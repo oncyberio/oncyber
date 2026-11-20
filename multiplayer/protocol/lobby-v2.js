@@ -4,6 +4,8 @@
 const VERSION = 2;
 const MOVEMENT = 1;
 const SNAPSHOT = 2;
+/** A play zone frame (protocol/play-zone.js), carried whole after the two-byte header. */
+const PLAY = 5;
 const MOVEMENT_BYTES = 24;
 const SNAPSHOT_HEADER_BYTES = 22;
 const POSE_BYTES = 26;
@@ -138,6 +140,25 @@ function decodeSnapshot(input) {
     }
     return { epoch: view.getUint32(2, true), tick: view.getUint32(6, true), serverTime, chunk: view.getUint16(18, true), poses };
 }
+/** Wraps one play zone frame as a lobby datagram: [version, kind, ...frame]. */
+function encodePlayFrame(frame) {
+    const bytes = bytesOf(frame);
+    const out = new Uint8Array(2 + bytes.length);
+    out[0] = VERSION;
+    out[1] = PLAY;
+    out.set(bytes, 2);
+    return out;
+}
+/** The play zone frame inside a lobby datagram, or null when it is another kind. */
+function decodePlayFrame(input) {
+    let bytes;
+    try {
+        bytes = bytesOf(input);
+    } catch {
+        return null;
+    }
+    return bytes.length > 2 && bytes[0] === VERSION && bytes[1] === PLAY ? bytes.subarray(2) : null;
+}
 function validControl(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value) && typeof value.type === "string" && /^[a-z][a-z0-9:_-]{0,47}$/.test(value.type) && Object.prototype.hasOwnProperty.call(value, "data");
 }
@@ -199,4 +220,4 @@ function createControlDecoder(onMessage, options) {
     };
 }
 
-module.exports = { encodeMotionPose, VERSION, MOVEMENT_BYTES, SNAPSHOT_HEADER_BYTES, POSE_BYTES, DEFAULT_DATAGRAM_BYTES, DEFAULT_CONTROL_BYTES, encodeMovement, decodeMovement, encodePose, encodeSnapshotParts, encodeSnapshots, decodeSnapshot, encodeControl, createControlDecoder };
+module.exports = { encodePlayFrame, decodePlayFrame, encodeMotionPose, VERSION, MOVEMENT_BYTES, SNAPSHOT_HEADER_BYTES, POSE_BYTES, DEFAULT_DATAGRAM_BYTES, DEFAULT_CONTROL_BYTES, encodeMovement, decodeMovement, encodePose, encodeSnapshotParts, encodeSnapshots, decodeSnapshot, encodeControl, createControlDecoder };

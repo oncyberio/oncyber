@@ -36,6 +36,12 @@ export interface WorldOptions {
     publicHost?: string;
     certPath?: string;
     keyPath?: string;
+    /**
+     * Runs a play zone in the room (world/playAuthority.ts): `origin` is its
+     * centre, `radius` how far its things are sent, and `open` lets anyone
+     * change the game where normally only admins may. Off when absent.
+     */
+    play?: { origin?: { x: number; z: number }; radius?: number; open?: boolean } | null;
 }
 export async function createWorldServer(options: WorldOptions = {}) {
     const detailThreshold = options.detailThreshold || 4096;
@@ -127,6 +133,16 @@ export async function createWorldServer(options: WorldOptions = {}) {
         for (const i of live) workers[i].postMessage(message);
     };
     const stage = new StageAuthority();
+    const playPlace = options.play ? { origin: options.play.origin || { x: 30, z: 0 }, radius: options.play.radius || 70 } : null;
+    const playExtension = __filename.endsWith(".ts") ? "ts" : "js";
+    const play = playPlace ? new Worker(join(__dirname, `playWorker.${playExtension}`), { workerData: { shared, origin: playPlace.origin, open: !!options.play!.open }, execArgv: playExtension === "ts" ? ["-r", "ts-node/register/transpile-only"] : [] }) : null;
+    play?.on("message", (message: any) => {
+        // The zone decides; the gateways carry it to the people each of them serves.
+        if (message.type === "control") broadcast({ type: "play-control", to: message.to, event: message.event, data: message.data });
+        else if (message.type === "frames") broadcast({ type: "play-frames", to: message.to, except: message.except, frames: message.frames });
+    });
+    // The room carries on without its play zone if that thread dies.
+    play?.on("error", (error) => console.error(`Play zone stopped: ${error.message}`));
     const summoned = new Map<number, number>();
     let stageSent = -1;
     const publishStage = () => {
@@ -144,6 +160,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
         loads[seat.owner]--;
         stage.leave(id);
         summoned.delete(id);
+        play?.postMessage({ type: "remove", id });
         publishStage();
         state.remove(seat.slot, id);
         free.push(seat.slot);
@@ -158,7 +175,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
     const ready: Promise<void>[] = [];
     for (let owner = 0; owner < workerCount; owner++) {
         const extension = __filename.endsWith(".ts") ? "ts" : "js";
-        const worker = new Worker(join(__dirname, `worker.${extension}`), { workerData: { owner, detailThreshold, shared, epoch, roomId, region, bind, wsPort: wsBase + owner, wtPort: wtBase + owner, origins, allowOriginlessLoopbackClients: !!options.testMode }, execArgv: extension === "ts" ? ["-r", "ts-node/register/transpile-only"] : [] });
+        const worker = new Worker(join(__dirname, `worker.${extension}`), { workerData: { owner, detailThreshold, shared, epoch, roomId, region, bind, wsPort: wsBase + owner, wtPort: wtBase + owner, origins, play: playPlace, allowOriginlessLoopbackClients: !!options.testMode }, execArgv: extension === "ts" ? ["-r", "ts-node/register/transpile-only"] : [] });
         workers.push(worker);
         ready.push(
             new Promise<void>((resolve, reject) => {
@@ -182,6 +199,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
                         updateBudget();
                         metadataRevision++;
                         broadcast({ type: "member", member });
+                        play?.postMessage({ type: "member", id: seat.id, slot: seat.slot });
                     } else if (["group-ready", "group-action", "group-placed"].includes(message.type)) {
                         const seat = seats.get(message.actor);
                         if (!seat?.active || seat.owner !== owner) return;
@@ -209,6 +227,11 @@ export async function createWorldServer(options: WorldOptions = {}) {
                             if (target?.active && live.has(target.owner)) workers[target.owner].postMessage({ type: "stage-kick", id: target.id });
                         }
                         publishStage();
+                    } else if (message.type === "play-request") {
+                        const seat = seats.get(message.actor);
+                        if (!play || !seat?.active || seat.owner !== owner) return;
+                        // The gateway's own copy of the roles can lag; the stage is the authority on who is an admin.
+                        play.postMessage({ type: "request", actor: seat.id, kind: message.kind, admin: !!stage.role(seat.id), data: message.data });
                     } else if (message.type === "left") release(message.id);
                     else if (message.type === "revoked") {
                         const id = tokens.get(message.token);
@@ -554,6 +577,7 @@ export async function createWorldServer(options: WorldOptions = {}) {
         server.closeAllConnections?.();
         await new Promise<void>((resolve) => server.close(() => resolve()));
         for (const w of workers) w.postMessage({ type: "stop" });
+        play?.postMessage({ type: "stop" });
         await Promise.all(
             workers.map(
                 (w) =>

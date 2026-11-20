@@ -11,6 +11,13 @@ import { InterestIndex } from "./interest";
 import { decodeMovement, encodeMotionPose, encodePose, encodeSnapshotParts } from "../../protocol/lobby-v2";
 /** Same ring as "teleport all here" in spaces. */
 export const SUMMON_RADIUS = 10;
+/** Where the room's play zone is, and from how far its things are sent to a viewer. */
+export interface PlayPlace {
+    origin: { x: number; z: number };
+    radius: number;
+}
+/** What a client may ask of the play zone. Starting and stopping a round by hand is for admins. */
+const PLAY_REQUESTS = ["hello", "ai", "hit", "act", "start", "change", "stop"];
 export interface Endpoint {
     sendControl(type: string, data: any): boolean;
     sendDatagram(bytes: Uint8Array): boolean;
@@ -97,7 +104,7 @@ export class WorldGateway {
     private stageState: StageSnapshot = { revision: -1, limit: 5, speakers: [], requests: [], muted: [], roles: [] };
     private speakers = new Set<number>();
     private roles = new Map<number, StageRole>();
-    constructor(readonly options: { owner: number; detailThreshold?: number; shared: SharedWorldData; epoch: number; roomId: string; region: string; post(message: any): void }) {
+    constructor(readonly options: { owner: number; detailThreshold?: number; shared: SharedWorldData; epoch: number; roomId: string; region: string; play?: PlayPlace | null; post(message: any): void }) {
         this.shared = new SharedWorld(options.shared);
         this.slots = Array.from({ length: options.shared.capacity }, (_, i) => blankPose(i));
     }
@@ -158,6 +165,7 @@ export class WorldGateway {
             ["flash", 1, 3],
             ["chat", 1, 4],
             ["signal", 20, 40],
+            ["play", 6, 12],
         ] as Array<[string, number, number]>)
             rates[name] = new TokenBucket(rate, burst, now);
         const c: Connection = { id: r.id, sessionId, phase: this.nextPhase++ % 20, token, slot: r.slot, endpoint, person, pose, ready: false, visible: [], roster: new Map(), voice: [], voiceKey: "", stageRevision: -2, pins: [], ack: null, pendingMove: null, rates, signalRates: new Map(), strikes: 0, slowAt: 0, lastHeartbeat: 0, population: -1, lastRosterRevision: -1, sent: new Map(), connectedAt: now };
@@ -248,6 +256,15 @@ export class WorldGateway {
             this.setFlash(c, flash);
             return;
         }
+        if (type.startsWith("play-")) {
+            // The zone runs on its own thread; a gateway only checks and forwards.
+            const kind = type.slice(5);
+            if (!this.options.play || !c.ready || !PLAY_REQUESTS.includes(kind) || !this.allow(c, "play")) return;
+            const text = typeof data?.text === "string" ? data.text.slice(0, 400) : undefined,
+                recipe = data?.recipe && typeof data.recipe === "object" ? data.recipe : undefined;
+            this.options.post({ type: "play-request", actor: c.id, kind, admin: this.roles.has(c.id), data: { text, recipe } });
+            return;
+        }
         const rate = type === "rtc-signal" ? "signal" : type === "lobby-profile" ? "profile" : type === "chat-channel" || type === "chat-peer" || (type === "lobby-group-action" && data?.action === "message") ? "chat" : "request";
         let bucket = c.rates[rate];
         if (type === "rtc-signal") {
@@ -270,7 +287,7 @@ export class WorldGateway {
             c.ready = true;
             c.velocitySnapshots = data?.motion === "velocity-v1";
             if (data?.movement === "input-v1") c.input = new InputAuthority({ x: c.pose.x, y: c.pose.y, z: c.pose.z, rotation: c.pose.yaw }, Date.now());
-            this.control(c, "lobby-welcome", { lobbyProtocol: 2, flash: true, movement: c.input ? "input-v1" : "pose-v1", sessionId, roomId: this.options.roomId, region: this.options.region, partyIdentity: c.person.profile.partyIdentity, role: this.roles.get(c.id) || null, tickRate: 20, aoiLimit: this.networkBudget, voiceLimit: 8, position: [c.pose.x, c.pose.y, c.pose.z, c.pose.yaw], snapshotRates: { near: 20, mid: 5, far: 2 }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], epoch: this.options.epoch });
+            this.control(c, "lobby-welcome", { lobbyProtocol: 2, flash: true, play: this.options.play || false, movement: c.input ? "input-v1" : "pose-v1", sessionId, roomId: this.options.roomId, region: this.options.region, partyIdentity: c.person.profile.partyIdentity, role: this.roles.get(c.id) || null, tickRate: 20, aoiLimit: this.networkBudget, voiceLimit: 8, position: [c.pose.x, c.pose.y, c.pose.z, c.pose.yaw], snapshotRates: { near: 20, mid: 5, far: 2 }, snapshotBands: this.networkBudget === 64 ? [8, 32, 64] : [16, 48, 128], epoch: this.options.epoch });
             this.options.post({ type: "group-ready", actor: c.id });
             return;
         }
@@ -428,6 +445,27 @@ export class WorldGateway {
         for (const c of this.sessions.values()) if (c.ready && c.id !== from && !c.activeWorld && !c.groupHold && Math.hypot(c.pose.x - origin.x, c.pose.z - origin.z) > SUMMON_RADIUS) this.control(c, "lobby-summon", data);
     }
     /** The main thread's moderation state; every worker holds the same copy. */
+    /** A play zone message for one person here, or for everyone. */
+    playControl(to: number | "all", event: string, data: any) {
+        for (const c of this.sessions.values()) if (c.ready && (to === "all" || c.id === to)) this.control(c, event, data);
+    }
+    /**
+     * Play zone frames, already wrapped as datagrams. They go to the people
+     * close enough to see the zone; someone who walks up later is brought
+     * up to date by the frames' own rolling refresh.
+     */
+    playFrames(to: number | "all", except: number[], frames: Uint8Array[]) {
+        const place = this.options.play;
+        if (!place) return;
+        for (const c of this.sessions.values()) {
+            if (!c.ready || c.activeWorld || (to === "all" ? except.includes(c.id) : c.id !== to)) continue;
+            if (Math.hypot(c.pose.x - place.origin.x, c.pose.z - place.origin.z) > place.radius) continue;
+            // Never queue toys behind a slow link: drop them, the refresh catches up.
+            if (c.endpoint.bufferedAmount() > 32 * 1024) continue;
+            const limit = c.endpoint.maxDatagramSize();
+            for (const frame of frames) if (frame.byteLength <= limit && c.endpoint.sendDatagram(frame)) this.bytesOut += frame.byteLength;
+        }
+    }
     setStage(stage: StageSnapshot) {
         if (!stage || stage.revision === this.stageState.revision) return;
         this.stageState = stage;
