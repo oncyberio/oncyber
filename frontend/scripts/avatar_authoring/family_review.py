@@ -297,6 +297,11 @@ def native_front(source, candidate, family, score, preview=None):
         if pair:
             visual["globe_measurements"] = pair
     if family == "sunshine":
+        from .visor import glyph_agreement
+
+        glyphs = glyph_agreement(*[pixels(path, keep_components=True) for path in (source, candidate)])
+        if glyphs:
+            visual["visor_glyphs"] = glyphs
         original, drawn = [
             floating_gap(path, score["eye_frame"]) for path in (source, candidate)
         ]
@@ -346,6 +351,8 @@ def failed_front_checks(visual):
     misses = [key for key, minimum in thresholds.items() if visual[key] < minimum]
     if not visual.get("shirt_strokes", {}).get("matched", True):
         misses.append("shirt strokes")
+    if not visual.get("visor_glyphs", {}).get("matched", True):
+        misses.append("visor glyphs")
     if "open_hands" in visual and not visual["open_hands"]["matched"]:
         misses.append("open hands")
     if not eyes_match(visual):

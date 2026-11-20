@@ -141,7 +141,7 @@ def portrait_metrics(source, native, family):
             else 0.0
         )
 
-    return {
+    metrics = {
         "head_iou": overlap(a, b),
         "rgb_mae": round(float(np.abs(ar - br)[shared].mean()), 2)
         if shared.any()
@@ -149,6 +149,12 @@ def portrait_metrics(source, native, family):
         "ink_agreement": round(min(within(ai, bi), within(bi, ai)), 4),
         "visible_fraction": round(float(valid.mean()), 4),
     }
+    if family == "sunshine":
+        from .visor import glyph_agreement
+        marks = glyph_agreement((ar, a & ac), (br, b & bc))
+        if marks:
+            metrics["visor_glyphs"] = marks
+    return metrics
 
 
 def correct_portrait(recipe, source, native):
@@ -276,6 +282,8 @@ def best_pass(attempts):
                     jersey["silhouette_iou"] / 0.90,
                     28 / max(0.01, jersey["rgb_mae"]),
                 )
+            if "visor_glyphs" in v:
+                ratios += (float(v["visor_glyphs"]["matched"]),)
             return p["accepted"], min(ratios), sum(min(1.25, r) for r in ratios)
 
     return max(attempts, key=rank)
@@ -478,6 +486,7 @@ def author_one(source, output, family, framing, name, args):
                     and score["rgb_mae"] <= 28
                     and score["ink_agreement"] >= 0.68
                     and score["visible_fraction"] >= 0.70
+                    and score.get("visor_glyphs", {}).get("matched", True)
                     and native["triangles"] <= args.max_triangles
                 )
                 report["passes"].append(

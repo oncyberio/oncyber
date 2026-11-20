@@ -6,6 +6,7 @@ import type { Point } from "./sculpt";
 const lensLift = 3.5;
 
 export interface OrbVisor {
+    glyph?: { shape: "plus"; stroke: number };
     contact?: { strength: number; width: number };
     /** Bare temples, two sunglass arms, or the default continuous band. */
     strap?: false | "temples";
@@ -233,12 +234,21 @@ export function drawOrbVisor(
     quads.length = 0;
     for (const [cx, cy, rx, ry] of visor.marks)
         for (const sign of [-1, 1]) {
-            const stroke = (t: number, w: number) =>
-                point(
+            const stroke = (t: number, w: number) => {
+                if (visor.glyph?.shape === "plus") {
+                    const width = w * visor.glyph.stroke;
+                    return point(
+                        cx + rx * (sign < 0 ? t : width),
+                        cy + ry * (sign < 0 ? width : -t),
+                        glyph.lift
+                    );
+                }
+                return point(
                     cx + rx * (t + w * glyph.stroke),
                     cy + ry * sign * (t - w * glyph.stroke),
                     glyph.lift
                 );
+            };
             for (let i = 0; i < 4; i++) {
                 const a = i * 0.5 - 1,
                     b = a + 0.5;

@@ -49,6 +49,12 @@ interface Props {
     evidenceHash: string;
     images: Images;
     inferred: boolean;
+    transfer: {
+        firstPassed: boolean;
+        selectedPassed: boolean;
+        frozenBodyIoU: number;
+        replayBodyIoU: number | null;
+    } | null;
     guideStatus: keyof typeof guideInfo;
     identity: {
         count: number;
@@ -84,6 +90,7 @@ function ReviewForm({
     images,
     inferred,
     guideStatus,
+    transfer,
     pose,
     identity,
 }: Props) {
@@ -117,6 +124,21 @@ function ReviewForm({
         <main>
             <a href={`/preview/studies/${id}`}>← Interactive {name}</a>
             <h1>{name} visual review</h1>
+            {transfer && (
+                <p>
+                    {transfer.firstPassed
+                        ? "The frozen fitter passed the visible drawing checks on its first attempt."
+                        : transfer.selectedPassed
+                        ? "The frozen fitter passed the visible drawing checks after one correction."
+                        : "The frozen fitter missed the visible drawing checks on both attempts."}{" "}
+                    Full-body silhouette overlap was{" "}
+                    {transfer.frozenBodyIoU.toFixed(3)}.
+                    {transfer.replayBodyIoU !== null &&
+                        ` The views below show a subsequent calibration. Its full-body overlap is ${transfer.replayBodyIoU.toFixed(
+                            3
+                        )}.`}
+                </p>
+            )}
             <div className="comparison">
                 <figure>
                     <figcaption>
@@ -476,7 +498,18 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         }
         images[backend] = item;
     }
-    const identity = identities.cases[entry.id];
+    const identity =
+        identities.cases[entry.id] ??
+        followups.transfer_identity.cases[entry.id];
+    const trials = followups.trials[entry.id];
+    const blind = trials?.frozen_pattern;
+    const latest =
+        blind &&
+        Object.values<typeof blind>(trials).find(
+            (trial) =>
+                trial.candidate_sha256 === receipt.candidate_sha256 &&
+                trial.evidence_sha256 === receipt.evidence_sha256
+        );
     const sourceImage = async (file: string) =>
         (
             await import(
@@ -519,6 +552,17 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                 : "calibrated",
             images,
             inferred: entry.framing === "portrait",
+            transfer: latest
+                ? {
+                      firstPassed: blind.passes[0].accepted,
+                      selectedPassed: blind.visible_checks_passed,
+                      frozenBodyIoU: blind.full_body_silhouette_iou,
+                      replayBodyIoU:
+                          latest.candidate_sha256 === blind.candidate_sha256
+                              ? null
+                              : latest.full_body_silhouette_iou,
+                  }
+                : null,
         },
     };
 };

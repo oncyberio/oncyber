@@ -29,6 +29,49 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_visor_glyph_orientation_is_independent_of_scale_and_required_for_release(
+        self,
+    ):
+        from .one_image import best_pass
+        from .release import reference_passes
+        from .visor import printed_cross
+
+        y, x = np.mgrid[-1:1:41j, -1:1:61j]
+        self.assertEqual(printed_cross((abs(x) < 0.19) | (abs(y) < 0.19))[0], "plus")
+        self.assertEqual(printed_cross(abs(abs(x) - abs(y)) < 0.20)[0], "diagonal")
+        self.assertIsNone(printed_cross(x * x + y * y <= 1))
+        score = {
+            "head_iou": 0.91,
+            "ink_agreement": 0.97,
+            "rgb_mae": 16,
+            "visible_fraction": 0.85,
+        }
+        good = {**score, "visor_glyphs": {"matched": True}}
+        bad = {**score, "visor_glyphs": {"matched": False}}
+        self.assertTrue(reference_passes("portrait", good))
+        self.assertFalse(reference_passes("portrait", bad))
+        attempts = [{"accepted": False, "visible_portrait": s} for s in (bad, good)]
+        self.assertIs(best_pass(attempts), attempts[1])
+
+    def test_detached_crew_requires_a_paper_gap_two_lit_edges_and_visible_shoulders(
+        self,
+    ):
+        from .portrait import floating_crew
+
+        orb = [60, 50, 30, 30]
+        yy, xx = np.mgrid[:110, :121]
+        mask = (xx - 60) ** 2 + (yy - 50) ** 2 <= 30**2
+        mask[85:90, 49:72] = mask[90:, 32:89] = True
+        rgb = np.full((110, 121, 3), 230.0, dtype=float)
+        rgb[85:90, 56:65] = 118.0
+        ratio, gap = floating_crew(rgb, mask, orb)
+        self.assertAlmostEqual(ratio, 22 / 30)
+        self.assertAlmostEqual(gap, 5 / 30)
+        self.assertIsNone(floating_crew(rgb[:90], mask[:90], orb))
+        self.assertIsNone(floating_crew(np.ones_like(rgb), mask, orb))
+        mask[80:86, 58:63] = True
+        self.assertIsNone(floating_crew(rgb, mask, orb))
+
     def test_projected_kit_reads_two_limb_diameters_and_keeps_existing_seams(self):
         from .family import fit_projected_kit
 

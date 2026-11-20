@@ -1396,6 +1396,44 @@ test("the lens, strap and crosses follow the orb through a turn", () => {
     expect(patches[1].some(([x, , z]) => x < 335 && z > 30)).toBe(true);
 });
 
+test("upright visor print has four axial ends and retains the same triangle count", () => {
+    const draw = (glyph?: { shape: string; stroke: number }) => {
+        const { visor } = readAvatarFile({
+            ...vesper,
+            visor: { ...vesper.visor, glyph },
+        }).recipe;
+        const patches: Point[][] = [];
+        const recorder = {
+            s: { triangles: (p: Point[]) => patches.push([...p]) },
+        };
+        drawOrbVisor(
+            recorder as unknown as Drawing,
+            visor,
+            "#222222",
+            "#ffffff"
+        );
+        return patches[1];
+    };
+    const upright = draw({ shape: "plus", stroke: 0.21 }),
+        diagonal = draw();
+    expect(upright.length).toBe(diagonal.length);
+    // Each eye has two perpendicular ribbons on the same raised surface.
+    for (let i = 0; i < upright.length; i += upright.length / 2) {
+        const glyph = upright.slice(i, i + upright.length / 2);
+        const ends = [0, 1].map((axis) => glyph.map((p) => p[axis]));
+        const center = ends.map((a) => (Math.max(...a) + Math.min(...a)) / 2);
+        const span = ends.map((a) => (Math.max(...a) - Math.min(...a)) / 2);
+        expect(
+            glyph.every(
+                (p) =>
+                    Math.abs(p[0] - center[0]) < span[0] * 0.22 ||
+                    Math.abs(p[1] - center[1]) < span[1] * 0.22
+            )
+        ).toBe(true);
+    }
+    expect(() => draw({ shape: "plus", stroke: 0.9 })).toThrow();
+});
+
 test("sunglass arms close over both temples and leave the rear hemisphere exposed", () => {
     const { visor } = readAvatarFile({
         ...vesper,

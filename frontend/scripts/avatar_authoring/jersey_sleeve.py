@@ -17,10 +17,10 @@ def jersey_pattern():
     profile = next(p["profile"] for p in parts if p.get("name") == "jersey")
     rows = np.asarray(profile, dtype=float)
     torso = rows[rows[:, 0] >= 243]
-    return torso[:, 0], (torso[:, 2] - torso[:, 1]) / 2
+    return torso[:, 0], (torso[:, 2] - torso[:, 1]) / 2, rows[0, 2] - rows[0, 1]
 
 
-JERSEY_ROWS, JERSEY_HALF_WIDTHS = jersey_pattern()
+JERSEY_ROWS, JERSEY_HALF_WIDTHS, CREW_DIAMETER = jersey_pattern()
 
 
 def bare_arms(rgb, mask, center, chin, scale_height, skin, cloth):

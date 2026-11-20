@@ -9,7 +9,7 @@ from .family import FAMILIES
 from .fit import pixels
 from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
-from .jersey_sleeve import JERSEY_ROWS, JERSEY_HALF_WIDTHS, bare_arms, measure_sleeves
+from .jersey_sleeve import CREW_DIAMETER, JERSEY_ROWS, JERSEY_HALF_WIDTHS, bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_frontal_rim_pupils, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import apply_sun_rays, jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
@@ -106,9 +106,79 @@ def measured_orb_scale(mask, orb, edges, unit):
     return scale, round(float(np.clip(chest_ratio * scale, 0.70, 1.30)), 4)
 
 
+def floating_crew(rgb, mask, orb):
+    """Read the diameter of a recessed collar separated from the orb by paper."""
+    cx, cy, rx, ry = orb
+    x = round(cx)
+    start = max(0, round(cy + ry * 0.96))
+    stop = min(len(mask), round(cy + ry * 1.54))
+    half = max(1, round(rx * 0.05))
+    stripe = slice(max(0, x - half), min(mask.shape[1], x + half + 1))
+    clear = ~mask[start:stop, stripe].any(axis=1)
+    gaps = [
+        s[0]
+        for s in ndimage.find_objects(ndimage.label(clear)[0])
+        if s and s[0].stop - s[0].start >= max(2, ry * 0.025)
+    ]
+    if not gaps or gaps[0].stop >= stop - start - 4:
+        return None
+    rim = start + gaps[0].stop
+    widths, interior = [], []
+    for y in range(rim, stop):
+        labels, _ = ndimage.label(mask[y])
+        if not labels[x]:
+            break
+        cols = np.flatnonzero(labels == labels[x])
+        diameter = np.ptp(cols)
+        if diameter > 1.12 * rx:
+            break
+        if diameter < 0.40 * rx or abs(cols.mean() - cx) > 0.09 * rx:
+            continue
+        center = np.median(rgb[y, stripe], axis=0)
+        sides = np.rint(cols[0] + np.array([0.14, 0.86]) * diameter).astype(int)
+        # Both lit edges must enclose a darker opening in the same piece of cloth.
+        if np.min(np.mean(rgb[y, sides] - center, axis=1)) > 20:
+            # The shoulders can emerge behind the recessed rim while the
+            # middle of the opening is still dark. End at the first flare.
+            if len(widths) >= 3 and diameter > 1.10 * np.median(widths):
+                break
+            widths.append(diameter)
+            interior.append(y)
+    if len(widths) < max(3, ry * 0.025) or np.ptp(widths) > 0.3 * rx:
+        return None
+    below = interior[-1] + max(2, round(ry * 0.055))
+    if below >= stop:
+        return None
+    labels, _ = ndimage.label(mask[below])
+    if not labels[x] or np.count_nonzero(labels == labels[x]) < 1.35 * np.median(
+        widths
+    ):
+        return None
+    return float(np.median(widths) / rx), float((rim - cy - ry) / ry)
+
+
 def fit_portrait_kit(result, rgb, mask, orb, skin, fabric):
     neck = jersey_neck(rgb, mask, orb)
     if not neck:
+        measured = floating_crew(rgb, mask, orb)
+        if measured:
+            width, gap = measured
+            _, _, base_rx, base_ry = FAMILIES["sunshine"]["crownRoot"]
+            scale = round(float(np.clip(CREW_DIAMETER / (width * base_rx), 1, 1.5)), 4)
+            if scale > 1.04:
+                result["orbScale"] = scale
+            lift = (
+                gap * base_ry * result["proportions"]["headHeight"] * scale - 3.8
+            ) / 680
+            shift = round(float(np.clip(lift, -0.045, 0.045)), 4)
+            result["kitFit"] = {
+                "collar": shift,
+                "shoulders": shift,
+                "waist": 0,
+                "hem": 0,
+                "sock": 0,
+                "width": 1,
+            }
         return
     cx, cy, rx, ry = orb
     _, _, base_rx, base_ry = FAMILIES["sunshine"]["crownRoot"]

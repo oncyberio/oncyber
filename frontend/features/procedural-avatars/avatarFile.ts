@@ -225,6 +225,12 @@ const familyFile = z.strictObject({
                 .optional(),
             center: z.number().min(-0.13).max(0.13),
             span: z.number().min(0.65).max(1.15),
+            glyph: z
+                .strictObject({
+                    shape: z.literal("plus"),
+                    stroke: z.number().min(0.1).max(0.44),
+                })
+                .optional(),
             rows: z
                 .array(
                     z

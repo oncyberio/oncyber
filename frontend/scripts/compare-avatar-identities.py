@@ -121,13 +121,25 @@ def score_turns(cases, guides, embed):
                     receipt[mode] = rank(gallery, actual, f"{key}/{angle}")
 
 
-def compare(manifest, output, model, paper_control=False):
+def compare(manifest, output, model, paper_control=False, followups=()):
     import mediapipe as mp
     from mediapipe.tasks.python import BaseOptions, vision
 
     start = monotonic()
     entries = json.loads(manifest.read_bytes())["cases"]
     studies = json.loads((output / "holdout.json").read_bytes())["cases"]
+    folders = {c["id"]: output for c in entries}
+    if followups:
+        ledger = json.loads((manifest.parent / "followup-studies.json").read_bytes())
+        registered = {c["id"]: c for c in ledger["cases"]}
+        for key, directory in followups:
+            if key not in registered or key in folders:
+                raise ValueError(f"Unknown or repeated follow-up {key!r}")
+            folders[key] = Path(directory)
+            studies[key] = json.loads((folders[key] / "holdout.json").read_bytes())[
+                "cases"
+            ][key]
+            entries.append(registered[key])
     result = {
         "observer": "MediaPipe MobileNet V3 image embedder",
         "version": mp.__version__,
@@ -140,7 +152,7 @@ def compare(manifest, output, model, paper_control=False):
     for entry in entries:
         key = entry["id"]
         row = studies[key]
-        folder = output / row["study"]
+        folder = folders[key] / row["study"]
         candidate = (
             folder / json.loads((folder / "study.json").read_bytes())["candidate"]
         )
@@ -255,6 +267,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument(
+        "--followup",
+        action="append",
+        nargs=2,
+        metavar=("ID", "STUDY"),
+        help="Include a registered follow-up and its selected native study in the recognition gallery",
+    )
+    parser.add_argument(
         "--manifest",
         type=Path,
         default=Path(__file__).parent
@@ -262,7 +281,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    report = compare(args.manifest, args.study, args.model, args.paper_control)
+    report = compare(
+        args.manifest, args.study, args.model, args.paper_control, args.followup
+    )
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     for backend in ("WebGLBackend", "WebGPUBackend"):
         for region in REGIONS:

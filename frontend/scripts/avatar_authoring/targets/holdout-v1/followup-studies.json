@@ -49,6 +49,26 @@
             "evaluation_reference": "tess-full.webp",
             "input_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
             "reference_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd"
+        },
+        {
+            "id": "wren",
+            "name": "Wren",
+            "family": "rick-classic",
+            "framing": "full",
+            "input": "wren-full.webp",
+            "input_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+            "evaluation_reference": "wren-full.webp",
+            "reference_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d"
+        },
+        {
+            "id": "mica",
+            "name": "Mica",
+            "family": "sunshine",
+            "framing": "portrait",
+            "input": "mica-portrait.webp",
+            "input_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+            "evaluation_reference": "mica-full.webp",
+            "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f"
         }
     ],
     "receipts": {
@@ -127,6 +147,42 @@
                 "WebGPUBackend": {
                     "views": "99d2ae5807822ca571fb0cb5e2c8ec5d0e9e7c2d230ab39c25a65d184680411c",
                     "walk": "dfeabdccc6afff5c4b68f378f90e6743ce6ec632cb32bc912879a7396e8487c5"
+                }
+            },
+            "independent_pose": {
+                "measured_joints": 0,
+                "mean_error_in_statures": null
+            }
+        },
+        "wren": {
+            "candidate_sha256": "f677bf3cce740fcd5d43a75f05492a881b678aea94716c13b6d485610e2fd56b",
+            "evidence_sha256": "2e718696e82ed6f6d7dea6cbfb88d9a20d55518878c195721172fa885197b901",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "cf42c92bd90c2ded22b57add4bca9f08a2960ba307b3e1cca9d003fe533bdd52",
+                    "walk": "3e8fe90092c830e7c93a838313540e6e1722d4caa09ba800f3b9afebfb031001"
+                },
+                "WebGPUBackend": {
+                    "views": "71c43d12b654f088a2bf4852481da6618de7b4aa895db002bd8cd4a299dad62c",
+                    "walk": "d2c5ee0750b2e5045d09ef6bc8a87e8ce48a887633fe9b1519061b789c0cfac6"
+                }
+            },
+            "independent_pose": {
+                "measured_joints": 10,
+                "mean_error_in_statures": 0.00979
+            }
+        },
+        "mica": {
+            "candidate_sha256": "081e544f1928ea2048e657c22e12f64c0d05e1dd0d4991169faa1d3b399f742d",
+            "evidence_sha256": "e1c2f15a39c53b06560c0ed212ababb97c3aac8f84e53725e757c9508c8517e3",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "eafb70cab660b0353a10293c01a5fcbda30f3e6b82d1bb0349ceba205a356bb0",
+                    "walk": "43592c45b6d7e6ce9137f6dfcfa875bdf8711c3c3f5f0bc52becbed79a7453a8"
+                },
+                "WebGPUBackend": {
+                    "views": "a5d42dbfe608bfc7e69d06211b25e2df1793b7c297d703bedfe8a735f996ced8",
+                    "walk": "1cc3a1d4abd541e50fb0c5133bd598fb2c38266cfb6ea0be41746380bdbdfd92"
                 }
             },
             "independent_pose": {
@@ -1921,6 +1977,731 @@
                 },
                 "source_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
                 "evidence_sha256": "2b3fa1a8cbd44d795df418e5b1bca1a6faa8b17f196e52329ad6ba8b8f127b34"
+            }
+        },
+        "wren": {
+            "frozen_pattern": {
+                "transport": "local-blip",
+                "seconds": 31.64,
+                "model_calls": [
+                    {
+                        "transport": "local",
+                        "reported_model": "BLIP VQA (blip)",
+                        "weights_sha256": "1113701091eef45deed6a2648388a4d1af2f678d6418f23b8e7ba2072454e2fe",
+                        "torch": "2.8.0+cpu",
+                        "transformers": "4.51.3",
+                        "operation": "observe_source",
+                        "source_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                        "seconds": 11.193,
+                        "questions": {
+                            "glasses": "Is this person wearing sunglasses?",
+                            "top": "What kind of shirt is the person wearing?",
+                            "hair": "How is this person's hair styled?",
+                            "feet": "What type of shoes is the person wearing?"
+                        },
+                        "answers": {
+                            "glasses": "no",
+                            "top": "t shirt",
+                            "hair": "short",
+                            "feet": "sneakers"
+                        },
+                        "usage": {
+                            "cost": 0
+                        }
+                    }
+                ],
+                "selected_pass": 1,
+                "reported_provider_cost": 0,
+                "passes": [
+                    {
+                        "accepted": true,
+                        "front": {
+                            "silhouette_iou": 0.9369,
+                            "head_iou": 0.9513,
+                            "head_edge_agreement": 0.89,
+                            "body_edge_agreement": 0.6698,
+                            "rgb_mae": 26.39,
+                            "eye_pigment_agreement": 0.5,
+                            "globe_measurements": {
+                                "position": 0.0547,
+                                "aperture_log_error": 0.0683,
+                                "gaze": 0.0094,
+                                "pupil_log_error": 0.1032,
+                                "source_ink": 0.7438,
+                                "native_ink": 0.3333
+                            }
+                        },
+                        "reason": null,
+                        "triangles": 3554
+                    }
+                ],
+                "routed_family": "rick-classic",
+                "routed_framing": "full",
+                "visible_checks_passed": true,
+                "error": null,
+                "source_edits": [],
+                "candidate_sha256": "f677bf3cce740fcd5d43a75f05492a881b678aea94716c13b6d485610e2fd56b",
+                "full_body_silhouette_iou": 0.9369,
+                "full_body_rgb_mae": 26.39,
+                "independent_pose": {
+                    "observer": "MediaPipe Pose Landmarker",
+                    "version": "1.2.3",
+                    "weights_sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+                    "reference_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                    "native_sha256": "e901a19923e30616e4fcb4892ef6c7423a416868f903cef5cfe4540fdcf16cbb",
+                    "source": {
+                        "shoulder": [
+                            [-0.09968, 0.23988],
+                            [0.09273, 0.24474]
+                        ],
+                        "elbow": [
+                            [-0.23971, 0.26398],
+                            [0.23266, 0.26307]
+                        ],
+                        "wrist": [
+                            [-0.37649, 0.27453],
+                            [0.36333, 0.27101]
+                        ],
+                        "hip": [
+                            [-0.05501, 0.5194],
+                            [0.05036, 0.52503]
+                        ],
+                        "knee": [
+                            [-0.05658, 0.72573],
+                            [0.0374, 0.72504]
+                        ],
+                        "ankle": [
+                            [-0.06439, 0.92038],
+                            [0.0331, 0.92046]
+                        ]
+                    },
+                    "native": {
+                        "shoulder": [
+                            [-0.10268, 0.22979],
+                            [0.07914, 0.23497]
+                        ],
+                        "elbow": [
+                            [-0.23748, 0.26937],
+                            [0.21529, 0.25684]
+                        ],
+                        "hip": [
+                            [-0.05487, 0.51682],
+                            [0.04913, 0.52151]
+                        ],
+                        "knee": [
+                            [-0.05523, 0.71867],
+                            [0.03986, 0.72185]
+                        ],
+                        "ankle": [
+                            [-0.0517, 0.90935],
+                            [0.03494, 0.90862]
+                        ]
+                    },
+                    "joint_error_in_statures": {
+                        "shoulder": [0.01053, 0.01674],
+                        "elbow": [0.00583, 0.01845],
+                        "hip": [0.00258, 0.00373],
+                        "knee": [0.00719, 0.00403],
+                        "ankle": [0.01681, 0.01198]
+                    },
+                    "mean_error_in_statures": 0.00979,
+                    "measured_joints": 10,
+                    "seconds": 1.493
+                },
+                "source_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                "evidence_sha256": "2e718696e82ed6f6d7dea6cbfb88d9a20d55518878c195721172fa885197b901"
+            }
+        },
+        "mica": {
+            "frozen_pattern": {
+                "transport": "local-blip",
+                "seconds": 39.65,
+                "model_calls": [
+                    {
+                        "transport": "local",
+                        "reported_model": "BLIP VQA (blip)",
+                        "weights_sha256": "1113701091eef45deed6a2648388a4d1af2f678d6418f23b8e7ba2072454e2fe",
+                        "torch": "2.8.0+cpu",
+                        "transformers": "4.51.3",
+                        "operation": "observe_source",
+                        "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                        "seconds": 10.838,
+                        "questions": {
+                            "glasses": "Is this person wearing sunglasses?",
+                            "top": "What kind of shirt is the person wearing?"
+                        },
+                        "answers": {
+                            "glasses": "no",
+                            "top": "t shirt"
+                        },
+                        "usage": {
+                            "cost": 0
+                        }
+                    }
+                ],
+                "selected_pass": 2,
+                "reported_provider_cost": 0,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8117,
+                            "rgb_mae": 18.2,
+                            "ink_agreement": 0.9755,
+                            "visible_fraction": 0.8385
+                        },
+                        "triangles": 1552
+                    },
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8235,
+                            "rgb_mae": 17.9,
+                            "ink_agreement": 0.9756,
+                            "visible_fraction": 0.8385
+                        },
+                        "triangles": 1556
+                    }
+                ],
+                "routed_family": "sunshine",
+                "routed_framing": "portrait",
+                "visible_checks_passed": false,
+                "error": null,
+                "candidate_sha256": "d0795d2a5b7a9d3257d25e6efbe7ca0bc6e1d8533451f88b496ef44b7e0623df",
+                "full_body_silhouette_iou": 0.5147,
+                "full_body_rgb_mae": 87.13,
+                "independent_pose": {
+                    "observer": "MediaPipe Pose Landmarker",
+                    "version": "1.2.3",
+                    "weights_sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+                    "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f",
+                    "native_sha256": "c9d1420f6d6d74392b8fa7fac89ce5df3cee4fe9e509ddd3124fc3acf8aa11c8",
+                    "source": {},
+                    "native": {
+                        "shoulder": [
+                            [-0.01268, 0.24273],
+                            [0.01997, 0.25795]
+                        ],
+                        "elbow": [
+                            [-0.04687, 0.25433],
+                            [0.00762, 0.30802]
+                        ]
+                    },
+                    "joint_error_in_statures": {},
+                    "mean_error_in_statures": null,
+                    "measured_joints": 0,
+                    "seconds": 1.267
+                },
+                "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                "evidence_sha256": "a00fe152e761ebfe6001020dc5ee63d96a75f829aa9876aa4221215f8ee1b464"
+            },
+            "upright_glyph": {
+                "transport": "local-blip",
+                "seconds": 29.85,
+                "model_calls": [
+                    {
+                        "transport": "local",
+                        "reported_model": "BLIP VQA (blip)",
+                        "weights_sha256": "1113701091eef45deed6a2648388a4d1af2f678d6418f23b8e7ba2072454e2fe",
+                        "torch": "2.8.0+cpu",
+                        "transformers": "4.51.3",
+                        "operation": "observe_source",
+                        "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                        "seconds": 8.315,
+                        "questions": {
+                            "glasses": "Is this person wearing sunglasses?",
+                            "top": "What kind of shirt is the person wearing?"
+                        },
+                        "answers": {
+                            "glasses": "no",
+                            "top": "t shirt"
+                        },
+                        "usage": {
+                            "cost": 0
+                        }
+                    }
+                ],
+                "selected_pass": 2,
+                "reported_provider_cost": 0,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8117,
+                            "rgb_mae": 15.53,
+                            "ink_agreement": 0.976,
+                            "visible_fraction": 0.8385,
+                            "visor_glyphs": {
+                                "source": ["plus", "plus"],
+                                "native": ["plus", "plus"],
+                                "matched": true
+                            }
+                        },
+                        "triangles": 1552
+                    },
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8203,
+                            "rgb_mae": 15.12,
+                            "ink_agreement": 0.9761,
+                            "visible_fraction": 0.8385,
+                            "visor_glyphs": {
+                                "source": ["plus", "plus"],
+                                "native": ["plus", "plus"],
+                                "matched": true
+                            }
+                        },
+                        "triangles": 1556
+                    }
+                ],
+                "routed_family": "sunshine",
+                "routed_framing": "portrait",
+                "visible_checks_passed": false,
+                "error": null,
+                "candidate_sha256": "8364c5a8e611221e080e8bcb0dc8f3421ce16b053f26c017ca9f6e2a2ace7fdc",
+                "full_body_silhouette_iou": 0.5147,
+                "full_body_rgb_mae": 84.09,
+                "independent_pose": {
+                    "observer": "MediaPipe Pose Landmarker",
+                    "version": "1.2.3",
+                    "weights_sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+                    "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f",
+                    "native_sha256": "3d26b4ed459324d59f607da79826a67859fad1af5e6fd57cc6a97b8ec1bb81e8",
+                    "source": {},
+                    "native": {
+                        "shoulder": [
+                            [-0.09915, 0.26313],
+                            [0.10531, 0.25534]
+                        ],
+                        "elbow": [
+                            [-0.2325, 0.2898],
+                            [0.24649, 0.28672]
+                        ],
+                        "hip": [
+                            [-0.04473, 0.51911],
+                            [0.04819, 0.52035]
+                        ],
+                        "knee": [
+                            [-0.04527, 0.74047],
+                            [0.03345, 0.74607]
+                        ],
+                        "ankle": [
+                            [-0.03894, 0.92194],
+                            [0.03443, 0.92151]
+                        ]
+                    },
+                    "joint_error_in_statures": {},
+                    "mean_error_in_statures": null,
+                    "measured_joints": 0,
+                    "seconds": 1.525
+                },
+                "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                "evidence_sha256": "83c2d7f3aa36e83738e809370dacf336ae1a3a46a6236fc5c82b237d0c06da5f"
+            },
+            "visible_collar": {
+                "transport": "local-blip",
+                "seconds": 72.39,
+                "model_calls": [
+                    {
+                        "transport": "local",
+                        "reported_model": "BLIP VQA (blip)",
+                        "weights_sha256": "1113701091eef45deed6a2648388a4d1af2f678d6418f23b8e7ba2072454e2fe",
+                        "torch": "2.8.0+cpu",
+                        "transformers": "4.51.3",
+                        "operation": "observe_source",
+                        "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                        "seconds": 21.73,
+                        "questions": {
+                            "glasses": "Is this person wearing sunglasses?",
+                            "top": "What kind of shirt is the person wearing?"
+                        },
+                        "answers": {
+                            "glasses": "no",
+                            "top": "t shirt"
+                        },
+                        "usage": {
+                            "cost": 0
+                        }
+                    }
+                ],
+                "selected_pass": 1,
+                "reported_provider_cost": 0,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8383,
+                            "rgb_mae": 15.9,
+                            "ink_agreement": 0.9878,
+                            "visible_fraction": 0.8385,
+                            "visor_glyphs": {
+                                "source": ["plus", "plus"],
+                                "native": ["plus", "plus"],
+                                "matched": true
+                            }
+                        },
+                        "triangles": 1663
+                    },
+                    {
+                        "accepted": false,
+                        "visible_portrait": {
+                            "head_iou": 0.8297,
+                            "rgb_mae": 14.96,
+                            "ink_agreement": 0.9856,
+                            "visible_fraction": 0.8385,
+                            "visor_glyphs": {
+                                "source": ["plus", "plus"],
+                                "native": ["plus", "plus"],
+                                "matched": true
+                            }
+                        },
+                        "triangles": 1663
+                    }
+                ],
+                "routed_family": "sunshine",
+                "routed_framing": "portrait",
+                "visible_checks_passed": false,
+                "error": null,
+                "candidate_sha256": "081e544f1928ea2048e657c22e12f64c0d05e1dd0d4991169faa1d3b399f742d",
+                "full_body_silhouette_iou": 0.5283,
+                "full_body_rgb_mae": 57.22,
+                "independent_pose": {
+                    "observer": "MediaPipe Pose Landmarker",
+                    "version": "1.2.3",
+                    "weights_sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+                    "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f",
+                    "native_sha256": "2421447ef0ab21104d4fec7e2b3fdfdada0138a599ded18b67fdf1221075ac57",
+                    "source": {},
+                    "native": {
+                        "shoulder": [
+                            [-0.09288, 0.32076],
+                            [0.08677, 0.32589]
+                        ],
+                        "elbow": [
+                            [-0.22374, 0.36359],
+                            [0.19651, 0.37337]
+                        ],
+                        "hip": [
+                            [-0.03968, 0.56338],
+                            [0.04546, 0.56516]
+                        ],
+                        "knee": [
+                            [-0.0433, 0.76323],
+                            [0.03959, 0.76937]
+                        ],
+                        "ankle": [
+                            [-0.04287, 0.91981],
+                            [0.03902, 0.93319]
+                        ]
+                    },
+                    "joint_error_in_statures": {},
+                    "mean_error_in_statures": null,
+                    "measured_joints": 0,
+                    "seconds": 2.959
+                },
+                "source_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                "evidence_sha256": "e1c2f15a39c53b06560c0ed212ababb97c3aac8f84e53725e757c9508c8517e3"
+            }
+        }
+    },
+    "protocols": {
+        "frozen_pattern": {
+            "author_commit": "2c23bb7045a456b61e0e730294b1453a87a4b395",
+            "source": "GPT Image",
+            "requested_at": "2026-11-20T10:23:52.421Z",
+            "prompts": {
+                "wren": "Create an original hand-drawn television animation character reference, in the grounded everyday-human drawing style of Rick and Morty. One single full body, front orthographic, standing upright in a strict symmetrical horizontal T-pose, palms down, with both feet, hands and fingertips comfortably inside frame. Plain clean pale ivory background and no shadow on the ground, text, borders, swatches, vignettes or reference sheet labels. Wren is a tall, warmly brown-skinned, slightly lanky adult woman with an oval head, a small forward rounded nose and two round white eyeballs with very small black pupils looking straight ahead. A gently crooked smile with closed lips. A dense, short charcoal-brown bob parting on her left tucks behind one visible ear, with slightly pointed tips at the jaw. An ordinary faded coral crew-neck t-shirt with fitted short sleeves and a clearly curved neck binding, muted teal long trousers that taper at the ankles, and low off-white canvas shoes. Modest cartoon hands with distinct fingers. Clean thin hand-inked dark lines around features, restrained warm skin shading around the ears and under the chin, and a little cool cel shading on fabric. The character's full silhouette is easy to see from crown to sole. Landscape composition with the figure large, centered and entirely visible. Make the single pictured character convincing and distinctive.",
+                "mica": "Draw a single original high-quality stylized 3D cartoon sports mascot called Mica, shown straight from the front in a strict horizontal T-pose with feet together but separated and the entire figure visible. Orthographic model-sheet lighting. A perfectly round warm tangerine-orange orb head floats with a small visible gap above the round shirt collar. A ring of about fifteen lemon-yellow triangular sun rays surrounds the sphere. A single dark wraparound visor with two small painted white cross glyphs covers the eyes. No ears, nose or mouth. Small long-limbed humanoid body, thin bare orange forearms and shins, distinct cartoon hands, cream-colored loose round-collar soccer jersey with jade-green cuff bands and a simple small green diamond on its chest. Moss-green athletic shorts have two rounded hems with a small open crotch gap, calf-length ivory socks and dark slate trainers. Soft but readable studio gradients, a little occlusion at the garment seams, sculpted rays and matte colored surfaces. Plain very light neutral blue-gray background, no floor shadow, labels, text, equipment, drawings of additional poses, borders or props. Landscape canvas with fingertips, ray tips and both shoes comfortably inside the frame. Match a designer toy rather than a photoreal human."
+            },
+            "design": "One new full Rick-family T-pose and one Sunshine portrait; retain first submitted images. Crop Sunshine at 0.40 of standing height, horizontally centered to a window 0.51 of standing height. Evaluate original thresholds and the existing paper control; full drawing withheld from portrait author, no guide or target-specific edits, at most one native correction.",
+            "files": {
+                "wren": {
+                    "id": "wren",
+                    "name": "Wren",
+                    "family": "rick-classic",
+                    "framing": "full",
+                    "input": "wren-full.webp",
+                    "input_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                    "evaluation_reference": "wren-full.webp",
+                    "reference_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                    "original_png_sha256": "690055358a3d359714ff27c8f07acabfe78421b8a5da135bf6bf3cea0503c05b",
+                    "generator_seconds": 40.494,
+                    "generation_cost_usd": null,
+                    "model_version": null,
+                    "crop_pixels": null
+                },
+                "mica": {
+                    "id": "mica",
+                    "name": "Mica",
+                    "family": "sunshine",
+                    "framing": "portrait",
+                    "input": "mica-portrait.webp",
+                    "input_sha256": "2dbef0e24a5cba5303f28dba2dd25100a2914c6fe95bc13a9423d748d857f72f",
+                    "evaluation_reference": "mica-full.webp",
+                    "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f",
+                    "original_png_sha256": "22bed8355437b15a19649031e4e8faf6e63fb5022a909fc5019c438559ffbeac",
+                    "generator_seconds": 67.448,
+                    "generation_cost_usd": null,
+                    "model_version": null,
+                    "crop_pixels": [513, 0, 1025, 412]
+                }
+            }
+        }
+    },
+    "transfer_identity": {
+        "observer": "MediaPipe MobileNet V3 image embedder",
+        "version": "1.2.3",
+        "weights_sha256": "11af3c560dfeed7737cb4c03c23bf52a8403020784192d4dea0b74862a12828d",
+        "metric": "cosine",
+        "seconds": 27.634,
+        "provider_charge_usd": 0,
+        "gallery": {
+            "moss": {
+                "family": "rick-classic",
+                "reference_sha256": "a77fc8c03db312d356de234316497df54bd6421c18b1bc3eeee7d2855205832f"
+            },
+            "lark": {
+                "family": "rick-classic",
+                "reference_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c"
+            },
+            "rowan": {
+                "family": "rick-classic",
+                "reference_sha256": "fae43e70ace0b6da093e95e3211cc4b71f9220aa932baaedc248fc3841f3b597"
+            },
+            "poe": {
+                "family": "rick-classic",
+                "reference_sha256": "716c4e03a739704f2bb80309d2d32984e7b5a547348590889599cb022db8703c"
+            },
+            "solvi": {
+                "family": "sunshine",
+                "reference_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6"
+            },
+            "mora": {
+                "family": "sunshine",
+                "reference_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa"
+            },
+            "reed": {
+                "family": "sunshine",
+                "reference_sha256": "a63dc202b89d462dbd0f07748ace21890ddb9b666c082cfa9b2de25fd3e1e769"
+            },
+            "indigo": {
+                "family": "sunshine",
+                "reference_sha256": "43e1e7265c83256365f70cbd60bf49d103d81829241e0a7d78e460b483eac80d"
+            },
+            "wren": {
+                "family": "rick-classic",
+                "reference_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d"
+            },
+            "mica": {
+                "family": "sunshine",
+                "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f"
+            }
+        },
+        "cases": {
+            "wren": {
+                "family": "rick-classic",
+                "input": "full",
+                "candidate_sha256": "f677bf3cce740fcd5d43a75f05492a881b678aea94716c13b6d485610e2fd56b",
+                "evidence_sha256": "2e718696e82ed6f6d7dea6cbfb88d9a20d55518878c195721172fa885197b901",
+                "reference_sha256": "229a9af90235a44ef3cb4d8ab51f4b2570ba41fe55ef6814869af8887deb920d",
+                "native_front_sha256": {
+                    "WebGLBackend": "e901a19923e30616e4fcb4892ef6c7423a416868f903cef5cfe4540fdcf16cbb",
+                    "WebGPUBackend": "6b82f76ba417d563e1b382c2b367d7d08ecf853145d24efd859a33eef744b06a"
+                },
+                "backends": {
+                    "WebGLBackend": {
+                        "figure": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.87655,
+                                "nearest_other": "moss",
+                                "margin": 0.2626
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.81659,
+                                "nearest_other": "rowan",
+                                "margin": 0.10117
+                            }
+                        },
+                        "head": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.68338,
+                                "nearest_other": "rowan",
+                                "margin": 0.09698
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.72718,
+                                "nearest_other": "moss",
+                                "margin": 0.15095
+                            }
+                        },
+                        "clothes": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.80491,
+                                "nearest_other": "lark",
+                                "margin": 0.27265
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.76842,
+                                "nearest_other": "lark",
+                                "margin": 0.10447
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "figure": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.87492,
+                                "nearest_other": "moss",
+                                "margin": 0.24849
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.82345,
+                                "nearest_other": "rowan",
+                                "margin": 0.10035
+                            }
+                        },
+                        "head": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.6915,
+                                "nearest_other": "rowan",
+                                "margin": 0.0946
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.74026,
+                                "nearest_other": "moss",
+                                "margin": 0.15508
+                            }
+                        },
+                        "clothes": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.79371,
+                                "nearest_other": "lark",
+                                "margin": 0.26618
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.75494,
+                                "nearest_other": "lark",
+                                "margin": 0.08777
+                            }
+                        }
+                    }
+                },
+                "family_gallery_size": 5
+            },
+            "mica": {
+                "family": "sunshine",
+                "input": "portrait",
+                "candidate_sha256": "081e544f1928ea2048e657c22e12f64c0d05e1dd0d4991169faa1d3b399f742d",
+                "evidence_sha256": "e1c2f15a39c53b06560c0ed212ababb97c3aac8f84e53725e757c9508c8517e3",
+                "reference_sha256": "99fcfcb714500e56c27be70f875bcba8cfb7627ab902f0d14fd48b2a513e3f2f",
+                "native_front_sha256": {
+                    "WebGLBackend": "2421447ef0ab21104d4fec7e2b3fdfdada0138a599ded18b67fdf1221075ac57",
+                    "WebGPUBackend": "53ee2a4afcc00fad07f41a71b005374339b8a573b5606f862c0efdd943ed979f"
+                },
+                "backends": {
+                    "WebGLBackend": {
+                        "figure": {
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.59692,
+                                "nearest_other": "solvi",
+                                "margin": -0.07699
+                            },
+                            "gray": {
+                                "rank": 4,
+                                "cosine": 0.61996,
+                                "nearest_other": "reed",
+                                "margin": -0.02819
+                            }
+                        },
+                        "head": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.74813,
+                                "nearest_other": "solvi",
+                                "margin": 0.18971
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.74621,
+                                "nearest_other": "mora",
+                                "margin": 0.04746
+                            }
+                        },
+                        "clothes": {
+                            "color": {
+                                "rank": 5,
+                                "cosine": 0.46476,
+                                "nearest_other": "solvi",
+                                "margin": -0.11018
+                            },
+                            "gray": {
+                                "rank": 5,
+                                "cosine": 0.43555,
+                                "nearest_other": "reed",
+                                "margin": -0.16854
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "figure": {
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.56434,
+                                "nearest_other": "solvi",
+                                "margin": -0.07031
+                            },
+                            "gray": {
+                                "rank": 4,
+                                "cosine": 0.57701,
+                                "nearest_other": "reed",
+                                "margin": -0.03787
+                            }
+                        },
+                        "head": {
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.76016,
+                                "nearest_other": "solvi",
+                                "margin": 0.2014
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.7649,
+                                "nearest_other": "mora",
+                                "margin": 0.06516
+                            }
+                        },
+                        "clothes": {
+                            "color": {
+                                "rank": 5,
+                                "cosine": 0.44607,
+                                "nearest_other": "solvi",
+                                "margin": -0.10991
+                            },
+                            "gray": {
+                                "rank": 5,
+                                "cosine": 0.42123,
+                                "nearest_other": "reed",
+                                "margin": -0.17025
+                            }
+                        }
+                    }
+                },
+                "family_gallery_size": 5
             }
         }
     }

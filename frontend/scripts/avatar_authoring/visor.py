@@ -193,6 +193,61 @@ def has_sunglass_arms(rim, marks):
     return deep >= 0.30 and bridge < 0.86 * deep and max(wings) < 0.44 * deep
 
 
+def printed_cross(mask):
+    """Measure the four arms independently of pigment, scale and aspect ratio."""
+    y, x = np.nonzero(mask)
+    if len(x) < 15 or min(np.ptp(x), np.ptp(y)) < 4:
+        return None
+    u = (2 * x - (x.min() + x.max())) / np.ptp(x)
+    v = (2 * y - (y.min() + y.max())) / np.ptp(y)
+    radius = np.hypot(u, v)
+    outer = radius > 0.55
+    if not outer.any():
+        return None
+    direction = np.average(
+        np.cos(4 * np.arctan2(v[outer], u[outer])), weights=radius[outer] ** 2
+    )
+    fill = len(x) / ((np.ptp(x) + 1) * (np.ptp(y) + 1))
+    if not 0.18 < fill < 0.74 or abs(direction) < 0.55:
+        return None
+    shape = "plus" if direction > 0 else "diagonal"
+    return shape, round(float(np.clip(1 - np.sqrt(1 - fill), 0.1, 0.44)), 3)
+
+
+def visible_crosses(rgb, mask):
+    seed = visor_seed(rgb, mask)
+    if not seed:
+        return None
+    (cx, cy), r = seed
+    y, x = np.ogrid[: len(mask), : mask.shape[1]]
+    roi = (abs(x - cx) < 1.14 * r) & (abs(y - cy) < 0.55 * r)
+    labels, count = ndimage.label((rgb.max(2) < 103) & roi & mask)
+    if not count:
+        return None
+    lens = labels == np.argmax(np.bincount(labels.ravel())[1:]) + 1
+    marks, count = ndimage.label(
+        ndimage.binary_fill_holes(lens) & ~lens & (rgb.min(2) > 155)
+    )
+    pair = []
+    for side in (-1, 1):
+        ids = marks[(roi & (side * (x - cx) > 0.12 * r))]
+        sizes = np.bincount(ids, minlength=count + 1)[1:]
+        if not len(sizes) or sizes.max() < 0.007 * r * r:
+            return None
+        mark = printed_cross(marks == 1 + sizes.argmax())
+        if not mark:
+            return None
+        pair.append(mark[0])
+    return pair
+
+
+def glyph_agreement(original, native):
+    source = visible_crosses(*original)
+    if source:
+        actual = visible_crosses(*native)
+        return {"source": source, "native": actual, "matched": actual == source}
+
+
 def measure_visor(rgb, mask, orb):
     from .family import FAMILIES
 
@@ -236,6 +291,7 @@ def measure_visor(rgb, mask, orb):
     bright = holes & (rgb.min(2) > 155)
     islands, n = ndimage.label(bright)
     marks = []
+    strokes = []
     mark_pixels = np.zeros_like(lens)
     for side in (-1, 1):
         candidates = [
@@ -264,9 +320,10 @@ def measure_visor(rgb, mask, orb):
         glyph = mascot["visorGlyph"]
         projected = 1 + glyph["lift"] / np.array(mascot["crownRoot"][2:])
         centerline = np.array(mark).reshape(2, 2) / projected
-        centerline[1] = np.maximum(
-            0.07, (centerline[1] + 0.5 / np.array([rx, ry])) / (1 + glyph["stroke"])
-        )
+        cross = printed_cross(islands == hit)
+        strokes.append(cross)
+        centerline[1] += 0.5 / np.array([rx, ry])
+        centerline[1] = np.maximum(0.07, centerline[1] / (1 + glyph["stroke"]))
         marks.append(centerline.round(3).ravel().tolist())
     contact = visor_contact(rgb, mask, orb, center, span, rows)
     # Both cheeks must show a strip of skin outside the end of the lens.
@@ -288,6 +345,19 @@ def measure_visor(rgb, mask, orb):
     mounting = {"strap": False} if all(visible_skin) else {}
     if not mounting and has_sunglass_arms(rim, marks):
         mounting = {"strap": "temples"}
+    if all(s and s[0] == "plus" for s in strokes):
+        mounting["glyph"] = {
+            "shape": "plus",
+            "stroke": round(float(np.mean([s[1] for s in strokes])), 3),
+        }
+        # The diagonal stamp extends beyond each endpoint in x and y. An
+        # upright stamp ends at the measured horizontal or vertical extremum.
+        for mark in marks:
+            mark[2:] = (
+                np.clip(np.array(mark[2:]) * (1 + glyph["stroke"]), 0.07, 0.28)
+                .round(3)
+                .tolist()
+            )
     return {
         **({"rim": rim} if rim else {}),
         **({"contact": contact} if contact else {}),

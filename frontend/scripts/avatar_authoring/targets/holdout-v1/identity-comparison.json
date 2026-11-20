@@ -788,11 +788,11 @@
             "family": "sunshine",
             "input": "full",
             "candidate_sha256": "e74140476948964e254e115bd42355127d6bb014756a46d75cae924ac80d43cb",
-            "evidence_sha256": "369109a05b20475a1d3e46d7b345f35339509718871bca280638b977adbb0340",
+            "evidence_sha256": "6b5ab4bda374809c41d1a5937c223e2446496eed98351c657ee6ec4f14565988",
             "reference_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6",
             "native_front_sha256": {
-                "WebGLBackend": "ca1b6f66281b3ba38920e3b79741c51af0bd2948ba73820b520f456094903ec4",
-                "WebGPUBackend": "eedac55727bdee5f24d8309110e543ef74f7baccc6ae92e2d8af8e77daa06bd8"
+                "WebGLBackend": "642099527cd78f69a50fca3eb60ab466df94988355a8e2612a5f95409d874d38",
+                "WebGPUBackend": "cfd42b88584b12e326495c5b5cc1da44b76915225f7ef79ce320416525afd0fb"
             },
             "backends": {
                 "WebGLBackend": {
@@ -801,7 +801,7 @@
                             "rank": 1,
                             "cosine": 0.93402,
                             "nearest_other": "indigo",
-                            "margin": 0.19264
+                            "margin": 0.19266
                         },
                         "gray": {
                             "rank": 1,
@@ -813,13 +813,13 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.80507,
+                            "cosine": 0.80516,
                             "nearest_other": "indigo",
-                            "margin": 0.11665
+                            "margin": 0.1167
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.85253,
+                            "cosine": 0.85265,
                             "nearest_other": "mora",
                             "margin": 0.06563
                         }
@@ -827,15 +827,15 @@
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84466,
+                            "cosine": 0.84467,
                             "nearest_other": "indigo",
-                            "margin": 0.12813
+                            "margin": 0.12814
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.86804,
+                            "cosine": 0.86802,
                             "nearest_other": "indigo",
-                            "margin": 0.07297
+                            "margin": 0.07307
                         }
                     }
                 },
@@ -859,13 +859,13 @@
                             "rank": 1,
                             "cosine": 0.80853,
                             "nearest_other": "indigo",
-                            "margin": 0.11826
+                            "margin": 0.11825
                         },
                         "gray": {
                             "rank": 1,
                             "cosine": 0.82854,
                             "nearest_other": "mora",
-                            "margin": 0.06537
+                            "margin": 0.06538
                         }
                     },
                     "clothes": {
@@ -873,13 +873,13 @@
                             "rank": 1,
                             "cosine": 0.83992,
                             "nearest_other": "indigo",
-                            "margin": 0.12243
+                            "margin": 0.12242
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.86037,
+                            "cosine": 0.86036,
                             "nearest_other": "indigo",
-                            "margin": 0.06765
+                            "margin": 0.06759
                         }
                     }
                 }
@@ -889,7 +889,7 @@
                 "removed_area_fraction": 0.11809,
                 "matte_sha256": "fc5a8e4d6db09671b95762744b9fc1baeb54718c6ba213795f964d80d4eb8253",
                 "WebGLBackend": {
-                    "native_sha256": "ca1b6f66281b3ba38920e3b79741c51af0bd2948ba73820b520f456094903ec4",
+                    "native_sha256": "642099527cd78f69a50fca3eb60ab466df94988355a8e2612a5f95409d874d38",
                     "original": {
                         "silhouette_iou": 0.8795,
                         "head_iou": 0.7858,
@@ -900,6 +900,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.8138,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -919,6 +924,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.8403,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -932,7 +942,7 @@
                     "painted_passed": true
                 },
                 "WebGPUBackend": {
-                    "native_sha256": "eedac55727bdee5f24d8309110e543ef74f7baccc6ae92e2d8af8e77daa06bd8",
+                    "native_sha256": "cfd42b88584b12e326495c5b5cc1da44b76915225f7ef79ce320416525afd0fb",
                     "original": {
                         "silhouette_iou": 0.8775,
                         "head_iou": 0.783,
@@ -943,6 +953,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.8222,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -962,6 +977,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.8486,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -975,7 +995,7 @@
                     "painted_passed": true
                 },
                 "first_pass": {
-                    "native_sha256": "352986f73c975be3dcf7299827197a7bb33c74f8e97f0b42ed7ec3ccfb040707",
+                    "native_sha256": "2378711310732fddf1484b492eeefe0eedb668b5147336932d9e26aabec6c7b7",
                     "original": {
                         "silhouette_iou": 0.8722,
                         "head_iou": 0.7858,
@@ -986,6 +1006,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.5181,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1005,6 +1030,11 @@
                         "shirt_window": [-0.2, -0.35, 1.2, 1.25],
                         "shirt_mark_agreement": 0.5222,
                         "shirt_mark_sample": [0.51, 0.344],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1023,7 +1053,7 @@
                 "backends": {
                     "WebGLBackend": {
                         "35": {
-                            "native_sha256": "20acca762cd3e2aac05217880a756eff92c2ebcfb26ee49661848e885410369a",
+                            "native_sha256": "0571f2b22417d92a5da2f886a65398d2967eb8765f97c74d5763af91dd8ae64f",
                             "color": {
                                 "rank": 1,
                                 "cosine": 0.87441,
@@ -1038,7 +1068,7 @@
                             }
                         },
                         "90": {
-                            "native_sha256": "5e74346de14b1b5ad16ff97a447f50f6ce0a7d01a35bd132ec5c92a4a31f4c0e",
+                            "native_sha256": "02f0bc50dcbcdc479ad02e1ccfd12f68000d0a727f6bff8742e28be5385b8cf5",
                             "color": {
                                 "rank": 1,
                                 "cosine": 0.82311,
@@ -1055,7 +1085,7 @@
                     },
                     "WebGPUBackend": {
                         "35": {
-                            "native_sha256": "6e161a0fa7e86fa17799dac71762686fd2d04e12dbf153480a4a2fc166887755",
+                            "native_sha256": "211d4fb56c6e79abecc52bb47c394985f1c165f42b2f14677069e23cffb12fb6",
                             "color": {
                                 "rank": 1,
                                 "cosine": 0.87383,
@@ -1094,11 +1124,11 @@
             "family": "sunshine",
             "input": "full",
             "candidate_sha256": "9ee7f01c2d258ab525d6146df9305cdac6f6aeb0c70e32edfd215f89444560c0",
-            "evidence_sha256": "ede550fb590772f04357f044131e96fe1865759a28029f8c5ea4a648c8c7b658",
+            "evidence_sha256": "bd67395b4d78514386f923eac7a2edb7118bd2ef2222ecf652d57e232e50606d",
             "reference_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa",
             "native_front_sha256": {
-                "WebGLBackend": "ee83fb193aee1d51856d4866aa4840e20744b7b1fe315f34e8cb65fdbe9fd511",
-                "WebGPUBackend": "1fbc1337583d3dd6491baf8e434512d897bb9e07bcd8cf61c22db8108417405b"
+                "WebGLBackend": "5fae107e13e63197a6d408f12dc25d6ee0712bff1d53162fc331a35a51833ed4",
+                "WebGPUBackend": "45d515976554c8f2443200f128a6fcf84224601af5f1723183185fd585db0466"
             },
             "backends": {
                 "WebGLBackend": {
@@ -1107,11 +1137,11 @@
                             "rank": 1,
                             "cosine": 0.9048,
                             "nearest_other": "reed",
-                            "margin": 0.06183
+                            "margin": 0.06181
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.91069,
+                            "cosine": 0.91068,
                             "nearest_other": "indigo",
                             "margin": 0.03079
                         }
@@ -1121,27 +1151,27 @@
                             "rank": 1,
                             "cosine": 0.81454,
                             "nearest_other": "reed",
-                            "margin": 0.07004
+                            "margin": 0.07007
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80925,
+                            "cosine": 0.80917,
                             "nearest_other": "solvi",
-                            "margin": 0.00404
+                            "margin": 0.00405
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81154,
+                            "cosine": 0.81162,
                             "nearest_other": "reed",
-                            "margin": 0.06594
+                            "margin": 0.06598
                         },
                         "gray": {
                             "rank": 1,
                             "cosine": 0.78174,
                             "nearest_other": "indigo",
-                            "margin": 0.02099
+                            "margin": 0.021
                         }
                     }
                 },
@@ -1155,37 +1185,37 @@
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.90819,
+                            "cosine": 0.90814,
                             "nearest_other": "indigo",
-                            "margin": 0.03157
+                            "margin": 0.03154
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81611,
+                            "cosine": 0.81608,
                             "nearest_other": "reed",
-                            "margin": 0.06927
+                            "margin": 0.0693
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.8028,
+                            "cosine": 0.80273,
                             "nearest_other": "solvi",
-                            "margin": 0.00553
+                            "margin": 0.00549
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81172,
+                            "cosine": 0.81178,
                             "nearest_other": "reed",
-                            "margin": 0.0665
+                            "margin": 0.06649
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.77743,
+                            "cosine": 0.77764,
                             "nearest_other": "indigo",
-                            "margin": 0.01932
+                            "margin": 0.01937
                         }
                     }
                 }
@@ -1195,7 +1225,7 @@
                 "removed_area_fraction": 0.10759,
                 "matte_sha256": "37b789df53615ae605ad1e2d4acd5b80dd4bc28175895b742eebd972bee2227b",
                 "WebGLBackend": {
-                    "native_sha256": "ee83fb193aee1d51856d4866aa4840e20744b7b1fe315f34e8cb65fdbe9fd511",
+                    "native_sha256": "5fae107e13e63197a6d408f12dc25d6ee0712bff1d53162fc331a35a51833ed4",
                     "original": {
                         "silhouette_iou": 0.892,
                         "head_iou": 0.812,
@@ -1206,6 +1236,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7963,
                         "shirt_mark_sample": [0.792, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1221,6 +1256,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7887,
                         "shirt_mark_sample": [0.802, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1230,7 +1270,7 @@
                     "painted_passed": true
                 },
                 "WebGPUBackend": {
-                    "native_sha256": "1fbc1337583d3dd6491baf8e434512d897bb9e07bcd8cf61c22db8108417405b",
+                    "native_sha256": "45d515976554c8f2443200f128a6fcf84224601af5f1723183185fd585db0466",
                     "original": {
                         "silhouette_iou": 0.8917,
                         "head_iou": 0.8107,
@@ -1241,6 +1281,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7963,
                         "shirt_mark_sample": [0.792, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1256,6 +1301,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7887,
                         "shirt_mark_sample": [0.802, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1265,7 +1315,7 @@
                     "painted_passed": true
                 },
                 "first_pass": {
-                    "native_sha256": "a03d5ddc00ee42059c0858c2b6153bed009a9b4566a2db8f6439d1730b845c92",
+                    "native_sha256": "8faa6f4e0d7f93ecb413697a500f9fdd0a2ade3f1e5ddc5b3d880e08190b3c43",
                     "original": {
                         "silhouette_iou": 0.886,
                         "head_iou": 0.812,
@@ -1276,6 +1326,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7963,
                         "shirt_mark_sample": [0.792, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1291,6 +1346,11 @@
                         "shirt_window": [-0.1, -0.32, 1.1, 1.14],
                         "shirt_mark_agreement": 0.7887,
                         "shirt_mark_sample": [0.802, 0.396],
+                        "visor_glyphs": {
+                            "source": ["diagonal", "diagonal"],
+                            "native": ["diagonal", "diagonal"],
+                            "matched": true
+                        },
                         "floating_gap": {
                             "source": 0.0,
                             "native": 0.0
@@ -1305,7 +1365,7 @@
                 "backends": {
                     "WebGLBackend": {
                         "35": {
-                            "native_sha256": "e7c4834b7bc2aa10ea4dbb98dba5a1e2e80037042c645f865685faec7e0c7f69",
+                            "native_sha256": "2c5db4d79b4b9cb62d64f72741e5780bf4a2cf435b27ace3966dbdb5b2769354",
                             "color": {
                                 "rank": 1,
                                 "cosine": 0.87764,
@@ -1320,7 +1380,7 @@
                             }
                         },
                         "90": {
-                            "native_sha256": "20dc462b1593e03b1b92c4a038aa399aab87771a3f1e13b7681a64e5ba0746b2",
+                            "native_sha256": "8885d7291bfb03cb072a95f12689148857f5fed658172263ea68f79aa15aec4b",
                             "color": {
                                 "rank": 2,
                                 "cosine": 0.53807,
@@ -1337,7 +1397,7 @@
                     },
                     "WebGPUBackend": {
                         "35": {
-                            "native_sha256": "e5da0889df129db7c6f434a34d1134b2dd6134317d54a11e729251508d6f3e5d",
+                            "native_sha256": "5837528d4b904481437db09e150f8e0b24cb8030f53528e5beb2d5a551cb69ca",
                             "color": {
                                 "rank": 1,
                                 "cosine": 0.88145,
@@ -1352,7 +1412,7 @@
                             }
                         },
                         "90": {
-                            "native_sha256": "5be8e9fab82a20d9b58678d5a695a569ee48f34f82aea6aed42600d2bba7d1e5",
+                            "native_sha256": "b8f64dedd3419c92931d384e8af7155c282b03a1a693d1eb5c307b1b206c9e18",
                             "color": {
                                 "rank": 2,
                                 "cosine": 0.54102,
@@ -1376,54 +1436,54 @@
             "family": "sunshine",
             "input": "portrait",
             "candidate_sha256": "d0e6211dd74535c08342e7aa8d0fa305a825a08193594b29f517c29cada49234",
-            "evidence_sha256": "409e66dd54db611f090d32dbf6149165ea2ff9ba9db1472f7963346f769d64a3",
+            "evidence_sha256": "90c402bb44a3d5789b2d6dd4930b7a54fe42bb7be19b019528bbf43690dfdd24",
             "reference_sha256": "a63dc202b89d462dbd0f07748ace21890ddb9b666c082cfa9b2de25fd3e1e769",
             "native_front_sha256": {
-                "WebGLBackend": "3474bcaa8bed326eb078063b801f3ba46bd5bde8d98dbe80422f54fed3ec63cf",
-                "WebGPUBackend": "f4acba6db94cec5ad778c1b1e1c0a588a1b415cdbb88761cbcc694ae0a11548d"
+                "WebGLBackend": "cf1867bde1ea91d6fb4d4909818ebc9e4bc106d0e22a6f0a9cd1f5e638e38819",
+                "WebGPUBackend": "20f469d1d27630e243964965a5d7f11dac371cc37206c869fbafb87f61bf26c8"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.86584,
+                            "cosine": 0.86583,
                             "nearest_other": "mora",
                             "margin": 0.17398
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80367,
+                            "cosine": 0.80369,
                             "nearest_other": "solvi",
-                            "margin": 0.06349
+                            "margin": 0.0635
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.83889,
+                            "cosine": 0.83888,
                             "nearest_other": "mora",
                             "margin": 0.12316
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.80752,
+                            "cosine": 0.80753,
                             "nearest_other": "solvi",
-                            "margin": -0.01335
+                            "margin": -0.01333
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.75429,
+                            "cosine": 0.75431,
                             "nearest_other": "mora",
-                            "margin": 0.12862
+                            "margin": 0.12865
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.69399,
+                            "cosine": 0.69409,
                             "nearest_other": "solvi",
-                            "margin": 0.00638
+                            "margin": 0.00648
                         }
                     }
                 },
@@ -1431,9 +1491,9 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.88049,
+                            "cosine": 0.88048,
                             "nearest_other": "mora",
-                            "margin": 0.17756
+                            "margin": 0.17757
                         },
                         "gray": {
                             "rank": 1,
@@ -1447,27 +1507,27 @@
                             "rank": 1,
                             "cosine": 0.8352,
                             "nearest_other": "mora",
-                            "margin": 0.1256
+                            "margin": 0.12563
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.78733,
+                            "cosine": 0.7874,
                             "nearest_other": "solvi",
-                            "margin": -0.01277
+                            "margin": -0.01276
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.75534,
+                            "cosine": 0.75533,
                             "nearest_other": "mora",
                             "margin": 0.12574
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.69178,
+                            "cosine": 0.69177,
                             "nearest_other": "solvi",
-                            "margin": 0.01082
+                            "margin": 0.01086
                         }
                     }
                 }
@@ -1478,18 +1538,18 @@
             "family": "sunshine",
             "input": "portrait",
             "candidate_sha256": "7bc075d24912ca82901eb94d6b2779e1331dd11cb0e1014e6ab1eda5b51cea5a",
-            "evidence_sha256": "c8ff62a42f6ec4847d4802c8a7cf5eff1d497c4ecb582f191b38390983b3b046",
+            "evidence_sha256": "2a99eadc3681a2adab08b9db40b5728952b9e66ef4cae2ed2b82acf99df2d5f2",
             "reference_sha256": "43e1e7265c83256365f70cbd60bf49d103d81829241e0a7d78e460b483eac80d",
             "native_front_sha256": {
-                "WebGLBackend": "2b9d43fb86341d809d5df51455b207725fb0d7abdad4536b26205b0800730c63",
-                "WebGPUBackend": "d86f215109113b11e067e991f860d3fd9b7e459bbc7f7c1f5d1c6793f9a232c2"
+                "WebGLBackend": "b6e8e6b6ddffcc540fd506d86bfdb0df478ff1e9395d2ec081524a142050a037",
+                "WebGPUBackend": "0700a06bdcb84d4eaa3ab2cc105ad958493ed34a6363b70b49eadf65cb16add6"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.85654,
+                            "cosine": 0.85653,
                             "nearest_other": "reed",
                             "margin": 0.1023
                         },
@@ -1503,27 +1563,27 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84821,
+                            "cosine": 0.84819,
                             "nearest_other": "solvi",
-                            "margin": 0.16718
+                            "margin": 0.16712
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.81675,
+                            "cosine": 0.81682,
                             "nearest_other": "mora",
-                            "margin": 0.0837
+                            "margin": 0.08371
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.70302,
+                            "cosine": 0.70295,
                             "nearest_other": "reed",
-                            "margin": 0.00323
+                            "margin": 0.00321
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.72557,
+                            "cosine": 0.72555,
                             "nearest_other": "solvi",
                             "margin": -0.03955
                         }
@@ -1539,7 +1599,7 @@
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.81536,
+                            "cosine": 0.81535,
                             "nearest_other": "reed",
                             "margin": 0.009
                         }
@@ -1547,13 +1607,13 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84269,
+                            "cosine": 0.84268,
                             "nearest_other": "solvi",
-                            "margin": 0.1651
+                            "margin": 0.16509
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.822,
+                            "cosine": 0.82199,
                             "nearest_other": "solvi",
                             "margin": 0.08094
                         }
@@ -1561,13 +1621,13 @@
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.71053,
+                            "cosine": 0.71058,
                             "nearest_other": "reed",
-                            "margin": 0.01492
+                            "margin": 0.01497
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.72842,
+                            "cosine": 0.72845,
                             "nearest_other": "solvi",
                             "margin": -0.03277
                         }
@@ -1577,6 +1637,6 @@
             "family_gallery_size": 4
         }
     },
-    "seconds": 32.829,
+    "seconds": 35.419,
     "provider_charge_usd": 0
 }

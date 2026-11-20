@@ -36,6 +36,7 @@ def reference_passes(framing, score):
             and score["ink_agreement"] >= 0.68
             and score["rgb_mae"] <= 28
             and score["visible_fraction"] >= 0.70
+            and score.get("visor_glyphs", {}).get("matched", True)
         )
     if framing == "full":
         return (
@@ -46,6 +47,7 @@ def reference_passes(framing, score):
             and ("eye_pigment_agreement" not in score or eyes_match(score))
             and score.get("open_hands", {}).get("matched", True)
             and score.get("shirt_strokes", {}).get("matched", True)
+            and score.get("visor_glyphs", {}).get("matched", True)
             and score.get("shirt_mark_agreement", 1) >= 0.65
             and not collar_closed(score.get("floating_gap"))
             and score["rgb_mae"] <= 28

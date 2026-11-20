@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import Head from "next/head";
 import type { GetServerSideProps } from "next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { brandFoundation } from "@styles/brand";
@@ -61,6 +61,25 @@ export default function AvatarPreview({ avatar }: { avatar: Avatar }) {
     const { name, url: avatarUrl } = avatars[avatar];
     const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
+    const [prepared, setPrepared] = useState("");
+    useEffect(() => {
+        let current = true;
+        setReady(false);
+        setError("");
+        // Prepare the selected skeleton and clips while the lobby initializes.
+        // A busy software renderer can otherwise starve the first avatar load.
+        void import("@features/lobby/LobbyRenderer")
+            .then(({ preloadLobbyRendererAvatar }) =>
+                preloadLobbyRendererAvatar(avatarUrl)
+            )
+            .catch(() => undefined)
+            .then(() => {
+                if (current) setPrepared(avatarUrl);
+            });
+        return () => {
+            current = false;
+        };
+    }, [avatarUrl]);
     return (
         <Space aria-label={`${name} avatar preview`}>
             <Head>
@@ -68,7 +87,7 @@ export default function AvatarPreview({ avatar }: { avatar: Avatar }) {
                 <meta name="robots" content="noindex" />
             </Head>
             <Lobby
-                active
+                active={prepared === avatarUrl}
                 crowdEnabled={false}
                 avatarUrl={avatarUrl}
                 participants={participants}
