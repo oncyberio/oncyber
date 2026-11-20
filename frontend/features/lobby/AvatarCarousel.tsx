@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import Icon from "../landing-carousel/components/Icon";
+import { avatarThumb, warmAvatarThumbs } from "./avatarThumb";
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 import {
     lobbyPanelTokens,
     lobbyPanelHeading,
     lobbyPanelCard,
     lobbyPanelFooter,
     lobbyPanelIconButton,
+    lobbyPanelSurface,
 } from "./lobbyPanelStyles";
 
 export type LobbyAvatarChoice = {
@@ -22,25 +25,100 @@ type Props = {
     selectedId?: string;
     loading?: boolean;
     ownedLoading?: boolean;
+    /** Shown on the Owned tab when the visitor has nothing there. */
+    ownedHint?: string;
     error?: string;
     onSelect: (item: LobbyAvatarChoice) => void;
     onClose: () => void;
 };
 
+export type AvatarTab = "free" | "owned";
+const TABS: { id: AvatarTab; label: string }[] = [
+    { id: "free", label: "Free" },
+    { id: "owned", label: "Owned" },
+];
+const tabOf = (item: LobbyAvatarChoice): AvatarTab =>
+    item.owned ? "owned" : "free";
+/** Four columns of two rows are on screen; the page after them is next. */
+const COLUMNS = 4;
+const FIRST_SCREEN = COLUMNS * 2;
+const EAGER = FIRST_SCREEN * 2;
+
 const prefersReducedMotion = () =>
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** Shared avatar cards in a flat grid. Browsing never changes the avatar. */
+/**
+ * A card's picture. It asks for the card-sized copy first, falls back to the
+ * original if the host refuses to resize it, and to the initial if neither
+ * loads. The first screens load at once; the rest wait until they are near.
+ */
+function Portrait({ item, index }: { item: LobbyAvatarChoice; index: number }) {
+    const thumb = avatarThumb(item.img);
+    const sources = thumb && thumb !== item.img ? [thumb, item.img] : [thumb];
+    const [attempt, setAttempt] = useState(0);
+    const [loaded, setLoaded] = useState(false);
+    useEffect(() => {
+        setAttempt(0);
+        setLoaded(false);
+    }, [item.img]);
+    const src = sources[attempt];
+    return (
+        <span className="portrait" data-pending={!!src && !loaded}>
+            {src ? (
+                <img
+                    key={src}
+                    ref={(image) => {
+                        // A picture already in the cache never fires "load".
+                        if (image?.complete && image.naturalWidth)
+                            setLoaded(true);
+                    }}
+                    src={src}
+                    alt=""
+                    loading={index < EAGER ? "eager" : "lazy"}
+                    // React 18 only passes the lowercase spelling through.
+                    {...(index < FIRST_SCREEN ? { fetchpriority: "high" } : {})}
+                    decoding="async"
+                    draggable={false}
+                    data-loaded={loaded}
+                    onLoad={() => setLoaded(true)}
+                    onError={() => setAttempt((value) => value + 1)}
+                />
+            ) : (
+                <span className="initial" aria-hidden>
+                    {item.name.slice(0, 1)}
+                </span>
+            )}
+        </span>
+    );
+}
+
+/**
+ * Shared avatar cards in a flat grid, split into the free catalog and the
+ * visitor's own avatars. Browsing never changes the avatar.
+ */
 export default function AvatarCarousel({
-    items,
+    items: allItems,
     selectedId,
     loading = false,
     ownedLoading = false,
+    ownedHint = "Avatars you upload or hold in your wallet show up here.",
     error,
     onSelect,
     onClose,
 }: Props) {
+    const selected = allItems.find((item) => item.id === selectedId);
+    const selectedTab = selected ? tabOf(selected) : undefined;
+    const [tab, setTab] = useState<AvatarTab>(selectedTab || "free");
+    // Once the visitor picks a tab it stays theirs; until then the picker
+    // opens on the tab holding the avatar they wear, which for a wallet
+    // avatar is only known when the wallet has loaded.
+    const tabChosen = useRef(false);
+    const shownTab = useRef(tab);
+    const tabs = useRef(new Map<AvatarTab, HTMLButtonElement>());
+    const ids = useId();
+    const items = allItems.filter((item) => tabOf(item) === tab);
+    const ownedCount = allItems.filter((item) => item.owned).length;
     const [activeId, setActiveId] = useState(selectedId);
     const [focusedId, setFocusedId] = useState(selectedId);
     const [edges, setEdges] = useState({ start: true, end: false });
@@ -104,26 +182,71 @@ export default function AvatarCarousel({
     }, []);
 
     useEffect(() => {
+        if (selectedTab && !tabChosen.current) setTab(selectedTab);
+    }, [selectedTab]);
+
+    useEffect(() => {
         setActiveId(selectedId);
         setFocusedId(selectedTargetId);
+        // Switching tabs keeps the keyboard on the tab; the cards only
+        // scroll to the worn avatar, or back to the start.
+        const switched = shownTab.current !== tab && tabChosen.current;
+        shownTab.current = tab;
+        const onTab = Array.from(tabs.current.values()).includes(
+            document.activeElement as HTMLButtonElement
+        );
+        const focus = !switched && !onTab;
         if (selectedTargetId)
-            reveal(
-                mounted.current
-                    ? selectedTargetId
-                    : items.find((item) => item.owned)?.id || selectedTargetId,
-                mounted.current
-            );
-        else closeButton.current?.focus();
+            reveal(selectedTargetId, mounted.current && !switched, focus);
+        else if (focus) closeButton.current?.focus();
         mounted.current = true;
-    }, [selectedId, selectedTargetId, reveal]);
+    }, [selectedId, selectedTargetId, tab, reveal]);
 
-    const firstOwnedId = items.find((item) => item.owned)?.id;
+    // The other tab's first screen is fetched while this one is read, so
+    // switching shows pictures, not empty cards.
+    const otherTabPictures = allItems
+        .filter((item) => tabOf(item) !== tab)
+        .slice(0, FIRST_SCREEN)
+        .map((item) => item.img)
+        .join("\n");
     useEffect(() => {
-        if (firstOwnedId) {
-            setFocusedId(firstOwnedId);
-            reveal(firstOwnedId, false);
-        }
-    }, [firstOwnedId, reveal]);
+        if (otherTabPictures) warmAvatarThumbs(otherTabPictures.split("\n"));
+    }, [otherTabPictures]);
+
+    const chooseTab = (next: AvatarTab, focus = false) => {
+        tabChosen.current = true;
+        setTab(next);
+        if (focus) tabs.current.get(next)?.focus();
+    };
+    const onTabKeyDown = (event: React.KeyboardEvent, id: AvatarTab) => {
+        if (
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.nativeEvent.isComposing ||
+            event.keyCode === 229
+        )
+            return;
+        const index = TABS.findIndex((entry) => entry.id === id);
+        let next = index;
+        if (event.key === "ArrowRight") next = (index + 1) % TABS.length;
+        else if (event.key === "ArrowLeft")
+            next = (index - 1 + TABS.length) % TABS.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = TABS.length - 1;
+        else if (event.key === "ArrowDown") {
+            const card = cards.current.get(focusedId);
+            if (!card) return;
+            event.preventDefault();
+            event.stopPropagation();
+            card.focus({ preventScroll: true });
+            return;
+        } else return;
+        // The world behind the picker also listens for arrow keys.
+        event.preventDefault();
+        event.stopPropagation();
+        chooseTab(TABS[next].id, true);
+    };
 
     useEffect(() => {
         const viewport = strip.current;
@@ -293,7 +416,45 @@ export default function AvatarCarousel({
                     </p>
                 )}
                 <header className="avatar-heading">
-                    <h2>Avatars</h2>
+                    <h2 className="avatar-title">Avatars</h2>
+                    <div
+                        className="avatar-tabs"
+                        role="tablist"
+                        aria-label="Avatars to show"
+                    >
+                        {TABS.map(({ id, label }) => (
+                            <button
+                                key={id}
+                                ref={(element) => {
+                                    if (element) tabs.current.set(id, element);
+                                    else tabs.current.delete(id);
+                                }}
+                                id={`${ids}tab-${id}`}
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === id}
+                                aria-controls={`${ids}panel`}
+                                tabIndex={tab === id ? 0 : -1}
+                                onClick={() => chooseTab(id)}
+                                onKeyDown={(event) => onTabKeyDown(event, id)}
+                            >
+                                {label}
+                                {id === "owned" &&
+                                    (ownedCount > 0 ? (
+                                        <span className="tab-count">
+                                            {ownedCount}
+                                        </span>
+                                    ) : (
+                                        ownedLoading && (
+                                            <span
+                                                className="tab-spinner"
+                                                aria-hidden
+                                            />
+                                        )
+                                    ))}
+                            </button>
+                        ))}
+                    </div>
                     <span className="avatar-hint">
                         Scroll to browse · click to choose
                     </span>
@@ -318,9 +479,29 @@ export default function AvatarCarousel({
                         </button>
                     </nav>
                 </header>
-                <div className="strip-mask">
+                <div
+                    className="strip-mask"
+                    id={`${ids}panel`}
+                    role="tabpanel"
+                    aria-labelledby={`${ids}tab-${tab}`}
+                >
+                    {!items.length && tab === "owned" && (
+                        <p className="avatar-empty">
+                            {ownedLoading ? "Finding your avatars…" : ownedHint}
+                        </p>
+                    )}
                     <div
                         className="strip"
+                        hidden={!items.length && tab === "owned"}
+                        // A handful of avatars reads left to right on one
+                        // row; the panel keeps its two-row height.
+                        style={
+                            items.length <= COLUMNS
+                                ? ({
+                                      "--avatar-rows": 1,
+                                  } as React.CSSProperties)
+                                : undefined
+                        }
                         ref={strip}
                         role="listbox"
                         aria-label="Available avatars"
@@ -354,21 +535,7 @@ export default function AvatarCarousel({
                                 onFocus={() => setFocusedId(item.id)}
                                 onClick={() => select(index)}
                             >
-                                <span className="portrait">
-                                    {item.img ? (
-                                        <img
-                                            src={item.img}
-                                            alt=""
-                                            loading="lazy"
-                                            decoding="async"
-                                            draggable={false}
-                                        />
-                                    ) : (
-                                        <span className="initial" aria-hidden>
-                                            {item.name.slice(0, 1)}
-                                        </span>
-                                    )}
-                                </span>
+                                <Portrait item={item} index={index} />
                                 <span className="caption">
                                     <span>{item.name}</span>
                                     <span className="check" aria-hidden>
@@ -405,7 +572,7 @@ export default function AvatarCarousel({
                             ) : (
                                 <>
                                     <strong>
-                                        {items.find(
+                                        {allItems.find(
                                             (item) => item.id === activeId
                                         )?.name || "Choose an avatar"}
                                     </strong>
@@ -421,6 +588,9 @@ export default function AvatarCarousel({
     );
 }
 
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
 const enter = keyframes`
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -429,6 +599,16 @@ const Shell = styled.section`
     ${lobbyPanelTokens}
     --card-width: min(131.4px, calc((100vw - 104px) / 4 * 0.9));
     --avatar-rows: 2;
+    /* A card is its picture, a 28.8 px caption and its border. Naming the
+       heights keeps the panel the same size on both tabs, however many
+       avatars each holds, so the tabs never move under the pointer. */
+    --portrait-height: calc((var(--card-width) - 2px) * 78 / 128);
+    --strip-padding: 16px;
+    --strip-height: calc(
+        var(--avatar-rows) * (var(--portrait-height) + 30.8px) +
+            (var(--avatar-rows) - 1) * var(--lobby-panel-gap) + 2 *
+            var(--strip-padding)
+    );
     position: absolute;
     z-index: 12;
     inset: 0;
@@ -470,10 +650,79 @@ const Shell = styled.section`
     .avatar-heading {
         ${lobbyPanelHeading}
     }
-    h2 {
-        margin: 0;
+    /* The tabs name the panel on screen; the heading stays for readers. */
+    .avatar-title {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .avatar-tabs {
+        ${lobbyPanelSurface}
+        --prompt-glass-blur: ${lobby.glass.panelBlur}px;
+        display: flex;
+        flex-shrink: 0;
+        gap: 2px;
+        padding: 3px;
+        border-radius: ${lobby.panel.cardRadius}px;
+        box-shadow: none;
+        text-shadow: none;
+    }
+    .avatar-tabs [role="tab"] {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 72px;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: ${lobby.panel.cardRadius - 3}px;
+        background: transparent;
+        color: ${lobby.color.secondary};
         font-size: 12px;
         font-weight: 500;
+        line-height: 20px;
+        transition: color ${base.motion.fast}ms ease,
+            background ${base.motion.fast}ms ease;
+    }
+    .avatar-tabs [role="tab"]:hover {
+        color: ${lobby.color.ink};
+    }
+    .avatar-tabs [role="tab"][aria-selected="true"] {
+        background: ${base.color.line.soft};
+        color: ${lobby.color.ink};
+    }
+    .tab-count {
+        font-family: var(--oc-mono, "SFMono-Regular", monospace);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        line-height: 16px;
+        color: ${lobby.color.secondary};
+    }
+    .tab-spinner {
+        width: 10px;
+        height: 10px;
+        border: 1.5px solid ${base.color.line.default};
+        border-top-color: ${lobby.color.ink};
+        border-radius: 50%;
+        animation: ${spin} 800ms linear infinite;
+    }
+    .avatar-empty {
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        height: var(--strip-height);
+        margin: 0;
+        padding: 16px 40px;
+        text-align: center;
+        color: ${lobby.color.secondary};
+        font-size: 12px;
+        line-height: 1.5;
+        text-shadow: ${lobby.glass.textShadow};
     }
     .avatar-hint {
         font-size: 11px;
@@ -485,6 +734,7 @@ const Shell = styled.section`
         margin-left: auto;
     }
     .strip-mask {
+        min-height: var(--strip-height);
         overflow: hidden;
         margin-inline: 16px;
         /* Feather only the scrolling cards; headings and controls stay crisp. */
@@ -513,7 +763,7 @@ const Shell = styled.section`
         grid-template-rows: repeat(var(--avatar-rows), max-content);
         grid-auto-columns: var(--card-width);
         gap: var(--lobby-panel-gap);
-        padding: 16px 24px;
+        padding: var(--strip-padding) 24px;
         overflow-x: auto;
         overflow-anchor: none;
         overflow-y: hidden;
@@ -523,6 +773,9 @@ const Shell = styled.section`
         touch-action: pan-x;
         cursor: grab;
         pointer-events: auto;
+    }
+    .strip[hidden] {
+        display: none;
     }
     .strip::-webkit-scrollbar {
         display: none;
@@ -561,7 +814,7 @@ const Shell = styled.section`
         display: grid;
         place-items: center;
         width: 100%;
-        aspect-ratio: 128 / 78;
+        height: var(--portrait-height);
         overflow: hidden;
         border-radius: 12px 12px 0 0;
         background: transparent;
@@ -570,6 +823,15 @@ const Shell = styled.section`
         width: 100%;
         height: 100%;
         object-fit: contain;
+        opacity: 0;
+        transition: opacity ${base.motion.fast}ms ease;
+    }
+    .portrait img[data-loaded="true"] {
+        opacity: 1;
+    }
+    /* A quiet block holds the picture's place until it arrives. */
+    .portrait[data-pending="true"] {
+        background: ${base.color.line.faint};
     }
     .initial {
         font-size: 26px;
@@ -620,6 +882,9 @@ const Shell = styled.section`
         .avatar-hint {
             display: none;
         }
+        .avatar-tabs [role="tab"] {
+            height: 38px;
+        }
         .arrow {
             width: 44px;
             height: 44px;
@@ -632,13 +897,12 @@ const Shell = styled.section`
         .avatar-picker {
             gap: 4px;
         }
-        .portrait {
-            height: clamp(28.8px, calc((100dvh - 240px) / 2 * 0.9), 70.2px);
-            aspect-ratio: auto;
-        }
-        .strip {
-            padding-block: 8px;
-        }
+        --portrait-height: clamp(
+            28.8px,
+            calc((100dvh - 240px) / 2 * 0.9),
+            70.2px
+        );
+        --strip-padding: 8px;
     }
     @media (prefers-reduced-motion: reduce) {
         *,

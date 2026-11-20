@@ -42,7 +42,12 @@ const key = (
     act(() => target.dispatchEvent(event));
     return event;
 };
-const render = (selectedId = "pepe", choices = items, loading = false) =>
+const render = (
+    selectedId = "pepe",
+    choices = items,
+    loading = false,
+    extra: Partial<React.ComponentProps<typeof AvatarCarousel>> = {}
+) =>
     act(() =>
         root.render(
             <AvatarCarousel
@@ -51,9 +56,29 @@ const render = (selectedId = "pepe", choices = items, loading = false) =>
                 onSelect={onSelect}
                 onClose={onClose}
                 loading={loading}
+                {...extra}
             />
         )
     );
+const tab = (name: string) =>
+    Array.from(
+        container.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    ).find((element) => element.textContent.startsWith(name));
+const shown = () =>
+    Array.from(container.querySelectorAll('[role="option"]')).map((element) =>
+        element.getAttribute("aria-label")
+    );
+const gateway = "https://cyber.mypinata.cloud/ipfs";
+const mine: LobbyAvatarChoice[] = [
+    {
+        id: "upload",
+        name: "My upload",
+        url: "/upload.vrm",
+        img: `${gateway}/QmUpload?filename=me.png`,
+        owned: true,
+    },
+    { id: "nft", name: "Wallet one", url: "/nft.vrm", owned: true },
+];
 const focused = (name: string) => {
     expect(document.activeElement).toBe(card(name));
     expect(card(name).tabIndex).toBe(0);
@@ -154,7 +179,9 @@ test("focuses the selected avatar; clicking the last card selects it directly wi
     focused("Astronaut");
     expect(card("Astronaut").getAttribute("aria-selected")).toBe("true");
     expect(card("Roller Pepe").getAttribute("aria-selected")).toBe("false");
-    expect(container.querySelector("img").getAttribute("loading")).toBe("lazy");
+    expect(container.querySelector("img").getAttribute("loading")).toBe(
+        "eager"
+    );
 });
 
 test("two-row arrows move roving focus within columns and across columns without selecting", () => {
@@ -313,7 +340,9 @@ test("a changed account avatar regains focus and reduced motion avoids animated 
 test("a custom avatar and an empty catalog remain usable without selecting a fallback", () => {
     render("custom");
     focused("Summer");
-    expect(container.querySelector('[aria-selected="true"]')).toBeNull();
+    expect(
+        container.querySelector('[role="option"][aria-selected="true"]')
+    ).toBeNull();
     expect(onSelect).not.toHaveBeenCalled();
     click(card("Summer"));
     expect(onSelect).toHaveBeenCalledWith(items[0]);
@@ -346,4 +375,159 @@ test("IME composition and modified shortcuts do not navigate, select, or close t
     expect(onClose).toHaveBeenCalledTimes(1);
     click(button("Close avatars"));
     expect(onClose).toHaveBeenCalledTimes(2);
+});
+
+test("free and owned avatars sit on their own tabs, opening on the one being worn", () => {
+    render("pepe", [...mine, ...items]);
+    expect(tab("Free").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Owned").getAttribute("aria-selected")).toBe("false");
+    // The count says there is something behind the other tab.
+    expect(tab("Owned").textContent).toBe("Owned2");
+    expect(shown()).toEqual(items.map((item) => item.name));
+    focused("Roller Pepe");
+    const panel = container.querySelector('[role="tabpanel"]');
+    expect(panel.getAttribute("aria-labelledby")).toBe(tab("Free").id);
+    expect(tab("Free").getAttribute("aria-controls")).toBe(panel.id);
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    render("nft", [...mine, ...items]);
+    expect(tab("Owned").getAttribute("aria-selected")).toBe("true");
+    expect(shown()).toEqual(["My upload", "Wallet one"]);
+    focused("Wallet one");
+    expect(onSelect).not.toHaveBeenCalled();
+    // A handful reads left to right on one row; the catalog keeps two.
+    expect(strip().style.getPropertyValue("--avatar-rows")).toBe("1");
+    click(tab("Free"));
+    expect(strip().style.getPropertyValue("--avatar-rows")).toBe("");
+});
+
+test("switching tabs browses without choosing, and keeps the keyboard on the tabs", () => {
+    render("pepe", [...mine, ...items]);
+    act(() => tab("Free").focus());
+    const heard = jest.fn();
+    document.addEventListener("keydown", heard);
+    const right = key(tab("Free"), "ArrowRight");
+    // The world behind the picker walks on arrow keys; it must not hear this.
+    expect(right.defaultPrevented).toBe(true);
+    expect(heard).not.toHaveBeenCalled();
+    document.removeEventListener("keydown", heard);
+    expect(tab("Owned").getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(tab("Owned"));
+    expect(tab("Owned").tabIndex).toBe(0);
+    expect(tab("Free").tabIndex).toBe(-1);
+    expect(shown()).toEqual(["My upload", "Wallet one"]);
+    expect(
+        container.querySelector('[aria-selected="true"][role="option"]')
+    ).toBeNull();
+    // The footer still names the avatar being worn.
+    expect(container.querySelector('[role="status"]').textContent).toBe(
+        "Roller Pepe · 2 avatars"
+    );
+
+    // Down steps into the cards; a click chooses one.
+    key(tab("Owned"), "ArrowDown");
+    expect(document.activeElement).toBe(card("My upload"));
+    key(tab("Owned"), "Home");
+    expect(tab("Free").getAttribute("aria-selected")).toBe("true");
+    key(tab("Free"), "ArrowLeft");
+    expect(tab("Owned").getAttribute("aria-selected")).toBe("true");
+    expect(onSelect).not.toHaveBeenCalled();
+    click(card("Wallet one"));
+    expect(onSelect).toHaveBeenCalledWith(mine[1]);
+
+    click(tab("Free"));
+    expect(shown()).toEqual(items.map((item) => item.name));
+    const escape = key(tab("Free"), "Escape");
+    expect(escape.defaultPrevented).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("a wallet avatar that loads late brings its tab forward, unless the visitor chose one", () => {
+    // The worn avatar is in the wallet, which has not answered yet.
+    render("nft", items, false, { ownedLoading: true });
+    expect(tab("Free").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Owned").querySelector(".tab-spinner")).not.toBeNull();
+    render("nft", [...mine, ...items]);
+    expect(tab("Owned").getAttribute("aria-selected")).toBe("true");
+    focused("Wallet one");
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    render("nft", items, false, { ownedLoading: true });
+    click(tab("Free"));
+    render("nft", [...mine, ...items]);
+    expect(tab("Free").getAttribute("aria-selected")).toBe("true");
+});
+
+test("an empty owned tab says why, and says so while the wallet is read", () => {
+    render("pepe", items, false, { ownedLoading: true });
+    click(tab("Owned"));
+    const panel = container.querySelector('[role="tabpanel"]');
+    expect(panel.querySelector(".avatar-empty").textContent).toBe(
+        "Finding your avatars…"
+    );
+    expect(strip().hidden).toBe(true);
+    render("pepe", items, false, { ownedHint: "Sign in to see yours." });
+    expect(panel.querySelector(".avatar-empty").textContent).toBe(
+        "Sign in to see yours."
+    );
+    expect(button("Next avatars").disabled).toBe(true);
+    click(tab("Free"));
+    expect(panel.querySelector(".avatar-empty")).toBeNull();
+    expect(strip().hidden).toBe(false);
+});
+
+test("pictures come at card size, the first screens at once, with the original as a fallback", () => {
+    const many: LobbyAvatarChoice[] = Array.from({ length: 20 }, (_, i) => ({
+        id: `a${i}`,
+        name: `Avatar ${i}`,
+        url: `/a${i}.vrm`,
+        img: `${gateway}/Qm${i}?filename=a${i}.png`,
+    }));
+    render("a0", many);
+    const picture = (name: string) => card(name).querySelector("img");
+    const first = new URL(picture("Avatar 0").src);
+    expect(first.searchParams.get("img-width")).toBe("288");
+    expect(first.searchParams.get("img-format")).toBe("webp");
+    expect(picture("Avatar 0").getAttribute("loading")).toBe("eager");
+    expect(picture("Avatar 0").getAttribute("fetchpriority")).toBe("high");
+    expect(picture("Avatar 8").getAttribute("loading")).toBe("eager");
+    expect(picture("Avatar 8").hasAttribute("fetchpriority")).toBe(false);
+    expect(picture("Avatar 16").getAttribute("loading")).toBe("lazy");
+
+    // The host would not resize it: the original is tried, then the initial.
+    act(() => picture("Avatar 0").dispatchEvent(new Event("error")));
+    expect(picture("Avatar 0").src).toBe(many[0].img);
+    act(() => picture("Avatar 0").dispatchEvent(new Event("error")));
+    expect(picture("Avatar 0")).toBeNull();
+    expect(card("Avatar 0").querySelector(".initial").textContent).toBe("A");
+
+    // A picture shows once it has arrived.
+    expect(picture("Avatar 1").dataset.loaded).toBe("false");
+    act(() => picture("Avatar 1").dispatchEvent(new Event("load")));
+    expect(picture("Avatar 1").dataset.loaded).toBe("true");
+});
+
+test("the other tab's first pictures are fetched before it is opened", () => {
+    const asked: string[] = [];
+    const RealImage = globalThis.Image;
+    (globalThis as any).Image = class {
+        decoding = "";
+        set src(value: string) {
+            asked.push(value);
+        }
+    };
+    try {
+        const unseen = {
+            ...mine[0],
+            img: `${gateway}/QmUnseen?filename=me.png`,
+        };
+        render("pepe", [unseen, mine[1], ...items]);
+        expect(asked).toHaveLength(1);
+        expect(asked[0]).toContain("/QmUnseen?");
+        expect(asked[0]).toContain("img-width=288");
+    } finally {
+        globalThis.Image = RealImage;
+    }
 });
