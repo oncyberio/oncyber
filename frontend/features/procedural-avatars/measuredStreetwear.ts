@@ -739,7 +739,7 @@ export function drawMeasuredStreetwear(d: Drawing, p: StreetPattern) {
         [p.colors.under]: finish.cloth,
     });
     drawStreetBody(d, p);
-    const mouthAccessory = measuredStreetHead(d, p);
+    measuredStreetHead(d, p);
     d.s.endLayer("body");
     d.s.sourcePaint = false;
     d.s.sculptedCartoon = true;
@@ -747,6 +747,5 @@ export function drawMeasuredStreetwear(d: Drawing, p: StreetPattern) {
     d.s.endLayer("bottoms");
     shirt(d, p);
     sleeves(d, p);
-    mouthAccessory();
     d.s.referenceFrame = undefined;
 }

@@ -6,6 +6,7 @@ import {
     portraitDirection,
     creaseUVBase,
     frontalCreaseUVBase,
+    streetFaceUVBase,
     insetPupilUVBase,
     surfaceGrain,
 } from "./surfaces";
@@ -86,7 +87,8 @@ export class RecipeCrowdBatch {
                 N.uv()
                     .x.greaterThanEqual(insetPupilUVBase)
                     .or(tile.equal(creaseUVBase))
-                    .or(tile.equal(frontalCreaseUVBase)),
+                    .or(tile.equal(frontalCreaseUVBase))
+                    .or(tile.equal(streetFaceUVBase)),
                 () => {
                     cornea.assign(m.mul(N.vec4(portraitDirection(), 0)).xyz);
                 }

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from avatar_authoring.street_face import fit_crown, fit_street_face
 from PIL import Image
 
 
@@ -291,6 +292,10 @@ def measure(sheet, center, side, floor, height, name):
             "hem": 352,
         },
         "head": {"width": 48, "chin": 184, "eyeLine": 132, "eyeGap": 48, "depth": 54},
+        "faceFit": {
+            **fit_street_face(front, profile, fringe),
+            "crown": fit_crown(front, profile, fringe),
+        },
         "hair": {"spikes": spikes, "fringe": fringe, "nape": 415},
         "belt": {"height": 548, "slope": -0.17, "width": 31},
         "shoe": {"center": 99, "width": 60, "toe": 157, "heel": 35},

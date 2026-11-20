@@ -1,24 +1,24 @@
 {
-    "recipe_sha256": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4",
+    "recipe_sha256": "6deed3802bbf4acb2adf668482949a36f4314f3cedffb4e1d613da183220941a",
     "turnaround_sha256": "8c7477d8a1cab1e67a68635e3474a896cae495777b839d989c16023b68de2a95",
     "front_split_x": 979,
     "triangle_budget": 5500,
     "backends": {
         "WebGLBackend": {
             "silhouette_iou": {
-                "front": 0.9182,
-                "profile": 0.8974
+                "front": 0.9194,
+                "profile": 0.8958
             },
-            "triangles": 4839,
+            "triangles": 5475,
             "backend": "WebGLBackend",
             "clothing_fit_control": {
-                "pixels": 35113,
-                "largest_patch": 35113
+                "pixels": 35106,
+                "largest_patch": 35105
             },
             "layer_triangles": {
-                "body": 2839,
-                "bottoms": 4047,
-                "dressed": 4839
+                "body": 3487,
+                "bottoms": 4695,
+                "dressed": 5475
             },
             "clothing_fit": {
                 "front": {
@@ -26,11 +26,80 @@
                     "largest_patch": 0
                 },
                 "quarter": {
-                    "pixels": 80,
-                    "largest_patch": 80
+                    "pixels": 77,
+                    "largest_patch": 77
                 },
                 "profile": {
-                    "pixels": 10,
+                    "pixels": 12,
+                    "largest_patch": 2
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 8,
+                    "largest_patch": 4
+                },
+                "crouch": {
+                    "pixels": 22,
+                    "largest_patch": 13
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.8274,
+            "facial_landmarks": {
+                "front": {
+                    "eye_rgb_mae": 29.39,
+                    "eye_ink_f1_2px": 0.9154,
+                    "iris_iou": 0.8484
+                },
+                "profile": {
+                    "eye_rgb_mae": 44.82,
+                    "eye_ink_f1_2px": 0.8404,
+                    "iris_iou": 0.5663
+                }
+            }
+        },
+        "WebGPUBackend": {
+            "silhouette_iou": {
+                "front": 0.9164,
+                "profile": 0.8962
+            },
+            "triangles": 5475,
+            "backend": "WebGPUBackend",
+            "clothing_fit_control": {
+                "pixels": 35112,
+                "largest_patch": 35112
+            },
+            "layer_triangles": {
+                "body": 3487,
+                "bottoms": 4695,
+                "dressed": 5475
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 75,
+                    "largest_patch": 75
+                },
+                "profile": {
+                    "pixels": 11,
                     "largest_patch": 2
                 },
                 "back": {
@@ -42,8 +111,8 @@
                     "largest_patch": 0
                 },
                 "crouch": {
-                    "pixels": 21,
-                    "largest_patch": 13
+                    "pixels": 23,
+                    "largest_patch": 16
                 },
                 "idle_back": {
                     "pixels": 0,
@@ -59,79 +128,34 @@
             },
             "moving_steps": 11,
             "hand": "right",
-            "crouch_height_ratio": 0.8274
-        },
-        "WebGPUBackend": {
-            "silhouette_iou": {
-                "front": 0.9197,
-                "profile": 0.8962
-            },
-            "triangles": 4839,
-            "backend": "WebGPUBackend",
-            "clothing_fit_control": {
-                "pixels": 35113,
-                "largest_patch": 35113
-            },
-            "layer_triangles": {
-                "body": 2839,
-                "bottoms": 4047,
-                "dressed": 4839
-            },
-            "clothing_fit": {
+            "crouch_height_ratio": 0.8288,
+            "facial_landmarks": {
                 "front": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "quarter": {
-                    "pixels": 79,
-                    "largest_patch": 79
+                    "eye_rgb_mae": 29.32,
+                    "eye_ink_f1_2px": 0.9145,
+                    "iris_iou": 0.8452
                 },
                 "profile": {
-                    "pixels": 7,
-                    "largest_patch": 1
-                },
-                "back": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "walk": {
-                    "pixels": 1,
-                    "largest_patch": 1
-                },
-                "crouch": {
-                    "pixels": 20,
-                    "largest_patch": 13
-                },
-                "idle_back": {
-                    "pixels": 0,
-                    "largest_patch": 0
+                    "eye_rgb_mae": 44.25,
+                    "eye_ink_f1_2px": 0.8344,
+                    "iris_iou": 0.5412
                 }
-            },
-            "grip_test": {
-                "minimum_curl_radians": {
-                    "right": 0.55,
-                    "left": 0.55
-                },
-                "released": true
-            },
-            "moving_steps": 11,
-            "hand": "right",
-            "crouch_height_ratio": 0.8288
+            }
         }
     },
-    "comparison_sha256": "45a718fae9eff8711e34f728738a780075840c5e1b712d28b94dd7b049115bb5",
+    "comparison_sha256": "837e7280b8132446600038d7e3091c6243dda0a6a84c3214ad92a5277b2351ba",
     "studies": {
-        "body-and-clothes": "31c25dd633909978f02175e6c42a7b82fb8ff05668f00d1e1ae0ff2750abe848",
-        "face": "48dd8c4857d16c87f9fce6338365519d7b3cf19ae4643c188e21a180c6824c99"
+        "body-and-clothes": "4dab024670410d881b7f85d2119c88b5708f9a01658846427ebea3b66b40426b",
+        "face": "4731c838eada53e3ba2dd4034b97797472d191126d2fe0dd1c04be9308ffd95c"
     },
     "captures": {
         "WebGLBackend": {
-            "views": "9fd7c1b9eb3b13ea3038d9c5db7a4db6e20db6488a3c37553d308903903c469b",
-            "walk": "6fb8e9dc3ec413a1a38776ecf7258da276bf527d8046d7ba24dd0490d0aea811"
+            "views": "4af23a54e7021dff942d3abb61b92530f79b9203f2b6d58f301e9e0519f2ec2a",
+            "walk": "a5cd518eb9a5cdc567c1680db3178d58aa46cd6a6e5abfb0ac6d98e1ec512c96"
         },
         "WebGPUBackend": {
-            "views": "b56572d045e7f0090965fccdc2cd34a933b6863577ab0c8c962287035f6127cc",
-            "walk": "745ba7b5d9cf8c11fed2be0e3db0d26a36851df7a1c8e44847d7ce1467fe543b"
+            "views": "fdf368d137b8f094519c4742af6d0658c1bd76acc49cd1676fa4ba60486c9275",
+            "walk": "422b32dd2b66e9668e71145dd6fb9fb78fa7e7f17db111c2e853daa797e18e0e"
         }
     }
 }

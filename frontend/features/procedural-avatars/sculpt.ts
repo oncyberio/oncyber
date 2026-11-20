@@ -6,6 +6,7 @@ import {
     surfaceGrain,
     finish,
     pupilUVBase,
+    streetFaceUVBase,
     type Finish,
 } from "./surfaces";
 import * as T from "three/webgpu";
@@ -121,6 +122,8 @@ export class Sculpt {
     hasSkinCreases = false;
     private pupilSpans: PupilSpan[] = [];
     private smoothNormals = new Map<number, Point>();
+    faceDistances?: (x: number, y: number, z: number) => [number, number];
+    vertexPaint?: (x: number, y: number, z: number) => number;
     surfaceNormal?: (x: number, y: number, z: number) => Point;
     lined = false;
     coatShadow = false;
@@ -437,6 +440,34 @@ export class Sculpt {
                       this.printUV(local.getX(i), local.getY(i), uv.getY(i))
                   )
                 : null;
+        if (this.faceDistances) {
+            const uv = new Float32Array(local.count * 2);
+            for (let i = 0; i < local.count; i++)
+                uv.set(
+                    this.faceDistances(
+                        local.getX(i),
+                        local.getY(i),
+                        local.getZ(i)
+                    ),
+                    i * 2
+                );
+            g.setAttribute("faceDistances", new T.BufferAttribute(uv, 2));
+        }
+        if (this.vertexPaint) {
+            const swatch = new T.Color(),
+                colors = new Float32Array(local.count * 3);
+            for (let i = 0; i < local.count; i++)
+                swatch
+                    .setHex(
+                        this.vertexPaint(
+                            local.getX(i),
+                            local.getY(i),
+                            local.getZ(i)
+                        )
+                    )
+                    .toArray(colors, 3 * i);
+            g.setAttribute("pigment", new T.BufferAttribute(colors, 3));
+        }
         if (this.coveredSkin) {
             for (let i = 0; i < local.count; i++)
                 this.coveredSkin.push(
@@ -583,7 +614,10 @@ export class Sculpt {
                   )
                 : 1;
             const tone = (tones ? tones[i] : 1) * ao * roll;
-            if (eyeSamples?.[i][4] != null) {
+            if (g.attributes.pigment) {
+                const paint = g.attributes.pigment;
+                this.colors.push(paint.getX(i), paint.getY(i), paint.getZ(i));
+            } else if (eyeSamples?.[i][4] != null) {
                 this.eyeFrontal.set(this.colors.length / 3, eyeSamples[i][5]);
                 this.colors.push(
                     eyeSamples[i][2],
@@ -658,6 +692,12 @@ export class Sculpt {
                     this.uvs[this.uvs.length - 2] += this.penOutline ? -32 : 16;
                 else if (this.illustrationInk)
                     this.uvs[this.uvs.length - 2] += 8;
+            }
+            const distances = g.getAttribute("faceDistances");
+            if (distances) {
+                this.uvs[this.uvs.length - 2] =
+                    streetFaceUVBase + Math.min(0.99, distances.getX(i) / 128);
+                this.uvs[this.uvs.length - 1] = distances.getY(i);
             }
             const jointPair = g.getAttribute("jointPair");
             if (jointPair) {
@@ -1153,6 +1193,59 @@ export class Sculpt {
             }
         }
         return rows;
+    }
+
+    fittedFaceSurface(
+        points: Point[],
+        indices: number[],
+        pigments: number[],
+        material: string,
+        normals: Point[],
+        contour: boolean[],
+        distances: number[]
+    ) {
+        const g = new T.BufferGeometry(),
+            color = new T.Color();
+        const rgb = new Float32Array(points.length * 3);
+        pigments.forEach((hex, i) => color.setHex(hex).toArray(rgb, 3 * i));
+        g.setAttribute(
+            "position",
+            new T.Float32BufferAttribute(points.flat(), 3)
+        );
+        g.setAttribute("pigment", new T.BufferAttribute(rgb, 3));
+        g.setAttribute(
+            "faceDistances",
+            new T.Float32BufferAttribute(distances, 2)
+        );
+        this.hasSkinCreases = true;
+        // The offline fit already simplified these vertices by pigment error.
+        // A purely geometric collapse would erase the iris on a nearly flat eyelid.
+        const keep = Uint8Array.from(contour, Number);
+        for (let i = 0; i < indices.length; i += 3) {
+            for (let j = 0; j < 3; j++) {
+                const a = indices[i + j],
+                    b = indices[i + ((j + 1) % 3)];
+                if (
+                    [16, 8, 0].some(
+                        (shift) =>
+                            Math.abs(
+                                ((pigments[a] >> shift) & 255) -
+                                    ((pigments[b] >> shift) & 255)
+                            ) > 17
+                    )
+                ) {
+                    keep[a] = 1;
+                    keep[b] = 1;
+                }
+            }
+        }
+        g.setAttribute("stitch", new T.Uint8BufferAttribute(keep, 1));
+        g.setIndex(indices);
+        g.setAttribute(
+            "normal",
+            new T.Float32BufferAttribute(normals.flat(), 3)
+        );
+        this.add(g, material, true);
     }
 
     triangles(points: Point[], color: string) {

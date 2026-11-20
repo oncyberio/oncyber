@@ -80,7 +80,7 @@ def body_and_clothes(folder, output):
     canvas.save(output, quality=91, method=6)
 
 
-def face_gallery(folder, targets, output):
+def face_gallery(folder, targets, output=None):
     # Anchor matching crops at the iris centers. Use the orthographic cameras
     # to keep a millimetre on the face the same size in both drawings and renders.
     cameras = json.loads((folder / "camera.json").read_text())
@@ -102,6 +102,7 @@ def face_gallery(folder, targets, output):
     canvas = Image.new("RGB", (1200, 278), "#f6f3ef")
     draw = ImageDraw.Draw(canvas)
     font = ImageFont.truetype("DejaVuSans.ttf", 18)
+    tiles = []
     for i, (title, subject, scale, angle) in enumerate(panels):
         native = isinstance(subject, str)
         image = (
@@ -140,9 +141,47 @@ def face_gallery(folder, targets, output):
             (left, top, left + width, top + width),
             Image.Resampling.BICUBIC,
         )
+        tiles.append(np.asarray(tile).astype(float))
         canvas.paste(tile, (i * 240, 38))
         draw.text((i * 240 + 8, 8), title, font=font, fill="#332f2e")
-    canvas.save(output, quality=94, method=6)
+    if output is not None:
+        canvas.save(output, quality=94, method=6)
+    result = {}
+    # Compare both eyes in the front camera and the visible eye in profile at
+    # a fixed physical scale. The source mouth accessory lies outside these windows.
+    for angle, source, render, roi in [
+        ("front", tiles[0], tiles[1], (49, 91, 191, 128)),
+        ("profile", tiles[4], tiles[3], (124, 92, 188, 130)),
+    ]:
+        left, top, right, bottom = roi
+        source, render = (im[top:bottom, left:right] for im in (source, render))
+
+        def masks(im):
+            r, g, b = im.transpose(2, 0, 1)
+            return im.mean(2) < 105, (b - r > 12) & (b - g > 2)
+
+        ink, iris = masks(source)
+        other_ink, other_iris = masks(render)
+
+        def agreement(a, b):
+            if not a.any() or not b.any():
+                return 0
+            recall = (ndimage.distance_transform_edt(~b)[a] <= 2).mean()
+            precision = (ndimage.distance_transform_edt(~a)[b] <= 2).mean()
+            return (
+                float(2 * precision * recall / (precision + recall))
+                if precision + recall
+                else 0
+            )
+
+        result[angle] = {
+            "eye_rgb_mae": round(float(abs(source - render).mean()), 2),
+            "eye_ink_f1_2px": round(agreement(ink, other_ink), 4),
+            "iris_iou": round(
+                float((iris & other_iris).sum() / max(1, (iris | other_iris).sum())), 4
+            ),
+        }
+    return result
 
 
 def review(args):
@@ -227,6 +266,10 @@ def review(args):
         path = args.destination / (args.slug + "-" + name + ".webp")
         make(path)
         assets[name] = digest(path)
+    for backend in result["backends"]:
+        result["backends"][backend]["facial_landmarks"] = face_gallery(
+            args.captures / backend, targets
+        )
     result["studies"] = assets
     result["captures"] = export_review_views(
         args.captures, args.destination, args.slug, report

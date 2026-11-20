@@ -8,12 +8,12 @@
         "visible": "100",
         "backend": "WebGLBackend",
         "authored": "100",
-        "triangles": "748147",
-        "readyMs": "32374",
+        "triangles": "896419",
+        "readyMs": "17872",
         "uniqueRecipesLoaded": 100,
         "occupiedColorCells": 100,
         "sourceRecipes": {
-            "vale-streetwear.json": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4"
+            "vale-streetwear.json": "6deed3802bbf4acb2adf668482949a36f4314f3cedffb4e1d613da183220941a"
         },
         "occupiedShadowCells": 100
     },
@@ -26,12 +26,12 @@
         "visible": "100",
         "backend": "WebGPUBackend",
         "authored": "100",
-        "triangles": "748147",
-        "readyMs": "21689",
+        "triangles": "896419",
+        "readyMs": "19937",
         "uniqueRecipesLoaded": 100,
         "occupiedColorCells": 100,
         "sourceRecipes": {
-            "vale-streetwear.json": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4"
+            "vale-streetwear.json": "6deed3802bbf4acb2adf668482949a36f4314f3cedffb4e1d613da183220941a"
         },
         "occupiedShadowCells": 100
     }

@@ -101,11 +101,24 @@ function core(d: Drawing, p: StreetPattern) {
     d.s.coverage = undefined;
     d.drape("head", "upperChest", 177, 216);
     d.s.gradient = {
-        top: 178,
-        bottom: 214,
-        from: streetShade(skin, "#fdd8b6", "#e5b490"),
+        top: 180,
+        bottom: 209,
+        from: streetShade(skin, "#fdd8b6", "#b97f5d"),
         to: skin,
     };
+    if (p.faceFit) {
+        const shade = new T.Color(streetShade(skin, "#fdd8b6", "#91603f")),
+            lit = new T.Color(skin),
+            paint = new T.Color();
+        d.s.vertexPaint = (x, y, z) =>
+            paint
+                .copy(shade)
+                .lerp(
+                    lit,
+                    T.MathUtils.smoothstep(y + 0.25 * x - 0.11 * z, 182, 211)
+                )
+                .getHex();
+    }
     d.s.surface(
         [
             [167, 14, 35, 2],
@@ -123,6 +136,7 @@ function core(d: Drawing, p: StreetPattern) {
         ),
         skin
     );
+    d.s.vertexPaint = undefined;
     d.s.gradient = undefined;
 }
 

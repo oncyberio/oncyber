@@ -5,6 +5,7 @@ import { coatShadowUV, garmentInk } from "./garmentPrint";
  * Suppress subpixel marks as the avatar recedes to avoid shimmering in crowds. */
 export const finish = { enamel: 0, skin: 1, fiber: 2, cloth: 3 } as const;
 export const coatUVBase = 43;
+export const streetFaceUVBase = 50;
 // Both crease tiles retain the skin finish in their low three bits.
 export const creaseUVBase = 41,
     frontalCreaseUVBase = 49;
@@ -438,13 +439,48 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
         strokeWhite,
         N.smoothstep(0.25, 1.35, distancePixels)
     );
+    // The fitted front and profile contours belong to the same curved skull.
+    // Distances in the existing UV channel preserve the drawn line weight at
+    // either authored view without projecting a nose stroke down the frontal face.
+    const turn = N.abs(facing);
+    const frontDistance = N.fract(uv.x).mul(128);
+    const brush = (distance: typeof uv.y, width: number) => {
+        const aa = N.max(0.25, N.fwidth(distance).mul(0.6));
+        return N.float(1).sub(
+            N.smoothstep(
+                N.float(width).sub(aa),
+                N.float(width).add(aa),
+                distance
+            )
+        );
+    };
+    const jawInk = brush(frontDistance, 1.48).mul(
+        N.float(1).sub(N.smoothstep(0.14, 0.68, turn))
+    );
+    const noseInk = brush(uv.y, 1.24).mul(N.smoothstep(0.6, 0.96, turn));
+    // Between the registered views, continue the jaw on its actual tangent.
+    const quarterInk = N.float(1)
+        .sub(N.smoothstep(0.05, 0.26, incidence))
+        .mul(N.float(1).sub(N.smoothstep(2.0, 12.0, frontDistance)))
+        .mul(N.smoothstep(0.18, 0.48, turn))
+        .mul(N.float(1).sub(N.smoothstep(0.73, 0.97, turn)));
+    const outlineAmount = N.max(quarterInk, N.max(jawInk, noseInk));
+    const faceLight = N.mix(
+        N.vec3(1),
+        N.vec3(0.031, 0.024, 0.02),
+        outlineAmount
+    );
     return N.select(
         st.x.lessThan(0),
         outlinedGlobe.div(N.max(dye, 0.00001)),
         N.select(
             st.x.greaterThan(64),
             eye.div(N.max(dye, 0.00001)),
-            N.select(crease, surface.mul(creasePigment), surface)
+            N.select(
+                N.floor(uv.x).equal(streetFaceUVBase),
+                faceLight,
+                N.select(crease, surface.mul(creasePigment), surface)
+            )
         )
     );
 }

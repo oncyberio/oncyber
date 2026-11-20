@@ -108,6 +108,86 @@ export const streetwearFile = z.strictObject({
             depth: near(43, 64),
         })
         .refine((v) => v.chin > v.eyeLine && v.eyeGap < 2 * v.width),
+    faceFit: z
+        .strictObject({
+            orbit: z
+                .array(
+                    z.tuple([
+                        near(123, 141),
+                        near(8, 31),
+                        near(18, 37),
+                        near(32, 58),
+                        near(30, 55),
+                        near(18, 39),
+                        near(25, 54),
+                    ])
+                )
+                .min(3)
+                .max(18)
+                .refine(ordered)
+                .refine((rows) =>
+                    rows.every(
+                        ([, inside, outside, near, far, corner]) =>
+                            inside < outside && outside < corner && near > far
+                    )
+                ),
+            ear: z
+                .array(
+                    z.array(z.number().int().min(0).max(0xffffff)).length(14)
+                )
+                .length(5),
+            crown: z
+                .array(
+                    z
+                        .array(z.number().finite())
+                        .length(10)
+                        .refine(
+                            (row) =>
+                                Math.abs(row[0]) <= Math.PI + 0.001 &&
+                                row[1] >= 91 &&
+                                row[1] <= 175 &&
+                                row
+                                    .slice(2)
+                                    .every(
+                                        (c) =>
+                                            Number.isInteger(c) &&
+                                            c >= 0 &&
+                                            c <= 0xffffff
+                                    )
+                        )
+                )
+                .min(8)
+                .max(96)
+                .refine(ordered),
+            sections: z
+                .array(z.tuple([near(45, 200), positive, measure, measure]))
+                .min(4)
+                .max(48)
+                .refine(ordered)
+                .refine(
+                    (rows) =>
+                        rows[0][0] === 51 &&
+                        rows.at(-1)[0] === 184 &&
+                        rows.every(([, , front, back]) => front > back)
+                ),
+            points: z
+                .array(
+                    z.tuple([
+                        near(0, 96),
+                        near(0, 133),
+                        z.number().int().min(0).max(0xffffff),
+                    ])
+                )
+                .min(3)
+                .max(900),
+            indices: z.array(z.number().int().nonnegative()).min(3).max(5400),
+        })
+        .refine(
+            (v) =>
+                v.indices.length % 3 === 0 &&
+                v.indices.every((i) => i < v.points.length)
+        )
+        .optional(),
     hair: z.strictObject({
         spikes: z
             .array(

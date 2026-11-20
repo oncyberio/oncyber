@@ -19,9 +19,11 @@ python frontend/scripts/review-streetwear.py \
   /tmp/vale.json /tmp/vale-captures /tmp/vale-study --split 979 --slug vale
 ```
 
+The optional `faceFit` stores measured skull sections, the depth of the visible iris, and sparse vertex colors for the face, ears and fringe. The two drawings determine the width and depth of the eyes, nose and chin. The shape of the cheek at intermediate angles is inferred. A scanline fit keeps narrow lashes and brows on the curved surface during retopology. Vale’s mouth stick is removed from both the mesh and the sampled pigment. The portrait gallery registers the eyes at a fixed scale, and the report compares iris overlap and eyelid ink in each authored view.
+
 The fitter writes a texture-free JSON recipe. The renderer constructs one skinned mesh with vertex colors. The review records front and profile silhouette overlap, registered face close-ups, progressive dressing in two poses, motion and both hand grips on WebGL2 and WebGPU. The clothing fit pass marks covered anatomy pink. The undressed front view is a positive control. Side views can show skin through the sleeve opening. [Native measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/measurements.json)
 
-The Vale recipe is 19,392 bytes (6,109 bytes gzipped). The bare study draw uses 2,839 triangles. Jeans and shoes bring it to 4,047, and the playable outfit uses 4,839. Each stage uses one skinned draw. The crowd test varies head width, spike length, hair length and shirt color across 100 recipes. It records assembly time, color and shadow draw calls, and checks the rendered pixels for every figure and its shadow on each backend. Run `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows` to reproduce it. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
+The Vale recipe is 53,558 bytes (17,179 bytes gzipped). The bare study draw uses 3,487 triangles. Jeans and shoes bring it to 4,695, and the playable outfit uses 5,475. Each stage uses one skinned draw. The crowd test varies head width, spike length, hair length and shirt color across 100 recipes. It records assembly time, color and shadow draw calls, and checks the rendered pixels for every figure and its shadow on each backend. Run `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows` to reproduce it. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
 
 ## Rick and Morty family
 

@@ -64,6 +64,23 @@ test("a fitted seam must enclose a leg and pigment stations must bracket the fab
     expect(() => readAvatarFile(paint)).toThrow();
 });
 
+test("the fitted face rejects broken triangles and keeps earlier streetwear recipes playable", () => {
+    const file = JSON.parse(JSON.stringify(pattern));
+    file.faceFit.indices[0] = file.faceFit.points.length;
+    expect(() => readAvatarFile(file)).toThrow();
+    delete file.faceFit;
+    const avatar = buildCharacter(readAvatarFile(file).recipe);
+    try {
+        const mesh = avatar.scene.getObjectByProperty(
+            "isSkinnedMesh",
+            true
+        ) as T.SkinnedMesh;
+        expect(mesh.geometry.index.count).toBeGreaterThan(0);
+    } finally {
+        disposeAvatarGraph(avatar.scene);
+    }
+});
+
 test("a new hair dye keeps the crown highlights and lowlights in its own palette", () => {
     expect(streetShade("#fdedd3", "#fdedd3", "#edce9f")).toBe("#edce9f");
     expect(streetShade("#784050", "#fdedd3", "#edce9f")).toBe("#70383c");
