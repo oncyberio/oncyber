@@ -6,6 +6,8 @@
  * the branch URL on previews, the dev server locally.
  */
 
+import { isReservedLink } from "./reservedLinks";
+
 const DEFAULT_ORIGIN = "https://www.oncyber.com";
 
 /** e.g. "https://www.oncyber.com", without a trailing slash. */
@@ -76,7 +78,8 @@ export function spacePath(space: {
     info?: { customLink?: string | null };
 }): string {
     const slug = space?.info?.customLink;
-    return slug ? `/${slug}` : `/spaces/${space?.id}`;
+    // A link the site answers itself ("/about") never opens the space.
+    return slug && !isReservedLink(slug) ? `/${slug}` : `/spaces/${space?.id}`;
 }
 
 /** The public link to a space: its custom link when it has one. */

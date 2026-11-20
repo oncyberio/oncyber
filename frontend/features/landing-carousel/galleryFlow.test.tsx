@@ -376,6 +376,23 @@ async function paintAndIdle() {
     });
 }
 
+it("opens the lobby from the home page when Jump In is pressed on a not-found page", async () => {
+    mockRouter.query = { slug: "no-such-space" };
+    mockRouter.pathname = "/[slug]";
+    await act(async () =>
+        root.render(
+            <LandingCarouselPage
+                {...props}
+                notFound={{ query: "no such space", sections: [] }}
+            />
+        )
+    );
+    await click(".jump-in");
+    // A full visit to the home page: this page keeps its 404 otherwise.
+    expect(mockRouter.push).toHaveBeenLastCalledWith("/?lobby=1");
+    expect(container.querySelector("[data-test-lobby]")).toBeNull();
+});
+
 it("leaves the lobby's avatar alone until a visitor reaches for Jump In", async () => {
     await render();
     await paintAndIdle();

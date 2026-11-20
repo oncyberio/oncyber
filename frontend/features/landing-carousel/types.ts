@@ -78,6 +78,8 @@ export interface LandingPageProps {
     notFound?: { query: string; sections: LandingCard[] };
     /** Set by a profile link (/@name): the lobby opens with their sidebar. */
     profile?: VisitedProfile;
+    /** That person's public spaces, as links for the page's HTML. */
+    profileSpaces?: { id: string; name: string; path: string }[];
 }
 
 /** The public part of an account, as a profile link shows it. */

@@ -8,6 +8,7 @@
  */
 import { isReservedLink } from "@utils/reservedLinks";
 import { isPublicSpace, PUBLIC_SPACE_FIELDS } from "@utils/spaceVisibility";
+import { cloudinary } from "@utils/urlUtils";
 
 const KEYS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
@@ -37,6 +38,8 @@ export function shardRange(
 export const SITEMAP_SPACE_FIELDS = [
     "info.customLink",
     "info.headline",
+    "info.heroImg",
+    "info.cHeroImg",
     "lastContentUpdatedAt",
     "lastUpdatedAt",
     "createdAt",
@@ -57,6 +60,24 @@ function isoDate(value: any): string | null {
 export interface SitemapEntry {
     loc: string;
     lastmod?: string;
+    /** The page's main image, for image search. */
+    image?: string;
+}
+
+/**
+ * A space's cover image, if it has one that still loads: an absolute web
+ * address, and not on the old Cloudinary accounts.
+ */
+function coverImage(data: any): string | null {
+    for (const url of [data?.info?.heroImg, data?.info?.cHeroImg])
+        if (
+            typeof url === "string" &&
+            /^https?:\/\//i.test(url) &&
+            url.length < 2000 &&
+            !cloudinary.isBrokenCloudinaryUrl(url)
+        )
+            return url;
+    return null;
 }
 
 /**
@@ -82,7 +103,12 @@ export function spaceSitemapEntry(
         isoDate(data?.lastContentUpdatedAt) ||
         isoDate(data?.lastUpdatedAt) ||
         isoDate(data?.createdAt);
-    return { loc: origin + path, ...(lastmod ? { lastmod } : {}) };
+    const image = coverImage(data);
+    return {
+        loc: origin + path,
+        ...(lastmod ? { lastmod } : {}),
+        ...(image ? { image } : {}),
+    };
 }
 
 const escapeXml = (text: string) =>
@@ -100,10 +126,16 @@ export function urlsetXml(entries: SitemapEntry[]): string {
             (entry) =>
                 `  <url><loc>${escapeXml(entry.loc)}</loc>${
                     entry.lastmod ? `<lastmod>${entry.lastmod}</lastmod>` : ""
+                }${
+                    entry.image
+                        ? `<image:image><image:loc>${escapeXml(
+                              entry.image
+                          )}</image:loc></image:image>`
+                        : ""
                 }</url>`
         )
         .join("\n");
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls}\n</urlset>\n`;
 }
 
 export function sitemapIndexXml(locs: string[]): string {

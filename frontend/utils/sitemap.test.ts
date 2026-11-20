@@ -107,6 +107,46 @@ describe("xml", () => {
         expect(xml).toMatch(/^<\?xml version="1.0" encoding="UTF-8"\?>/);
     });
 
+    it("lists a space's cover image for image search", () => {
+        const entry = spaceSitemapEntry(
+            "abc",
+            {
+                info: {
+                    customLink: "frahm-gallery",
+                    heroImg: "https://example.com/hero.png?a=1&b=2",
+                },
+            },
+            ORIGIN
+        );
+        expect(entry.image).toBe("https://example.com/hero.png?a=1&b=2");
+        const xml = urlsetXml([entry]);
+        expect(xml).toContain(
+            'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"'
+        );
+        expect(xml).toContain(
+            "<image:image><image:loc>https://example.com/hero.png?a=1&amp;b=2</image:loc></image:image>"
+        );
+    });
+
+    it("skips covers that no longer load or are not web addresses", () => {
+        const image = (info: object) =>
+            spaceSitemapEntry(
+                "abc",
+                { info: { customLink: "x", ...info } },
+                ORIGIN
+            ).image;
+        expect(
+            image({
+                heroImg: "https://res.cloudinary.com/oncyber-io/image/x.png",
+                cHeroImg: "https://example.com/c.png",
+            })
+        ).toBe("https://example.com/c.png");
+        expect(
+            image({ heroImg: "data:image/png;base64,AAAA" })
+        ).toBeUndefined();
+        expect(image({})).toBeUndefined();
+    });
+
     it("writes an index", () => {
         expect(sitemapIndexXml([`${ORIGIN}/sitemaps/pages.xml`])).toContain(
             "<sitemap><loc>https://www.oncyber.com/sitemaps/pages.xml</loc></sitemap>"

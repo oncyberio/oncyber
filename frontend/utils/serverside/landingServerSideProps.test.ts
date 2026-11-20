@@ -21,7 +21,23 @@ jest.mock(
 jest.mock("./feedBasicServerSideProps", () => ({
     feedBasicServerSideProps: jest.fn(),
 }));
+jest.mock("@api/accounts/user/utils", () => ({
+    fetchUserByUsername: jest.fn(async () => null),
+    fetchUserByWalletId: jest.fn(async () => null),
+}));
+jest.mock("./ownerSpaces", () => ({
+    profileSpaceLinks: jest.fn(async () => []),
+}));
 
+import {
+    fetchUserByUsername,
+    fetchUserByWalletId,
+} from "@api/accounts/user/utils";
+import { profileSpaceLinks } from "./ownerSpaces";
+
+const byUsername = fetchUserByUsername as jest.Mock;
+const byWallet = fetchUserByWalletId as jest.Mock;
+const spaceLinks = profileSpaceLinks as jest.Mock;
 const mockApi = exhibitApi as unknown as jest.Mock;
 const mockAuth = feedBasicServerSideProps as jest.Mock;
 
@@ -167,5 +183,72 @@ test("a failed feed and a failed sign-in still render the landing", async () => 
             defaultCategory: "most-visited",
             initialError: true,
         },
+    });
+});
+
+describe("a profile link (/@name)", () => {
+    const wallet = "0xfd22004806a6846ea67ad883356be810f0428793";
+    const account = { id: wallet, username: "6529", walletId: wallet };
+    const open = (query: Record<string, string>) => {
+        mockApi.mockImplementation(async (_req, res) =>
+            res.status(200).json({ success: true, exhibits: exhibits(2) })
+        );
+        const res: any = { statusCode: 200, setHeader: jest.fn() };
+        return landingServerSideProps({ query, res } as any).then(
+            (result: any) => ({ result, res })
+        );
+    };
+    beforeEach(() => {
+        byUsername.mockResolvedValue(null);
+        byWallet.mockResolvedValue(null);
+        spaceLinks.mockResolvedValue([]);
+    });
+
+    it("opens on the person, with their spaces for the page's HTML", async () => {
+        byUsername.mockResolvedValue(account);
+        const links = [
+            { id: "a", name: "6529 Museum District", path: "/6529om" },
+        ];
+        spaceLinks.mockResolvedValue(links);
+        const { result, res } = await open({
+            lobby: "1",
+            profile: "6529",
+            profileLink: "1",
+        });
+        expect(res.statusCode).toBe(200);
+        expect(result.props.profile).toEqual(account);
+        expect(result.props.profileSpaces).toEqual(links);
+        expect(spaceLinks).toHaveBeenCalledWith(wallet);
+    });
+
+    it("answers 404 for a name nobody has, searching for it", async () => {
+        const { result, res } = await open({
+            lobby: "1",
+            profile: "no_such_artist",
+            profileLink: "1",
+        });
+        expect(res.statusCode).toBe(404);
+        expect(result.props.notFound.query).toBe("no such artist");
+        expect(result.props.initialFilters.q).toBe("no such artist");
+        expect(result.props.profile).toBeUndefined();
+    });
+
+    it("sends a wallet link to the person's own address", async () => {
+        byWallet.mockResolvedValue(account);
+        const { result } = await open({
+            lobby: "1",
+            profile: wallet,
+            profileLink: "1",
+        });
+        expect(result).toEqual({
+            redirect: { destination: "/@6529", permanent: true },
+        });
+    });
+
+    it("leaves the lobby alone when a typed ?profile= names nobody", async () => {
+        const { result, res } = await open({ lobby: "1", profile: "nobody" });
+        expect(res.statusCode).toBe(200);
+        expect(result.props.notFound).toBeUndefined();
+        expect(result.props.profile).toBeUndefined();
     });
 });

@@ -1,4 +1,3 @@
-import Head from "next/head";
 import {
     useCallback,
     useEffect,
@@ -39,8 +38,7 @@ import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
-import { searchUrl, spacePath } from "@utils/siteUrl";
-import { spaceShareImage } from "@utils/spaceShareImage";
+import SpaceSeo from "@components/seo/SpaceSeo";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
 const EmbeddedExperience = dynamic(
@@ -63,10 +61,20 @@ export default function Exhibit(props: {
     }
     if (isEmbeddedRuntime(props.experience?.runtime)) {
         return (
-            <EmbeddedExperience
-                key={props.experience.id}
-                experience={props.experience}
-            />
+            <>
+                {/* Embedded worlds are spaces too: same title, description,
+                    address and text as a native gallery. */}
+                <SpaceSeo
+                    experience={props.experience}
+                    destination={props.dest}
+                    ownerName={props.experience.ownerName}
+                    gated={!!props.gatingError}
+                />
+                <EmbeddedExperience
+                    key={props.experience.id}
+                    experience={props.experience}
+                />
+            </>
         );
     }
     return <NativeExhibit key={props.experience?.id} {...props} />;
@@ -236,111 +244,25 @@ function NativeExhibit({
         return <Error statusCode={404} />;
     }
 
-    // The address search engines and link previews should credit for this
-    // space, whichever URL (old domain, /spaces/<id>, /ja/...) was opened.
-    const canonicalUrl = searchUrl(spacePath(experience));
-    const shareImage = spaceShareImage(experience, destination);
-
     if (gatingError?.type === "other-error") {
         return <Error statusCode={500} />;
     }
 
-    const creatorName =
-        _experience?.ownerName || experience?.owner?.slice?.(0, 5);
-    const baseSEODescription = experience?.info?.description
-        ? experience?.info?.description + "\n\n"
-        : `Immerse yourself in ${creatorName}'s ${
-              experience?.info?.headline || experience?.info?.room
-          }.`;
-    const SEOCompletionList = Object.entries(experience?.artworks)
-        ?.map((x) => {
-            let artworkData = x[1]?.data;
-            return (
-                artworkData?.creator?.user?.username ||
-                artworkData?.contract?.name ||
-                artworkData?.name ||
-                null
-            );
-        })
-        .filter((x) => x);
-    const SEOCompletion = SEOCompletionList.filter(
-        (element, index) => SEOCompletionList.indexOf(element) === index
-    ).join(", ");
-    const formatedCompletion =
-        SEOCompletionList?.length > 0
-            ? "\nFeaturing NFTs from " +
-              (SEOCompletion?.length > 130
-                  ? SEOCompletion.slice(0, 130 - baseSEODescription.length)
-                        .split(",")
-                        .slice(0, -1)
-                        .join(",")
-                  : SEOCompletion) +
-              " and many more"
-            : "";
-    const finalDescriptionSEO =
-        baseSEODescription.length < 160
-            ? baseSEODescription + formatedCompletion
-            : baseSEODescription
-                  .slice(0, 160)
-                  .split(" ")
-                  .slice(0, -1)
-                  .join(" ");
-
     return (
         <div>
-            <Head>
-                <title>
-                    {experience?.info?.headline ||
-                        `${creatorName}'s Untitled ${experience?.info?.room} - oncyber`}
-                </title>
-                <meta
-                    key="description"
-                    name="description"
-                    content={finalDescriptionSEO}
-                />
-                <meta
-                    key="keywords"
-                    name="keywords"
-                    content={SEOCompletion}
-                ></meta>
-                <meta
-                    key="ogTitle"
-                    property="og:title"
-                    content={experience?.info?.headline}
-                />
-                <meta
-                    key="ogDescription"
-                    property="og:description"
-                    content={experience.info.description || finalDescriptionSEO}
-                />
-                <link key="canonical" rel="canonical" href={canonicalUrl} />
-                <meta key="ogUrl" property="og:url" content={canonicalUrl} />
-                <meta key="ogImage" property="og:image" content={shareImage} />
-
-                <meta
-                    key="twitterTitle"
-                    name="twitter:title"
-                    content={
-                        experience?.info?.headline ||
-                        `${creatorName}'s Untitled ${experience?.info?.room} - oncyber`
-                    }
-                />
-                <meta
-                    key="twitterImage"
-                    name="twitter:image"
-                    content={shareImage}
-                />
-                <meta
-                    key="twitterCard"
-                    name="twitter:card"
-                    content="summary_large_image"
-                />
-                <meta
-                    key="twitterDescription"
-                    name="twitter:description"
-                    content={experience.info.description || finalDescriptionSEO}
-                />
-            </Head>
+            <SpaceSeo
+                experience={experience}
+                destination={destination}
+                // The space on show: after travelling through a portal
+                // that is no longer the one the page loaded with.
+                ownerName={
+                    experience.ownerName ??
+                    (experience.id === _experience?.id
+                        ? _experience?.ownerName
+                        : undefined)
+                }
+                gated={!!gatingError}
+            />
 
             <Container>
                 <GlobalStyle />

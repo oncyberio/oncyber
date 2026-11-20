@@ -46,6 +46,10 @@ describe("searchOrigin", () => {
             "/hub"
         );
         expect(spacePath({ id: "abc" })).toBe("/spaces/abc");
+        // A link the site answers itself never opens the space.
+        expect(spacePath({ id: "abc", info: { customLink: "studio" } })).toBe(
+            "/spaces/abc"
+        );
     });
 });
 

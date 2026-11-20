@@ -314,3 +314,79 @@ test("a coordinate-only shallow completion cannot cancel a pending departure", a
     unregister();
     stop();
 });
+
+describe("where the back arrow leads out of the worlds", () => {
+    let navigation: typeof import("./experienceNavigation");
+    let stop: () => void;
+    let back: jest.SpyInstance;
+    const lobby = jest.fn();
+    const home = jest.fn();
+    /** Opens /world, after `from` when the visitor came from another page. */
+    function arrive(from?: string) {
+        const on = jest.fn();
+        window.history.replaceState({ key: "first" }, "", from ?? "/world");
+        stop = navigation.trackExperienceNavigation({
+            push: jest.fn(),
+            replace: jest.fn(),
+            events: { on, off: jest.fn() },
+        });
+        if (!from) return;
+        window.history.replaceState({ key: "world" }, "", "/world");
+        on.mock.calls[0][1]();
+    }
+    beforeEach(() => {
+        jest.resetModules();
+        navigation = require("./experienceNavigation");
+        lobby.mockClear();
+        home.mockClear();
+        back = jest.spyOn(window.history, "back").mockImplementation(() => {});
+    });
+    afterEach(() => stop?.());
+
+    test.each(["/", "/?q=frahm&category=latest"])(
+        "from the 2D grid (%s) it goes back to the grid as it was",
+        (from) => {
+            arrive(from);
+            navigation.goToPreviousExperience(lobby, home);
+            expect(back).toHaveBeenCalledTimes(1);
+            expect(lobby).not.toHaveBeenCalled();
+            expect(home).not.toHaveBeenCalled();
+        }
+    );
+    test("from the 3D lobby it returns to the lobby", () => {
+        arrive("/?lobby=1");
+        navigation.goToPreviousExperience(lobby, home);
+        expect(lobby).toHaveBeenCalledTimes(1);
+        expect(home).not.toHaveBeenCalled();
+        expect(back).not.toHaveBeenCalled();
+    });
+    test("opened by its link, it opens the 2D main page", () => {
+        arrive();
+        navigation.goToPreviousExperience(lobby, home);
+        expect(home).toHaveBeenCalledTimes(1);
+        expect(lobby).not.toHaveBeenCalled();
+        expect(back).not.toHaveBeenCalled();
+    });
+    test("inside the lobby's frame it is always the lobby", () => {
+        const parent = Object.getOwnPropertyDescriptor(window, "parent");
+        Object.defineProperty(window, "parent", {
+            configurable: true,
+            value: {},
+        });
+        try {
+            arrive("/");
+            navigation.goToPreviousExperience(lobby, home);
+            expect(lobby).toHaveBeenCalledTimes(1);
+            expect(home).not.toHaveBeenCalled();
+            expect(back).not.toHaveBeenCalled();
+        } finally {
+            Object.defineProperty(window, "parent", parent);
+        }
+    });
+    test("a caller with no 2D way out keeps the lobby for everything", () => {
+        arrive("/");
+        navigation.goToPreviousExperience(lobby);
+        expect(lobby).toHaveBeenCalledTimes(1);
+        expect(back).not.toHaveBeenCalled();
+    });
+});

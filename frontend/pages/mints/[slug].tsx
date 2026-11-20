@@ -34,6 +34,7 @@ import { useCyberTranslation } from "@components/context/I18nContext";
 import InlineError from "@ui/components/InlineError";
 import { switchWalletNetwork, wrongNetworkMessage } from "@dapp/switchNetwork";
 import { SITE_DISPLAY_HOST } from "@utils/siteUrl";
+import DestinationSeo from "@components/seo/DestinationSeo";
 
 const chains = {
     "oncyber-ethereum-community": "ethereum",
@@ -484,6 +485,7 @@ function Minter({ destination, notfound }: MinterProps) {
 
     return (
         <Container>
+            <DestinationSeo destination={destination} kind="mint" />
             <ConnectWallet
                 noShowClose={false}
                 onlyEthereum={true}

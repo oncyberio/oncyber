@@ -19,9 +19,11 @@ import { creationToggleStep, creationStep } from "./creationSteps";
 import Header from "./components/Header";
 import ImmersiveViewportStyle from "@features/content-host/ImmersiveViewportStyle";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import styled from "styled-components";
-import { ActionButton, compactActionSizing } from "@styles/brand";
+import { ActionButton, actionButton, outlineAction } from "@styles/brand";
 import EmptyState from "@ui/components/EmptyState";
+import ExperienceControlIcon from "@ui/components/ExperienceControlIcon";
 import {
     Page,
     BrowseSurface,
@@ -67,15 +69,9 @@ const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 const TemplateCatalog = dynamic(() => import("./components/TemplateCatalog"), {
     ssr: false,
 });
-const GRID_SIZES = [
-    { columns: 2, rows: 2 },
-    { columns: 1, rows: 1 },
-];
+const GRID = { columns: 2, rows: 2 };
 /** Phones show one column of two cards instead of the 2×2 grid. */
-const MOBILE_GRID_SIZES = [
-    { columns: 1, rows: 2 },
-    { columns: 1, rows: 1 },
-];
+const MOBILE_GRID = { columns: 1, rows: 2 };
 const MOBILE_QUERY = MOBILE_GRID_QUERY;
 
 function useMobileLayout() {
@@ -147,13 +143,12 @@ function LandingContent(props: LandingPageProps) {
         loadMoreError,
         loadMore,
     } = discovery;
-    // Image-only fallback for WebGL failures; curvature is never a user mode.
-    const [gridChoice, setGridChoice] = useState(0);
     const { t } = useCyberTranslation();
-    const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
-    const grid = gridSizes[gridChoice];
+    const grid = useMobileLayout() ? MOBILE_GRID : GRID;
     const router = useRouter();
-    const inLobby = router.query.lobby === "1";
+    // A profile link to nobody carries ?lobby=1 too (see next.config.js);
+    // its page is the not-found search, not the lobby.
+    const inLobby = router.query.lobby === "1" && !props.notFound;
     const [browseVisible, setBrowseVisible] = useState(!inLobby);
     const [lobbyReady, setLobbyReady] = useState(false);
     const [lobbyClosing, setLobbyClosing] = useState(false);
@@ -171,6 +166,12 @@ function LandingContent(props: LandingPageProps) {
     }, [inLobby]);
     const setLobby = useCallback(
         (open: boolean) => {
+            // A not-found page is the landing in search mode at the missing
+            // link's address: the lobby opens from the home page instead.
+            if (open && props.notFound) {
+                void router.push("/?lobby=1");
+                return;
+            }
             const query = { ...router.query };
             if (open) {
                 query.lobby = "1";
@@ -181,13 +182,13 @@ function LandingContent(props: LandingPageProps) {
                 scroll: false,
             });
         },
-        [router]
+        [router, props.notFound]
     );
     // A profile link (/@name) opens the lobby with their sidebar on the left.
     const visitedProfile =
         typeof router.query.profile === "string" ? props.profile : undefined;
     const closeProfile = useCallback(() => {
-        const { profile, ...query } = router.query;
+        const { profile, profileLink, ...query } = router.query;
         void router.replace({ pathname: router.pathname, query }, undefined, {
             shallow: true,
             scroll: false,
@@ -572,41 +573,26 @@ function LandingContent(props: LandingPageProps) {
             </span>
         </CreateControl>
     );
-    const gridControls = (
-        <ViewControls>
-            <div className="density" role="group" aria-label={t("Grid size")}>
-                {gridSizes.map((size, index) => (
-                    <button
-                        key={`${size.columns}x${size.rows}`}
-                        aria-label={t("{columns} by {rows} grid", size)}
-                        aria-pressed={gridChoice === index}
-                        onClick={() => setGridChoice(index)}
-                    >
-                        {size.columns}×{size.rows}
-                    </button>
-                ))}
-            </div>
-        </ViewControls>
+    // The way to the rest of the site, in the footer's left corner: the
+    // info mark a space shows beside its title, then the word. As quiet as
+    // "create" above it.
+    const aboutLink = (
+        <AboutLink href="/about">
+            <ExperienceControlIcon name="info" size={14} />
+            {t("about")}
+        </AboutLink>
     );
     const lobbyPopulation = useLobbyPopulation(!creating && !inLobby);
     const viewControls = (
         <ViewControls>
             {!creating && (
-                <button
-                    className="jump-in"
-                    onPointerEnter={warmLobbyAvatar}
-                    onPointerDown={warmLobbyAvatar}
-                    onFocus={warmLobbyAvatar}
-                    onClick={() => {
-                        warmLobbyAvatar();
-                        setLobby(true);
-                    }}
-                >
-                    <EnterPortalIcon aria-hidden="true" />
-                    <span className="jump-in-label">{t("Jump In")}</span>
+                <span className="jump-group">
+                    {/* Who is in the lobby sits beside the button, not in
+                        it: the button stays the size of Sign in. */}
                     {lobbyPopulation != null && (
                         <span
                             className="lobby-count"
+                            role="img"
                             aria-label={t(
                                 lobbyPopulation === 1
                                     ? "{count} person in the lobby"
@@ -617,7 +603,20 @@ function LandingContent(props: LandingPageProps) {
                             {lobbyPopulation}
                         </span>
                     )}
-                </button>
+                    <button
+                        className="jump-in"
+                        onPointerEnter={warmLobbyAvatar}
+                        onPointerDown={warmLobbyAvatar}
+                        onFocus={warmLobbyAvatar}
+                        onClick={() => {
+                            warmLobbyAvatar();
+                            setLobby(true);
+                        }}
+                    >
+                        <EnterPortalIcon aria-hidden="true" />
+                        <span className="jump-in-label">{t("Jump In")}</span>
+                    </button>
+                </span>
             )}
         </ViewControls>
     );
@@ -642,6 +641,19 @@ function LandingContent(props: LandingPageProps) {
                         : "Skip to worlds"
                 )}
             </a>
+            {/* The page's heading, for screen readers and search engines:
+                the visible page is a logo over a canvas of cards. */}
+            <h1 className="landing-title">
+                {props.notFound?.query
+                    ? `Could not find \u201c${props.notFound.query}\u201d`
+                    : visitedProfile
+                    ? `${
+                          visitedProfile.username
+                              ? `@${visitedProfile.username}`
+                              : visitedProfile.id
+                      } on oncyber`
+                    : "oncyber: explore 3D spaces, galleries and worlds"}
+            </h1>
             {loadTemplates && !inLobby && (
                 <TemplateCatalog
                     onChange={setTemplates}
@@ -718,7 +730,7 @@ function LandingContent(props: LandingPageProps) {
                                 }
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
-                                footerStart={gridControls}
+                                footerStart={aboutLink}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
                                 hasMore={!creating && !loading && pagedHasMore}
@@ -873,12 +885,17 @@ function LandingContent(props: LandingPageProps) {
                         galleryLoading ||
                         (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
-                            {gridControls}
+                            {aboutLink}
                             {viewControls}
                         </EmptyFooter>
                     )}
                     <noscript>
                         <FallbackLinks>
+                            {/* The footer is drawn in the browser; this is
+                                its about link for whoever reads the HTML. */}
+                            <a href="/about">
+                                <span>About Oncyber</span>
+                            </a>
                             {[
                                 ...props.initialFeed.cards,
                                 ...(props.notFound?.sections ?? []),
@@ -944,6 +961,41 @@ const EnterPortalIcon = styled.span`
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses; the red lens is the Create accent token. */
     background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
+`;
+
+const AboutLink = styled(Link)`
+    /* Twice, to outrank the page's own rule for links. The same type,
+       colour and height as "create". */
+    && {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 0;
+        color: var(--oc-secondary);
+        font-size: 14px;
+        white-space: nowrap;
+        transition: color var(--oc-fast);
+    }
+    /* The mark is quieter than the word, as it is beside a space's title. */
+    .experience-control-icon {
+        opacity: 0.6;
+        transition: opacity var(--oc-fast);
+    }
+    &&:hover {
+        color: var(--oc-ink);
+    }
+    &:hover .experience-control-icon,
+    &:focus-visible .experience-control-icon {
+        opacity: 1;
+    }
+    @media (max-width: 700px) {
+        && {
+            gap: 6px;
+            font-size: 12px;
+        }
+    }
 `;
 
 const CreateControl = styled.button`
@@ -1064,50 +1116,50 @@ const LobbyPage = styled(Page)`
     &[data-lobby-ready] > header .account-detail {
         color: #969aa3;
     }
+    /* The shared outline action, exactly: the same height, padding,
+       corners, type and edge as every other action button (Sign in above
+       is its blue sibling). Nothing here resizes it. */
     .jump-in {
-        ${compactActionSizing}
-        /* A compact action beside the search bar, not a second bar. */
-        min-height: 36px;
-        height: 36px;
-        gap: 7px;
-        padding: 0 12px 0 10px;
-        border-radius: 10px;
-        font-size: 13px;
-        color: #f3f3ed;
-        background: transparent;
-        box-shadow: inset 0 0 0 1px rgba(243, 243, 237, 0.55);
-        transition: background 180ms ease, box-shadow 180ms ease;
+        ${actionButton}
+        ${outlineAction}
+        /* At rest it sits at the level of "create": the same secondary ink,
+           and an edge of that colour. */
+        color: var(--oc-secondary);
+        border-color: color-mix(in srgb, var(--oc-secondary) 55%, transparent);
     }
-    .jump-in:hover:not([aria-pressed="true"]) {
+    /* Under the pointer it is white. */
+    .jump-in:hover:not(:disabled) {
         color: #fff;
-        background: rgba(243, 243, 237, 0.08);
-        box-shadow: inset 0 0 0 1px #f3f3ed;
+        border-color: #fff;
     }
-    .jump-in .lobby-count {
+    .jump-group {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        margin-left: 1px;
-        padding-left: 7px;
-        border-left: 1px solid rgba(243, 243, 237, 0.3);
+        gap: 12px;
+    }
+    /* On a phone the arrows sit close by: keep the count clear of them. */
+    @media (max-width: 700px) {
+        .jump-group {
+            gap: 10px;
+            margin-left: 12px;
+        }
+    }
+    /* How many people are in the lobby: a count, so the quiet mono voice,
+       beside the button it belongs to. */
+    .lobby-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font: 400 11px/1 var(--oc-mono);
+        color: var(--oc-secondary);
         font-variant-numeric: tabular-nums;
     }
-    /* Aeonik sits its capitals ~0.5px below the line box centre; lift the
-       words (and the count's digits) so they line up with the icon. */
-    .jump-in .jump-in-label,
-    .jump-in .lobby-count {
-        position: relative;
-        top: -1px;
-    }
-    .jump-in .lobby-count::before {
-        position: relative;
-        top: 1px;
+    .lobby-count::before {
         content: "";
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: #4ade80;
-        box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
     }
     @media (max-width: 700px) {
         &[data-in-lobby] > header {
