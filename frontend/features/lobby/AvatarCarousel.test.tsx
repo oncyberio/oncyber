@@ -381,8 +381,12 @@ test("free and owned avatars sit on their own tabs, opening on the one being wor
     render("pepe", [...mine, ...items]);
     expect(tab("Free").getAttribute("aria-selected")).toBe("true");
     expect(tab("Owned").getAttribute("aria-selected")).toBe("false");
-    // The count says there is something behind the other tab.
-    expect(tab("Owned").textContent).toBe("Owned2");
+    // Two plain labels, nothing else in the switch.
+    expect(
+        Array.from(container.querySelectorAll('[role="tab"]')).map(
+            (element) => element.textContent
+        )
+    ).toEqual(["Free", "Owned"]);
     expect(shown()).toEqual(items.map((item) => item.name));
     focused("Roller Pepe");
     const panel = container.querySelector('[role="tabpanel"]');
@@ -447,7 +451,6 @@ test("a wallet avatar that loads late brings its tab forward, unless the visitor
     // The worn avatar is in the wallet, which has not answered yet.
     render("nft", items, false, { ownedLoading: true });
     expect(tab("Free").getAttribute("aria-selected")).toBe("true");
-    expect(tab("Owned").querySelector(".tab-spinner")).not.toBeNull();
     render("nft", [...mine, ...items]);
     expect(tab("Owned").getAttribute("aria-selected")).toBe("true");
     focused("Wallet one");
