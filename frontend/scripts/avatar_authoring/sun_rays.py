@@ -327,6 +327,56 @@ def orb_swatches(rgb, orb):
     return np.array(swatches)
 
 
+def measured_orb_paint(rgb, mask, orb):
+    """Fit low-frequency irradiance on the visible sphere, excluding its lens."""
+    cx, cy, rx, ry = orb
+    colors = orb_swatches(rgb, orb).round().astype(np.uint8)
+    paint = dict(zip(("top", "bottom"), ("#" + c.tobytes().hex() for c in colors)))
+    if min(rx, ry) < 12:
+        return paint
+    v, u = np.mgrid[-0.94:0.95:0.035, -0.94:0.95:0.035]
+    x = np.rint(cx + rx * u).astype(int)
+    y = np.rint(cy + ry * v).astype(int)
+    observed = (x >= 0) & (x < mask.shape[1]) & (y >= 0) & (y < len(mask))
+    x, y = x.clip(0, mask.shape[1] - 1), y.clip(0, len(mask) - 1)
+    # Omit the lens, its cast shadow, the crown outline and adjacent rays.
+    # Both exposed zones and both temples must support the fit.
+    valid = (
+        observed & mask[y, x] & (u * u + v * v < 0.91**2) & ((v < -0.44) | (v > 0.65))
+    )
+    if any(
+        np.count_nonzero(valid & side & zone) < 24
+        for side in (u < -0.28, u > 0.28)
+        for zone in (v < 0, v > 0)
+    ):
+        return paint
+
+    def luminance(srgb):
+        s = srgb / 255.0
+        linear = np.where(s <= 0.04045, s / 12.92, ((s + 0.055) / 1.055) ** 2.4)
+        return linear @ [0.2126, 0.7152, 0.0722]
+
+    u, v = u[valid], v[valid]
+    z = np.sqrt(1 - u * u - v * v)
+    anchor_y = np.where(v < 0, -0.63, 0.72)
+    reference = np.where(v < 0, *luminance(colors))
+    if reference.min() < 0.014:
+        return paint
+    value = np.log(np.maximum(0.001, luminance(rgb[y[valid], x[valid]])) / reference)
+    basis = np.column_stack((u, v - anchor_y, z - np.sqrt(1 - anchor_y**2)))
+    weights = np.ones(len(value))
+    # Robust regression keeps isolated highlights and thin painted outlines
+    # from becoming the inferred light direction on the unseen hemisphere.
+    for _ in range(4):
+        coef = np.linalg.lstsq(basis * weights[:, None], value * weights, rcond=None)[0]
+        residual = np.abs(value - basis @ coef)
+        weights = np.sqrt(np.minimum(1, 0.075 / np.maximum(residual, 0.001)))
+    if np.median(residual) > 0.16 or np.max(abs(coef)) > 3:
+        return paint
+    paint["light"] = np.clip(coef, -2, 2).round(3).tolist()
+    return paint
+
+
 def correct_ray_edges(rays, pigment, target, actual):
     """Correct each convex rim from its native radial and tangential projection error."""
 
@@ -614,8 +664,84 @@ def orb_edits(source, native, frame, recipe):
     return edits
 
 
+def dyed_shorts_landmarks(rgb, mask, t, u, shoulder, sock):
+    """Find matching shorts hems where bare shin paint yields to two fabric panels."""
+    height = np.ptp(np.flatnonzero(mask.any(1)))
+    row = np.argmin(abs(t - (sock - 0.048)))
+    leg_colors = []
+    for side in (-1, 1):
+        lane = (u * side > 0.016) & (u * side < 0.14) & mask[row]
+        columns = np.flatnonzero(lane)
+        spans = np.split(columns, np.flatnonzero(np.diff(columns) != 1) + 1)
+        strip = max(spans, key=len)
+        if len(strip) < 5:
+            return
+        core = strip[len(strip) // 3 : len(strip) - len(strip) // 3]
+        leg_colors.append(np.median(rgb[:, core], axis=1))
+    stations = []
+    width = max(2, round(0.008 * height))
+    for trace in leg_colors:
+        filtered = ndimage.median_filter(trace, size=(width, 1))
+        delta = np.linalg.norm(filtered[: -2 * width] - filtered[2 * width :], axis=1)
+        skin = np.median(trace[row - width : row + width + 1], axis=0)
+        candidates = np.flatnonzero(
+            (t[width:-width] > shoulder + 0.13)
+            & (t[width:-width] < sock - 0.068)
+            & (np.linalg.norm(filtered[2 * width :] - skin, axis=1) < 54)
+            & (delta > 44)
+        )
+        if not len(candidates):
+            return
+        runs = np.split(candidates, np.flatnonzero(np.diff(candidates) > 1) + 1)
+        hit = runs[-1]
+        hem = int(round((hit.min() + hit.max()) / 2)) + width
+        # Trace the shorts dye back up to the hem of the jersey using the two
+        # legs independently. A narrow contrasting band counts as part of the top.
+        dye = np.median(trace[hem - round(0.028 * height) : hem - width], axis=0)
+        distance = np.linalg.norm(filtered - dye, axis=1)
+        different = (t > shoulder + 0.064) & (t < t[hem] - 0.052) & (distance > 48)
+        windows, _ = ndimage.label(different)
+        regions = [
+            reg
+            for reg in ndimage.find_objects(windows)
+            if reg and reg[0].stop - reg[0].start >= width
+        ]
+        if not regions:
+            return
+        waist = regions[-1][0].stop
+        stations.append([waist, hem])
+    paired_stations = np.array(stations)
+    if np.max(np.ptp(paired_stations, axis=0)) > 0.023 * height:
+        return
+    waist, hem = np.rint(np.mean(paired_stations, axis=0)).astype(int)
+    if not 0.063 < t[hem] - t[waist] < 0.22:
+        return
+    # Paper must actually appear between the exposed legs just below the hem.
+    center = abs(u) < 0.012
+    if np.mean(mask[hem + width : hem + 3 * width, center]) > 0.42:
+        return
+    cloth = (t > t[waist] + 0.012) & (t < t[waist] + 0.028)
+    widths = [np.ptp(u[r]) for r in mask[cloth] if r.sum() > 2]
+    if not widths:
+        return
+    center = abs(u) < 0.015
+    occupied = mask[:, center].mean(1) > 0.62
+    gaps = (t > shoulder - 0.15) & (t < shoulder) & ~occupied
+    starts = [
+        region[0].stop
+        for region in ndimage.find_objects(ndimage.label(gaps)[0])
+        if region and region[0].stop - region[0].start >= width // 2
+    ]
+    if not starts:
+        return
+    collar = t[starts[-1]]
+    if not 0.018 < shoulder - collar < 0.14:
+        return
+    return np.array([collar, shoulder, t[waist], t[hem], sock, np.median(widths)])
+
+
 def kit_landmarks(rgb, m):
-    """Read the pale jersey, dark shorts, exposed legs and sock bands of this kit."""
+    """Locate the jersey, shorts, bare lower legs and socks of a full kit."""
     y, x = np.nonzero(m)
     top, h, mid = y.min(), np.ptp(y), (x.min() + x.max()) / 2
     u = (np.arange(m.shape[1]) - mid) / h
@@ -629,20 +755,37 @@ def kit_landmarks(rgb, m):
     dark = ((rgb.mean(2) < 123) & m)[:, lanes].mean(1)
     band = (t > shoulder + 0.08) & (t < 0.75) & (ndimage.median_filter(dark, 5) > 0.64)
     labels, count = ndimage.label(band)
-    if not count:
-        return
-    long = np.bincount(labels)[1:].argmax() + 1
-    trouser_rows = np.flatnonzero(labels == long)
-    waist, hem = t[trouser_rows.min()], t[trouser_rows.max()]
-    if hem - waist < 0.07:
-        return
+    trouser_rows = (
+        np.flatnonzero(labels == 1 + np.bincount(labels)[1:].argmax())
+        if count
+        else np.array([], dtype=int)
+    )
     light = (rgb.min(2) > 153) & (np.ptp(rgb, axis=2) < 76) & m
     center = abs(u) < 0.085
     neckline = (
         (t > shoulder - 0.105) & (t < shoulder) & (light[:, center].mean(1) > 0.13)
     )
-    sock = (t > max(0.65, hem + 0.06)) & (t < 0.91) & (light[:, lanes].mean(1) > 0.18)
-    if not neckline.any() or not sock.any():
+    sock_light = (t < 0.91) & (light[:, lanes].mean(1) > 0.18)
+    if not len(trouser_rows):
+        sock = (t > 0.71) & sock_light
+        if sock.any():
+            return dyed_shorts_landmarks(rgb, m, t, u, shoulder, t[sock].min())
+        return
+    waist, hem = t[trouser_rows[[0, -1]]]
+    sock = (t > max(0.65, hem + 0.06)) & sock_light
+    if sock.any():
+        below = (t > hem + 0.012) & (t < hem + 0.03)
+        # If the middle is still solid, the dark band can be a shirt over
+        # colored shorts. Confirm both leg-to-cloth transitions independently.
+        if (
+            hem - waist < 0.07
+            or hem - waist > 0.22
+            or m[below][:, abs(u) < 0.012].mean() > 0.68
+        ):
+            colored = dyed_shorts_landmarks(rgb, m, t, u, shoulder, t[sock].min())
+            if colored is not None:
+                return colored
+    if hem - waist < 0.07 or not neckline.any() or not sock.any():
         return
     waist_width = np.median(
         [np.ptp(u[m[row]]) for row in trouser_rows[1:10] if m[row].any()]

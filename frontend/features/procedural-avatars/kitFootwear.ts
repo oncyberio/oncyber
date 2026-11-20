@@ -11,6 +11,8 @@ export interface KitFootwear {
     upper: string;
     sole: string;
     laces: number[];
+    laceInk?: string;
+    spread?: [number, number];
 }
 
 function sectionRing(row: Section, sides: number, radius = 1): Point[] {
@@ -139,7 +141,9 @@ export function drawKitShoe(
         top = floor - height;
     const halfSpacing = Math.abs(ankle[0] - other[0]) * 0.5;
     const footLength = Math.abs(toes[2] - ankle[2]);
-    const radii = fit.widths.map((width) => width * halfSpacing);
+    const radii = fit.widths.map(
+        (width) => width * halfSpacing * (fit.spread?.[1] ?? 1)
+    );
     const widthLevels = [0, 0.08, 0.28, 0.52, 0.8, 0.94, 1];
     const widths = [radii[0] * 0.42, ...radii, radii[4] * 0.98];
     const halfWidthAt = (t: number) => {
@@ -203,13 +207,7 @@ export function drawKitShoe(
             ...fit.laces.flatMap((t) => [t - 0.022, t, t + 0.022]),
         ]),
     ].sort((a, b) => a - b);
-    d.s.tone = (x, y, z) => {
-        const t = (y - top) / height;
-        if (t >= 0.8)
-            return (
-                0.89 +
-                0.35 * (1 - T.MathUtils.smoothstep(Math.abs(t - 0.94), 0, 0.14))
-            );
+    const laceCoverage = (x: number, t: number, z: number) => {
         const front = T.MathUtils.smoothstep(
             z,
             ankle[2] + 0.08 * footLength,
@@ -230,11 +228,25 @@ export function drawKitShoe(
                 ),
             0
         );
+        return front * center * lace;
+    };
+    d.s.tone = (x, y, z) => {
+        const t = (y - top) / height;
+        if (t >= 0.8)
+            return (
+                0.89 +
+                0.35 * (1 - T.MathUtils.smoothstep(Math.abs(t - 0.94), 0, 0.14))
+            );
+        const front = T.MathUtils.smoothstep(
+            z,
+            ankle[2] + 0.08 * footLength,
+            ankle[2] + 0.38 * footLength
+        );
         const toe = Math.exp(-(((t - 0.57) / 0.15) ** 2));
         return (
             0.9 +
             front * (0.19 + 0.48 * toe) -
-            0.56 * front * center * lace -
+            (fit.laceInk ? 0 : 0.56 * laceCoverage(x, t, z)) -
             0.19 * T.MathUtils.smoothstep(t, 0.68, 0.78)
         );
     };
@@ -250,16 +262,21 @@ export function drawKitShoe(
             fit.laces.some((t) => Math.abs((y - top) / height - t) < 0.0221));
     // The outsole changes pigment on the same faces and shares its toe weights.
     // Its edge stays joined to the vamp when the toes bend.
+    let upper = [ring(0, true), ...stops.map((t) => ring(t)), ring(1, true)];
+    if (fit.laceInk) {
+        const seam = 1 + stops.indexOf(0.75);
+        d.s.paintMix = {
+            color: fit.laceInk,
+            amount: (x, y, z) => laceCoverage(x, (y - top) / height, z),
+        };
+        d.s.surface(upper.slice(0, seam + 1), fit.upper, true, "perimeter");
+        upper = upper.slice(seam);
+    }
     d.s.paintMix = {
         color: fit.sole,
         amount: (_, y) => T.MathUtils.smoothstep((y - top) / height, 0.75, 0.8),
     };
-    d.s.surface(
-        [ring(0, true), ...stops.map((t) => ring(t)), ring(1, true)],
-        fit.upper,
-        true,
-        "perimeter"
-    );
+    d.s.surface(upper, fit.upper, true, "perimeter");
     d.s.paintMix = undefined;
     d.s.preserveVertex = previous;
     d.s.tone = undefined;

@@ -1,3 +1,4 @@
+import { Color, MathUtils } from "three/webgpu";
 import families from "./families.json";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
@@ -8,10 +9,42 @@ export interface OrbVisor {
     contact?: { strength: number; width: number };
     /** Omit the band when both temples visibly continue in the orb pigment. */
     strap?: false;
+    rim?: {
+        columns: [number, number, number][];
+        upper: string;
+        lower: string;
+        glyph: string;
+    };
     center: number;
     span: number;
     rows: [number, number][];
     marks: [number, number, number, number][];
+}
+
+/** Three measured slopes describe the light on a closed sphere in rest space.
+ * The forehead and chin dye samples anchor the two ends of the tint gradient. */
+export function orbIrradiance(
+    [side, vertical, forward]: [number, number, number],
+    [cx, cy, cz]: Point,
+    [rx, ry, rz]: Point
+) {
+    const forehead = -0.63,
+        chin = 0.72;
+    const foreheadZ = Math.sqrt(1 - forehead * forehead);
+    const chinZ = Math.sqrt(1 - chin * chin);
+    return (x: number, y: number, z: number) => {
+        const u = (x - cx) / rx,
+            v = (y - cy) / ry,
+            w = (z - cz) / rz;
+        const blend = MathUtils.smoothstep(v, -0.41, 0.64);
+        const anchorY = MathUtils.lerp(forehead, chin, blend);
+        const anchorZ = MathUtils.lerp(foreheadZ, chinZ, blend);
+        // Continue a single frontal key into a soft fill on the hidden side.
+        const depth = w >= 0 ? w : 0.22 * Math.tanh(w / 0.22);
+        const logLight =
+            side * u + vertical * (v - anchorY) + forward * (depth - anchorZ);
+        return Math.exp(MathUtils.clamp(logLight, -1.18, 0.65));
+    };
 }
 
 /** Encode the measured lens shadow on the closed orb in its rest frame.
@@ -19,6 +52,20 @@ export interface OrbVisor {
 export function orbContactUV(visor: OrbVisor) {
     if (!visor.contact) return;
     const { strength, width } = visor.contact;
+    if (visor.rim) {
+        const cols = visor.rim.columns;
+        return (x: number, y: number, z: number): [number, number] => {
+            const j = cols.findIndex(([u]) => u >= x);
+            if (j < 1) return [0, 1];
+            const [x0, , h0] = cols[j - 1],
+                [x1, , h1] = cols[j];
+            const distance = Math.min(x - cols[0][0], cols.at(-1)[0] - x);
+            const side = MathUtils.clamp(distance / 0.13, 0, 1);
+            const front = MathUtils.clamp((z - 0.08) / 0.42, 0, 1);
+            const hem = MathUtils.lerp(h0, h1, (x - x0) / (x1 - x0));
+            return [strength * side * front, (y - hem) / width];
+        };
+    }
     const [, , rx, ry] = families.sunshine.crownRoot;
     return (x: number, y: number, z: number): [number, number] => {
         const raised = visor.strap !== false;
@@ -68,25 +115,34 @@ export function drawOrbVisor(
     const quads: Point[] = [];
     const quad = (a: Point, b: Point, c: Point, e: Point) =>
         quads.push(a, b, c, a, c, e);
-    const rim = visor.rows;
+    const measured = visor.rim;
+    const columns = measured?.columns;
+    const rim = columns
+        ? columns.map(([, top, bottom]) => [top, bottom])
+        : visor.rows;
     const band = visor.strap !== false;
     const level = (rim[0][0] + rim[rim.length - 1][0]) * 0.5 + 0.04;
+    const strapTop = measured ? 0.5 * (rim[0][0] + rim.at(-1)[0]) : level;
+    const strapBottom = measured
+        ? Math.max(strapTop + 0.06, 0.5 * (rim[0][1] + rim.at(-1)[1]))
+        : level + 0.105;
     for (let i = 0; band && i < 32; i++) {
         const a = (i * Math.PI) / 16,
             b = ((i + 1) * Math.PI) / 16;
         quad(
-            at(a, level, 2),
-            at(b, level, 2),
-            at(b, level + 0.105, 2),
-            at(a, level + 0.105, 2)
+            at(a, strapTop, 2),
+            at(b, strapTop, 2),
+            at(b, strapBottom, 2),
+            at(a, strapBottom, 2)
         );
     }
     const knot = (i: number, t: number, lift: number) =>
         point(
-            (visor.center + visor.span * ((2 * i) / (rim.length - 1) - 1)) /
-                (band ? 1 : 1 + lensLift / rx),
+            (columns?.[i][0] ??
+                visor.center + visor.span * ((2 * i) / (rim.length - 1) - 1)) /
+                (band && !measured ? 1 : 1 + lensLift / rx),
             (rim[i][0] * (1 - t) + rim[i][1] * t) /
-                (band ? 1 : 1 + lensLift / ry),
+                (band && !measured ? 1 : 1 + lensLift / ry),
             lift
         );
     for (let i = 0; i < rim.length - 1; i++) {
@@ -116,7 +172,19 @@ export function drawOrbVisor(
             knot(i, 0, 0.2)
         );
     d.s.fineDetail = true;
+    const gradient = d.s.gradient;
+    if (measured) {
+        // Keep the lens paint role so the family fitter can register the eye frame.
+        white = new Color(measured.glyph).getStyle();
+        d.s.gradient = {
+            top: oy - ry * 0.16,
+            bottom: oy + ry * 0.2,
+            from: new Color(measured.upper).getStyle(),
+            to: new Color(measured.lower).getStyle(),
+        };
+    }
     d.s.triangles(quads, ink);
+    d.s.gradient = gradient;
     quads.length = 0;
     for (const [cx, cy, rx, ry] of visor.marks)
         for (const sign of [-1, 1]) {

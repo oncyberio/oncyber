@@ -29,6 +29,16 @@
             "input_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
             "evaluation_reference": "tavi-full.webp",
             "reference_sha256": "3806d4a638f2af5a103fca2b47c7a2a7bad51f54a440a2d75f8ba3ee4cbbd3e4"
+        },
+        {
+            "id": "brin",
+            "name": "Brin",
+            "family": "sunshine",
+            "framing": "full",
+            "input": "brin-full.webp",
+            "input_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+            "evaluation_reference": "brin-full.webp",
+            "reference_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1"
         }
     ],
     "receipts": {
@@ -71,6 +81,20 @@
                 "WebGPUBackend": {
                     "views": "4d60528102792ef89821258bf16662e792906a56f99c09e559c289abbb660bde",
                     "walk": "7d33498aa977c23034ce4d2b6ac6fdd19829fabc36702642cae49c2ae2681262"
+                }
+            }
+        },
+        "brin": {
+            "candidate_sha256": "242d616fff149c54985ce22e8ee66c3c03d4f35ce30d893a28348f2e225594cc",
+            "evidence_sha256": "16bdbf364711b121edaf1dddc7da5baf5c0350f13b465ca8a0b0e1b71ffc5b51",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "5374b6cc8e944ec4665d95105ed5ca020fee32ce2cf9407a286f883526de6e5f",
+                    "walk": "d144867a3812f0deb1034312b550245da1a668ec77adf3a9ef5787de6d46138f"
+                },
+                "WebGPUBackend": {
+                    "views": "efc0c3dce93e973d28d453a4d44a6191bc1fd7f23a9a5fba004c9bcdd469174d",
+                    "walk": "be0fc5c8bccfb942d0f0a908f7d208bbe3e491413fd05c1cb526168164b924bd"
                 }
             }
         }
@@ -322,6 +346,219 @@
                     "full_body_silhouette_iou": 0.7215,
                     "full_body_rgb_mae": 46.06
                 }
+            },
+            "independent_review": "pending"
+        },
+        "brin": {
+            "target_generator": "GPT Image",
+            "image_model_version": null,
+            "image_generation_cost": null,
+            "generation_elapsed_seconds": 35.105,
+            "fresh": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 0.85,
+                "model_calls": [],
+                "selected_pass": null,
+                "passes": [],
+                "error": "Cannot identify a registered family from the visible eyes or visor"
+            },
+            "cream_marks": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 48.62,
+                "model_calls": [],
+                "selected_pass": 2,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2270,
+                        "front": {
+                            "silhouette_iou": 0.7472,
+                            "head_iou": 0.8208,
+                            "head_edge_agreement": 0.3308,
+                            "body_edge_agreement": 0.2001,
+                            "rgb_mae": 32.59,
+                            "eye_pigment_agreement": 0.2308,
+                            "shirt_mark_agreement": 0.8131,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_iou, head_edge_agreement, body_edge_agreement, eyes, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2279,
+                        "front": {
+                            "silhouette_iou": 0.753,
+                            "head_iou": 0.8239,
+                            "head_edge_agreement": 0.3298,
+                            "body_edge_agreement": 0.1681,
+                            "rgb_mae": 31.05,
+                            "eye_pigment_agreement": 0.2308,
+                            "shirt_mark_agreement": 0.7639,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_iou, head_edge_agreement, body_edge_agreement, eyes, rgb_mae."
+                    }
+                ],
+                "candidate_sha256": "0c8c4e2110636bf37ee5d4f0c8bf4b49fd8004ac3bfd2b6749049f6f5123eb1a"
+            },
+            "dyed_shorts": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 53.01,
+                "model_calls": [],
+                "selected_pass": 2,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2231,
+                        "front": {
+                            "silhouette_iou": 0.7477,
+                            "head_iou": 0.8208,
+                            "head_edge_agreement": 0.3308,
+                            "body_edge_agreement": 0.1896,
+                            "rgb_mae": 32.51,
+                            "eye_pigment_agreement": 0.2308,
+                            "shirt_mark_agreement": 0.8131,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_iou, head_edge_agreement, body_edge_agreement, eyes, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2242,
+                        "front": {
+                            "silhouette_iou": 0.7693,
+                            "head_iou": 0.8239,
+                            "head_edge_agreement": 0.3298,
+                            "body_edge_agreement": 0.2444,
+                            "rgb_mae": 29.04,
+                            "eye_pigment_agreement": 0.2308,
+                            "shirt_mark_agreement": 0.7959,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_iou, head_edge_agreement, body_edge_agreement, eyes, rgb_mae."
+                    }
+                ],
+                "candidate_sha256": "f3e83c6141660dbaa3e6fdfa4e17432a56127a9729e4546f32ba37daaae8d6e6"
+            },
+            "footwear": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 40.98,
+                "model_calls": [],
+                "selected_pass": 2,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2874,
+                        "front": {
+                            "silhouette_iou": 0.7802,
+                            "head_iou": 0.9139,
+                            "head_edge_agreement": 0.3869,
+                            "body_edge_agreement": 0.2304,
+                            "rgb_mae": 29.8,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.8131,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2913,
+                        "front": {
+                            "silhouette_iou": 0.8006,
+                            "head_iou": 0.9174,
+                            "head_edge_agreement": 0.3859,
+                            "body_edge_agreement": 0.288,
+                            "rgb_mae": 26.1,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.7959,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement."
+                    }
+                ],
+                "candidate_sha256": "5b22a2949a0833a90fc3a5127c24ad21f7ab08b5eb75d8ee1f5375ab1c5627c4"
+            },
+            "calibration": {
+                "source_sha256": "b67268e076ba762fc918d96e4c770b250f8e8a19413486f2250c0668269edef1",
+                "transport": "deterministic",
+                "reported_provider_cost": null,
+                "seconds": 56.49,
+                "model_calls": [],
+                "selected_pass": 2,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 2894,
+                        "front": {
+                            "silhouette_iou": 0.8161,
+                            "head_iou": 0.9139,
+                            "head_edge_agreement": 0.3869,
+                            "body_edge_agreement": 0.3356,
+                            "rgb_mae": 30.25,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.8131,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02128
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement, rgb_mae."
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 2935,
+                        "front": {
+                            "silhouette_iou": 0.8384,
+                            "head_iou": 0.9174,
+                            "head_edge_agreement": 0.3859,
+                            "body_edge_agreement": 0.3962,
+                            "rgb_mae": 26.49,
+                            "eye_pigment_agreement": 0.6735,
+                            "shirt_mark_agreement": 0.7959,
+                            "shirt_mark_sample": [0.354, 0.312],
+                            "floating_gap": {
+                                "source": 0.02306,
+                                "native": 0.02455
+                            }
+                        },
+                        "reason": "Native comparison missed silhouette_iou, head_edge_agreement, body_edge_agreement."
+                    }
+                ],
+                "candidate_sha256": "242d616fff149c54985ce22e8ee66c3c03d4f35ce30d893a28348f2e225594cc"
             },
             "independent_review": "pending"
         }

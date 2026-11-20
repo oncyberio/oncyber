@@ -29,6 +29,48 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_orb_irradiance_recovers_a_frontal_key_and_excludes_the_lens(self):
+        from .sun_rays import measured_orb_paint
+
+        v, u = np.mgrid[-1:1:181j, -1:1:181j]
+        mask = u * u + v * v <= 1
+        z = np.sqrt(np.maximum(0, 1 - u * u - v * v))
+        key = np.exp(0.32 * u + 0.74 * z)
+        linear = key[:, :, None] * np.array([0.26, 0.19, 0.11])
+        rgb = (1.055 * linear ** (1 / 2.4) - 0.055) * 255
+        rgb[(abs(v) < 0.35) & mask] = [24, 22, 21]
+        paint = measured_orb_paint(rgb, mask, [90, 90, 90, 90])
+        side, vertical, front = paint["light"]
+        self.assertAlmostEqual(side, 0.32, delta=0.04)
+        self.assertAlmostEqual(front, 0.74, delta=0.09)
+        self.assertAlmostEqual(vertical, 0, delta=0.1)
+        self.assertNotIn(
+            "light", measured_orb_paint(rgb, mask & (u > 0), [90, 90, 90, 90])
+        )
+
+    def test_two_cream_crosses_identify_a_tinted_frame_and_retain_the_wings(self):
+        from .visor import marked_lens
+
+        art = Image.new("RGB", (240, 160), "#e8a244")
+        stroke = ImageDraw.Draw(art)
+        stroke.rounded_rectangle([35, 61, 205, 73], radius=5, fill="#28201e")
+        stroke.rounded_rectangle([46, 54, 194, 96], radius=16, fill="#28201e")
+        for x in (86, 153):
+            stroke.line((x - 7, 62, x + 7, 79), fill="#f8dab2", width=5)
+            stroke.line((x - 7, 79, x + 7, 62), fill="#f8dab2", width=5)
+        rgb = np.asarray(art, dtype=float)
+        dark = rgb.max(2) < 108
+        self.assertIsNotNone(marked_lens(rgb, dark))
+        visor = measure_visor(rgb, np.ones_like(dark), [120, 79, 84, 76])
+        cols = np.asarray(visor["rim"]["columns"])
+        self.assertGreater(cols[-1, 0] - cols[0, 0], 1.9)
+        self.assertLess(cols[0, 2] - cols[0, 1], 0.15)
+        self.assertGreater(np.ptp(cols[:, 2]), 0.25)
+        self.assertEqual(visor["rim"]["glyph"], "#f8dab2")
+        stroke.rectangle((134, 58, 175, 85), fill="#28201e")
+        rgb = np.asarray(art, dtype=float)
+        self.assertIsNone(marked_lens(rgb, rgb.max(2) < 108))
+
     def test_wrist_fit_reads_pigment_on_the_hand_that_wears_it(self):
         from .kit_hand import kit_hand
 
@@ -92,6 +134,28 @@ class FamilyTests(unittest.TestCase):
             mask[-70:, mask.shape[1] // 2 :] = False
             self.assertIsNone(kit_footwear(rgb, mask, marks))
         self.assertIsNone(kit_footwear(rgb, mask, None))
+
+    def test_dark_jersey_above_copper_shorts_and_light_soled_shoes(self):
+        from .sun_rays import kit_landmarks, shorts_cut
+        from .kit_footwear import kit_footwear
+
+        ref = Path(__file__).parent / "targets/holdout-v1/brin-full.webp"
+        rgb, mask = pixels(ref, keep_components=True)
+        landmarks = kit_landmarks(rgb, mask)
+        np.testing.assert_allclose(landmarks[[0, 2, 3]], [0.34, 0.59, 0.693], atol=0.01)
+        self.assertIsNotNone(shorts_cut(rgb, mask, landmarks))
+        shoes = kit_footwear(rgb, mask, landmarks)
+        self.assertTrue(1.2 < shoes["spread"][0] < shoes["spread"][1] < 1.7)
+        self.assertGreater(shoes["rise"], 0.48)
+        self.assertEqual(len(shoes["laces"]), 3)
+        upper, sole, lace = (
+            np.array(list(bytes.fromhex(shoes[k][1:])))
+            for k in ("upper", "sole", "laceInk")
+        )
+        self.assertGreater(min(sole - upper), 48)
+        self.assertGreater(min(lace - upper), 48)
+        mask[-100:, mask.shape[1] // 2 :] = False
+        self.assertIsNone(kit_footwear(rgb, mask, landmarks))
 
     def test_plain_shoes_and_one_sock_band_do_not_gain_laces_or_a_second_stripe(self):
         from .kit_footwear import kit_footwear

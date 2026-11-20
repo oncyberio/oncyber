@@ -1,3 +1,4 @@
+import sunshineRig from "./sunshine-rig.json";
 import type { KitHand } from "./kitHand";
 import type { KitFootwear } from "./kitFootwear";
 import type { JerseySleeve } from "./jerseySleeve";
@@ -40,7 +41,11 @@ export interface AvatarRecipe {
     kitFootwear?: KitFootwear;
     kitHand?: KitHand;
     visor?: OrbVisor;
-    orbPaint?: { top: string; bottom: string };
+    orbPaint?: {
+        top: string;
+        bottom: string;
+        light?: [number, number, number];
+    };
     orbCollar?: OrbCollar;
     armSpan?: number;
     limbWidth?: { arms: number; legs: number };
@@ -376,6 +381,27 @@ export function recipeTransform(
                 y = chin + (y - chin) * recipe.orbScale;
                 z = -5 + (z + 5) * recipe.orbScale;
             }
+        }
+        const spread = recipe.kitFootwear?.spread;
+        if (
+            spread &&
+            recipe.template === "sunshine" &&
+            !head &&
+            point[1] > 452
+        ) {
+            const [ax, ay, az] = sunshineRig.leftFoot;
+            const radius = ax - sunshineRig.hips[0];
+            const t = Math.min(1, (point[1] - 452) / (ay - 452));
+            const toe = Math.min(
+                1,
+                Math.max(0, (point[2] - az) / (sunshineRig.leftToes[2] - az))
+            );
+            const foot = Math.min(1, Math.max(0, (point[1] - ay + 25) / 25));
+            const delta =
+                (spread[0] - 1) * t + (spread[1] - spread[0]) * toe * foot;
+            // The same rest-space warp moves the knees, ankles, toe sockets and skinned surfaces.
+            // Only shoe size uses the wider spacing; calf thickness remains measured independently.
+            x += Math.sign(point[0] - origin) * radius * delta;
         }
         return [
             origin + (x - origin) * build,

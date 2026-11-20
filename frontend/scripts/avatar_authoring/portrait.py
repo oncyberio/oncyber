@@ -10,7 +10,7 @@ from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
 from .jersey_sleeve import bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
-from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
+from .sun_rays import jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
     closed_lips,
@@ -360,9 +360,7 @@ def compile_portrait(source, family, name, obs):
                     float(np.clip((ry / rx) / (base_ry / base_rx), 0.65, 1.5)), 4
                 )
             },
-            "orbPaint": dict(
-                zip(("top", "bottom"), map(paint, orb_swatches(rgb, orb)))
-            ),
+            "orbPaint": measured_orb_paint(rgb, mask, orb),
             "paints": {
                 "skin": paints["skin"],
                 "rays": paints["hair"],

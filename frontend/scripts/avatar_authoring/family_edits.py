@@ -25,7 +25,7 @@ def edit_schema(family=None, construction=None):
     roles = sorted({f"paints.{role}" for spec in families for role in spec["paints"]})
     scale = {"type": "number", "minimum": 0.65, "maximum": 1.5}
     color = {"type": "string", "pattern": "^#[a-fA-F0-9]{6}$"}
-    names = ["build", "legLength", "headWidth", "headHeight", "jaw"]
+    names = ["build", "legLength", "headHeight", "jaw"]
     if family != "sunshine":  # The mascot's visor pigments share its head surface.
         names.append("eyes")
 
@@ -45,6 +45,10 @@ def edit_schema(family=None, construction=None):
 
     branches = [
         fields(["proportions.armSpan"], bounded(0.8, 1.25)),
+        fields(
+            ["proportions.headWidth"],
+            bounded(0.65, 1.8 if family == "sunshine" else 1.5),
+        ),
         fields(
             ["limbWidth"],
             record({"arms": bounded(0.72, 1.4), "legs": bounded(0.72, 1.4)}),
@@ -505,10 +509,12 @@ def edited_recipe(
             "limbWidth",
             "kitFit",
             "shortsCut",
-            "orbPaint",
             "orbCollar",
         ):
             recipe[field] = copy.deepcopy(value)
+        elif field == "orbPaint":
+            # A pigment correction keeps the light measured on the sphere.
+            recipe[field] = {**recipe.get(field, {}), **copy.deepcopy(value)}
         elif field == "penOutline":
             if value:
                 recipe[field] = True

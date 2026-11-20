@@ -36,7 +36,38 @@ def marked_lens(rgb, dark):
             np.nonzero(marks == k)[1].mean() / width
             for k in np.flatnonzero(areas[1:] > 0.009 * width * height) + 1
         ]
-        if any(x < 0.46 for x in centers) and any(x > 0.54 for x in centers):
+        paired = any(x < 0.46 for x in centers) and any(x > 0.54 for x in centers)
+        if not paired:
+            # A warm studio light can turn white crosses champagne or cream.
+            # Require two enclosed, similarly sized marks on the same eye line.
+            bright = (rgb[box].min(2) > 146) & (np.ptp(rgb[box], axis=2) < 100)
+            islands, n = ndimage.label(
+                ndimage.binary_fill_holes(component) & ~component & bright
+            )
+            blobs = []
+            for k, tile in enumerate(ndimage.find_objects(islands), start=1):
+                if tile is None:
+                    continue
+                y, x = np.nonzero(islands[tile] == k)
+                area = len(x) / (width * height)
+                aspect = (np.ptp(x) + 1) / (np.ptp(y) + 1)
+                if 0.009 < area < 0.12 and 0.52 < aspect < 1.85:
+                    blobs.append(
+                        (
+                            (tile[1].start + x.mean()) / width,
+                            (tile[0].start + y.mean()) / height,
+                            area,
+                        )
+                    )
+            paired = any(
+                0.1 < x < 0.43
+                and 0.57 < u < 0.9
+                and abs(y - v) < 0.16
+                and 0.45 < a / b < 2.2
+                for x, y, a in blobs
+                for u, v, b in blobs
+            )
+        if paired:
             candidates.append(
                 (width, ((sx.start + sx.stop - 1) / 2, (sy.start + sy.stop - 1) / 2))
             )
@@ -87,6 +118,66 @@ def visor_contact(rgb, mask, orb, center, span, rows):
         }
 
 
+def lens_rim(rgb, lens, marks, orb):
+    """Trace the full front rim, including the narrow wings above the temples."""
+    cx, cy, rx, ry = orb
+    yy, xx = np.nonzero(lens)
+    cols = np.unique(xx)
+    if len(cols) < 18 or not np.all(np.diff(cols) == 1):
+        return
+    rows = np.column_stack(
+        (
+            ndimage.minimum(yy, xx, cols) - 0.5,
+            ndimage.maximum(yy, xx, cols) + 0.5,
+        )
+    )
+    rows = (rows - cy) / ry
+    rows = ndimage.median_filter(rows, size=(3, 1), mode="nearest")
+    u = (cols - cx) / rx
+    if abs(u).max() > 1.11 or abs(rows).max() > 0.8:
+        return
+    # Keep the observed shoulders and the bridge notch while spending fewer
+    # vertices on the almost straight top edge. Both edges use the same knots.
+    knots = [0, len(cols) - 1]
+    while len(knots) < 25:
+        estimate = np.column_stack(
+            [np.interp(u, u[knots], row[knots]) for row in rows.T]
+        )
+        err = np.abs(estimate - rows).max(axis=1)
+        where = int(err.argmax())
+        if err[where] <= max(0.015, 1.1 / ry):
+            break
+        knots = sorted([*knots, where])
+    # Wide panels follow the spherical surface between silhouette corners.
+    for x in np.linspace(u[0], u[-1], 13)[1:-1]:
+        idx = np.abs(u - x).argmin()
+        if np.min(abs(u[knots] - u[idx])) > 0.07:
+            knots.append(idx)
+    knots.sort()
+    v = (yy - cy) / ry
+    col_index = xx - cols[0]
+    height = rows[col_index, 1] - rows[col_index, 0]
+    t = (v - rows[col_index, 0]) / np.maximum(0.01, height)
+    core = (abs(u[col_index]) < 0.7) & (height > 0.25)
+    dye = []
+    for selected in (core & (t > 0.10) & (t < 0.33), core & (t > 0.65) & (t < 0.88)):
+        if selected.sum() < 10:
+            return
+        dye.append(np.median(rgb[yy[selected], xx[selected]], axis=0))
+    if marks.sum() < 6:
+        return
+
+    def swatch(color):
+        return "#" + np.rint(color).clip(0, 255).astype(np.uint8).tobytes().hex()
+
+    return {
+        "columns": np.column_stack((u[knots], rows[knots])).round(4).tolist(),
+        "upper": swatch(dye[0]),
+        "lower": swatch(dye[1]),
+        "glyph": swatch(np.percentile(rgb[marks], 75, axis=0)),
+    }
+
+
 def measure_visor(rgb, mask, orb):
     from .family import FAMILIES
 
@@ -130,6 +221,7 @@ def measure_visor(rgb, mask, orb):
     bright = holes & (rgb.min(2) > 155)
     islands, n = ndimage.label(bright)
     marks = []
+    mark_pixels = np.zeros_like(lens)
     for side in (-1, 1):
         candidates = [
             i
@@ -139,6 +231,7 @@ def measure_visor(rgb, mask, orb):
         if not candidates:
             return
         hit = max(candidates, key=lambda i: (islands == i).sum())
+        mark_pixels |= islands == hit
         ux = u[islands == hit]
         vy = v[islands == hit]
         bx = np.percentile(ux, [0, 100])
@@ -176,7 +269,9 @@ def measure_visor(rgb, mask, orb):
             and mask[temple].mean() > 0.95
             and not np.any(lens[temple])
         )
+    rim = lens_rim(rgb, lens, mark_pixels, orb)
     return {
+        **({"rim": rim} if rim else {}),
         **({"contact": contact} if contact else {}),
         **({"strap": False} if all(visible_skin) else {}),
         "center": round(float(center), 3),

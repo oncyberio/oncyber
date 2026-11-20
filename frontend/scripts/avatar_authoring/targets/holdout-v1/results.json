@@ -15183,19 +15183,1357 @@
                     }
                 }
             }
+        },
+        "fitted_orb_paint": {
+            "transport": "deterministic",
+            "model_calls": 0,
+            "reported_provider_cost": null,
+            "cases": {
+                "moss": {
+                    "transport": "deterministic",
+                    "seconds": 25.5,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "66c80065b2ca5f48b930a576dcece736ce2b0c04ed055616e96248d7ed77a1f8",
+                    "full_body_silhouette_iou": 0.8894,
+                    "full_body_rgb_mae": 25.61,
+                    "triangles": 3961,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.8899,
+                            "head_iou": 0.905,
+                            "head_edge_agreement": 0.7337,
+                            "body_edge_agreement": 0.6259,
+                            "rgb_mae": 27.13,
+                            "eye_pigment_agreement": 0.8791
+                        },
+                        {
+                            "silhouette_iou": 0.8894,
+                            "head_iou": 0.905,
+                            "head_edge_agreement": 0.7366,
+                            "body_edge_agreement": 0.6462,
+                            "rgb_mae": 25.61,
+                            "eye_pigment_agreement": 0.875
+                        }
+                    ],
+                    "forearm_paper_control": {
+                        "WebGLBackend": {
+                            "0": {
+                                "iou": 0.7864,
+                                "reference_median_rows": 16.0,
+                                "native_median_rows": 12.0
+                            },
+                            "12": {
+                                "iou": 0.923,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "19": {
+                                "iou": 0.9289,
+                                "reference_median_rows": 12.5,
+                                "native_median_rows": 12.0
+                            },
+                            "27": {
+                                "iou": 0.9345,
+                                "reference_median_rows": 12.0,
+                                "native_median_rows": 12.0
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "0": {
+                                "iou": 0.7864,
+                                "reference_median_rows": 16.0,
+                                "native_median_rows": 12.0
+                            },
+                            "12": {
+                                "iou": 0.923,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "19": {
+                                "iou": 0.9289,
+                                "reference_median_rows": 12.5,
+                                "native_median_rows": 12.0
+                            },
+                            "27": {
+                                "iou": 0.9345,
+                                "reference_median_rows": 12.0,
+                                "native_median_rows": 12.0
+                            }
+                        }
+                    },
+                    "evidence_sha256": "2ebfa34fdb9cbce858b5170292d4ac157944818b87b2273c236fa8bc863bff60",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "bdb1bbf79e55814e6ef64b8c3d24d8a67c3238510c294e0f7c77b21710222c29",
+                            "walk": "de07570ed9c470019f7a6ba81f38391dd08a4a818486afe63c1b3d9d51bbb26c"
+                        },
+                        "WebGPUBackend": {
+                            "views": "c6f73e00b011767110d8baedd8e5a5ccd257c6465002471aec9e07b1ce458158",
+                            "walk": "922591668c72ce8bbd05019faaa240192c247556a5b20fcea85f9c29239f0590"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8894,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3961,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7218
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8895,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3961,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7218
+                        }
+                    },
+                    "frontal_ears": {
+                        "WebGLBackend": {
+                            "skin_iou": 0.6318,
+                            "native_to_source_skin_area": 1.1571
+                        },
+                        "WebGPUBackend": {
+                            "skin_iou": 0.6343,
+                            "native_to_source_skin_area": 1.1495
+                        }
+                    },
+                    "inked_hands": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.8587,
+                            "rgb_mae": 39.32
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8583,
+                            "rgb_mae": 39.18
+                        }
+                    },
+                    "shirt_cut": {
+                        "WebGLBackend": {
+                            "torso_cloth_iou": 0.9801,
+                            "neck_skin_iou": 0.7068
+                        },
+                        "WebGPUBackend": {
+                            "torso_cloth_iou": 0.98,
+                            "neck_skin_iou": 0.6998
+                        }
+                    },
+                    "trouser_opening_height_fraction": {
+                        "reference": 0.5558,
+                        "WebGLBackend": 0.5672,
+                        "WebGPUBackend": 0.5656
+                    }
+                },
+                "lark": {
+                    "transport": "deterministic",
+                    "seconds": 26.16,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "d3e45cbb2c0d98a001333954fc3c910897dbdd558d229d1a218c11bbd363a79f",
+                    "full_body_silhouette_iou": 0.8816,
+                    "full_body_rgb_mae": 29.25,
+                    "triangles": 3743,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.879,
+                            "head_iou": 0.8901,
+                            "head_edge_agreement": 0.7266,
+                            "body_edge_agreement": 0.6042,
+                            "rgb_mae": 32.7,
+                            "eye_pigment_agreement": 0.4587
+                        },
+                        {
+                            "silhouette_iou": 0.8816,
+                            "head_iou": 0.8901,
+                            "head_edge_agreement": 0.7294,
+                            "body_edge_agreement": 0.6418,
+                            "rgb_mae": 29.25,
+                            "eye_pigment_agreement": 0.4587
+                        }
+                    ],
+                    "forearm_paper_control": {
+                        "WebGLBackend": {
+                            "0": {
+                                "iou": 0.7805,
+                                "reference_median_rows": 15.0,
+                                "native_median_rows": 12.0
+                            },
+                            "12": {
+                                "iou": 0.9078,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "19": {
+                                "iou": 0.9611,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "27": {
+                                "iou": 0.961,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "0": {
+                                "iou": 0.7795,
+                                "reference_median_rows": 15.0,
+                                "native_median_rows": 12.0
+                            },
+                            "12": {
+                                "iou": 0.9066,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "19": {
+                                "iou": 0.9623,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            },
+                            "27": {
+                                "iou": 0.961,
+                                "reference_median_rows": 13.0,
+                                "native_median_rows": 12.0
+                            }
+                        }
+                    },
+                    "evidence_sha256": "87a4f5ea5cd95168e074130f1aabf3a73134536b31b663133b1a54940aeef9fa",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "81dcde65ffb9d073d8d181ecf760a3254a6140f0e837729a41c7caf147e835cd",
+                            "walk": "1662d2f88018ad0643979f903c628b1384aa6c38e954177b6d3da15626c4ba0c"
+                        },
+                        "WebGPUBackend": {
+                            "views": "fbba10371dc8a136de846a31120b92b36a77b9c5db8ec7764b4091775bac0bbc",
+                            "walk": "07bd8e6edde4c0ba3630935398607d047d51de0f8097c96798c05021d711ea25"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8816,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3743,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7164
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8813,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3743,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7164
+                        }
+                    },
+                    "inked_hands": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.8672,
+                            "rgb_mae": 37.29
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8662,
+                            "rgb_mae": 37.54
+                        }
+                    },
+                    "shirt_cut": {
+                        "WebGLBackend": {
+                            "torso_cloth_iou": 0.9103,
+                            "neck_skin_iou": 0.7214
+                        },
+                        "WebGPUBackend": {
+                            "torso_cloth_iou": 0.9112,
+                            "neck_skin_iou": 0.7144
+                        }
+                    },
+                    "trouser_opening_height_fraction": {
+                        "reference": 0.556,
+                        "WebGLBackend": 0.5796,
+                        "WebGPUBackend": 0.5796
+                    }
+                },
+                "rowan": {
+                    "transport": "deterministic",
+                    "seconds": 12.55,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "d1c3f3c3fa678b6bd064157dc95720faaa0220405284e68d844fbc2cf7a0d218",
+                    "full_body_silhouette_iou": 0.8187,
+                    "full_body_rgb_mae": 50.36,
+                    "triangles": 3157,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.9122,
+                        "rgb_mae": 24.91,
+                        "ink_agreement": 0.735,
+                        "visible_fraction": 1.0
+                    },
+                    "evidence_sha256": "238aae880b781522148758194cfc84c8d9e06e0cd35c639d3f467a886851eb68",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "e10eea4b20d0219e536fe0ee6dd297575f6d43aa3f3ba2909ed576608506817b",
+                            "walk": "f70278f04911556bb15a277c43164a0cf18d775ac48412728972ad810840d812"
+                        },
+                        "WebGPUBackend": {
+                            "views": "14048e15fb3d95b32f1cc60ebbba6269ba094007f4d6f78268ea80ceaa4d003b",
+                            "walk": "8f7b7b1083da50273347eb43513643181ec05725a010f43da4227ca0fa3932e0"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8187,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3157,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7327
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8189,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3157,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7327
+                        }
+                    },
+                    "frontal_ears": {
+                        "WebGLBackend": {
+                            "skin_iou": 0.5319,
+                            "native_to_source_skin_area": 0.8694
+                        },
+                        "WebGPUBackend": {
+                            "skin_iou": 0.5289,
+                            "native_to_source_skin_area": 0.8704
+                        }
+                    }
+                },
+                "poe": {
+                    "transport": "deterministic",
+                    "seconds": 26.44,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, true],
+                    "routed_family": "rick-classic",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "f9699ea784520327cec764bd9a387744f7fec3cd8aafc22c7f52fd5fa249609a",
+                    "full_body_silhouette_iou": 0.8012,
+                    "full_body_rgb_mae": 41.64,
+                    "triangles": 3343,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.8691,
+                        "rgb_mae": 22.24,
+                        "ink_agreement": 0.8973,
+                        "visible_fraction": 1.0
+                    },
+                    "evidence_sha256": "f53fadc051d754c15bf211831c3bea283eae9f504cba9df1c1d4f24d5ac538fc",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "9151cd9ee0d72a2fa6d2fc11d6112f49715b255370a6bdb768c85808206b8e2f",
+                            "walk": "72909e4dddc38324dd77ed42508ad9ded09f3cc1669a8dd68c6499c47fecf7e9"
+                        },
+                        "WebGPUBackend": {
+                            "views": "60325f314a0aa60b7cd66b2cba9d43ec7cad6c3eb8caf908a596f2ad4941fe7a",
+                            "walk": "623cc49c3c788db9f4e35314f70ae5d728cf8faad6a7bd4b1713cf12d495eddf"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8012,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3343,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7459
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8012,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3343,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7459
+                        }
+                    },
+                    "frontal_ears": {
+                        "WebGLBackend": {
+                            "skin_iou": 0.652,
+                            "native_to_source_skin_area": 1.1146
+                        },
+                        "WebGPUBackend": {
+                            "skin_iou": 0.6492,
+                            "native_to_source_skin_area": 1.1201
+                        }
+                    }
+                },
+                "solvi": {
+                    "transport": "deterministic",
+                    "seconds": 30.78,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "d9639af658d4b3e0740d692743cd87ef6eac7f1439dc62c8f75a2b2d0fff4ea8",
+                    "full_body_silhouette_iou": 0.8618,
+                    "full_body_rgb_mae": 20.43,
+                    "triangles": 3165,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.8295,
+                            "head_iou": 0.7836,
+                            "head_edge_agreement": 0.5408,
+                            "body_edge_agreement": 0.4415,
+                            "rgb_mae": 26.81,
+                            "eye_pigment_agreement": 0.9932,
+                            "shirt_mark_agreement": 0.8232
+                        },
+                        {
+                            "silhouette_iou": 0.8618,
+                            "head_iou": 0.7836,
+                            "head_edge_agreement": 0.5408,
+                            "body_edge_agreement": 0.6241,
+                            "rgb_mae": 20.43,
+                            "eye_pigment_agreement": 0.9932,
+                            "shirt_mark_agreement": 0.8232
+                        }
+                    ],
+                    "evidence_sha256": "ae9959aaf0c11b3b66a3e028fe45ac76f0256b6fa31a6e096f435895597d7ef1",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "c1c0ab7d32811ee9528740f75127e52558f5043430a7dc6c4cb251450d3b343e",
+                            "walk": "237c40f228953dad2293e30af44e60ea5c25e5a621e083f1a5d0ecacaad5ca95"
+                        },
+                        "WebGPUBackend": {
+                            "views": "f00878747d70bc72ea9c8b5d0e49bcaa89e83bd99d86fdbec352190fe482c0b8",
+                            "walk": "46412f19d3bd6ed8d83727ddca08c8b592403551a2788bc19e4cb566869c8c24"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8618,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3165,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7152
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8572,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3165,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7141
+                        }
+                    },
+                    "orb_finish": {
+                        "WebGLBackend": {
+                            "lens_iou": 0.9512,
+                            "lens_rgb_mae": 5.98,
+                            "forehead_rgb_mae": 5.95
+                        },
+                        "WebGPUBackend": {
+                            "lens_iou": 0.9511,
+                            "lens_rgb_mae": 5.99,
+                            "forehead_rgb_mae": 5.94
+                        }
+                    },
+                    "orb_meridian_luma_step": {
+                        "reference": 1.6,
+                        "WebGLBackend": 0.79,
+                        "WebGPUBackend": 0.79
+                    },
+                    "crown_paper_control": {
+                        "WebGLBackend": {
+                            "registered_crown_iou": 0.8035,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8134,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9154
+                                },
+                                "19": {
+                                    "source_self_iou": 0.7839,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9087
+                                },
+                                "27": {
+                                    "source_self_iou": 0.7675,
+                                    "native_self_iou": 0.9951,
+                                    "painted_crown_iou": 0.9021
+                                }
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "registered_crown_iou": 0.8008,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8134,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9185
+                                },
+                                "19": {
+                                    "source_self_iou": 0.7839,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9132
+                                },
+                                "27": {
+                                    "source_self_iou": 0.7675,
+                                    "native_self_iou": 0.9955,
+                                    "painted_crown_iou": 0.9029
+                                }
+                            }
+                        }
+                    },
+                    "ray_paint": {
+                        "WebGLBackend": {
+                            "iou": 0.807,
+                            "lower_iou": 0.6033
+                        },
+                        "WebGPUBackend": {
+                            "iou": 0.8009,
+                            "lower_iou": 0.6074
+                        }
+                    },
+                    "visor_shadow_luma": {
+                        "reference": {
+                            "edge": 107.9,
+                            "cheek": 159.1
+                        },
+                        "WebGLBackend": {
+                            "edge": 107.3,
+                            "cheek": 146.2
+                        },
+                        "WebGPUBackend": {
+                            "edge": 107.3,
+                            "cheek": 146.2
+                        }
+                    },
+                    "jersey_sleeves": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.8973,
+                            "cuff_rgb_mae": 24.92
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8974,
+                            "cuff_rgb_mae": 24.94
+                        }
+                    },
+                    "kit_footwear": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.8015,
+                            "rgb_mae": 29.76,
+                            "drawing": {
+                                "bands": [
+                                    {
+                                        "start": 0.446,
+                                        "end": 0.514,
+                                        "color": "#1a62ca"
+                                    },
+                                    {
+                                        "start": 0.568,
+                                        "end": 0.635,
+                                        "color": "#1460c5"
+                                    }
+                                ],
+                                "laces": [0.185, 0.259, 0.37]
+                            },
+                            "native": {
+                                "bands": [
+                                    {
+                                        "start": 0.443,
+                                        "end": 0.515,
+                                        "color": "#1c66d0"
+                                    },
+                                    {
+                                        "start": 0.567,
+                                        "end": 0.639,
+                                        "color": "#1563ca"
+                                    }
+                                ],
+                                "laces": [0.171, 0.257]
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8007,
+                            "rgb_mae": 32.08,
+                            "drawing": {
+                                "bands": [
+                                    {
+                                        "start": 0.446,
+                                        "end": 0.514,
+                                        "color": "#1a62ca"
+                                    },
+                                    {
+                                        "start": 0.568,
+                                        "end": 0.635,
+                                        "color": "#1460c5"
+                                    }
+                                ],
+                                "laces": [0.185, 0.259, 0.37]
+                            },
+                            "native": {
+                                "bands": [
+                                    {
+                                        "start": 0.443,
+                                        "end": 0.515,
+                                        "color": "#1c66d0"
+                                    },
+                                    {
+                                        "start": 0.567,
+                                        "end": 0.639,
+                                        "color": "#1563ca"
+                                    }
+                                ],
+                                "laces": [0.171, 0.257]
+                            }
+                        }
+                    },
+                    "visible_hand": {
+                        "reference": {
+                            "wristRadius": 0.01255,
+                            "padRadius": 0.00837,
+                            "light": [1.22, 0.547],
+                            "band": {
+                                "center": 0.7941,
+                                "width": 0.0275,
+                                "color": "#0648bc"
+                            }
+                        },
+                        "WebGLBackend": {
+                            "wristRadius": 0.01311,
+                            "padRadius": 0.0082,
+                            "light": [1.108, 0.606],
+                            "band": {
+                                "center": 0.7961,
+                                "width": 0.0322,
+                                "color": "#043ea4"
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "wristRadius": 0.01309,
+                            "padRadius": 0.00818,
+                            "light": [1.107, 0.606],
+                            "band": {
+                                "center": 0.7961,
+                                "width": 0.0322,
+                                "color": "#043ea4"
+                            }
+                        }
+                    },
+                    "visible_shorts": {
+                        "reference": {
+                            "rise": 0.4583,
+                            "hem_to_waist": 1.0649
+                        },
+                        "WebGLBackend": {
+                            "rise": 0.4778,
+                            "hem_to_waist": 1.065
+                        },
+                        "WebGPUBackend": {
+                            "rise": 0.4778,
+                            "hem_to_waist": 1.065
+                        }
+                    }
+                },
+                "mora": {
+                    "transport": "deterministic",
+                    "seconds": 33.4,
+                    "model_calls": [],
+                    "selected_pass": 2,
+                    "reported_provider_cost": null,
+                    "passes": [false, false],
+                    "routed_family": "sunshine",
+                    "routed_framing": "full",
+                    "visible_checks_passed": false,
+                    "error": null,
+                    "candidate_sha256": "4f8f5604c0899557d70a66c47c5e4af3b17566a645b8cb8cba2b0685ee6666a4",
+                    "full_body_silhouette_iou": 0.8711,
+                    "full_body_rgb_mae": 17.79,
+                    "triangles": 3267,
+                    "release_checks": [
+                        "failed visible checks",
+                        "failed visible checks"
+                    ],
+                    "front_checks": [
+                        {
+                            "silhouette_iou": 0.8309,
+                            "head_iou": 0.7727,
+                            "head_edge_agreement": 0.4652,
+                            "body_edge_agreement": 0.3664,
+                            "rgb_mae": 24.59,
+                            "eye_pigment_agreement": 0.6279,
+                            "shirt_mark_agreement": 0.7963
+                        },
+                        {
+                            "silhouette_iou": 0.8711,
+                            "head_iou": 0.8097,
+                            "head_edge_agreement": 0.519,
+                            "body_edge_agreement": 0.541,
+                            "rgb_mae": 17.79,
+                            "eye_pigment_agreement": 0.9968,
+                            "shirt_mark_agreement": 0.7963
+                        }
+                    ],
+                    "evidence_sha256": "d5045c20e635d995762c6ddad83a7fd3db55d0ced531939c974c5adf608b44ef",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "22094ba3e325ed01368caddb219d67c5134e20413539044feac5202b51183edd",
+                            "walk": "90c4ecbef02fa7639442ad35fb03a2c6240b24e0a9decf095ebf861ad95d525f"
+                        },
+                        "WebGPUBackend": {
+                            "views": "955c1bae598f9eb26a850adffd3558651109c8342c8ccd916b96a74ca83dc4c1",
+                            "walk": "1177dc69eefc372de0d087f68afa7e89104eab5fe4c49533ce7726dde5097671"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8711,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3267,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7173
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.871,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 3267,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7173
+                        }
+                    },
+                    "orb_finish": {
+                        "WebGLBackend": {
+                            "lens_iou": 0.9524,
+                            "lens_rgb_mae": 6.54,
+                            "forehead_rgb_mae": 4.17
+                        },
+                        "WebGPUBackend": {
+                            "lens_iou": 0.9508,
+                            "lens_rgb_mae": 6.58,
+                            "forehead_rgb_mae": 4.16
+                        }
+                    },
+                    "orb_meridian_luma_step": {
+                        "reference": 2.19,
+                        "WebGLBackend": 1.0,
+                        "WebGPUBackend": 1.0
+                    },
+                    "crown_paper_control": {
+                        "WebGLBackend": {
+                            "registered_crown_iou": 0.8327,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8508,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9325
+                                },
+                                "19": {
+                                    "source_self_iou": 0.8144,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9357
+                                },
+                                "27": {
+                                    "source_self_iou": 0.8033,
+                                    "native_self_iou": 0.98,
+                                    "painted_crown_iou": 0.936
+                                }
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "registered_crown_iou": 0.8327,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8508,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9339
+                                },
+                                "19": {
+                                    "source_self_iou": 0.8144,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.936
+                                },
+                                "27": {
+                                    "source_self_iou": 0.8033,
+                                    "native_self_iou": 0.9802,
+                                    "painted_crown_iou": 0.9362
+                                }
+                            }
+                        }
+                    },
+                    "ray_paint": {
+                        "WebGLBackend": {
+                            "iou": 0.8347,
+                            "lower_iou": 0.6379
+                        },
+                        "WebGPUBackend": {
+                            "iou": 0.8376,
+                            "lower_iou": 0.6401
+                        }
+                    },
+                    "visor_shadow_luma": {
+                        "reference": {
+                            "edge": 66.6,
+                            "cheek": 105.6
+                        },
+                        "WebGLBackend": {
+                            "edge": 79.2,
+                            "cheek": 100.3
+                        },
+                        "WebGPUBackend": {
+                            "edge": 79.2,
+                            "cheek": 100.3
+                        }
+                    },
+                    "jersey_sleeves": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.889,
+                            "cuff_rgb_mae": 17.3
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8886,
+                            "cuff_rgb_mae": 17.35
+                        }
+                    },
+                    "kit_footwear": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.8243,
+                            "rgb_mae": 27.98,
+                            "drawing": {
+                                "bands": [
+                                    {
+                                        "start": 0.446,
+                                        "end": 0.514,
+                                        "color": "#fa609a"
+                                    },
+                                    {
+                                        "start": 0.568,
+                                        "end": 0.635,
+                                        "color": "#fa5495"
+                                    }
+                                ],
+                                "laces": [0.185, 0.259, 0.37]
+                            },
+                            "native": {
+                                "bands": [
+                                    {
+                                        "start": 0.449,
+                                        "end": 0.51,
+                                        "color": "#ff639e"
+                                    },
+                                    {
+                                        "start": 0.561,
+                                        "end": 0.633,
+                                        "color": "#ff5799"
+                                    }
+                                ],
+                                "laces": [0.147, 0.235, 0.353]
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.8243,
+                            "rgb_mae": 27.73,
+                            "drawing": {
+                                "bands": [
+                                    {
+                                        "start": 0.446,
+                                        "end": 0.514,
+                                        "color": "#fa609a"
+                                    },
+                                    {
+                                        "start": 0.568,
+                                        "end": 0.635,
+                                        "color": "#fa5495"
+                                    }
+                                ],
+                                "laces": [0.185, 0.259, 0.37]
+                            },
+                            "native": {
+                                "bands": [
+                                    {
+                                        "start": 0.443,
+                                        "end": 0.515,
+                                        "color": "#ff629d"
+                                    },
+                                    {
+                                        "start": 0.567,
+                                        "end": 0.639,
+                                        "color": "#fe5698"
+                                    }
+                                ],
+                                "laces": [0.171, 0.257, 0.371]
+                            }
+                        }
+                    },
+                    "visible_hand": {
+                        "reference": {
+                            "wristRadius": 0.01308,
+                            "padRadius": 0.00837,
+                            "light": [1.316, 0.461],
+                            "band": {
+                                "center": 0.7952,
+                                "width": 0.0297,
+                                "color": "#aa2c5f"
+                            }
+                        },
+                        "WebGLBackend": {
+                            "wristRadius": 0.01391,
+                            "padRadius": 0.009,
+                            "light": [1.262, 0.569],
+                            "band": {
+                                "center": 0.7989,
+                                "width": 0.0323,
+                                "color": "#9a2654"
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "wristRadius": 0.01391,
+                            "padRadius": 0.009,
+                            "light": [1.264, 0.568],
+                            "band": {
+                                "center": 0.7989,
+                                "width": 0.0323,
+                                "color": "#9a2654"
+                            }
+                        }
+                    },
+                    "visible_shorts": {
+                        "reference": {
+                            "rise": 0.4521,
+                            "hem_to_waist": 1.0779
+                        },
+                        "WebGLBackend": {
+                            "rise": 0.4674,
+                            "hem_to_waist": 1.0606
+                        },
+                        "WebGPUBackend": {
+                            "rise": 0.4674,
+                            "hem_to_waist": 1.0606
+                        }
+                    }
+                },
+                "reed": {
+                    "transport": "deterministic",
+                    "seconds": 13.08,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "acbdb952799a3211b8af1197fcc1814dc96761fd239655cac6c74b85f177229e",
+                    "full_body_silhouette_iou": 0.8196,
+                    "full_body_rgb_mae": 28.35,
+                    "triangles": 1978,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.9208,
+                        "rgb_mae": 16.98,
+                        "ink_agreement": 0.9883,
+                        "visible_fraction": 0.9271,
+                        "visible_jersey": {
+                            "silhouette_iou": 0.9528,
+                            "rgb_mae": 19.11
+                        }
+                    },
+                    "evidence_sha256": "2ee70480f3c7c32e81945bc86edadecaf34893b8d7e16875f52677c464122889",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "1ba61b10cdb5b3a1e54980412c7df231afb9ee504e4632054fb528cfca3db7b5",
+                            "walk": "93986e56362a4a52333e86ae620ea53e95092b8b049c674764740fafd4c4ce8a"
+                        },
+                        "WebGPUBackend": {
+                            "views": "aa20f3d1a4e6a621a2a86a5950bf0575e3314ea83edff08f1dff86edbe490509",
+                            "walk": "6abe4f284dc43a2c5aaf83ce811f244df5a69ebaf010630bd764241c40e92680"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8196,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 1978,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8196,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 1978,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        }
+                    },
+                    "orb_finish": {
+                        "WebGLBackend": {
+                            "lens_iou": 0.9421,
+                            "lens_rgb_mae": 6.02,
+                            "forehead_rgb_mae": 4.62
+                        },
+                        "WebGPUBackend": {
+                            "lens_iou": 0.9409,
+                            "lens_rgb_mae": 6.05,
+                            "forehead_rgb_mae": 4.62
+                        }
+                    },
+                    "orb_meridian_luma_step": {
+                        "reference": 1.67,
+                        "WebGLBackend": 0.93,
+                        "WebGPUBackend": 0.93
+                    },
+                    "visor_shadow_luma": {
+                        "reference": {
+                            "edge": 137.6,
+                            "cheek": 185.1
+                        },
+                        "WebGLBackend": {
+                            "edge": 155.1,
+                            "cheek": 172.7
+                        },
+                        "WebGPUBackend": {
+                            "edge": 155.8,
+                            "cheek": 172.7
+                        }
+                    },
+                    "jersey_sleeves": {
+                        "WebGLBackend": null,
+                        "WebGPUBackend": null
+                    }
+                },
+                "indigo": {
+                    "transport": "deterministic",
+                    "seconds": 11.53,
+                    "model_calls": [],
+                    "selected_pass": 1,
+                    "reported_provider_cost": null,
+                    "passes": [true],
+                    "routed_family": "sunshine",
+                    "routed_framing": "portrait",
+                    "visible_checks_passed": true,
+                    "error": null,
+                    "candidate_sha256": "c0db9def486cff12cb83964966f8836d3dd0509664b8ba5f2d7d35b5cf0b3a2d",
+                    "full_body_silhouette_iou": 0.8503,
+                    "full_body_rgb_mae": 33.97,
+                    "triangles": 1988,
+                    "release_checks": [
+                        "failed review: Native reference comparison failed on WebGLBackend"
+                    ],
+                    "visible_portrait": {
+                        "head_iou": 0.8873,
+                        "rgb_mae": 15.05,
+                        "ink_agreement": 0.9778,
+                        "visible_fraction": 0.9323,
+                        "visible_jersey": {
+                            "silhouette_iou": 0.9565,
+                            "rgb_mae": 17.19
+                        }
+                    },
+                    "evidence_sha256": "cdc04ec5a3ca72c638be13838e87e060d3a9b12e0ab7862141ab23aab49d601c",
+                    "review_assets": {
+                        "WebGLBackend": {
+                            "views": "f592154b2e69691c0bf148050442763b8ef29c7b91758ea65b10ad1b5af6da3a",
+                            "walk": "9c4d7925b77f07445d7227678043392470f9d0df6b8ea4ce443dfbcf9a1192d0"
+                        },
+                        "WebGPUBackend": {
+                            "views": "aca01cfde6280919ed0bc8a60827bcc7a713eeb7e54b8c980dcb4c844b7a961f",
+                            "walk": "458f748988bd70064845acc92664f28beae39ea0a24348f1103815878cd34fdd"
+                        }
+                    },
+                    "native_release": {
+                        "WebGLBackend": {
+                            "source_silhouette_iou": 0.8503,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 1988,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7332
+                        },
+                        "WebGPUBackend": {
+                            "source_silhouette_iou": 0.8526,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
+                            "triangles": 1988,
+                            "moving_steps": 11,
+                            "hand": "right",
+                            "crouch_height_ratio": 0.7304
+                        }
+                    },
+                    "orb_finish": {
+                        "WebGLBackend": {
+                            "lens_iou": 0.9313,
+                            "lens_rgb_mae": 6.46,
+                            "forehead_rgb_mae": 5.81
+                        },
+                        "WebGPUBackend": {
+                            "lens_iou": 0.9316,
+                            "lens_rgb_mae": 6.46,
+                            "forehead_rgb_mae": 5.81
+                        }
+                    },
+                    "orb_meridian_luma_step": {
+                        "reference": 1.62,
+                        "WebGLBackend": 0.83,
+                        "WebGPUBackend": 0.83
+                    },
+                    "visor_shadow_luma": {
+                        "reference": {
+                            "edge": 94.0,
+                            "cheek": 135.7
+                        },
+                        "WebGLBackend": {
+                            "edge": 109.2,
+                            "cheek": 126.5
+                        },
+                        "WebGPUBackend": {
+                            "edge": 109.2,
+                            "cheek": 126.5
+                        }
+                    },
+                    "jersey_sleeves": {
+                        "WebGLBackend": {
+                            "silhouette_iou": 0.9195,
+                            "cuff_rgb_mae": 22.59
+                        },
+                        "WebGPUBackend": {
+                            "silhouette_iou": 0.9194,
+                            "cuff_rgb_mae": 22.94
+                        }
+                    }
+                }
+            },
+            "independent_first_pass": 0,
+            "independent_within_one_correction": 0,
+            "crowd": {
+                "base_recipes": [
+                    "moss",
+                    "lark",
+                    "rowan",
+                    "poe",
+                    "solvi",
+                    "mora",
+                    "reed",
+                    "indigo"
+                ],
+                "variants": 100,
+                "route": "/preview/crowd?shadows=1",
+                "backends": {
+                    "WebGLBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "shadowCalls": "1",
+                        "shadowOnly": "false",
+                        "frameCalls": "4",
+                        "visible": "100",
+                        "backend": "WebGLBackend",
+                        "authored": "100",
+                        "distinct": "100",
+                        "seedDigest": "6111982457a9fb388731fdce1cf9d4969a852fba6e01de383952f579d31d0590",
+                        "triangles": "431117",
+                        "readyMs": "4388",
+                        "uniqueRecipesLoaded": 100,
+                        "occupiedColorCells": 100,
+                        "occupiedShadowCells": 100
+                    },
+                    "WebGPUBackend": {
+                        "engine": "three.js r187dev webgpu",
+                        "calls": "1",
+                        "shadowCalls": "1",
+                        "shadowOnly": "false",
+                        "frameCalls": "4",
+                        "visible": "100",
+                        "backend": "WebGPUBackend",
+                        "authored": "100",
+                        "distinct": "100",
+                        "seedDigest": "6111982457a9fb388731fdce1cf9d4969a852fba6e01de383952f579d31d0590",
+                        "triangles": "431117",
+                        "readyMs": "5628",
+                        "uniqueRecipesLoaded": 100,
+                        "occupiedColorCells": 100,
+                        "occupiedShadowCells": 100
+                    }
+                }
+            },
+            "benchmarks": {
+                "rick_source_triangles": 2116586,
+                "rick_views": 15,
+                "minimum_rick_silhouette_iou": 0.9594,
+                "maximum_rick_layer_intrusion_pixels": 0,
+                "sunshine": {
+                    "front": {
+                        "iou": 0.9521,
+                        "color_mae": 16.7
+                    },
+                    "profile": {
+                        "iou": 0.9255,
+                        "color_mae": 23.13
+                    },
+                    "back": {
+                        "iou": 0.9532,
+                        "color_mae": 14.11
+                    }
+                }
+            }
         }
     },
     "preview": {
-        "run": "measured_ear_roots",
+        "run": "fitted_orb_paint",
         "candidate_sha256": {
             "moss": "66c80065b2ca5f48b930a576dcece736ce2b0c04ed055616e96248d7ed77a1f8",
             "lark": "d3e45cbb2c0d98a001333954fc3c910897dbdd558d229d1a218c11bbd363a79f",
             "rowan": "d1c3f3c3fa678b6bd064157dc95720faaa0220405284e68d844fbc2cf7a0d218",
             "poe": "f9699ea784520327cec764bd9a387744f7fec3cd8aafc22c7f52fd5fa249609a",
-            "solvi": "018407f4bfac4d831040303d8fd7f067bfdcca0172be92bb5fa5c2e04f5da88e",
-            "mora": "f194016c84cb4adb3e2239ba5787b5603e8fb08a220aa0583815d29c04c781a6",
-            "reed": "80194437cd1e153b013ae83a95add62199bf6afb6b91dfa1f84ec866b178e31c",
-            "indigo": "4ffde8b3911eaafbe7e6e48f30684901ea8f715fbaa045578b9d798d439ae345"
+            "solvi": "d9639af658d4b3e0740d692743cd87ef6eac7f1439dc62c8f75a2b2d0fff4ea8",
+            "mora": "4f8f5604c0899557d70a66c47c5e4af3b17566a645b8cb8cba2b0685ee6666a4",
+            "reed": "acbdb952799a3211b8af1197fcc1814dc96761fd239655cac6c74b85f177229e",
+            "indigo": "c0db9def486cff12cb83964966f8836d3dd0509664b8ba5f2d7d35b5cf0b3a2d"
         }
     }
 }

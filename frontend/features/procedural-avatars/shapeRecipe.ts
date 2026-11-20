@@ -6,7 +6,12 @@ import {
     type KitFootwear,
 } from "./kitFootwear";
 import { drawJerseySleeve, type JerseySleeve } from "./jerseySleeve";
-import { drawOrbVisor, orbContactUV, type OrbVisor } from "./orbVisor";
+import {
+    drawOrbVisor,
+    orbContactUV,
+    orbIrradiance,
+    type OrbVisor,
+} from "./orbVisor";
 import families from "./families.json";
 import { drawMarkedShirt, type ShirtMark } from "./shirtMark";
 import { garmentMapping, type PrintName, type PrintPath } from "./garmentPrint";
@@ -280,7 +285,8 @@ export function drawShapeRecipe(
     shortsCut?: ShortsCut,
     jerseySleeve?: JerseySleeve,
     footwear?: KitFootwear,
-    hand?: KitHand
+    hand?: KitHand,
+    orbLight?: [number, number, number]
 ) {
     const finishes = Object.fromEntries(
         Object.values(recipe.palette).map((p) => [p.color, finish[p.finish]])
@@ -305,6 +311,7 @@ export function drawShapeRecipe(
             knit: dye(footwear.knit),
             upper: dye(footwear.upper),
             sole: dye(footwear.sole),
+            ...(footwear.laceInk && { laceInk: dye(footwear.laceInk) }),
             bands: footwear.bands.map((b) => ({ ...b, color: dye(b.color) })),
         };
         finishes[footwear.upper] = finish.cloth;
@@ -705,6 +712,9 @@ export function drawShapeRecipe(
         } else if ("oval" in part) {
             d.s.orbSurface = !!visor && part.name === "skull";
             d.s.orbContact = d.s.orbSurface ? orbContactUV(visor) : undefined;
+            d.s.paintedOrb = !!(d.s.orbSurface && orbLight);
+            if (d.s.paintedOrb)
+                d.s.tone = orbIrradiance(orbLight, part.oval, part.radii);
             d.s.fineDetail = d.s.orbSurface;
             d.s.oval(
                 part.oval,
@@ -714,6 +724,8 @@ export function drawShapeRecipe(
                 d.s.orbSurface ? 22 : 0
             );
             d.s.fineDetail = false;
+            if (d.s.paintedOrb) d.s.tone = undefined;
+            d.s.paintedOrb = false;
             d.s.orbSurface = false;
             d.s.orbContact = undefined;
             const [x, y, z] = part.oval,

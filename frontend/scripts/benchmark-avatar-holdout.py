@@ -236,6 +236,54 @@ def visible_hand(path):
     return kit_hand(rgb, mask, kit_landmarks(rgb, mask))
 
 
+def compare_orb_finish(reference, candidate):
+    """Compare paint and lens contours independently of the body and its camera."""
+    from scipy import ndimage
+
+    v, u = np.mgrid[-1.08:1.08:217j, -1.08:1.08:217j]
+    samples = []
+    for path in (reference, candidate):
+        rgb, mask = pixels(path, keep_components=True)
+        seed = visor_seed(rgb, mask)
+        if seed is None:
+            return None
+        center, radius = seed
+        orb = measure_sun_rays(rgb, mask, center, [radius, radius], orb_only=True)
+        if orb is None:
+            return None
+        cx, cy, rx, ry = orb
+        grid = [cy + v * ry, cx + u * rx]
+        color = np.stack(
+            [
+                ndimage.map_coordinates(channel, grid, order=1)
+                for channel in rgb.transpose(2, 0, 1)
+            ],
+            axis=-1,
+        )
+        lens = (
+            (color.max(2) < 85)
+            & (np.ptp(color, axis=2) < 36)
+            & (abs(v) < 0.67)
+            & (abs(u) < 1.02)
+        )
+        labels, n = ndimage.label(lens)
+        if not n:
+            return None
+        lens = labels == (np.bincount(labels.ravel())[1:].argmax() + 1)
+        samples.append((color, lens))
+    (a, first), (b, second) = samples
+    forehead = (u * u + v * v < 0.83**2) & (v < -0.37)
+    shared_lens = first & second & (abs(u) < 0.91)
+    if not shared_lens.any():
+        return None
+    error = np.abs(a - b)
+    return {
+        "lens_iou": round(float((first & second).sum() / (first | second).sum()), 4),
+        "lens_rgb_mae": round(float(error[shared_lens].mean()), 2),
+        "forehead_rgb_mae": round(float(error[forehead].mean()), 2),
+    }
+
+
 def orb_meridian_luma_step(path):
     """Largest adjacent luma step near the frontal meridian on visible bare skin."""
     rgb, mask = pixels(path, keep_components=True)
@@ -633,6 +681,11 @@ def record_preview(args):
                 mode: compare_shirt_cut(
                     reference, evidence.parent / mode / "front.png", design
                 )
+                for mode in report["backends"]
+            }
+        if recipe.get("visor", {}).get("rim"):
+            data["orb_finish"] = {
+                mode: compare_orb_finish(root / case["input"], evidence.parent / mode / "front.png")
                 for mode in report["backends"]
             }
         if "visor" in recipe:

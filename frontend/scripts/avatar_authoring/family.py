@@ -19,7 +19,7 @@ from .sun_rays import (
     jersey_neck,
     kit_landmarks,
     measure_sun_rays,
-    orb_swatches,
+    measured_orb_paint,
     shorts_cut,
 )
 from .tracing import registered_print, shirt_mark, traced_print
@@ -383,7 +383,7 @@ class Family:
             # arcs independently fix the height, breadth and pivot of the orb.
             scale = params[0] * unit
             params[5:7] = np.clip(
-                fitted_orb[2:] / [rx * scale * params[3], ry * scale], 0.65, 1.5
+                fitted_orb[2:] / [rx * scale * params[3], ry * scale], 0.65, [1.8, 1.5]
             )
             params[7:] = 1
             drawn = self.warp(np.array([[cx, cy]]), True, params)[0] * unit + [ox, oy]
@@ -612,11 +612,7 @@ class Family:
                 ):
                     if visor:
                         updated["visor"] = visor
-                        colors = orb_swatches(image, ellipse).round().astype("uint8")
-                        updated["orbPaint"] = {
-                            k: "#" + c.tobytes().hex()
-                            for k, c in zip(("top", "bottom"), colors)
-                        }
+                        updated["orbPaint"] = measured_orb_paint(image, mask, ellipse)
                         neck = jersey_neck(image, mask, ellipse)
                         if neck:
                             updated["orbCollar"] = neck[0]

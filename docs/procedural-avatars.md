@@ -101,14 +101,14 @@ Use `review-avatar-release.py candidate.json reference.webp /tmp/avatar-review -
 
 The fixture freezes four GPT Image drawings per family. The fixture records the generator name. The exact image-model version and original generation charges are unavailable. Each family has two full T-poses and two restricted portrait inputs. The evaluator opens the complete drawing for a portrait only after candidate selection. Compare inferred body proportions separately from visible portrait likeness. The first local run passed all automated likeness checks on **0 of 8**. The replay informed the mouth, shirt width and jersey changes. Those cases are now calibration examples for any subsequent evaluation. No candidate from this trial entered the catalogue. For a benchmark release review, generate evidence against the withheld full drawing after fitting and store the decision in the candidate pass’s `approval/` directory. Run `benchmark-avatar-holdout.py OUTPUT --score-reviews` to count independent first-pass and one-correction approvals without invoking the author again.
 
-On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. Moss, Lark, Solvi and Mora missed the full-body gates. All eight selected recipes have native turnarounds, a walk, a crouch and close-ups of the microphone in both hands on both backends. All four inferred bodies missed the withheld full-body reference check. Independent approvals remain at **0/8**. The deterministic fits took 13.32–35.61 seconds each. The run made zero provider calls. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
+On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. Moss, Lark, Solvi and Mora missed the full-body gates. All eight selected recipes have native turnarounds, a walk, a crouch and close-ups of the microphone in both hands on both backends. All four inferred bodies missed the withheld full-body reference check. Independent approvals remain at **0/8**. The deterministic fits took 11.53–33.40 seconds each. The run made zero provider calls. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
 
 | Portrait input | Previous full-body silhouette IoU | Current IoU |
 | -------------- | --------------------------------: | ----------: |
 | Rowan          |                            0.6227 |      0.8187 |
 | Poe            |                            0.6643 |      0.8012 |
 | Reed           |                            0.7981 |      0.8196 |
-| Indigo         |                            0.8012 |      0.8502 |
+| Indigo         |                            0.8012 |      0.8503 |
 
 The Rick-family fitter can trace a fringe from crown pigment connected to the scalp. It records up to 16 corners in head coordinates and places them on the existing head mesh. The cap and cheek meet at that seam in every view. A second trace reads eyebrow ink below the fringe. On eye-aligned native portraits, the overlap of the dyed crown around the forehead improved from 0.705 to 0.768 for Moss, 0.817 to 0.861 for Rowan and 0.782 to 0.841 for Poe. The outer tufts and Poe’s forehead curl still differ from the drawings.
 
@@ -170,6 +170,19 @@ Both full-body silhouettes improved. Solvi went from 0.8112 to 0.8303 and Mora f
 
 The custom orb now shares vertices across the center of the forehead before mesh simplification. Skin grain uses coordinates on the orb and the same material on both sides. The full and crowd meshes both form a closed surface. In frontal captures, the largest single-pixel luminance step on bare skin fell from 4.26 to 0.79 on Solvi and from 7.53 to 1.00 on Mora on both backends. The same region measured 1.60 and 2.19 in their drawings, on a 0–255 luminance scale.
 
+The Sunshine fitter measures the light on both sides of the forehead and chin. Three coefficients describe the side, vertical and forward components in log luminance. The native builder bakes them into the existing sphere vertices. It continues the frontal light into a soft fill at the rear. A partial observation or a strongly localized painted highlight keeps the family lighting. The visor renderer follows the outer wings, bridge and hem with a curved closed front and a strap around the temples. It samples separate pigments for the upper lens, lower lens and eye marks.
+
+| Sunshine drawing | Lens overlap, previous → fitted | Forehead color error, previous → fitted |
+| ---------------- | ------------------------------: | --------------------------------------: |
+| Solvi            |                   0.925 → 0.951 |                             7.38 → 5.95 |
+| Mora             |                   0.912 → 0.952 |                            11.50 → 4.17 |
+| Reed             |                   0.892 → 0.942 |                            16.84 → 4.62 |
+| Indigo           |                   0.905 → 0.931 |                            13.97 → 5.81 |
+
+These WebGL2 measurements register the drawn and native spheres by their two painted arcs. The lens measure uses the connected dark contour and the color measure averages absolute sRGB error on exposed forehead pixels. The release receipt contains the WebGPU measurements from the same native poses.
+
+![Four Sunshine drawings alongside the previous and fitted native heads and their fitted three-quarter views](avatar-visor-paint.webp)
+
 With both legs visible in a Sunshine drawing, the fitter looks for matching light sports socks and contrasting low shoes. It reads stripe positions, dyes, the height and five widths of each shoe, and repeated transverse marks across both tongues. A plain shoe can have zero laces. These measurements are fractions of the visible leg and foot spacing. The rig supplies the unseen depth from ankle to toe. The shoe carries the sole and lace pigment on one continuous surface. The sock bends into the ankle, and the exposed skin crosses the knee on rings weighted to both the thigh and shin.
 
 | WebGL2, from sock cuff to floor | Previous silhouette IoU | Fitted silhouette IoU | Previous RGB error | Fitted RGB error |
@@ -215,7 +228,7 @@ On an exposed Sunshine arm, the full drawing supplies wrist thickness, fingertip
 | Band center, % of chest-to-fingertip span                 |         79.41 |        79.71 |        79.52 |       79.62 |
 | Underside brightness relative to center, linear luminance |          0.55 |         0.64 |         0.46 |        0.52 |
 
-Solvi and Mora use about 3,200 triangles apiece at full detail. Their full-body silhouette scores are 0.8611 and 0.8700 respectively. The 0.90 threshold still holds for both.
+Solvi and Mora use about 3,200 triangles apiece at full detail. The hand study scored 0.8611 and 0.8700 for whole-body silhouette, respectively. The 0.90 threshold still holds for both.
 
 ![Solvi and Mora with their drawn hands, previous and fitted native hands, and left-hand microphone grips](avatar-sunshine-hands.webp)
 
@@ -246,9 +259,15 @@ Tavi tested transfer to another Rick-family portrait. Both pupils touch the uppe
 
 ![Tavi’s supplied crop, native portrait and turn, withheld drawing and inferred body](avatar-tavi-portrait.webp)
 
+Brin is a fresh full-body Sunshine drawing with a dark jersey, copper shorts, light-soled sneakers and cream eye marks. The blind run stopped at family recognition in 0.85 seconds. After calibration, the fitter recognized the paired tinted marks and measured the jersey hem by following the fabric up from each bare leg. It recovered the rubber sole, three pale laces and one sock stripe on each leg. When both shin centers diverge from the shorts hem to the ankles, the rig uses that spacing in its rest pose and fits the shoes to the toe spacing. The hands in this study still read as closed, and the shirt lacks the contrasting neckline and hem in the drawing.
+
+The first rendered fit scored 0.7530 whole-body silhouette overlap. After measuring the clothing boundaries it reached 0.7693. Fitting the wider orb and shoes reached 0.8006. Measuring the stance brought it to 0.8384 with 0.9174 head overlap at 2,935 triangles. It missed the full-body and internal-edge thresholds. The final two-pass deterministic replay took 56.49 seconds. GPT Image returned the target in 35.105 seconds and supplied no exact model version or charge. See the native turns, walk, crouch and both grips at `/preview/studies/brin/review`. Independent review is pending. [Brin trial receipts](../frontend/scripts/avatar_authoring/targets/holdout-v1/followup-studies.json)
+
+![Brin’s drawing, first rendered fit, calibrated front, three-quarter view and profile](avatar-brin-kit.webp)
+
 Open `/preview/studies/rowan` on the branch preview to compare the reference and candidate in the native viewer. Each study supports rotation, portraits, walking, crouching and the right-hand attachment. The eight study recipes stay outside the installed avatar catalogue. **Review recorded views and motion** opens the exact study’s WebGL2 and WebGPU contact sheets and walk animations. The grip check reads the microphone’s actual wrist attachment and measures the rotation of each of the five fingertip joints when equipping it. It exercises each hand and checks that releasing the item removes it and its socket. The review sheet includes both grips. The review page includes the supplied portrait for cropped inputs. It downloads a human reviewer’s pass or miss for each criterion, together with the reference and evidence digests. Import the downloaded assessment using `review-avatar-release.py CANDIDATE REFERENCE APPROVAL --decision REVIEW.json`. A documented miss stays in the study. Promotion requires a passing decision and passing native checks.
 
-Open `/preview/crowd?shadows=1` to animate 100 variations of those eight recipes. Select **Shadows only** to inspect each cast silhouette. In headless Chromium with SwiftShader, both WebGPU and WebGL2 submitted one avatar draw for color and one for the directional shadow map. Both screenshots contained figures or shadows in all 100 projected positions. The renderer submitted four total draws and 430,997 triangles per frame with the receiver and shadows enabled. Load-to-ready took 5.49 seconds on WebGPU and 4.02 seconds on WebGL2 in this run.
+Open `/preview/crowd?shadows=1` to animate 100 variations of those eight recipes. Select **Shadows only** to inspect each cast silhouette. In headless Chromium with SwiftShader, both WebGPU and WebGL2 submitted one avatar draw for color and one for the directional shadow map. Both screenshots contained figures or shadows in all 100 projected positions. The renderer submitted four total draws and 431,117 triangles per frame with the receiver and shadows enabled. Load-to-ready took 5.63 seconds on WebGPU and 4.39 seconds on WebGL2 in this run.
 
 Use the following commands after the eight-case benchmark and native release captures. The crowd test verifies the digest of the eight exported recipes. The last command verifies the capture hashes for all eight candidates on both backends before recording the results used by the branch preview. A reviewer can record the reason a candidate failed against these captures. Promotion requires both the original numerical thresholds and an independent passing decision.
 

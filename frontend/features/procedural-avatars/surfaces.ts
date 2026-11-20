@@ -35,12 +35,14 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
         .greaterThanEqual(coatUVBase)
         .and(uv.x.lessThan(coatUVBase + 1));
     const orbSurface = uv.x.lessThan(-48);
-    const contactOrb = uv.x.lessThan(-68);
+    const paintedOrb = uv.x.lessThan(-76);
+    const orbU = uv.x.add(N.select(paintedOrb, 16, 0));
+    const contactOrb = orbU.lessThan(-68);
     const penOutline = uv.x.lessThan(-16).and(orbSurface.not());
     const st = N.vec2(
         N.select(
             orbSurface,
-            uv.x.add(N.select(contactOrb, 72, 64)),
+            orbU.add(N.select(contactOrb, 72, 64)),
             N.select(
                 penOutline,
                 uv.x.add(48),
@@ -232,7 +234,7 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
     );
     const surface = grainLight
         .mul(N.select(contactOrb, lensShadow, 1))
-        .mul(N.select(orbSurface, orbLight, N.vec3(1)))
+        .mul(N.select(orbSurface.and(paintedOrb.not()), orbLight, N.vec3(1)))
         .mul(
             N.select(
                 sculpted,

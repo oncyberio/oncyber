@@ -35,7 +35,7 @@ const familyFile = z.strictObject({
             .optional(),
         crownLength: z.number().min(0.45).max(1.65).optional(),
         legLength: scale,
-        headWidth: scale,
+        headWidth: z.number().min(0.65).max(1.8).optional(),
         headHeight: scale,
         jaw: scale,
         eyes: scale,
@@ -101,7 +101,14 @@ const familyFile = z.strictObject({
                             (!i || b.start >= rows[i - 1].end)
                     )
                 ),
-            rise: z.number().min(0.1).max(0.47),
+            rise: z.number().min(0.1).max(0.63),
+            laceInk: swatch.optional(),
+            spread: z
+                .tuple([
+                    z.number().min(1).max(1.65),
+                    z.number().min(1).max(1.85),
+                ])
+                .optional(),
             widths: z.array(z.number().min(0.14).max(0.85)).length(5),
             upper: swatch,
             sole: swatch,
@@ -152,6 +159,29 @@ const familyFile = z.strictObject({
     visor: z
         .strictObject({
             strap: z.literal(false).optional(),
+            rim: z
+                .strictObject({
+                    columns: z
+                        .array(
+                            z.tuple([
+                                z.number().min(-1.11).max(1.11),
+                                z.number().min(-0.8).max(0.8),
+                                z.number().min(-0.8).max(0.8),
+                            ])
+                        )
+                        .min(4)
+                        .max(36)
+                        .refine((rows) =>
+                            rows.every(
+                                ([x, t, b], i) =>
+                                    b > t && (!i || x > rows[i - 1][0])
+                            )
+                        ),
+                    upper: swatch,
+                    lower: swatch,
+                    glyph: swatch,
+                })
+                .optional(),
             contact: z
                 .strictObject({
                     strength: z.number().min(0.2).max(0.92),
@@ -186,7 +216,19 @@ const familyFile = z.strictObject({
                 ),
         })
         .optional(),
-    orbPaint: z.strictObject({ top: swatch, bottom: swatch }).optional(),
+    orbPaint: z
+        .strictObject({
+            top: swatch,
+            bottom: swatch,
+            light: z
+                .tuple([
+                    z.number().min(-2).max(2),
+                    z.number().min(-2).max(2),
+                    z.number().min(-2).max(2),
+                ])
+                .optional(),
+        })
+        .optional(),
     orbCollar: z
         .strictObject({
             radius: z.number().min(0.16).max(0.43),
@@ -328,6 +370,10 @@ export function readAvatarFile(input: unknown): {
         }
         const file = familyFile.parse(input);
         const family = families[file.family as keyof typeof families];
+        if (family.template !== "sunshine" && file.proportions.headWidth > 1.5)
+            throw new Error(
+                "Household and scientist head widths must be at most 1.5"
+            );
         if (file.plainJersey && family.template !== "sunshine")
             throw new Error("A plain jersey requires the Sunshine kit");
         if (file.shirtMark && !family.plainShirt && !file.plainJersey)

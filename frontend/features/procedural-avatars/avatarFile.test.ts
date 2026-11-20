@@ -1127,6 +1127,94 @@ test("a single orb rig keeps its closed ray facets, two pigments and grips in bo
     }
 });
 
+test("a measured stance moves the ankles and toes with their shoes and retains hip width", () => {
+    const raw = JSON.parse(
+        readFileSync(
+            join(
+                __dirname,
+                "../../scripts/avatar_authoring/targets/holdout-v1/candidates/brin.recipe"
+            ),
+            "utf8"
+        )
+    );
+    const shaped = readAvatarFile(raw).recipe;
+    const neutral = {
+        ...shaped,
+        kitFootwear: { ...shaped.kitFootwear, spread: undefined },
+    };
+    expect(() =>
+        readAvatarFile({
+            ...raw,
+            kitFootwear: { ...raw.kitFootwear, spread: [0, 3] },
+        })
+    ).toThrow();
+    for (const lod of ["full", "crowd"] as const) {
+        const actors = [neutral, shaped].map((r) => buildCharacter(r, lod));
+        try {
+            function width(actor: (typeof actors)[number], joint: string) {
+                const jointX = (side: string) =>
+                    actor.scene
+                        .getObjectByName(side + joint)
+                        .getWorldPosition(new T.Vector3()).x;
+                return Math.abs(jointX("right") - jointX("left"));
+            }
+            expect(width(actors[1], "UpperLeg")).toBeCloseTo(
+                width(actors[0], "UpperLeg"),
+                5
+            );
+            expect(width(actors[1], "Foot")).toBeGreaterThan(
+                width(actors[0], "Foot") * 1.16
+            );
+            expect(width(actors[1], "Toes")).toBeGreaterThan(
+                width(actors[1], "Foot") * 1.04
+            );
+        } finally {
+            actors.forEach((a) => disposeAvatarGraph(a.scene));
+        }
+    }
+});
+
+test("fitted orb lighting shares a mesh layout and keeps its own vertex paint in the crowd", () => {
+    const file = (direction: number) => ({
+        ...vesper,
+        orbPaint: {
+            top: "#faab3d",
+            bottom: "#a45827",
+            light: [direction, -0.2, 0.7],
+        },
+    });
+    expect(() => readAvatarFile(file(2.01))).toThrow();
+    for (const detail of ["full", "crowd"] as const) {
+        const actors = [-0.65, 0.65, -0.65].map((d) =>
+            buildCharacter(readAvatarFile(file(d)).recipe, detail)
+        );
+        try {
+            const meshes = actors.map(
+                (a) =>
+                    (
+                        a.scene.getObjectByProperty(
+                            "isSkinnedMesh",
+                            true
+                        ) as T.SkinnedMesh
+                    ).geometry
+            );
+            const indices = Array.from(
+                { length: meshes[0].attributes.uv.count },
+                (_, i) => i
+            ).filter((i) => meshes[0].attributes.uv.getX(i) < -76);
+            expect(indices.length).toBeGreaterThan(50);
+            const paints = meshes.map((g) =>
+                indices.map((i) => g.attributes.color.getX(i))
+            );
+            expect(paints[0]).not.toEqual(paints[1]);
+            expect(paints[0]).toEqual(paints[2]);
+            expect(meshes[0].index.count).toBe(meshes[1].index.count);
+        } finally {
+            actors.forEach((a) => disposeAvatarGraph(a.scene));
+        }
+    }
+});
+
 test("the contact shadow follows measured lenses and leaves the back exposed", () => {
     const { visor } = readAvatarFile(vesper).recipe;
     expect(orbContactUV({ ...visor, contact: undefined })).toBeUndefined();

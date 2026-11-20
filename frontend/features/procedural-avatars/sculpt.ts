@@ -201,6 +201,7 @@ export class Sculpt {
     penOutline = false;
     thinSkinOutline = false;
     orbSurface = false;
+    paintedOrb = false;
     orbContact?: (x: number, y: number, z: number) => [number, number];
     familyPart?: string;
     crown = false;
@@ -590,6 +591,8 @@ export class Sculpt {
                 );
             } else if (eyeSamples)
                 this.colors.push(eyeSamples[i][2], eyeSamples[i][3], 1);
+            else if (this.paintedOrb)
+                this.colors.push(tone * tint.r, tone * tint.g, tone * tint.b);
             else
                 this.colors.push(
                     (tone + (1 - ao) * 0.09) *
@@ -611,7 +614,9 @@ export class Sculpt {
                 );
             if (!eyeSamples) {
                 if (this.orbSurface)
-                    this.uvs[this.uvs.length - 2] -= this.orbContact ? 72 : 64;
+                    this.uvs[this.uvs.length - 2] -=
+                        (this.orbContact ? 72 : 64) +
+                        (this.paintedOrb ? 16 : 0);
                 else if (this.eyeStroke) this.uvs[this.uvs.length - 2] -= 8;
                 else if (
                     ((this.inkedPortrait && this.fineDetail) ||
