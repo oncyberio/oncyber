@@ -25,17 +25,36 @@ export function publicProfile(user: any): VisitedProfile | null {
     return profile;
 }
 
+/**
+ * An account by username, then by wallet address. `failed` says a lookup
+ * could not be made: nobody was found, which is not the same as nobody
+ * being there.
+ */
+export async function lookUpProfile(
+    handle: unknown,
+    byUsername: Lookup,
+    byWalletId: Lookup
+): Promise<{ profile: VisitedProfile | null; failed: boolean }> {
+    if (typeof handle !== "string") return { profile: null, failed: false };
+    const name = handle.replace(/^@/, "").trim();
+    if (!name) return { profile: null, failed: false };
+    let failed = false;
+    const fail = () => {
+        failed = true;
+        return null;
+    };
+    const user =
+        (await byUsername(name).catch(fail)) ??
+        (await byWalletId(name.toLowerCase()).catch(fail));
+    const profile = publicProfile(user);
+    return { profile, failed: failed && !profile };
+}
+
 /** An account by username, then by wallet address; null when neither exists. */
 export async function findProfile(
     handle: unknown,
     byUsername: Lookup,
     byWalletId: Lookup
 ): Promise<VisitedProfile | null> {
-    if (typeof handle !== "string") return null;
-    const name = handle.replace(/^@/, "").trim();
-    if (!name) return null;
-    const user =
-        (await byUsername(name).catch(() => null)) ??
-        (await byWalletId(name.toLowerCase()).catch(() => null));
-    return publicProfile(user);
+    return (await lookUpProfile(handle, byUsername, byWalletId)).profile;
 }

@@ -259,8 +259,8 @@ const Page = styled.div`
         text-decoration: none;
     }
     a:focus-visible:not(.back) {
-        outline: 2px solid var(--oc-accent);
-        outline-offset: 3px;
+        outline: ${base.focus.width}px solid var(--oc-accent);
+        outline-offset: ${base.focus.offsetLoose}px;
         border-radius: ${base.radius.inset}px;
     }
 

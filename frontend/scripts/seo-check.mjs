@@ -119,7 +119,12 @@ export const PAGE_RULES = {
 };
 
 /** The failures of one page against its kind's rules (empty when it passes). */
-export function checkPage(kind, path, { status, html }, defaults = {}) {
+export function checkPage(
+    kind,
+    path,
+    { status, html, robotsHeader = "" },
+    defaults = {}
+) {
     const rules = PAGE_RULES[kind];
     const failures = [];
     const expected = rules.status || 200;
@@ -134,6 +139,10 @@ export function checkPage(kind, path, { status, html }, defaults = {}) {
     const noindex = page.robots.some((value) => /noindex/i.test(value));
     if (rules.noindex && !noindex) failures.push("should be noindex");
     if (!rules.noindex && noindex) failures.push("is noindex");
+    // A preview answers this header on every page; production never should
+    // on a page meant for search.
+    if (defaults.production && !rules.noindex && /noindex/i.test(robotsHeader))
+        failures.push("answers X-Robots-Tag: noindex");
     if (rules.canonical === "none") {
         if (page.canonicals.length) failures.push("has a canonical");
     } else if (page.canonicals.length !== 1) {
@@ -145,6 +154,14 @@ export function checkPage(kind, path, { status, html }, defaults = {}) {
         } catch {
             failures.push("canonical is not an absolute address");
         }
+        // On the deployment itself or on a production domain (a preview
+        // may credit production), never anywhere else.
+        if (
+            url &&
+            defaults.canonicalOrigins &&
+            !defaults.canonicalOrigins.includes(url.origin)
+        )
+            failures.push(`canonical is on ${url.origin}`);
         if (url && rules.canonical === "self") {
             const own = path.split("?")[0].replace(/\/$/, "") || "/";
             if ((url.pathname.replace(/\/$/, "") || "/") !== own)
@@ -210,11 +227,14 @@ async function get(origin, path) {
     };
 }
 
-/** Space paths from the deployment's own sitemap (first part that has any). */
+/**
+ * Space paths from the deployment's own sitemap: the first part that has
+ * any. Parts are split by id, so the first ones can be empty.
+ */
 async function spacesFromSitemap(origin, count) {
     const index = await get(origin, "/sitemap.xml");
     const parts = sitemapLocs(index.html).filter((loc) => /spaces-/.test(loc));
-    for (const part of parts.slice(0, 4)) {
+    for (const part of parts) {
         const xml = await get(origin, new URL(part).pathname);
         const paths = sitemapLocs(xml.html)
             .filter((loc) => !/\.(png|jpe?g|webp|gif)(\?|$)/i.test(loc))
@@ -227,6 +247,14 @@ async function spacesFromSitemap(origin, count) {
     }
     return [];
 }
+
+/** Where a canonical may point besides the deployment being checked. */
+const PRODUCTION_ORIGINS = [
+    "https://oncyber.io",
+    "https://www.oncyber.io",
+    "https://oncyber.com",
+    "https://www.oncyber.com",
+];
 
 /** The domains people and search engines know the site by. */
 export function isProductionOrigin(origin) {
@@ -281,6 +309,8 @@ export async function main(argv) {
         ...profiles.map((path) => ["profile", path]),
         ["missing", "/this-link-does-not-exist-zz9"],
     ];
+    const production = isProductionOrigin(origin);
+    const canonicalOrigins = [new URL(origin).origin, ...PRODUCTION_ORIGINS];
     let failed = 0;
     const line = (ok, label, detail = "") =>
         console.log(
@@ -301,6 +331,8 @@ export async function main(argv) {
         // The default title belongs to the home page.
         const failures = checkPage(kind, path, response, {
             ...defaults,
+            production,
+            canonicalOrigins,
             title:
                 kind === "space" || kind === "profile" ? defaults.title : null,
         });
@@ -336,21 +368,12 @@ export async function main(argv) {
         line(ok, path, ok ? "" : `status ${response.status}, ${response.type}`);
     }
 
-    // A preview is kept out of search with this header; production with
-    // it would drop out of search entirely.
-    if (/noindex/i.test(home.robotsHeader)) {
-        if (isProductionOrigin(origin)) {
-            failed++;
-            line(
-                false,
-                "X-Robots-Tag",
-                "the production site answers noindex on every page"
-            );
-        } else
-            console.log(
-                "note the whole deployment answers X-Robots-Tag: noindex (expected on previews, never on production)"
-            );
-    }
+    // A preview is kept out of search with this header. On production each
+    // page was checked for it above.
+    if (!production && /noindex/i.test(home.robotsHeader))
+        console.log(
+            "note the whole deployment answers X-Robots-Tag: noindex (expected on previews, never on production)"
+        );
     console.log(failed ? `\n${failed} failed` : "\nAll checks passed");
     return failed ? 1 : 0;
 }
