@@ -12,6 +12,8 @@ const volleyball = () =>
         hit: { reach: 1.4, power: 12, lift: 0.7 },
         score: "floor-touch",
     })!;
+/** The same court without its net, for hits whose path should not depend on where the ball came to rest. */
+const openCourt = () => readPlayRecipe({ ...volleyball(), arena: { halfX: 6, halfZ: 4, net: 0 } })!;
 const run = (zone: PlayZone, steps: number) => {
     for (let i = 0; i < steps; i++) zone.step();
 };
@@ -152,17 +154,18 @@ describe("play zone", () => {
     });
 
     it("sends a hit thing the way the person faces, with a rest between hits", () => {
-        const zone = new PlayZone(volleyball(), 2);
+        const zone = new PlayZone(openCourt(), 2);
         run(zone, 180);
         const [x, , z] = zone.poses;
-        // Stand just behind the ball, facing +x.
-        assert.ok(zone.setPerson(1, x - 0.6, 0, z, Math.PI / 2));
+        // Stand just behind the ball, facing the far end.
+        const way = x < 0 ? 1 : -1;
+        assert.ok(zone.setPerson(1, x - way * 0.6, 0, z, (way * Math.PI) / 2));
         zone.step();
         assert.strictEqual(zone.hit(1), 1);
         assert.strictEqual(zone.hit(1), 0, "a second hit straight away");
         assert.strictEqual(zone.hit(99), 0, "someone who is not here");
         run(zone, 20);
-        assert.ok(zone.poses[0] > x + 0.5, "it went forward");
+        assert.ok((zone.poses[0] - x) * way > 0.5, "it went forward");
         assert.ok(zone.poses[1] > 1, "and up");
         zone.free();
     });
@@ -171,22 +174,53 @@ describe("play zone", () => {
         const zone = new PlayZone(volleyball(), 2);
         run(zone, 180);
         assert.deepStrictEqual(zone.score(), [0, 0], "the first drop scores nothing");
-        // Hit the ball towards +x, hard enough to clear the net from anywhere on side A.
+        // Hit the ball. It may clear the net or come back off it; either way it lands on one side.
         const [x, , z] = zone.poses;
-        zone.setPerson(1, x - 0.6, 0, z, Math.PI / 2);
+        const way = x < 0 ? 1 : -1;
+        zone.setPerson(1, x - way * 0.6, 0, z, (way * Math.PI) / 2);
         zone.step();
-        zone.hit(1);
+        assert.strictEqual(zone.hit(1), 1);
         zone.removePerson(1);
         let landed: number | null = null;
         for (let i = 0; i < 600 && landed === null; i++) {
             zone.step();
             if (zone.score()[0] + zone.score()[1]) landed = zone.poses[0];
         }
-        assert.ok(landed !== null && landed > 0, `it landed on side B: ${landed}`);
-        assert.deepStrictEqual(zone.score(), [1, 0]);
+        assert.ok(landed !== null, "it landed");
+        // Side A is x < 0. Landing on a side is a point for the other one.
+        assert.deepStrictEqual(zone.score(), landed! < 0 ? [0, 1] : [1, 0]);
         // A second later it hangs above the court again, on the side that lost the point.
         run(zone, 62);
-        assert.ok(zone.poses[1] > 2.5 && zone.poses[0] > 0, `served at ${zone.poses[0]}, ${zone.poses[1]}`);
+        assert.ok(zone.poses[1] > 2.5 && zone.poses[0] * landed! > 0, `served at ${zone.poses[0]}, ${zone.poses[1]}`);
+        zone.free();
+    });
+
+    it("lets a ball hit hard from the back of the court clear the net", () => {
+        const zone = new PlayZone(volleyball(), 2);
+        run(zone, 180);
+        // Get the ball away from the net first: hit it towards the back wall and let it settle.
+        const [x, , z] = zone.poses;
+        const away = x < 0 ? -1 : 1;
+        zone.setPerson(1, x - away * 0.6, 0, z, (away * Math.PI) / 2);
+        zone.step();
+        zone.hit(1);
+        zone.removePerson(1);
+        run(zone, 400);
+        // Wherever it came to rest on that side, a hit back towards the net from there goes over.
+        const [rest, , restZ] = zone.poses;
+        assert.ok(Math.abs(rest) > 1.5, `it rests back from the net: ${rest}`);
+        const before = zone.score();
+        zone.setPerson(2, rest + away * 0.6, 0, restZ, (-away * Math.PI) / 2);
+        zone.step();
+        assert.strictEqual(zone.hit(2), 1);
+        zone.removePerson(2);
+        let crossed = false;
+        for (let i = 0; i < 240 && !crossed; i++) {
+            zone.step();
+            crossed = zone.poses[0] * away < -0.5;
+        }
+        assert.ok(crossed, `it crossed the net from ${rest}; now at ${zone.poses[0]}`);
+        assert.ok(zone.score()[0] + zone.score()[1] >= before[0] + before[1]);
         zone.free();
     });
 
@@ -221,6 +255,148 @@ describe("play zone", () => {
         zone.frames();
         zone.step();
         assert.ok(count(zone.frames()) <= 24, "at rest only the refresh goes out");
+        zone.free();
+    });
+
+    it("starts the things two recipes share in the same places", () => {
+        const small = new PlayZone(readPlayRecipe({ things: [{ kind: "ball", count: 50, size: 0.18 }] })!, 9);
+        const large = new PlayZone(readPlayRecipe({ things: [{ kind: "ball", count: 80, size: 0.18 }] })!, 9);
+        assert.deepStrictEqual(Array.from(large.poses.subarray(0, 50 * 7)), Array.from(small.poses));
+        small.free();
+        large.free();
+    });
+
+    it("says which changes fit the game as it stands", () => {
+        const base = { seconds: 30, arena: { halfX: 8, halfZ: 8 }, things: [{ kind: "ball", count: 60, size: 0.18 }] };
+        const zone = new PlayZone(readPlayRecipe(base)!, 3);
+        zone.setPerson(1, 5, 0, 5, 0);
+        run(zone, 300);
+        const plan = (change: object) => zone.plan(readPlayRecipe({ ...base, ...change })!);
+        assert.strictEqual(plan({}), "same");
+        // Rules, feel and things at the end of the list change in place.
+        assert.strictEqual(plan({ gravity: 3 }), "live");
+        assert.strictEqual(plan({ seconds: 90, title: "New name", score: "side-count", hit: { reach: 1, power: 5, lift: 0.5 } }), "live");
+        assert.strictEqual(plan({ things: [{ kind: "ball", count: 60, size: 0.18, bounce: 0.9, weight: 2, color: 4 }] }), "live");
+        assert.strictEqual(plan({ things: [{ kind: "ball", count: 100, size: 0.18 }] }), "live");
+        assert.strictEqual(plan({ things: [{ kind: "ball", count: 20, size: 0.18 }] }), "live");
+        assert.strictEqual(
+            plan({
+                things: [
+                    { kind: "ball", count: 60, size: 0.18 },
+                    { kind: "box", count: 10, size: 0.3 },
+                ],
+            }),
+            "live"
+        );
+        assert.strictEqual(plan({ arena: { halfX: 12, halfZ: 12 } }), "live");
+        // A different size or kind, or an arena that no longer holds everyone, needs the start of the round.
+        assert.strictEqual(plan({ things: [{ kind: "ball", count: 60, size: 0.3 }] }), "reset");
+        assert.strictEqual(plan({ things: [{ kind: "box", count: 60, size: 0.18 }] }), "reset");
+        assert.strictEqual(plan({ arena: { halfX: 3, halfZ: 3 } }), "reset");
+        zone.free();
+    });
+
+    it("changes in place even when things rest against the walls", () => {
+        // Enough balls in a small arena that some are pressed into every wall.
+        const base = { seconds: 30, arena: { halfX: 3, halfZ: 3 }, things: [{ kind: "ball", count: 150, size: 0.18 }] };
+        const zone = new PlayZone(readPlayRecipe(base)!, 3);
+        run(zone, 500);
+        let againstWall = 0;
+        for (let i = 0; i < zone.count; i++) if (Math.abs(zone.poses[i * 7]) > 3 - 0.18 - 0.01) againstWall++;
+        assert.ok(againstWall > 3, `${againstWall} balls touch a side wall`);
+        assert.strictEqual(zone.plan(readPlayRecipe({ ...base, gravity: 2.5 })!), "live");
+        zone.free();
+    });
+
+    it("refuses a net through someone standing on the line", () => {
+        const base = { seconds: 30, things: [{ kind: "ball", count: 1, size: 0.2 }] };
+        const zone = new PlayZone(readPlayRecipe(base)!, 1);
+        zone.setPerson(1, 0.1, 0, 0, 0);
+        run(zone, 120);
+        const net = readPlayRecipe({ ...base, arena: { net: 1.5 } })!;
+        assert.strictEqual(zone.plan(net), "reset");
+        zone.setPerson(1, 3, 0, 0, 0);
+        // The ball came to rest away from the line, so only the person was in the way.
+        assert.strictEqual(Math.abs(zone.poses[0]) > 0.3 ? zone.plan(net) : "live", "live");
+        zone.free();
+    });
+
+    it("changes a running game in place: nothing moves, and the new rules hold", () => {
+        const base = { seconds: 30, things: [{ kind: "ball", count: 40, size: 0.18 }] };
+        const zone = new PlayZone(readPlayRecipe(base)!, 3);
+        run(zone, 400);
+        const before = Array.from(zone.poses),
+            tick = zone.tick;
+        const next = readPlayRecipe({ ...base, gravity: 2, seconds: 60, things: [{ kind: "ball", count: 55, size: 0.18, bounce: 0.9 }] })!;
+        assert.strictEqual(zone.plan(next), "live");
+        zone.apply(next);
+        assert.strictEqual(zone.tick, tick, "the clock carries on");
+        assert.strictEqual(zone.count, 55);
+        assert.deepStrictEqual(Array.from(zone.poses.subarray(0, 40 * 7)), before, "what was there stayed put");
+        assert.ok(zone.poses[40 * 7 + 1] > 1.5, "the new ones start in the air");
+        // Under a fifth of the gravity a new ball falls much less far in half a second.
+        const top = zone.poses[40 * 7 + 1];
+        run(zone, 30);
+        const fell = top - zone.poses[40 * 7 + 1];
+        assert.ok(fell > 0.05 && fell < 0.6, `it fell ${fell}`);
+        // Taking things away again leaves the rest alone.
+        const fewer = readPlayRecipe({ ...base, gravity: 2, things: [{ kind: "ball", count: 10, size: 0.18 }] })!;
+        const kept = Array.from(zone.poses.subarray(0, 10 * 7));
+        zone.apply(fewer);
+        assert.strictEqual(zone.count, 10);
+        assert.deepStrictEqual(Array.from(zone.poses), kept);
+        run(zone, 10);
+        zone.free();
+    });
+
+    it("plays the round backwards to its start, where a new game picks up without a jump", () => {
+        const recipe = readPlayRecipe({ seconds: 60, things: [{ kind: "ball", count: 30, size: 0.18 }] })!;
+        const zone = new PlayZone(recipe, 11);
+        const start = Array.from(zone.poses);
+        for (let i = 0; i < 300; i++) {
+            zone.setPerson(1, -6 + i * 0.03, 0, 0, Math.PI / 2);
+            zone.step();
+        }
+        const rested = zone.poses[1];
+        const samples = zone.beginRewind();
+        assert.ok(samples >= 50, `${samples} samples for five seconds`);
+        const tick = zone.tick;
+        zone.step();
+        assert.strictEqual(zone.tick, tick, "the game stands still while it rewinds");
+        assert.strictEqual(zone.hit(1), 0);
+        // Heights climb back up and the person walks back to where they came in.
+        let moments = 0,
+            lastHeight = rested,
+            person = 3;
+        for (let moment = zone.rewindFrames(4); moment; moment = zone.rewindFrames(4)) {
+            moments++;
+            assert.ok(moment.frames.every((frame) => frame.byteLength <= 1200));
+            if (moment.people.length) {
+                assert.ok(moment.people[0].x <= person + 1e-6, "the person only goes back");
+                person = moment.people[0].x;
+            }
+            lastHeight = zone.poses[1];
+        }
+        assert.ok(moments >= 12 && moments <= 14, `${moments} moments at a stride of four`);
+        assert.ok(lastHeight > rested + 1, "the ball is back up in the air");
+        assert.deepStrictEqual(Array.from(zone.poses), start, "it ends exactly where the round began");
+        assert.strictEqual(zone.rewindFrames(), null);
+        // A different recipe with the same things, started from the same seed, begins right there.
+        const again = new PlayZone(readPlayRecipe({ seconds: 60, gravity: 4, things: [{ kind: "ball", count: 30, size: 0.18, bounce: 1 }] })!, 11);
+        assert.deepStrictEqual(Array.from(again.poses), start);
+        zone.free();
+        again.free();
+    });
+
+    it("keeps a history that still reaches the start of a long round", () => {
+        const zone = new PlayZone(readPlayRecipe({ seconds: 180, things: [{ kind: "ball", count: 2, size: 0.2 }] })!, 5);
+        const start = Array.from(zone.poses);
+        run(zone, 60 * 150);
+        const samples = zone.beginRewind();
+        assert.ok(samples <= 601, `${samples} samples after two and a half minutes`);
+        let last: number[] = [];
+        for (let moment = zone.rewindFrames(20); moment; moment = zone.rewindFrames(20)) last = Array.from(zone.poses);
+        assert.deepStrictEqual(last, start);
         zone.free();
     });
 

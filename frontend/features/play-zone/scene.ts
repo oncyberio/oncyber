@@ -45,6 +45,7 @@ export function createPlayScene(THREE: Three) {
     const arena = new THREE.Group();
     scene.add(arena);
 
+    let framed = "";
     const dummy = new THREE.Object3D();
     const tint = new THREE.Color();
     let balls: InstanceType<Three["InstancedMesh"]> | null = null,
@@ -99,6 +100,12 @@ export function createPlayScene(THREE: Three) {
     return {
         scene,
         camera,
+        /**
+         * Builds the arena and the things for a recipe. Call it again when
+         * the recipe changes: it happens between two frames, and the next
+         * `draw` puts every thing back where it was, so only what the
+         * change itself altered looks different.
+         */
         setRecipe(recipe: PlayRecipe) {
             clear(arena);
             const { halfX, halfZ, walls, net } = recipe.arena;
@@ -191,10 +198,19 @@ export function createPlayScene(THREE: Three) {
                 if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
                 arena.add(mesh);
             }
-            // Far enough back to see the whole arena from one end.
-            const reach = Math.max(halfX, halfZ);
-            camera.position.set(0, reach * 1.25 + 4, halfZ + reach * 1.1 + 5);
-            camera.lookAt(0, 0.5, 0);
+            // Far enough back to see the whole arena from one end. The view
+            // only moves when the arena's size does.
+            const framing = `${halfX}:${halfZ}`;
+            if (framing !== framed) {
+                framed = framing;
+                const reach = Math.max(halfX, halfZ);
+                camera.position.set(
+                    0,
+                    reach * 1.25 + 4,
+                    halfZ + reach * 1.1 + 5
+                );
+                camera.lookAt(0, 0.5, 0);
+            }
         },
         /** `poses`: seven numbers a body. A body not yet heard about (`known` 0) is hidden. */
         draw(poses: Float32Array, known: Uint8Array) {
