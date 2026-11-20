@@ -38,7 +38,7 @@ import {
  * size of ball, an arena too small for where people are) plays the round
  * backwards to its start first.
  *
- * ?server=ws://127.0.0.1:2570   the play server (a path such as /play-socket
+ * ?server=ws://127.0.0.1:2565   the play server (a path such as /play-socket
  *                               means this page's own address)
  * ?renderer=webgl               the WebGL2 backend
  * ?start=ball-pit               start that game on arrival
@@ -141,7 +141,7 @@ export default function PlayZoneCheck() {
         const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
         const asked = String(
             router.query.server ||
-                (local ? "ws://127.0.0.1:2570" : "/play-socket")
+                (local ? "ws://127.0.0.1:2565" : "/play-socket")
         );
         const server = asked.startsWith("/")
             ? `${location.protocol === "https:" ? "wss" : "ws"}://${

@@ -1,6 +1,7 @@
 import { encodeInputs } from "../../../multiplayer/protocol/movement";
 import {
     createControlDecoder,
+    decodePlayFrame,
     decodeSnapshot,
     encodeControl,
     encodeMovement,
@@ -463,6 +464,13 @@ export class WorldLobbyTransport {
     private deliverBinary(bytes: Uint8Array) {
         if (bytes.byteLength > (this.transport === "websocket" ? 4096 : 1200))
             return;
+        const play = decodePlayFrame(bytes);
+        if (play) {
+            // The room's play zone: its own kind of frame, for its own listener.
+            for (const handler of this.handlers.get("play-frame") || [])
+                handler(play);
+            return;
+        }
         const snapshot = decodeSnapshot(bytes);
         if (!snapshot) return; // A corrupt or unknown datagram must not kill reliable control.
         this.counters.receivedDatagrams++;

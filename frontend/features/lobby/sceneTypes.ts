@@ -1,3 +1,4 @@
+import type { LobbyPlay } from "@features/play-zone/lobbyPlay";
 import type { LobbyFlash } from "../../../multiplayer/protocol/lobby-flash";
 import type {
     MovementInput,
@@ -180,6 +181,10 @@ export interface LobbySceneProps {
     renderBudget?: CrowdBudget;
     /** Imperative network timeline; movement updates do not re-render React. */
     sampleParticipants?: (nowMs?: number) => readonly LobbyParticipant[];
+    /** The room's play zone, drawn inside the lobby when it has one. */
+    getPlay?: () => LobbyPlay | null;
+    /** The visitor pressed the hit key. */
+    onPlayHit?: () => void;
     consumeCorrection?: () => {
         sequence: number;
         x: number;

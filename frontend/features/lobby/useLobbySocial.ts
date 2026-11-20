@@ -256,11 +256,19 @@ export default function useLobbySocial({
         () => connection.current?.getNetworkDiagnostics() || null,
         []
     );
+    /** The room's play zone as this visitor knows it, or null before connecting. */
+    const getPlay = useCallback(() => connection.current?.play || null, []);
+    const playHit = useCallback(
+        () => connection.current?.playHit() || false,
+        []
+    );
     const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
     return {
         ...snapshot,
         sampleParticipants,
+        getPlay,
+        playHit,
         consumeCorrection,
         getPredictedPose,
         initializePose,

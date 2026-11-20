@@ -26,7 +26,7 @@ import { loadPlayPhysics } from "./world/play";
 import { playAuthorFromEnv } from "./world/playAuthor";
 import { PlayAuthority } from "./world/playAuthority";
 
-const port = Number(process.env.PLAY_DEV_PORT) || 2570;
+const port = Number(process.env.PLAY_DEV_PORT) || 2565;
 const STEP = 1 / 60;
 
 const sockets = new Map<number, any>();

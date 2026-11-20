@@ -1018,6 +1018,8 @@ export default function Lobby({
                         initializePose={social.initializePose}
                         advanceMovement={social.advanceMovement}
                         sampleParticipants={social.sampleParticipants}
+                        getPlay={social.getPlay}
+                        onPlayHit={social.playHit}
                         consumeCorrection={social.consumeCorrection}
                         avatarPreview={avatarOpen}
                         onAvatarStatus={avatarStatus}

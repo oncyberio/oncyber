@@ -80,6 +80,8 @@ export function createPlayScene(THREE: Three) {
     return {
         scene,
         camera,
+        /** The arena and its things, without lights, camera or people: what a host scene (the lobby) adds to itself. */
+        arena,
         /**
          * Builds the arena and the things for a recipe. Call it again when
          * the recipe changes: it happens between two frames, and the next

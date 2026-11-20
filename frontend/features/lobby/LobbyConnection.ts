@@ -34,6 +34,17 @@ import {
 import ColyseusChatProvider from "@utils/chat/ColyseusChatProvider";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
 import { LOBBY_MIC_BITRATE } from "@utils/voiceChat/sdp";
+import { LobbyPlay, aiRequest } from "@features/play-zone/lobbyPlay";
+
+/** The play zone's control messages (multiplayer/src/world/playAuthority.ts). */
+const PLAY_EVENTS = [
+    "play-game",
+    "play-rewind",
+    "play-state",
+    "play-act",
+    "play-action",
+    "play-ai",
+];
 
 // A dedicated CyberRoom: matchmaking, presence, chat and voice all share it.
 export const LOBBY_ROOM = "oncyber-lobby-v1";
@@ -308,6 +319,9 @@ export class LobbyConnection {
     private pingSequence = 0;
     private lastMove = 0;
     private lastMessage = 0;
+    private lastPlayHit = 0;
+    /** The room's play zone, as this visitor knows it. Empty on servers without one. */
+    readonly play = new LobbyPlay();
     private lobbyPresent = true;
     private desiredFlash: LobbyFlash | null = null;
     private sentFlash: string | null = null;
@@ -713,6 +727,14 @@ export class LobbyConnection {
                                 "abort",
                                 abort
                             ),
+                        ...PLAY_EVENTS.map((event) =>
+                            room.onMessage(event, (data) =>
+                                this.play.control(event, data)
+                            )
+                        ),
+                        room.onMessage("play-frame", (bytes) =>
+                            this.play.frame(bytes)
+                        ),
                         room.onMessage("lobby-welcome", (message) => {
                             if (
                                 !current() ||
@@ -728,6 +750,13 @@ export class LobbyConnection {
                             this.update({
                                 flashSupported: message.flash === true,
                             });
+                            // A room with a play zone says where it is; ask
+                            // what is being played there right now.
+                            this.play.onLine = this.receiveSystemLine;
+                            this.play.welcome(
+                                this.protocol === "v2" ? message.play : null
+                            );
+                            if (this.play.place) room.send("play-hello", {});
                             this.inputMode =
                                 this.protocol === "v2" &&
                                 message.movement === "input-v1";
@@ -1648,9 +1677,59 @@ export class LobbyConnection {
             ].slice(-MAX_MESSAGES),
         });
     };
+    /** A line in the chat from the room itself, not from a person. */
+    private receiveSystemLine = (text: string) => {
+        const sentAt = Date.now();
+        this.update({
+            messages: [
+                ...this.snapshot.messages,
+                {
+                    id: `play-${sentAt}-${this.messageSequence++}`,
+                    sessionId: "play",
+                    name: "Game",
+                    text: text.slice(0, 500),
+                    sentAt,
+                },
+            ].slice(-MAX_MESSAGES),
+        });
+    };
+    /**
+     * Hits what is in front of this visitor in the play zone. Everyone
+     * sees the swing; the server decides what was hit.
+     */
+    playHit = () => {
+        const now = Date.now();
+        if (
+            this.closed ||
+            !this.room ||
+            !this.play.recipe ||
+            this.play.rewinding ||
+            now - this.lastPlayHit < 300
+        )
+            return false;
+        this.lastPlayHit = now;
+        this.room.send("play-act", {});
+        this.room.send("play-hit", {});
+        return true;
+    };
     sendMessage = (value: string, recipientId?: string) => {
         const text = value.trim().slice(0, 500),
             now = Date.now();
+        // "/ai ..." in the room's chat is a request to change the game, not
+        // something to say: it goes to the play zone and is never posted.
+        const request = recipientId === undefined ? aiRequest(text) : null;
+        if (request !== null) {
+            if (this.closed || this.snapshot.status !== "connected")
+                return false;
+            if (!this.play.place || !this.room)
+                this.receiveSystemLine("There is no play zone in this lobby.");
+            else if (!request)
+                this.receiveSystemLine(
+                    "Say what you want after /ai, for example: /ai a volleyball game on the moon"
+                );
+            else this.room.send("play-ai", { text: request });
+            return true;
+        }
         if (
             !text ||
             this.closed ||

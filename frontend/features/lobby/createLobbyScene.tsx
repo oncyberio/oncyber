@@ -1,3 +1,5 @@
+import { createLobbyPlayLayer } from "@features/play-zone/lobbyLayer";
+import type { LobbyPlay } from "@features/play-zone/lobbyPlay";
 import {
     TRAVEL_DEPARTURE_MS,
     TRAVEL_DISSOLVE_AT_MS,
@@ -258,6 +260,10 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 const materials = new Set<THREE.Material>();
                 const textures = new Set<THREE.Texture>();
                 const scene = new THREE.Scene();
+                // The room's play zone, drawn once the connection knows of one.
+                let playStore: LobbyPlay | null = null,
+                    playLayer: ReturnType<typeof createLobbyPlayLayer> | null =
+                        null;
                 let previewWorld: ReturnType<typeof createTravelPreviewWorld>;
                 const previewWorldAnchor = new THREE.Vector3();
                 let previewWorldYaw = 0;
@@ -1958,6 +1964,9 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     )
                         return;
                     const code = lobbyKeyCode(event);
+                    // F hits what is in front of you in the play zone.
+                    if (code === "KeyF" && !event.repeat)
+                        latest.current.onPlayHit?.();
                     if (
                         code === "Space" &&
                         !event.repeat &&
@@ -3097,6 +3106,20 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     self.motion.postTeleportIdleTime = undefined;
                     updateParticipants(delta, time);
                     flashPresentation.finishFrame(delta, reducedMotion.matches);
+                    const play = latest.current.getPlay?.() || null;
+                    if (play !== playStore) {
+                        playLayer?.dispose();
+                        playStore = play;
+                        playLayer = play
+                            ? createLobbyPlayLayer(
+                                  // The scene's three is the WebGPU build at run time; its types here are the common ones.
+                                  THREE as any,
+                                  scene as any,
+                                  play
+                              )
+                            : null;
+                    }
+                    playLayer?.update(delta);
                     markSelection();
                     if (
                         latest.current.onMotionFrame &&
@@ -3406,6 +3429,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                     touch.removeEventListener("pointercancel", onTouchUp);
                     touch.removeEventListener("lostpointercapture", onTouchUp);
                     window.removeEventListener("keydown", onKeyDown);
+                    playLayer?.dispose();
                     window.removeEventListener("keyup", onKeyUp, true);
                     window.removeEventListener("blur", clearInput);
                     document.removeEventListener("focusin", onFocus, true);
