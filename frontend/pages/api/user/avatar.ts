@@ -4,6 +4,7 @@ import { db } from "@utils/firebaseAdmin";
 import { MAX_IMAGE_SIZE, uploadUrlToPinata } from "@utils/pinataUpload";
 import { gatewayCanResize, type ImageType } from "@utils/imageType";
 import { invalidateUserProfile } from "@utils/firestore/userProfiles";
+import { markProfileWritten } from "@utils/auth/profileWrites";
 
 export function avatarGatewayUrl(
     ipfsHash: string,
@@ -97,6 +98,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             // Keep the cached walletId->profile snapshot from serving the old
             // avatar for a full TTL.
             invalidateUserProfile(userId);
+            markProfileWritten(res);
 
             res.json({
                 success: true,

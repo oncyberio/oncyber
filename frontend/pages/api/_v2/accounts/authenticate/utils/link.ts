@@ -9,6 +9,7 @@ import { transferDestinations } from "@utils/firestore/destinations";
 import {
     getUserProfileByWalletId,
     invalidateUserProfile,
+    type ProfileReadOptions,
 } from "@utils/firestore/userProfiles";
 
 interface ICollectionToSave {
@@ -79,9 +80,12 @@ export async function getAccountDoc(
  * A cache miss (including secondary linked wallets, which resolve via the
  * array-contains fallback the cache can't model) falls back to the raw query.
  */
-export async function getAccountDocCached(accountId: string) {
+export async function getAccountDocCached(
+    accountId: string,
+    options?: ProfileReadOptions
+) {
     try {
-        const profile = await getUserProfileByWalletId(accountId);
+        const profile = await getUserProfileByWalletId(accountId, options);
         if (profile?.id) {
             return {
                 id: profile.id,

@@ -19,6 +19,7 @@ import { withSsrTiming } from "./serverside/ssrTiming";
 import { handleInviteAccess } from "pages/api/invite/access";
 
 import { initAnonUser } from "./anon";
+import { profileWrittenAt } from "./auth/profileWrites";
 import { fetchUserByWalletId, getUserByDoc } from "@api/accounts/user/utils";
 import { applyTemplate } from "pages/api/space/template";
 import { createSpace } from "pages/api/space/createshortcut";
@@ -166,7 +167,9 @@ export const AuthServerSideProps = (
         // Lite pages only hydrate display fields, all invalidation-covered.
         const userDoc = full
             ? await getAccountDoc(walletId)
-            : await getAccountDocCached(walletId);
+            : await getAccountDocCached(walletId, {
+                  notBefore: profileWrittenAt(cookies),
+              });
 
         if (!userDoc) {
             return {
