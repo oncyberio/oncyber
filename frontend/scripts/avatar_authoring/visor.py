@@ -178,6 +178,21 @@ def lens_rim(rgb, lens, marks, orb):
     }
 
 
+def has_sunglass_arms(rim, marks):
+    if not rim or len(marks) != 2:
+        return False
+    u, top, bottom = np.array(rim["columns"]).T
+    if u[0] > -0.89 or u[-1] < 0.89:
+        return False
+    height = bottom - top
+    deep = min(np.interp(mark[0], u, height) for mark in marks)
+    bridge = np.interp(np.mean([mark[0] for mark in marks]), u, height)
+    # Two deep bowls, a raised bridge, and thin painted wings on both
+    # outer edges identify a sunglass frame in a frontal drawing.
+    wings = np.interp([u[0] + 0.045, u[-1] - 0.045], u, height)
+    return deep >= 0.30 and bridge < 0.86 * deep and max(wings) < 0.44 * deep
+
+
 def measure_visor(rgb, mask, orb):
     from .family import FAMILIES
 
@@ -270,10 +285,13 @@ def measure_visor(rgb, mask, orb):
             and not np.any(lens[temple])
         )
     rim = lens_rim(rgb, lens, mark_pixels, orb)
+    mounting = {"strap": False} if all(visible_skin) else {}
+    if not mounting and has_sunglass_arms(rim, marks):
+        mounting = {"strap": "temples"}
     return {
         **({"rim": rim} if rim else {}),
         **({"contact": contact} if contact else {}),
-        **({"strap": False} if all(visible_skin) else {}),
+        **mounting,
         "center": round(float(center), 3),
         "span": round(float(span), 3),
         "rows": rows,

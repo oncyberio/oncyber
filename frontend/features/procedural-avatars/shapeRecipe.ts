@@ -245,6 +245,8 @@ export interface OrbCollar {
 export interface ShortsCut {
     rise: number;
     hemSpan: number;
+    /** Opening between the inside hems, as a fraction of the full garment width. */
+    hemGap?: number;
 }
 function fitShortLeg(
     part: ShapeRecipe["parts"][number],
@@ -266,6 +268,17 @@ function fitShortLeg(
         profile: part.profile.map((row) => {
             const fitted: Section = [...row];
             fitted[side] += (flare * (row[0] - waist[0])) / length;
+            if (cut.hemGap !== undefined && row[0] > forkY) {
+                const inner = side === 1 ? 2 : 1;
+                const down = T.MathUtils.clamp(
+                    (row[0] - forkY) / (hem[0] - forkY),
+                    0,
+                    1
+                );
+                fitted[inner] =
+                    center +
+                    (hem[side] + flare - center) * cut.hemGap * Math.sqrt(down);
+            }
             return fitted;
         }),
         inseam: {
@@ -274,6 +287,41 @@ function fitShortLeg(
         },
     };
 }
+/** Depth around one closed ray in the crown's rest plane. */
+function rayBevel(
+    rim: Point[],
+    x: number,
+    y: number,
+    cx: number,
+    cy: number,
+    ratio?: number
+) {
+    if (ratio === undefined) {
+        const half = Math.min(
+            3,
+            0.17 * Math.max(...rim.map((p) => Math.hypot(p[0] - x, p[1] - y)))
+        );
+        return () => half;
+    }
+    const length = Math.max(1e-8, Math.hypot(x - cx, y - cy));
+    const nx = (x - cx) / length,
+        ny = (y - cy) / length;
+    const radial = (px: number, py: number) => nx * (px - x) + ny * (py - y);
+    const outward = rim.map(([px, py]) => radial(px, py));
+    const across = rim.map(([px, py]) => -ny * (px - x) + nx * (py - y));
+    const base = Math.min(...outward),
+        span = Math.max(1e-8, Math.max(...outward) - base);
+    const half = 0.5 * ratio * (Math.max(...across) - Math.min(...across));
+    // Seat the front face on the stock crown plane. The hidden depth
+    // extends behind the visor hinges and narrows near the outer point.
+    for (const point of rim) point[2] -= half;
+    return (px: number, py: number) =>
+        half *
+        (1 -
+            0.89 *
+                T.MathUtils.smoothstep((radial(px, py) - base) / span, 0.5, 1));
+}
+
 export function drawShapeRecipe(
     d: Drawing,
     recipe: ShapeRecipe,
@@ -286,7 +334,8 @@ export function drawShapeRecipe(
     jerseySleeve?: JerseySleeve,
     footwear?: KitFootwear,
     hand?: KitHand,
-    orbLight?: [number, number, number]
+    orbLight?: [number, number, number],
+    rayDepth?: number
 ) {
     const finishes = Object.fromEntries(
         Object.values(recipe.palette).map((p) => [p.color, finish[p.finish]])
@@ -489,16 +538,8 @@ export function drawShapeRecipe(
                         rim.reduce((sum, p) => sum + p[0], 0) / rim.length;
                     const y =
                         rim.reduce((sum, p) => sum + p[1], 0) / rim.length;
-                    const thickness = Math.min(
-                        3,
-                        0.17 *
-                            Math.max(
-                                ...rim.map((p) =>
-                                    Math.hypot(p[0] - x, p[1] - y)
-                                )
-                            )
-                    );
-                    if (rim.length > 3) {
+                    const bevel = rayBevel(rim, x, y, cx, cy, rayDepth);
+                    if (rayDepth !== undefined || rim.length > 3) {
                         // The center of a painted ray has a broad lit surface. Turn
                         // only its outer strip through the bevel, on both faces.
                         for (const side of [-1, 1]) {
@@ -507,7 +548,7 @@ export function drawShapeRecipe(
                                 ([px, py, z]): Point => [
                                     x + 0.81 * (px - x),
                                     y + 0.81 * (py - y),
-                                    z + side * thickness,
+                                    z + side * bevel(px, py),
                                 ]
                             );
                             for (let i = 0; i < outer.length; i++) {
@@ -526,6 +567,7 @@ export function drawShapeRecipe(
                         }
                         continue;
                     }
+                    const thickness = bevel(x, y);
                     for (let i = 0; i < rim.length; i++) {
                         const a = rim[i],
                             b = rim[(i + 1) % rim.length];
@@ -536,7 +578,10 @@ export function drawShapeRecipe(
                         ]);
                     }
                 }
-                if (sunRays.some((ray) => ray.length > 3))
+                if (rayDepth !== undefined)
+                    d.s.tone = (_x, _y, z) =>
+                        1.12 + 0.19 * T.MathUtils.smoothstep(z, -14, -3);
+                else if (sunRays.some((ray) => ray.length > 3))
                     d.s.tone = (_x, _y, z) =>
                         1.12 + 0.19 * Math.min(1, Math.abs(z + 2) / 1.4);
                 d.s.triangles(facets, pigment);

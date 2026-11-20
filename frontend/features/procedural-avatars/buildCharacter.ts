@@ -1071,7 +1071,8 @@ export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
             recipe?.jerseySleeve,
             recipe?.kitFootwear,
             recipe?.kitHand,
-            recipe?.orbPaint?.light
+            recipe?.orbPaint?.light,
+            recipe?.rayDepth
         );
         return;
     }
@@ -1133,6 +1134,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
                   recipe.shirtMark,
                   recipe.crownOutline,
                   recipe.sunRays,
+                  recipe.rayDepth,
                   recipe.eyeInk,
                   recipe.lapels,
                   recipe.penOutline,

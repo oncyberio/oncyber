@@ -170,6 +170,7 @@ const familyFile = z.strictObject({
         .strictObject({
             rise: z.number().min(0.2).max(0.93),
             hemSpan: z.number().min(0.75).max(1.32),
+            hemGap: z.number().min(0.025).max(0.42).optional(),
         })
         .optional(),
     kitFit: z
@@ -192,7 +193,7 @@ const familyFile = z.strictObject({
         .optional(),
     visor: z
         .strictObject({
-            strap: z.literal(false).optional(),
+            strap: z.union([z.literal(false), z.literal("temples")]).optional(),
             rim: z
                 .strictObject({
                     columns: z
@@ -303,6 +304,7 @@ const familyFile = z.strictObject({
             z.number().min(-0.35).max(0.35),
         ])
         .optional(),
+    rayDepth: z.number().min(0.15).max(1.4).optional(),
     sunRays: z
         .array(
             z
@@ -468,6 +470,8 @@ export function readAvatarFile(input: unknown): {
             family.template !== "sunshine"
         )
             throw new Error("Only the mascot has a floating head");
+        if (file.rayDepth !== undefined && !file.sunRays)
+            throw new Error("Ray depth requires measured sun rays");
         if (
             file.sunRays &&
             (family.template !== "sunshine" ||
@@ -557,6 +561,9 @@ export function readAvatarFile(input: unknown): {
                 }),
                 ...(file.sunRays && {
                     sunRays: file.sunRays as [number, number][][],
+                    ...(file.rayDepth !== undefined && {
+                        rayDepth: file.rayDepth,
+                    }),
                 }),
                 ...(file.lapels && {
                     lapels: file.lapels as AvatarRecipe["lapels"],

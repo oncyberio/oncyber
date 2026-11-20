@@ -716,6 +716,60 @@ class AuthoringTests(unittest.TestCase):
                     (case["family"], case["framing"]),
                 )
 
+    def test_followup_resume_preserves_the_blind_miss_and_frozen_input(self):
+        from .release import digest
+
+        bench = runpy.run_path(
+            str(Path(__file__).resolve().parents[1] / "benchmark-avatar-holdout.py")
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "head.webp"
+            source.write_bytes(b"frozen input")
+            case = dict(
+                id="trial",
+                input=source.name,
+                input_sha256=digest(source),
+                evaluation_reference=source.name,
+                reference_sha256=digest(source),
+            )
+            ledger = root / "followup-studies.json"
+            ledger.write_text(json.dumps(dict(cases=[case], trials={}, receipts={})))
+            args = SimpleNamespace(
+                manifest=root / "manifest.json",
+                output=root / "run",
+                case="trial",
+                record_followup="blind",
+            )
+            study = args.output / "trial"
+            study.mkdir(parents=True)
+            (study / "study.json").write_text(
+                json.dumps(dict(source_sha256=digest(source), passes=[]))
+            )
+            row = dict(
+                study="trial", error="Unknown family", visible_checks_passed=False
+            )
+            summary = dict(
+                cases={"trial": row},
+                manifest_sha256=bench["manifest_digest"]({"cases": [case]}),
+            )
+            holdout = args.output / "holdout.json"
+            holdout.write_text(json.dumps(summary))
+            record = bench["record_followup"]
+            first = record(args)
+            self.assertEqual(first["error"], "Unknown family")
+            self.assertEqual(record(args), first)
+            original = ledger.read_bytes()
+            row["error"] = "A different miss"
+            holdout.write_text(json.dumps(summary))
+            with self.assertRaisesRegex(ValueError, "already uses this name"):
+                record(args)
+            source.write_bytes(b"different source")
+            with self.assertRaisesRegex(ValueError, "input or reference changed"):
+                record(args)
+            self.assertEqual(ledger.read_bytes(), original)
+            self.assertEqual(json.loads(original)["receipts"], {})
+
     def test_bounded_correction_can_retain_a_better_first_portrait(self):
         from .one_image import best_pass
 

@@ -98,7 +98,7 @@ def compare_turns(guide, split_x, candidate, captures, output):
             overlay[silhouette_a & silhouette_b] = [82, 71, 71]
             for col, (im, label) in enumerate(
                 [
-                    (pair[0][0], f"{angle}°  Withheld drawing"),
+                    (pair[0][0], f"{angle}°  Guide drawing"),
                     (pair[1][0], f"{angle}°  Native render"),
                     (overlay, "Orange drawing · blue mesh · dark overlap"),
                 ]

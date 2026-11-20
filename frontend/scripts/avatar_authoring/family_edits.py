@@ -119,7 +119,23 @@ def edit_schema(family=None, construction=None):
         branches.append(
             fields(
                 ["shortsCut"],
-                record({"rise": bounded(0.20, 0.93), "hemSpan": bounded(0.75, 1.32)}),
+                {
+                    "anyOf": [
+                        record(
+                            {
+                                "rise": bounded(0.20, 0.93),
+                                "hemSpan": bounded(0.75, 1.32),
+                            }
+                        ),
+                        record(
+                            {
+                                "rise": bounded(0.20, 0.93),
+                                "hemSpan": bounded(0.75, 1.32),
+                                "hemGap": bounded(0.025, 0.42),
+                            }
+                        ),
+                    ]
+                },
             )
         )
         branches.append(fields(["orbPaint"], record({"top": color, "bottom": color})))
@@ -514,10 +530,11 @@ def edited_recipe(
             "coatPanels",
             "limbWidth",
             "kitFit",
-            "shortsCut",
             "orbCollar",
         ):
             recipe[field] = copy.deepcopy(value)
+        elif field == "shortsCut":
+            recipe[field] = {**recipe.get(field, {}), **copy.deepcopy(value)}
         elif field == "orbPaint":
             # A pigment correction keeps the light measured on the sphere.
             recipe[field] = {**recipe.get(field, {}), **copy.deepcopy(value)}

@@ -11,7 +11,7 @@ from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
 from .jersey_sleeve import JERSEY_ROWS, JERSEY_HALF_WIDTHS, bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
-from .sun_rays import jersey_neck, measure_sun_rays, measured_orb_paint
+from .sun_rays import apply_sun_rays, jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
     closed_lips,
@@ -368,7 +368,7 @@ def compile_portrait(source, family, name, obs):
             "visor": visor,
         }
         if rays:
-            result["sunRays"], result["paints"]["rays"] = rays
+            apply_sun_rays(result, rays, rgb, orb)
         fit_portrait_kit(result, rgb, mask, orb, pigment(rgb, colors["skin"]), fabric)
         mark = portrait_jersey_print(
             rgb, mask, orb, fabric, result.get("kitFit", {}), result.get("orbScale", 1)

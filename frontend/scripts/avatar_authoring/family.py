@@ -15,6 +15,7 @@ from .jersey_sleeve import JERSEY_HALF_WIDTHS, JERSEY_ROWS, jersey_sleeve, jerse
 from .kit_footwear import kit_footwear
 from .kit_hand import kit_hand
 from .sun_rays import (
+    apply_sun_rays,
     fit_crew_to_orb,
     fitted_shorts,
     jersey_neck,
@@ -622,7 +623,7 @@ class Family:
                 size = [radius, radius]
             result = measure_sun_rays(image, mask, center, size)
             if result:
-                rays, swatch = result
+                rays, _ = result
                 ellipse = measure_sun_rays(image, mask, center, size, orb_only=True)
                 visor = measure_visor(image, mask, ellipse)
                 source = compile_families(
@@ -645,8 +646,7 @@ class Family:
                         neck = jersey_neck(image, mask, ellipse)
                         if neck:
                             updated["orbCollar"] = neck[0]
-                    updated["sunRays"] = rays
-                    updated["paints"]["rays"] = swatch
+                    apply_sun_rays(updated, result, image, ellipse)
                     measured["original_head_iou"] = metrics["head_iou"]
                     return updated, measured, view
         if fit_hair and self.crown_center and metrics["head_iou"] < 0.88:
@@ -710,7 +710,7 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
         footwear = kit_footwear(image, mask, landmarks)
         if footwear:
             recipe["kitFootwear"] = footwear
-        cut = shorts_cut(image, mask, landmarks)
+        cut = shorts_cut(image, mask, landmarks, measure_inner=True)
         if cut is not None:
             recipe["shortsCut"] = fitted_shorts(cut)
         seed = visor_seed(image, mask)

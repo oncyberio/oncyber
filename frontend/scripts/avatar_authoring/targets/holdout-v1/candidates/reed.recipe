@@ -153,6 +153,7 @@
       "strength": 0.787,
       "width": 0.09
     },
+    "strap": "temples",
     "center": 0.008,
     "span": 0.862,
     "rows": [
@@ -624,6 +625,7 @@
       ]
     ]
   ],
+  "rayDepth": 1,
   "orbCollar": {
     "radius": 0.2975,
     "drop": 0.24,

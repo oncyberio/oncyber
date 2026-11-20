@@ -102,5 +102,98 @@
                 }
             }
         }
+    },
+    "mora": {
+        "source_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa",
+        "frozen_candidate_sha256": "0b4c7cf734bda70475892b36e47c0e8e74a9b8c4dc0d41525f3393e9f8f1a282",
+        "guide": "mora-turns.webp",
+        "guide_sha256": "4e4fc18456f90c4e84c4e2e1ade8323de3975423e20a2b35b440e09d25450208",
+        "original_png_sha256": "692a3cddae16fbaa0d6b75485ce7fd86ad459eefcbff4ce993699c886a029a50",
+        "generator": "GPT Image",
+        "model_version": null,
+        "reported_cost": null,
+        "generation_seconds": 33.968,
+        "split_x": 887,
+        "angles": [35, 90],
+        "scope": "head",
+        "pre_guide_native": {
+            "WebGLBackend": {
+                "views": {
+                    "portrait-quarter.png": "c0971b2e4b4c28cc6253fb23eafee7b07f33b777725423871d8ccea703f82357",
+                    "portrait-profile.png": "a193888a2282706ddc0bc107cc35ae831509ae7c6f5660ef069f042605a2e4fd"
+                },
+                "overlap": {
+                    "35": {
+                        "skin_iou": 0.8843,
+                        "rays_iou": 0.4545,
+                        "visor_iou": 0.7068
+                    },
+                    "90": {
+                        "skin_iou": 0.7632,
+                        "rays_iou": 0.0323,
+                        "visor_iou": 0.5586
+                    }
+                }
+            },
+            "WebGPUBackend": {
+                "views": {
+                    "portrait-quarter.png": "c28b5928a3490e976b7fa9ba2edbaf5b297d564e7bd732209421d4a5a1d70013",
+                    "portrait-profile.png": "fc61a86e781888b2d343a27a0760b27ec935fdbb95d8003d34149ce59317d704"
+                },
+                "overlap": {
+                    "35": {
+                        "skin_iou": 0.8849,
+                        "rays_iou": 0.4542,
+                        "visor_iou": 0.7069
+                    },
+                    "90": {
+                        "skin_iou": 0.7645,
+                        "rays_iou": 0.0321,
+                        "visor_iou": 0.5578
+                    }
+                }
+            }
+        },
+        "prior_candidate": {
+            "candidate_sha256": "5d552a7193f93b098adb952700c1f29a47448f6bb97b0da5816db9d0e230ca23",
+            "backends": {
+                "WebGLBackend": {
+                    "views": {
+                        "portrait-quarter.png": "1fa6c9881bfc339f0664d0eff02b802c06b75ef3bd8b3c9fdc7d4fdaa041449e",
+                        "portrait-profile.png": "2650358f000ee830a4ec4883fca5d5faf95f6f5ad713748e28e90bc985b6753a"
+                    },
+                    "overlap": {
+                        "35": {
+                            "skin_iou": 0.8742,
+                            "rays_iou": 0.3447,
+                            "visor_iou": 0.6993
+                        },
+                        "90": {
+                            "skin_iou": 0.8346,
+                            "rays_iou": 0.0481,
+                            "visor_iou": 0.4837
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "views": {
+                        "portrait-quarter.png": "5824a4f52c6f8c7bcddcf51201135701b8d043ccc1a4585cd6399d4ee1034f02",
+                        "portrait-profile.png": "14c2632c33a9be8ffc00bf7f901386c7120255b45b02bd3b5c67287e2dccfadd"
+                    },
+                    "overlap": {
+                        "35": {
+                            "skin_iou": 0.8763,
+                            "rays_iou": 0.3468,
+                            "visor_iou": 0.6982
+                        },
+                        "90": {
+                            "skin_iou": 0.8361,
+                            "rays_iou": 0.0483,
+                            "visor_iou": 0.4831
+                        }
+                    }
+                }
+            }
+        }
     }
 }

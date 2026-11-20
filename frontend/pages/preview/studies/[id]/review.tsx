@@ -33,6 +33,7 @@ interface Props {
     evidenceHash: string;
     images: Images;
     inferred: boolean;
+    guideHeldOut: boolean;
 }
 
 export default function RecordedReview(props: Props) {
@@ -48,6 +49,7 @@ function ReviewForm({
     evidenceHash,
     images,
     inferred,
+    guideHeldOut,
 }: Props) {
     const [backend, setBackend] = useState<Backend>("WebGLBackend");
     const [reviewer, setReviewer] = useState("");
@@ -138,15 +140,21 @@ function ReviewForm({
                 </section>
             </div>
             {images[backend].turns && (
-                <figure aria-label="Held-out head turns">
+                <figure
+                    aria-label={
+                        guideHeldOut
+                            ? "Held-out head turns"
+                            : "Calibrated head turns"
+                    }
+                >
                     <figcaption>
                         35° and profile · GPT Image guide and{" "}
                         {rendererNames[backend]} render
                     </figcaption>
                     <p>
-                        The guide was drawn separately from the supplied front
-                        image. Compare the inferred head depth, eyes and
-                        silhouette at each angle.
+                        {guideHeldOut
+                            ? "Both native turns were captured before GPT Image drew this guide from the front reference."
+                            : "This guide was available while fitting the current head. Use it to inspect the result of calibration."}
                     </p>
                     <a
                         href={images[backend].turns}
@@ -383,6 +391,8 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
             input: await sourceImage(entry.input),
             referenceHash: entry.reference_sha256,
             evidenceHash: receipt.evidence_sha256,
+            guideHeldOut:
+                receipt.turn_guide?.candidate_frozen_before_guide === true,
             images,
             inferred: entry.framing === "portrait",
         },

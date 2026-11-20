@@ -1396,6 +1396,63 @@ test("the lens, strap and crosses follow the orb through a turn", () => {
     expect(patches[1].some(([x, , z]) => x < 335 && z > 30)).toBe(true);
 });
 
+test("sunglass arms close over both temples and leave the rear hemisphere exposed", () => {
+    const { visor } = readAvatarFile({
+        ...vesper,
+        visor: { ...vesper.visor, strap: "temples" },
+    }).recipe;
+    const patches: Point[][] = [];
+    const recorder = { s: { triangles: (p: Point[]) => patches.push([...p]) } };
+    drawOrbVisor(recorder as unknown as Drawing, visor, "#171717", "#ffffff");
+    const back = patches[0].filter(([, , z]) => z < -6);
+    expect(back.some(([x]) => x < 300)).toBe(true);
+    expect(back.some(([x]) => x > 400)).toBe(true);
+    expect(Math.min(...back.map((p) => p[2]))).toBeGreaterThan(-16);
+    expect(patches[1]).toHaveLength(96);
+});
+
+test("molded rays retain watertight faces and their measured frontal outline", () => {
+    const draw = (rayDepth?: number) => {
+        const r = readAvatarFile({ ...vesper, rayDepth }).recipe;
+        const d = new Drawing("sunshine");
+        let facets: Point[] = [];
+        const previous = d.s.triangles.bind(d.s);
+        d.s.triangles = (p, color) => {
+            if (d.s.crown) facets = p;
+            else previous(p, color);
+        };
+        drawCharacter(d, r);
+        return facets;
+    };
+    const flat = draw(),
+        solid = draw(1);
+    expect(solid.length).toBeGreaterThan(15);
+    const bounds = (points: Point[], k: number) => [
+        Math.min(...points.map((p) => p[k])),
+        Math.max(...points.map((p) => p[k])),
+    ];
+    expect(bounds(solid, 0)).toEqual(bounds(flat, 0));
+    expect(bounds(solid, 1)).toEqual(bounds(flat, 1));
+    expect(bounds(solid, 2)[0]).toBeLessThan(bounds(flat, 2)[0] - 4);
+    const counts = new Map<string, number>();
+    for (let i = 0; i < solid.length; i += 3) {
+        for (let j = 0; j < 3; j++) {
+            const edge = [
+                solid[i + j].join(","),
+                solid[i + ((j + 1) % 3)].join(","),
+            ]
+                .sort()
+                .join("/");
+            counts.set(edge, (counts.get(edge) ?? 0) + 1);
+        }
+    }
+    expect([...counts.values()].every((n) => n === 2)).toBe(true);
+    expect(() => readAvatarFile({ ...vesper, rayDepth: 2 })).toThrow();
+    expect(() =>
+        readAvatarFile({ ...vesper, sunRays: undefined, rayDepth: 1 })
+    ).toThrow();
+});
+
 test("a strapless visor ends on both temples and retains both raised eyes", () => {
     const { visor } = readAvatarFile({
         ...vesper,

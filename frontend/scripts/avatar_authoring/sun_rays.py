@@ -1,6 +1,7 @@
 """Measure individual painted rays relative to a floating mascot orb."""
 
 import numpy as np
+from PIL import Image, ImageDraw
 from scipy import ndimage, optimize
 from scipy.spatial import ConvexHull
 
@@ -307,6 +308,47 @@ def measure_sun_rays(image, mask, center, radius, *, orb_only=False):
     if 5 <= len(rays) <= 24:
         rays.sort(key=lambda tri: np.arctan2(*np.mean(tri, axis=0)[::-1]))
         return rays, "#" + color.round().astype("uint8").tobytes().hex()
+
+
+def apply_sun_rays(recipe, measurement, rgb, orb):
+    """Infer depth only when the interiors of several painted facets are shaded."""
+    rays, pigment = measurement
+    recipe["sunRays"] = rays
+    recipe["paints"]["rays"] = pigment
+    if orb is None:
+        return
+    shaded, measured = 0, 0
+    for ray in rays:
+        xy = np.asarray(ray) * orb[2:] + orb[:2]
+        lo = np.maximum(0, np.floor(xy.min(0)).astype(int))
+        hi = np.minimum(rgb.shape[1::-1], np.ceil(xy.max(0)).astype(int) + 1)
+        if np.any(hi <= lo):
+            continue
+        tile = Image.new("L", tuple(hi - lo))
+        ImageDraw.Draw(tile).polygon([tuple(p) for p in xy - lo], fill=1)
+        # Exclude the ink/paper boundary. Its antialiasing can create a
+        # strong apparent gradient even on a completely flat graphic.
+        inside = ndimage.binary_erosion(
+            np.asarray(tile), iterations=max(1, round(0.02 * min(orb[2:])))
+        )
+        y, x = np.where(inside)
+        if len(x) < 12:
+            continue
+        colors = rgb[y + lo[1], x + lo[0]]
+        coherent = np.linalg.norm(colors - np.median(colors, axis=0), axis=1) < 50
+        if coherent.sum() < 12 or coherent.mean() < 0.55:
+            continue
+        luma = colors[coherent] @ [0.2126, 0.7152, 0.0722]
+        plane = np.column_stack((x[coherent], y[coherent], np.ones(len(luma))))
+        fitted = plane @ np.linalg.lstsq(plane, luma, rcond=None)[0]
+        spread = np.ptp(np.quantile(fitted, [0.1, 0.9]))
+        residual = np.median(abs(luma - fitted))
+        shaded += int(spread >= max(8, 2.5 * residual))
+        measured += 1
+    if shaded >= 4 and shaded >= 0.6 * measured:
+        # Front art cannot determine thickness. For a molded corona the
+        # family default is a base as deep as it is wide, tapering to a tip.
+        recipe["rayDepth"] = 1
 
 
 def orb_swatches(rgb, orb):
@@ -741,7 +783,7 @@ def dyed_shorts_landmarks(rgb, mask, t, u, shoulder, sock):
     return np.array([collar, shoulder, t[waist], t[hem], sock, np.median(widths)])
 
 
-def kit_landmarks(rgb, m):
+def _kit_color_landmarks(rgb, m):
     """Locate the jersey, shorts, bare lower legs and socks of a full kit."""
     y, x = np.nonzero(m)
     top, h, mid = y.min(), np.ptp(y), (x.min() + x.max()) / 2
@@ -796,7 +838,51 @@ def kit_landmarks(rgb, m):
     )
 
 
-def shorts_cut(rgb, mask, landmarks):
+def kit_landmarks(rgb, mask):
+    marks = _kit_color_landmarks(rgb, mask)
+    if marks is None:
+        return
+    y, x = np.nonzero(mask)
+    height = np.ptp(y)
+    waist, hem = np.rint(y.min() + height * marks[2:4]).astype(int)
+    length = hem - waist
+    if length < 12:
+        return marks
+    # The rough dye segmentation can run down into a similarly colored
+    # bare thigh. Locate the cloth-to-skin edge along both leg panels.
+    radius = max(1, round(length * 0.024))
+    start = max(radius, round(hem - length * 0.29))
+    stop = min(len(rgb) - radius - 1, round(hem + length * 0.19))
+    if stop <= start:
+        return marks
+    mid, width = (x.min() + x.max()) / 2, marks[5] * height
+    edges = []
+    for side in (-1, 1):
+        cols = np.unique(
+            np.rint(mid + side * width * np.linspace(0.18, 0.32, 19))
+            .astype(int)
+            .clip(0, rgb.shape[1] - 1)
+        )
+        trace = ndimage.median_filter(
+            rgb[start - radius : stop + radius + 1, cols],
+            size=(2 * radius + 1, 1, 1),
+            mode="nearest",
+        )
+        delta = np.linalg.norm(trace[2 * radius :] - trace[: -2 * radius], axis=2)
+        index = delta.argmax(0)
+        strong = index[delta[index, np.arange(len(cols))] > 26]
+        if len(strong) < max(3, 0.65 * len(cols)):
+            return marks
+        edge = np.median(strong)
+        if np.mean(abs(strong - edge) <= max(2, length * 0.05)) < 0.68:
+            return marks
+        edges.append(start + edge)
+    if np.ptp(edges) <= max(3, 0.09 * length):
+        marks[3] = (round(float(np.mean(edges))) - y.min()) / height
+    return marks
+
+
+def shorts_cut(rgb, mask, landmarks, *, measure_inner=False):
     """Measure the first sustained opening between the two hems of a full kit."""
     if landmarks is None:
         return
@@ -857,13 +943,30 @@ def shorts_cut(rgb, mask, landmarks):
     waist_span, lower_span = span(0.09, 0.20), span(0.78, 0.93)
     if min(waist_span, lower_span) < width * 0.55:
         return
-    return np.array([opening[0] / length, lower_span / waist_span])
+    cut = [opening[0] / length, lower_span / waist_span]
+    if measure_inner:
+        # Read only the central gap which actually reaches both inner hems.
+        # The same paper classification excludes cast shadows between legs.
+        widths = []
+        for row in cloth[round(length * 0.86) : round(length * 0.96)]:
+            left = np.flatnonzero(row[:mid])
+            right = np.flatnonzero(row[mid:])
+            if left.size and right.size and not row[mid]:
+                widths.append((mid + right[0] - left[-1] - 1) / lower_span)
+        if len(widths) >= max(2, round(0.05 * length)):
+            cut.append(float(np.median(widths)))
+    return np.array(cut)
 
 
 def fitted_shorts(measure):
     return {
         "rise": round(float(np.clip(measure[0], 0.20, 0.93)), 3),
         "hemSpan": round(float(np.clip(measure[1], 0.75, 1.32)), 3),
+        **(
+            {"hemGap": round(float(np.clip(measure[2], 0.025, 0.42)), 3)}
+            if len(measure) == 3
+            else {}
+        ),
     }
 
 
@@ -960,8 +1063,8 @@ def kit_edits(source, native, recipe, gap=None):
     cut = recipe.get("shortsCut")
     if cut:
         wanted, seen = (
-            shorts_cut(*source_image, target),
-            shorts_cut(*native_image, current),
+            shorts_cut(*source_image, target, measure_inner=True),
+            shorts_cut(*native_image, current, measure_inner=True),
         )
         if wanted is not None and seen is not None:
             # Waist displacement tapers toward the hem on the shared rig.
@@ -979,6 +1082,11 @@ def kit_edits(source, native, recipe, gap=None):
                     / seen[1]
                     * hem_to_waist(prior_width)
                     / hem_to_waist(next_width),
+                    *(
+                        [cut["hemGap"] + wanted[2] - seen[2]]
+                        if "hemGap" in cut and len(wanted) == len(seen) == 3
+                        else []
+                    ),
                 ]
             )
             if fit_cut != cut:

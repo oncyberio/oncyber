@@ -57,6 +57,8 @@ export interface AvatarRecipe {
     orbScale?: number;
     orbOffset?: [number, number];
     sunRays?: [number, number][][];
+    /** Molded ray depth in units of its width across the base. */
+    rayDepth?: number;
     lapels?: { color: string; paths: [number, number][][] };
     eyeInk?: string;
     penOutline?: boolean;

@@ -68,8 +68,9 @@ def comparison_sheet(summary, manifest, root, output):
     sheet.save(output / "comparison.webp", quality=94)
 
 
-def benchmark(args):
-    manifest = json.loads(args.manifest.read_text())
+def benchmark(args, manifest=None):
+    if manifest is None:
+        manifest = json.loads(args.manifest.read_text())
     cases = manifest["cases"]
     if len({c["id"] for c in cases}) != len(cases):
         raise ValueError("Duplicate holdout ID")
@@ -223,11 +224,12 @@ def score_reviews(args):
 
 def visible_shorts(path):
     rgb, mask = pixels(path, keep_components=True)
-    cut = shorts_cut(rgb, mask, kit_landmarks(rgb, mask))
+    cut = shorts_cut(rgb, mask, kit_landmarks(rgb, mask), measure_inner=True)
     if cut is not None:
         return {
             "rise": round(float(cut[0]), 4),
             "hem_to_waist": round(float(cut[1]), 4),
+            **({"inner_hem_fraction": round(float(cut[2]), 4)} if len(cut) == 3 else {}),
         }
 
 
@@ -524,6 +526,103 @@ def visible_trouser_opening(path):
         return round((opening - top) / height, 4)
 
 
+def record_followup(args):
+    """Fit one registered follow-up or resume its native preview from disk."""
+    import fcntl
+    import os
+    from tempfile import TemporaryDirectory
+
+    from avatar_authoring.release import evidence
+
+    root = args.manifest.parent
+    path = root / "followup-studies.json"
+    archive = json.loads(path.read_bytes())
+    case = next((c for c in archive["cases"] if c["id"] == args.case), None)
+    if not case:
+        raise ValueError("Freeze the follow-up input and evaluation reference first")
+    manifest = {"cases": [case]}
+    holdout = args.output / "holdout.json"
+    summary = (
+        json.loads(holdout.read_bytes())
+        if holdout.exists()
+        else benchmark(args, manifest)
+    )
+    if summary["manifest_sha256"] != manifest_digest(manifest):
+        raise ValueError("Follow-up output belongs to another drawing")
+    row = summary["cases"][args.case]
+    folder = args.output / row["study"]
+    study = json.loads((folder / "study.json").read_bytes())
+    reference = root / case["evaluation_reference"]
+    if (
+        study["source_sha256"] != case["input_sha256"]
+        or digest(root / case["input"]) != case["input_sha256"]
+        or digest(reference) != case["reference_sha256"]
+    ):
+        raise ValueError("The frozen follow-up input or reference changed")
+    trial = {k: v for k, v in row.items() if k not in ("study", "independent_review")}
+    trial["source_sha256"] = study["source_sha256"]
+    trial["passes"] = [
+        {
+            k: item[k]
+            for k in ("accepted", "front", "visible_portrait", "reason")
+            if k in item
+        }
+        | {"triangles": item["native"]["triangles"]}
+        for item in study["passes"]
+    ]
+    candidate = None
+    if study.get("candidate"):
+        candidate = folder / study["candidate"]
+        if digest(candidate) != row["candidate_sha256"]:
+            raise ValueError("The selected follow-up recipe changed")
+        approval = candidate.parent / "approval"
+        if not (approval / "evidence.json").exists():
+            evidence(candidate, reference, approval, args.base, args.max_triangles)
+        report = verified_captures(candidate, approval)
+        if (
+            report["reference"] != case["reference_sha256"]
+            or report["framing"] != "full"
+        ):
+            raise ValueError("The recorded views belong to another reference")
+        trial["evidence_sha256"] = digest(approval / "evidence.json")
+
+    # A review imports the recipe, images and receipt together. Stage every
+    # export before updating the ledger, and serialize simultaneous recorders.
+    with TemporaryDirectory(dir=root) as tmp:
+        stage = Path(tmp)
+        if candidate:
+            assets = export_review_views(approval, stage / "reviews", args.case, report)
+            (stage / "candidates").mkdir()
+            (stage / "candidates" / (args.case + ".recipe")).write_bytes(
+                candidate.read_bytes()
+            )
+        lock = os.open(root, os.O_RDONLY)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            archive = json.loads(path.read_bytes())
+            if case not in archive["cases"]:
+                raise ValueError("The follow-up registration changed during fitting")
+            history = archive["trials"].setdefault(args.case, {})
+            previous = history.get(args.record_followup)
+            if previous is not None and previous != trial:
+                raise ValueError("A different trial already uses this name")
+            history[args.record_followup] = trial
+            if candidate:
+                archive["receipts"][args.case] = {
+                    "candidate_sha256": row["candidate_sha256"],
+                    "evidence_sha256": trial["evidence_sha256"],
+                    "review_assets": assets,
+                }
+                for item in (*stage.glob("reviews/*"), *stage.glob("candidates/*")):
+                    item.replace(root / item.relative_to(stage))
+            ledger = stage / path.name
+            ledger.write_text(json.dumps(archive, indent=4, allow_nan=False) + "\n")
+            ledger.replace(path)
+        finally:
+            os.close(lock)
+    return trial
+
+
 def record_preview(args):
     """Record the exact exported, rendered study bytes alongside the frozen inputs."""
     root = args.manifest.parent
@@ -603,7 +702,14 @@ def record_preview(args):
                 raise ValueError(f"{key} needs native comparisons to its frozen turn guide")
             data["turn_guide"] = {
                 "guide_sha256": guide["guide_sha256"],
-                "candidate_frozen_before_guide": sha == guide["frozen_candidate_sha256"],
+                "candidate_frozen_before_guide": (
+                    sha == guide["frozen_candidate_sha256"]
+                    and all(
+                        item["views"].get(view) == expected
+                        for mode, item in report["backends"].items()
+                        for view, expected in guide["pre_guide_native"][mode]["views"].items()
+                    )
+                ),
                 "backends": {
                     mode: item["turn_metrics"] for mode, item in report["backends"].items()
                 },
@@ -836,6 +942,11 @@ if __name__ == "__main__":
     parser.add_argument("--renderer", choices=["webgl", "auto"], default="webgl")
     parser.add_argument("--max-triangles", type=int, default=4000)
     parser.add_argument(
+        "--record-followup",
+        metavar="TRIAL",
+        help="Fit or resume --case from the frozen follow-up ledger, verify both backends and archive its preview",
+    )
+    parser.add_argument(
         "--record-preview",
         metavar="RUN",
         help="Record retested preview candidates and both rendering passes",
@@ -851,6 +962,32 @@ if __name__ == "__main__":
         help="Matched Rick OBJ and Sunshine VRM reference comparisons",
     )
     opts = parser.parse_args()
+    if opts.record_followup:
+        if (
+            not opts.case
+            or opts.record_preview
+            or opts.export_candidates
+            or opts.score_reviews
+            or opts.family
+        ):
+            parser.error(
+                "--record-followup requires --case and a separate follow-up output directory"
+            )
+        trial = record_followup(opts)
+        print(
+            json.dumps(
+                {
+                    k: trial.get(k)
+                    for k in (
+                        "candidate_sha256",
+                        "seconds",
+                        "visible_checks_passed",
+                        "error",
+                    )
+                }
+            )
+        )
+        raise SystemExit(0 if trial["visible_checks_passed"] else 1)
     if opts.record_preview:
         if not opts.crowd_evidence or not opts.benchmarks:
             parser.error("--record-preview needs --crowd-evidence and --benchmarks")

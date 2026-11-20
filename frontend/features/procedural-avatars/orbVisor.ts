@@ -7,8 +7,8 @@ const lensLift = 3.5;
 
 export interface OrbVisor {
     contact?: { strength: number; width: number };
-    /** Omit the band when both temples visibly continue in the orb pigment. */
-    strap?: false;
+    /** Bare temples, two sunglass arms, or the default continuous band. */
+    strap?: false | "temples";
     rim?: {
         columns: [number, number, number][];
         upper: string;
@@ -126,7 +126,7 @@ export function drawOrbVisor(
     const strapBottom = measured
         ? Math.max(strapTop + 0.06, 0.5 * (rim[0][1] + rim.at(-1)[1]))
         : level + 0.105;
-    for (let i = 0; band && i < 32; i++) {
+    for (let i = 0; visor.strap === undefined && i < 32; i++) {
         const a = (i * Math.PI) / 16,
             b = ((i + 1) * Math.PI) / 16;
         quad(
@@ -135,6 +135,51 @@ export function drawOrbVisor(
             at(b, strapBottom, 2),
             at(a, strapBottom, 2)
         );
+    }
+    if (visor.strap === "temples") {
+        // The hinge is buried in the raised front rim. The arm turns over
+        // the side of the orb and terminates just behind its equator.
+        for (const side of [-1, 1]) {
+            const edge = side < 0 ? 0 : rim.length - 1;
+            const [top, bottom] = rim[edge];
+            const u = columns?.[edge][0] ?? visor.center + side * visor.span;
+            const v = (top + bottom) / (2 * (1 + lensLift / ry));
+            const hinge =
+                Math.asin(
+                    MathUtils.clamp(
+                        Math.abs(u) /
+                            ((1 + lensLift / rx) * Math.sqrt(1 - v * v)),
+                        0,
+                        1
+                    )
+                ) - 0.06;
+            const height = MathUtils.clamp((bottom - top) * 0.43, 0.035, 0.09);
+            let previous: Point[];
+            for (let i = 0; i <= 5; i++) {
+                const t = i / 5,
+                    angle = side * MathUtils.lerp(hinge, Math.PI / 2 + 0.14, t);
+                const level = v + 0.025 * t * t;
+                const h = height * (1 - 0.35 * t);
+                const row = [
+                    at(angle, level - h, 2.7),
+                    at(angle, level + h, 2.7),
+                    at(angle, level + h, 0.3),
+                    at(angle, level - h, 0.3),
+                ];
+                if (side < 0) row.reverse();
+                if (previous) {
+                    for (let j = 0; j < 4; j++)
+                        quad(
+                            previous[j],
+                            row[j],
+                            row[(j + 1) % 4],
+                            previous[(j + 1) % 4]
+                        );
+                } else quad(row[0], row[1], row[2], row[3]);
+                if (i === 5) quad(row[3], row[2], row[1], row[0]);
+                previous = row;
+            }
+        }
     }
     const knot = (i: number, t: number, lift: number) =>
         point(

@@ -189,8 +189,12 @@ class FamilyTests(unittest.TestCase):
         ref = Path(__file__).parent / "targets/holdout-v1/brin-full.webp"
         rgb, mask = pixels(ref, keep_components=True)
         landmarks = kit_landmarks(rgb, mask)
-        np.testing.assert_allclose(landmarks[[0, 2, 3]], [0.34, 0.59, 0.693], atol=0.01)
-        self.assertIsNotNone(shorts_cut(rgb, mask, landmarks))
+        np.testing.assert_allclose(landmarks[[0, 2]], [0.34, 0.59], atol=0.01)
+        # The copper panel ends near row 834. Rows 842–852 already show bare legs.
+        rows = np.flatnonzero(mask.any(axis=1))
+        self.assertAlmostEqual(rows[0] + landmarks[3] * np.ptp(rows), 834, delta=3)
+        cut = shorts_cut(rgb, mask, landmarks, measure_inner=True)
+        self.assertAlmostEqual(cut[2], 0.06, delta=0.015)
         shoes = kit_footwear(rgb, mask, landmarks)
         self.assertTrue(1.2 < shoes["spread"][0] < shoes["spread"][1] < 1.7)
         self.assertGreater(shoes["rise"], 0.48)
@@ -869,6 +873,51 @@ class FamilyTests(unittest.TestCase):
         a[73:79, 58:75] = [29, 28, 32]
         self.assertNotIn("strap", measure_visor(a, mask, [119, 82, 62, 63]))
 
+    def test_flat_and_shaded_rays_infer_different_sections_from_the_same_outline(self):
+        from .sun_rays import apply_sun_rays
+
+        orb = np.array([95, 95, 38, 38])
+        base = np.array([[1.2, -0.25], [1.85, 0], [1.2, 0.25]])
+        rays = []
+        for angle in np.linspace(0, 2 * np.pi, 8, endpoint=False):
+            c, n = np.cos(angle), np.sin(angle)
+            rays.append((base @ [[c, n], [-n, c]]).tolist())
+        y, x = np.indices((190, 190))
+        rgb = np.full((190, 190, 3), [20.0, 95.0, 175.0])
+        flat = {"paints": {}}
+        apply_sun_rays(flat, (rays, "#145faf"), rgb, orb)
+        self.assertNotIn("rayDepth", flat)
+        for ray in rays:
+            poly = np.array(ray) * orb[2:] + orb[:2]
+            tile = Image.new("L", (190, 190))
+            ImageDraw.Draw(tile).polygon([tuple(p) for p in poly], fill=1)
+            keep = np.asarray(tile) > 0
+            rgb[keep] += np.clip((x[keep] - poly[:, 0].mean()) * 2.1, -36, 36)[:, None]
+        cast = {"paints": {}}
+        apply_sun_rays(cast, (rays, "#145faf"), rgb, orb)
+        self.assertEqual(cast["rayDepth"], 1)
+        self.assertEqual(cast["sunRays"], flat["sunRays"])
+
+    def test_frame_mounting_requires_a_bridge_and_two_narrow_wings(self):
+        from .visor import has_sunglass_arms
+
+        columns = [
+            [-1, -0.2, -0.08],
+            [-0.82, -0.2, -0.08],
+            [-0.42, -0.28, 0.38],
+            [0, -0.26, 0.12],
+            [0.42, -0.28, 0.38],
+            [0.82, -0.2, -0.08],
+            [1, -0.2, -0.08],
+        ]
+        marks = [[-0.44, 0, 0.1, 0.1], [0.44, 0, 0.1, 0.1]]
+        self.assertTrue(has_sunglass_arms({"columns": columns}, marks))
+        columns[0][2] = columns[1][2] = 0.34
+        self.assertFalse(has_sunglass_arms({"columns": columns}, marks))
+        for col in columns:
+            col[2] = 0.34
+        self.assertFalse(has_sunglass_arms({"columns": columns}, marks))
+
     def test_shorts_measure_the_visible_gap_and_outer_hem(self):
         mask = np.zeros((201, 160), dtype=bool)
         mask[:, 63:97] = True
@@ -882,6 +931,10 @@ class FamilyTests(unittest.TestCase):
         # Gray paper between the legs can survive the foreground extractor.
         mask[123:130, 76:84] = True
         rise, width = shorts_cut(rgb, mask, marks)
+        measured = shorts_cut(rgb, mask, marks, measure_inner=True)
+        self.assertEqual(len(measured), 3)
+        self.assertGreater(measured[2], 0)
+        self.assertLess(measured[2], 0.4)
         self.assertAlmostEqual(rise, 23 / 30)
         self.assertAlmostEqual(width, 41 / 33)
         separate = mask.copy()
