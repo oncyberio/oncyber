@@ -53,55 +53,6 @@
     --panel-accent: #1f70f0;
 }
 
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 100;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Air.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 200;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-AirItalic.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 300;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Thin.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 400;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Regular.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 500;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Medium.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 600;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Bold.otf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Aeonik";
-    font-weight: 700;
-    src: local("Aeonik"), url("/fonts/licensed/Aeonik-Black.otf");
-    font-display: swap;
-}
-
 /*Space Grotesk*/
 @font-face {
     font-family: "SpaceGrotesk";
@@ -179,29 +130,6 @@
     ascent-override: 109.82%;
     descent-override: 35.4%;
     line-gap-override: 0%;
-}
-
-/*PPNeueBit Sans*/
-@font-face {
-    font-family: "PPNeueBit";
-    font-weight: 300;
-    src: local("PPNeueBit-Regular"),
-        url("/fonts/licensed/PPNeueBit-Regular.ttf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "PPNeueBit";
-    font-weight: 500;
-    src: local("PPNeueBit-Bold"), url("/fonts/licensed/PPNeueBit-Bold.ttf");
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "PP Editorial New";
-    font-weight: 400;
-    src: url("/fonts/licensed/PPEditorialNew-Regular.ttf");
-    font-display: swap;
 }
 
 html,

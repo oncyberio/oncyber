@@ -44,6 +44,11 @@ import Iframe from "@components/layouts/iframe";
 import { isSupportedRuntime } from "@utils/runtimeKind";
 import { watchChunkErrors, withChunkReload } from "@utils/browser/chunkReload";
 
+// Licensed faces only where the build has their files (docs/fonts.md). The
+// value is fixed at build time, so other builds leave the rules out.
+if (process.env.NEXT_PUBLIC_LICENSED_FONTS === "1")
+    require("@styles/licensed-fonts.css");
+
 const AIProvider = dynamic(
     withChunkReload(() => import("@features/ai/context/AIContext"))
 );

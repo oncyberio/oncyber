@@ -10,11 +10,9 @@ import {
 import type { PointerEvent as ReactPointerEvent } from "react";
 import Link from "@components/InAppLink";
 import styled from "styled-components";
-import * as THREE from "three";
 import { UserContext } from "@components/context/UserContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { GridSection, LandingCard } from "../types";
-import { CardPool } from "../three/pool";
 import {
     createGridLayout,
     cellsInColumns,
@@ -27,7 +25,7 @@ import {
     moveGridSelection,
     sectionAt,
     switchSections,
-} from "../three/layout";
+} from "../grid/layout";
 import {
     placeSwitch,
     stepSeparation,
@@ -44,11 +42,7 @@ import { createColumnScroller } from "../columnScroller";
 import { isSetupCard } from "../creationSteps";
 import { POPULAR_SECTION_LABEL } from "../data";
 import { CreateIcon } from "./CreateIcon";
-import {
-    useActivitySignal,
-    useLandingActivity,
-    useLandingBusy,
-} from "../activity";
+import { useLandingActivity, useLandingBusy } from "../activity";
 import { useCyberTranslation } from "@components/context/I18nContext";
 
 interface Props {
@@ -65,12 +59,10 @@ interface Props {
     featuredActionLabel?: string;
     browseLabel?: string;
     interactionsBlocked?: boolean;
-    flat: boolean;
     columns: number;
     visibleRows: number;
     viewControls: ReactNode;
     footerStart?: ReactNode;
-    onFlatView: (flat: boolean) => void;
     resetKey: string;
     hasMore: boolean;
     loadingMore: boolean;
@@ -125,12 +117,10 @@ export default function Scene({
     featuredActionLabel,
     browseLabel = "Browse worlds. Scroll or use arrow keys to explore.",
     interactionsBlocked = false,
-    flat,
     columns,
     visibleRows,
     viewControls,
     footerStart,
-    onFlatView,
     resetKey,
     hasMore,
     loadingMore,
@@ -152,7 +142,6 @@ export default function Scene({
         columns * visibleRows
     );
     useLandingBusy(transition.busy);
-    const textureActivity = useActivitySignal();
     const activity = useLandingActivity();
     const cards = transition.cards;
     const formGrid =
@@ -160,7 +149,6 @@ export default function Scene({
     const viewportRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const stageRef = useRef<HTMLDivElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
     const linksRef = useRef(new Map<string, HTMLElement>());
     const switchItems = useRef<HTMLButtonElement[]>([]);
     const filterRef = useRef<HTMLDivElement>(null);
@@ -233,61 +221,6 @@ export default function Scene({
     const selectedId = useRef<string | null>(null);
     const featured = cards[range.first - 1] || cards[0];
 
-    const invalidateGraphics = useRef(() => {});
-    const graphics = useRef<{
-        renderer: THREE.WebGLRenderer;
-        pool: CardPool;
-        scene: THREE.Scene;
-        camera: THREE.PerspectiveCamera;
-        width: number;
-        height: number;
-    }>(null);
-    // Search changes bindings and positions, not the canvas or its texture cache.
-    useLayoutEffect(() => {
-        if (flat || formGrid || !canvasRef.current) return;
-        let renderer: THREE.WebGLRenderer;
-        try {
-            renderer = new THREE.WebGLRenderer({
-                canvas: canvasRef.current,
-                antialias: true,
-                alpha: true,
-                powerPreference: "low-power",
-            });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-            renderer.setClearColor(0x101010, 0);
-            const pool = new CardPool(
-                () => invalidateGraphics.current(),
-                textureActivity
-            );
-            const scene = new THREE.Scene();
-            scene.add(pool.group);
-            graphics.current = {
-                renderer,
-                pool,
-                scene,
-                camera: new THREE.PerspectiveCamera(),
-                width: 0,
-                height: 0,
-            };
-        } catch {
-            renderer?.dispose();
-            onFlatView(true);
-            return;
-        }
-        const canvas = canvasRef.current;
-        const onContextLost = (event: Event) => {
-            event.preventDefault();
-            onFlatView(true);
-        };
-        canvas.addEventListener("webglcontextlost", onContextLost);
-        return () => {
-            canvas.removeEventListener("webglcontextlost", onContextLost);
-            graphics.current?.pool.dispose();
-            graphics.current?.renderer.dispose();
-            graphics.current = null;
-        };
-    }, [flat, formGrid, onFlatView, textureActivity]);
-
     const previousLayout = useRef({
         key: transition.key,
         columns,
@@ -324,11 +257,6 @@ export default function Scene({
         const content = contentRef.current;
         const stage = stageRef.current;
         if (!active || !viewport || !content || !stage || !cards.length) return;
-        const graphic = graphics.current;
-        const renderer = graphic?.renderer;
-        const pool = graphic?.pool;
-        const scene = graphic?.scene || new THREE.Scene();
-        const camera = graphic?.camera || new THREE.PerspectiveCamera();
         let metrics = cylinderMetrics(
             viewport.clientWidth,
             viewport.clientHeight,
@@ -337,7 +265,6 @@ export default function Scene({
         );
         let frame = 0;
         let stopped = false;
-        let hovered = "";
         let previousRange = "";
         let wheelEndTimer: ReturnType<typeof setTimeout>;
         let requestedColumn: number | null = null;
@@ -370,7 +297,6 @@ export default function Scene({
                 frame = requestAnimationFrame(render);
         }
         transition.invalidate.current = invalidate;
-        invalidateGraphics.current = invalidate;
         function render() {
             frame = 0;
             if (stopped) return;
@@ -412,16 +338,10 @@ export default function Scene({
                 Math.ceil(centerColumn + overscan) + 1
             );
             const nearbyCells = cellsInColumns(layout, renderFrom, renderTo);
-            pool?.update(
-                cards,
-                nearbyCells,
-                metrics,
-                progress,
-                hovered,
-                opacity
-            );
             for (const element of linksRef.current.values()) {
                 element.style.visibility = "hidden";
+                // A card off the stage does not fetch its cover.
+                element.toggleAttribute("data-offstage", true);
                 element.tabIndex = -1;
             }
             for (const cell of nearbyCells) {
@@ -431,6 +351,7 @@ export default function Scene({
                 const visible =
                     Math.abs(dims.x) < metrics.width / 2 + metrics.cardWidth;
                 element.style.visibility = visible ? "visible" : "hidden";
+                element.toggleAttribute("data-offstage", !visible);
                 if (isSetupCard(cards[cell.index])) {
                     element.toggleAttribute(
                         "inert",
@@ -499,7 +420,6 @@ export default function Scene({
                     ?.focus({ preventScroll: true });
             }
             placeSectionSwitch(progress);
-            renderer?.render(scene, camera);
             if (transition.motion.current.phase !== "idle") invalidate();
             const shown = cellsInColumns(
                 layout,
@@ -750,25 +670,6 @@ export default function Scene({
                 columns,
                 visibleRows
             );
-            if (
-                graphic &&
-                (graphic.width !== metrics.width ||
-                    graphic.height !== metrics.height)
-            ) {
-                renderer.setSize(metrics.width, metrics.height, false);
-                graphic.width = metrics.width;
-                graphic.height = metrics.height;
-            }
-            camera.fov =
-                (2 *
-                    Math.atan(metrics.height / (2 * metrics.cameraDistance)) *
-                    180) /
-                Math.PI;
-            camera.aspect = metrics.width / metrics.height;
-            camera.near = 1;
-            camera.far = metrics.cameraDistance + metrics.radius * 3;
-            camera.position.z = metrics.cameraDistance;
-            camera.updateProjectionMatrix();
             stage.style.width = `${metrics.width}px`;
             content.style.width = `${
                 metrics.width +
@@ -927,7 +828,6 @@ export default function Scene({
             const link = (
                 event.target as HTMLElement
             ).closest<HTMLAnchorElement>("[data-card-id]");
-            hovered = link?.dataset.cardId || "";
             if (link) {
                 if (!drag && event.pointerType === "mouse")
                     selectCard(link.dataset.cardId);
@@ -964,7 +864,6 @@ export default function Scene({
             scroller.settle();
         }
         function onPointerLeave() {
-            hovered = "";
             invalidate();
         }
         function onVisibilityChange() {
@@ -1029,22 +928,18 @@ export default function Scene({
                 onVisibilityChange
             );
             transition.invalidate.current = () => {};
-            invalidateGraphics.current = () => {};
             refreshScene.current = () => {};
         };
     }, [
         transition.key,
         columns,
         visibleRows,
-        flat,
         formGrid,
-        onFlatView,
         active,
         mode,
         creating,
         onCreate,
         activity,
-        textureActivity,
     ]);
 
     // The section switch is placed from its labels' widths, so a language
@@ -1079,11 +974,7 @@ export default function Scene({
             item_id: card.id,
             user_id: user?.id,
             item_name: card.title,
-            source: creating
-                ? "landing_create"
-                : flat
-                ? "landing_grid"
-                : "landing_cylinder",
+            source: creating ? "landing_create" : "landing_grid",
         });
     }
 
@@ -1104,9 +995,6 @@ export default function Scene({
                 >
                     <ScrollContent ref={contentRef}>
                         <Stage ref={stageRef}>
-                            {!flat && !formGrid && (
-                                <canvas ref={canvasRef} aria-hidden="true" />
-                            )}
                             {(creating || formGrid
                                 ? layout.cells
                                 : cellsInColumns(
@@ -1144,7 +1032,6 @@ export default function Scene({
                                     <ExperienceCard
                                         key={card.id}
                                         card={card}
-                                        flat={flat}
                                         featured={single}
                                         arrowOpensNewTab
                                         data-card-id={card.id}
@@ -1538,13 +1425,6 @@ const Stage = styled.div`
     left: 0;
     overflow: hidden;
     user-select: none;
-    canvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        display: block;
-    }
 `;
 /* Plain labels in the mono caption type, one per section of the grid. */
 const SectionSwitch = styled.div`

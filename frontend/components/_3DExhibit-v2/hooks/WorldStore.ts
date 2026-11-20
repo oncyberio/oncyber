@@ -1,6 +1,7 @@
 import { is } from "immer/dist/internal";
 import type Api from "../three/api";
-import { WORLD_CREATED } from "../three/constants";
+// From the three-free module: this store is reached from the app shell.
+import { WORLD_CREATED } from "../three/shellconstants";
 import { registerWorldEvent } from "./useWorldHandler";
 
 type Callback = () => unknown;

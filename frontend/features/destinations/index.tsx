@@ -102,7 +102,6 @@ export function DestinationsGrid() {
     const [filters, setFilters] = useState<Filters>({});
     const [query, setQuery] = useState("");
     const [size, setSize] = useState<1 | 2>(2);
-    const [flat, setFlat] = useState(false);
     const [dialog, setDialog] = useState<"filters" | "upload" | null>(null);
     const [selectedId, setSelectedId] = useState<string>(null);
     useLandingBusy(isLoadinUploads);
@@ -232,8 +231,6 @@ export function DestinationsGrid() {
                                     return true;
                                 }}
                                 contentKey={contentKey}
-                                flat={flat}
-                                onFlatView={setFlat}
                                 columns={size}
                                 visibleRows={size}
                                 viewControls={viewControls}

@@ -30,7 +30,6 @@ jest.mock("@components/InAppLink", () => ({
 jest.mock("@utils/analytics", () => ({
     amplitude_logAnalyticsEvent: jest.fn(),
 }));
-jest.mock("../three/pool", () => ({ CardPool: jest.fn() }));
 jest.mock("../activity", () => {
     const signal = jest.fn();
     return {
@@ -58,8 +57,6 @@ function render(columns = 2, content = renderCard) {
                 contentKey="setup:form"
                 resetKey="setup:form"
                 onCreate={navigate}
-                flat={false}
-                onFlatView={navigate}
                 columns={columns}
                 visibleRows={columns}
                 viewControls={null}

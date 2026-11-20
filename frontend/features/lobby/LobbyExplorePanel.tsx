@@ -372,7 +372,6 @@ export default function LobbyExplorePanel({
                 <ExperienceCard
                     key={card.id}
                     card={card}
-                    flat
                     className="explore-card"
                     data-selected={card.id === highlighted}
                     onFocus={() => {
