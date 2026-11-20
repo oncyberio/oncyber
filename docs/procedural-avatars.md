@@ -1,5 +1,26 @@
 # Procedural avatar studies
 
+## Measured streetwear
+
+Vale is the first fitted member of the spiked-hair, oversized-tee and pooled-denim family. Open the [Vale study](/preview/studies/vale-streetwear) for the GPT Image turnaround, native front and profile comparison, recorded walk and both hand grips. Use the [playable preview](/preview/vale) to move around the space.
+
+Start with a full-body orthographic front T-pose and a left-facing profile on the same sheet. Keep the figure height, floor, hair, outfit and proportions consistent. Fit the seams, toe opening, cloth light, crown tips, fringe and shirt graphics from the drawing. The family supplies anatomy, hidden garment surfaces, hands and the rig. The calibrated cut assumes a low tilted belt, an ankle-length pooled pant and three major spikes on either side. A different cut needs its own calibration.
+
+Run these commands from the repository root with the avatar-authoring Python dependencies and the native viewer running locally.
+
+```sh
+python frontend/scripts/fit-streetwear.py \
+  frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-turnaround.webp \
+  /tmp/vale.json --name Vale --front-center 490 --profile-center 1205 --floor 1008 --height 1000
+python frontend/scripts/review-streetwear.py \
+  frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-turnaround.webp \
+  /tmp/vale.json /tmp/vale-captures /tmp/vale-study --split 979 --slug vale
+```
+
+The fitter writes a texture-free JSON recipe. The renderer constructs one skinned mesh with vertex colors. The review measures the silhouette against each supplied view after aligning height, floor and horizontal center. The 35-degree and rear views are native inspection renders of the inferred geometry. The image and captures load on the study page only.
+
+The Vale recipe is 19,392 bytes (6,109 bytes gzipped) and the close mesh has 4,980 triangles. The recorded 100-variation stress test includes different head widths, spike lengths, hair lengths and shirt colors. WebGPU and WebGL2 each produced one avatar color draw and one shadow draw. The full crowd took 14–17 seconds to become ready in software Chromium. That timing covers all 100 generated bodies. Reproduce it with `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows`. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
+
 ## Rick and Morty family
 
 Open `/dev/cartoon-cast` for twelve playable cartoon characters. The seven series characters are Rick Sanchez, Morty Smith, Summer Smith, Beth Smith, Jerry Smith, Evil Morty and Jessica. The five original characters are Inez Vale, Oren Pike, Mai Calder, Nell Torres and Otis Reed. The study uses Morty’s everyday yellow tee and Summer Smith’s pink tank. The adventure outfits from the supplied illustration are available in `/dev/procedural-avatars`.

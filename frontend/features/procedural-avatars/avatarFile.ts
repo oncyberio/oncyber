@@ -1,3 +1,4 @@
+import { streetLayout, streetwearFile } from "./streetwearPattern";
 import { z } from "zod";
 import { cartoonLayout } from "./cartoonCast";
 import {
@@ -393,6 +394,22 @@ export function readAvatarFile(input: unknown): {
     name: string;
     recipe: AvatarRecipe;
 } {
+    if (
+        input &&
+        typeof input === "object" &&
+        "style" in input &&
+        input.style === "streetwear"
+    ) {
+        const pattern = streetwearFile.parse(input);
+        return {
+            name: pattern.name,
+            recipe: {
+                template: "vale",
+                layout: streetLayout(pattern),
+                streetPattern: pattern,
+            },
+        };
+    }
     if (
         input &&
         typeof input === "object" &&

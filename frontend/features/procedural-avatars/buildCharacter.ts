@@ -1,3 +1,4 @@
+import { drawMeasuredStreetwear } from "./measuredStreetwear";
 import { castCacheKey } from "./cartoonCast";
 import { drawCartoonHumanoid } from "./cartoonHumanoid";
 import { avatarStyles } from "./styles";
@@ -1034,6 +1035,10 @@ delete plainKitInk.jersey;
 delete plainKitInk.leftUpperArmSleeve;
 delete plainKitInk.rightUpperArmSleeve;
 export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
+    if (recipe?.streetPattern) {
+        drawMeasuredStreetwear(d, recipe.streetPattern);
+        return;
+    }
     if (recipe?.cartoon) {
         drawCartoonHumanoid(d, recipe.cartoon);
         return;
@@ -1295,6 +1300,7 @@ export function buildCharacter(
     // layouts at crowd LOD so template refitting cannot replace the offsets.
     if (
         detail === "crowd" &&
+        !recipe.streetPattern &&
         !recipe.cartoon?.household &&
         !recipe.cartoon?.fit?.sections?.eyes?.length
     )

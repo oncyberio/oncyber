@@ -18,6 +18,7 @@ import type { ReferenceLayout } from "./referenceProportions";
 import type { Character } from "./catalog";
 import { styleOf, type avatarStyles } from "./styles";
 import type { Point } from "./sculpt";
+import type { StreetPattern } from "./streetwearPattern";
 import type { StreetLook } from "./streetwearRecipes";
 
 /** All values are unitless proportions of the template. Swatches are sRGB. */
@@ -68,6 +69,7 @@ export interface AvatarRecipe {
     inspectPaint?: boolean;
     layout?: ReferenceLayout;
     /** Tailor the existing streetwear patterns in their template's reference coordinates. */
+    streetPattern?: StreetPattern;
     garments?: Partial<
         Pick<
             StreetLook,

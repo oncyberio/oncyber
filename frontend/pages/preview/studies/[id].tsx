@@ -11,7 +11,12 @@ import manifest from "../../../scripts/avatar_authoring/targets/holdout-v1/manif
 import followups from "../../../scripts/avatar_authoring/targets/holdout-v1/followup-studies.json";
 import results from "../../../scripts/avatar_authoring/targets/holdout-v1/results.json";
 
-const studyCases = [...manifest.cases, ...followups.cases];
+const streetwear = {
+    id: "vale-streetwear",
+    name: "Vale",
+    framing: "turnaround",
+};
+const studyCases = [...manifest.cases, ...followups.cases, streetwear];
 
 const Viewer = dynamic(() => import("../../dev/procedural-avatars"), {
     ssr: false,
@@ -22,6 +27,13 @@ interface Props {
     candidate: string;
     reference: string;
     fullBody: string;
+    evidence?: {
+        comparison: string;
+        triangles: number;
+        frontOverlap: number;
+        profileOverlap: number;
+        captures: { mode: string; views: string; walk: string }[];
+    };
 }
 
 export default function RecipeReview({
@@ -29,6 +41,7 @@ export default function RecipeReview({
     candidate,
     reference,
     fullBody,
+    evidence,
 }: Props) {
     const [subjects, setSubjects] = useState<Subject[]>();
     useEffect(() => {
@@ -61,21 +74,26 @@ export default function RecipeReview({
                         {name}
                     </a>
                 ))}
-                <a href="/preview/crowd">100-avatar crowd</a>
+                <a href="/preview/crowd">
+                    {evidence ? "100-avatar cartoon crowd" : "100-avatar crowd"}
+                </a>
             </nav>
             <div className="review">
                 <aside>
                     <figure>
                         <figcaption>
-                            Supplied{" "}
-                            {entry.framing === "portrait"
-                                ? "portrait"
-                                : "full body"}
+                            {evidence
+                                ? "Generated T-pose and profile"
+                                : entry.framing === "portrait"
+                                ? "Supplied portrait"
+                                : "Supplied full body"}
                         </figcaption>
-                        <img
-                            src={reference}
-                            alt={`Supplied drawing of ${entry.name}`}
-                        />
+                        <a href={reference} target="_blank" rel="noreferrer">
+                            <img
+                                src={reference}
+                                alt={`Reference drawing of ${entry.name}`}
+                            />
+                        </a>
                     </figure>
                     {reference !== fullBody && (
                         <details>
@@ -86,12 +104,65 @@ export default function RecipeReview({
                             />
                         </details>
                     )}
-                    <a
-                        className="evidence"
-                        href={`/preview/studies/${id}/review`}
-                    >
-                        Review recorded views and motion
-                    </a>
+                    {evidence ? (
+                        <>
+                            <a className="evidence" href="/preview/vale">
+                                Walk around as Vale
+                            </a>
+                            <p>
+                                {evidence.triangles.toLocaleString("en-US")}{" "}
+                                triangles · one skinned mesh
+                            </p>
+                            <figure>
+                                <figcaption>
+                                    Drawing and native render
+                                </figcaption>
+                                <a
+                                    href={evidence.comparison}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <img
+                                        src={evidence.comparison}
+                                        alt="Source and measured avatar at the front and in profile"
+                                    />
+                                </a>
+                            </figure>
+                            <p>
+                                Silhouette overlap with the drawing is{" "}
+                                {evidence.frontOverlap}% from the front and{" "}
+                                {evidence.profileOverlap}% in profile.
+                            </p>
+                            {evidence.captures.map(({ mode, views, walk }) => (
+                                <details key={mode}>
+                                    <summary>{mode} turns and motion</summary>
+                                    <a
+                                        href={views}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <img
+                                            src={views}
+                                            alt={
+                                                mode +
+                                                " turns, crouch and both grips"
+                                            }
+                                        />
+                                    </a>
+                                    <a className="evidence" href={walk}>
+                                        Play recorded walk
+                                    </a>
+                                </details>
+                            ))}
+                        </>
+                    ) : (
+                        <a
+                            className="evidence"
+                            href={`/preview/studies/${id}/review`}
+                        >
+                            Review recorded views and motion
+                        </a>
+                    )}
                 </aside>
                 <div className="viewer">
                     {subjects ? (
@@ -172,6 +243,7 @@ export default function RecipeReview({
                         display: flex;
                         align-items: flex-start;
                         gap: 18px;
+                        flex-wrap: wrap;
                     }
                     aside img {
                         object-fit: contain;
@@ -198,7 +270,86 @@ export const getStaticPaths: GetStaticPaths = () => ({
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-    const entry = studyCases.find((c) => c.id === params?.id);
+    if (params?.id === streetwear.id) {
+        const { default: report } = await import(
+            "../../../scripts/avatar_authoring/targets/streetwear-v1/measurements.json"
+        );
+        const root = path.join(
+            process.cwd(),
+            "public/lobby/procedural/recipes",
+            streetwear.id + ".json"
+        );
+        const candidate = await fs.readFile(root, "utf8");
+        if (
+            createHash("sha256").update(candidate).digest("hex") !==
+            report.recipe_sha256
+        )
+            throw Error("Streetwear preview differs from the measured recipe");
+        async function asset(file: string, checksum: string) {
+            const folder = path.join(
+                process.cwd(),
+                "scripts/avatar_authoring/targets/streetwear-v1"
+            );
+            const bytes = await fs.readFile(path.join(folder, file + ".webp"));
+            if (
+                createHash("sha256")
+                    .update(new Uint8Array(bytes))
+                    .digest("hex") !== checksum
+            )
+                throw Error("Streetwear study asset changed: " + file);
+            return (
+                await import(
+                    `../../../scripts/avatar_authoring/targets/streetwear-v1/${file}.webp`
+                )
+            ).default.src;
+        }
+        const reference = await asset(
+            "vale-turnaround",
+            report.turnaround_sha256
+        );
+        const benchmark = report.backends.WebGLBackend;
+        return {
+            props: {
+                id: streetwear.id,
+                candidate,
+                reference,
+                fullBody: reference,
+                evidence: {
+                    comparison: await asset(
+                        "vale-comparison",
+                        report.comparison_sha256
+                    ),
+                    triangles: benchmark.triangles,
+                    frontOverlap:
+                        Math.round(benchmark.silhouette_iou.front * 1000) / 10,
+                    profileOverlap:
+                        Math.round(benchmark.silhouette_iou.profile * 1000) /
+                        10,
+                    captures: await Promise.all(
+                        ["WebGLBackend", "WebGPUBackend"].map(
+                            async (backend) => ({
+                                mode:
+                                    backend === "WebGLBackend"
+                                        ? "WebGL2"
+                                        : "WebGPU",
+                                views: await asset(
+                                    "vale-" + backend + "-views",
+                                    report.captures[backend].views
+                                ),
+                                walk: await asset(
+                                    "vale-" + backend + "-walk",
+                                    report.captures[backend].walk
+                                ),
+                            })
+                        )
+                    ),
+                },
+            },
+        };
+    }
+    const entry = [...manifest.cases, ...followups.cases].find(
+        (c) => c.id === params?.id
+    );
     if (!entry) return { notFound: true };
     const folder = path.join(
         process.cwd(),

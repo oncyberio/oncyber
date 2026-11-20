@@ -15,6 +15,7 @@ const avatars = {
         name: "Rick Sanchez",
         url: catalogue["procedural-rick-classic"].url,
     },
+    vale: { name: "Vale", url: "/models/procedural/drawn-vale-streetwear" },
     jessica: { name: "Jessica", url: catalogue["procedural-cast-jessica"].url },
     "nia-bell": { name: "Nia Bell", url: "/models/procedural/drawn-nia-bell" },
 };

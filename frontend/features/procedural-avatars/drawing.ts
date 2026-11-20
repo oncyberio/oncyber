@@ -395,7 +395,7 @@ export class Drawing {
         );
         this.s.surface(rows, paint, true);
     }
-    fingers(side: string, color: string, radius: number) {
+    fingers(side: string, color: string, radius: number, roundedTips = false) {
         for (const finger of ["Thumb", "Index", "Middle", "Ring", "Little"]) {
             const names = (
                 finger === "Thumb"
@@ -408,12 +408,18 @@ export class Drawing {
             ) as Point;
             const r = radius * (finger === "Little" ? 0.77 : 1);
             this.bind(names[0]);
+            const pad = tip.map((v, i) =>
+                T.MathUtils.lerp(points[2][i], v, 0.73)
+            ) as Point;
             this.s.sweep(
-                [...points, tip],
-                [r, r * 0.93, r * 0.83, 0],
+                roundedTips ? [...points, pad, tip] : [...points, tip],
+                roundedTips
+                    ? [r, r * 0.97, r * 0.86, r * 0.66, 0]
+                    : [r, r * 0.93, r * 0.83, 0],
                 color,
-                4,
-                names
+                roundedTips ? 7 : 4,
+                names,
+                roundedTips
             );
         }
     }
@@ -448,9 +454,15 @@ export class Drawing {
             ) {
                 triangle(u, mid, w, level + 1);
                 triangle(mid, v, w, level + 1);
-            } else
-                for (const p of corners)
-                    points.push([p.x, p.y, depth(p.x, p.y)]);
+            } else {
+                const vertices = corners.map(
+                    (p): Point => [p.x, p.y, depth(p.x, p.y)]
+                );
+                // A projecting print can cross a sleeve opening or the scalloped
+                // hem of a trouser leg. Only faces lying on the cloth carry ink.
+                if (vertices.every((p) => Number.isFinite(p[2])))
+                    points.push(...vertices);
+            }
         }
         for (const [a, b, c] of indices)
             triangle(vertices[a], vertices[b], vertices[c], 0);

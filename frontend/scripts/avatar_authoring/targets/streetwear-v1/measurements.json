@@ -1,0 +1,55 @@
+{
+    "recipe_sha256": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4",
+    "turnaround_sha256": "8c7477d8a1cab1e67a68635e3474a896cae495777b839d989c16023b68de2a95",
+    "front_split_x": 979,
+    "triangle_budget": 5500,
+    "backends": {
+        "WebGLBackend": {
+            "silhouette_iou": {
+                "front": 0.9297,
+                "profile": 0.9076
+            },
+            "triangles": 4980,
+            "backend": "WebGLBackend",
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.8279
+        },
+        "WebGPUBackend": {
+            "silhouette_iou": {
+                "front": 0.9296,
+                "profile": 0.9077
+            },
+            "triangles": 4980,
+            "backend": "WebGPUBackend",
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.8279
+        }
+    },
+    "comparison_sha256": "a99990349377c163904dbf0590032785caff96bcd49327ee1147894053583306",
+    "captures": {
+        "WebGLBackend": {
+            "views": "28713230071804657d8a8583646e80fa2d6d9ba3b2715211f84dfcde13f7989d",
+            "walk": "6d107d357b0bc0d496d7c63b4c013d9953386cc517ba95c67064c7b9b5559dc7"
+        },
+        "WebGPUBackend": {
+            "views": "1e895810990c990f6bc5bf16a1c03ddb6ee776f785e249008ab3d4a2bfc2df1f",
+            "walk": "ce78427cdbde31c40f72b40db1b35386a4b24d7631e25ac88ace6dd3c61fd8c2"
+        }
+    }
+}

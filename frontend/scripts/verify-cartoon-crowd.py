@@ -23,6 +23,12 @@ def variants(recipes, count):
             design = recipe["design"]
             design["head"][0] = round(design["head"][0] * (0.90 + i * 0.002), 2)
             design["outfit"]["color"] = color
+        elif recipe["style"] == "streetwear":
+            recipe["colors"]["tee"] = color
+            recipe["head"]["width"] = round(44 + 0.08 * i, 2)
+            recipe["hair"]["nape"] = 370 + i % 64
+            for spike in recipe["hair"]["spikes"]:
+                spike[3] = round(spike[3] * (0.94 + i % 17 * 0.01), 2)
         elif recipe["style"] == "family":
             recipe["paints"]["shirt"] = color
             recipe["proportions"]["headWidth"] = round(0.84 + i * 0.003, 3)
@@ -119,6 +125,8 @@ def verify(base, dest, sources, count, preview=False, shadows=False):
             report[expected]["occupiedColorCells"] = occupied
             if occupied != count:
                 raise RuntimeError(f"{expected} displayed avatars in {occupied}/{count} projected cells")
+            if sources:
+                report[expected]["sourceRecipes"] = {p.name: sha256(p.read_bytes()).hexdigest() for p in sources}
             if shadows:
                 page.get_by_role("checkbox", name="Shadows only").check()
                 page.wait_for_function("document.querySelector('canvas').dataset.shadowOnly === 'true'")

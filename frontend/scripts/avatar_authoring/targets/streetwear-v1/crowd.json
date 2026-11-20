@@ -1,0 +1,38 @@
+{
+    "WebGLBackend": {
+        "engine": "three.js r187dev webgpu",
+        "calls": "1",
+        "shadowCalls": "1",
+        "shadowOnly": "false",
+        "frameCalls": "4",
+        "visible": "100",
+        "backend": "WebGLBackend",
+        "authored": "100",
+        "triangles": "755307",
+        "readyMs": "17064",
+        "uniqueRecipesLoaded": 100,
+        "occupiedColorCells": 100,
+        "sourceRecipes": {
+            "vale-streetwear.json": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4"
+        },
+        "occupiedShadowCells": 100
+    },
+    "WebGPUBackend": {
+        "engine": "three.js r187dev webgpu",
+        "calls": "1",
+        "shadowCalls": "1",
+        "shadowOnly": "false",
+        "frameCalls": "4",
+        "visible": "100",
+        "backend": "WebGPUBackend",
+        "authored": "100",
+        "triangles": "755307",
+        "readyMs": "14357",
+        "uniqueRecipesLoaded": 100,
+        "occupiedColorCells": 100,
+        "sourceRecipes": {
+            "vale-streetwear.json": "d8c3bb9fdda2571258fc522eeafae496ec29ed6d7a4c8ed3429b5ee07cdf88b4"
+        },
+        "occupiedShadowCells": 100
+    }
+}
