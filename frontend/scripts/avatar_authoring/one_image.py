@@ -80,14 +80,20 @@ def portrait_sample(path, family):
         mask = ~ndimage.binary_propagation(border, mask=background)
     h, w = mask.shape
     if family == "sunshine":
-        labels, n = ndimage.label(
-            mask & (rgb.max(2) < 103) & (np.indices(mask.shape)[0] < h * 0.77)
-        )
-        if not n:
-            raise ValueError("Cannot register the visor")
-        y, x = np.where(labels == 1 + np.bincount(labels.ravel())[1:].argmax())
-        scale = (np.ptp(x) + 1) / 2
-        cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
+        seed = visor_seed(rgb, mask)
+        if seed:
+            (cx, cy), radius = seed
+            scale = 0.95 * radius
+        else:
+            # A side view may hide one mark. Retain its visible lens bounds.
+            labels, count = ndimage.label(
+                mask & (rgb.max(2) < 103) & (np.indices(mask.shape)[0] < h * 0.77)
+            )
+            if not count:
+                raise ValueError("Cannot register the visor")
+            y, x = np.where(labels == 1 + np.bincount(labels.ravel())[1:].argmax())
+            scale = (np.ptp(x) + 1) / 2
+            cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
         half = 1.65
     else:
         pair = portrait_pair(rgb, (0, 0, w, h))
@@ -259,6 +265,12 @@ def best_pass(attempts):
                 v["ink_agreement"] / 0.68,
                 v["visible_fraction"] / 0.7,
             )
+            if "visible_jersey" in v:
+                jersey = v["visible_jersey"]
+                ratios += (
+                    jersey["silhouette_iou"] / 0.90,
+                    28 / max(0.01, jersey["rgb_mae"]),
+                )
             return p["accepted"], min(ratios), sum(min(1.25, r) for r in ratios)
 
     return max(attempts, key=rank)
@@ -421,8 +433,21 @@ def author_one(source, output, family, framing, name, args):
                     else "portrait"
                 )
                 score = portrait_metrics(source, dest / (title + ".png"), family)
+                jersey = None
+                if family == "sunshine" and abs(obs["yaw"]) < 5:
+                    from .jersey_sleeve import visible_jersey_score
+
+                    jersey = visible_jersey_score(source, dest / "front.png")
+                    if jersey:
+                        score["visible_jersey"] = jersey
                 passed = (
-                    score["head_iou"] >= 0.86
+                    (
+                        jersey is None
+                        or (
+                            jersey["silhouette_iou"] >= 0.90 and jersey["rgb_mae"] <= 28
+                        )
+                    )
+                    and score["head_iou"] >= 0.86
                     and score["rgb_mae"] <= 28
                     and score["ink_agreement"] >= 0.68
                     and score["visible_fraction"] >= 0.70

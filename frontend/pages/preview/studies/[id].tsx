@@ -41,6 +41,7 @@ export default function RecipeReview({
                 template: recipe.template,
                 source: local.slug,
                 layout: recipe.layout,
+                orbScale: recipe.orbScale,
                 posedTPose: true,
                 coat: !!recipe.cartoon?.fit?.sections?.coat,
             },

@@ -34,6 +34,7 @@ export default function CartoonAuthor() {
                                     .map((w) => w[0].toUpperCase() + w.slice(1))
                                     .join(" "),
                                 layout: recipe.layout,
+                                orbScale: recipe.orbScale,
                                 posedTPose:
                                     !recipe.cartoon ||
                                     !!recipe.cartoon.fit?.sections,
@@ -71,6 +72,7 @@ export default function CartoonAuthor() {
                         template: drawing.recipe.template,
                         source: entry.slug,
                         layout: entry.recipe.layout,
+                        orbScale: entry.recipe.orbScale,
                     },
                 ],
                 release: entry.release,

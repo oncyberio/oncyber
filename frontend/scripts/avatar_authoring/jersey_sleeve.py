@@ -4,6 +4,59 @@ import numpy as np
 from scipy import ndimage
 
 
+def bare_arms(rgb, mask, center, chin, scale_height, skin, cloth):
+    """Locate the horizontal pair of bare arms beside the two sleeves in a portrait."""
+    margin = min(center, mask.shape[1] - 1 - center)
+    offsets = np.arange(
+        round(0.23 * scale_height), min(round(0.28 * scale_height), int(margin) - 2)
+    )
+    if len(offsets) < 5:
+        return None
+    levels = np.arange(
+        max(0, round(chin + 0.015 * scale_height)),
+        min(len(mask), round(chin + 0.16 * scale_height)),
+    )
+    if len(levels) < 5:
+        return None
+    edges, colors = [], []
+    for side in (-1, 1):
+        cols = np.rint(center + side * offsets).astype(int)
+        patch = rgb[np.ix_(levels, cols)]
+        flesh = np.linalg.norm(patch - skin, axis=2)
+        cloth_distance = np.linalg.norm(patch - cloth, axis=2)
+        bare = (
+            mask[np.ix_(levels, cols)] & (flesh < 105) & (flesh + 18 < cloth_distance)
+        )
+        hits = np.flatnonzero(bare.mean(1) >= 0.72)
+        runs = [
+            run
+            for run in np.split(hits, np.flatnonzero(np.diff(hits) > 1) + 1)
+            if 0.010 * scale_height <= len(run) <= 0.065 * scale_height
+        ]
+        if len(runs) != 1 or runs[0][0] == 0 or runs[0][-1] == len(levels) - 1:
+            return None
+        axis = runs[0][len(runs[0]) // 2]
+        # The shadow underneath the arm can be far from the forehead dye.
+        # Trace the silhouette around the confirmed skin, including that shade.
+        pigment = np.median(patch[axis], axis=0)
+        paper = np.median(np.concatenate((patch[:2], patch[-2:])), axis=(0, 1))
+        distance = np.linalg.norm(patch - paper, axis=2)
+        foreground = mask[np.ix_(levels, cols)] & (
+            distance > 0.50 * np.linalg.norm(patch - pigment, axis=2)
+        )
+        labels, _ = ndimage.label(foreground.mean(1) >= 0.70)
+        if not labels[axis]:
+            return None
+        cut = np.flatnonzero(labels == labels[axis])
+        if cut[0] == 0 or cut[-1] == len(levels) - 1 or len(cut) > 0.065 * scale_height:
+            return None
+        edges.append(levels[cut[[0, -1]]])
+        colors.append(pigment)
+    if np.max(abs(edges[0] - edges[1])) > max(3, 0.012 * scale_height):
+        return None
+    return np.mean(edges, axis=0), np.median(colors, axis=0)
+
+
 def jersey_sleeve(rgb, mask, kit):
     if kit is None:
         return None
@@ -13,11 +66,22 @@ def jersey_sleeve(rgb, mask, kit):
         return None
     mid = (xs.min() + xs.max()) / 2
     arm = round(ys.min() + height * kit[1])
-    u = np.arange(round(0.058 * height), round(0.29 * height))
-    if mid - u[-1] < 0 or mid + u[-1] >= mask.shape[1]:
+    return measure_sleeves(rgb, mask, mid, arm, height)
+
+
+def measure_sleeves(rgb, mask, mid, arm, height):
+    """Trace cloth and bindings where both cuffs and a length of bare arm are visible."""
+    # The torso and feet may be cropped. Use the calibrated standing scale,
+    # and only use columns that actually exist on both sides of this image.
+    limit = min(round(0.29 * height), int(min(mid, mask.shape[1] - 1 - mid)) - 2)
+    u = np.arange(round(0.058 * height), limit)
+    if np.count_nonzero(u > 0.23 * height) < 4:
         return None
-    ys = np.arange(arm - round(0.075 * height), arm + round(0.075 * height) + 1)
-    if ys[0] < 0 or ys[-1] >= mask.shape[0]:
+    ys = np.arange(
+        max(0, arm - round(0.075 * height)),
+        min(mask.shape[0], arm + round(0.075 * height) + 1),
+    )
+    if not len(ys) or not ys[0] < arm < ys[-1]:
         return None
     cuts, reaches, tilts, swatches = [], [], [], []
     openings = []
@@ -51,6 +115,8 @@ def jersey_sleeve(rgb, mask, kit):
             if not label:
                 return None
             span = ys[marks == label]
+            if ratio >= 0.72 and (span[0] == 0 or span[-1] == mask.shape[0] - 1):
+                return None
             top, bottom = (span[[0, -1]] - arm) / edge
             if not (-0.56 < top < -0.055 and 0.055 < bottom < 0.56):
                 return None
@@ -60,6 +126,8 @@ def jersey_sleeve(rgb, mask, kit):
         spans = []
         for offset in (edge + 0.023 * height, 0.265 * height):
             cols = np.rint(mid + side * (offset + np.arange(-2, 3))).astype(int)
+            if cols.min() < 0 or cols.max() >= mask.shape[1]:
+                continue
             patch = np.median(rgb[np.ix_(ys, cols)], axis=1)
             pigment = np.linalg.norm(patch - paper, axis=1) > 0.55 * np.linalg.norm(
                 patch - skin, axis=1
@@ -123,3 +191,54 @@ def jersey_sleeve(rgb, mask, kit):
             else {}
         ),
     )
+
+
+def visible_jersey_score(source, front):
+    """Compare just the source-visible shirt and arms in the measured orb plane."""
+    from .fit import pixels
+    from .sun_rays import measure_sun_rays
+    from .visor import visor_seed
+
+    def registered(path):
+        rgb, mask = pixels(path, keep_components=True)
+        seed = visor_seed(rgb, mask)
+        if not seed:
+            return
+        center, radius = seed
+        orb = measure_sun_rays(rgb, mask, center, (radius, radius), orb_only=True)
+        if orb is None:
+            return
+        cx, cy, rx, ry = orb
+        x = np.rint(cx + rx * np.arange(-158, 159) / 51).astype(int)
+        y = np.rint(cy + ry * np.arange(60, 137) / 51).astype(int)
+        inside = ((y >= 0) & (y < len(mask)))[:, None] & (x >= 0) & (x < mask.shape[1])
+        xy = np.ix_(y.clip(0, len(mask) - 1), x.clip(0, mask.shape[1] - 1))
+        return rgb[xy], mask[xy], inside
+
+    ref = registered(source)
+    if ref is None:
+        return
+    a, am, area = ref
+    # Require a bilateral visible length of arm past each cuff. A close face
+    # or an occlusion cannot provide a garment verdict. The center verifies
+    # that some cloth below the sleeves actually belongs to this crop.
+    if (
+        any(
+            (am & area)[:, zone].sum() < 65 for zone in [slice(0, 24), slice(-24, None)]
+        )
+        or (am & area)[-26:, 130:187].sum() < 150
+    ):
+        return
+    native = registered(front)
+    if native is None:
+        return {"silhouette_iou": 0.0, "rgb_mae": 255.0}
+    b, bm, captured = native
+    both = am & bm & area & captured
+    return {
+        "silhouette_iou": round(
+            float(both.sum() / max(1, ((am | bm) & area).sum())), 4
+        ),
+        "rgb_mae": round(float(abs(a[both] - b[both]).mean()), 2)
+        if both.any()
+        else 255.0,
+    }

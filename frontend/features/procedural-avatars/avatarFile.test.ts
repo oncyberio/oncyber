@@ -1078,6 +1078,56 @@ test("the lens, strap and crosses follow the orb through a turn", () => {
     expect(patches[1].some(([x, , z]) => x < 335 && z > 30)).toBe(true);
 });
 
+test("a strapless visor ends on both temples and retains both raised eyes", () => {
+    const { visor } = readAvatarFile({
+        ...vesper,
+        visor: { ...vesper.visor, strap: false },
+    }).recipe;
+    const patches: Point[][] = [];
+    const recorder = { s: { triangles: (p: Point[]) => patches.push([...p]) } };
+    drawOrbVisor(recorder as unknown as Drawing, visor, "#212028", "#ffffff");
+    expect(patches).toHaveLength(2);
+    expect(patches[0].every(([, , z]) => z > -5)).toBe(true);
+    expect(patches[1].length).toBe(96);
+    const shadow = orbContactUV({
+        ...visor,
+        contact: { width: 0.12, strength: 0.62 },
+    });
+    expect(shadow(visor.center, visor.rows[8][1], 1)).toEqual([0.62, 0]);
+});
+
+test("orb scale preserves depth in profile and keeps the base above the crew neck", () => {
+    const build = (orbScale?: number) =>
+        recipeTransform(
+            readAvatarFile({
+                ...vesper,
+                proportions: {},
+                orbOffset: undefined,
+                orbScale,
+            }).recipe,
+            350,
+            690,
+            [350, 148, 4],
+            [350, 358, 0],
+            106
+        );
+    const base = build(),
+        enlarged = build(1.4);
+    const points: Point[] = [
+        [350, 167.2, -5],
+        [410.5, 106, -5],
+        [350, 106, 55.4],
+    ];
+    expect(enlarged(points[0], true)).toEqual(base(points[0], true));
+    expect(enlarged(points[1], true)[0] - 350).toBeCloseTo(
+        (base(points[1], true)[0] - 350) * 1.4
+    );
+    expect(enlarged(points[2], true)[2] + 5).toBeCloseTo(
+        (base(points[2], true)[2] + 5) * 1.4
+    );
+    expect(enlarged([490, 211, 0])).toEqual(base([490, 211, 0]));
+});
+
 test("tailoring a coat keeps its lining inside the outer cloth and closes both front hems", () => {
     const raw: Point[] = [
         [100, 360, -30],

@@ -10,7 +10,15 @@ def visor_seed(rgb, mask):
     if not len(ys):
         return
     stop = min(len(mask), round(ys.min() + 0.72 * np.ptp(ys)) + 1)
-    dark, _ = ndimage.label(mask[:stop] & (rgb[:stop].max(2) < 108))
+    dark = mask[:stop] & (rgb[:stop].max(2) < 108)
+    # Plum and navy skin can join the frame into a plausible dark shape.
+    # Prefer the black lens around the marks, then allow tinted frames.
+    seed = marked_lens(rgb[:stop], dark & (np.ptp(rgb[:stop], axis=2) < 24))
+    return seed or marked_lens(rgb[:stop], dark)
+
+
+def marked_lens(rgb, dark):
+    dark, _ = ndimage.label(dark)
     candidates = []
     for i, box in enumerate(ndimage.find_objects(dark), 1):
         sy, sx = box
@@ -153,8 +161,24 @@ def measure_visor(rgb, mask, orb):
         )
         marks.append(centerline.round(3).ravel().tolist())
     contact = visor_contact(rgb, mask, orb, center, span, rows)
+    # Both cheeks must show a strip of skin outside the end of the lens.
+    # Missing or cropped temples give no evidence to remove the default band.
+    visible_skin = []
+    mid = np.median(rows)
+    for side in (-1, 1):
+        temple = (
+            ((u - center) * side > span + 0.04)
+            & (abs(u) < 0.96)
+            & (abs(v - mid) < 0.18)
+        )
+        visible_skin.append(
+            temple.sum() > 0.012 * rx * ry
+            and mask[temple].mean() > 0.95
+            and not np.any(lens[temple])
+        )
     return {
         **({"contact": contact} if contact else {}),
+        **({"strap": False} if all(visible_skin) else {}),
         "center": round(float(center), 3),
         "span": round(float(span), 3),
         "rows": rows,

@@ -24,7 +24,8 @@ def orb_contour(image, mask, center, radius):
             or abs((left + right) / 2 - cx) > 0.14 * rx
         ):
             continue
-        if np.mean(image[y, left : right + 1].max(1) < 100) > 0.29:
+        section = image[y, left : right + 1]
+        if np.mean((section.max(1) < 100) & (np.ptp(section, axis=1) < 24)) > 0.29:
             continue
         rows.append([y, left - 0.5, right + 0.5])
     if len(rows) < max(8, 0.49 * ry):

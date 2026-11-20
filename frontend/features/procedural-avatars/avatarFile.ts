@@ -151,6 +151,7 @@ const familyFile = z.strictObject({
         .optional(),
     visor: z
         .strictObject({
+            strap: z.literal(false).optional(),
             contact: z
                 .strictObject({
                     strength: z.number().min(0.2).max(0.92),
@@ -219,6 +220,7 @@ const familyFile = z.strictObject({
             widths: z.array(z.number().min(0.75).max(1.35)).length(4),
         })
         .optional(),
+    orbScale: z.number().min(1).max(1.5).optional(),
     orbOffset: z
         .tuple([
             z.number().min(-0.35).max(0.35),
@@ -373,7 +375,8 @@ export function readAvatarFile(input: unknown): {
         )
             throw new Error("This family has no lab coat");
         if (
-            (file.orbOffset ||
+            (file.orbScale ||
+                file.orbOffset ||
                 file.kitFit ||
                 file.kitHand ||
                 file.kitFootwear ||
@@ -468,6 +471,7 @@ export function readAvatarFile(input: unknown): {
                 ...(file.coatFit && {
                     coatFit: file.coatFit as AvatarRecipe["coatFit"],
                 }),
+                ...(file.orbScale && { orbScale: file.orbScale }),
                 ...(file.orbOffset && {
                     orbOffset: file.orbOffset as [number, number],
                 }),

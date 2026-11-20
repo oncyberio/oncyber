@@ -6,6 +6,8 @@ const lensLift = 3.5;
 
 export interface OrbVisor {
     contact?: { strength: number; width: number };
+    /** Omit the band when both temples visibly continue in the orb pigment. */
+    strap?: false;
     center: number;
     span: number;
     rows: [number, number][];
@@ -19,7 +21,9 @@ export function orbContactUV(visor: OrbVisor) {
     const { strength, width } = visor.contact;
     const [, , rx, ry] = families.sunshine.crownRoot;
     return (x: number, y: number, z: number): [number, number] => {
-        const offset = (x / (1 + lensLift / rx) - visor.center) / visor.span;
+        const raised = visor.strap !== false;
+        const offset =
+            (x / (raised ? 1 + lensLift / rx : 1) - visor.center) / visor.span;
         const knot =
             Math.max(0, Math.min(1, 0.5 + 0.5 * offset)) *
             (visor.rows.length - 1);
@@ -30,7 +34,10 @@ export function orbContactUV(visor: OrbVisor) {
         const fade =
             Math.min(1, Math.max(0, (1.04 - Math.abs(offset)) / 0.18)) *
             Math.min(1, Math.max(0, (z - 0.08) / 0.42));
-        return [strength * fade, (y - hem * (1 + lensLift / ry)) / width];
+        return [
+            strength * fade,
+            (y - hem * (raised ? 1 + lensLift / ry : 1)) / width,
+        ];
     };
 }
 
@@ -62,9 +69,9 @@ export function drawOrbVisor(
     const quad = (a: Point, b: Point, c: Point, e: Point) =>
         quads.push(a, b, c, a, c, e);
     const rim = visor.rows;
-    // The band passes fully around the sphere. Its top edge meets both lenses.
+    const band = visor.strap !== false;
     const level = (rim[0][0] + rim[rim.length - 1][0]) * 0.5 + 0.04;
-    for (let i = 0; i < 32; i++) {
+    for (let i = 0; band && i < 32; i++) {
         const a = (i * Math.PI) / 16,
             b = ((i + 1) * Math.PI) / 16;
         quad(
@@ -76,8 +83,10 @@ export function drawOrbVisor(
     }
     const knot = (i: number, t: number, lift: number) =>
         point(
-            visor.center + visor.span * ((2 * i) / (rim.length - 1) - 1),
-            rim[i][0] * (1 - t) + rim[i][1] * t,
+            (visor.center + visor.span * ((2 * i) / (rim.length - 1) - 1)) /
+                (band ? 1 : 1 + lensLift / rx),
+            (rim[i][0] * (1 - t) + rim[i][1] * t) /
+                (band ? 1 : 1 + lensLift / ry),
             lift
         );
     for (let i = 0; i < rim.length - 1; i++) {

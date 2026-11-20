@@ -539,6 +539,14 @@ class FamilyTests(unittest.TestCase):
             recipe = compile_portrait(
                 path, "sunshine", name, propose_portrait(path, "sunshine")
             )
+            cut = recipe["jerseySleeve"]
+            self.assertEqual(len(cut["bands"]), 2 if name == "indigo" else 1)
+            self.assertGreater(cut["span"], 125)
+            self.assertGreater(recipe["limbWidth"]["arms"], 1)
+            self.assertEqual(recipe["limbWidth"]["legs"], 1)
+            self.assertEqual(
+                len(recipe["shirtMark"].get("islands", [])), int(name == "indigo")
+            )
             self.assertEqual(len(recipe["sunRays"]), 15)
             self.assertTrue(
                 all(
@@ -653,6 +661,70 @@ class FamilyTests(unittest.TestCase):
         self.assertEqual(fit()["bands"], [])
         image[130:163, 42:135] = paper
         self.assertIsNone(fit())
+
+    def test_visible_sleeves_require_bare_skin_on_both_sides_inside_the_crop(self):
+        from .jersey_sleeve import bare_arms, measure_sleeves
+
+        skin, fabric = np.array([80, 128, 74]), np.array([248, 207, 119])
+        rgb = np.full((97, 237, 3), 219.0)
+        away = abs(np.arange(237) - 113)
+        rgb[44:59] = skin
+        rgb[55:59] *= 0.55
+        rgb[38:66, away <= 66] = fabric
+        rgb[38:66, (away > 58) & (away <= 66)] = [34, 72, 190]
+        rgb[38:, away < 32] = fabric
+        mask = (rgb != 219).any(axis=2)
+        edges, pigment = bare_arms(rgb, mask, 113, 28, 400, skin, fabric)
+        np.testing.assert_array_equal(edges, [44, 58])
+        np.testing.assert_array_equal(pigment, skin)
+        cut = measure_sleeves(rgb, mask, 113, round(edges.mean()), 400)
+        self.assertEqual(cut["bands"][0]["color"], "#2248be")
+        self.assertIsNone(
+            bare_arms(rgb[:, 30:-30], mask[:, 30:-30], 83, 28, 400, skin, fabric)
+        )
+        mask[:, 204:] = False
+        self.assertIsNone(bare_arms(rgb, mask, 113, 28, 400, skin, fabric))
+
+    def test_only_a_short_shoulder_and_a_narrow_visible_torso_enlarge_the_orb(self):
+        from .portrait import measured_orb_scale
+
+        mask = np.zeros((236, 320), dtype=bool)
+        mask[172:, 115:206] = True
+        orb = [160, 90, 60.5, 61.2]
+        scale, chest = measured_orb_scale(mask, orb, np.array([175, 185]), 1)
+        self.assertGreater(scale, 1.35)
+        self.assertGreater(chest, 0.70)
+        self.assertEqual(
+            measured_orb_scale(mask, orb, np.array([198, 208]), 1), (1, None)
+        )
+        mask[172:, 90:231] = True
+        self.assertEqual(
+            measured_orb_scale(mask, orb, np.array([175, 185]), 1), (1, None)
+        )
+        self.assertEqual(
+            measured_orb_scale(mask[:186], orb, np.array([175, 185]), 1), (1, None)
+        )
+
+    def test_dark_chroma_does_not_enlarge_a_neutral_lens(self):
+        from .visor import visor_seed
+
+        art = Image.new("RGB", (240, 188), "#d3cbd3")
+        draw = ImageDraw.Draw(art)
+        draw.ellipse([57, 19, 181, 145], fill="#552540")
+        draw.rounded_rectangle([69, 61, 169, 95], radius=13, fill="#1d1c20")
+        for x in (95, 144):
+            draw.line((x - 6, 71, x + 6, 85), fill="white", width=4)
+            draw.line((x - 6, 85, x + 6, 71), fill="white", width=4)
+        a = np.asarray(art, dtype=float)
+        mask = (a != a[0, 0]).any(axis=2)
+        mid, r = visor_seed(a, mask)
+        np.testing.assert_allclose(mid, [119, 78], atol=0.5)
+        self.assertAlmostEqual(1.9 * r, 101, delta=1)
+        v = measure_visor(a, mask, [119, 82, 62, 63])
+        self.assertIs(v["strap"], False)
+        # A single visible strap invalidates the bare-temples observation.
+        a[73:79, 58:75] = [29, 28, 32]
+        self.assertNotIn("strap", measure_visor(a, mask, [119, 82, 62, 63]))
 
     def test_shorts_measure_the_visible_gap_and_outer_hem(self):
         mask = np.zeros((201, 160), dtype=bool)

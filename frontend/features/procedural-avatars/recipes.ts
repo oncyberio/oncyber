@@ -47,6 +47,7 @@ export interface AvatarRecipe {
     sleeveCut?: { radius: number; lift: number };
     coatPanels?: { opening: number[]; lining: string };
     coatFit?: { hem: number; widths: number[] };
+    orbScale?: number;
     orbOffset?: [number, number];
     sunRays?: [number, number][][];
     lapels?: { color: string; paths: [number, number][][] };
@@ -366,6 +367,15 @@ export function recipeTransform(
                     (1 + t * ((recipe.jaw ?? 1) - 1)) *
                     (eyes ? recipe.eyes ?? 1 : 1);
             y = jaw[1] + (y - jaw[1]) * headHeight;
+            if (recipe.orbScale && recipe.template === "sunshine") {
+                // Keep the skull, raised eyes and rays round in profile. The
+                // base of the orb stays at the fitted gap above the neckline.
+                const [cx, cy, , ry] = families.sunshine.crownRoot;
+                const chin = jaw[1] + (cy + ry - jaw[1]) * headHeight;
+                x = cx + (x - cx) * recipe.orbScale;
+                y = chin + (y - chin) * recipe.orbScale;
+                z = -5 + (z + 5) * recipe.orbScale;
+            }
         }
         return [
             origin + (x - origin) * build,

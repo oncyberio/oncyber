@@ -27,6 +27,7 @@ export type Subject = {
     source: string;
     layout?: ReferenceLayout;
     posedTPose?: boolean;
+    orbScale?: number;
     coat?: boolean;
 };
 const studySubjects: Subject[] = characters.map((c) => ({
@@ -438,6 +439,7 @@ export default function AvatarStudy({
                 const focusHand = !!(hand?.wrist && hand.tip);
                 const layout =
                     view === "authored" ? subjects[index]?.layout : undefined;
+                const orbScale = subjects[index]?.orbScale ?? 1;
                 const headHeight = layout
                     ? (models[index].height * layout.landmarks.jaw[1]) /
                       layout.origin.floor
@@ -451,14 +453,14 @@ export default function AvatarStudy({
                           portrait
                               ? headHeight
                                   ? headHeight * 0.94
-                                  : 0.325
+                                  : 0.325 * orbScale
                               : lineup
                               ? (street ? 375 : 382) * cmPerPixel * 0.01
                               : models[index].height * 0.56,
                           (compare
                               ? 2.12
                               : portrait
-                              ? 0.28
+                              ? 0.28 * orbScale
                               : lineup
                               ? 425 * cmPerPixel * 0.01
                               : view === "sunshine"
@@ -467,7 +469,7 @@ export default function AvatarStudy({
                       );
                 const center = portrait
                     ? models[index].height -
-                      (headHeight ? headHeight * 0.65 : 0.24)
+                      (headHeight ? headHeight * 0.65 : 0.24 * orbScale)
                     : lineup
                     ? (street ? 352 : 351) * cmPerPixel * 0.01
                     : models[index].height * 0.5;

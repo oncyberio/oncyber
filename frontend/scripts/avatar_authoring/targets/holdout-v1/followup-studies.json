@@ -9,6 +9,16 @@
             "evaluation_reference": "finch-full.webp",
             "input_sha256": "ec0645ba7b11733886f04e19c29d6be2bec13f0f6c3faa74066ecd33f6d5223f",
             "reference_sha256": "ec0645ba7b11733886f04e19c29d6be2bec13f0f6c3faa74066ecd33f6d5223f"
+        },
+        {
+            "id": "clove",
+            "name": "Clove",
+            "family": "sunshine",
+            "framing": "portrait",
+            "input": "clove-portrait.webp",
+            "input_sha256": "63a2170869786481be9907eac50bd5e12929397ca9edc0420101aff28dd140d4",
+            "evaluation_reference": "clove-full.webp",
+            "reference_sha256": "2fa0b5640a4ba86875fffc36397153ea835d1ffe9592aa5e7933a9e3ad0e0cc0"
         }
     ],
     "receipts": {
@@ -23,6 +33,20 @@
                 "WebGPUBackend": {
                     "views": "4ac644eb9254d0dd0e63b19f31f0646a6c7e601394d9a7f9a89850914dd3e184",
                     "walk": "1f49057b28803927d163adbdcd998b7de03f394e8a9546021e28c6cd52e5baf5"
+                }
+            }
+        },
+        "clove": {
+            "candidate_sha256": "1b8ff1a011d95f70fce3b889385db5db8beae3e71e48a42ab376146565a95bc5",
+            "evidence_sha256": "91802d827d34c12ae0362f1c43c61bd6998fd12e3511884ab3bc9197fbfea218",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "ff2b8ac2f75be848f324dd7a6f4996a6baa20e56ed5f3e07c6cc17a4629e9f83",
+                    "walk": "576003eb3ee241b902c12458cecc5db66c9a5dfb27d9b3cca4ec4487cf7e96c8"
+                },
+                "WebGPUBackend": {
+                    "views": "2c8fe43a1640a4aca5355efce4d3e68f0a16d1adf4c5c557d19ac9c2bc488db7",
+                    "walk": "79d62afaa4f5a472640039703af7a9bdd6e863a8a0f951f9d13c6e97f8c022b6"
                 }
             }
         }
@@ -114,6 +138,53 @@
                         }
                     }
                 ]
+            },
+            "independent_review": "pending"
+        },
+        "clove": {
+            "target_generator": "GPT Image",
+            "image_model_version": null,
+            "image_generation_cost": null,
+            "generation_elapsed_seconds": 29.3,
+            "portrait_crop_in_frozen_drawing": [208, 0, 560, 232],
+            "fresh": {
+                "source_sha256": "63a2170869786481be9907eac50bd5e12929397ca9edc0420101aff28dd140d4",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 0.06,
+                "selected_pass": null,
+                "passes": [],
+                "error": "Cannot identify a registered family from the visible eyes or visor"
+            },
+            "calibration": {
+                "source_sha256": "63a2170869786481be9907eac50bd5e12929397ca9edc0420101aff28dd140d4",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 52.83,
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": true,
+                        "triangles": 1924,
+                        "visible_portrait": {
+                            "head_iou": 0.8666,
+                            "rgb_mae": 24.47,
+                            "ink_agreement": 0.9512,
+                            "visible_fraction": 1.0,
+                            "visible_jersey": {
+                                "silhouette_iou": 0.9009,
+                                "rgb_mae": 23.17
+                            }
+                        }
+                    }
+                ],
+                "candidate_sha256": "1b8ff1a011d95f70fce3b889385db5db8beae3e71e48a42ab376146565a95bc5",
+                "withheld_full_body": {
+                    "full_body_silhouette_iou": 0.7311,
+                    "full_body_rgb_mae": 30.34
+                }
             },
             "independent_review": "pending"
         }
