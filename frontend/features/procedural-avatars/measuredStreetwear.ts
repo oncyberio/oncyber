@@ -1,6 +1,7 @@
 import * as T from "three/webgpu";
 import { Drawing, frontOfLoft, lift, type Depth, type XY } from "./drawing";
 import type { Point } from "./sculpt";
+import { streetPaintUV } from "./streetBrush";
 import { finish } from "./surfaces";
 import { streetYoke } from "./streetShoulder";
 import { drawStreetBody, streetFrame, ring } from "./streetBody";
@@ -98,6 +99,17 @@ function foldRings(
     }
     return result;
 }
+function clothBrush(
+    d: Drawing,
+    p: StreetPattern,
+    name: "denim" | "tee" | null
+) {
+    if (p.faceFit?.finish !== "brush") return;
+    d.s.sculptedCartoon = !name;
+    d.s.printUV = name
+        ? (x, y) => streetPaintUV(name, name === "denim" ? Math.abs(x) : x, y)
+        : undefined;
+}
 function shirtSocket(p: StreetPattern, s: number) {
     return ring(16, (a) => [
         s * (p.arm.shoulder + 45),
@@ -152,6 +164,7 @@ function shirt(d: Drawing, p: StreetPattern) {
         tint
     );
     d.s.tone = tint;
+    clothBrush(d, p, "tee");
     const upperFront = streetYoke(
         d,
         top,
@@ -164,6 +177,7 @@ function shirt(d: Drawing, p: StreetPattern) {
 
     d.s.tone = tint;
     d.s.surface(rows, p.colors.tee, false, "perimeter");
+    clothBrush(d, p, null);
     d.s.tone = undefined;
     const lowerFront = frontOfLoft(rows);
     const cloth: Depth = (x, y) => Math.max(upperFront(x, y), lowerFront(x, y));
@@ -266,7 +280,9 @@ function sleeves(d: Drawing, p: StreetPattern) {
         ];
         d.s.tone = (x, y, z) =>
             0.94 + 0.09 * Math.sin(y * 0.028 - Math.abs(x) * 0.044 + 0.026 * z);
+        clothBrush(d, p, "tee");
         d.s.surface(rows, p.colors.tee, false, "both");
+        clothBrush(d, p, null);
         d.s.tone = undefined;
         const rim = rows.at(-1);
         const turned = rim.map(
@@ -371,7 +387,9 @@ function trousers(d: Drawing, p: StreetPattern) {
         horizontal(618, waist + 1, 91, 48, 0, 0, cuts),
     ];
     const seatFront = frontOfLoft(seat);
+    clothBrush(d, p, "denim");
     d.s.surface(seat, p.colors.denim, false, "end");
+    clothBrush(d, p, null);
     const fronts = [seatFront];
     for (const s of [-1, 1]) {
         const side = s < 0 ? "right" : "left";
@@ -527,6 +545,7 @@ function trousers(d: Drawing, p: StreetPattern) {
             }
         };
         const color = p.colors.denim;
+        clothBrush(d, p, "denim");
         d.s.tone = tint;
         d.s.preserveVertex = (x, y, z) =>
             z > 42 && y > 695 && (tint(x, y, z) < 0.71 || tint(x, y, z) > 1.19);
@@ -553,6 +572,7 @@ function trousers(d: Drawing, p: StreetPattern) {
         }
         d.s.tone = undefined;
         d.s.preserveVertex = undefined;
+        clothBrush(d, p, null);
         fronts.push(face);
         const shadow = new T.Color(color).multiplyScalar(0.62).getStyle();
         const creases = s < 0 ? p.creases.rightLeg : p.creases.leftLeg;

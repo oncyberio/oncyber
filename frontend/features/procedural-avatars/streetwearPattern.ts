@@ -110,6 +110,7 @@ export const streetwearFile = z.strictObject({
         .refine((v) => v.chin > v.eyeLine && v.eyeGap < 2 * v.width),
     faceFit: z
         .strictObject({
+            finish: z.literal("brush").optional(),
             orbit: z
                 .array(
                     z.tuple([
@@ -135,12 +136,13 @@ export const streetwearFile = z.strictObject({
                 .array(
                     z.array(z.number().int().min(0).max(0xffffff)).length(14)
                 )
-                .length(5),
+                .length(5)
+                .optional(),
             crown: z
                 .array(
                     z
                         .array(z.number().finite())
-                        .length(10)
+                        .refine((row) => row.length === 2 || row.length === 10)
                         .refine(
                             (row) =>
                                 Math.abs(row[0]) <= Math.PI + 0.001 &&
@@ -179,13 +181,26 @@ export const streetwearFile = z.strictObject({
                     ])
                 )
                 .min(3)
-                .max(900),
-            indices: z.array(z.number().int().nonnegative()).min(3).max(5400),
+                .max(900)
+                .optional(),
+            indices: z
+                .array(z.number().int().nonnegative())
+                .min(3)
+                .max(5400)
+                .optional(),
         })
-        .refine(
-            (v) =>
-                v.indices.length % 3 === 0 &&
-                v.indices.every((i) => i < v.points.length)
+        .refine((v) =>
+            v.finish === "brush"
+                ? !v.indices &&
+                  !v.points &&
+                  !v.ear &&
+                  v.crown.every((row) => row.length === 2)
+                : !!v.ear &&
+                  v.crown.every((row) => row.length === 10) &&
+                  !!v.indices &&
+                  !!v.points &&
+                  v.indices.length % 3 === 0 &&
+                  v.indices.every((i) => i < v.points.length)
         )
         .optional(),
     hair: z.strictObject({
@@ -208,6 +223,20 @@ export const streetwearFile = z.strictObject({
             .min(5)
             .max(45)
             .refine((v) => v.every((p, i) => !i || p[0] > v[i - 1][0])),
+        temple: z
+            .array(
+                z.tuple([near(60, 270), positive, positive, measure, measure])
+            )
+            .min(3)
+            .max(24)
+            .refine(ordered)
+            .refine((rows) =>
+                rows.every(
+                    ([, inner, outer, fore, back]) =>
+                        inner < outer && fore > back
+                )
+            )
+            .optional(),
         nape: near(337, 450),
     }),
     belt: z.strictObject({

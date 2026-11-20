@@ -1,4 +1,5 @@
 import * as T from "three/webgpu";
+import { drawStreetBrushFace } from "./streetBrushFace";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 import type { StreetPattern } from "./streetwearPattern";
@@ -10,13 +11,19 @@ const mix = T.MathUtils.lerp;
 export function drawFittedStreetFace(d: Drawing, p: StreetPattern) {
     const fit = p.faceFit;
     const sampledSections = new Map<number, number[]>();
-    const section = (y: number) => {
+    const sections = fit.sections.map(([y, width, front, back]) => [
+        y,
+        width,
+        front,
+        back,
+    ]);
+    const section = (y: number): number[] => {
         const sampled = sampledSections.get(y);
         if (sampled) return sampled;
-        const i = fit.sections.findIndex((row) => row[0] >= y);
-        if (i <= 0) return i === 0 ? fit.sections[0] : fit.sections.at(-1);
-        const lo = fit.sections[i - 1],
-            hi = fit.sections[i],
+        const i = sections.findIndex((row) => row[0] >= y);
+        if (i <= 0) return i === 0 ? sections[0] : sections.at(-1);
+        const lo = sections[i - 1],
+            hi = sections[i],
             t = (y - lo[0]) / (hi[0] - lo[0]);
         const row = [
             y,
@@ -108,6 +115,10 @@ export function drawFittedStreetFace(d: Drawing, p: StreetPattern) {
             (z * depth) / 54,
         ];
     };
+    if (fit.finish === "brush") {
+        drawStreetBrushFace(d, p, front, section, height, sideDepth);
+        return;
+    }
     d.s.thinSkinOutline = true;
     d.s.sourcePaint = true;
     d.s.sculptedCartoon = false;

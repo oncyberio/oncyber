@@ -1,4 +1,6 @@
 import * as T from "three/webgpu";
+import { drawStreetGroom } from "./streetGroom";
+import { streetPaintUV } from "./streetBrush";
 import { drawFittedStreetFace } from "./fittedStreetFace";
 import { Drawing, frontOfLoft, lift } from "./drawing";
 import type { Point } from "./sculpt";
@@ -532,6 +534,7 @@ function hair(d: Drawing, p: StreetPattern) {
 
 function ears(d: Drawing, p: StreetPattern) {
     const { width } = p.head;
+    const brushed = p.faceFit?.finish === "brush";
     for (const s of [-1, 1]) {
         // The helix is highest above the concha and gradually flattens into
         // the lobe. Place the open fold on this surface in both profiles.
@@ -539,11 +542,17 @@ function ears(d: Drawing, p: StreetPattern) {
             const r = Math.hypot(u, v),
                 z = -6 + 10.6 * u * (1 - 0.22 * v) + 2.6 * v;
             const rim =
-                4.1 *
+                (brushed ? 2.1 : 4.1) *
                 Math.exp(-(((r - 0.77) / 0.25) ** 2)) *
                 (1 - 0.62 * T.MathUtils.smoothstep(v, 0, 0.95));
             return [
-                s * (width + 5.9 + rim - 0.46 * (z + 6) - v + offset),
+                s *
+                    (width +
+                        (brushed ? 4.5 : 5.9) +
+                        rim -
+                        (brushed ? 0.68 : 0.46) * (z + 6) -
+                        v +
+                        offset),
                 137 + v * 16.7,
                 z,
             ];
@@ -551,7 +560,13 @@ function ears(d: Drawing, p: StreetPattern) {
         const rings = [0, 0.37, 0.62, 0.79, 1].map((r) =>
             ring(14, (a) => shell(r * Math.cos(a), r * Math.sin(a)))
         );
-        rings.push(rings.at(-1).map(([x, y, z]): Point => [x - 6.3 * s, y, z]));
+        rings.push(
+            rings
+                .at(-1)
+                .map(
+                    ([x, y, z]): Point => [x - (brushed ? 1.8 : 6.3) * s, y, z]
+                )
+        );
         d.s.gradient = {
             top: 124,
             bottom: 150,
@@ -563,7 +578,19 @@ function ears(d: Drawing, p: StreetPattern) {
             0.5 *
                 Math.exp(-(((z + 7.6) / 4.4) ** 2 + ((y - 135.7) / 5.6) ** 2)) -
             0.11 * Math.exp(-(((z + 10) / 3.5) ** 2 + ((y - 128) / 3.7) ** 2));
-        if (p.faceFit) {
+        if (p.faceFit?.finish === "brush") {
+            d.s.sourcePaint = false;
+            d.s.sculptedCartoon = false;
+            d.s.thinSkinOutline = false;
+            d.s.tone = undefined;
+            d.s.gradient = undefined;
+            d.s.vertexPaint = () => parseInt(p.colors.skin.slice(1), 16);
+            d.s.printUV = (_x, y, _, z) => {
+                const v = (y - 137) / 16.7,
+                    u = (z + 6 - 2.6 * v) / (10.6 * (1 - 0.22 * v));
+                return streetPaintUV("ear", u, v);
+            };
+        } else if (p.faceFit) {
             const colors = new Map<string, number>();
             rings.slice(0, -1).forEach((row, i) =>
                 row.forEach((point, j) => {
@@ -587,6 +614,7 @@ function ears(d: Drawing, p: StreetPattern) {
                 parseInt(p.colors.skin.slice(1), 16);
         }
         d.s.surface(rings, p.colors.skin, false, "perimeter");
+        d.s.printUV = undefined;
         d.s.vertexPaint = undefined;
         d.s.tone = undefined;
         d.s.gradient = undefined;
@@ -600,6 +628,7 @@ function ears(d: Drawing, p: StreetPattern) {
             false,
             "perimeter"
         );
+        if (brushed) continue;
         // The folds follow the relief of the pinna. They only need a narrow
         // ribbon on that surface, including when the ear turns into profile.
         const crease = (path: number[][], color: string) => {
@@ -653,7 +682,8 @@ export function measuredStreetHead(d: Drawing, p: StreetPattern) {
     if (p.faceFit) {
         drawFittedStreetFace(d, p);
         ears(d, p);
-        hair(d, p);
+        if (p.faceFit.finish === "brush") drawStreetGroom(d, p);
+        else hair(d, p);
         return;
     }
     const { width, depth, chin } = p.head;

@@ -1,24 +1,24 @@
 {
-    "recipe_sha256": "6deed3802bbf4acb2adf668482949a36f4314f3cedffb4e1d613da183220941a",
+    "recipe_sha256": "7b4a841a68a6475988909ac0860d9950c0fa1c8434ca41d0167f1fccf5670e0b",
     "turnaround_sha256": "8c7477d8a1cab1e67a68635e3474a896cae495777b839d989c16023b68de2a95",
     "front_split_x": 979,
     "triangle_budget": 5500,
     "backends": {
         "WebGLBackend": {
             "silhouette_iou": {
-                "front": 0.9194,
-                "profile": 0.8958
+                "front": 0.9202,
+                "profile": 0.8985
             },
-            "triangles": 5475,
+            "triangles": 5359,
             "backend": "WebGLBackend",
             "clothing_fit_control": {
-                "pixels": 35106,
-                "largest_patch": 35105
+                "pixels": 35030,
+                "largest_patch": 34976
             },
             "layer_triangles": {
-                "body": 3487,
-                "bottoms": 4695,
-                "dressed": 5475
+                "body": 3361,
+                "bottoms": 4571,
+                "dressed": 5359
             },
             "clothing_fit": {
                 "front": {
@@ -26,93 +26,24 @@
                     "largest_patch": 0
                 },
                 "quarter": {
-                    "pixels": 77,
-                    "largest_patch": 77
+                    "pixels": 79,
+                    "largest_patch": 79
                 },
                 "profile": {
-                    "pixels": 12,
-                    "largest_patch": 2
+                    "pixels": 14,
+                    "largest_patch": 3
                 },
                 "back": {
                     "pixels": 0,
                     "largest_patch": 0
                 },
                 "walk": {
-                    "pixels": 8,
-                    "largest_patch": 4
+                    "pixels": 6,
+                    "largest_patch": 5
                 },
                 "crouch": {
-                    "pixels": 22,
-                    "largest_patch": 13
-                },
-                "idle_back": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                }
-            },
-            "grip_test": {
-                "minimum_curl_radians": {
-                    "right": 0.55,
-                    "left": 0.55
-                },
-                "released": true
-            },
-            "moving_steps": 11,
-            "hand": "right",
-            "crouch_height_ratio": 0.8274,
-            "facial_landmarks": {
-                "front": {
-                    "eye_rgb_mae": 29.39,
-                    "eye_ink_f1_2px": 0.9154,
-                    "iris_iou": 0.8484
-                },
-                "profile": {
-                    "eye_rgb_mae": 44.82,
-                    "eye_ink_f1_2px": 0.8404,
-                    "iris_iou": 0.5663
-                }
-            }
-        },
-        "WebGPUBackend": {
-            "silhouette_iou": {
-                "front": 0.9164,
-                "profile": 0.8962
-            },
-            "triangles": 5475,
-            "backend": "WebGPUBackend",
-            "clothing_fit_control": {
-                "pixels": 35112,
-                "largest_patch": 35112
-            },
-            "layer_triangles": {
-                "body": 3487,
-                "bottoms": 4695,
-                "dressed": 5475
-            },
-            "clothing_fit": {
-                "front": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "quarter": {
-                    "pixels": 75,
-                    "largest_patch": 75
-                },
-                "profile": {
-                    "pixels": 11,
-                    "largest_patch": 2
-                },
-                "back": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "walk": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "crouch": {
-                    "pixels": 23,
-                    "largest_patch": 16
+                    "pixels": 19,
+                    "largest_patch": 12
                 },
                 "idle_back": {
                     "pixels": 0,
@@ -131,31 +62,104 @@
             "crouch_height_ratio": 0.8288,
             "facial_landmarks": {
                 "front": {
-                    "eye_rgb_mae": 29.32,
-                    "eye_ink_f1_2px": 0.9145,
-                    "iris_iou": 0.8452
+                    "eye_rgb_mae": 35.32,
+                    "eye_ink_f1_2px": 0.8378,
+                    "iris_iou": 0.7609
                 },
                 "profile": {
-                    "eye_rgb_mae": 44.25,
-                    "eye_ink_f1_2px": 0.8344,
-                    "iris_iou": 0.5412
+                    "eye_rgb_mae": 43.98,
+                    "eye_ink_f1_2px": 0.6737,
+                    "iris_iou": 0.6277
+                }
+            }
+        },
+        "WebGPUBackend": {
+            "silhouette_iou": {
+                "front": 0.9211,
+                "profile": 0.8987
+            },
+            "triangles": 5359,
+            "backend": "WebGPUBackend",
+            "clothing_fit_control": {
+                "pixels": 35063,
+                "largest_patch": 35063
+            },
+            "layer_triangles": {
+                "body": 3361,
+                "bottoms": 4571,
+                "dressed": 5359
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 77,
+                    "largest_patch": 77
+                },
+                "profile": {
+                    "pixels": 11,
+                    "largest_patch": 2
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "crouch": {
+                    "pixels": 20,
+                    "largest_patch": 15
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.8305,
+            "facial_landmarks": {
+                "front": {
+                    "eye_rgb_mae": 35.36,
+                    "eye_ink_f1_2px": 0.8446,
+                    "iris_iou": 0.7577
+                },
+                "profile": {
+                    "eye_rgb_mae": 43.92,
+                    "eye_ink_f1_2px": 0.6632,
+                    "iris_iou": 0.6316
                 }
             }
         }
     },
-    "comparison_sha256": "837e7280b8132446600038d7e3091c6243dda0a6a84c3214ad92a5277b2351ba",
+    "comparison_sha256": "da5f9e0756997c7bf57a997ad708049be7c30454bc2566598cfd04bb9adbbac8",
+    "portrait_revision": {
+        "previous_face_sha256": "4731c838eada53e3ba2dd4034b97797472d191126d2fe0dd1c04be9308ffd95c",
+        "sha256": "bc25fef2848b02ff516bbe8cf0fd520a7b81ffb1266ca55a57deadff85f99b56"
+    },
     "studies": {
-        "body-and-clothes": "4dab024670410d881b7f85d2119c88b5708f9a01658846427ebea3b66b40426b",
-        "face": "4731c838eada53e3ba2dd4034b97797472d191126d2fe0dd1c04be9308ffd95c"
+        "body-and-clothes": "f8eb1696a203d2638f662e5914cff269ac606a5d795c495aa377e5c7b5301dc4",
+        "face": "01eb3295f7f7d1e06087042abef3c0f6182afb806d11d94c04abc6446b5925e0"
     },
     "captures": {
         "WebGLBackend": {
-            "views": "4af23a54e7021dff942d3abb61b92530f79b9203f2b6d58f301e9e0519f2ec2a",
-            "walk": "a5cd518eb9a5cdc567c1680db3178d58aa46cd6a6e5abfb0ac6d98e1ec512c96"
+            "views": "d0d74467586536a81182f9d9e1189bb461e97c634c0098f90e5f16495f5a4806",
+            "walk": "d212eb8308c87f434210fc287666cc15bdd2faf0804d2ef88d394bd8e761163a"
         },
         "WebGPUBackend": {
-            "views": "fdf368d137b8f094519c4742af6d0658c1bd76acc49cd1676fa4ba60486c9275",
-            "walk": "422b32dd2b66e9668e71145dd6fb9fb78fa7e7f17db111c2e853daa797e18e0e"
+            "views": "6fb250ddd579c9ef17aca2254d6d8861d7e63bd434c3b57160604ea3f9651df5",
+            "walk": "424ef992ba36eda440b45421d37a1d958f07e51ef4394339eaab3cb594b06d0e"
         }
     }
 }

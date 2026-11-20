@@ -4,6 +4,7 @@ import { compactIndexedGeometry, retopologize } from "./retopology";
 import {
     coatUVBase,
     surfaceGrain,
+    illustratedMask,
     finish,
     pupilUVBase,
     streetFaceUVBase,
@@ -114,12 +115,15 @@ export class Sculpt {
     private finishes = new Map<string, Finish>();
     private uvs: number[] = [];
     private colors: number[] = [];
-    private eyeFrontal = new Map<number, number>();
+    private colorAlpha = new Map<number, number>();
+    /** Optional normalized finish data in the shared RGBA vertex stream. */
+    vertexAlpha?: (x: number, y: number, z: number) => number;
     private featureErrors: number[] = [];
     pupilShift?: Point;
     cornealSurface = false;
     private hasCorneas = false;
     hasSkinCreases = false;
+    hasIllustratedHull = false;
     private pupilSpans: PupilSpan[] = [];
     private smoothNormals = new Map<number, Point>();
     faceDistances?: (x: number, y: number, z: number) => [number, number];
@@ -201,7 +205,13 @@ export class Sculpt {
     blend?: { with: string; from: number; to: number };
     tone?: (x: number, y: number, z: number) => number;
     sectionLight?: [number, number];
-    printUV?: (x: number, y: number, angle: number) => [number, number];
+    printUV?: (
+        x: number,
+        y: number,
+        angle: number,
+        z?: number,
+        along?: number
+    ) => [number, number];
     eyeSample?: (
         x: number,
         y: number,
@@ -437,7 +447,13 @@ export class Sculpt {
         const printedUV =
             this.printUV && uv
                 ? Array.from({ length: local.count }, (_, i) =>
-                      this.printUV(local.getX(i), local.getY(i), uv.getY(i))
+                      this.printUV(
+                          local.getX(i),
+                          local.getY(i),
+                          uv.getY(i),
+                          local.getZ(i),
+                          uv.getX(i)
+                      )
                   )
                 : null;
         if (this.faceDistances) {
@@ -452,6 +468,18 @@ export class Sculpt {
                     i * 2
                 );
             g.setAttribute("faceDistances", new T.BufferAttribute(uv, 2));
+        }
+        if (this.vertexAlpha) {
+            const start = this.positions.length / 3;
+            for (let i = 0; i < local.count; i++)
+                this.colorAlpha.set(
+                    start + i,
+                    this.vertexAlpha(
+                        local.getX(i),
+                        local.getY(i),
+                        local.getZ(i)
+                    )
+                );
         }
         if (this.vertexPaint) {
             const swatch = new T.Color(),
@@ -618,7 +646,7 @@ export class Sculpt {
                 const paint = g.attributes.pigment;
                 this.colors.push(paint.getX(i), paint.getY(i), paint.getZ(i));
             } else if (eyeSamples?.[i][4] != null) {
-                this.eyeFrontal.set(this.colors.length / 3, eyeSamples[i][5]);
+                this.colorAlpha.set(this.colors.length / 3, eyeSamples[i][5]);
                 this.colors.push(
                     eyeSamples[i][2],
                     eyeSamples[i][3],
@@ -1276,12 +1304,12 @@ export class Sculpt {
             new T.Float32BufferAttribute(this.positions, 3)
         );
         g.setAttribute("uv", new T.Float32BufferAttribute(this.uvs, 2));
-        if (this.eyeFrontal.size) {
+        if (this.colorAlpha.size) {
             const rgba = new Float32Array((this.colors.length / 3) * 4);
             for (let i = 0; i < rgba.length / 4; i++) {
                 for (let c = 0; c < 3; c++)
                     rgba[4 * i + c] = this.colors[3 * i + c];
-                rgba[4 * i + 3] = this.eyeFrontal.get(i) ?? 1;
+                rgba[4 * i + 3] = this.colorAlpha.get(i) ?? 1;
             }
             g.setAttribute("color", new T.BufferAttribute(rgba, 4));
         } else
@@ -1367,6 +1395,7 @@ export class Sculpt {
         }
         if (this.hasCorneas) g.userData.hasCorneas = true;
         if (this.hasSkinCreases) g.userData.hasSkinCreases = true;
+        if (this.hasIllustratedHull) g.userData.hasIllustratedHull = true;
         if (this.pupilSpans.length) {
             const spans: PupilSpan[] = [];
             for (const span of this.pupilSpans) {
@@ -1425,16 +1454,22 @@ export class Sculpt {
             g,
             new T.MeshBasicNodeMaterial({
                 vertexColors: true,
+                ...(g.userData.hasIllustratedHull && {
+                    maskNode: illustratedMask(),
+                }),
                 side: T.DoubleSide,
                 colorNode: surfaceGrain(
-                    g.userData.hasCorneas || g.userData.hasSkinCreases
+                    g.userData.hasCorneas ||
+                        g.userData.hasSkinCreases ||
+                        g.userData.hasIllustratedHull
                         ? (normal) =>
                               N.cameraViewMatrix.mul(
                                   N.objectWorldMatrix(
                                       this.bones[this.ids.get("head")]
                                   ).mul(N.vec4(normal, 0))
                               ).xyz
-                        : undefined
+                        : undefined,
+                    !!g.userData.hasIllustratedHull
                 ),
             })
         );

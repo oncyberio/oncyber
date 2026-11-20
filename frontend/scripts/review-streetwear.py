@@ -184,6 +184,27 @@ def face_gallery(folder, targets, output=None):
     return result
 
 
+def portrait_revision(previous, current, output):
+    """Compare published galleries at their existing eye-registered scale."""
+    with Image.open(previous) as before, Image.open(current) as after:
+        if before.size != after.size or after.size != (1200, 278):
+            raise ValueError("Expected two front, quarter and profile galleries")
+        sheet = Image.new("RGB", (756, 565), "#f6f3ef")
+        pen = ImageDraw.Draw(sheet)
+        font = ImageFont.truetype("DejaVuSans.ttf", 18)
+        for col, title in enumerate(
+            ("Turnaround drawing", "Previous avatar", "Revised avatar")
+        ):
+            pen.text((12 + 252 * col, 12), title, fill="#302b2a", font=font)
+        for row, (source, native) in enumerate(((0, 1), (4, 3))):
+            for col, (image, index) in enumerate(
+                ((after, source), (before, native), (after, native))
+            ):
+                face = image.crop((240 * index, 38, 240 * (index + 1), 278))
+                sheet.paste(face, (8 + 252 * col, 44 + row * 254))
+        sheet.save(output, quality=94, method=6)
+
+
 def review(args):
     args.captures.mkdir(parents=True, exist_ok=True)
     args.destination.mkdir(parents=True, exist_ok=True)
@@ -266,6 +287,15 @@ def review(args):
         path = args.destination / (args.slug + "-" + name + ".webp")
         make(path)
         assets[name] = digest(path)
+    if args.previous_face:
+        revision = args.destination / (args.slug + "-portrait-revision.webp")
+        portrait_revision(
+            args.previous_face, args.destination / (args.slug + "-face.webp"), revision
+        )
+        result["portrait_revision"] = {
+            "previous_face_sha256": digest(args.previous_face),
+            "sha256": digest(revision),
+        }
     for backend in result["backends"]:
         result["backends"][backend]["facial_landmarks"] = face_gallery(
             args.captures / backend, targets
@@ -291,6 +321,11 @@ if __name__ == "__main__":
         help="Pixel column dividing front and profile",
     )
     parser.add_argument("--slug", required=True)
+    parser.add_argument(
+        "--previous-face",
+        type=Path,
+        help="Earlier face gallery for a before-and-after comparison",
+    )
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--budget", default=5500, type=int)
     parser.add_argument(

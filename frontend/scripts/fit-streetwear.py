@@ -1,4 +1,4 @@
-"""Measure a registered streetwear turnaround and compile its sparse, texture-free recipe.
+"""Measure a registered streetwear turnaround and compile its procedural recipe.
 
 Coordinates are in a 1,000-unit standing figure. Provide the front midline and
 the side ankle center on the sheet and register both views to the same floor.
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from avatar_authoring.street_face import fit_crown, fit_street_face
+from avatar_authoring.street_face import fit_crown, fit_street_face, fit_temple_locks
 from PIL import Image
 
 
@@ -293,10 +293,15 @@ def measure(sheet, center, side, floor, height, name):
         },
         "head": {"width": 48, "chin": 184, "eyeLine": 132, "eyeGap": 48, "depth": 54},
         "faceFit": {
-            **fit_street_face(front, profile, fringe),
-            "crown": fit_crown(front, profile, fringe),
+            **fit_street_face(front, profile),
+            "crown": fit_crown(profile, fringe),
         },
-        "hair": {"spikes": spikes, "fringe": fringe, "nape": 415},
+        "hair": {
+            "spikes": spikes,
+            "fringe": fringe,
+            "temple": fit_temple_locks(front, profile),
+            "nape": 415,
+        },
         "belt": {"height": 548, "slope": -0.17, "width": 31},
         "shoe": {"center": 99, "width": 60, "toe": 157, "heel": 35},
     }

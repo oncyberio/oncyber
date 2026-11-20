@@ -1,4 +1,5 @@
 import * as T from "three/webgpu";
+import { streetSkinTile } from "./streetBrush";
 import * as N from "three/tsl";
 import type { LobbyAvatar } from "../lobby/webgpu/avatarAdapter";
 import type { PupilSpan } from "./gazePose";
@@ -9,6 +10,7 @@ import {
     streetFaceUVBase,
     insetPupilUVBase,
     surfaceGrain,
+    illustratedMask,
 } from "./surfaces";
 
 const BONES = 64,
@@ -55,7 +57,11 @@ export class RecipeCrowdBatch {
         const material = new T.MeshBasicNodeMaterial({
             side: T.DoubleSide,
             vertexColors: true,
-            colorNode: surfaceGrain(() => N.transformNormalToView(cornea)),
+            maskNode: illustratedMask(),
+            colorNode: surfaceGrain(
+                () => N.transformNormalToView(cornea),
+                true
+            ),
         });
         const rig = N.attribute("recipeRig", "vec3");
         const row = N.uint(rig.x).div(N.uint(BONES));
@@ -88,7 +94,8 @@ export class RecipeCrowdBatch {
                     .x.greaterThanEqual(insetPupilUVBase)
                     .or(tile.equal(creaseUVBase))
                     .or(tile.equal(frontalCreaseUVBase))
-                    .or(tile.equal(streetFaceUVBase)),
+                    .or(tile.equal(streetFaceUVBase))
+                    .or(tile.equal(streetSkinTile)),
                 () => {
                     cornea.assign(m.mul(N.vec4(portraitDirection(), 0)).xyz);
                 }

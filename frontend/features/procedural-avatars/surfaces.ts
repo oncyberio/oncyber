@@ -1,4 +1,10 @@
 import * as N from "three/tsl";
+import {
+    streetSkinTile,
+    streetEyeTile,
+    streetHairTile,
+    streetClothTile,
+} from "./streetBrush";
 import { coatShadowUV, garmentInk } from "./garmentPrint";
 
 /** The integer part of U identifies the finish or printed fabric.
@@ -6,6 +12,10 @@ import { coatShadowUV, garmentInk } from "./garmentPrint";
 export const finish = { enamel: 0, skin: 1, fiber: 2, cloth: 3 } as const;
 export const coatUVBase = 43;
 export const streetFaceUVBase = 50;
+export const silhouetteTile = 54;
+export function illustratedMask() {
+    return N.floor(N.uv().x).notEqual(silhouetteTile).or(N.frontFacing.not());
+}
 // Both crease tiles retain the skin finish in their low three bits.
 export const creaseUVBase = 41,
     frontalCreaseUVBase = 49;
@@ -30,7 +40,10 @@ export function portraitDirection() {
     );
 }
 type Direction = ReturnType<typeof N.transformNormalToView>;
-export function surfaceGrain(toView?: (n: Direction) => Direction) {
+export function surfaceGrain(
+    toView?: (n: Direction) => Direction,
+    streetBrushes = false
+) {
     const uv = N.uv();
     const coat = uv.x
         .greaterThanEqual(coatUVBase)
@@ -470,6 +483,137 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
         N.vec3(0.031, 0.024, 0.02),
         outlineAmount
     );
+    let finishLight = N.select(crease, surface.mul(creasePigment), surface);
+    if (streetBrushes) {
+        const tile = N.floor(uv.x);
+        const skinLight = ink.rgb
+            .div(N.vec3(0.98225, 0.68669, 0.46778))
+            .mul(N.mix(N.vec3(0.95, 0.89, 0.84), N.vec3(1.015, 1.007, 1), key))
+            .mul(
+                N.mix(
+                    N.vec3(1),
+                    N.vec3(0.057, 0.042, 0.035),
+                    brush(N.vertexColor().a.mul(64), 1.1).mul(
+                        N.smoothstep(0.95, 0.999, turn)
+                    )
+                )
+            );
+        // Darken the true tangent using the smooth bind-pose normals. Eye and
+        // skin pigment stay attached to their own surfaces during a head turn.
+        const irisTint = N.smoothstep(0.008, 0.045, ink.b.sub(ink.r));
+        const enamelLight = ink.rgb
+            .mul(
+                N.mix(
+                    N.vec3(1),
+                    dye.div(N.vec3(0.05127, 0.1912, 0.31855)),
+                    irisTint
+                )
+            )
+            .div(N.max(dye, 0.00001));
+        // Local U follows the strand and is continuous along each shaped lock.
+        const down = N.fract(uv.y),
+            mode = N.floor(uv.y);
+        const dome = mode.equal(4);
+        const warp = N.select(dome, u.mul(8), u).add(
+            N.sin(down.mul(5.1)).mul(0.035)
+        );
+        const wave = N.cos(warp.sub(0.47).mul(6.283)).mul(0.5).add(0.5);
+        const fine = N.cos(warp.mul(31.41).add(N.sin(down.mul(7)).mul(0.6)))
+            .mul(0.5)
+            .add(0.5);
+        const broad = N.mix(
+            N.vec3(0.79, 0.6, 0.42),
+            N.vec3(1.05, 1.035, 1.015),
+            wave.mul(0.49).add(fine.mul(0.12)).add(key.mul(0.39))
+        );
+        const edgeDistance = N.min(u, N.float(1).sub(u));
+        const freeTip = N.select(
+            mode.equal(0).or(dome),
+            N.float(0),
+            N.select(
+                mode.equal(2),
+                N.smoothstep(0.23, 0.62, down).mul(0.3),
+                N.float(0.9)
+            )
+        );
+        const strandEdge = N.float(1)
+            .sub(
+                N.smoothstep(
+                    0.0,
+                    N.select(mode.equal(1), N.float(0.16), N.float(0.064)),
+                    edgeDistance
+                )
+            )
+            .mul(freeTip);
+
+        const crown = N.mix(
+            N.vec3(1.015, 1.002, 0.97),
+            broad,
+            N.select(
+                dome,
+                N.float(0.48),
+                N.smoothstep(0.03, 0.9, down).mul(0.64).add(0.3)
+            )
+        ).mul(N.mix(N.vec3(0.95, 0.88, 0.77), N.vec3(1.02, 1.014, 1), key));
+        const strandLight = N.mix(
+            N.select(
+                mode.equal(0).or(dome),
+                crown,
+                N.select(
+                    mode.equal(2),
+                    N.mix(
+                        N.vec3(0.99, 0.965, 0.91),
+                        broad.mul(
+                            N.mix(
+                                N.vec3(0.73, 0.58, 0.45),
+                                N.vec3(1.03, 0.97, 0.88),
+                                wave
+                            )
+                        ),
+                        N.smoothstep(0.07, 0.38, down)
+                    ),
+                    broad
+                )
+            ),
+            N.vec3(0.082, 0.046, 0.027),
+            strandEdge
+        );
+
+        const familyLight = N.select(
+            tile.equal(streetSkinTile),
+            skinLight,
+            N.select(
+                tile.equal(streetEyeTile),
+                enamelLight,
+                strandLight.mul(
+                    N.mix(
+                        N.vec3(0.04, 0.027, 0.018),
+                        N.vec3(1),
+                        N.smoothstep(0.09, 0.275, incidence)
+                    )
+                )
+            )
+        );
+        finishLight = N.select(
+            tile
+                .greaterThanEqual(streetSkinTile)
+                .and(tile.lessThanEqual(streetHairTile)),
+            familyLight,
+            N.select(
+                tile.equal(streetClothTile),
+                ink.rgb
+                    .div(0.21586)
+                    .mul(
+                        N.mix(
+                            N.vec3(0.85, 0.83, 0.84),
+                            N.vec3(1.07, 1.06, 1.04),
+                            key
+                        )
+                    ),
+                finishLight
+            )
+        );
+    }
     return N.select(
         st.x.lessThan(0),
         outlinedGlobe.div(N.max(dye, 0.00001)),
@@ -479,7 +623,7 @@ export function surfaceGrain(toView?: (n: Direction) => Direction) {
             N.select(
                 N.floor(uv.x).equal(streetFaceUVBase),
                 faceLight,
-                N.select(crease, surface.mul(creasePigment), surface)
+                finishLight
             )
         )
     );

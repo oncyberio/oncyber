@@ -1,4 +1,5 @@
 import * as T from "three/webgpu";
+import { brushAtlasHeight, paintStreetBrushes } from "./streetBrush";
 import type { Section, XY } from "./drawing";
 
 export type PrintPath = {
@@ -9,7 +10,7 @@ export type PrintPath = {
 };
 type Tile = [number, number, number, number];
 const size = 512,
-    atlasHeight = 736;
+    atlasHeight = brushAtlasHeight;
 export const printTiles = {
     jersey: [0, 0, 512, 184],
     rightUpperArmSleeve: [0, 184, 256, 74],
@@ -34,6 +35,14 @@ garmentInk.magFilter = T.LinearFilter;
 garmentInk.minFilter = T.LinearMipmapLinearFilter;
 garmentInk.generateMipmaps = true;
 garmentInk.needsUpdate = true;
+
+let streetReady = false;
+export function prepareStreetBrushes() {
+    if (streetReady) return;
+    paintStreetBrushes(pixels);
+    garmentInk.needsUpdate = true;
+    streetReady = true;
+}
 
 /** Even-odd scan conversion leaves counters in letters and gaps in silhouettes. */
 function fill(rings: XY[][], color: string, [left, top, width, height]: Tile) {
