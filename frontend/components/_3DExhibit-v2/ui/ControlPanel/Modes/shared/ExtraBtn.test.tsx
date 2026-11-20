@@ -48,7 +48,7 @@ test("virtual-tour More uses the shared mask while preserving the legacy menu in
         'button[aria-label="More"]'
     );
     const icon = button.querySelector<HTMLElement>(".experience-control-icon");
-    expect(icon.style.maskImage).toContain("/icons/generated-v2/more.png");
+    expect(icon.style.maskImage).toContain("/icons/generated-v2/more.192.png");
     expect(icon.style.width).toBe("22px");
     expect(button.querySelector("img")).toBeNull();
     expect(button.getAttribute("aria-expanded")).toBe("false");

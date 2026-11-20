@@ -9,6 +9,12 @@ content icons retain their existing dedicated assets.
 
 ## Saved assets
 
+Each icon is kept at 1254 px as generated, with a 192 px copy beside it
+(`info.192.png`, made with sharp: `resize(192, 192)`, PNG). The app serves
+the 192 px copies: the icons draw at 14 to 56 px, and the originals are 150
+to 480 KB each. The six lobby glyphs under `public/lobby/icons/` have the
+same copies. Regenerate a copy when its original changes.
+
 - `more.png`: three softly rounded diamond dots / More options.
 - `permissions.png`: rounded tilted padlock / Content permissions.
 - `reload.png`: rounded circular arrow / Reload experience.

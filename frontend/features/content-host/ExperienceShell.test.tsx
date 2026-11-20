@@ -269,7 +269,7 @@ test("native and embedded action names use shared masks without changing button 
     expect(button("lock").disabled).toBe(true);
     expect(
         button("info").querySelector<HTMLElement>("span").style.maskImage
-    ).toContain("/icons/generated-v2/info.png");
+    ).toContain("/icons/generated-v2/info.192.png");
 });
 
 test("utility glyphs retain their established SVG source and explicit sizing", () => {

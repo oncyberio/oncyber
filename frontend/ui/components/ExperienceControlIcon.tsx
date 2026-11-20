@@ -15,17 +15,19 @@ export const experienceControlIcons = [
 ] as const;
 export type ExperienceControlIconName = (typeof experienceControlIcons)[number];
 
+// The 192 px copies of the artwork: these draw at 14 to 56 px, and the
+// 1254 px originals beside them are 150 to 480 KB each.
 const assets: Record<ExperienceControlIconName, string> = {
-    mic: "/lobby/icons/generated-v3/mic.png",
-    "mic-off": "/lobby/icons/generated-v3/mic-off.png",
-    avatar: "/lobby/icons/generated-v4/avatar.png",
-    emotes: "/lobby/icons/generated-v3/emotes.png",
-    people: "/lobby/icons/generated-v4/people.png",
-    explore: "/lobby/icons/generated-v3/explore.png",
-    more: "/icons/generated-v2/more.png",
-    permissions: "/icons/generated-v2/permissions.png",
-    reload: "/icons/generated-v2/reload.png",
-    info: "/icons/generated-v2/info.png",
+    mic: "/lobby/icons/generated-v3/mic.192.png",
+    "mic-off": "/lobby/icons/generated-v3/mic-off.192.png",
+    avatar: "/lobby/icons/generated-v4/avatar.192.png",
+    emotes: "/lobby/icons/generated-v3/emotes.192.png",
+    people: "/lobby/icons/generated-v4/people.192.png",
+    explore: "/lobby/icons/generated-v3/explore.192.png",
+    more: "/icons/generated-v2/more.192.png",
+    permissions: "/icons/generated-v2/permissions.192.png",
+    reload: "/icons/generated-v2/reload.192.png",
+    info: "/icons/generated-v2/info.192.png",
 };
 // Generated canvases have different padding; keep the visible artwork near 20px
 // inside the shared 22px icon box in both the lobby and native experience.

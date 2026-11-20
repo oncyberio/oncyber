@@ -73,6 +73,8 @@ export const Page = styled.div<{ $gallery?: boolean }>`
         top: 10px;
     }
     .landing-title {
+        /* Unseen, so it must not fetch the bold face a heading defaults to. */
+        font-weight: 400;
         position: absolute;
         width: 1px;
         height: 1px;

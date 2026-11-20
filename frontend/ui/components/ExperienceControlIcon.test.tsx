@@ -63,13 +63,13 @@ test("established runtime action names resolve to the same canonical artwork", (
             experienceControlIconAsset(name)
         );
     expect(experienceControlIconAsset("dashboard")).toBe(
-        "/icons/generated-v2/more.png"
+        "/icons/generated-v2/more.192.png"
     );
     expect(experienceControlIconAsset("info")).toBe(
-        "/icons/generated-v2/info.png"
+        "/icons/generated-v2/info.192.png"
     );
     expect(experienceControlIconAsset("mic-off")).toBe(
-        "/lobby/icons/generated-v3/mic-off.png"
+        "/lobby/icons/generated-v3/mic-off.192.png"
     );
 });
 
