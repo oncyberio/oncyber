@@ -25,7 +25,7 @@ import { getContentByIds } from "../getContentByIds";
 // *warm other instance* can serve its in-process copy after an edit. Negative
 // (profile-less wallet) entries stay short so a brand-new signup can't be
 // invisible for hours.
-const POSITIVE_PROFILE_TTL_MS = 2 * 60 * 60 * 1000;
+export const POSITIVE_PROFILE_TTL_MS = 2 * 60 * 60 * 1000;
 const NEGATIVE_PROFILE_TTL_MS = 15 * 60 * 1000;
 const MEM_MAX = 2000;
 
@@ -54,8 +54,20 @@ function memSet(id: string, ts: number, user: any) {
  * underlying `walletId in` query). Order is not guaranteed to match the input —
  * callers resolve by id, not position.
  */
+export interface ProfileReadOptions {
+    /**
+     * A time (ms) the caller knows the profile was written at. Cached copies
+     * taken before it are skipped, so the read is at least that fresh. This
+     * is how someone's own edit shows on their next page: another warm
+     * instance still holds its older in-process copy (see
+     * utils/auth/profileWrites.ts).
+     */
+    notBefore?: number;
+}
+
 export async function getUserProfilesByWalletIds(
-    walletIds: string[]
+    walletIds: string[],
+    { notBefore = 0 }: ProfileReadOptions = {}
 ): Promise<any[]> {
     const ids = Array.from(
         new Set(
@@ -76,7 +88,7 @@ export async function getUserProfilesByWalletIds(
     // 1. in-process
     for (const id of ids) {
         const hit = mem.get(id);
-        if (hit && now - hit.ts < profileTtl(hit.user)) {
+        if (hit && hit.ts >= notBefore && now - hit.ts < profileTtl(hit.user)) {
             resolved[id] = hit.user;
         } else {
             misses.push(id);
@@ -91,7 +103,11 @@ export async function getUserProfilesByWalletIds(
             snaps.forEach((snap: any, i: number) => {
                 const id = misses[i];
                 const data = snap.data();
-                if (data && now - data.ts < profileTtl(data.user)) {
+                if (
+                    data &&
+                    data.ts >= notBefore &&
+                    now - data.ts < profileTtl(data.user)
+                ) {
                     resolved[id] = data.user;
                     memSet(id, data.ts, data.user);
                 } else {
@@ -149,9 +165,10 @@ export function invalidateUserProfile(walletId: string): void {
 }
 
 export async function getUserProfileByWalletId(
-    walletId: string
+    walletId: string,
+    options?: ProfileReadOptions
 ): Promise<any | null> {
-    const [user] = await getUserProfilesByWalletIds([walletId]);
+    const [user] = await getUserProfilesByWalletIds([walletId], options);
     return user || null;
 }
 

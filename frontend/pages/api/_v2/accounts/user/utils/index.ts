@@ -8,6 +8,7 @@ import { countDestinationsByUserId } from "@utils/firestore/destinations";
 import {
     getUserProfilesByWalletIds,
     publicUserProfile,
+    type ProfileReadOptions,
 } from "@utils/firestore/userProfiles";
 
 export async function getSpaceEditors(exhibitId) {
@@ -189,12 +190,16 @@ export async function fetchUserByWalletId(accountId, isFull = false) {
 // Cached variant for authenticated SSR *display* hydration only — resolves
 // the account through the walletId profile cache (see getAccountDocCached in
 // link.ts for the constraints: never auth mutations, never isFull=true).
-export async function fetchUserByWalletIdCached(accountId, isFull = false) {
+export async function fetchUserByWalletIdCached(
+    accountId,
+    isFull = false,
+    options?: ProfileReadOptions
+) {
     if (!accountId) return null;
 
     if (accountId[0] == "@") accountId = accountId.substr(1);
 
-    const account = await getAccountDocCached(accountId);
+    const account = await getAccountDocCached(accountId, options);
 
     if (!account) {
         return null;
