@@ -609,9 +609,12 @@ def fit_footwear(rgb, mask, center, crown, scale, body, outfit, skin):
     cols[:, 1:] = ndimage.gaussian_filter1d(
         ndimage.median_filter(cols[:, 1:], size=(3, 1)), 0.72, axis=0, mode="nearest"
     )
-    # Keep the floor registered to the whole figure after discarding its paper halo.
-    floor = np.where(figure)[0].max()
-    foot_scale = min(1.25, (floor - hem) / max(1, cols[:, 4].max() - hem))
+    # A closed ink outline already gives the physical tread. Extending it
+    # to the edge of the background-removal mask stretches just the shoe.
+    foot_scale = 1.0
+    if traced is None:
+        floor = np.where(figure)[0].max()
+        foot_scale = min(1.25, (floor - hem) / max(1, cols[:, 4].max() - hem))
 
     def level(y):
         return (hem + (y - hem) * foot_scale + y0 - crown) * scale + 12
@@ -1135,6 +1138,9 @@ def fit_front(source, name, observation=None):
     }
     if np.min((boxes[:, 2] - boxes[:, 0]) / (boxes[:, 3] - boxes[:, 1])) > 1.85:
         score["lowered_lids"] = True
+    from .household import fit_crop_back
+
+    fit_crop_back(recipe["design"])
     return recipe, score
 
 

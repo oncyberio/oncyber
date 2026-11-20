@@ -139,6 +139,15 @@ export function drawHouseholdHead(
         }
         const side = line?.[a < 0 ? 0 : line.length - 1] ?? 0.65;
         const rear = Math.max(0, -Math.cos(a));
+        if (g.household.rearHairline !== undefined) {
+            // Front art reveals the temple over the ear. Let the posterior
+            // edge descend along the occiput into the neck on a separate arc.
+            return MathUtils.lerp(
+                side,
+                g.household.rearHairline,
+                MathUtils.smoothstep(rear, 0.03, 0.64)
+            );
+        }
         if (g.household.nape !== undefined) {
             // Continue the temple over the pinna, then drop behind the ear.
             // A long crop shows its underside beside the cheek from the front.

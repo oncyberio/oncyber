@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { GetStaticPaths, GetStaticProps } from "next";
 import { useState } from "react";
+import guides from "../../../../scripts/avatar_authoring/targets/holdout-v1/turn-guides.json";
 import manifest from "../../../../scripts/avatar_authoring/targets/holdout-v1/manifest.json";
 import followups from "../../../../scripts/avatar_authoring/targets/holdout-v1/followup-studies.json";
 import archive from "../../../../scripts/avatar_authoring/targets/holdout-v1/results.json";
@@ -24,6 +25,20 @@ const modes = ["WebGLBackend", "WebGPUBackend"] as const;
 type Backend = (typeof modes)[number];
 const rendererNames = { WebGLBackend: "WebGL2", WebGPUBackend: "WebGPU" };
 type Images = Record<Backend, { views: string; walk: string; turns?: string }>;
+const guideInfo = {
+    frozen: [
+        "Held-out head turns",
+        "Both native turns were captured before GPT Image drew this guide from the front reference.",
+    ],
+    recaptured: [
+        "Recaptured head turns",
+        "The recipe was frozen before GPT Image drew the guide. These native turns were recorded again afterwards.",
+    ],
+    calibrated: [
+        "Calibrated head turns",
+        "This guide was available while fitting the current head. Use it to inspect the result of calibration.",
+    ],
+};
 interface Props {
     id: string;
     name: string;
@@ -33,7 +48,11 @@ interface Props {
     evidenceHash: string;
     images: Images;
     inferred: boolean;
-    guideHeldOut: boolean;
+    guideStatus: keyof typeof guideInfo;
+    pose: {
+        measured_joints: number;
+        mean_error_in_statures: number | null;
+    } | null;
 }
 
 export default function RecordedReview(props: Props) {
@@ -49,7 +68,8 @@ function ReviewForm({
     evidenceHash,
     images,
     inferred,
-    guideHeldOut,
+    guideStatus,
+    pose,
 }: Props) {
     const [backend, setBackend] = useState<Backend>("WebGLBackend");
     const [reviewer, setReviewer] = useState("");
@@ -139,23 +159,24 @@ function ReviewForm({
                     </details>
                 </section>
             </div>
+            {pose && (
+                <p>
+                    {pose.mean_error_in_statures === null
+                        ? "MediaPipe could not match limb joints in both full-body views."
+                        : `MediaPipe matched ${
+                              pose.measured_joints
+                          } joints between the full drawing and the front render. Their mean position difference was ${(
+                              100 * pose.mean_error_in_statures
+                          ).toFixed(1)}% of standing height.`}
+                </p>
+            )}
             {images[backend].turns && (
-                <figure
-                    aria-label={
-                        guideHeldOut
-                            ? "Held-out head turns"
-                            : "Calibrated head turns"
-                    }
-                >
+                <figure aria-label={guideInfo[guideStatus][0]}>
                     <figcaption>
                         35° and profile · GPT Image guide and{" "}
                         {rendererNames[backend]} render
                     </figcaption>
-                    <p>
-                        {guideHeldOut
-                            ? "Both native turns were captured before GPT Image drew this guide from the front reference."
-                            : "This guide was available while fitting the current head. Use it to inspect the result of calibration."}
-                    </p>
+                    <p>{guideInfo[guideStatus][1]}</p>
                     <a
                         href={images[backend].turns}
                         target="_blank"
@@ -368,7 +389,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
             )
                 throw Error("The native review capture changed");
             const asset = await import(
-                `../../../../scripts/avatar_authoring/targets/holdout-v1/reviews/${name}.webp`
+                `../../../../scripts/avatar_authoring/targets/holdout-v1/reviews/${entry.id}-${backend}-${key}.webp`
             );
             item[key] = asset.default.src;
         }
@@ -390,9 +411,20 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
             reference: await sourceImage(entry.evaluation_reference),
             input: await sourceImage(entry.input),
             referenceHash: entry.reference_sha256,
+            pose: receipt.independent_pose
+                ? {
+                      measured_joints: receipt.independent_pose.measured_joints,
+                      mean_error_in_statures:
+                          receipt.independent_pose.mean_error_in_statures,
+                  }
+                : null,
             evidenceHash: receipt.evidence_sha256,
-            guideHeldOut:
-                receipt.turn_guide?.candidate_frozen_before_guide === true,
+            guideStatus: receipt.turn_guide?.candidate_frozen_before_guide
+                ? "frozen"
+                : guides[entry.id]?.frozen_candidate_sha256 ===
+                  receipt.candidate_sha256
+                ? "recaptured"
+                : "calibrated",
             images,
             inferred: entry.framing === "portrait",
         },

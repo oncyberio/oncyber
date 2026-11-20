@@ -61,6 +61,8 @@ export interface CartoonDesign {
         earTurn?: number;
         penOutline?: boolean;
         nape?: number;
+        /** Inferred posterior hairline on a measured short cap, in skull heights. */
+        rearHairline?: number;
         /** Sagittal offsets in skull widths, independent of the wardrobe and rig. */
         depth?: { chin: number; forehead: number; cheek: number };
         body?: Omit<

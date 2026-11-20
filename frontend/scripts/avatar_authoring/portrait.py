@@ -532,4 +532,7 @@ def compile_portrait(source, family, name, obs):
     breadth = visible_torso(rgb, mask, (left, top, right, chin), colors["shirt"])
     if breadth is not None:
         recipe["design"]["household"]["shirtHalfWidth"] = breadth
+    from .household import fit_crop_back
+
+    fit_crop_back(recipe["design"])
     return recipe

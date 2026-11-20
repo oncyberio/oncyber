@@ -536,23 +536,15 @@ def assess_native(
         (directory / "recipe.json").write_bytes(draft.read_bytes())
 
 
-def revise_family(source, parent, edits, base, backend, budget):
-    original = json.loads((parent / "review.json").read_text())
-    candidate = (parent / "candidate.json").read_bytes()
-    if hashlib.sha256(source.read_bytes()).hexdigest() != original["source_sha256"]:
-        raise ValueError("The family fit belongs to a different source image")
-    if hashlib.sha256(candidate).hexdigest() != original["recipe_sha256"]:
-        raise ValueError("Family candidate changed after review")
-    start = monotonic()
-    previous = json.loads(candidate)
-    shirt_frame = original["candidates"][previous["family"]].get("shirt_frame")
+def apply_source_edits(source, previous, edits, score, window=(0, 0, 1, 1)):
+    """Resolve edit coordinates against the same source on either authoring pass."""
+    shirt_frame = score.get("shirt_frame")
     sampled = any(
         isinstance(e, dict)
         and isinstance(e.get("value"), dict)
         and "sample" in e["value"]
         for e in edits
     )
-    window = original["front"].get("shirt_window", (0, 0, 1, 1))
     patch = (
         garment_patch(
             *pixels(source, keep_components=True), print_frame(shirt_frame, window)
@@ -564,14 +556,26 @@ def revise_family(source, parent, edits, base, backend, budget):
         isinstance(e, dict) and e.get("field") == "visor" and e.get("value") == "trace"
         for e in edits
     )
-    visor = (
-        trace_front_visor(
-            source, original["candidates"][previous["family"]]["eye_frame"]
-        )
-        if trace
-        else None
+    visor = trace_front_visor(source, score["eye_frame"]) if trace else None
+    return edited_recipe(previous, edits, patch, window, visor)
+
+
+def revise_family(source, parent, edits, base, backend, budget):
+    original = json.loads((parent / "review.json").read_text())
+    candidate = (parent / "candidate.json").read_bytes()
+    if hashlib.sha256(source.read_bytes()).hexdigest() != original["source_sha256"]:
+        raise ValueError("The family fit belongs to a different source image")
+    if hashlib.sha256(candidate).hexdigest() != original["recipe_sha256"]:
+        raise ValueError("Family candidate changed after review")
+    start = monotonic()
+    previous = json.loads(candidate)
+    recipe = apply_source_edits(
+        source,
+        previous,
+        edits,
+        original["candidates"][previous["family"]],
+        original["front"].get("shirt_window", (0, 0, 1, 1)),
     )
-    recipe = edited_recipe(previous, edits, patch, window, visor)
     if recipe == previous:
         return parent, original
     directory = Path(mkdtemp(prefix="revision-", dir=parent.parent)).resolve()

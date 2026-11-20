@@ -185,6 +185,34 @@ def request_drawing(args, prompt, images, operations, selected):
     }
 
 
+def observe_full_family(args, source, candidate):
+    construction = candidate.get("construction", "registered")
+    operation = {
+        "name": "fit_avatar_family",
+        "type": "function",
+        "strict": True,
+        "description": "Choose the visible parts and measurements before drawing the first native avatar.",
+        "parameters": record(
+            {
+                "edits": edit_schema(candidate["family"], construction),
+                "missing": {"type": "string", "maxLength": 96},
+            }
+        ),
+    }
+    prompt = (
+        "This is the only source drawing. Inspect the face, collar, clothes and footwear. "
+        "The family measurement pass has proposed the enclosed recipe. Preserve measurements "
+        "supported by the drawing. Select bounded edits for visible differences, including "
+        "an observed footwear type on a household body. Hidden sides inherit family depth. "
+        "An empty edit list keeps the measured recipe. Give the name of a genuinely missing "
+        "reusable feature in missing, otherwise an empty string. "
+        "Any shirt sample is in the fitted shirt frame, x right and y down.\n"
+        + json.dumps(candidate, separators=(",", ":"))
+    )
+    answer, receipt = request_drawing(args, prompt, [source], [operation], operation)
+    return answer, {**receipt, "operation": operation["name"]}
+
+
 def review_family(args, source, directory, candidate, report, feedback=""):
     schema = edit_schema(
         candidate["family"], candidate.get("construction", "registered")

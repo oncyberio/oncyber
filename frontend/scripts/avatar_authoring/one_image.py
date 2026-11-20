@@ -17,11 +17,16 @@ from scipy import ndimage
 from .eye_review import portrait_pair
 from .family import fit_family
 from .family_edits import record
-from .family_review import assess_native, revise_family
+from .family_review import apply_source_edits, assess_native, revise_family
 from .fit import pixels
 from .household_front import fit_front
 from .portrait import compile_portrait, propose_portrait
-from .provider import openrouter_model, request_drawing, review_family
+from .provider import (
+    observe_full_family,
+    openrouter_model,
+    request_drawing,
+    review_family,
+)
 from .review import render
 from .visor import visor_seed
 
@@ -328,6 +333,9 @@ def author_one(source, output, family, framing, name, args):
     output.mkdir(parents=True, exist_ok=True)
     directory = Path(mkdtemp(prefix="study-", dir=output)).resolve()
     remote = bool(args.openrouter or args.endpoint or args.adapter)
+    local_model = getattr(args, "local_vqa", None)
+    if remote and local_model:
+        raise ValueError("Select one source observer")
     report = {
         "family": family,
         "framing": framing,
@@ -338,17 +346,25 @@ def author_one(source, output, family, framing, name, args):
         if args.adapter
         else "responses"
         if args.endpoint
+        else "local-blip"
+        if local_model
         else "deterministic",
         "calls": [],
         "passes": [],
         "accepted": False,
     }
     started = monotonic()
-    from .feature_library import resolve_feature
+    from .feature_library import library_key, location, resolve_feature
 
     feature_cache = {}
     try:
+        answers = {}
         family, framing = recognize_input(source, family or "auto", framing)
+        if local_model:
+            from .local_vqa import observe_source
+
+            answers, receipt = observe_source(local_model, source, family, framing)
+            report["calls"].append(receipt)
         if family not in ("rick-classic", "sunshine") or framing not in (
             "portrait",
             "full",
@@ -392,6 +408,14 @@ def author_one(source, output, family, framing, name, args):
                     report["calls"].append(receipt)
                 else:
                     obs = propose_portrait(source, family)
+                    if answers and family == "rick-classic":
+                        from .local_vqa import wardrobe
+
+                        choices = wardrobe(answers)
+                        if choices.get("hair") == "ponytail":
+                            obs["cut"] = "ponytail"
+                        if choices.get("top") == "tank" and obs["top"] == "crew":
+                            obs["top"] = "tank"
                 validate(obs, OBSERVATION)
                 save(dest / "observations.json", obs)
                 recipe = compile_portrait(source, family, name, obs)
@@ -400,7 +424,7 @@ def author_one(source, output, family, framing, name, args):
                         recipe, source, previous / (title + ".png")
                     )
                 if obs["missing"]:
-                    from .feature_library import apply_feature, library_key
+                    from .feature_library import apply_feature
 
                     key = library_key(obs["missing"])
                     report["needs_feature"] = key
@@ -485,6 +509,37 @@ def author_one(source, output, family, framing, name, args):
                     source, family, name, custom_jersey=True
                 )
                 score = measures[family]
+            if remote or local_model:
+                if remote:
+                    observation, receipt = observe_full_family(args, source, recipe)
+                    report["calls"].append(receipt)
+                    from .family_edits import edit_schema
+
+                    validate(
+                        observation,
+                        record(
+                            {
+                                "edits": edit_schema(
+                                    family, recipe.get("construction", "registered")
+                                ),
+                                "missing": {"type": "string", "maxLength": 96},
+                            }
+                        ),
+                    )
+                else:
+                    from .local_vqa import full_edits
+
+                    observation = {"edits": full_edits(recipe, answers), "missing": ""}
+                save(dest / "observations.json", observation)
+                report["source_edits"] = observation["edits"]
+                recipe = apply_source_edits(source, recipe, observation["edits"], score)
+                if observation["missing"]:
+                    key = library_key(observation["missing"])
+                    report["needs_feature"] = key
+                    recipe = resolve_feature(
+                        args, key, recipe, source, dest, report["calls"]
+                    )
+                    report["feature_used"] = report.pop("needs_feature")
             trial = {
                 "family": family,
                 "source_sha256": report["source_sha256"],
@@ -517,25 +572,28 @@ def author_one(source, output, family, framing, name, args):
                     decision, receipt = review_family(args, source, dest, recipe, trial)
                     report["calls"].append(receipt)
                     if not decision["use_family"]:
-                        report["needs_feature"] = decision["reason"]
-                        extended = resolve_feature(
-                            args,
-                            decision["reason"],
-                            recipe,
-                            source,
-                            dest,
-                            report["calls"],
-                        )
-                        # A new definition still uses the one available correction.
-                        from .feature_library import location
-
-                        feature = dest / "feature.json"
-                        if not feature.exists():
-                            feature = location(
-                                args.feature_library, extended, decision["reason"]
+                        key = library_key(decision["reason"])
+                        report["needs_feature"] = key
+                        if key == report.get("feature_used"):
+                            raise ValueError(
+                                f"The native review still misses the fitted feature {key}"
                             )
-                        edits = json.loads(feature.read_bytes())["edits"]
-                        report["feature_used"] = report.pop("needs_feature")
+                        library = getattr(args, "feature_library", None)
+                        cached = location(library, recipe, key) if library else None
+                        resolve_feature(
+                            args, key, recipe, source, dest, report["calls"]
+                        )
+                        feature = (
+                            cached
+                            if cached and cached.exists()
+                            else dest / "feature.json"
+                        )
+                        definition = json.loads(feature.read_bytes())
+                        if definition["name"] != key:
+                            raise ValueError(
+                                f"The correction needs the definition for {key}"
+                            )
+                        edits = definition["edits"]
                     else:
                         edits = decision["edits"]
                 else:
@@ -552,6 +610,10 @@ def author_one(source, output, family, framing, name, args):
                     if changed != dest:
                         dest = changed
                         report["passes"].append(entry(dest, revised))
+                        if report.get("needs_feature") and revised["accepted"]:
+                            report["feature_used"] = report.pop("needs_feature")
+                            # The initial candidate lacks the required feature.
+                            report["passes"][0]["accepted"] = False
     except (ValueError, OSError, RuntimeError, ValidationError, BrowserError) as exc:
         report["error"] = str(exc)
     finally:
@@ -559,7 +621,11 @@ def author_one(source, output, family, framing, name, args):
             selected = best_pass(report["passes"])
             candidate = directory / selected["directory"] / "candidate.json"
             report["selected_pass"] = 1 + report["passes"].index(selected)
-            report["accepted"] = selected["accepted"]
+            report["accepted"] = bool(
+                selected["accepted"]
+                and not report.get("needs_feature")
+                and not report.get("error")
+            )
             report["candidate"] = str(candidate.relative_to(directory))
             if report["accepted"]:
                 (directory / "recipe.json").write_bytes(candidate.read_bytes())

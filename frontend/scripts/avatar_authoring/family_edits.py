@@ -357,6 +357,10 @@ def edit_schema(family=None, construction=None):
                 {"type": "string", "enum": ["crop", "part", "ponytail", "waves"]},
             ),
             fields(
+                ["design.outfit.footwear"],
+                {"type": "string", "enum": ["sneaker", "flat", "boot"]},
+            ),
+            fields(
                 ["design.outfit.top"],
                 {"type": "string", "enum": ["crew", "tank", "polo"]},
             ),

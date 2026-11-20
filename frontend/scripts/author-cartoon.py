@@ -347,6 +347,11 @@ if __name__ == "__main__":
         help="Use the OpenRouter model catalog and Responses API with OPENROUTER_API_KEY",
     )
     group.add_argument(
+        "--local-vqa",
+        type=Path,
+        help="Use a local BLIP VQA checkpoint with --one-image",
+    )
+    group.add_argument(
         "--auto",
         action="store_true",
         help="Draw a local first draft from the image alone",
@@ -435,6 +440,8 @@ if __name__ == "__main__":
         help="Also save the versioned draw_cartoon instructions and schema",
     )
     args = parser.parse_args()
+    if args.local_vqa and not args.one_image:
+        parser.error("--local-vqa requires --one-image")
     if not args.one_image and not args.model:
         args.model = "gpt-6.2-astra"
     if args.one_image:

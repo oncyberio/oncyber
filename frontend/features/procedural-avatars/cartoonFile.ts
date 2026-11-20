@@ -941,6 +941,7 @@ const householdFile = file.extend({
                 earTurn: n(0, 0.8).optional(),
                 penOutline: z.boolean().optional(),
                 nape: n(0.5, 0.97).optional(),
+                rearHairline: n(0.72, 0.97).optional(),
                 depth: z
                     .strictObject({
                         chin: n(0, 0.35),

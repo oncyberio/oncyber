@@ -548,6 +548,24 @@ class HouseholdTests(unittest.TestCase):
         )
         self.assertEqual(restored, morty)
 
+    def test_cropped_nape_uses_bilateral_visible_ear_lobes(self):
+        from .household import fit_crop_back
+
+        scalp = {
+            "nape": 0.67,
+            "ears": [[-0.45, 0.71, 0.05, 0.06], [0.45, 0.72, 0.05, 0.06]],
+        }
+        design = {"hair": {"cut": "crop"}, "household": scalp}
+        fit_crop_back(design)
+        self.assertNotIn("rearHairline", scalp)
+        scalp["pinnae"] = [[0], [0]]
+        fit_crop_back(design)
+        self.assertAlmostEqual(scalp["rearHairline"], 0.865)
+        del scalp["rearHairline"]
+        design["hair"]["cut"] = "ponytail"
+        fit_crop_back(design)
+        self.assertNotIn("rearHairline", scalp)
+
     def test_disconnected_ear_pigment_cannot_widen_the_jaw(self):
         from .household import frontal_jaw_widths
 
@@ -652,6 +670,23 @@ class HouseholdTests(unittest.TestCase):
         self.assertEqual(ankle[-1], 22)
         self.assertLess(ankle[1], ankle[2])
         self.assertLess(ankle[3], ankle[4])
+
+        # Leave five extra rows of the paper cutout inside the foreground.
+        # The traced sole still ends on the same painted bottom edge.
+        from .household_front import fit_footwear
+
+        floors = []
+        for padding in (0, 5):
+            figure = np.zeros(dyed.shape, bool)
+            figure[: 23 + padding, 9:31] = True
+            body = {"sections": {"leg": [[6, 13, 4], [12, 13, 4]]}}
+            outfit = {"shoes": "#7f4b3c", "trousers": "#4c5782"}
+            fit_footwear(
+                patch, figure, 0, 0, 1, body, outfit, np.array([210, 151, 110])
+            )
+            floors.append(max(row[-1] for row in body["sections"]["outsole"]["rows"]))
+        self.assertAlmostEqual(floors[0], floors[1])
+        self.assertAlmostEqual(floors[0], 12 + 22, delta=1)
 
         # A small open arch under the leather must extend up to its own edge.
         patch[19:23, 19:22] = paper

@@ -290,6 +290,88 @@ class FamilyTests(unittest.TestCase):
                 self.assertLess(abs(recipe["kitFit"]["shoulders"]), 0.045)
                 self.assertNotEqual(collar["binding"], collar["skin"])
 
+    def test_full_source_observer_chooses_the_foot_before_the_first_render(self):
+        from . import one_image
+        from .local_vqa import full_edits
+
+        source = Path(__file__).parent / "targets/holdout-v1/lark-full.webp"
+        recipe = json.loads((source.parent / "candidates/lark.recipe").read_bytes())
+        recipe["design"]["outfit"]["footwear"] = "sneaker"
+        edits = full_edits(recipe, {"feet": "flats", "hair": "hat"})
+        self.assertEqual(edits, [{"field": "design.outfit.footwear", "value": "flat"}])
+        source_call = ({"edits": edits, "missing": ""}, {"usage": {"cost": 0.001}})
+        metrics = dict(
+            silhouette_iou=1,
+            head_iou=1,
+            head_edge_agreement=1,
+            body_edge_agreement=1,
+            eye_pigment_agreement=1,
+            rgb_mae=0,
+        )
+
+        def inspect(candidate, source, directory, report, *args):
+            self.assertEqual(candidate["design"]["outfit"]["footwear"], "flat")
+            one_image.save(directory / "candidate.json", candidate)
+            report.update(accepted=True, native={"triangles": 1000}, front=metrics)
+
+        args = SimpleNamespace(
+            openrouter=False,
+            adapter="fixture",
+            endpoint=None,
+            model="fixture",
+            base="local",
+            renderer="webgl",
+            max_triangles=4000,
+        )
+        with (
+            TemporaryDirectory() as temp,
+            patch(
+                "avatar_authoring.draft.propose",
+                return_value={"haircut": "crop", "top": "crew"},
+            ),
+            patch.object(one_image, "fit_front", return_value=(recipe, {})),
+            patch.object(
+                one_image, "observe_full_family", return_value=source_call
+            ) as initial,
+            patch.object(one_image, "assess_native", side_effect=inspect) as render,
+            patch.object(
+                one_image,
+                "review_family",
+                return_value=(
+                    {"use_family": False, "reason": "embroidered collar"},
+                    {"usage": {"cost": 0.002}},
+                ),
+            ) as correction,
+        ):
+            folder, report = one_image.author_one(
+                source, Path(temp), "rick-classic", "full", "Study", args
+            )
+            self.assertFalse((folder / "recipe.json").exists())
+        self.assertEqual(
+            [initial.call_count, render.call_count, correction.call_count], [1, 1, 1]
+        )
+        self.assertFalse(report["accepted"])
+        self.assertEqual(report["needs_feature"], "embroidered-collar")
+        self.assertEqual(report["reported_provider_cost"], 0.003)
+        self.assertEqual(full_edits(recipe, {"hair": "hat"}), [])
+        recipe["design"]["household"]["body"]["sections"].pop("outsole")
+        self.assertEqual(full_edits(recipe, {"feet": "flats"}), [])
+
+    def test_pose_measures_in_statures_and_ignores_uncertain_or_outside_joints(self):
+        from .pose_review import project_pairs
+
+        points = [
+            SimpleNamespace(x=0.5, y=0.5, presence=0, visibility=0) for _ in range(33)
+        ]
+        for i, x in ((11, 0.625), (12, 0.375), (13, -0.05), (14, 0.85)):
+            points[i] = SimpleNamespace(x=x, y=0.5, presence=1, visibility=1)
+        mask = np.zeros((101, 201), bool)
+        mask[10:91, 20:181] = True
+        self.assertEqual(
+            project_pairs(points, 201, 101, mask),
+            {"shoulder": [[-0.3125, 0.5], [0.3125, 0.5]]},
+        )
+
     def test_lost_portrait_frame_reuses_the_paid_observation_and_same_recipe(self):
         from playwright.sync_api import TimeoutError as BrowserTimeout
 

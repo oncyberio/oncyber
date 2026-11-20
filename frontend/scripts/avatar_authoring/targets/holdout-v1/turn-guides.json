@@ -195,5 +195,57 @@
                 }
             }
         }
+    },
+    "lark": {
+        "source_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c",
+        "guide": "lark-turns.webp",
+        "guide_sha256": "5b3051a4caa4bb5099730a0790e2435f7470fd83e6e685018d3a5ed6afd49f78",
+        "original_png_sha256": "7f4b971f6f045c85cc686505f218b9276fe0fb121f25c9ad4c2db85e2d0d34eb",
+        "generator": "GPT Image",
+        "model_version": null,
+        "reported_cost": null,
+        "generation_seconds": 22.369,
+        "split_x": 1086,
+        "angles": [35, 90],
+        "scope": "head",
+        "frozen_candidate_sha256": "855ea22e3ff47c0b0538e3bcd40976aa943b0daccffde2404da4cfe05d8c03b2",
+        "pre_guide_native": {
+            "WebGLBackend": {
+                "views": {
+                    "portrait-quarter.png": "128108e6e538fc5fae8cc8574f999e3e428e412f12fc67c1c5badd001f1753c5",
+                    "portrait-profile.png": "c2c1c1b99f02857425a57b640e744668fbb92cd66cf58e89157ad49f5fa64778"
+                },
+                "overlap": {
+                    "35": {
+                        "skin_iou": 0.5381,
+                        "hair_iou": 0.5004,
+                        "silhouette_iou": 0.7747
+                    },
+                    "90": {
+                        "skin_iou": 0.4078,
+                        "hair_iou": 0.6284,
+                        "silhouette_iou": 0.7824
+                    }
+                }
+            },
+            "WebGPUBackend": {
+                "views": {
+                    "portrait-quarter.png": "298b55ddc8e928c2f93d4166e51ffdfd66f348c1811e1c1f87e1037ba7559863",
+                    "portrait-profile.png": "6667cc1a1423b6840409252404de4b11c112bc7875347fcad32208c28cce46da"
+                },
+                "overlap": {
+                    "35": {
+                        "skin_iou": 0.5374,
+                        "hair_iou": 0.4997,
+                        "silhouette_iou": 0.7747
+                    },
+                    "90": {
+                        "skin_iou": 0.4074,
+                        "hair_iou": 0.6303,
+                        "silhouette_iou": 0.7814
+                    }
+                }
+            }
+        }
     }
 }

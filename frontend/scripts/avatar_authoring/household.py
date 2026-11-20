@@ -29,6 +29,27 @@ def skull_depth(widths):
     return {"chin": round(0.15 + 0.13 * jaw, 3), "forehead": 0.115, "cheek": 0.065}
 
 
+def fit_crop_back(design):
+    """Infer the hidden neckline from two measured ear lobes on a short crop."""
+    scalp = design["household"]
+    ears = scalp.get("ears", [])
+    if (
+        design["hair"]["cut"] != "crop"
+        or len(ears) != 2
+        or len(scalp.get("pinnae", [])) != 2
+        or scalp.get("nape") is None
+    ):
+        return
+    # The front can show the sideburn ending halfway down the ear. The
+    # posterior crop usually reaches the neck below the lobe by ~0.75 ear
+    # lengths. Retain a longer nape when visible in the supplied drawing.
+    ends = [y + 2.5 * radius_y for _, y, _, radius_y in ears]
+    if abs(ends[0] - ends[1]) < 0.11:
+        scalp["rearHairline"] = round(
+            float(np.clip(max(np.mean(ends), scalp.get("nape", 0)), 0.72, 0.97)), 4
+        )
+
+
 def frontal_lobes(rgb, mask, skin, hair, cx, eye_y, top, chin, width):
     from .tracing import ear_lobes
 

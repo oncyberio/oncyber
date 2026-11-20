@@ -113,6 +113,8 @@ def benchmark(args, manifest=None):
             "independent_review": "pending",
             "error": report.get("error"),
         }
+        if "source_edits" in report:
+            result["source_edits"] = report["source_edits"]
         if report.get("native_render_retries"):
             result["native_render_retries"] = report["native_render_retries"]
         if report.get("candidate"):
@@ -121,6 +123,12 @@ def benchmark(args, manifest=None):
             all_visible = compare_images(reference, frame)
             result["full_body_silhouette_iou"] = all_visible["silhouette_iou"]
             result["full_body_rgb_mae"] = all_visible["rgb_mae"]
+            if getattr(args, "pose_model", None):
+                from avatar_authoring.pose_review import compare_pose
+
+                result["independent_pose"] = compare_pose(
+                    args.pose_model, reference, frame
+                )
         summary["cases"][key] = result
         save(args.output / "holdout.json", summary)
         print(
@@ -526,6 +534,17 @@ def visible_trouser_opening(path):
         return round((opening - top) / height, 4)
 
 
+def verify_pose(row, reference, candidate):
+    pose = row.get("independent_pose")
+    if pose and (
+        pose["reference_sha256"] != digest(reference)
+        or pose["native_sha256"] != digest(candidate.parent / "front.png")
+    ):
+        raise ValueError(
+            "The joint comparison belongs to a different drawing or native frame"
+        )
+
+
 def record_followup(args):
     """Fit one registered follow-up or resume its native preview from disk."""
     import fcntl
@@ -575,6 +594,7 @@ def record_followup(args):
         candidate = folder / study["candidate"]
         if digest(candidate) != row["candidate_sha256"]:
             raise ValueError("The selected follow-up recipe changed")
+        verify_pose(row, reference, candidate)
         approval = candidate.parent / "approval"
         if not (approval / "evidence.json").exists():
             evidence(candidate, reference, approval, args.base, args.max_triangles)
@@ -612,6 +632,16 @@ def record_followup(args):
                     "candidate_sha256": row["candidate_sha256"],
                     "evidence_sha256": trial["evidence_sha256"],
                     "review_assets": assets,
+                    **(
+                        {
+                            "independent_pose": {
+                                k: row["independent_pose"][k]
+                                for k in ("measured_joints", "mean_error_in_statures")
+                            }
+                        }
+                        if row.get("independent_pose")
+                        else {}
+                    ),
                 }
                 for item in (*stage.glob("reviews/*"), *stage.glob("candidates/*")):
                     item.replace(root / item.relative_to(stage))
@@ -679,6 +709,7 @@ def record_preview(args):
         evidence = folder / selected["directory"] / "approval/evidence.json"
         reference = root / case["evaluation_reference"]
         report = verified_captures(candidate, evidence.parent)
+        verify_pose(row, reference, folder / study["candidate"])
         if (
             report["reference"] != case["reference_sha256"]
             or digest(reference) != case["reference_sha256"]
@@ -917,6 +948,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--case")
     parser.add_argument(
+        "--pose-model",
+        type=Path,
+        help="Measure the selected body against the full reference using an independent local pose model",
+    )
+    parser.add_argument(
         "--export-candidates",
         type=Path,
         help="Export the selected recipe bytes from a completed replay for branch review",
@@ -926,6 +962,9 @@ if __name__ == "__main__":
     provider.add_argument("--adapter")
     provider.add_argument("--endpoint")
     provider.add_argument("--openrouter", action="store_true")
+    provider.add_argument(
+        "--local-vqa", type=Path, help="Author with a local BLIP VQA checkpoint"
+    )
     parser.add_argument(
         "--feature-model", help="Strong model for an unregistered native feature"
     )
