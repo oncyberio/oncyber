@@ -418,7 +418,7 @@ export async function connectSolana(): Promise<SolanaConnection> {
         import("@solana/wallet-adapter-react-ui"),
         import("@solana/web3.js"),
         // The wallet modal's stylesheet, which also pulls a web font. Loaded
-        // with the modal, so pages that never connect Solana don't fetch it.
+        // with the modal, so pages that never open it don't fetch it.
         import("./solanaWalletStyles"),
     ]);
 

@@ -7,12 +7,12 @@ import { LandingPageProps } from "@features/landing-carousel/types";
 
 export default function LandingCarousel(props: LandingPageProps) {
     const { query } = useRouter();
-    // Only the grid of worlds shows these covers first: not the lobby, and
-    // not the create step, which opens on templates.
+    // Only the grid of worlds shows these covers first: not the lobby, not
+    // the create step (it opens on templates), and not a search.
     const covers =
         query.lobby === "1" || query.create
             ? []
-            : firstScreenCovers(props.initialFeed?.cards);
+            : firstScreenCovers(props.initialFeed?.cards, props.initialFilters);
     return (
         <>
             <Head>

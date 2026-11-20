@@ -1,5 +1,9 @@
+import {
+    hasDefaultGalleryCover,
+    previewForRoom,
+} from "@utils/destinationPreviews";
 import { coverSources } from "./coverSources";
-import type { LandingCard } from "./types";
+import type { DiscoveryFilters, LandingCard } from "./types";
 
 /** At this width and below the grid is one column of two cards. */
 export const MOBILE_GRID_MAX_WIDTH = 700;
@@ -22,15 +26,43 @@ export interface CoverPreload {
  * the first four.
  */
 export function firstScreenCovers(
-    cards: Pick<LandingCard, "id" | "imageUrls" | "collage">[] = []
+    cards: Pick<
+        LandingCard,
+        "id" | "imageUrls" | "collage" | "room" | "buildStatus"
+    >[] = [],
+    filters?: Partial<DiscoveryFilters>
 ): CoverPreload[] {
+    // The server sends a category's feed. A search or a chain, owner or
+    // collection filter replaces it in the browser, so its first cards are
+    // not the ones the visitor will see.
+    if (filters?.q || filters?.chain || filters?.owner || filters?.collection)
+        return [];
     const seen = new Set<string>();
     return cards.slice(0, 4).flatMap((card, index) => {
         // A collage shows several smaller covers instead.
         if (card.collage?.length >= 2) return [];
-        const href = coverSources(card)[0];
+        const href = firstCover(card);
         if (!href || seen.has(href)) return [];
         seen.add(href);
         return [{ href, ...(index >= 2 ? { media: WIDE_GRID_QUERY } : {}) }];
     });
+}
+
+/**
+ * The cover the grid shows first for a card. A world that only has its
+ * room's stock picture shows the room's own cover instead (see
+ * hooks/useDestinationPreviews): the one shipped with the site when there
+ * is one, else one from a catalog the browser fetches later, which cannot
+ * be named here.
+ */
+function firstCover(
+    card: Pick<LandingCard, "id" | "imageUrls" | "room" | "buildStatus">
+): string | undefined {
+    if (
+        card.room &&
+        !card.buildStatus &&
+        hasDefaultGalleryCover(card.imageUrls)
+    )
+        return previewForRoom({}, card.room)[0];
+    return coverSources(card)[0];
 }
