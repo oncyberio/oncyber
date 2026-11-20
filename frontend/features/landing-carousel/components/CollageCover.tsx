@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { LandingCard } from "../types";
 import { COLLAGE_STRIPS, collageStrips } from "../grid/collage";
 import { CoverImage } from "./ExperienceCard";
@@ -15,6 +15,23 @@ const HEIGHT = 800;
 export default function CollageCover({ card }: { card: LandingCard }) {
     const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
     const [failed, setFailed] = useState<string[]>([]);
+    // The grid hides a card off its stage, but a hidden SVG still fetches
+    // its pictures: they are named only once the card is on screen.
+    const frame = useRef<SVGSVGElement>(null);
+    const [shown, setShown] = useState(false);
+    useEffect(() => {
+        const element = frame.current;
+        if (shown || !element) return;
+        if (typeof IntersectionObserver === "undefined") {
+            setShown(true);
+            return;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) setShown(true);
+        });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [shown]);
     const urls = (card.collage || [])
         .filter((url) => !failed.includes(url))
         .slice(0, COLLAGE_STRIPS);
@@ -22,6 +39,7 @@ export default function CollageCover({ card }: { card: LandingCard }) {
     const strips = collageStrips(urls.length, WIDTH, HEIGHT);
     return (
         <svg
+            ref={frame}
             className="collage-cover"
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
             preserveAspectRatio="xMidYMid slice"
@@ -41,7 +59,7 @@ export default function CollageCover({ card }: { card: LandingCard }) {
             {strips.map((strip, index) => (
                 <image
                     key={urls[index]}
-                    href={urls[index]}
+                    href={shown ? urls[index] : undefined}
                     x={strip.box.x}
                     y={strip.box.y}
                     width={strip.box.width}

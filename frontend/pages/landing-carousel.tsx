@@ -23,12 +23,12 @@ export default function LandingCarousel(props: LandingPageProps) {
     // the page is the home page again.
     const visiting =
         typeof query.profile === "string" ? props.profile : undefined;
-    // Only the grid of worlds shows these covers first: not the lobby, and
-    // not the create step, which opens on templates.
+    // Only the grid of worlds shows these covers first: not the lobby, not
+    // the create step (it opens on templates), and not a search.
     const covers =
         query.lobby === "1" || query.create
             ? []
-            : firstScreenCovers(props.initialFeed?.cards);
+            : firstScreenCovers(props.initialFeed?.cards, props.initialFilters);
     return (
         <>
             {visiting ? (

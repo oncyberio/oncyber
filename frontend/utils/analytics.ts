@@ -87,8 +87,8 @@ async function initPosthog(user_id = "") {
             autocapture: false,
             capture_pageview: true,
             capture_exceptions: true,
-            // We run no PostHog surveys; without this every visitor
-            // downloads the surveys script (about 49 KB).
+            // We run no surveys; without this every visitor downloads the
+            // surveys script (about 49 KB).
             disable_surveys: true,
             persistence: "localStorage+cookie",
         });

@@ -88,8 +88,23 @@ it("draws its own picture, and a collage when the card has several covers", () =
     expect(container.querySelector(".collage-cover")).toBeNull();
 
     const many = { ...card, collage: ["/a.jpg", "/b.jpg", "/c.jpg"] };
+    // Off screen, the collage names no picture yet.
+    let show: () => void;
+    (global as any).IntersectionObserver = class {
+        constructor(callback) {
+            show = () => callback([{ isIntersecting: true }]);
+        }
+        observe() {}
+        disconnect() {}
+    };
     act(() => root.render(<ExperienceCard card={many} />));
     const collage = container.querySelector(".collage-cover");
+    expect(
+        [...collage.querySelectorAll("image")].map((image) =>
+            image.getAttribute("href")
+        )
+    ).toEqual([null, null, null]);
+    act(() => show());
     expect(
         [...collage.querySelectorAll("image")].map((image) =>
             image.getAttribute("href")
