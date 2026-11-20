@@ -46,6 +46,7 @@ import {
 } from "./humanoidParts";
 import { trouserLeg, trouserShin } from "./shapeRecipe";
 import { cranialDepth, cranialStations, cranialSurfaces } from "./cranialBase";
+import { drawFrontalPinna } from "./pinna";
 import { drawHouseholdHead } from "./householdHead";
 import { measuredHouseholdBob } from "./householdBody";
 import { turnContours } from "./turnContours";
@@ -1293,7 +1294,10 @@ function features(
         const ax = s * w * (shortCap ? 0.425 : 0.49),
             ay = y0 + h * 0.61;
         const ear = fittedEar(g, s);
-        if (ear) {
+        const pinna = g.household?.pinnae?.find((p) => p.side === s);
+        if (pinna && ear?.visible && !ear.observed) {
+            drawFrontalPinna(d, pinna, ear.visible, ear.z, ear.depth, g.skin);
+        } else if (ear) {
             const {
                 visible,
                 y,

@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from scipy.ndimage import binary_fill_holes, find_objects, label
+from scipy.spatial import ConvexHull
 
 
 def locate_eyes(image):
@@ -177,6 +178,56 @@ def review_eyes(dest: Path, cast, previous=None):
         raise AssertionError("\n".join(failures))
 
 
+def lid_pupil(white, rgb):
+    """Recover a compact black pupil entering the aperture from the upper lid."""
+    yy, xx = np.nonzero(white)
+    if len(xx) < 12:
+        return None
+    width, height = np.ptp(xx) + 1, np.ptp(yy) + 1
+    if width < 7 or height < 4 or white.sum() < 0.36 * width * height:
+        return None
+    # A dark pupil makes a concave notch in the otherwise convex white. The
+    # hull excludes the eyelid, eyelashes and eyebrow outside the aperture.
+    points = np.column_stack((xx, yy))
+    hull = ConvexHull(points)
+    canvas = Image.new("L", (white.shape[1], white.shape[0]))
+    ImageDraw.Draw(canvas).polygon([tuple(p) for p in points[hull.vertices]], fill=1)
+    void = np.asarray(canvas, dtype=bool) & ~binary_fill_holes(white)
+    labels, _ = label(void & (rgb.max(axis=2) < 115))
+    best = None
+    for i, box in enumerate(find_objects(labels), 1):
+        if box is None:
+            continue
+        ys, xs = box
+        w, h = xs.stop - xs.start, ys.stop - ys.start
+        if not (
+            max(2, 0.055 * width) <= w <= 0.33 * width
+            and max(2, 0.055 * height) <= h <= 0.45 * height
+        ):
+            continue
+        cx = (xs.start + xs.stop - 1) // 2
+        if (
+            not xx.min() + 0.12 * width <= cx <= xx.max() - 0.12 * width
+            or ys.start > yy.min() + 0.22 * height
+        ):
+            continue
+        # Require white on both flanks of the same notch and immediately
+        # below the tip. Two patches of outlined cloth do not provide pupils.
+        flanks = white[ys]
+        if not (
+            flanks[:, : xs.start].any(axis=1) & flanks[:, xs.stop :].any(axis=1)
+        ).any():
+            continue
+        if not white[
+            ys.stop : min(len(white), ys.stop + max(2, round(0.18 * height))), cx
+        ].any():
+            continue
+        part = labels == i
+        if part.sum() >= 0.45 * w * h and (best is None or part.sum() > best.sum()):
+            best = part
+    return best
+
+
 def reference_pair(picture):
     """Find adjacent cartoon eye whites, allowing one pupil to meet a lid."""
     rgb = np.asarray(picture.convert("RGB"), dtype=np.int16)
@@ -193,7 +244,24 @@ def reference_pair(picture):
         pupil = np.count_nonzero(
             binary_fill_holes(local) & (rgb[ys, xs].max(axis=2) < 120)
         )
-        candidates.append((xs.start, ys.start, xs.stop, ys.stop, local.sum(), pupil))
+        candidates.append((xs.start, ys.start, xs.stop, ys.stop, local.sum(), pupil, i))
+    # Ordinary enclosed pupils take precedence over the lid-contact fallback.
+    # A new pair needs independent pupil evidence on both eyes.
+    pairs = ranked_pairs(candidates)
+    if not pairs:
+        touching = []
+        for x, y, r, b, area, _, idx in candidates:
+            pupil = lid_pupil(components[y:b, x:r] == idx, rgb[y:b, x:r])
+            if pupil is not None:
+                touching.append((x, y, r, b, area, pupil.sum()))
+        pairs = ranked_pairs(touching)
+    if not pairs:
+        return []
+    _, a, b = max(pairs)
+    return [{"bounds": list(box[:4])} for box in sorted((a, b), key=lambda v: v[0])]
+
+
+def ranked_pairs(candidates):
     pairs = []
     for i, a in enumerate(candidates):
         for b in candidates[i + 1 :]:
@@ -209,10 +277,7 @@ def reference_pair(picture):
             ):
                 score = (pupils, min(a[4], b[4]) / (1 + rise + abs(gap - 1.35)))
                 pairs.append((score, a, b))
-    if not pairs:
-        return []
-    _, a, b = max(pairs)
-    return [{"bounds": list(box[:4])} for box in sorted((a, b), key=lambda v: v[0])]
+    return pairs
 
 
 def portrait_pair(rgb, box):

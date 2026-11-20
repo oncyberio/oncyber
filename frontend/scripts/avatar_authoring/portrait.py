@@ -7,18 +7,20 @@ from .eye_review import portrait_pair
 from .family import FAMILIES
 from .fit import pixels
 from .fringe import forehead_fringe
+from .pinna import frontal_pinnae
 from .jersey_sleeve import bare_arms, measure_sleeves
 from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import jersey_neck, measure_sun_rays, orb_swatches
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
+    closed_lips,
     inked_cheeks,
     open_smile,
     visible_arm,
     visible_torso,
     visible_placket,
 )
-from .household_front import has_ink_outline, painted_brow
+from .household_front import has_ink_outline, nape_height, painted_brow
 from .tracing import garment_motif, nose_stroke, traced_print
 
 PRESETS = {
@@ -445,6 +447,11 @@ def compile_portrait(source, family, name, obs):
             [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (e["bounds"] for e in pair)]
         )
         cx, eye_y = centers.mean(0)
+        if not mark:
+            lips = closed_lips(rgb, cx, top, height, skull_width, skin)
+            if lips:
+                household.update(lips)
+                design["mouth"] = "lips"
         fringe = forehead_fringe(
             rgb,
             mask,
@@ -458,10 +465,33 @@ def compile_portrait(source, family, name, obs):
         )
         if fringe:
             household["fringe"] = fringe
+        elif design.get("hairline") and design["hair"]["cut"] == "crop":
+            # Where a sweep breaks the forehead trace, the older outline
+            # can descend along an earring or a jaw shadow. Bound those
+            # stations by the dye actually connected to the crown.
+            nape = nape_height(rgb, mask, cx, top, chin, skull_width, skin, hair)
+            if nape and max(design["hairline"]) > nape + 0.12:
+                design["hairline"] = [
+                    min(t, round(nape + 0.035, 4)) for t in design["hairline"]
+                ]
+                household["nape"] = nape
         lobes = frontal_lobes(rgb, mask, skin, hair, cx, eye_y, top, chin, skull_width)
         fit_frontal_features(
             design, lobes, design["head"][1] / height, separate_ears=True
         )
+        pinnae = frontal_pinnae(
+            rgb,
+            mask,
+            cx,
+            top,
+            skull_width,
+            height,
+            household.get("ears", []),
+            skin,
+            hair,
+        )
+        if pinnae:
+            household["pinnae"] = pinnae
         nose = nose_stroke(
             rgb, skin, eye_y, (cx, guide["nose_y"]), guide["mouth_y"], skull_width
         )

@@ -17,7 +17,7 @@ from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.shirt_cut import compare_shirt_cut
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
 from avatar_authoring.visor import measure_visor, visor_seed
-from avatar_authoring.one_image import author_one, save
+from avatar_authoring.one_image import author_one, portrait_sample, save
 from avatar_authoring.release import digest, verified_captures
 from avatar_authoring.paper_control import arm_paper_control, crown_paper_control
 
@@ -385,6 +385,48 @@ def compare_jersey_sleeves(reference, native):
     return metrics
 
 
+def compare_frontal_ears(reference, native, design):
+    """Compare the exposed parts of corresponding lobes in the two-eye frame."""
+    skin = np.array(list(bytes.fromhex(design["skin"][1:])))
+    hair = np.array(list(bytes.fromhex(design["hair"]["color"][1:])))
+    samples = []
+    for path in (reference, native):
+        mask, rgb, _, valid = portrait_sample(path, "rick-classic")
+        ds = np.linalg.norm(rgb - skin, axis=2)
+        dh = np.linalg.norm(rgb - hair, axis=2)
+        samples.append((mask & (ds + 14 < dh) & (ds < 95), valid))
+    (source, source_valid), (drawn, drawn_valid) = samples
+    face = design["face"]
+    # portrait_sample centers both whites at their mean and spans 3.9
+    # interocular distances. Use the same plane for both cropped inputs.
+    mid = (source.shape[1] - 1) / 2
+    scale = mid / (3.9 * face["eyeSpacing"])
+    aspect = design["head"][1] / design["head"][0]
+    y, x = np.indices(source.shape)
+    sides = {p["side"] for p in design["household"]["pinnae"]}
+    active = np.zeros_like(source)
+    for u, v, rx, ry in design["household"]["ears"]:
+        side = np.sign(u)
+        if side not in sides:
+            continue
+        cx = mid + scale * u
+        cy = mid + scale * (v - face["eyeHeight"]) * aspect
+        # The inner quarter merges into uninterrupted cheek skin.
+        lo, hi = (-1.26, 0.52) if side < 0 else (-0.52, 1.26)
+        active |= (
+            (x >= round(cx + lo * scale * rx))
+            & (x < round(cx + hi * scale * rx))
+            & (y >= round(cy - 1.17 * scale * ry * aspect))
+            & (y < round(cy + 1.17 * scale * ry * aspect))
+        )
+    active &= source_valid & drawn_valid
+    a, b = source & active, drawn & active
+    return {
+        "skin_iou": round(float((a & b).sum() / max(1, (a | b).sum())), 4),
+        "native_to_source_skin_area": round(float(b.sum() / max(1, a.sum())), 4),
+    }
+
+
 def visible_trouser_opening(path):
     """Locate the fork on a rendered T-pose independently of the authored pattern."""
     rgb, mask = pixels(path, keep_components=True)
@@ -564,6 +606,11 @@ def record_preview(args):
         }
         recipe = json.loads(candidate.read_bytes())
         design = recipe.get("design", {})
+        if design.get("household", {}).get("pinnae"):
+            data["frontal_ears"] = {
+                mode: compare_frontal_ears(root / case["input"], evidence.parent / mode / "portrait.png", design)
+                for mode in report["backends"]
+            }
         if (
             design.get("household", {})
             .get("body", {})

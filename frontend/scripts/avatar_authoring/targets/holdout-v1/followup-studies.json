@@ -19,6 +19,16 @@
             "input_sha256": "63a2170869786481be9907eac50bd5e12929397ca9edc0420101aff28dd140d4",
             "evaluation_reference": "clove-full.webp",
             "reference_sha256": "2fa0b5640a4ba86875fffc36397153ea835d1ffe9592aa5e7933a9e3ad0e0cc0"
+        },
+        {
+            "id": "tavi",
+            "name": "Tavi",
+            "family": "rick-classic",
+            "framing": "portrait",
+            "input": "tavi-portrait.webp",
+            "input_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+            "evaluation_reference": "tavi-full.webp",
+            "reference_sha256": "3806d4a638f2af5a103fca2b47c7a2a7bad51f54a440a2d75f8ba3ee4cbbd3e4"
         }
     ],
     "receipts": {
@@ -47,6 +57,20 @@
                 "WebGPUBackend": {
                     "views": "2c8fe43a1640a4aca5355efce4d3e68f0a16d1adf4c5c557d19ac9c2bc488db7",
                     "walk": "79d62afaa4f5a472640039703af7a9bdd6e863a8a0f951f9d13c6e97f8c022b6"
+                }
+            }
+        },
+        "tavi": {
+            "candidate_sha256": "3d346fa1edc07b5164fb5c43e680d80d4d1160d10b9d22b92cf104f69fa2fe81",
+            "evidence_sha256": "2067f551ec0f42e01d383b3228eb44e360c261ce8b5558d1095e93dcdc050c78",
+            "review_assets": {
+                "WebGLBackend": {
+                    "views": "c5f26aead515af4f16d925de88f7528d522f997daae436531ce0e63cffb8dfbd",
+                    "walk": "1493575611c54432405b72cf660f782e3410fe28e4bb8d78d4f296a52912b048"
+                },
+                "WebGPUBackend": {
+                    "views": "4d60528102792ef89821258bf16662e792906a56f99c09e559c289abbb660bde",
+                    "walk": "7d33498aa977c23034ce4d2b6ac6fdd19829fabc36702642cae49c2ae2681262"
                 }
             }
         }
@@ -184,6 +208,119 @@
                 "withheld_full_body": {
                     "full_body_silhouette_iou": 0.7311,
                     "full_body_rgb_mae": 30.34
+                }
+            },
+            "independent_review": "pending"
+        },
+        "tavi": {
+            "target_generator": "GPT Image",
+            "image_model_version": null,
+            "image_generation_cost": null,
+            "generation_elapsed_seconds": 26.57,
+            "portrait_crop_in_frozen_drawing": [208, 0, 560, 232],
+            "fresh": {
+                "source_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 0.05,
+                "selected_pass": null,
+                "passes": [],
+                "error": "Cannot identify a registered family from the visible eyes or visor"
+            },
+            "lid_measurement": {
+                "source_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 26.5,
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 3046,
+                        "visible_portrait": {
+                            "head_iou": 0.8703,
+                            "rgb_mae": 30.75,
+                            "ink_agreement": 0.8813,
+                            "visible_fraction": 1.0
+                        }
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 3041,
+                        "visible_portrait": {
+                            "head_iou": 0.8774,
+                            "rgb_mae": 31.12,
+                            "ink_agreement": 0.8747,
+                            "visible_fraction": 1.0
+                        }
+                    }
+                ],
+                "candidate_sha256": "242644a9983b5a34b00b7c54de558bc88cdfd9849229e40d3f34a191b6f0e4a2",
+                "withheld_full_body": {
+                    "full_body_silhouette_iou": 0.7251,
+                    "full_body_rgb_mae": 46.47
+                }
+            },
+            "lip_measurement": {
+                "source_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 23.01,
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "triangles": 3007,
+                        "visible_portrait": {
+                            "head_iou": 0.8703,
+                            "rgb_mae": 29.72,
+                            "ink_agreement": 0.8846,
+                            "visible_fraction": 1.0
+                        }
+                    },
+                    {
+                        "accepted": false,
+                        "triangles": 3011,
+                        "visible_portrait": {
+                            "head_iou": 0.8774,
+                            "rgb_mae": 30.04,
+                            "ink_agreement": 0.8755,
+                            "visible_fraction": 1.0
+                        }
+                    }
+                ],
+                "candidate_sha256": "dd360c7e5002c6df0a811010cdee304b29ddead17d09e4951a7790907d259f2f",
+                "withheld_full_body": {
+                    "full_body_silhouette_iou": 0.7251,
+                    "full_body_rgb_mae": 46.55
+                }
+            },
+            "calibration": {
+                "source_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 11.21,
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": true,
+                        "triangles": 3113,
+                        "visible_portrait": {
+                            "head_iou": 0.8627,
+                            "rgb_mae": 27.41,
+                            "ink_agreement": 0.8898,
+                            "visible_fraction": 1.0
+                        }
+                    }
+                ],
+                "candidate_sha256": "3d346fa1edc07b5164fb5c43e680d80d4d1160d10b9d22b92cf104f69fa2fe81",
+                "withheld_full_body": {
+                    "full_body_silhouette_iou": 0.7215,
+                    "full_body_rgb_mae": 46.06
                 }
             },
             "independent_review": "pending"

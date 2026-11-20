@@ -5,7 +5,11 @@ import { frontOfLoft, type Drawing, type Section } from "./drawing";
 import type { Point } from "./sculpt";
 
 /** Place both edges of short sideburns on the existing longitude budget. */
-function placeFringeMeridians(angles: number[], knots: number[][]) {
+function placeFringeMeridians(
+    angles: number[],
+    knots: number[][],
+    hasLobes: boolean
+) {
     const sides = angles.length;
     const bend = knots.map(([a, t], i) => {
         if (!i || i === knots.length - 1) return 1;
@@ -18,6 +22,13 @@ function placeFringeMeridians(angles: number[], knots: number[][]) {
     const lateral = Math.round(sides / 4);
     for (const side of [-1, 1]) {
         const arc = [0, Math.PI / 2];
+        if (hasLobes) {
+            const edge = Math.max(...knots.map(([a]) => side * a));
+            const span = Math.PI / 2 - edge;
+            const divisions = Math.ceil(span / 0.36);
+            for (let j = 1; j < divisions; j++)
+                arc.push(edge + (j * span) / divisions);
+        }
         const candidates = knots
             .map(([a], i) => ({ angle: side * a, bend: bend[i] }))
             .filter(({ angle }) => angle > 0 && angle < Math.PI / 2)
@@ -258,7 +269,7 @@ export function drawHouseholdHead(
         // there would reverse the two corners of the lock.
         const half = Math.max(0.5, ...fringe.map(([u]) => Math.abs(u) + 0.01));
         const knots = fringe.map(([u, t]) => [Math.asin(u / half), t]);
-        placeFringeMeridians(angles, knots);
+        placeFringeMeridians(angles, knots, !!g.household.pinnae?.length);
         for (let j = 0; j < sides; j++) {
             const a = Math.atan2(Math.sin(angles[j]), Math.cos(angles[j]));
             if (Math.abs(a) > Math.PI / 2 + 1e-8) continue;
@@ -311,16 +322,38 @@ export function drawHouseholdHead(
             ];
         }
     }
+    const temples = g.household.pinnae
+        ?.map((p) => g.household.ears?.find(([x]) => Math.sign(x) === p.side))
+        .filter(Boolean);
+    const seatTemple = (p: Point): Point => {
+        const ear = temples?.find(([x]) => Math.sign(x) === Math.sign(p[0]));
+        if (!ear) return p;
+        const [x, y, rx, ry] = ear;
+        const v = Math.abs((tOf(p[1]) - y) / ry);
+        if (v >= 1.32) return p;
+        const blend = 1 - MathUtils.smoothstep(v, 0.7, 1.32);
+        const shoulder =
+            Math.abs(x) -
+            rx * 0.78 * Math.sqrt(Math.max(0, 1 - (v / 1.32) ** 2));
+        const extent = Math.abs(p[0]) / width;
+        const front = MathUtils.smoothstep(p[2] / width, 0.015, 0.13);
+        const excess = Math.max(0, extent - shoulder);
+        return [
+            p[0] - Math.sign(x) * width * blend * front * excess,
+            p[1],
+            p[2],
+        ];
+    };
     const sewnPoint = (j: number, t: number, hair: boolean): Point => {
         const k = j % sides,
             p = point(angles[k], t, hair);
-        if (!displacements[k]) return p;
+        if (!displacements[k]) return seatTemple(p);
         const w = 1 - MathUtils.smoothstep(Math.abs(t - cuts[k]), 0, 0.22);
-        return [
+        return seatTemple([
             p[0] + w * displacements[k][0],
             p[1] + w * displacements[k][1],
             p[2] + w * displacements[k][2],
-        ];
+        ]);
     };
     const rings = (steps: number, hair: boolean) =>
         Array.from({ length: steps + 1 }, (_, i) =>

@@ -9,7 +9,7 @@ from scipy import ndimage
 from scipy.signal import find_peaks
 from scipy.spatial import ConvexHull
 
-from .eye_review import reference_pair
+from .eye_review import lid_pupil, reference_pair
 
 
 def pigment(rgb, xy):
@@ -314,6 +314,11 @@ def observe_eye(rgb, box):
     rx, ry = (np.ptp(xx) + 1) / 2, (np.ptp(yy) + 1) / 2
     dark = (patch.max(2) < 108) & ndimage.binary_erosion(mask)
     labels, count = ndimage.label(dark)
+    if not count:
+        notch = lid_pupil(mask, patch)
+        if notch is not None:
+            mask |= notch
+            labels, count = ndimage.label(notch)
     if not count:
         # A sideward gaze can touch the rim. Recover the compact black mark
         # adjacent to the white without picking up the longer colored eyelid.

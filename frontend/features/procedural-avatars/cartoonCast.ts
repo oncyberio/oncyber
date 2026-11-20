@@ -32,6 +32,7 @@ export type OpenCoat = {
     sleeves: string;
 };
 
+import type { Pinna } from "./pinna";
 import type { ShirtMark } from "./shirtMark";
 import type { RoundedSection } from "./roundedProfile";
 
@@ -45,14 +46,15 @@ export interface CartoonDesign {
         portraitPreset?: "child" | "lean-teen" | "adult" | "adult-casual";
         /** Skull widths from crown to chin, as fractions of its largest width. */
         widths: number[];
-        /** Lateral hair limits along the upper 44% of the skull, in skull widths. */
         /** Knots of the visible hairline in skull widths and crown-to-chin heights. */
         fringe?: [number, number][];
+        /** Lateral hair limits along the upper 44% of the skull, in skull widths. */
         crownSides?: [number, number][];
         /** Skin widths at 60%, 65%, …, 95% of crown-to-chin height. */
         jawWidths?: number[];
         /** Front-view lobe centers and radii in fractions of skull width and height. */
         ears?: [number, number, number, number][];
+        pinnae?: Pinna[];
         /** Angle of the visible helix from the sagittal plane toward the face. */
         earTurn?: number;
         penOutline?: boolean;

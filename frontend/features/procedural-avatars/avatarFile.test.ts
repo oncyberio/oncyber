@@ -6,6 +6,7 @@ import { fitCoatRow } from "./coatPanels";
 import { drawOrbVisor, orbContactUV } from "./orbVisor";
 import { Drawing } from "./drawing";
 import { drawHouseholdHead } from "./householdHead";
+import { drawFrontalPinna } from "./pinna";
 import type { Point } from "./sculpt";
 import { readAvatarFile } from "./avatarFile";
 import { buildCharacter, drawCharacter } from "./buildCharacter";
@@ -432,6 +433,47 @@ test.each(["full", "crowd"] as const)(
         expect(() => readAvatarFile(file)).toThrow();
         file.design.household.fringe = [fringe[1], fringe[0]];
         expect(() => readAvatarFile(file)).toThrow();
+    }
+);
+
+test.each(["full", "crowd"] as const)(
+    "a measured %s pinna shares its painted rim and stays at the sagittal ear station",
+    (detail) => {
+        const d = new Drawing("rick-classic");
+        d.s.detail = detail;
+        const surfaces: Point[][][] = [];
+        d.s.surface = (rows) => {
+            surfaces.push(rows);
+            return rows;
+        };
+        const ink = {
+            side: -1 as const,
+            radii: Array<number>(16).fill(1),
+            ink: "#46301c",
+            inkWidth: 0.14,
+        };
+        const z = 3,
+            depth = 14;
+        drawFrontalPinna(d, ink, [-45, 92, 12, 15], z, depth, "#dd9a69");
+        const [skin, rim, rear] = surfaces;
+        expect(skin.at(-1)).toEqual(rim[0]);
+        expect(rim.at(-1)).toEqual(rear[0]);
+        for (const section of surfaces)
+            for (const ring of section) {
+                expect(ring[0]).toEqual(ring.at(-1));
+                for (const p of ring) {
+                    expect(p.every(Number.isFinite)).toBe(true);
+                    expect(p[2]).toBeLessThanOrEqual(z + 1.6 * depth);
+                    expect(p[2]).toBeGreaterThanOrEqual(z - 1.4 * depth);
+                }
+            }
+        const f = JSON.parse(JSON.stringify(morty));
+        f.design.household.pinnae = [ink];
+        expect(() => readAvatarFile(f)).toThrow();
+        f.design.household.ears = [[-0.34, 0.65, 0.08, 0.1]];
+        expect(() => readAvatarFile(f)).not.toThrow();
+        f.design.household.pinnae = [ink, ink];
+        expect(() => readAvatarFile(f)).toThrow();
     }
 );
 

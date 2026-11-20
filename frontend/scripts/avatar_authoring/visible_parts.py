@@ -3,7 +3,63 @@
 import numpy as np
 from scipy import ndimage
 
-from .household import pigment
+from .household import paint, pigment
+from .tracing import mouth_profile
+
+
+def closed_lips(rgb, center, top, height, width, skin):
+    """Locate a painted, closed lip and use the same relief as a full drawing."""
+    x0, x1 = (
+        max(0, round(center - 0.32 * width)),
+        min(rgb.shape[1], round(center + 0.32 * width) + 1),
+    )
+    y0, y1 = (
+        max(0, round(top + 0.69 * height)),
+        min(len(rgb), round(top + 0.92 * height) + 1),
+    )
+    patch = rgb[y0:y1, x0:x1]
+    if min(patch.shape[:2]) < 4:
+        return None
+    luma = np.array([0.213, 0.715, 0.072])
+    labels, _ = ndimage.label(patch @ luma < (skin @ luma) * 0.52, np.ones((3, 3)))
+    for i, box in enumerate(ndimage.find_objects(labels), 1):
+        if box is None:
+            continue
+        ys, xs = box
+        span = xs.stop - xs.start
+        if not 0.16 * width <= span <= 0.57 * width or ys.stop - ys.start > 0.29 * span:
+            continue
+        x, y = np.nonzero(labels == i)[::-1]
+        mid = x0 + (xs.start + xs.stop - 1) / 2
+        if abs(mid - center) > 0.12 * width:
+            continue
+        left = [x0 + x.min(), y0 + np.median(y[x == x.min()])]
+        right = [x0 + x.max(), y0 + np.median(y[x == x.max()])]
+        profile = mouth_profile(rgb, left, right)
+        if profile is None:
+            continue
+        rows, ink, _, color = profile
+        if color is None or np.linalg.norm(color - skin) < 34:
+            continue
+        thickness = rows[:, 3] - rows[:, 2]
+        if not 0.045 * span < np.median(thickness) < 0.38 * span:
+            continue
+        lips = np.column_stack(
+            (
+                (rows[:, 0] - center) / width,
+                (rows[:, 2] - top) / height,
+                (rows[:, 3] - top) / height,
+            )
+        )
+        if np.max(abs(lips[:, 0])) <= 0.38 and np.all(
+            (0.55 <= lips[:, 1:]) & (lips[:, 1:] <= 0.98)
+        ):
+            return {
+                "lips": lips.round(4).tolist(),
+                "lipInk": paint(ink),
+                "lipColor": paint(color),
+            }
+    return None
 
 
 def inked_cheeks(rgb, mask, head, skin):

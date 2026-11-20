@@ -752,7 +752,7 @@ const householdOrbit = z.strictObject({
     rimInk: z.strictObject({ width: n(0.018, 0.28), color: paint }).optional(),
     browOccluded: z.literal(true).optional(),
     browRim: z
-        .array(z.tuple([n(-1.3, 1.3), n(-2.8, -0.7)]))
+        .array(z.tuple([n(-1.3, 1.3), n(-4.7, -0.7)]))
         .min(6)
         .max(24)
         .optional(),
@@ -874,6 +874,39 @@ const householdFile = file.extend({
                         "Expected one lobe per observed temple"
                     )
                     .optional(),
+                pinnae: z
+                    .array(
+                        z.strictObject({
+                            side: z.union([z.literal(-1), z.literal(1)]),
+                            radii: z.array(n(0.38, 1.52)).length(16),
+                            inkWidth: n(0.07, 0.28),
+                            ink: paint,
+                            folds: z
+                                .array(
+                                    z.strictObject({
+                                        outline: z
+                                            .array(
+                                                z.tuple([
+                                                    n(-0.9, 0.9),
+                                                    n(-0.9, 0.9),
+                                                ])
+                                            )
+                                            .min(3)
+                                            .max(32),
+                                        ink: paint,
+                                    })
+                                )
+                                .min(1)
+                                .max(2)
+                                .optional(),
+                        })
+                    )
+                    .min(1)
+                    .max(2)
+                    .refine(
+                        (p) => new Set(p.map((x) => x.side)).size === p.length
+                    )
+                    .optional(),
                 earTurn: n(0, 0.8).optional(),
                 penOutline: z.boolean().optional(),
                 nape: n(0.5, 0.97).optional(),
@@ -991,6 +1024,15 @@ const householdFile = file.extend({
                     .optional(),
             }),
         })
+        .refine(
+            (d) =>
+                !d.household.pinnae ||
+                (!d.household.measuredBob &&
+                    d.household.pinnae.every((p) =>
+                        d.household.ears?.some(([x]) => Math.sign(x) === p.side)
+                    )),
+            "A frontal pinna requires a measured lobe on the same side of a household head"
+        )
         .refine(
             (d) =>
                 !d.household.mouthPaint ||

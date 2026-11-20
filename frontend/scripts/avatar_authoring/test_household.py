@@ -13,6 +13,108 @@ from .household_registration import RECIPES, VIEWS, match, role_masks
 
 
 class HouseholdTests(unittest.TestCase):
+    def test_both_pupils_can_meet_the_upper_lid_but_blank_apertures_are_rejected(self):
+        from .eye_review import reference_pair
+        from .household import observe_eye
+        from .household_front import painted_brow
+
+        art = Image.new("RGB", (160, 100), "#bc895c")
+        draw = ImageDraw.Draw(art)
+        for x in (56, 98):
+            draw.ellipse((x - 15, 35, x + 15, 54), fill="#30251e")
+            draw.ellipse((x - 13, 37, x + 13, 52), fill="#fcf9f0")
+            draw.rectangle((x - 16, 29, x + 16, 40), fill="#bc895c")
+            draw.line((x - 15, 40, x + 15, 40), fill="black", width=2)
+        self.assertEqual(reference_pair(art), [])
+        draw.ellipse((52, 37, 58, 45), fill="#221e18")
+        self.assertEqual(reference_pair(art), [])
+        draw.ellipse((94, 37, 100, 45), fill="#221e18")
+        eyes = reference_pair(art)
+        self.assertEqual(len(eyes), 2)
+        for x in (56, 98):
+            draw.line((x - 9, 29, x + 10, 29), fill="#37291f", width=2)
+        for eye in eyes:
+            x, y, r, b = eye["bounds"]
+            observed = observe_eye(
+                np.asarray(art, dtype=float), [x - 2, y - 2, r + 2, b + 2]
+            )
+            self.assertLess(observed["pupil"][1], -0.35)
+            self.assertLess(abs(observed["pupil"][0]), 0.27)
+            self.assertLess(observed["pupil_fraction"], 0.27)
+            brow = painted_brow(np.asarray(art, dtype=float), (x, y, r, b))
+            self.assertIsNotNone(brow)
+            self.assertLess(max(v for _, v in brow["browRim"]), -2.45)
+
+    def test_a_closed_colored_lip_follows_its_seam_and_rejects_a_plain_line(self):
+        from .visible_parts import closed_lips
+
+        art = Image.new("RGB", (160, 140), "#dc9663")
+        draw = ImageDraw.Draw(art)
+        skin = np.array([220.0, 150.0, 99.0])
+
+        def measure():
+            return closed_lips(np.asarray(art, dtype=float), 80, 0, 130, 120, skin)
+
+        draw.line((59, 105, 101, 105), fill="#38241f", width=2)
+        self.assertIsNone(measure())
+        draw.ellipse((61, 99, 99, 112), fill="#a26056")
+        draw.line((59, 105, 101, 105), fill="#38241f", width=2)
+        mark = measure()
+        self.assertEqual(mark["lipColor"], "#a26056")
+        self.assertTrue(np.all(np.diff(np.array(mark["lips"])[:, 0]) > 0))
+        self.assertGreater(max(b - a for _, a, b in mark["lips"]), 0.06)
+
+    def test_ear_fold_requires_ink_bracketed_by_skin_and_mirrors_in_lobe_coordinates(
+        self,
+    ):
+        from .pinna import frontal_pinnae
+
+        art = Image.new("RGB", (200, 150), "#f6efdb")
+        draw = ImageDraw.Draw(art)
+        skin = np.array([220.0, 150.0, 99.0])
+        hair = np.array([67.0, 37.0, 25.0])
+        ears = [[-0.38, 0.6, 0.13, 0.16], [0.38, 0.6, 0.13, 0.16]]
+        for x in (62, 138):
+            draw.ellipse((x - 15, 58, x + 15, 92), fill="#322317")
+            draw.ellipse((x - 13, 60, x + 13, 90), fill="#dc9663")
+
+        def trace():
+            rgb = np.asarray(art, dtype=float)
+            return frontal_pinnae(
+                rgb,
+                (rgb != [246, 239, 219]).any(axis=2),
+                100,
+                15,
+                100,
+                100,
+                ears,
+                skin,
+                hair,
+            )
+
+        self.assertEqual(trace(), [])
+        for x, side in ((62, -1), (138, 1)):
+            draw.line(
+                [
+                    (x + side * u, 75 + v)
+                    for u, v in ((-3, 3), (-2, -2), (0, -5), (4, -6), (7, -4))
+                ],
+                fill="#6a3b23",
+                width=2,
+            )
+        left, right = trace()
+        self.assertEqual((left["side"], right["side"]), (-1, 1))
+        self.assertEqual(len(left["radii"]), 16)
+        self.assertGreater(left["radii"][0], 1.05)
+        self.assertTrue(0.08 < left["inkWidth"] < 0.26)
+        self.assertIn("folds", left)
+        self.assertIn("folds", right)
+        for ear in (left, right):
+            fold = np.array(ear["folds"][0]["outline"])
+            self.assertGreater(fold[:, 0].max(), 0.26)
+            self.assertLess(fold[:, 1].min(), -0.18)
+        np.testing.assert_allclose(left["radii"], right["radii"], atol=0.07)
+
     def test_painted_brow_follows_the_exposed_run_below_a_dark_fringe(self):
         from .household_front import painted_brow
 

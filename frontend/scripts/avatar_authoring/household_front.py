@@ -4,7 +4,8 @@ import numpy as np
 from scipy import ndimage
 
 from .fringe import forehead_fringe
-from .eye_review import portrait_pair
+from .pinna import frontal_pinnae
+from .eye_review import lid_pupil, portrait_pair
 from .household import (
     fit_frontal_features,
     fit_portrait,
@@ -65,7 +66,15 @@ def painted_brow(rgb, bounds):
     x, y, r, b = bounds
     cx, cy = (x + r) / 2, (y + b) / 2
     rx, ry = (r - x) / 2, (b - y) / 2
-    lx, ty = max(0, round(cx - 1.12 * rx)), max(0, round(cy - 2.45 * ry))
+    reach = ry
+    # A lowered lid exposes only the lower half of its globe. The brow
+    # stays on the full orbital arch as the visible aperture narrows.
+    if rx > 1.4 * ry:
+        eye = rgb[y:b, x:r]
+        white = (eye.min(2) > 183) & (np.ptp(eye, axis=2) < 25)
+        if lid_pupil(white, eye) is not None:
+            reach = min(rx, 1.84 * ry)
+    lx, ty = max(0, round(cx - 1.12 * rx)), max(0, round(cy - 2.45 * reach))
     area = rgb[ty : max(ty, y - 2), lx : min(rgb.shape[1], round(cx + 1.12 * rx))]
     if not area.size:
         return None
@@ -81,7 +90,11 @@ def painted_brow(rgb, bounds):
         if box is None:
             continue
         yy, xx = np.where(labels == label)
-        if np.ptp(xx) < 0.85 * rx or len(xx) < rx * ry * 0.11 or np.ptp(yy) > ry * 1.25:
+        if (
+            np.ptp(xx) < 0.85 * rx
+            or len(xx) < rx * ry * 0.11
+            or np.ptp(yy) > reach * 1.25
+        ):
             continue
         parts.append((len(xx), yy, xx))
     if not parts:
@@ -91,7 +104,7 @@ def painted_brow(rgb, bounds):
     lower = []
     for col in np.unique(np.rint(np.linspace(xs.min(), xs.max(), 10)).astype(int)):
         row = ys[xs == col]
-        if not len(row) or np.ptp(row) > ry * 0.6:
+        if not len(row) or np.ptp(row) > reach * 0.6:
             continue
         u = round((col + lx - cx) / rx, 3)
         upper.append([u, round((row.min() + ty - cy) / ry, 3)])
@@ -1020,6 +1033,20 @@ def fit_front(source, name, observation=None):
         )
         if fringe:
             family["fringe"] = fringe
+    if not bob:
+        pinnae = frontal_pinnae(
+            rgb,
+            mask,
+            eye_axis,
+            top,
+            width,
+            chin - top,
+            family.get("ears", []),
+            skin,
+            hair,
+        )
+        if pinnae:
+            family["pinnae"] = pinnae
     # Hair visible outside both cheeks below the ears continues around the
     # occiput. Estimate the nape length independently of the forehead part.
     nape = nape_height(rgb, mask, eye_axis, top, chin, width, skin, hair)
