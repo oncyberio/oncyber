@@ -550,6 +550,7 @@ const Card = styled.a<{ $featured?: boolean }>`
     @media (prefers-reduced-motion: reduce) {
         &[data-selected="true"] .card-caption::after,
         img,
+        .collage-cover,
         .enter-arrow {
             transition: none;
         }

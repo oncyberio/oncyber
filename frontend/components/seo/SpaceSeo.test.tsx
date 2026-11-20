@@ -121,9 +121,26 @@ test("a page that shows one work by its id keeps the id in its address", () => {
 });
 
 test("a visitor the gate turns away is told the space's name, not what is inside", () => {
+    const template = { name: "Cyber Warehouse" };
     const html = renderToStaticMarkup(
-        <SpaceSeo experience={gallery} ownerName="frahm" gated />
+        <SpaceSeo
+            experience={gallery}
+            destination={template}
+            ownerName="frahm"
+            gated
+        />
     );
+    // Nor the template it is built in.
+    expect(html).not.toContain("Cyber Warehouse");
+    expect(
+        renderToStaticMarkup(
+            <SpaceSeo
+                experience={gallery}
+                destination={template}
+                ownerName="frahm"
+            />
+        )
+    ).toContain("Cyber Warehouse");
     expect(html).toContain("<title>Frahm Gallery</title>");
     expect(html).toContain("Premium frames.");
     // Neither the works nor the words on the walls.

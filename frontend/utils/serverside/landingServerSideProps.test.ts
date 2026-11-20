@@ -245,6 +245,35 @@ describe("a profile link (/@name)", () => {
         });
     });
 
+    it("does not call a person missing when the accounts cannot be read", async () => {
+        byUsername.mockRejectedValue(new Error("firestore unavailable"));
+        byWallet.mockRejectedValue(new Error("firestore unavailable"));
+        const { result, res } = await open({
+            lobby: "1",
+            profile: "6529",
+            profileLink: "1",
+        });
+        // Come back later, not "gone": no 404, no search for the name.
+        expect(res.statusCode).toBe(503);
+        expect(res.setHeader).toHaveBeenCalledWith("Retry-After", "120");
+        expect(result.props.notFound).toBeUndefined();
+        expect(result.props.profile).toBeUndefined();
+    });
+
+    it("finds a person by wallet when the username lookup fails", async () => {
+        byUsername.mockRejectedValue(new Error("firestore unavailable"));
+        byWallet.mockResolvedValue(account);
+        const { result, res } = await open({
+            lobby: "1",
+            profile: wallet,
+            profileLink: "1",
+        });
+        expect(res.statusCode).toBe(200);
+        expect(result).toEqual({
+            redirect: { destination: "/@6529", permanent: true },
+        });
+    });
+
     it("leaves the lobby alone when a typed ?profile= names nobody", async () => {
         const { result, res } = await open({ lobby: "1", profile: "nobody" });
         expect(res.statusCode).toBe(200);

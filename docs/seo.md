@@ -45,7 +45,8 @@ filled (at most once a day, 13 documents). A link typed with
 capitals costs one more lookup, only when it misses.
 
 A profile link reads the person and up to 30 of their spaces, kept in
-memory for ten minutes. `next.config.js` serves `/@name` as the lobby
+memory for ten minutes. When the accounts cannot be read, the link
+answers 503 with `Retry-After`, never 404: the person is not gone. `next.config.js` serves `/@name` as the lobby
 (`/?lobby=1&profile=name`); a name nobody has answers 404 like any other
 missing link. Closing the panel leaves the lobby at `/?lobby=1`, whose
 canonical is the home page.
@@ -53,9 +54,11 @@ canonical is the home page.
 ## What a gated or hidden space shows
 
 A visitor the gate turns away (password, token, invitation) gets the
-space's name, creator and own description, and none of what is inside: no
-works, wall texts, portals or sibling links, in the HTML or the structured
-data. Search engines and assistants are such visitors.
+space's name, creator and own description, and none of what is inside or
+how it is used: no works, wall texts, portals, sibling links, template
+name, visit count or dates, in the HTML or the structured data. Search
+engines and assistants are such visitors. The cover the owner chose still
+previews the link, as it always has.
 
 Links to a creator's other spaces are read ahead of time, so a space made
 private or unlisted can stay listed for a while: up to ten minutes on its
@@ -76,11 +79,14 @@ pnpm -C frontend check:seo <preview url> --space /frahm-gallery --profile /@6529
 It fetches each kind of page and fails when one has lost what that kind
 carries: every page its title, one description and its canonical; spaces,
 profiles, the home page, docs and the about page their structured data;
-spaces and profiles their h1 and text. It also fails when a missing link
-stops answering 404, when `robots.txt`, the sitemap or `llms.txt` break,
-and when the production site answers `X-Robots-Tag: noindex` (previews are
-expected to). Without `--space` it takes three spaces from the deployment's
-own sitemap, and fails when the sitemap lists none. A profile is checked
+spaces and profiles their h1 and text. A canonical has to be on the
+deployment being checked or on a production domain. It also fails when a
+missing link stops answering 404, when `robots.txt`, the sitemap or
+`llms.txt` break, and when a page of the production site answers
+`X-Robots-Tag: noindex` (previews are expected to, on every page). Without
+`--space` it takes three spaces from the first part of the deployment's
+own sitemap that lists any, and fails when none does. A profile is checked
 only when one is named with `--profile`.
+
 Run it on the preview before merging a change to any file in the table
 above.

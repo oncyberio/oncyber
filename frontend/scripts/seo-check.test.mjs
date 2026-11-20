@@ -160,3 +160,39 @@ test("knows the production site from a preview", () => {
     assert.equal(isProductionOrigin("http://localhost:13000"), false);
     assert.equal(isProductionOrigin("not a url"), false);
 });
+
+test("a canonical must be on the deployment or a production domain", () => {
+    const origins = {
+        canonicalOrigins: [
+            "https://preview.example",
+            "https://oncyber.io",
+            "https://www.oncyber.com",
+        ],
+    };
+    const at = (canonical) =>
+        checkPage(
+            "page",
+            "/about",
+            { status: 200, html: page({ canonical }) },
+            origins
+        );
+    assert.deepEqual(at("https://oncyber.io/about"), []);
+    assert.deepEqual(at("https://preview.example/about"), []);
+    assert.deepEqual(at("https://other.example/about"), [
+        "canonical is on https://other.example",
+    ]);
+});
+
+test("on production, no page meant for search may answer the noindex header", () => {
+    const response = {
+        status: 200,
+        html: page({ canonical: "https://oncyber.io/about" }),
+        robotsHeader: "noindex",
+    };
+    assert.deepEqual(
+        checkPage("page", "/about", response, { production: true }),
+        ["answers X-Robots-Tag: noindex"]
+    );
+    // A preview answers it on every page.
+    assert.deepEqual(checkPage("page", "/about", response), []);
+});

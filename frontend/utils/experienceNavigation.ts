@@ -329,6 +329,7 @@ export function goToPreviousExperience(lobby: () => void, home?: () => void) {
                     return;
                 }
                 if (landing) {
+                    if (pendingDeparture || pendingLobbyReturn()) return;
                     window.history.back();
                     return;
                 }

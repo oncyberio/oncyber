@@ -118,7 +118,8 @@ export default function SpaceSeo({
                 space={space}
                 featuring={seo.featuring}
                 content={content}
-                gallery={destination?.name}
+                // The template is part of what is inside.
+                gallery={gated ? undefined : destination?.name}
             />
         </>
     );

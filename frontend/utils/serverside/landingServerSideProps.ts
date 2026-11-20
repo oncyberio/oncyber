@@ -13,7 +13,7 @@ import {
     fetchUserByUsername,
     fetchUserByWalletId,
 } from "@api/accounts/user/utils";
-import { findProfile } from "./visitedProfile";
+import { lookUpProfile } from "./visitedProfile";
 import { notFoundLanding } from "./notFoundLanding";
 import { profileSpaceLinks } from "./ownerSpaces";
 import { profileHandle } from "@utils/profileSeo";
@@ -161,7 +161,7 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
     context
 ) =>
     withSsrTiming(context.res, async () => {
-        const [authResult, feedProps, profile] = await Promise.all([
+        const [authResult, feedProps, lookup] = await Promise.all([
             measureSsrStage("ssr_auth", () =>
                 feedBasicServerSideProps(context)
             ).then(
@@ -171,13 +171,14 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
             landingFeedProps(context.query),
             // A profile link (/@name) lands here with ?profile=name.
             context.query.profile
-                ? findProfile(
+                ? lookUpProfile(
                       context.query.profile,
                       fetchUserByUsername,
                       fetchUserByWalletId
                   )
                 : null,
         ]);
+        const profile = lookup?.profile ?? null;
         const auth =
             authResult.status === "fulfilled"
                 ? authResult.value.props
@@ -185,8 +186,15 @@ export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
         // The name came from a profile link (/@name, see next.config.js).
         if (context.query.profileLink === "1") {
             const asked = String(context.query.profile ?? "");
+            // The accounts could not be read. That is not "nobody by that
+            // name": the lobby opens without the panel, and the answer says
+            // to come back, so a search engine keeps the person's page.
+            if (!profile && lookup?.failed) {
+                context.res.statusCode = 503;
+                context.res.setHeader("Retry-After", "120");
+            }
             // Nobody by that name: a real 404, searching for the name.
-            if (!profile) {
+            else if (!profile) {
                 const {
                     lobby,
                     profile: _name,
