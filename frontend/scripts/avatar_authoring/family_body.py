@@ -7,6 +7,19 @@ from .fit import pixels
 HEIGHT = 320
 
 
+def limb_spans(mask, center, top, height):
+    """Sample the middle forearms and lower legs in T-pose drawing coordinates."""
+    columns = np.rint(
+        center + height * np.array([-0.33, -0.30, -0.27, 0.27, 0.30, 0.33])
+    ).astype(int)
+    rows = np.rint(top + height * np.arange(0.80, 0.926, 0.025)).astype(int)
+    if columns.min() < 0 or columns.max() >= mask.shape[1] or rows.max() >= len(mask):
+        return np.zeros(2)
+    arms = mask[: int(top + height * 0.47), columns].sum(axis=0)
+    legs = mask[rows].sum(axis=1) / 2
+    return np.array([np.median(arms), np.median(legs)])
+
+
 def normalized_mask(path):
     _, mask = pixels(path, keep_components=True)
     y, x = np.nonzero(mask)
@@ -72,20 +85,7 @@ def body_edits(source, native, score, recipe):
         if value != old:
             edits.append({"field": "proportions.armSpan", "value": value})
 
-    def limbs(mask):
-        # The middle forearm excludes the hand, sleeve and any bracelet.
-        arms = [
-            mask[: int(HEIGHT * 0.47), len(x) // 2 + round(HEIGHT * sign * t)].sum()
-            for sign in (-1, 1)
-            for t in (0.27, 0.30, 0.33)
-        ]
-        legs = [
-            mask[round(t * HEIGHT)].sum() / 2
-            for t in (0.80, 0.825, 0.85, 0.875, 0.9, 0.925)
-        ]
-        return np.array([np.median(arms), np.median(legs)])
-
-    expected, actual = limbs(a), limbs(b)
+    expected, actual = [limb_spans(m, len(x) // 2, 0, HEIGHT) for m in (a, b)]
     if min(expected.min(), actual.min()) >= 3:
         base = recipe.get("limbWidth", {"arms": 1, "legs": 1})
         ratio = expected / actual

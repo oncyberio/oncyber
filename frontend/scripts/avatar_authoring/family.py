@@ -10,6 +10,7 @@ from scipy import ndimage, optimize
 from scipy.spatial import cKDTree
 
 from .fit import pixels
+from .family_body import limb_spans
 from .jersey_print import multi_stroke_print
 from .jersey_sleeve import JERSEY_HALF_WIDTHS, JERSEY_ROWS, jersey_sleeve, jersey_widths
 from .kit_footwear import kit_footwear
@@ -24,7 +25,7 @@ from .sun_rays import (
     measured_orb_paint,
     shorts_cut,
 )
-from .tracing import registered_print, shirt_mark, traced_print
+from .tracing import registered_print, shirt_mark, traced_print, validate_outline
 from .visor import measure_visor, visor_seed
 
 HERE = Path(__file__).resolve().parent
@@ -88,6 +89,66 @@ def compile_families(parts=None):
         capture_output=True,
     )
     return json.loads(built.stdout)
+
+
+def fit_projected_kit(recipe, marks, mask, flat, projected):
+    """Read the shorts, socks and limb sizes against the warped stock pattern."""
+    if marks is None or not projected.any():
+        return
+    current = kit_landmarks(flat, projected)
+    if current is None:
+        return
+    fit = {
+        "collar": 0,
+        "shoulders": 0,
+        "waist": 0,
+        "hem": 0,
+        "sock": 0,
+        "width": 1,
+        **recipe.get("kitFit", {}),
+    }
+    for key, delta in zip(("waist", "hem", "sock"), marks[2:5] - current[2:5]):
+        if 0.006 < abs(delta) <= 0.055:
+            fit[key] = round(float(np.clip(delta, -0.045, 0.045)), 4)
+    if recipe.get("kitFit") or any(fit[k] for k in ("waist", "hem", "sock")):
+        recipe["kitFit"] = fit
+
+    spans = []
+    for figure in (mask, projected):
+        yy, xx = np.where(figure)
+        if not len(yy) or np.ptp(yy) < 2:
+            return
+        height = np.ptp(yy)
+        widths = limb_spans(figure, (xx.min() + xx.max()) / 2, yy.min(), height)
+        if min(widths) < 3:
+            return
+        spans.append(widths / height)
+    ratio = spans[0] / spans[1]
+    if np.all((ratio >= 0.6) & (ratio <= 1.8)) and max(abs(ratio - 1)) > 0.08:
+        recipe["limbWidth"] = dict(
+            zip(("arms", "legs"), np.clip(ratio, 0.72, 1.4).round(4).tolist())
+        )
+
+
+def register_jersey_print(recipe, frame):
+    """Undo the fitted kit's native warp while keeping the source scoring frame."""
+    if not (recipe.get("shirtMark") and recipe.get("kitFit") and frame):
+        return
+    data = json.dumps({"candidate": recipe, "frame": frame}).encode()
+    result = subprocess.run(
+        ["node", str(HERE / "project-jersey-print.cjs")],
+        input=data,
+        capture_output=True,
+        check=True,
+    )
+    mapped = json.loads(result.stdout)
+    if mapped:
+        try:
+            for path in [mapped["outline"], *mapped.get("islands", [])]:
+                validate_outline(path)
+        except ValueError:
+            return
+        recipe["shirtMark"] = mapped
 
 
 class Family:
@@ -531,6 +592,8 @@ class Family:
                         "width": 1,
                         "jerseySides": np.clip(ratios, 0.65, 1.32).round(4).tolist(),
                     }
+            if fitted_orb is not None:
+                fit_projected_kit(recipe, cloth, mask, flat, valid)
             sleeve = jersey_sleeve(image, mask, cloth)
             if sleeve is not None:
                 # Undo the photographic scale and horizontal build separately.
@@ -722,4 +785,6 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
     recipe["name"] = (name or path.stem.replace("-", " ").strip() or "Family avatar")[
         :60
     ]
+    if best == "sunshine" and custom_jersey:
+        register_jersey_print(recipe, metrics.get("shirt_frame"))
     return recipe, {k: v[1] for k, v in candidates.items()}, overlay

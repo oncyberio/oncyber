@@ -614,14 +614,32 @@ def fit_crew_to_orb(rgb, mask, orb, recipe, crown):
     shoulder = chin + ((np.median(at) - cy) / ry - 1) * y_scale
     binding = chin + below * y_scale - collar["drop"] * base_rx
     recipe["orbCollar"] = collar
+    marks = kit_landmarks(rgb, mask)
+    if marks is not None:
+        yy, _ = np.where(mask)
+        levels = yy.min() + np.ptp(yy) * np.linspace(
+            marks[1] + 0.04, marks[2] - 0.02, 9
+        )
+        axes = []
+        for y in np.rint(levels).astype(int):
+            xs = np.flatnonzero(mask[y])
+            if len(xs) >= rx and xs[0] < cx < xs[-1] and np.ptp(xs) <= 3 * rx:
+                axes.append((xs[0] + xs[-1]) * 0.5)
+        if len(axes) >= 7 and np.ptp(axes) < 0.08 * rx:
+            # The stock orb and jersey have the same horizontal centre.
+            # Asymmetric fingertips can shift a whole-figure fit away from it.
+            offset = recipe.get("orbOffset", [0, 0])
+            lateral = round(float(np.clip((cx - np.median(axes)) / rx, -0.35, 0.35)), 4)
+            if abs(lateral - offset[0]) > 0.015:
+                recipe["orbOffset"] = [lateral, offset[1]]
     recipe["kitFit"] = {
-        **recipe.get("kitFit", {}),
-        "collar": round(float(np.clip((binding - 171) / 680, -0.045, 0.045)), 4),
-        "shoulders": round(float(np.clip((shoulder - 211) / 680, -0.045, 0.045)), 4),
         "waist": 0,
         "hem": 0,
         "sock": 0,
         "width": 1,
+        **recipe.get("kitFit", {}),
+        "collar": round(float(np.clip((binding - 171) / 680, -0.045, 0.045)), 4),
+        "shoulders": round(float(np.clip((shoulder - 211) / 680, -0.045, 0.045)), 4),
     }
 
 

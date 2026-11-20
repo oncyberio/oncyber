@@ -29,6 +29,77 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_projected_kit_reads_two_limb_diameters_and_keeps_existing_seams(self):
+        from .family import fit_projected_kit
+
+        def figure(arm, leg):
+            mask = np.zeros((201, 201), dtype=bool)
+            mask[:, 100] = True
+            mask[60 : 60 + arm, 8:193] = True
+            mask[140:, 83 : 83 + leg] = mask[140:, 118 : 118 + leg] = True
+            return mask
+
+        original = np.array([0.23, 0.29, 0.50, 0.67, 0.83, 0.16])
+        target = original + [0, 0, -0.02, 0.03, -0.05, 0]
+        projected, drawn = figure(10, 9), figure(13, 11)
+        recipe = {"kitFit": {"jerseySides": [0.8, 0.9, 1.0]}}
+        with patch("avatar_authoring.family.kit_landmarks", return_value=original):
+            fit_projected_kit(recipe, target, drawn, None, projected)
+        self.assertEqual(recipe["limbWidth"]["arms"], 1.3)
+        self.assertGreater(recipe["limbWidth"]["legs"], 1.15)
+        self.assertEqual(recipe["kitFit"]["jerseySides"], [0.8, 0.9, 1.0])
+        self.assertEqual(
+            [recipe["kitFit"][k] for k in ("waist", "hem", "sock")],
+            [-0.02, 0.03, -0.045],
+        )
+        unsupported = {}
+        fit_projected_kit(unsupported, None, drawn, None, projected)
+        self.assertEqual(unsupported, {})
+
+    def test_jersey_print_inverts_the_native_seam_narrowing_for_all_fills(self):
+        from copy import deepcopy
+        from .family import register_jersey_print
+
+        mark = {
+            "color": "#4088dd",
+            "outline": [[0.1, 0.42], [0.4, 0.42], [0.3, 0.58]],
+            "islands": [[[0.6, 0.42], [0.9, 0.42], [0.8, 0.58]]],
+        }
+        recipe = {
+            "version": 1,
+            "style": "family",
+            "family": "sunshine",
+            "name": "Kit",
+            "paints": {},
+            "proportions": {},
+            "plainJersey": True,
+            "shirtMark": mark,
+            "kitFit": {
+                "collar": 0,
+                "shoulders": 0,
+                "waist": 0,
+                "hem": 0,
+                "sock": 0,
+                "width": 1,
+            },
+        }
+        frame = [-0.075, 0.285, 0.075, 0.452]
+        narrow = deepcopy(recipe)
+        narrow["kitFit"]["jerseySides"] = [0.7, 0.7, 0.8]
+        for sample in (recipe, narrow):
+            register_jersey_print(sample, frame)
+        for key in ("outline", "islands"):
+            before, after = [
+                np.array(s["shirtMark"][key]).reshape(-1, 2) for s in (recipe, narrow)
+            ]
+            self.assertGreater(np.ptp(after[:, 0]), 1.25 * np.ptp(before[:, 0]))
+            np.testing.assert_allclose(before[:, 1], after[:, 1], atol=0.001)
+            self.assertTrue(
+                np.all(after[:, 0] < 0.5)
+                if key == "outline"
+                else np.all(after[:, 0] > 0.5)
+            )
+
     def test_gallery_identity_ties_do_not_count_as_a_match(self):
         from runpy import run_path
 
