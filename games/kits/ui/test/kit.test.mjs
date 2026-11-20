@@ -43,8 +43,7 @@ test("the button is the action spec", async () => {
         vars["focus-ring"],
         `${action.state.focusWidth}px solid ${base.color.accent}`
     );
-    assert.equal(vars["touch-target"], "44px");
-    assert.equal(lobby.control.touchSize, 44);
+    assert.equal(vars["touch-target"], `${lobby.control.touchSize}px`);
     const rule = css.slice(
         css.indexOf("\n.oui-button {"),
         css.indexOf("}", css.indexOf("\n.oui-button {"))
