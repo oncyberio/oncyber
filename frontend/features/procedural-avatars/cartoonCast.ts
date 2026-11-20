@@ -50,6 +50,8 @@ export interface CartoonDesign {
         fringe?: [number, number][];
         /** Lateral hair limits along the upper 44% of the skull, in skull widths. */
         crownSides?: [number, number][];
+        /** Ordered outer contours from a shared summit to the two temples. */
+        crownEdges?: [[number, number][], [number, number][]];
         /** Skin widths at 60%, 65%, …, 95% of crown-to-chin height. */
         jawWidths?: number[];
         /** Front-view lobe centers and radii in fractions of skull width and height. */

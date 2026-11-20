@@ -23,7 +23,7 @@ const checks = Object.keys(criteria) as Check[];
 const modes = ["WebGLBackend", "WebGPUBackend"] as const;
 type Backend = (typeof modes)[number];
 const rendererNames = { WebGLBackend: "WebGL2", WebGPUBackend: "WebGPU" };
-type Images = Record<Backend, { views: string; walk: string }>;
+type Images = Record<Backend, { views: string; walk: string; turns?: string }>;
 interface Props {
     id: string;
     name: string;
@@ -137,6 +137,29 @@ function ReviewForm({
                     </details>
                 </section>
             </div>
+            {images[backend].turns && (
+                <figure aria-label="Held-out head turns">
+                    <figcaption>
+                        35° and profile · GPT Image guide and{" "}
+                        {rendererNames[backend]} render
+                    </figcaption>
+                    <p>
+                        The guide was drawn separately from the supplied front
+                        image. Compare the inferred head depth, eyes and
+                        silhouette at each angle.
+                    </p>
+                    <a
+                        href={images[backend].turns}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <img
+                            src={images[backend].turns}
+                            alt={`${name} at 35° and 90°, with the guide, native head and overlap at each angle`}
+                        />
+                    </a>
+                </figure>
+            )}
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -283,7 +306,7 @@ function ReviewForm({
                     .comparison {
                         grid-template-columns: 1fr;
                     }
-                    figure img {
+                    .comparison figure img {
                         max-height: 220px;
                         object-fit: contain;
                         width: auto;
@@ -327,7 +350,9 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         throw Error("The authoring input changed");
     for (const backend of modes) {
         const item = {} as Images[Backend];
-        for (const key of ["views", "walk"] as const) {
+        for (const key of ["views", "walk", "turns"] as const) {
+            if (key === "turns" && !receipt.review_assets[backend].turns)
+                continue;
             const name = `${entry.id}-${backend}-${key}`;
             if (
                 (await hash(`reviews/${name}.webp`)) !==

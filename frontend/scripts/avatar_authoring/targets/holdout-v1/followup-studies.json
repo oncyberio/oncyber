@@ -71,16 +71,16 @@
             }
         },
         "tavi": {
-            "candidate_sha256": "3d346fa1edc07b5164fb5c43e680d80d4d1160d10b9d22b92cf104f69fa2fe81",
-            "evidence_sha256": "2067f551ec0f42e01d383b3228eb44e360c261ce8b5558d1095e93dcdc050c78",
+            "candidate_sha256": "6d09d4017f50bfb8269b58ba820554ba3f7d1088a49c874a4d4b3ca43fe67222",
+            "evidence_sha256": "0654fdace1b05e678db040786d4b9850fec449eae0c7f355663a89eba9b9643c",
             "review_assets": {
                 "WebGLBackend": {
-                    "views": "c5f26aead515af4f16d925de88f7528d522f997daae436531ce0e63cffb8dfbd",
-                    "walk": "1493575611c54432405b72cf660f782e3410fe28e4bb8d78d4f296a52912b048"
+                    "views": "0d82fbfd7a91a483f7c44e33b3f49725daa841b58317e613480956784d70c389",
+                    "walk": "c8e556e7492068b89205bf6fec62038ef563aab0ddc72b6d5e405b504449f2ea"
                 },
                 "WebGPUBackend": {
-                    "views": "4d60528102792ef89821258bf16662e792906a56f99c09e559c289abbb660bde",
-                    "walk": "7d33498aa977c23034ce4d2b6ac6fdd19829fabc36702642cae49c2ae2681262"
+                    "views": "347da33d5878fffade9a437b89db918934506029f82967ddb1922e5360d39d13",
+                    "walk": "ed73090f6206a56f9faeac30d9fc404ad9f4716bbbbf7ecb5bcc5e8b5b2f3776"
                 }
             }
         },
@@ -347,7 +347,32 @@
                     "full_body_rgb_mae": 46.06
                 }
             },
-            "independent_review": "pending"
+            "independent_review": "pending",
+            "swept_crown": {
+                "source_sha256": "c804383129d1ddef5884d35d5bf2ea6aab8ad945d9c5f23c9b85d230a017d33f",
+                "candidate_sha256": "6d09d4017f50bfb8269b58ba820554ba3f7d1088a49c874a4d4b3ca43fe67222",
+                "transport": "deterministic",
+                "model_calls": [],
+                "reported_provider_cost": null,
+                "seconds": 19.5,
+                "selected_pass": 1,
+                "passes": [
+                    {
+                        "accepted": true,
+                        "triangles": 3134,
+                        "visible_portrait": {
+                            "head_iou": 0.8915,
+                            "rgb_mae": 27.16,
+                            "ink_agreement": 0.8956,
+                            "visible_fraction": 1.0
+                        }
+                    }
+                ],
+                "withheld_full_body": {
+                    "full_body_silhouette_iou": 0.7163,
+                    "full_body_rgb_mae": 46.2
+                }
+            }
         },
         "brin": {
             "target_generator": "GPT Image",

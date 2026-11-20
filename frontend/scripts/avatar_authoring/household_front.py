@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import ndimage
 
+from .crown import crown_edges
 from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
 from .eye_review import lid_pupil, portrait_pair
@@ -990,6 +991,9 @@ def fit_front(source, name, observation=None):
     crown_profile = crown_sides(rgb, mask, eye_axis, top, chin, width, hair, skin)
     if crown_profile:
         family["crownSides"] = crown_profile
+    sweep = crown_edges(rgb, mask, eye_axis, top, chin - top, width, skin, hair)
+    if sweep:
+        family["crownEdges"] = sweep
     fall = hair_fall(rgb, mask, eye_axis, top, chin, width, hair, skin)
     bob = fall and fall[-1][0] < 1.05
     # On a short bob the side locks visible below the ears belong to the

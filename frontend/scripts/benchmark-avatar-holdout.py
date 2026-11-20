@@ -18,7 +18,7 @@ from avatar_authoring.shirt_cut import compare_shirt_cut
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
 from avatar_authoring.visor import measure_visor, visor_seed
 from avatar_authoring.one_image import author_one, portrait_sample, save
-from avatar_authoring.release import digest, verified_captures
+from avatar_authoring.release import digest, export_review_views, verified_captures
 from avatar_authoring.paper_control import arm_paper_control, crown_paper_control
 
 
@@ -433,6 +433,31 @@ def compare_jersey_sleeves(reference, native):
     return metrics
 
 
+def compare_crown_pigment(reference, native, color):
+    """Compare the main scalp pigment above the two registered eyes."""
+    from scipy import ndimage
+
+    dye = np.array(list(bytes.fromhex(color[1:])))
+    samples = []
+    for path in (reference, native):
+        mask, rgb, _, valid = portrait_sample(path, "rick-classic")
+        dyed = mask & (np.linalg.norm(rgb - dye, axis=2) < 87)
+        dyed[len(dyed) // 2 :] = False
+        labels, count = ndimage.label(dyed, np.ones((3, 3)))
+        if not count:
+            return None
+        scalp = labels == 1 + np.bincount(labels.ravel())[1:].argmax()
+        samples.append((scalp, valid))
+    (source, a), (drawn, b) = samples
+    shared = a & b
+    return {
+        "pigment_iou": round(float((source & drawn & shared).sum()
+            / max(1, ((source | drawn) & shared).sum())), 4),
+        "native_to_source_area": round(float((drawn & shared).sum()
+            / max(1, (source & shared).sum())), 4),
+    }
+
+
 def compare_frontal_ears(reference, native, design):
     """Compare the exposed parts of corresponding lobes in the two-eye frame."""
     skin = np.array(list(bytes.fromhex(design["skin"][1:])))
@@ -499,71 +524,6 @@ def visible_trouser_opening(path):
         return round((opening - top) / height, 4)
 
 
-def export_review_views(folder, destination, key, report):
-    """Offer the captured turns and motion on demand, bound to the archived evidence."""
-    from shutil import copyfile
-    from PIL import Image, ImageDraw, ImageFont
-    from avatar_authoring.family_sheet import view_tile
-
-    destination.mkdir(parents=True, exist_ok=True)
-    font = ImageFont.truetype("DejaVuSans.ttf", 17)
-    assets = {}
-    for backend, capture in report["backends"].items():
-        source = folder / backend
-        prefix = destination / (key + "-" + backend)
-        grips = "grip_test" in capture["native"]
-        sheet = Image.new("RGB", (1440, 1190 if grips else 926), "#eee9e1")
-        labels = ImageDraw.Draw(sheet)
-        for index, (view, label) in enumerate(
-            (
-                ("front", "Front"),
-                ("quarter", "35°"),
-                ("profile", "Profile"),
-                ("back", "Back"),
-            )
-        ):
-            x = index * 360
-            tile = view_tile(source / (view + ".png"), (352, 330))
-            sheet.paste(
-                tile, (x + (360 - tile.width) // 2, 30 + (330 - tile.height) // 2)
-            )
-            labels.text((x + 9, 6), label, font=font, fill="#262521")
-        with Image.open(source / "turnaround.png") as turns:
-            sheet.paste(turns.convert("RGB"), (0, 366))
-        pose = view_tile(source / "crouch.png", (392, 490))
-        sheet.paste(
-            pose, (1040 + (400 - pose.width) // 2, 407 + (490 - pose.height) // 2)
-        )
-        labels.text(
-            (1050, 377), "Crouch and right-hand grip", font=font, fill="#262521"
-        )
-        if grips:
-            for i, side in enumerate(("right", "left")):
-                with Image.open(source / ("grip-" + side + ".png")) as hand:
-                    # The native hand camera centers the wrist and middle fingertip.
-                    # Preserve the scale and leave room for the projecting handle.
-                    w, h = hand.size
-                    scale = min(w / 680, h * 0.48 / 232)
-                    box = (
-                        w / 2 - 340 * scale, h / 2 - 116 * scale,
-                        w / 2 + 340 * scale, h / 2 + 116 * scale,
-                    )
-                    tile = hand.resize((680, 232), Image.Resampling.LANCZOS, box=box)
-                    sheet.paste(tile, (i * 720 + 20, 950))
-                labels.text(
-                    (i * 720 + 14, 925), side.capitalize() + " grip", font=font, fill="#262521"
-                )
-        still = prefix.with_name(prefix.name + "-views.webp")
-        motion = prefix.with_name(prefix.name + "-walk.webp")
-        sheet.save(still, "WEBP", quality=92, method=6)
-        copyfile(source / "walk.webp", motion)
-        assets[backend] = {
-            "views": digest(still),
-            "walk": capture["views"]["walk.webp"],
-        }
-    return assets
-
-
 def record_preview(args):
     """Record the exact exported, rendered study bytes alongside the frozen inputs."""
     root = args.manifest.parent
@@ -573,6 +533,8 @@ def record_preview(args):
         raise ValueError("The replay belongs to a different benchmark")
     scores = score_reviews(args)
     archive = json.loads((root / "results.json").read_bytes())
+    guides_path = root / "turn-guides.json"
+    guides = json.loads(guides_path.read_bytes()) if guides_path.exists() else {}
     rows, hashes, seeds = {}, {}, []
     for case in manifest["cases"]:
         key = case["id"]
@@ -631,6 +593,21 @@ def record_preview(args):
                 mode: arm_paper_control(reference, evidence.parent / mode / "front.png")
                 for mode in report["backends"]
             }
+        if key in guides:
+            guide = guides[key]
+            if (
+                guide["source_sha256"] != case["input_sha256"]
+                or digest(root / guide["guide"]) != guide["guide_sha256"]
+                or report.get("turn_guide", {}).get("sha256") != guide["guide_sha256"]
+            ):
+                raise ValueError(f"{key} needs native comparisons to its frozen turn guide")
+            data["turn_guide"] = {
+                "guide_sha256": guide["guide_sha256"],
+                "candidate_frozen_before_guide": sha == guide["frozen_candidate_sha256"],
+                "backends": {
+                    mode: item["turn_metrics"] for mode, item in report["backends"].items()
+                },
+            }
         data["evidence_sha256"] = digest(evidence)
         data["review_assets"] = export_review_views(
             evidence.parent, root / "reviews", key, report
@@ -656,6 +633,14 @@ def record_preview(args):
         }
         recipe = json.loads(candidate.read_bytes())
         design = recipe.get("design", {})
+        if design.get("household", {}).get("crownEdges"):
+            data["crown_pigment"] = {
+                mode: compare_crown_pigment(
+                    root / case["input"], evidence.parent / mode / "portrait.png",
+                    design["hair"]["color"]
+                )
+                for mode in report["backends"]
+            }
         if design.get("household", {}).get("pinnae"):
             data["frontal_ears"] = {
                 mode: compare_frontal_ears(root / case["input"], evidence.parent / mode / "portrait.png", design)

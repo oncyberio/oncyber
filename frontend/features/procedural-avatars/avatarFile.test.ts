@@ -437,6 +437,62 @@ test.each(["full", "crowd"] as const)(
 );
 
 test.each(["full", "crowd"] as const)(
+    "a swept %s cap closes at one summit and preserves a returning tip above its sewn fringe",
+    (detail) => {
+        const file = JSON.parse(JSON.stringify(morty));
+        file.design.household.fringe = [
+            [-0.34, 0.55],
+            [0.13, 0.085],
+            [0.37, 0.52],
+        ];
+        file.design.household.crownEdges = [
+            [
+                [0.03, 0.01],
+                [-0.23, 0.11],
+                [-0.52, 0.075],
+                [-0.43, 0.19],
+                [-0.43, 0.44],
+            ],
+            [
+                [0.03, 0.01],
+                [0.28, 0.12],
+                [0.44, 0.44],
+            ],
+        ];
+        const { recipe } = readAvatarFile(file);
+        const g = recipe.cartoon,
+            drawing = new Drawing(recipe.template);
+        drawing.s.detail = detail;
+        let cap: Point[][], jaw: Point[][];
+        drawing.s.surface = (rows, color) => {
+            if (color === g.hair.color) cap = rows;
+            if (color === g.skin) jaw = rows;
+            return rows;
+        };
+        drawHouseholdHead(drawing, g, headSections(g));
+        expect(cap[0].every((p) => p === cap[0][0])).toBe(true);
+        expect(cap.at(-1)).toEqual(jaw[0]);
+        const temple = cap.map((row) => row[(3 * (row.length - 1)) / 4]);
+        const tip = temple.findIndex(
+            ([x]) => Math.abs(x / g.head[0] + 0.52) < 0.001
+        );
+        expect(tip).toBeGreaterThan(1);
+        expect((temple[tip][1] - 12) / g.head[1]).toBeCloseTo(0.075, 3);
+        expect(temple[tip - 1][1]).toBeGreaterThan(temple[tip][1]);
+        expect(temple[tip + 1][1]).toBeGreaterThan(temple[tip][1]);
+        expect(
+            Math.max(...cap[3].map((p) => p[2])) -
+                Math.min(...cap[3].map((p) => p[2]))
+        ).toBeGreaterThan(g.head[0] * 0.25);
+        file.design.household.crownEdges[1][0] = [0.04, 0.01];
+        expect(() => readAvatarFile(file)).toThrow();
+        file.design.household.crownEdges[1][0] = [0.03, 0.01];
+        file.design.household.crownEdges[1][1][0] = -0.27;
+        expect(() => readAvatarFile(file)).toThrow();
+    }
+);
+
+test.each(["full", "crowd"] as const)(
     "a measured %s pinna shares its painted rim and stays at the sagittal ear station",
     (detail) => {
         const d = new Drawing("rick-classic");

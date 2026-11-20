@@ -3,6 +3,7 @@ import type { CartoonDesign } from "./cartoonCast";
 import { cranialStations } from "./cranialBase";
 import { frontOfLoft, type Drawing, type Section } from "./drawing";
 import type { Point } from "./sculpt";
+import { sweptCrown } from "./sweptCrown";
 
 /** Place both edges of short sideburns on the existing longitude budget. */
 function placeFringeMeridians(
@@ -60,6 +61,7 @@ export function drawHouseholdHead(
     sections: Section[]
 ) {
     const [width, height] = g.head;
+    const sweep = g.household.crownEdges && sweptCrown(g.household.crownEdges);
     const stations = cranialStations(g, sections);
     const tOf = (y: number) => MathUtils.clamp((y - 12) / height, 0, 1);
     const levels = stations.map((row, k) => {
@@ -242,19 +244,21 @@ export function drawHouseholdHead(
                   MathUtils.smoothstep(t, 0.69, nape) *
                   (1 - MathUtils.smoothstep(t, nape, 1))
                 : 0;
-        return [x, 12 + height * (t + drape - 0.042 * swept), depth];
+        const y = t + drape - 0.042 * swept;
+        return [x, 12 + height * y, depth];
     }
     // Lift the swept part above the floating brow. The cap and jaw still
     // use one continuous perimeter at the temples and behind both ears.
     // The traced lobe sits on the lateral meridian. Include both ear axes
     // and the sagittal axis exactly when sampling the two joined surfaces.
-    const sides = g.household.ears
-        ? d.s.detail === "crowd"
-            ? 24
-            : 32
-        : d.s.detail === "crowd"
-        ? 26
-        : 38;
+    const sides =
+        g.household.ears || sweep
+            ? d.s.detail === "crowd"
+                ? 24
+                : 32
+            : d.s.detail === "crowd"
+            ? 26
+            : 38;
     const angles = Array.from(
         { length: sides },
         (_, j) => (j * 2 * Math.PI) / sides
@@ -346,7 +350,18 @@ export function drawHouseholdHead(
     };
     const sewnPoint = (j: number, t: number, hair: boolean): Point => {
         const k = j % sides,
-            p = point(angles[k], t, hair);
+            angle = angles[k],
+            p = point(angle, t, hair);
+        if (sweep && hair && t < 0.54) {
+            // Register the fringe on its original skull. Roll the upper cap
+            // into that seam using each meridian's actual cut, including the
+            // low edge of a sideburn and the high part above the eyebrow.
+            const y = (p[1] - 12) / height;
+            const [u, v] = sweep.project(Math.sin(angle), t, p[0] / width, y);
+            const weight = MathUtils.smoothstep(cuts[k] - t, 0.012, 0.15);
+            p[0] = MathUtils.lerp(p[0], width * u, weight);
+            p[1] = 12 + height * MathUtils.lerp(y, v, weight);
+        }
         if (!displacements[k]) return seatTemple(p);
         const w = 1 - MathUtils.smoothstep(Math.abs(t - cuts[k]), 0, 0.22);
         return seatTemple([
@@ -355,6 +370,9 @@ export function drawHouseholdHead(
             p[2] + w * displacements[k][2],
         ]);
     };
+    const capSteps = sweep ? 11 : g.household.crownSides ? 16 : 10;
+    const stops =
+        sweep && angles.map((a, i) => sweep.knots(a, cuts[i], capSteps));
     const rings = (steps: number, hair: boolean) =>
         Array.from({ length: steps + 1 }, (_, i) =>
             Array.from({ length: sides + 1 }, (_, j): Point => {
@@ -362,21 +380,27 @@ export function drawHouseholdHead(
                 return sewnPoint(
                     j,
                     hair
-                        ? u * cuts[j % sides]
+                        ? stops?.[j % sides][i] ?? u * cuts[j % sides]
                         : MathUtils.lerp(cuts[j % sides], 1, u),
                     hair
                 );
             })
         );
-    const cap = rings(g.household.crownSides ? 16 : 10, true),
+    const cap = rings(capSteps, true),
         jaw = rings(13, false);
+    if (sweep) {
+        // A short fringe can displace the top row differently by meridian.
+        // Weld the fan to one measured summit before computing its normals.
+        const [u, v] = g.household.crownEdges[0][0];
+        cap[0].fill([width * u, 12 + height * v, point(0, 0, true)[2]]);
+    }
     if (g.household.jawWidths) {
         // Close the hair overhang in its own pigment. Skin spanning this rim
         // would create false cheek panels below the ears in a front view.
         cap.push(jaw[0]);
     } else jaw[0] = cap.at(-1);
     const seam = new Set(jaw[0].map((p) => p.map(Math.fround).join("/")));
-    if (g.household.crownSides) {
+    if (sweep || g.household.crownSides) {
         for (const row of cap)
             for (const j of [
                 Math.round(sides / 4),

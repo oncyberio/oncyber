@@ -132,6 +132,33 @@ class HouseholdTests(unittest.TestCase):
         art[39:49] = [221, 157, 110]
         self.assertIsNone(painted_brow(art, bounds))
 
+    def test_crown_retains_a_returning_tip_and_ignores_a_smooth_or_clipped_cap(self):
+        from .crown import crown_edges
+
+        mask = Image.new("L", (160, 140))
+        pen = ImageDraw.Draw(mask)
+        pen.ellipse((34, 10, 126, 120), fill=255)
+        skin = np.array([212.0, 146, 93])
+        hair = np.array([70.0, 41, 22])
+
+        def trace():
+            active = np.asarray(mask) > 0
+            rgb = np.where(active[:, :, None], hair, 240.0)
+            return crown_edges(rgb, active, 80, 10, 110, 94, skin, hair)
+
+        self.assertIsNone(trace())
+        pen.polygon([(58, 25), (30, 17), (39, 33), (53, 42)], fill=255)
+        left, right = trace()
+        self.assertEqual(left[0], right[0])
+        self.assertEqual(left[-1][1], 0.44)
+        self.assertEqual(right[-1][1], 0.44)
+        self.assertLess(left[-1][0], -0.24)
+        self.assertGreater(right[-1][0], 0.24)
+        self.assertLessEqual(len(left), 15)
+        self.assertTrue(any(a[1] - b[1] > 0.026 for a, b in zip(left, left[1:])))
+        pen.rectangle((0, 15, 40, 19), fill=255)
+        self.assertIsNone(trace())
+
     def test_forehead_trace_keeps_the_sideburn_and_excludes_the_brow(self):
         from .fringe import forehead_fringe
 

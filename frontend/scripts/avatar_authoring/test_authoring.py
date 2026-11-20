@@ -857,6 +857,27 @@ class AuthoringTests(unittest.TestCase):
                 record_decision(source, reference, root, decision)
 
             approval()
+            # A supplementary turn guide binds its own bytes and the raw 90°
+            # capture to the decision, including the second renderer.
+            guide_report = json.loads((root / "evidence.json").read_bytes())
+            guide = root / "turn-guide"
+            guide.write_bytes(b"separately drawn turn")
+            guide_report["turn_guide"] = {"sha256": digest(guide)}
+            for backend, item in guide_report["backends"].items():
+                for name in ("turns.webp", "portrait-profile.png"):
+                    file = root / backend / name
+                    file.write_bytes((name + backend).encode())
+                    item["views"][name] = digest(file)
+            (root / "evidence.json").write_text(json.dumps(guide_report))
+            self.assertEqual(verified_captures(source, root), guide_report)
+            gpu_profile = root / "WebGPUBackend/portrait-profile.png"
+            gpu_profile.write_bytes(b"different profile")
+            with self.assertRaisesRegex(ValueError, "frames changed"):
+                verified_captures(source, root)
+            guide.write_bytes(b"revised guide")
+            with self.assertRaisesRegex(ValueError, "guide changed"):
+                verified_captures(source, root)
+            approval()
             report = json.loads((root / "evidence.json").read_text())
             grip = report["backends"]["WebGPUBackend"]["native"]["grip_test"]
             grip["minimum_curl_radians"]["left"] = 0

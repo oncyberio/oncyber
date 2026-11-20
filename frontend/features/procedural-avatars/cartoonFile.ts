@@ -3,6 +3,10 @@ import type { CartoonDesign } from "./cartoonCast";
 import { prepareHousehold } from "./householdBody";
 
 const n = (min: number, max: number) => z.number().min(min).max(max);
+const crownEdge = z
+    .array(z.tuple([n(-0.78, 0.78), n(0, 0.445)]))
+    .min(3)
+    .max(15);
 const fraction = n(0, 1);
 const paint = z.string().regex(/^#[\da-f]{6}$/i);
 export const shirtMarkSchema = z.strictObject({
@@ -822,6 +826,33 @@ const householdFile = file.extend({
                             points[0][0] < 0 &&
                             points.at(-1)[0] > 0 &&
                             points.every(([x], i) => !i || x > points[i - 1][0])
+                    )
+                    .optional(),
+                crownEdges: z
+                    .tuple([crownEdge, crownEdge])
+                    .refine(
+                        ([left, right]) =>
+                            left.length >= 3 &&
+                            right.length >= 3 &&
+                            left[0][0] === right[0][0] &&
+                            left[0][1] === right[0][1] &&
+                            Math.abs(left[0][0]) < 0.35 &&
+                            left[0][1] < 0.07 &&
+                            left.at(-1)[0] < -0.24 &&
+                            right.at(-1)[0] > 0.24 &&
+                            [left, right].every(
+                                (path, side) =>
+                                    path.at(-1)[1] === 0.44 &&
+                                    path.every(
+                                        ([x, y], i) =>
+                                            (!i ||
+                                                x !== path[i - 1][0] ||
+                                                y !== path[i - 1][1]) &&
+                                            (side
+                                                ? x >= path[0][0]
+                                                : x <= path[0][0])
+                                    )
+                            )
                     )
                     .optional(),
                 crownSides: z

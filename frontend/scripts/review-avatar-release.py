@@ -16,6 +16,11 @@ if __name__ == "__main__":
         type=Path,
         help="A separate visual review JSON including reviewer, kind, evidence SHA-256 and boolean checks",
     )
+    parser.add_argument(
+        "--turn-guide",
+        type=Path,
+        help="Withheld head sheet with 35° in the left half and 90° in the right half",
+    )
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--max-triangles", type=int, default=4000)
     parser.add_argument("--framing", choices=["portrait", "full"], default="full")
@@ -54,6 +59,10 @@ if __name__ == "__main__":
         > 1
     ):
         parser.error("Choose one release action")
+    if args.turn_guide and any(
+        (args.install, args.decision, args.register_feature, args.model)
+    ):
+        parser.error("--turn-guide belongs to native evidence capture")
     if args.replace_digest and not args.install:
         parser.error("--replace-digest requires --install")
     if args.model and (
@@ -109,6 +118,7 @@ if __name__ == "__main__":
             args.max_triangles,
             args.framing,
             args.yaw,
+            args.turn_guide,
         )
         print(
             "Evidence",

@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import ndimage
 
+from .crown import crown_edges
 from .eye_review import portrait_pair
 from .family import FAMILIES
 from .fit import pixels
@@ -443,6 +444,9 @@ def compile_portrait(source, family, name, obs):
             [[(a + c) / 2, (b + d) / 2] for a, b, c, d in (e["bounds"] for e in pair)]
         )
         cx, eye_y = centers.mean(0)
+        sweep = crown_edges(rgb, mask, cx, top, height, skull_width, skin, hair)
+        if sweep:
+            household["crownEdges"] = sweep
         if not mark:
             lips = closed_lips(rgb, cx, top, height, skull_width, skin)
             if lips:

@@ -87,7 +87,32 @@ def registration_from_source(recipe, source):
     return registration
 
 
-def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
+def add_turn_guide(report, recipe, folder, guide):
+    from shutil import copyfile
+    from PIL import Image
+    from .turn_guides import compare_turns
+
+    with Image.open(guide) as image:
+        split = image.width // 2
+    copyfile(guide, folder / "turn-guide")
+    report["turn_guide"] = {
+        "sha256": digest(guide),
+        "split_x": split,
+        "angles": [35, 90],
+    }
+    candidate = json.loads(recipe.read_bytes())
+    for backend, item in report["backends"].items():
+        dest = folder / backend
+        item["turn_metrics"] = compare_turns(
+            guide, split, candidate, dest, dest / "turns.webp"
+        )
+        for name in ("portrait-profile.png", "turns.webp"):
+            item["views"][name] = digest(dest / name)
+
+
+def evidence(
+    recipe, source, folder, base, budget, framing="full", yaw=0, turn_guide=None
+):
     folder.mkdir(parents=True, exist_ok=True)
     family = json.loads(recipe.read_text()).get("family", "rick-classic")
     if framing == "full" and yaw:
@@ -123,6 +148,8 @@ def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
             "native": native,
             "views": {v: digest(dest / v) for v in (*VIEWS, *GRIP_VIEWS)},
         }
+    if turn_guide is not None:
+        add_turn_guide(result, recipe, folder, turn_guide)
     (folder / "evidence.json").write_text(json.dumps(result, indent=2) + "\n")
     return result
 
@@ -134,12 +161,17 @@ def verified_captures(recipe, folder):
         raise ValueError("The recipe changed after the native review")
     if set(report["backends"]) != {"WebGPUBackend", "WebGLBackend"}:
         raise ValueError("Both native backends must be reviewed")
+    guide = report.get("turn_guide")
+    if guide is not None and digest(folder / "turn-guide") != guide["sha256"]:
+        raise ValueError("The withheld turn guide changed after review")
     for backend, item in report["backends"].items():
         if item["native"]["backend"] != backend:
             raise ValueError(f"Unexpected renderer for {backend}")
         # Older evidence remains inspectable. A new promotion also requires
         # both socket and finger measurements on the current candidate.
         views = (*VIEWS, *GRIP_VIEWS) if "grip_test" in item["native"] else VIEWS
+        if guide is not None:
+            views = (*views, "portrait-profile.png", "turns.webp")
         if set(item["views"]) != set(views) or any(
             digest(folder / backend / name) != item["views"][name] for name in views
         ):
@@ -215,6 +247,81 @@ def record_decision(recipe, source, folder, decision):
     return require_release(recipe, folder)
 
 
+def export_review_views(folder, destination, key, report):
+    """Offer the captured turns and motion on demand, bound to the archived evidence."""
+    from shutil import copyfile
+    from PIL import Image, ImageDraw, ImageFont
+    from .family_sheet import view_tile
+
+    destination.mkdir(parents=True, exist_ok=True)
+    font = ImageFont.truetype("DejaVuSans.ttf", 17)
+    assets = {}
+    for backend, capture in report["backends"].items():
+        source = folder / backend
+        prefix = destination / (key + "-" + backend)
+        grips = "grip_test" in capture["native"]
+        sheet = Image.new("RGB", (1440, 1190 if grips else 926), "#eee9e1")
+        labels = ImageDraw.Draw(sheet)
+        for index, (view, label) in enumerate(
+            (
+                ("front", "Front"),
+                ("quarter", "35°"),
+                ("profile", "Profile"),
+                ("back", "Back"),
+            )
+        ):
+            x = index * 360
+            tile = view_tile(source / (view + ".png"), (352, 330))
+            sheet.paste(
+                tile, (x + (360 - tile.width) // 2, 30 + (330 - tile.height) // 2)
+            )
+            labels.text((x + 9, 6), label, font=font, fill="#262521")
+        with Image.open(source / "turnaround.png") as turns:
+            sheet.paste(turns.convert("RGB"), (0, 366))
+        pose = view_tile(source / "crouch.png", (392, 490))
+        sheet.paste(
+            pose, (1040 + (400 - pose.width) // 2, 407 + (490 - pose.height) // 2)
+        )
+        labels.text(
+            (1050, 377), "Crouch and right-hand grip", font=font, fill="#262521"
+        )
+        if grips:
+            for i, side in enumerate(("right", "left")):
+                with Image.open(source / ("grip-" + side + ".png")) as hand:
+                    # The native hand camera centers the wrist and middle fingertip.
+                    # Preserve the scale and leave room for the projecting handle.
+                    w, h = hand.size
+                    scale = min(w / 680, h * 0.48 / 232)
+                    box = (
+                        w / 2 - 340 * scale,
+                        h / 2 - 116 * scale,
+                        w / 2 + 340 * scale,
+                        h / 2 + 116 * scale,
+                    )
+                    tile = hand.resize((680, 232), Image.Resampling.LANCZOS, box=box)
+                    sheet.paste(tile, (i * 720 + 20, 950))
+                labels.text(
+                    (i * 720 + 14, 925),
+                    side.capitalize() + " grip",
+                    font=font,
+                    fill="#262521",
+                )
+        still = prefix.with_name(prefix.name + "-views.webp")
+        motion = prefix.with_name(prefix.name + "-walk.webp")
+        sheet.save(still, "WEBP", quality=92, method=6)
+        copyfile(source / "walk.webp", motion)
+        assets[backend] = {
+            "views": digest(still),
+            "walk": capture["views"]["walk.webp"],
+        }
+        if report.get("turn_guide"):
+            copyfile(
+                source / "turns.webp", prefix.with_name(prefix.name + "-turns.webp")
+            )
+            assets[backend]["turns"] = capture["views"]["turns.webp"]
+    return assets
+
+
 def vision_decision(recipe, source, folder, args):
     from .family_edits import record
     from .provider import openrouter_model, request_drawing
@@ -237,33 +344,35 @@ def vision_decision(recipe, source, folder, args):
             }
         ),
     }
-    # OpenRouter receives static images. Give the reviewer sampled walk
-    # frames and the actual held item instead of only the first WebP frame.
-    views = folder / "WebGLBackend"
-    sheet = Image.new("RGB", (960, 640), "#ebe5db")
-    draw = ImageDraw.Draw(sheet)
-    with Image.open(views / "walk.webp") as animation:
-        for i in range(6):
-            animation.seek(round(i * (animation.n_frames - 1) / 5))
-            cell = ImageOps.contain(animation.convert("RGB"), (320, 300))
-            x, y = (i % 3) * 320, (i // 3) * 320
-            sheet.paste(cell, (x + (320 - cell.width) // 2, y + 18))
-            draw.text(
-                (x + 5, y + 3), f"Walk frame {animation.tell() + 1}", fill="black"
-            )
-    motion = folder / "review-motion.png"
-    sheet.save(motion)
+    # Give a static-image reviewer both native rigs, each grip close-up and
+    # successive walk frames. The recorded walk alone opens at frame zero.
+    dest = folder / "vision-review"
+    export_review_views(folder, dest, "native", report)
+    images = [source]
+    for backend in report["backends"]:
+        images.append(dest / f"native-{backend}-views.webp")
+        sheet = Image.new("RGB", (960, 640), "#ebe5db")
+        draw = ImageDraw.Draw(sheet)
+        with Image.open(folder / backend / "walk.webp") as animation:
+            for i in range(6):
+                animation.seek(round(i * (animation.n_frames - 1) / 5))
+                cell = ImageOps.contain(animation.convert("RGB"), (320, 300))
+                x, y = (i % 3) * 320, (i // 3) * 320
+                sheet.paste(cell, (x + (320 - cell.width) // 2, y + 18))
+                draw.text(
+                    (x + 5, y + 3),
+                    f"{backend} walk frame {animation.tell() + 1}",
+                    fill="black",
+                )
+        motion = dest / f"{backend}-motion.png"
+        sheet.save(motion)
+        images.append(motion)
+        if report.get("turn_guide"):
+            images.append(folder / backend / "turns.webp")
     result, receipt = request_drawing(
         args,
-        "Independently review the reference, native full body, head turnaround, back, crouch with prop and six walk frames. Inspect eye seating and pupils at both side views, the neckline, proportions, hair, elbows, knees and hand contact. Reject visible errors. Infer plausible anatomy where the source ends. Return one boolean per listed criterion and explain each failed criterion.",
-        [
-            source,
-            views / "front.png",
-            views / "turnaround.png",
-            views / "back.png",
-            views / "crouch.png",
-            motion,
-        ],
+        "Independently review the reference and each renderer's body and head turns, crouch, both grips and six walk frames. Inspect eye seating, pupils, neckline, proportions, hair, elbows, knees and item contact. Compare any separately drawn 35 and 90 degree head guides to their native turns. Reject visible errors. Infer plausible anatomy where the source ends. Return one boolean per criterion and explain each miss.",
+        images,
         [operation],
         operation,
     )
