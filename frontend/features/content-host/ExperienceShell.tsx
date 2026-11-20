@@ -69,6 +69,11 @@ export interface ExperienceShellChat {
 export interface ExperienceShellProps {
     title: string;
     onExit(): void;
+    /**
+     * Opens the 2D main page, for the back button of a visitor who did not
+     * come from the lobby. `onExit` when omitted.
+     */
+    onHome?(): void;
     exitLabel?: string;
     /** A line about the place itself, such as "Ready to enter". */
     status?: string;
@@ -137,6 +142,7 @@ export function ExperienceIcon({
 export default function ExperienceShell({
     title,
     onExit,
+    onHome,
     exitLabel = "Back to previous world",
     status,
     connection,
@@ -175,7 +181,12 @@ export default function ExperienceShell({
                     className="experience-back"
                     aria-label={exitLabel}
                     onClick={() =>
-                        goToPreviousExperience(() => goToLobby(onExit))
+                        // Back to the 3D lobby only for a visitor who came
+                        // from it; otherwise to the 2D main page.
+                        goToPreviousExperience(
+                            () => goToLobby(onExit),
+                            onHome ?? onExit
+                        )
                     }
                 >
                     <Icon name="back" size={17} />

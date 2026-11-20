@@ -238,6 +238,19 @@ const nextConfig = {
             });
         }
 
+        // Internal tools and sign-in helpers stay out of search results.
+        for (const source of [
+            "/dev/:path*",
+            "/design",
+            "/cli-auth",
+            "/_trpc",
+        ]) {
+            headers.push({
+                source,
+                headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+            });
+        }
+
         headers.push({
             source: "/(.*)",
             headers: [
@@ -355,9 +368,26 @@ const nextConfig = {
             },
         ];
 
+        // A profile link (/@name) is the lobby with that person's panel
+        // open: the address stays /@name, so it is the page search engines
+        // index. `profileLink` tells the page the name came from a link, so
+        // an unknown one answers 404 (utils/serverside/landingServerSideProps).
+        const profileRewrites = [
+            {
+                // The parameter is named for the query key it fills, so the
+                // page's query holds nothing else from the link.
+                source: "/@:profile",
+                destination: "/?lobby=1&profile=:profile&profileLink=1",
+            },
+        ];
+
         // Docs as plain text for agents (see features/docs/content.ts).
         const docsRewrites = [
             { source: "/llms.txt", destination: "/api/docs/llms" },
+            {
+                source: "/llms-full.txt",
+                destination: "/api/docs/llms?full=1",
+            },
             { source: "/docs.md", destination: "/api/docs/raw" },
             {
                 source: "/docs/:slug.md",
@@ -379,6 +409,7 @@ const nextConfig = {
                         source: "/template",
                         destination: "/marketplace",
                     },
+                    ...profileRewrites,
                     ...sitemapRewrites,
                     ...docsRewrites,
                     ...posthogRewrites,
@@ -392,6 +423,7 @@ const nextConfig = {
                 source: "/templates",
                 destination: "/marketplace",
             },
+            ...profileRewrites,
             ...sitemapRewrites,
             ...docsRewrites,
             ...posthogRewrites,

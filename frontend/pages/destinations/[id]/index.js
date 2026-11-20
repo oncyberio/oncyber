@@ -5,6 +5,7 @@ import { getDestination } from "@utils/saveToDb";
 import { AuthServerSidePropsLite } from "@utils/authServerSideProps";
 import { getStylekitByRoom } from "pages/api/stylekit";
 import { getDefaultCyberkitDataFromRoom } from "@components/_3DExhibit-v2/three/factory/space/roomdatacompat";
+import DestinationSeo from "@components/seo/DestinationSeo";
 
 const Exhibit3DDisplay = dynamic(() => import("@3/displyUI/DisplayScene"), {
     ssr: false,
@@ -58,6 +59,7 @@ function Destination({ destination, stylekit, notfound }) {
 
     return (
         <Container>
+            <DestinationSeo destination={destination} />
             {/* <Infobar>
                 <p>
                     This destination is traded as an NFT on Opensea. Buying it

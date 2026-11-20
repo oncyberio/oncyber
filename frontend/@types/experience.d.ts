@@ -231,6 +231,8 @@ export interface Experience {
     // Cached data to speed up portal loading
     ownerData?: User;
     ownerName?: string;
+    /** Other public spaces by the owner, set when the cached view is filled. */
+    ownerSpaces?: { id: string; name: string; path: string }[];
     portalExhibits?: Record<string, Experience>;
     portalsDestinations?: Record<string, RoomParameters>;
     portalsOwners?: Record<string, User>;
