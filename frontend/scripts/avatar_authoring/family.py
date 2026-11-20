@@ -11,6 +11,7 @@ from scipy.spatial import cKDTree
 
 from .fit import pixels
 from .jersey_sleeve import jersey_sleeve
+from .kit_footwear import kit_footwear
 from .sun_rays import (
     fit_crew_to_orb,
     fitted_shorts,
@@ -675,6 +676,9 @@ def fit_family(path, family="auto", name=None, bases=None, *, custom_jersey=Fals
     recipe, _metrics, overlay = candidates[best]
     if best == "sunshine" and custom_jersey:
         landmarks = kit_landmarks(image, mask)
+        footwear = kit_footwear(image, mask, landmarks)
+        if footwear:
+            recipe["kitFootwear"] = footwear
         cut = shorts_cut(image, mask, landmarks)
         if cut is not None:
             recipe["shortsCut"] = fitted_shorts(cut)

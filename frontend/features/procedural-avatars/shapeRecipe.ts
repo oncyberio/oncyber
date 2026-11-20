@@ -1,3 +1,9 @@
+import {
+    drawKitLeg,
+    drawKitSock,
+    drawKitShoe,
+    type KitFootwear,
+} from "./kitFootwear";
 import { drawJerseySleeve, type JerseySleeve } from "./jerseySleeve";
 import { drawOrbVisor, type OrbVisor } from "./orbVisor";
 import families from "./families.json";
@@ -271,7 +277,8 @@ export function drawShapeRecipe(
     visor?: OrbVisor,
     orbCollar?: OrbCollar,
     shortsCut?: ShortsCut,
-    jerseySleeve?: JerseySleeve
+    jerseySleeve?: JerseySleeve,
+    footwear?: KitFootwear
 ) {
     const finishes = Object.fromEntries(
         Object.values(recipe.palette).map((p) => [p.color, finish[p.finish]])
@@ -288,6 +295,20 @@ export function drawShapeRecipe(
             }),
         };
     }
+    if (footwear) {
+        // Use absolute drawing pigments independently of the template role palette.
+        const dye = (c: string) => new T.Color(c).getStyle();
+        footwear = {
+            ...footwear,
+            knit: dye(footwear.knit),
+            upper: dye(footwear.upper),
+            sole: dye(footwear.sole),
+            bands: footwear.bands.map((b) => ({ ...b, color: dye(b.color) })),
+        };
+        finishes[footwear.upper] = finish.cloth;
+        for (const c of [footwear.knit, ...footwear.bands.map((b) => b.color)])
+            finishes[c] = finish.cloth;
+    }
     d.s.palette(finishes);
     d.s.ambientByPaint = Object.fromEntries(
         Object.values(recipe.palette)
@@ -302,6 +323,15 @@ export function drawShapeRecipe(
         recipe.parts.find((part) => "name" in part && part.name === "waist");
     const waistbandY =
         band && "profile" in band ? band.profile[0][0] : undefined;
+    const sock =
+        footwear &&
+        recipe.parts.find((p) => "profile" in p && p.paint === "sock");
+    const shoe =
+        footwear &&
+        recipe.parts.find((p) => "profile" in p && p.bone.endsWith("Foot"));
+    const cuffY = sock && "profile" in sock ? sock.profile[0][0] : undefined;
+    const floorY =
+        shoe && "profile" in shoe ? shoe.profile.at(-1)[0] : undefined;
     for (const source of recipe.parts) {
         const part = fitShortLeg(source, shortsCut, waistbandY);
         d.bind(part.bone);
@@ -331,6 +361,64 @@ export function drawShapeRecipe(
                 : undefined;
         d.s.blend = part.blend;
         const pigment = recipe.palette[part.paint].color;
+        if (
+            footwear &&
+            part.paint === "pink" &&
+            "profile" in part &&
+            part.bone.endsWith("Leg")
+        ) {
+            if (part.bone.endsWith("LowerLeg")) continue;
+            const shin = recipe.parts.find(
+                (p) =>
+                    p.bone === part.bone.replace("UpperLeg", "LowerLeg") &&
+                    p.paint === part.paint &&
+                    "profile" in p
+            );
+            if (shin && "profile" in shin) {
+                const thighShade = d.s.tone;
+                const shinShade =
+                    shin.tones && sectionTone(shin.profile, shin.tones, false);
+                if (thighShade && shinShade) {
+                    const end = part.profile.at(-1)[0],
+                        begin = shin.profile[0][0];
+                    d.s.tone = (x, y, z) =>
+                        T.MathUtils.lerp(
+                            thighShade(x, y, z),
+                            shinShade(x, y, z),
+                            T.MathUtils.smoothstep(y, begin, end)
+                        );
+                }
+                drawKitLeg(d, part.bone, part.profile, shin.profile, pigment);
+                continue;
+            }
+        }
+        if (
+            footwear &&
+            floorY !== undefined &&
+            part.paint === "sock" &&
+            "profile" in part
+        ) {
+            d.s.printUV = undefined;
+            drawKitSock(d, part.bone, part.profile, footwear, floorY);
+            continue;
+        }
+        if (
+            footwear &&
+            cuffY !== undefined &&
+            part.paint === "rubber" &&
+            part.bone.endsWith("Foot")
+        ) {
+            d.s.gradient = undefined;
+            if ("profile" in part)
+                drawKitShoe(
+                    d,
+                    part.bone,
+                    footwear,
+                    part.profile.at(-1)[0],
+                    cuffY
+                );
+            continue;
+        }
         if (
             jerseySleeve &&
             "across" in part &&

@@ -82,6 +82,35 @@ const familyFile = z.strictObject({
                 ),
         })
         .optional(),
+    kitFootwear: z
+        .strictObject({
+            knit: swatch,
+            bands: z
+                .array(
+                    z.strictObject({
+                        start: z.number().min(0.07).max(0.94),
+                        end: z.number().min(0.08).max(0.95),
+                        color: swatch,
+                    })
+                )
+                .max(3)
+                .refine((rows) =>
+                    rows.every(
+                        (b, i) =>
+                            b.end > b.start &&
+                            (!i || b.start >= rows[i - 1].end)
+                    )
+                ),
+            rise: z.number().min(0.1).max(0.47),
+            widths: z.array(z.number().min(0.14).max(0.85)).length(5),
+            upper: swatch,
+            sole: swatch,
+            laces: z
+                .array(z.number().min(0.08).max(0.46))
+                .max(4)
+                .refine((rows) => rows.every((t, i) => !i || t > rows[i - 1])),
+        })
+        .optional(),
     shortsCut: z
         .strictObject({
             rise: z.number().min(0.2).max(0.93),
@@ -318,6 +347,7 @@ export function readAvatarFile(input: unknown): {
         if (
             (file.orbOffset ||
                 file.kitFit ||
+                file.kitFootwear ||
                 file.shortsCut ||
                 file.jerseySleeve ||
                 file.orbPaint ||
@@ -366,6 +396,10 @@ export function readAvatarFile(input: unknown): {
                 template: family.template as Character,
                 ...file.proportions,
                 palette,
+                ...(file.kitFootwear && {
+                    kitFootwear:
+                        file.kitFootwear as AvatarRecipe["kitFootwear"],
+                }),
                 ...(file.jerseySleeve && {
                     jerseySleeve:
                         file.jerseySleeve as AvatarRecipe["jerseySleeve"],

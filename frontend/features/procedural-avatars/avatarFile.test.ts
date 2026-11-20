@@ -594,6 +594,86 @@ test("measured shorts own their cut at both detail levels and preserve the share
     }
 });
 
+test("measured sports footwear bends at the knee, ankle and toes in the full and crowd meshes", () => {
+    const parts = {
+        knit: "#edebe8",
+        bands: [{ start: 0.44, end: 0.5, color: "#fc4b91" }],
+        rise: 0.267,
+        widths: [0.28, 0.44, 0.49, 0.52, 0.54],
+        upper: "#39343a",
+        sole: "#24202a",
+        laces: [0.2, 0.33],
+    };
+    const read = (kitFootwear = parts) =>
+        readAvatarFile({ ...vesper, kitFootwear }).recipe;
+    expect(() =>
+        readAvatarFile({ ...scientist, kitFootwear: parts })
+    ).toThrow();
+    expect(() =>
+        read({ ...parts, bands: [{ start: 0.6, end: 0.41, color: "#cc2266" }] })
+    ).toThrow();
+    for (const detail of ["full", "crowd"] as const) {
+        const actors = [
+            read(),
+            read({
+                ...parts,
+                bands: [{ ...parts.bands[0], color: "#1059bb" }],
+            }),
+        ].map((r) => buildCharacter(r, detail));
+        try {
+            const meshes = actors.map(
+                (a) =>
+                    a.scene.getObjectByProperty(
+                        "isSkinnedMesh",
+                        true
+                    ) as T.SkinnedMesh
+            );
+            const [a, b] = meshes.map((m) => m.geometry);
+            expect(a.groups).toHaveLength(0);
+            expect(a.index.count / 3).toBeLessThan(4000);
+            expect(a.attributes.position.array).toEqual(
+                b.attributes.position.array
+            );
+            expect(a.attributes.color.array).not.toEqual(
+                b.attributes.color.array
+            );
+            const { skinIndex, skinWeight } = a.attributes;
+            const vertices = Array.from(
+                { length: skinIndex.count },
+                (_, i) => i
+            );
+            const bones = meshes[0].skeleton.bones;
+            for (const side of ["left", "right"]) {
+                for (const [upper, lower] of [
+                    ["UpperLeg", "LowerLeg"],
+                    ["LowerLeg", "Foot"],
+                    ["Foot", "Toes"],
+                ]) {
+                    const upperBone = bones.findIndex(
+                        (joint) => joint.name === side + upper
+                    );
+                    const lowerBone = bones.findIndex(
+                        (joint) => joint.name === side + lower
+                    );
+                    expect(upperBone).toBeGreaterThan(-1);
+                    expect(lowerBone).toBeGreaterThan(-1);
+                    expect(
+                        vertices.some(
+                            (i) =>
+                                skinIndex.getX(i) === upperBone &&
+                                skinIndex.getY(i) === lowerBone &&
+                                skinWeight.getX(i) > 0.1 &&
+                                skinWeight.getY(i) > 0.1
+                        )
+                    ).toBe(true);
+                }
+            }
+        } finally {
+            actors.forEach((a) => disposeAvatarGraph(a.scene));
+        }
+    }
+});
+
 test("jersey cuts and bindings survive both levels of detail on the articulated mesh", () => {
     const cut = {
         span: 122,

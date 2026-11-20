@@ -1068,7 +1068,8 @@ export function drawCharacter(d: Drawing, recipe?: AvatarRecipe) {
             recipe?.visor,
             recipe?.orbCollar,
             recipe?.shortsCut,
-            recipe?.jerseySleeve
+            recipe?.jerseySleeve,
+            recipe?.kitFootwear
         );
         return;
     }
@@ -1115,6 +1116,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
             recipe.visor ||
             recipe.orbCollar ||
             recipe.shortsCut ||
+            recipe.kitFootwear ||
             recipe.jerseySleeve ||
             recipe.coatPanels ||
             recipe.sleeveCut);
@@ -1135,6 +1137,7 @@ function compiled(id: Character, recipe: AvatarRecipe) {
                   recipe.orbCollar,
                   recipe.shortsCut,
                   recipe.jerseySleeve,
+                  recipe.kitFootwear,
                   recipe.coatPanels,
                   recipe.sleeveCut,
               ])

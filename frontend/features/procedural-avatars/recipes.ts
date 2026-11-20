@@ -1,3 +1,4 @@
+import type { KitFootwear } from "./kitFootwear";
 import type { JerseySleeve } from "./jerseySleeve";
 import type { OrbVisor } from "./orbVisor";
 import families from "./families.json";
@@ -35,6 +36,7 @@ export interface AvatarRecipe {
     };
     shortsCut?: ShortsCut;
     jerseySleeve?: JerseySleeve;
+    kitFootwear?: KitFootwear;
     visor?: OrbVisor;
     orbPaint?: { top: string; bottom: string };
     orbCollar?: OrbCollar;

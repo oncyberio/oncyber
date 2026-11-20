@@ -29,6 +29,45 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_kit_footwear_measures_two_legs_and_requires_visible_shoes(self):
+        from .kit_footwear import kit_footwear
+        from .sun_rays import kit_landmarks
+
+        root = Path(__file__).parent / "targets/holdout-v1"
+        for k in ("solvi", "mora"):
+            rgb, mask = pixels(root / (k + "-full.webp"), keep_components=True)
+            marks = kit_landmarks(rgb, mask)
+            cut = kit_footwear(rgb, mask, marks)
+            self.assertEqual(len(cut["bands"]), 2)
+            self.assertGreaterEqual(len(cut["laces"]), 2)
+            self.assertLess(cut["widths"][0], cut["widths"][-1])
+            color = bytes.fromhex(cut["bands"][0]["color"][1:])
+            self.assertEqual(color[0] > color[2], k == "mora")
+            # A cropped or obscured second foot supplies no paired measurement.
+            mask[-70:, mask.shape[1] // 2 :] = False
+            self.assertIsNone(kit_footwear(rgb, mask, marks))
+        self.assertIsNone(kit_footwear(rgb, mask, None))
+
+    def test_plain_shoes_and_one_sock_band_do_not_gain_laces_or_a_second_stripe(self):
+        from .kit_footwear import kit_footwear
+
+        paper = [232, 226, 213]
+        rgb = np.full((256, 180, 3), paper, dtype=float)
+        rgb[16:189, 65:115] = [90, 130, 181]
+        for x in (78, 102):
+            rgb[187:226, x - 4 : x + 5] = [242, 238, 231]
+            rgb[196:200, x - 4 : x + 5] = [38, 165, 102]
+            rgb[226:238, x - 6 : x + 7] = [61, 54, 62]
+        mask = np.any(rgb != paper, axis=2)
+        sock_start = (187 - 16) / (237 - 16)
+        cut = kit_footwear(rgb, mask, [0, 0, 0, 0, sock_start])
+        self.assertEqual(cut["laces"], [])
+        self.assertEqual(len(cut["bands"]), 1)
+        self.assertEqual(cut["bands"][0]["color"], "#26a566")
+        self.assertAlmostEqual(cut["bands"][0]["start"], 9 / 39, places=3)
+        rgb[196:200, 98:107] = [242, 238, 231]
+        self.assertEqual(kit_footwear(rgb, mask, [0, 0, 0, 0, sock_start])["bands"], [])
+
     def test_marked_visor_registers_both_frames_independently_of_the_body_box(self):
         from .visor import front_orb_seed
 

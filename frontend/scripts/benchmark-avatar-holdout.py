@@ -10,6 +10,7 @@ import numpy as np
 from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
 from avatar_authoring.household_front import trouser_opening
+from avatar_authoring.kit_footwear import compare_footwear
 from avatar_authoring.inked_hand import compare_hand_contours
 from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
@@ -428,6 +429,11 @@ def record_preview(args):
                 mode: compare_jersey_sleeves(
                     reference, evidence.parent / mode / "front.png"
                 )
+                for mode in report["backends"]
+            }
+        if "kitFootwear" in recipe:
+            data["kit_footwear"] = {
+                mode: compare_footwear(reference, evidence.parent / mode / "front.png")
                 for mode in report["backends"]
             }
         if "shortsCut" in recipe:
