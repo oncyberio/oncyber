@@ -50,6 +50,34 @@ def native_page(pw, base, backend):
     return browser, page
 
 
+def capture_grips(page, stage, dest, set_angle):
+    """Check the mounted item and the smallest curl of the five distal joints."""
+    page.get_by_label("Motion", exact=True).select_option("T-pose")
+    page.get_by_role("button", name="Inspect hand", exact=True).click()
+    curls = {}
+    for side, angle, button in (
+        ("right", 35, "Hold microphone"),
+        ("left", -35, "Switch to left hand"),
+    ):
+        set_angle(page.get_by_label("Rotation", exact=False), angle)
+        page.get_by_role("button", name=button, exact=True).click()
+        page.wait_for_function(
+            """([side, angle]) => {
+                const d = document.querySelector('.stage canvas').dataset;
+                return d.framing === 'authored/' + angle + '/hand' && d.grip === side;
+            }""",
+            arg=[side, angle],
+        )
+        curls[side] = round(float(stage.get_attribute("data-min-grip-curl")), 4)
+        stage.screenshot(path=dest / ("grip-" + side + ".png"))
+    page.get_by_role("button", name="Release microphone").click()
+    page.wait_for_function(
+        "() => document.querySelector('.stage canvas').dataset.itemReleased === 'true'"
+    )
+    page.get_by_role("button", name="Full body", exact=True).click()
+    return {"minimum_curl_radians": curls, "released": True}
+
+
 def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False):
     dest.mkdir(parents=True, exist_ok=True)
     set_angle = run_path(
@@ -199,6 +227,7 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
         (dest / "camera.json").write_text(json.dumps(cameras))
         page.get_by_role("button", name="Full body", exact=True).click()
         if motion:
+            result["grip_test"] = capture_grips(page, stage, dest, set_angle)
             set_angle(page.get_by_label("Rotation", exact=False), 22)
             page.get_by_label("Motion", exact=True).select_option("WALK")
             page.wait_for_function(
@@ -259,7 +288,7 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
                     loop=0,
                     duration=90,
                 )
-            result["hand"] = "right"
+            result["hand"] = stage.get_attribute("data-grip")
             set_angle(page.get_by_label("Rotation", exact=False), 35)
             page.get_by_label("Motion", exact=True).select_option("Crouch")
             page.wait_for_function(

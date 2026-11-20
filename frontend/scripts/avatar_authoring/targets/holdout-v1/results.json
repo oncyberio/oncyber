@@ -9235,20 +9235,27 @@
                             "eye_pigment_agreement": 0.875
                         }
                     ],
-                    "evidence_sha256": "37139f229cf9eda9ff83f728c05876d8908692bf56642660f57a6296f6ecafe8",
+                    "evidence_sha256": "8809cb9d6df76f46872d8ed59a563b22e459adf10d19379e3421de39e48b3a60",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "7002ec597afc14acd1534b30e0fcc40f72ba0dc9607ca0e7b247cbfea167f9c9",
-                            "walk": "aecded93ba174187b0fe57b3a79d9d635a21e627d7eb7ead60920b7718dd94e9"
+                            "views": "37543dfc85c4e102266af0c0a0e2413c3d8404607a4f9be9d55e2b42b9bbb02b",
+                            "walk": "d1023eaddc6739b747e3a82f1ea60039890c7a0591054b9ac05efa466fdcb6c3"
                         },
                         "WebGPUBackend": {
-                            "views": "77bfd0b0e180049b190603e7b4432d1e4bfc17513241770c18860f350e3735a5",
-                            "walk": "488fe5a808fdaf38993dc316ac83197a98fa79d06cfe6f82a8e9a8ac1bf50172"
+                            "views": "0d545636baceb19c304f1f582dd01da93f47da48abffe82a0a30fcc06463975c",
+                            "walk": "063f9a6fabd8d61addca5bf1f85d01c1176e4e90549a2076b34a4030ee3c36ea"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.8912,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3977,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9256,6 +9263,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8912,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3977,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9315,20 +9329,27 @@
                             "eye_pigment_agreement": 0.4587
                         }
                     ],
-                    "evidence_sha256": "00e5f07c2fb00c11f44c04bf597178f23a28470037bf1b3216b16c6f5b7a6940",
+                    "evidence_sha256": "289f03a0e854b2e8f2a4b119cf63171abac8e68246f82ce7c661078a8001ec3b",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "189df052514e2ce9d0c0d906709a2327c68db90e89a3ff09fe8e8093ab00573e",
-                            "walk": "c0d147a9ff7978d9d44a6db824cdf1c8ef992fa6da8233672f262f09d033ba87"
+                            "views": "36d9af6ffcac7b2777e378b676db43bddd5c1ef911007b80ee0db7a157aff3e3",
+                            "walk": "6b70a2ee36f554a34f2e393c8f3381f3c8f4c84a89b1d368ddb254944832483b"
                         },
                         "WebGPUBackend": {
-                            "views": "b2855414f5f88fc1047492e333f22bee73cef2a0ae9865f8444324e61c6ada62",
-                            "walk": "d9d67a3268c45f5dca0ed6518ff4e8ac92cb57bb1217629cdc5844d99763b6b0"
+                            "views": "8a7804e8f559049bdda1d5eee33d2a3b96f750dc00152b85963a291fd2fb5025",
+                            "walk": "35e3a0477369400d39b68ed465fa9af32a3f2b130e5ae97ffc1b4ec5b07378ec"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.8807,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3910,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9336,6 +9357,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8804,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3910,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9382,20 +9410,27 @@
                         "ink_agreement": 0.6859,
                         "visible_fraction": 1.0
                     },
-                    "evidence_sha256": "143d22ea2d1ab53c5b60105dfe71ccb9e63db3712f24f18f234559c933f80c39",
+                    "evidence_sha256": "c661e852dc82eeb0841cfefa4c2f3b6f70fe169a47d913e3585e7153a0b0193e",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "7785296c8124526478696cc88d096e0feb547bdb9654db36e61acb56b6908547",
-                            "walk": "49717e66e5df0f1ac90d7d8d8376326d400f2b95898aa362ab76c88757058cd7"
+                            "views": "210e1f0b7af623eb6f92c0b0c8f05c89dbada98dbc4c528c839cf02c918eff9a",
+                            "walk": "cfb7261e91ca4d74dda5fce3c5ef3b6b89b9e4289f3e5c2f76ade311f6c2f89c"
                         },
                         "WebGPUBackend": {
-                            "views": "e044932bb743b9547e2aa266b66e4abeed1fbb7cd2a432889eeb0d2cb947a9da",
-                            "walk": "551727a40b460d08026b07d3e2a86f1c83940d75919f4046bfb17c9e36fd28ac"
+                            "views": "0673fbf45ad151bfbdf55bde3f7bb7ce0a1f768404e0c99a72d50142076db1de",
+                            "walk": "5f0be0b63bc90033e1e8552e5366ebe1bceee4ae5e362b798ca06d084980ad15"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.8131,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3060,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9403,6 +9438,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8133,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3060,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9435,20 +9477,27 @@
                         "ink_agreement": 0.8642,
                         "visible_fraction": 1.0
                     },
-                    "evidence_sha256": "f6c2274d6e03173da57721f17d5ff836f046cdd6e8ed0b97f9e6517ca0ffb4cb",
+                    "evidence_sha256": "3b7206aba3833769c184d4eca5d88fd059e2db299e3dddfccd8da8bc8c951c40",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "60419c870ef7f12877acb88e01373707a673a04bec39fd45d5ca134a5ba4fca2",
-                            "walk": "073517ba82f53868f6070776826cf1bbea02d9cb61feffce5b9d9332c7e6b26d"
+                            "views": "fe5e69fa2698b6c6df214018148c78f3d39ca053a13c220a988a72d9fd6cbd69",
+                            "walk": "e82867a4ac3be78ecd2ffb25b5735621f653cb57190784044d486d6ffe03362d"
                         },
                         "WebGPUBackend": {
-                            "views": "3be76e6b64f006edf9c38f12dda464cdb268d54f8854f9838abc989d19d91bf5",
-                            "walk": "fb572c02dccc1f0facfde28b886c73f6881d9c17e71ec658cc93e89484a6690b"
+                            "views": "3a8548e3f57a3b3c6be64a034e393f3ea9c3318945094607e154eaa99cb70a05",
+                            "walk": "34765453c43ec9c32138c145c6309fbf7eed03b225cbd236c9419c5ded19fd28"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.7991,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3254,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9456,6 +9505,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.799,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3254,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9502,20 +9558,27 @@
                             "shirt_mark_agreement": 0.8653
                         }
                     ],
-                    "evidence_sha256": "c6a6fb0032c9cdc2c71202ac545f992d08e1539a7d4fb977f11d062b6ab378e6",
+                    "evidence_sha256": "3d915eab038076cad5074d63e10deb8837028885d3fbe28f529997b05b1ff82b",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "a64c4be81767ee5343466b6aa83842816dca2858f0e20e2b63a9ac0a24666195",
-                            "walk": "e309a5220578c42c6fca169aca237523ce23942d1847248e9288a82b02c12d4a"
+                            "views": "c23e51bdc0c8c61cb2e850a9f75409c94d3b9b1d82ff33ae6a5f89d47142da40",
+                            "walk": "44b70140baf400f3c4e2d1e9c278ba9bf36d0f4d2542a48500126faf33a3c01d"
                         },
                         "WebGPUBackend": {
-                            "views": "4ec9158be317ab4d2aea407d7fd9c54e0315444487ed40645683dd0da08fce5e",
-                            "walk": "b5c6788b236281a34e432e28ac2bf4c2a10a0938118883e604783ad61ed6f979"
+                            "views": "ba487458c408727e9e85e035e3963516012406e97959f51e72258b0aa6de8689",
+                            "walk": "c0fc9d6a1adab97496ea29c60b63e479ccadd3b1a5b458360b8b4d18cfab8417"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.8611,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3238,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9523,6 +9586,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8582,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3238,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9766,20 +9836,27 @@
                             "shirt_mark_agreement": 0.8338
                         }
                     ],
-                    "evidence_sha256": "c9e6e700f7645a58873a572b7c68f1c37cc65d32232695b5713ba7c8062a42a2",
+                    "evidence_sha256": "f36efbf85440376ed2036f7b0b1aea0d26d60abdbd5e02d65e6176eba4ae9490",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "b7975dd45998c7c94fa2cef780f61bfd3c1cbf44def67e0ad5ebc03aee45a4a4",
-                            "walk": "152c70b85929db877bdec407b6c7150372e6a5a1f06d26d1d94859979c57f1b1"
+                            "views": "a14747c3d0625886f125d89b800fb4eaa5c76f5757a1dbdfe5bba694518f799f",
+                            "walk": "4f9a2f14d14588cd6cf2f0f6af3a7774416fe5aaedd010fc0712ff742a49a75d"
                         },
                         "WebGPUBackend": {
-                            "views": "dfd5722d4d2d091032b4305a64a6757fc9e89235499bb73f794160f0f08a7ab0",
-                            "walk": "6d70b272d5661ed7bbbc96e1e5699c15c99ef28f552146f488bbabf7f42ba152"
+                            "views": "5a9de73531765bdaf2940092b8a8dc970b6fdb62d4b6c12193c68d3f70b4b909",
+                            "walk": "bf41e8c464fa6644d883c6086d1b9c26d9c3a090696a578be4afeda23864d001"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.87,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3182,
                             "moving_steps": 11,
                             "hand": "right",
@@ -9787,6 +9864,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8767,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 3182,
                             "moving_steps": 11,
                             "hand": "right",
@@ -10015,20 +10099,27 @@
                         "ink_agreement": 0.9883,
                         "visible_fraction": 0.9219
                     },
-                    "evidence_sha256": "28c6d56ec863cc71d1d0b04d2907e137d6c3f0d5b96711cba74ba023fe67b842",
+                    "evidence_sha256": "41413d78e0160ae36f434b0555a1476657580a377a23f9c72b1a4207486323f1",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "b310790d5c8d8f397e5c65df86bcf6d41907dd3af8c24ff7f2ed42816feb965e",
-                            "walk": "cb3704056045357ebe0795184a55fa56ff72ef43bd1fbe411ed4c863fd8fae7f"
+                            "views": "d40f8efb82f7a4670c4ce95051448260bdb3c68f135b98e0ed5169c12d23980f",
+                            "walk": "6904ee8b93241eb7dc04d1f8b25b046c13f50117c2f17b4bed5f1786dd840269"
                         },
                         "WebGPUBackend": {
-                            "views": "e932fb3acbe06a49cd790acb1d84af8a65725ce9b31ea8e8d0fb51d4dc3bd2a2",
-                            "walk": "9df53f363a730ef592875e0b021d8068756ad047b9e4ddec90edb6e7a7fda314"
+                            "views": "46d4d7c9fb38c0dd504028c768686311d0aea33ea87eec9f13870855746d002c",
+                            "walk": "c691c576852d049790f87272daf926e71c41c1f0b05ab912aea2d1766c48afbb"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.7981,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 1754,
                             "moving_steps": 11,
                             "hand": "right",
@@ -10036,6 +10127,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.7971,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 1754,
                             "moving_steps": 11,
                             "hand": "right",
@@ -10086,20 +10184,27 @@
                         "ink_agreement": 0.9778,
                         "visible_fraction": 0.9323
                     },
-                    "evidence_sha256": "99db0e57751f707a3afbba51d3ae642ca49cf1773196dbc2c639f105de095860",
+                    "evidence_sha256": "bed4f29fb1a6df60dee3db9f84111d184dbda31cf2873233b86afc2206ab928e",
                     "review_assets": {
                         "WebGLBackend": {
-                            "views": "1113edc2277d09599f61c370131d9ec47465345a6cea8f544df1cd3534aa6c78",
-                            "walk": "5ec2fb99570c3b7795e4fdc7670ce5a6d336da5e2565b4eacdf566b652416e74"
+                            "views": "67cda9197ea649f46f00d07f56c9126402dbb8e83f05aff509724a318d9c96a7",
+                            "walk": "d22ceab8a4f5dbcdfaec665b94733feaae6c6ab74471a1b3e4e85465b85c0789"
                         },
                         "WebGPUBackend": {
-                            "views": "8657f0418412b828fd65e88669694d585ce8cb3a5cbd8cb1571ab4854fcf5a86",
-                            "walk": "fa8673c147f3ae739a0ab89ea16bd22eb7adc6c10c36e0ab62f656cc93a94329"
+                            "views": "e1c6725ed57f2288893f921306ef87b01609bc25a5d1b020816c7898d9936354",
+                            "walk": "c485da1026518fe0a81190fdada67c2f9f02ccc0c42c94788d798255f5f3ec59"
                         }
                     },
                     "native_release": {
                         "WebGLBackend": {
                             "source_silhouette_iou": 0.8012,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 1667,
                             "moving_steps": 11,
                             "hand": "right",
@@ -10107,6 +10212,13 @@
                         },
                         "WebGPUBackend": {
                             "source_silhouette_iou": 0.8109,
+                            "grip_test": {
+                                "minimum_curl_radians": {
+                                    "right": 0.55,
+                                    "left": 0.55
+                                },
+                                "released": true
+                            },
                             "triangles": 1667,
                             "moving_steps": 11,
                             "hand": "right",

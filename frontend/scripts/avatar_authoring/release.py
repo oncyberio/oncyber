@@ -10,6 +10,7 @@ from .one_image import portrait_metrics
 from .review import render
 
 CHECKS = ("likeness", "profile", "eyes", "garments", "body", "motion", "grip")
+GRIP_VIEWS = ("grip-right.png", "grip-left.png")
 VIEWS = (
     "turnaround.png",
     "portrait.png",
@@ -112,7 +113,7 @@ def evidence(recipe, source, folder, base, budget, framing="full", yaw=0):
         result["backends"][backend] = {
             "reference_metrics": measured,
             "native": native,
-            "views": {v: digest(dest / v) for v in VIEWS},
+            "views": {v: digest(dest / v) for v in (*VIEWS, *GRIP_VIEWS)},
         }
     (folder / "evidence.json").write_text(json.dumps(result, indent=2) + "\n")
     return result
@@ -128,8 +129,11 @@ def verified_captures(recipe, folder):
     for backend, item in report["backends"].items():
         if item["native"]["backend"] != backend:
             raise ValueError(f"Unexpected renderer for {backend}")
-        if set(item["views"]) != set(VIEWS) or any(
-            digest(folder / backend / name) != item["views"][name] for name in VIEWS
+        # Older evidence remains inspectable. A new promotion also requires
+        # both socket and finger measurements on the current candidate.
+        views = (*VIEWS, *GRIP_VIEWS) if "grip_test" in item["native"] else VIEWS
+        if set(item["views"]) != set(views) or any(
+            digest(folder / backend / name) != item["views"][name] for name in views
         ):
             raise ValueError(f"Review frames changed for {backend}")
     return report
@@ -139,12 +143,18 @@ def check_evidence(recipe, folder):
     report = verified_captures(recipe, folder)
     for backend, item in report["backends"].items():
         native = item["native"]
+        grip = native.get("grip_test", {})
         if not reference_passes(report["framing"], item["reference_metrics"]):
             raise ValueError(f"Native reference comparison failed on {backend}")
         if not (
             0 < native["triangles"] <= report["triangle_budget"]
             and native["moving_steps"] >= 9
             and native["hand"] == "right"
+            and grip.get("released") is True
+            and all(
+                0.025 < grip.get("minimum_curl_radians", {}).get(side, 0) <= 3.1416
+                for side in ("right", "left")
+            )
             and 0.3 <= native["crouch_height_ratio"] < 0.98
         ):
             raise ValueError(f"Motion, grip or performance failed on {backend}")

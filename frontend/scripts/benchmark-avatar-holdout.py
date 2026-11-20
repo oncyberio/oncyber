@@ -420,7 +420,8 @@ def export_review_views(folder, destination, key, report):
     for backend, capture in report["backends"].items():
         source = folder / backend
         prefix = destination / (key + "-" + backend)
-        sheet = Image.new("RGB", (1440, 926), "#eee9e1")
+        grips = "grip_test" in capture["native"]
+        sheet = Image.new("RGB", (1440, 1190 if grips else 926), "#eee9e1")
         labels = ImageDraw.Draw(sheet)
         for index, (view, label) in enumerate(
             (
@@ -445,6 +446,22 @@ def export_review_views(folder, destination, key, report):
         labels.text(
             (1050, 377), "Crouch and right-hand grip", font=font, fill="#262521"
         )
+        if grips:
+            for i, side in enumerate(("right", "left")):
+                with Image.open(source / ("grip-" + side + ".png")) as hand:
+                    # The native hand camera centers the wrist and middle fingertip.
+                    # Preserve the scale and leave room for the projecting handle.
+                    w, h = hand.size
+                    scale = min(w / 680, h * 0.48 / 232)
+                    box = (
+                        w / 2 - 340 * scale, h / 2 - 116 * scale,
+                        w / 2 + 340 * scale, h / 2 + 116 * scale,
+                    )
+                    tile = hand.resize((680, 232), Image.Resampling.LANCZOS, box=box)
+                    sheet.paste(tile, (i * 720 + 20, 950))
+                labels.text(
+                    (i * 720 + 14, 925), side.capitalize() + " grip", font=font, fill="#262521"
+                )
         still = prefix.with_name(prefix.name + "-views.webp")
         motion = prefix.with_name(prefix.name + "-walk.webp")
         sheet.save(still, "WEBP", quality=92, method=6)
@@ -523,6 +540,10 @@ def record_preview(args):
         data["native_release"] = {
             mode: {
                 "source_silhouette_iou": v["reference_metrics"]["silhouette_iou"],
+                **(
+                    {"grip_test": v["native"]["grip_test"]}
+                    if "grip_test" in v["native"] else {}
+                ),
                 **{
                     f: v["native"][f]
                     for f in (

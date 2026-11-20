@@ -335,8 +335,13 @@ export default function AvatarStudy({
                 (["right", "left"] as const).map((side) => ({
                     wrist: model.root.getObjectByName(side + "Hand"),
                     tip: model.root.getObjectByName(side + "MiddleDistal"),
+                    digits: ["Thumb", "Index", "Middle", "Ring", "Little"].map(
+                        (finger) =>
+                            model.root.getObjectByName(side + finger + "Distal")
+                    ),
                 }))
             );
+            const minGripCurl = models.map(() => 0);
             const wristCenter = new T.Vector3(),
                 fingertip = new T.Vector3();
             const metrics = models.map((model) => {
@@ -561,10 +566,25 @@ export default function AvatarStudy({
                         previousCompare !== compare
                     ) {
                         if (previousHand) model.equipItem?.(previousHand, null);
-                        if (itemHand && model.root.visible && !compare)
+                        minGripCurl[i] = 0;
+                        if (itemHand && model.root.visible && !compare) {
+                            const digits =
+                                handNodes[i][itemHand === "right" ? 0 : 1]
+                                    .digits;
+                            const before = digits.map((joint) =>
+                                joint?.quaternion.clone()
+                            );
                             model.equipItem?.(itemHand, ownedItems[i], {
                                 radius: 0.011,
                             });
+                            minGripCurl[i] = Math.min(
+                                ...digits.map((joint, j) =>
+                                    joint
+                                        ? joint.quaternion.angleTo(before[j])
+                                        : 0
+                                )
+                            );
+                        }
                     }
                 });
                 if (original) {
@@ -602,8 +622,27 @@ export default function AvatarStudy({
                 previousSubject = view;
                 previousItemMotion = motion;
                 previousCompare = compare;
+                const mount = ownedItems[index]?.parent;
+                const wristIndex = mount?.parent
+                    ? handNodes[index].findIndex(
+                          (h) => h.wrist === mount.parent
+                      )
+                    : -1;
                 canvas.current.dataset.grip =
-                    itemHand && !compare ? itemHand : "";
+                    ["right", "left"][wristIndex] ?? "";
+                canvas.current.dataset.minGripCurl = String(
+                    minGripCurl[index] ?? 0
+                );
+                canvas.current.dataset.itemReleased = String(
+                    !mount &&
+                        !handNodes[index]?.some(({ wrist }) =>
+                            wrist?.children.some(
+                                (child) =>
+                                    child.name === "leftGrip" ||
+                                    child.name === "rightGrip"
+                            )
+                        )
+                );
                 canvas.current.dataset.pose =
                     motion === "Crouch" &&
                     (!models.every(

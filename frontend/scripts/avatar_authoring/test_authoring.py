@@ -791,6 +791,7 @@ class AuthoringTests(unittest.TestCase):
     def test_promotion_checks_reference_motion_views_and_previous_digest(self):
         from .release import (
             CHECKS,
+            GRIP_VIEWS,
             VIEWS,
             check_evidence,
             digest,
@@ -821,10 +822,12 @@ class AuthoringTests(unittest.TestCase):
                 for backend in ("WebGPUBackend", "WebGLBackend"):
                     folder = root / backend
                     folder.mkdir(exist_ok=True)
-                    for name in VIEWS:
+                    for name in (*VIEWS, *GRIP_VIEWS):
                         (folder / name).write_bytes(name.encode())
                     approved["backends"][backend] = {
-                        "views": {name: digest(folder / name) for name in VIEWS},
+                        "views": {
+                            name: digest(folder / name) for name in (*VIEWS, *GRIP_VIEWS)
+                        },
                         "reference_metrics": {
                             "head_iou": 1,
                             "silhouette_iou": 1,
@@ -837,6 +840,10 @@ class AuthoringTests(unittest.TestCase):
                             "triangles": 3250,
                             "moving_steps": 11,
                             "hand": "right",
+                            "grip_test": {
+                                "minimum_curl_radians": {"left": 0.4, "right": 0.4},
+                                "released": True,
+                            },
                             "crouch_height_ratio": 0.7,
                         },
                     }
@@ -851,6 +858,17 @@ class AuthoringTests(unittest.TestCase):
 
             approval()
             report = json.loads((root / "evidence.json").read_text())
+            grip = report["backends"]["WebGPUBackend"]["native"]["grip_test"]
+            grip["minimum_curl_radians"]["left"] = 0
+            (root / "evidence.json").write_text(json.dumps(report))
+            with self.assertRaisesRegex(ValueError, "grip"):
+                check_evidence(source, root)
+            grip["minimum_curl_radians"]["left"] = 0.4
+            grip["released"] = False
+            (root / "evidence.json").write_text(json.dumps(report))
+            with self.assertRaisesRegex(ValueError, "grip"):
+                check_evidence(source, root)
+            grip["released"] = True
             report["backends"]["WebGLBackend"]["reference_metrics"][
                 "silhouette_iou"
             ] = 0.8

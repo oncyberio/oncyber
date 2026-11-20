@@ -13,7 +13,7 @@ const criteria = {
     garments: "Clothing",
     body: "Proportions and anatomy",
     motion: "Walk and crouch",
-    grip: "Right-hand grip",
+    grip: "Both hands hold and release the item",
 };
 type Check = keyof typeof criteria;
 const checks = Object.keys(criteria) as Check[];
@@ -122,7 +122,7 @@ function ReviewForm({
                     >
                         <img
                             src={images[backend].views}
-                            alt={`${rendererNames[backend]} body and face turnarounds, crouch and grip`}
+                            alt={`${rendererNames[backend]} body and face turnarounds, crouch and close-ups of both microphone grips`}
                         />
                     </a>
                     <details>
