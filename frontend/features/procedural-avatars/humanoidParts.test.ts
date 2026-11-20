@@ -129,6 +129,31 @@ test("a round human vault and a forward chin can be reused independently from on
     ).toBeUndefined();
 });
 
+test("a household bob seats both eyes against the facial plane and preserves a measured side", () => {
+    const { design } = readCartoonFile(tess);
+    const { sideGuide, ...parts } = design.fit.sections;
+    const source = {
+        ...design,
+        parts: {
+            ...design.parts,
+            skull: "classic" as const,
+            jaw: "classic" as const,
+        },
+        fit: { ...design.fit, sections: parts },
+    };
+    const family = { chin: 0.25, forehead: 0.115, cheek: 0.065 };
+    const inherited = fitBobDepth(source);
+    const anatomy = fitBobDepth(source, family);
+    const a = anatomy.fit.sections;
+    const b = inherited.fit.sections;
+    const stations = cranialStations(inherited, headSections(inherited));
+    expect(a.cranium.at(-1)[4]).toBeGreaterThan(stations.at(-1)[4]);
+    expect(a.sideGuide.eyeCenter).toBeLessThanOrEqual(b.sideGuide.eyeCenter);
+    expect(a.sideGuide.eyeSpan).toBe(b.sideGuide.eyeSpan);
+    expect(a.eyes).toEqual(b.eyes);
+    expect(fitBobDepth(design, family).fit.sections.sideGuide).toBe(sideGuide);
+});
+
 test("a hidden mandibular angle can be reconstructed or inferred from the lobe and chin", () => {
     const { design } = readCartoonFile(tess);
     const { sideGuide, ...parts } = design.fit.sections;

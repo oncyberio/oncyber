@@ -1026,6 +1026,7 @@ const householdFile = file.extend({
                     .optional(),
                 measuredBob: z
                     .strictObject({
+                        useHouseholdDepth: z.boolean().optional(),
                         frame: z.tuple([n(1, 500), n(1, 500)]),
                         skullWidth: n(1, 500),
                         eyeAxis: n(-0.5, 0.5),

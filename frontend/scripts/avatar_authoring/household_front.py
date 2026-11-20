@@ -1065,6 +1065,7 @@ def fit_front(source, name, observation=None):
             # The fitted bob already joins the crown, part and underside. Use
             # that construction on the family rig in its original drawing frame.
             family["measuredBob"] = {
+                "useHouseholdDepth": True,
                 "frame": recipe["design"]["head"],
                 "skullWidth": design["head"][0],
                 "eyeAxis": round((eye_axis - center) * scale / head_width, 4),

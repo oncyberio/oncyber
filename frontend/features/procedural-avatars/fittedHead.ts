@@ -855,7 +855,10 @@ export function fittedNose(g: CartoonDesign) {
 
 /** For a lone T-pose, derive sagittal stations from the benchmark cranium
  * and the drawn widths of the bob. A supplied profile takes precedence. */
-export function fitBobDepth(g: CartoonDesign): CartoonDesign {
+export function fitBobDepth(
+    g: CartoonDesign,
+    familyDepth?: CartoonDesign["household"]["depth"]
+): CartoonDesign {
     const fit = g.fit,
         parts = fit?.sections;
     if (parts?.sideGuide || !parts?.nape || !parts.hair || !parts.jaw) return g;
@@ -875,7 +878,24 @@ export function fitBobDepth(g: CartoonDesign): CartoonDesign {
     }
     // The cap, eyes and visible face need the same skull and neck origin.
     // Otherwise an explicitly round base still inherits the scientist's bridge.
-    const registered = cranialStations(g, head);
+    const inherited = cranialStations(g, head);
+    const registered = familyDepth
+        ? inherited?.map((source): RoundedSection => {
+              // The frontal chin constrains width and height. Advance the mandible
+              // about its hinge while retaining the posterior cranium and a closed pole.
+              const row: RoundedSection = [...source];
+              const t = T.MathUtils.clamp((row[0] - 12) / g.head[1], 0, 1);
+              const shift =
+                  0.6 *
+                  g.head[0] *
+                  familyDepth.chin *
+                  T.MathUtils.smoothstep(t, 0.55, 1);
+              const expand = Math.min(0.5, Math.sqrt(4 * t * (1 - t)));
+              row[3] += expand * shift;
+              row[4] += (1 - expand) * shift;
+              return row;
+          })
+        : inherited;
     const front = registered
         ? cranialDepth(registered, 1)
         : profileDepth(head, 1, true);
@@ -884,6 +904,18 @@ export function fitBobDepth(g: CartoonDesign): CartoonDesign {
         : profileDepth(head, -1, true);
     const eyes = fittedOrbits(g, front);
     if (!eyes) return g;
+    if (familyDepth) {
+        // Continue the forehead down to the nasal root behind the exposed
+        // globe. The septum between the sockets can project farther than
+        // either globe and is a poor anchor for the optical plane.
+        const brow = front(eyes.axis, eyes.height - eyes.width * 0.64);
+        const cheek = front(eyes.axis, eyes.height + eyes.width * 0.74);
+        const tangent = T.MathUtils.lerp(brow, cheek, 0.64 / 1.38);
+        eyes.eyeCenter = Math.min(
+            eyes.eyeCenter,
+            tangent - 0.64 * eyes.eyeSpan
+        );
+    }
     const h = g.head[1],
         w = g.head[0],
         hair = parts.hair,
@@ -984,6 +1016,7 @@ export function fitBobDepth(g: CartoonDesign): CartoonDesign {
             ...fit,
             sections: {
                 ...parts,
+                ...(familyDepth && registered ? { cranium: registered } : {}),
                 sideGuide: {
                     inferred: true,
                     rows,

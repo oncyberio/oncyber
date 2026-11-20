@@ -298,6 +298,7 @@ class HouseholdTests(unittest.TestCase):
         design = recipe["design"]
         household = design["household"]
         measured = household["measuredBob"]
+        self.assertTrue(measured["useHouseholdDepth"])
         self.assertEqual(measured["frame"], design["head"])
         self.assertLess(measured["skullWidth"], measured["frame"][0])
         self.assertTrue({"hair", "nape", "ears"} <= measured["sections"].keys())

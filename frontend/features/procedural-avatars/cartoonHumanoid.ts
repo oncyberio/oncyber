@@ -3107,20 +3107,23 @@ export function drawCartoonHumanoid(d: Drawing, design: CartoonDesign) {
             ? previous.clone().multiply(matrix)
             : matrix;
         const skull = hairBehindEars(
-            fitBobDepth({
-                ...g,
-                household: undefined,
-                head: [bobFit.skullWidth, bobFit.frame[1]],
-                hair: { ...g.hair, cut: "bob" },
-                fit: {
-                    ...g.fit,
-                    sections: {
-                        ...g.fit.sections,
-                        ...bobFit.sections,
-                        eyes: measuredBobEyes(g),
+            fitBobDepth(
+                {
+                    ...g,
+                    household: undefined,
+                    head: [bobFit.skullWidth, bobFit.frame[1]],
+                    hair: { ...g.hair, cut: "bob" },
+                    fit: {
+                        ...g.fit,
+                        sections: {
+                            ...g.fit.sections,
+                            ...bobFit.sections,
+                            eyes: measuredBobEyes(g),
+                        },
                     },
                 },
-            })
+                bobFit.useHouseholdDepth ? g.household.depth : undefined
+            )
         );
         const sections = headSections(skull);
         const orbits = fittedOrbits(skull, profileDepth(sections, 1, true));

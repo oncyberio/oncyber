@@ -93,6 +93,8 @@ export interface CartoonDesign {
         /** Height, outside radius and inner-front edge of a shoulder-length cut, in skull units. */
         fallRows?: [number, number, number][];
         measuredBob?: {
+            /** Seat the globes at the brow/cheek tangent above the family mandible. */
+            useHouseholdDepth?: boolean;
             frame: [number, number];
             skullWidth: number;
             eyeAxis: number;
