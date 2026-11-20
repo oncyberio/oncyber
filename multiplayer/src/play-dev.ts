@@ -11,6 +11,7 @@
  * new recipe.
  *
  * In:  { type: "pose", x, y, z, yaw } | { type: "hit" }
+ *      { type: "act" }              this person swings (relayed as { type: "act", id })
  *      { type: "start", recipe }    a new round
  *      { type: "change", recipe }   the same round, with a different recipe
  * Out: { type: "welcome", id }
@@ -188,6 +189,8 @@ async function main() {
             }
             if (message?.type === "pose" && finite(message.x, 300) && finite(message.y, 300) && finite(message.z, 300) && finite(message.yaw, 1000)) client.pose = { x: message.x, y: message.y, z: message.z, yaw: message.yaw };
             else if (message?.type === "hit") zone?.hit(client.id);
+            // A swing is shown on every screen; the hit itself arrives at its contact.
+            else if (message?.type === "act") everyone({ type: "act", id: client.id });
             else if (message?.type === "start") start(message.recipe);
             else if (message?.type === "change") change(message.recipe);
         });

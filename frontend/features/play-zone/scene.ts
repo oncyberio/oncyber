@@ -1,4 +1,5 @@
 import { baseTokens } from "@styles/tokens";
+import { createMannequin } from "./mannequin";
 import {
     playBodies,
     type PlayPerson,
@@ -18,9 +19,6 @@ export const PLAY_PALETTE = [
     baseTokens.color.secondary,
     baseTokens.color.muted,
 ];
-
-const PERSON_RADIUS = 0.35;
-const PERSON_HALF = 0.55;
 
 /**
  * Draws one play zone: the arena, its things as two instanced meshes (balls
@@ -53,39 +51,21 @@ export function createPlayScene(THREE: Three) {
     /** For each body: which mesh it is in, its slot there and its size. */
     let slots: Array<{ box: boolean; slot: number; size: number }> = [];
 
-    const capsule = new THREE.CapsuleGeometry(
-        PERSON_RADIUS,
-        PERSON_HALF * 2,
-        6,
-        14
-    );
-    const nose = new THREE.BoxGeometry(0.12, 0.12, 0.3);
-    const people = new Map<number, InstanceType<Three["Group"]>>();
+    type Figure = ReturnType<typeof createMannequin>;
+    const people = new Map<number, Figure>();
     const personGroup = new THREE.Group();
     scene.add(personGroup);
 
     function person(id: number, own: boolean) {
-        let mesh = people.get(id);
-        if (mesh) return mesh;
-        mesh = new THREE.Group();
-        const colour = own
-            ? baseTokens.color.paper
-            : baseTokens.color.secondary;
-        const body = new THREE.Mesh(
-            capsule,
-            new THREE.MeshStandardMaterial({ color: colour, roughness: 0.6 })
+        let figure = people.get(id);
+        if (figure) return figure;
+        figure = createMannequin(
+            THREE,
+            own ? baseTokens.color.paper : baseTokens.color.secondary
         );
-        body.position.y = PERSON_HALF + PERSON_RADIUS;
-        // A small block shows which way the person faces.
-        const front = new THREE.Mesh(
-            nose,
-            new THREE.MeshStandardMaterial({ color: baseTokens.color.accent })
-        );
-        front.position.set(0, 1.45, PERSON_RADIUS + 0.1);
-        mesh.add(body, front);
-        personGroup.add(mesh);
-        people.set(id, mesh);
-        return mesh;
+        personGroup.add(figure.group);
+        people.set(id, figure);
+        return figure;
     }
 
     function clear(group: InstanceType<Three["Group"]>) {
@@ -232,11 +212,17 @@ export function createPlayScene(THREE: Three) {
             balls.instanceMatrix.needsUpdate = true;
             boxes.instanceMatrix.needsUpdate = true;
         },
-        /** Everyone in the zone. `self` is drawn from the local pose so it never lags. */
+        /**
+         * Everyone in the zone, as jointed figures. `self` is drawn from the
+         * local pose so it never lags. `poseOf` gives each person's body
+         * (three numbers a joint, from `actionPose`) for what they are
+         * doing right now.
+         */
         drawPeople(
             list: PlayPerson[],
             self: PlayPerson | null,
-            seconds: number
+            seconds: number,
+            poseOf: (id: number) => Float32Array
         ) {
             const seen = new Set<number>();
             const ease = 1 - Math.exp(-18 * seconds);
@@ -244,24 +230,27 @@ export function createPlayScene(THREE: Three) {
                 if (self && entry.id === self.id) continue;
                 seen.add(entry.id);
                 const fresh = !people.has(entry.id),
-                    mesh = person(entry.id, false);
-                if (fresh) mesh.position.set(entry.x, entry.y, entry.z);
+                    { group, update } = person(entry.id, false);
+                if (fresh) group.position.set(entry.x, entry.y, entry.z);
                 else {
-                    mesh.position.x += (entry.x - mesh.position.x) * ease;
-                    mesh.position.y += (entry.y - mesh.position.y) * ease;
-                    mesh.position.z += (entry.z - mesh.position.z) * ease;
+                    group.position.x += (entry.x - group.position.x) * ease;
+                    group.position.y += (entry.y - group.position.y) * ease;
+                    group.position.z += (entry.z - group.position.z) * ease;
                 }
-                mesh.rotation.y = entry.yaw;
+                group.rotation.y = entry.yaw;
+                update(poseOf(entry.id));
             }
             if (self) {
                 seen.add(self.id);
-                const mesh = person(self.id, true);
-                mesh.position.set(self.x, self.y, self.z);
-                mesh.rotation.y = self.yaw;
+                const { group, update } = person(self.id, true);
+                group.position.set(self.x, self.y, self.z);
+                group.rotation.y = self.yaw;
+                update(poseOf(self.id));
             }
-            for (const [id, mesh] of people)
+            for (const [id, figure] of people)
                 if (!seen.has(id)) {
-                    personGroup.remove(mesh);
+                    personGroup.remove(figure.group);
+                    figure.dispose();
                     people.delete(id);
                 }
         },

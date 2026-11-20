@@ -1,0 +1,359 @@
+{
+    "celebrate-jump": {
+        "description": "celebrate a point: jump with both arms up",
+        "name": "celebrate-jump",
+        "seconds": 1.6,
+        "contact": null,
+        "moments": [
+            {
+                "at": 0.2,
+                "ease": "out",
+                "rightHand": [0.28, 0.7, -0.08],
+                "leftHand": [-0.28, 0.7, -0.08],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0, 0.78, 0],
+                "lean": 22,
+                "twist": -8
+            },
+            {
+                "at": 0.38,
+                "ease": "in",
+                "rightHand": [0.22, 1.85, 0.06],
+                "leftHand": [-0.22, 1.85, 0.06],
+                "rightFoot": [0.11, 0.12, 0],
+                "leftFoot": [-0.11, 0.12, 0],
+                "hips": [0, 1.1, 0],
+                "lean": -6,
+                "twist": 4
+            },
+            {
+                "at": 0.55,
+                "ease": "in-out",
+                "rightHand": [0.16, 2.28, 0.04],
+                "leftHand": [-0.16, 2.28, 0.04],
+                "rightFoot": [0.11, 0.34, 0],
+                "leftFoot": [-0.11, 0.34, 0],
+                "hips": [0, 1.27, 0],
+                "lean": 0,
+                "twist": 0
+            },
+            {
+                "at": 0.75,
+                "ease": "out",
+                "rightHand": [0.3, 1.2, 0.08],
+                "leftHand": [-0.3, 1.2, 0.08],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0, 0.82, 0],
+                "lean": 18,
+                "twist": 0
+            },
+            {
+                "at": 0.9,
+                "ease": "in-out",
+                "rightHand": [0.26, 0.86, 0.04],
+                "leftHand": [-0.26, 0.86, 0.04],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0, 0.95, 0],
+                "lean": 0,
+                "twist": 0
+            }
+        ]
+    },
+    "duck-left-under-ball": {
+        "description": "dodge to the left, ducking under a thrown ball",
+        "name": "duck-left-under-ball",
+        "seconds": 0.8,
+        "contact": null,
+        "moments": [
+            {
+                "at": 0.15,
+                "ease": "out",
+                "rightHand": [0.3, 0.96, 0.05],
+                "leftHand": [-0.28, 0.92, 0.05],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0.05, 0.91, -0.01],
+                "lean": -6,
+                "twist": -10
+            },
+            {
+                "at": 0.4,
+                "ease": "in",
+                "rightHand": [0.06, 1.14, 0.3],
+                "leftHand": [-0.42, 0.82, 0.1],
+                "rightFoot": [0.12, 0, 0],
+                "leftFoot": [-0.28, 0.05, 0.02],
+                "hips": [-0.18, 0.72, 0.03],
+                "lean": 30,
+                "twist": 10
+            },
+            {
+                "at": 0.55,
+                "ease": "out",
+                "rightHand": [0.02, 1.08, 0.36],
+                "leftHand": [-0.48, 0.7, 0.14],
+                "rightFoot": [0.13, 0, 0],
+                "leftFoot": [-0.32, 0, 0.02],
+                "hips": [-0.28, 0.6, 0.02],
+                "lean": 46,
+                "twist": 14
+            },
+            {
+                "at": 0.78,
+                "ease": "in-out",
+                "rightHand": [0.16, 0.95, 0.16],
+                "leftHand": [-0.38, 0.85, 0.06],
+                "hips": [-0.17, 0.81, 0],
+                "lean": 18,
+                "twist": 6
+            }
+        ]
+    },
+    "overhand-throw": {
+        "description": "overhand throw with the right hand",
+        "name": "overhand-throw",
+        "seconds": 1.1,
+        "contact": null,
+        "moments": [
+            {
+                "at": 0.22,
+                "ease": "out",
+                "rightHand": [0.34, 1.54, -0.28],
+                "leftHand": [-0.2, 1.12, 0.24],
+                "rightFoot": [0.12, 0, -0.1],
+                "leftFoot": [-0.14, 0, 0.16],
+                "hips": [0.04, 0.88, -0.04],
+                "lean": -8,
+                "twist": -38
+            },
+            {
+                "at": 0.4,
+                "ease": "in-out",
+                "rightHand": [0.32, 1.66, -0.1],
+                "leftHand": [-0.26, 1.06, 0.06],
+                "rightFoot": [0.13, 0, -0.11],
+                "leftFoot": [-0.13, 0, 0.18],
+                "hips": [0.03, 0.86, 0],
+                "lean": 0,
+                "twist": -20
+            },
+            {
+                "at": 0.52,
+                "ease": "in",
+                "rightHand": [0.18, 1.55, 0.55],
+                "leftHand": [-0.34, 1.02, -0.16],
+                "rightFoot": [0.13, 0, -0.12],
+                "leftFoot": [-0.12, 0, 0.2],
+                "hips": [0, 0.9, 0.08],
+                "lean": 24,
+                "twist": 24
+            },
+            {
+                "at": 0.68,
+                "ease": "out",
+                "rightHand": [0.06, 1.08, 0.38],
+                "leftHand": [-0.22, 1.18, 0.12],
+                "rightFoot": [0.13, 0, -0.12],
+                "leftFoot": [-0.12, 0, 0.2],
+                "hips": [-0.01, 0.86, 0.12],
+                "lean": 30,
+                "twist": 36
+            },
+            {
+                "at": 0.9,
+                "ease": "in-out",
+                "rightHand": [0.26, 0.88, 0.08],
+                "leftHand": [-0.26, 0.88, 0.08],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0, 0.93, 0.02],
+                "lean": 4,
+                "twist": 4
+            }
+        ]
+    },
+    "soccer-kick": {
+        "description": "soccer kick with the right foot",
+        "name": "soccer-kick",
+        "seconds": 1.1,
+        "contact": null,
+        "moments": [
+            {
+                "at": 0.32,
+                "ease": "out",
+                "rightHand": [0.38, 1.05, -0.15],
+                "leftHand": [-0.28, 1.08, 0.28],
+                "rightFoot": [0.16, 0.1, -0.4],
+                "leftFoot": [-0.12, 0, 0.08],
+                "hips": [-0.05, 0.82, -0.05],
+                "lean": 8,
+                "twist": -35
+            },
+            {
+                "at": 0.5,
+                "ease": "in",
+                "rightHand": [0.34, 1.12, 0.28],
+                "leftHand": [-0.36, 1.02, -0.08],
+                "rightFoot": [0.14, 0.12, 0.55],
+                "leftFoot": [-0.12, 0, 0.08],
+                "hips": [0.02, 0.84, 0.12],
+                "lean": 18,
+                "twist": 20
+            },
+            {
+                "at": 0.62,
+                "ease": "out",
+                "rightHand": [0.3, 1.18, 0.32],
+                "leftHand": [-0.4, 0.98, -0.18],
+                "rightFoot": [0.24, 0.35, 0.5],
+                "leftFoot": [-0.12, 0, 0.08],
+                "hips": [0.06, 0.88, 0.1],
+                "lean": 24,
+                "twist": 32
+            },
+            {
+                "at": 0.78,
+                "ease": "in-out",
+                "rightHand": [0.28, 0.92, 0.1],
+                "leftHand": [-0.28, 0.92, 0.1],
+                "rightFoot": [0.16, 0.04, 0.24],
+                "leftFoot": [-0.11, 0, 0.04],
+                "hips": [0.02, 0.87, 0.02],
+                "lean": 6,
+                "twist": 6
+            },
+            {
+                "at": 0.92,
+                "ease": "out",
+                "rightHand": [0.26, 0.86, 0.04],
+                "leftHand": [-0.26, 0.86, 0.04],
+                "rightFoot": [0.11, 0, 0],
+                "leftFoot": [-0.11, 0, 0],
+                "hips": [0, 0.95, 0],
+                "lean": 0,
+                "twist": 0
+            }
+        ]
+    },
+    "vb-bump": {
+        "description": "underhand volleyball bump with both forearms",
+        "name": "vb-bump",
+        "seconds": 1.2,
+        "contact": 0.5,
+        "moments": [
+            {
+                "at": 0.35,
+                "ease": "out",
+                "rightHand": [0.06, 0.8, 0.22],
+                "leftHand": [-0.06, 0.8, 0.22],
+                "rightFoot": [0.15, 0, 0.12],
+                "leftFoot": [-0.15, 0, -0.02],
+                "hips": [0, 0.82, 0.06],
+                "lean": 20,
+                "twist": 0
+            },
+            {
+                "at": 0.5,
+                "ease": "in",
+                "rightHand": "target",
+                "leftHand": "target",
+                "hips": [0, 0.88, 0.1],
+                "lean": 8,
+                "twist": 0
+            },
+            {
+                "at": 0.64,
+                "ease": "out",
+                "rightHand": [0.08, 1.02, 0.3],
+                "leftHand": [-0.08, 1.02, 0.3],
+                "hips": [0, 0.94, 0.04],
+                "lean": -4,
+                "twist": 0
+            },
+            {
+                "at": 0.82,
+                "ease": "in-out",
+                "rightHand": [0.22, 0.92, 0.04],
+                "leftHand": [-0.22, 0.92, 0.04],
+                "hips": [0, 0.93, 0.01],
+                "lean": 5,
+                "twist": 0
+            },
+            {
+                "at": 0.94,
+                "ease": "out",
+                "rightHand": [0.24, 0.88, 0.04],
+                "leftHand": [-0.24, 0.88, 0.04],
+                "hips": [0, 0.95, 0],
+                "lean": 2,
+                "twist": 0
+            }
+        ]
+    },
+    "volleyball-spike": {
+        "description": "volleyball spike with the right hand",
+        "name": "volleyball-spike",
+        "seconds": 1.2,
+        "contact": 0.52,
+        "moments": [
+            {
+                "at": 0.22,
+                "ease": "out",
+                "rightHand": [0.5, 1.55, -0.25],
+                "leftHand": [-0.35, 1.25, 0.25],
+                "rightFoot": [0.13, 0, 0.12],
+                "leftFoot": [-0.13, 0, 0.08],
+                "hips": [0.02, 0.82, -0.04],
+                "lean": -18,
+                "twist": -40
+            },
+            {
+                "at": 0.38,
+                "ease": "in",
+                "rightHand": [0.48, 1.82, -0.18],
+                "leftHand": [-0.38, 1.48, 0.18],
+                "rightFoot": [0.16, 0.2, -0.02],
+                "leftFoot": [-0.14, 0.2, 0.06],
+                "hips": [0.02, 1.05, 0.02],
+                "lean": -5,
+                "twist": -25
+            },
+            {
+                "at": 0.52,
+                "ease": "in",
+                "rightHand": "target",
+                "leftHand": [-0.45, 1.5, 0.05],
+                "rightFoot": [0.18, 0.28, -0.04],
+                "leftFoot": [-0.16, 0.28, 0.08],
+                "hips": [0, 1.12, 0.08],
+                "lean": 12,
+                "twist": 20
+            },
+            {
+                "at": 0.68,
+                "ease": "out",
+                "rightHand": [0.08, 1.18, 0.3],
+                "leftHand": [-0.42, 1.28, -0.02],
+                "rightFoot": [0.16, 0.15, 0.02],
+                "leftFoot": [-0.14, 0.15, 0.1],
+                "hips": [0.02, 1.05, 0.04],
+                "lean": 25,
+                "twist": 35
+            },
+            {
+                "at": 0.88,
+                "ease": "out",
+                "rightHand": [0.2, 0.92, 0.15],
+                "leftHand": [-0.28, 0.9, 0.02],
+                "rightFoot": [0.12, 0, 0],
+                "leftFoot": [-0.12, 0, 0],
+                "hips": [0, 0.88, 0],
+                "lean": 12,
+                "twist": 15
+            }
+        ]
+    }
+}

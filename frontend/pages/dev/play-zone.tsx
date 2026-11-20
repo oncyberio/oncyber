@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { baseTokens, lobbyTokens } from "@styles/tokens";
+import library from "@features/play-zone/actions.json";
 import { STARTER_RECIPES } from "@features/play-zone/recipes";
+import { JOINTS, actionPose } from "@features/play-zone/rig";
 import {
     poseBuffers,
     smoothPoses,
@@ -16,6 +18,11 @@ import {
     type PlayPerson,
     type PlayRecipe,
 } from "../../../multiplayer/protocol/play-zone";
+import {
+    readPlayAction,
+    type ActionPoint,
+    type PlayAction,
+} from "../../../multiplayer/protocol/play-action";
 
 /**
  * Local check for play zones: server physics for short games, before it is
@@ -72,6 +79,12 @@ const EMPTY: Status = {
     resets: 0,
 };
 const WALK_SPEED = 5;
+/** How a person moves when they hit: the hand goes to the thing itself. */
+const HIT_ACTION = readPlayAction(
+    (library as Record<string, unknown>)["volleyball-spike"]
+);
+/** How far a hand can find something to go to. */
+const HAND_RANGE = 2.2;
 
 /** Changes to try on whatever game is running. The server decides whether each needs a rewind. */
 const QUICK_CHANGES: Array<{
@@ -200,7 +213,10 @@ export default function PlayZoneCheck() {
                 const message = JSON.parse(event.data);
                 if (message.type === "welcome") self.id = message.id;
                 else if (message.type === "rewind") live.rewinding = true;
-                else if (message.type === "game") {
+                else if (message.type === "act") {
+                    // Someone else swings: play it on their figure here too.
+                    if (message.id !== self.id) begin(message.id);
+                } else if (message.type === "game") {
                     const next = readPlayRecipe(message.recipe);
                     if (!next) return;
                     const change: Status["lastChange"] =
@@ -242,6 +258,94 @@ export default function PlayZoneCheck() {
                     });
             };
 
+            // What each person is doing: an action, when it began, and which
+            // thing its hand is going to.
+            const acting = new Map<
+                number,
+                { action: PlayAction; since: number; thing: number }
+            >();
+            const bodies = new Map<number, Float32Array>();
+            const where = (id: number) =>
+                id === self.id
+                    ? self
+                    : others.find((person) => person.id === id) || null;
+            /** The thing nearest a person's raised hand, or -1. */
+            const nearestThing = (person: PlayPerson) => {
+                const x = person.x + Math.sin(person.yaw) * 0.5,
+                    z = person.z + Math.cos(person.yaw) * 0.5;
+                let best = -1,
+                    bestSquared = HAND_RANGE * HAND_RANGE;
+                for (let i = 0; i < poses.known.length; i++) {
+                    if (!poses.known[i]) continue;
+                    const p = i * 7,
+                        dx = poses.shown[p] - x,
+                        dy = poses.shown[p + 1] - (person.y + 1.2),
+                        dz = poses.shown[p + 2] - z;
+                    const squared = dx * dx + dy * dy + dz * dz;
+                    if (squared < bestSquared) {
+                        best = i;
+                        bestSquared = squared;
+                    }
+                }
+                return best;
+            };
+            const begin = (id: number) => {
+                const person = where(id);
+                if (!HIT_ACTION || !person) return;
+                acting.set(id, {
+                    action: HIT_ACTION,
+                    since: performance.now(),
+                    thing: nearestThing(person),
+                });
+            };
+            /** A person's body right now, in their own space. */
+            const poseOf = (id: number) => {
+                let body = bodies.get(id);
+                if (!body)
+                    bodies.set(
+                        id,
+                        (body = new Float32Array(JOINTS.length * 3))
+                    );
+                const doing = acting.get(id),
+                    person = where(id);
+                if (!doing || !person) return actionPose(null, 0, null, body);
+                const t =
+                    (performance.now() - doing.since) /
+                    (doing.action.seconds * 1000);
+                if (t >= 1) {
+                    acting.delete(id);
+                    return actionPose(null, 0, null, body);
+                }
+                // Where the thing is, seen from the person: x to their right, z
+                // the way they face.
+                let target: ActionPoint | null = null;
+                if (doing.thing >= 0 && doing.thing < poses.known.length) {
+                    const p = doing.thing * 7,
+                        dx = poses.shown[p] - person.x,
+                        dz = poses.shown[p + 2] - person.z,
+                        cos = Math.cos(person.yaw),
+                        sin = Math.sin(person.yaw);
+                    target = [
+                        dx * cos - dz * sin,
+                        poses.shown[p + 1] - person.y,
+                        dx * sin + dz * cos,
+                    ];
+                }
+                return actionPose(doing.action, t, target, body);
+            };
+            let hitTimer = 0;
+            const swing = () => {
+                if (live.rewinding || acting.has(self.id)) return;
+                send({ type: "act" });
+                begin(self.id);
+                // The ball leaves when the hand arrives, not when the key goes down.
+                const contact = HIT_ACTION?.contact ?? 0;
+                hitTimer = window.setTimeout(
+                    () => send({ type: "hit" }),
+                    contact * (HIT_ACTION?.seconds ?? 0) * 1000
+                );
+            };
+
             const held = new Set<string>();
             const typing = (event: KeyboardEvent) =>
                 (event.target as HTMLElement)?.tagName === "TEXTAREA";
@@ -249,7 +353,7 @@ export default function PlayZoneCheck() {
                 if (typing(event)) return;
                 if (event.code === "Space") {
                     event.preventDefault();
-                    if (!event.repeat) send({ type: "hit" });
+                    if (!event.repeat) swing();
                 } else held.add(event.code);
             };
             const keyUp = (event: KeyboardEvent) => held.delete(event.code);
@@ -318,7 +422,7 @@ export default function PlayZoneCheck() {
                     live.rewinding ? Infinity : undefined
                 );
                 view.draw(poses.shown, poses.known);
-                view.drawPeople(others, self.id ? self : null, seconds);
+                view.drawPeople(others, self.id ? self : null, seconds, poseOf);
                 renderer.render(view.scene, view.camera);
                 // A rewind looks washed out, like a tape running back.
                 renderer.domElement.style.filter = live.rewinding
@@ -343,6 +447,7 @@ export default function PlayZoneCheck() {
                         ...next,
                         self: { id: self.id, x: self.x, z: self.z },
                         first: Array.from(poses.shown.subarray(0, 3)),
+                        acting: [...acting.keys()],
                         gravity: recipe?.gravity ?? null,
                     });
                     setStatus(next);
@@ -351,6 +456,7 @@ export default function PlayZoneCheck() {
 
             disposers.push(() => {
                 renderer.setAnimationLoop(null);
+                window.clearTimeout(hitTimer);
                 window.removeEventListener("resize", resize);
                 window.removeEventListener("keydown", keyDown);
                 window.removeEventListener("keyup", keyUp);
