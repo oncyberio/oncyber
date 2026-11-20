@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#101b2a" />
+    <title>Glasshouse · Padel · Oncyber</title>
+    <script type="module" crossorigin src="./assets/index-BS_rq12l.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DDVEhsFk.css">
+  </head>
+  <body class="is-club">
+    <canvas
+      id="court"
+      tabindex="0"
+      aria-label="Padel club. W A S D walks, Shift runs, Space jumps, drag to look around. Press J or choose Play padel to start a match."
+    ></canvas>
+    <div class="shade" aria-hidden="true"></div>
+
+    <!-- The club: where a visitor arrives and where every match returns to. -->
+    <div id="club-card" class="oui oui-panel club-card" data-hud="club-card">
+      <div class="oui-stack oui-stack--tight">
+        <span class="oui-label">Glasshouse padel club</span>
+        <button
+          id="visit-play"
+          class="oui-button oui-button--white oui-button--block"
+        >
+          Play padel
+        </button>
+        <button id="visit-options" class="oui-button oui-button--block">
+          Settings
+        </button>
+        <button id="exit" class="oui-button oui-button--block">
+          Back to the lobby
+        </button>
+        <p class="oui-text oui-text--small">
+          <kbd>W A S D</kbd> walk · <kbd>Shift</kbd> run ·
+          <kbd>Space</kbd> jump · <kbd>J</kbd> play · <kbd>G</kbd> wave ·
+          <kbd>B</kbd> dance · <kbd>V</kbd> sit
+        </p>
+      </div>
+    </div>
+
+    <section id="setup" class="screen" hidden>
+      <div
+        class="oui oui-panel padel-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="setup-title"
+        data-hud="setup-card"
+      >
+        <div class="oui-stack">
+          <span class="oui-label">Doubles · Court 01</span>
+          <h2 id="setup-title" class="oui-title">Ready for a match?</h2>
+          <p class="oui-text">
+            You and Leo against Noa and Mika: three NPC players. First to 7,
+            win by 2, capped at 15.
+          </p>
+          <p class="oui-text oui-text--small">
+            Tap <kbd>J</kbd> for control, <kbd>K</kbd> to lift a lob, or hold
+            <kbd>F</kbd> to build power and release in the blue window. Keep
+            moving with <kbd>W A S D</kbd>; aim with the arrow keys and follow
+            the flight path. Get under a high ball to smash. Return the ball
+            before its second bounce, including after the glass.
+          </p>
+          <div
+            id="difficulty"
+            class="oui-segmented"
+            role="group"
+            aria-label="Opponent difficulty"
+          >
+            <button data-value="practice" aria-pressed="true">Practice</button>
+            <button data-value="competitive" aria-pressed="false">
+              Club player
+            </button>
+          </div>
+          <div class="oui-actions">
+            <button id="setup-close" class="oui-button">Back</button>
+            <button id="play" class="oui-button oui-button--white">
+              Play doubles
+            </button>
+          </div>
+          <div class="padel-keys oui-text oui-text--small">
+            <span><kbd>W A S D</kbd> Move</span>
+            <span><kbd>← ↑ ↓ →</kbd> Aim</span>
+            <span><kbd>J</kbd> Control</span>
+            <span><kbd>K</kbd> Lob</span>
+            <span><kbd>F</kbd> Power</span>
+            <span><kbd>C</kbd> Camera</span>
+            <span><kbd>P</kbd> Pause</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="visit-settings" class="screen" hidden>
+      <div
+        class="oui oui-panel padel-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        data-hud="settings-card"
+      >
+        <div class="oui-stack">
+          <h2 id="settings-title" class="oui-title">Settings</h2>
+          <button
+            id="visit-graphics"
+            class="oui-toggle"
+            role="switch"
+            aria-checked="true"
+          >
+            High quality graphics
+          </button>
+          <button
+            id="visit-sound"
+            class="oui-toggle"
+            role="switch"
+            aria-checked="true"
+          >
+            Sound
+          </button>
+          <p class="oui-text oui-text--small">
+            Sound is Oncyber's one setting: the same switch as the page's, and
+            the M key.
+          </p>
+          <div class="oui-actions">
+            <button id="settings-close" class="oui-button oui-button--white">
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The match HUD: the game's own look. -->
+    <div id="match-bar" class="match-bar oui" data-hud="match-bar" hidden>
+      <button
+        id="camera-view"
+        class="oui-button"
+        aria-label="Camera: Broadcast. Switch to Low third person. Press C to change view."
+      >
+        <span id="camera-value">Broadcast</span>
+      </button>
+      <button id="pause" class="oui-button" aria-label="Pause match">
+        Pause
+      </button>
+    </div>
+    <section
+      id="score"
+      class="score"
+      aria-label="Padel score"
+      data-hud="score"
+      hidden
+    >
+      <div class="score-meta">
+        <span>DOUBLES / TIEBREAK</span><span id="rally-count">FIRST TO 7</span>
+      </div>
+      <div class="score-row">
+        <i id="human-server" aria-label="Serving"></i
+        ><span id="human-name">YOU</span><b id="human-score">0</b>
+      </div>
+      <div class="score-row rival">
+        <i id="npc-server" aria-label="Serving"></i><span>NOA + MIKA</span
+        ><b id="npc-score">0</b>
+      </div>
+    </section>
+    <div id="player-label" class="player-label" aria-hidden="true" hidden>
+      YOU
+    </div>
+    <div id="team-labels" aria-hidden="true" hidden>
+      <div id="rival-noa" class="player-label rival-label">NOA</div>
+      <div id="partner-leo" class="player-label partner-label">
+        LEO · PARTNER
+      </div>
+      <div id="rival-mika" class="player-label rival-label">MIKA</div>
+    </div>
+    <div
+      id="announcement"
+      class="announcement"
+      aria-live="polite"
+      data-hud="announcement"
+      hidden
+    >
+      <span id="announcement-label"></span
+      ><strong id="announcement-title"></strong
+      ><small id="announcement-detail"></small>
+    </div>
+    <div
+      id="feedback"
+      class="feedback"
+      aria-live="polite"
+      data-hud="feedback"
+      hidden
+    >
+      <strong id="feedback-quality"></strong><span id="feedback-detail"></span>
+    </div>
+    <div id="hud" hidden>
+      <div class="instructions" data-hud="instructions">
+        <p id="tip">Your serve. Aim into the diagonal service box.</p>
+        <span
+          ><kbd>WASD</kbd> <span id="movement-hint">Move</span>
+          <kbd>SHIFT</kbd> Run <kbd>J</kbd> Control <kbd>K</kbd> Lob
+          <kbd>← ↑ ↓ →</kbd> Aim <kbd>C</kbd> View</span
+        >
+      </div>
+      <section
+        class="shot-panel"
+        aria-label="Power shot controls"
+        data-hud="shot-panel"
+      >
+        <div class="shot-heading">
+          <span id="shot-status">POWER SHOT</span
+          ><b id="power-value">0<span>%</span></b>
+        </div>
+        <button
+          id="power-toggle"
+          class="power-button"
+          aria-label="Charge power shot"
+          aria-pressed="false"
+        >
+          <span class="meter"
+            ><i id="charge-fill"></i><b class="sweet-zone"></b
+            ><em id="charge-needle"></em></span
+          ><span class="meter-labels"
+            ><span>CONTROL</span><span>SWEET SPOT</span><span>RISK</span></span
+          >
+        </button>
+        <div class="shot-footer">
+          <kbd>F</kbd
+          ><span id="power-hint">Hold to charge · release to hit</span
+          ><i id="contact-ready"></i>
+        </div>
+      </section>
+    </div>
+
+    <section id="pause-screen" class="screen" hidden>
+      <div
+        class="oui oui-panel padel-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pause-title"
+        data-hud="pause-card"
+      >
+        <div class="oui-stack">
+          <span class="oui-label">Time out</span>
+          <h2 id="pause-title" class="oui-title">Take your time</h2>
+          <p class="oui-text oui-text--small">
+            Get near the incoming ball. Tap <kbd>J</kbd> for control, or hold
+            <kbd>F</kbd> to build power. <kbd>W A S D</kbd> keeps moving; the
+            arrow keys aim. On a high ball, release in blue for a power smash.
+            <kbd>C</kbd> switches between Broadcast, Low third person and
+            First person.
+          </p>
+          <div class="oui-stack oui-stack--tight">
+            <button
+              id="resume"
+              class="oui-button oui-button--white oui-button--block"
+            >
+              Back to the court
+            </button>
+            <button id="restart" class="oui-button oui-button--block">
+              New match
+            </button>
+            <button id="pause-club" class="oui-button oui-button--block">
+              Explore the club
+            </button>
+            <button id="pause-exit" class="oui-button oui-button--block">
+              Back to the lobby
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="screen" hidden>
+      <div
+        class="oui oui-panel padel-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="result-title"
+        data-hud="results-card"
+      >
+        <div class="oui-stack">
+          <span class="oui-label">Game. Set. Next match.</span>
+          <h2 id="result-title" class="oui-title">Match point</h2>
+          <p id="result-score" class="result-score"></p>
+          <p id="result-detail" class="oui-text"></p>
+          <div class="oui-stack oui-stack--tight">
+            <button
+              id="rematch"
+              class="oui-button oui-button--white oui-button--block"
+            >
+              Play again
+            </button>
+            <button id="result-club" class="oui-button oui-button--block">
+              Explore the club
+            </button>
+            <button id="result-exit" class="oui-button oui-button--block">
+              Back to the lobby
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

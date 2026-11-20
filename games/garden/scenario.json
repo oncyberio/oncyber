@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "steps": [
+    {
+      "type": "wait",
+      "frames": 30
+    },
+    {
+      "type": "assert",
+      "key": "booted",
+      "equals": true
+    },
+    {
+      "type": "assert",
+      "key": "bloomlings",
+      "equals": 1
+    },
+    {
+      "type": "assert",
+      "key": "stage0",
+      "equals": "egg"
+    },
+    {
+      "type": "action",
+      "action": "forward",
+      "value": 1
+    },
+    {
+      "type": "wait",
+      "frames": 20
+    },
+    {
+      "type": "action",
+      "action": "forward",
+      "value": 0
+    },
+    {
+      "type": "action",
+      "action": "interact"
+    },
+    {
+      "type": "wait",
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 0
+    },
+    {
+      "type": "assert",
+      "key": "held",
+      "equals": "bloomling"
+    },
+    {
+      "type": "action",
+      "action": "throw"
+    },
+    {
+      "type": "wait",
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "throw",
+      "value": 0
+    },
+    {
+      "type": "assert",
+      "key": "held",
+      "equals": ""
+    }
+  ]
+}

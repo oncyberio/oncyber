@@ -1,0 +1,242 @@
+{
+    "version": 1,
+    "enter": {
+        "arrival": "lobby",
+        "party": 4
+    },
+    "steps": [
+        {
+            "type": "waitUntil",
+            "key": "standing",
+            "equals": true,
+            "maxFrames": 120
+        },
+        {
+            "type": "assert",
+            "key": "booted",
+            "equals": true
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "arrive"
+        },
+        {
+            "type": "assert",
+            "key": "arrival",
+            "equals": "lobby"
+        },
+        {
+            "type": "assert",
+            "key": "hostArrival",
+            "equals": "lobby"
+        },
+        {
+            "type": "assert",
+            "key": "partySize",
+            "equals": 4
+        },
+        {
+            "type": "assert",
+            "key": "hostParty",
+            "equals": 4
+        },
+        {
+            "type": "assert",
+            "key": "partyFormats",
+            "equals": "doubles,tournament,solo"
+        },
+        {
+            "type": "action",
+            "action": "up"
+        },
+        {
+            "type": "wait",
+            "frames": 40
+        },
+        {
+            "type": "action",
+            "action": "up",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "walked",
+            "equals": true
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "party"
+        },
+        {
+            "type": "action",
+            "action": "down"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "down",
+            "value": 0
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "partyFormat",
+            "equals": "tournament"
+        },
+        {
+            "type": "action",
+            "action": "down"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "down",
+            "value": 0
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "setup"
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "vs"
+        },
+        {
+            "type": "waitUntil",
+            "key": "screen",
+            "equals": "playing",
+            "maxFrames": 400
+        },
+        {
+            "type": "waitUntil",
+            "key": "phase",
+            "equals": "serve",
+            "maxFrames": 300
+        },
+        {
+            "type": "assert",
+            "key": "points",
+            "equals": "0-0"
+        },
+        {
+            "type": "action",
+            "action": "flat"
+        },
+        {
+            "type": "waitUntil",
+            "key": "phase",
+            "equals": "toss",
+            "maxFrames": 60
+        },
+        {
+            "type": "wait",
+            "frames": 20
+        },
+        {
+            "type": "action",
+            "action": "flat",
+            "value": 0
+        },
+        {
+            "type": "wait",
+            "frames": 30
+        },
+        {
+            "type": "action",
+            "action": "pause"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "pause",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "pause"
+        },
+        {
+            "type": "action",
+            "action": "pause"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "pause",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "playing"
+        }
+    ]
+}

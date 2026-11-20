@@ -1,0 +1,48 @@
+{
+    "name": "oncyber",
+    "version": "0.1.0",
+    "description": "Build a game for Oncyber on your own machine: a starter game, the game SDK and kits, the checks, and publishing.",
+    "license": "MIT",
+    "type": "module",
+    "bin": {
+        "oncyber": "bin/oncyber.mjs"
+    },
+    "exports": {
+        ".": "./lib/index.mjs",
+        "./vite": "./vite.mjs",
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "bin",
+        "lib",
+        "sdk",
+        "starter",
+        "vite.mjs",
+        "README.md"
+    ],
+    "engines": {
+        "node": ">=22.18"
+    },
+    "scripts": {
+        "prepack": "node scripts/prepack.mjs",
+        "postpack": "node scripts/prepack.mjs --clean",
+        "test": "node --test test/*.test.mjs"
+    },
+    "peerDependencies": {
+        "playwright": ">=1.45",
+        "vite": ">=6"
+    },
+    "peerDependenciesMeta": {
+        "playwright": {
+            "optional": true
+        },
+        "vite": {
+            "optional": true
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/oncyberio/oncyber.git",
+        "directory": "games/cli"
+    }
+}

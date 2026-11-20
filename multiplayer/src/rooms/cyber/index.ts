@@ -11,6 +11,8 @@ import { PlayersEventHandlers } from "./events/CyberRoomEventsHandler";
 
 import { ChatEventHandlers } from "./events/ChatEventsHandler";
 
+import { MatchChannel } from "./events/MatchChannelHandler";
+
 import { PlayersCount } from "../../shared/events/PlayersCount";
 
 import { LOGS } from "../../utils/Logs";
@@ -39,6 +41,9 @@ export class CyberRoom extends Room<CyberState, Metadata> {
     public chatRate = new Map<string, { count: number; windowStart: number }>();
 
     public rtcRate = new Map<string, { tokens: number; last: number }>();
+
+    // Party rooms only: the roster and the real-time match channel.
+    public matchChannel: MatchChannel | null = null;
 
     onCreate(options: any) {
         let lastServerTime = 0;
@@ -70,6 +75,8 @@ export class CyberRoom extends Room<CyberState, Metadata> {
         PlayersEventHandlers(this);
 
         ChatEventHandlers(this);
+
+        this.matchChannel = MatchChannel.for(this, options?.label);
 
         this.setState(cyberState);
 
@@ -184,6 +191,8 @@ export class CyberRoom extends Room<CyberState, Metadata> {
             { except: client }
         );
 
+        this.matchChannel?.join(client, options);
+
         LOGS.roomOnJoin(player, "cyber");
     }
 
@@ -195,6 +204,8 @@ export class CyberRoom extends Room<CyberState, Metadata> {
             { sessionId: client.sessionId },
             { except: client }
         );
+
+        this.matchChannel?.leave(client, consented);
 
         // Session-keyed realtime data is not part of the schema player.
         this.userAttributes.delete(client.sessionId);
@@ -219,6 +230,7 @@ export class CyberRoom extends Room<CyberState, Metadata> {
     async onDispose() {
         await this.playersCount.dispose();
 
+        this.matchChannel?.dispose();
         this.userAttributes.clear();
         this.channelAttributes.clear();
         this.chatRate.clear();

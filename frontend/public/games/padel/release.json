@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "game": "padel",
+  "name": "Glasshouse · Padel",
+  "release": "60abae41a504e58e",
+  "publishedAt": "2026-11-15T20:52:55.096Z",
+  "check": {
+    "status": "passed",
+    "checkedAt": "2026-11-15T20:52:10.208Z",
+    "backend": "webgl2",
+    "frames": {
+      "count": 180,
+      "medianMs": 400,
+      "p95Ms": 450,
+      "worstMs": 483.3
+    }
+  },
+  "files": [
+    {
+      "path": "assets/Anton-Regular-DDTWnLuj.ttf",
+      "bytes": 170812,
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+    },
+    {
+      "path": "assets/SpaceGrotesk-Medium-Du45cukc.woff2",
+      "bytes": 31856,
+      "sha256": "ca29135eeaa7eb5babe31e7baa53970e6a4149b54a005beac0d4617eb61b64c8"
+    },
+    {
+      "path": "assets/SpaceGrotesk-Regular-CLcxnAOH.woff2",
+      "bytes": 32136,
+      "sha256": "75aa6ffb32c2dd458c78c1055fff50089b56ea7177f135a64e370245e130769d"
+    },
+    {
+      "path": "assets/SpaceMono-Regular-B6K0B1Cw.woff2",
+      "bytes": 34932,
+      "sha256": "a3281287939a152ec1485709aff1a77515b4f0d657a24fcda3a5a439aa39adb2"
+    },
+    {
+      "path": "assets/basis_transcoder-VXdx5NbI.wasm",
+      "bytes": 527333,
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a"
+    },
+    {
+      "path": "assets/basis_transcoder-o4Hde_L7.js",
+      "bytes": 57529,
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
+    },
+    {
+      "path": "assets/emotes-hP_wzozT.json",
+      "bytes": 201043,
+      "sha256": "b60a863f42b40c729d417ae0a7d4e97f713c701f8adec55b22951eb7af6fb989"
+    },
+    {
+      "path": "assets/index-BS_rq12l.js",
+      "bytes": 1141676,
+      "sha256": "3bce5611e311aecd7861cd168196d5789fd95e8cce0219bc746527839e6eb7d8"
+    },
+    {
+      "path": "assets/index-DDVEhsFk.css",
+      "bytes": 21193,
+      "sha256": "fc3eaa30f769e7eab9bfaefe6241643866e871a9efdf9de95432a7e50de55125"
+    },
+    {
+      "path": "assets/locomotion-DBQJaU7P.json",
+      "bytes": 211080,
+      "sha256": "fc8945b1d6aedd912ac78000c421cc8c735a07128502d07b491cd164c42718c2"
+    },
+    {
+      "path": "assets/tennis-motion-B3dyzj4F.json",
+      "bytes": 903297,
+      "sha256": "77fae49ef517c3283372926876fece2d37243358b19d719f963da42e989d4a7d"
+    },
+    {
+      "path": "avatars/square-catalogue.vrm",
+      "bytes": 255160,
+      "sha256": "5cc1a27184aaa559328491f63bc309a660098a3d3f5e08eabbc81427f01eb8a6"
+    },
+    {
+      "path": "credits.json",
+      "bytes": 5448,
+      "sha256": "1b2b27f416fec7ffa5904b7ac224524606d2102dd5c5f887c2dd37b87444d8ae"
+    },
+    {
+      "path": "fonts/Anton-OFL.txt",
+      "bytes": 4484,
+      "sha256": "ee67e6ee22790b7929f1a3769ca2801d565c64b5a9096942c1adf5596de9c9e4"
+    },
+    {
+      "path": "fonts/Anton-Regular.ttf",
+      "bytes": 170812,
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab"
+    },
+    {
+      "path": "index.html",
+      "bytes": 10564,
+      "sha256": "ecd216208eb7f6aeac5012273dc842f1fce82c407fca3bb69122903cf042329d"
+    },
+    {
+      "path": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "bytes": 4402,
+      "sha256": "c6dec685825f73b18c20926fddc65e8315642e12986f15db0699170940a09efc"
+    },
+    {
+      "path": "licenses/SpaceMono-OFL-1.1.txt",
+      "bytes": 4392,
+      "sha256": "8e4ee42b2553e1e01504e61cb0d46d148cd8c9e5eacaa3622a7df2d4f2955b9f"
+    },
+    {
+      "path": "licenses/basis-universal-Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "licenses/three-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+    },
+    {
+      "path": "licenses/three-vrm-MIT.txt",
+      "bytes": 1072,
+      "sha256": "279ec82987aec7e72ecb9850bb704a87e352d577bc7581454c30f3551a88ea92"
+    },
+    {
+      "path": "network.json",
+      "bytes": 87,
+      "sha256": "622bc8f2d2734dc0a5c2795529e550d4a01736c6d92ddb5d3a82dd6d682cd993"
+    },
+    {
+      "path": "preview.svg",
+      "bytes": 3207,
+      "sha256": "0460684b3afa579ab9de36820fc11c26f1acd956a578bba9d11220b0df460e5d"
+    }
+  ]
+}

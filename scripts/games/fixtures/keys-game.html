@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>keys fixture</title>
+<!--
+    A one-square game for scripts/games/keysCheck.test.mjs. As written it
+    follows docs/games/keys-focus.md. `?leak` adds what the rule forbids,
+    so the check can be shown to catch it; `?lock` takes the pointer lock.
+-->
+<canvas
+    id="c"
+    width="320"
+    height="180"
+    style="width: 100%; height: 100%"
+></canvas>
+<script type="module">
+    import { bindPageKeys } from "./keysBrowser.ts";
+    const mode = location.search;
+    const canvas = document.getElementById("c");
+    const state = { x: 0, right: 0, raw: 0, muted: false };
+    const keys = bindPageKeys({
+        game: "fixture",
+        input: {
+            right: { keyboard: ["KeyD"] },
+            hit: { keyboard: ["Space", "KeyJ"] },
+        },
+        action: (name, value) => name === "right" && (state.right = value),
+        muted: (muted) => (state.muted = muted),
+        probe: () => ({ position: [state.x, 0, 0], muted: state.muted }),
+    });
+    if (mode.includes("leak")) {
+        const raw = (event) =>
+            event.code === "KeyD" &&
+            (state.raw = event.type === "keydown" ? 1 : 0);
+        window.addEventListener("keydown", raw);
+        window.addEventListener("keyup", raw);
+    }
+    if (mode.includes("lock"))
+        canvas.addEventListener("pointerdown", () => keys.lockPointer(canvas));
+    let last = performance.now();
+    const frame = (now) => {
+        state.x +=
+            Math.max(state.right, state.raw) *
+            Math.min(0.1, (now - last) / 1000);
+        last = now;
+        requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    const post = (kind) => parent.postMessage({ type: `fixture:${kind}` }, "*");
+    addEventListener(
+        "message",
+        (event) => event.data?.type === "fixture:identity" && post("ready")
+    );
+    post("hello");
+</script>

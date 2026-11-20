@@ -1,5 +1,6 @@
 const ETH_RPC =
-    process.env.NEXT_PUBLIC_ETH_MAINNET_RPC || "https://ethereum-rpc.publicnode.com";
+    process.env.NEXT_PUBLIC_ETH_MAINNET_RPC ||
+    "https://ethereum-rpc.publicnode.com";
 
 // Firebase browser config always comes from the environment, so a fork never
 // talks to Oncyber's projects by accident. next.config.js fails production
@@ -63,7 +64,8 @@ export const nodeEnv = {
     SHAPE_RPC:
         process.env.NEXT_PUBLIC_SHAPE_RPC || "https://mainnet.shape.network",
     ETH_RPC,
-    POLYGON_RPC: process.env.NEXT_PUBLIC_POLYGON_RPC || "https://polygon-rpc.com",
+    POLYGON_RPC:
+        process.env.NEXT_PUBLIC_POLYGON_RPC || "https://polygon-rpc.com",
 
     ETH_BALANCE_CHECKER_RPC: ETH_RPC,
     ALCHEMY_API_KEY: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY,
@@ -100,6 +102,20 @@ export const nodeEnv = {
     YOUTUBE_API_KEY_GET: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY,
     // Server-only: never expose a Pinata JWT with a NEXT_PUBLIC_ prefix.
     PINATA_JWT_KEY: process.env.PINATA_JWT_KEY,
+    // Server-only. Who may publish a game from outside the repository
+    // (docs/games/publishing.md): unset is off (open on the development
+    // server), "open", or a comma list of account ids. Read through
+    // publishingGate() in features/games/publishedGames.ts.
+    GAMES_PUBLISHING: process.env.GAMES_PUBLISHING,
+    // Server-only. Upload mode `storage` of that publishing: releases kept
+    // in a private Firebase Storage bucket, for a host with no disk. Unset
+    // uses the bucket where there is no local releases folder; "on" uses
+    // it even where there is one; "off" never. Read through
+    // releaseBucketConfig() in features/games/releaseBucket.ts.
+    GAMES_PUBLISHING_STORAGE: process.env.GAMES_PUBLISHING_STORAGE,
+    // Server-only. The bucket for it; unset is the Firebase project's
+    // bucket (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).
+    GAMES_STORAGE_BUCKET: process.env.GAMES_STORAGE_BUCKET,
     ONESIGNAL_APP_ID:
         process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
             ? "d6060c2b-bd28-4af2-9887-a8e1738ab4dc"

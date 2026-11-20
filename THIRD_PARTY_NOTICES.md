@@ -40,3 +40,57 @@ in the repository. See [`docs/fonts.md`](docs/fonts.md).
 
 Everything else under `frontend/public/` (images, icons, landing media) is
 Oncyber's own work and is covered by `LICENSE` unless a file says otherwise.
+
+<!-- games-credits:start -->
+
+<!-- prettier-ignore-start -->
+
+## Games
+
+Generated from each game's `credits` in `games/<id>/game.json` by `pnpm games:credits`; edit the manifests, not this section. Files a game marks as made for it are Oncyber's own work and are not listed. Rules: [`docs/games/credits.md`](docs/games/credits.md).
+
+### ACE! Tennis (`games/ace/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Lobby locomotion and emote clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
+| Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
+| three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
+### Bloom Garden (`games/garden/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| Lobby locomotion clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
+### Lantern Tag (`games/lantern-tag/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
+| three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
+### Glasshouse · Padel (`games/padel/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| OC Square avatar | model | NeonGlitch86 | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md> | Oncyber Permission; not an open licence, to be confirmed |
+| Anton | font | The Anton Project Authors | <https://github.com/googlefonts/AntonFont> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`fonts/Anton-OFL.txt`) |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Lobby locomotion and emote clips | motion | Not recorded; Oncyber's lobby motion set | <https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json> | Oncyber Lobby Motion; not an open licence, to be confirmed |
+| Tennis motion capture | motion | Sam Lazarus for Rokoko | <https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations> | Rokoko Free Asset Terms; not an open licence, to be confirmed |
+| Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
+| three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
+<!-- prettier-ignore-end -->
+
+<!-- games-credits:end -->

@@ -15,6 +15,17 @@
         "check:frontend": "pnpm -C frontend check",
         "check": "pnpm check:frontend",
         "world": "node scripts/world-cli.mjs",
+        "games:check": "node scripts/games/games.mjs check",
+        "games:publish": "node scripts/games/games.mjs publish",
+        "games:catalog": "node scripts/games/catalog.mjs",
+        "games:new": "node scripts/games/new.mjs",
+        "games:score": "node scripts/games/score.mjs",
+        "games:test": "node --experimental-strip-types --test games/runtime/test/*.test.mjs games/kits/locomotion/test/*.test.mjs games/kits/ui/test/*.test.mjs scripts/games/*.test.mjs scripts/games/test/*.test.mjs scripts/games/releases/test/*.test.mjs",
+        "games:ui": "node games/kits/ui/scripts/generate.mjs",
+        "games:credits": "node scripts/games/credits.mjs",
+        "games:release": "node scripts/games/releases/cli.mjs",
+        "games:release:test": "node --experimental-strip-types --test scripts/games/releases/test/*.test.mjs",
+        "games:cli:test": "node --experimental-strip-types --test games/cli/test/*.test.mjs",
         "prepare": "husky install"
     },
     "repository": {

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "game": "lantern-tag",
+  "name": "Lantern Tag",
+  "release": "84f31a1d5b5e6f18",
+  "publishedAt": "2026-11-15T21:25:29.318Z",
+  "check": {
+    "status": "passed",
+    "checkedAt": "2026-11-15T21:24:57.798Z",
+    "backend": "webgl2",
+    "frames": {
+      "count": 180,
+      "medianMs": 50,
+      "p95Ms": 66.7,
+      "worstMs": 66.8
+    }
+  },
+  "files": [
+    {
+      "path": "assets/SpaceGrotesk-Medium-Du45cukc.woff2",
+      "bytes": 31856,
+      "sha256": "ca29135eeaa7eb5babe31e7baa53970e6a4149b54a005beac0d4617eb61b64c8"
+    },
+    {
+      "path": "assets/SpaceGrotesk-Regular-CLcxnAOH.woff2",
+      "bytes": 32136,
+      "sha256": "75aa6ffb32c2dd458c78c1055fff50089b56ea7177f135a64e370245e130769d"
+    },
+    {
+      "path": "assets/SpaceMono-Regular-B6K0B1Cw.woff2",
+      "bytes": 34932,
+      "sha256": "a3281287939a152ec1485709aff1a77515b4f0d657a24fcda3a5a439aa39adb2"
+    },
+    {
+      "path": "assets/basis_transcoder-VXdx5NbI.wasm",
+      "bytes": 527333,
+      "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a"
+    },
+    {
+      "path": "assets/basis_transcoder-o4Hde_L7.js",
+      "bytes": 57529,
+      "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
+    },
+    {
+      "path": "assets/index-DNCx_Nvp.js",
+      "bytes": 940507,
+      "sha256": "ca272ea7420b50466feb11a2272344c4d1bbd4633e28a47094fe2f6e19d73586"
+    },
+    {
+      "path": "assets/index-IVQo53_p.css",
+      "bytes": 16691,
+      "sha256": "7ba13423c68fb643f13c957cdd56c8f95a4b51e4bb5e825ff7112e516ebc01a4"
+    },
+    {
+      "path": "credits.json",
+      "bytes": 2709,
+      "sha256": "2add1f2257d402b78c9e3f4abd2690e7bf23c16d20065aaa1c055300f9566658"
+    },
+    {
+      "path": "index.html",
+      "bytes": 4419,
+      "sha256": "492d5769a9587f5859e00a37d172b76000cbaefd5360b163af6e1fd3ac3ea14c"
+    },
+    {
+      "path": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "bytes": 4402,
+      "sha256": "c6dec685825f73b18c20926fddc65e8315642e12986f15db0699170940a09efc"
+    },
+    {
+      "path": "licenses/SpaceMono-OFL-1.1.txt",
+      "bytes": 4392,
+      "sha256": "8e4ee42b2553e1e01504e61cb0d46d148cd8c9e5eacaa3622a7df2d4f2955b9f"
+    },
+    {
+      "path": "licenses/basis-universal-Apache-2.0.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "licenses/three-MIT.txt",
+      "bytes": 1081,
+      "sha256": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+    },
+    {
+      "path": "licenses/three-vrm-MIT.txt",
+      "bytes": 1072,
+      "sha256": "279ec82987aec7e72ecb9850bb704a87e352d577bc7581454c30f3551a88ea92"
+    },
+    {
+      "path": "network.json",
+      "bytes": 87,
+      "sha256": "622bc8f2d2734dc0a5c2795529e550d4a01736c6d92ddb5d3a82dd6d682cd993"
+    }
+  ]
+}

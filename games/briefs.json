@@ -1,0 +1,54 @@
+{
+    "version": 1,
+    "about": "Twelve fixed one-line briefs. An agent builds each from docs/games/good-game.md alone; pnpm games:score --briefs reports which checks each built game passes. Don't edit a brief: add a new version of the file instead, so scores stay comparable.",
+    "briefs": [
+        {
+            "id": "brief-penalties",
+            "brief": "A penalty shootout: five kicks each, striker against goalkeeper, sudden death after a draw."
+        },
+        {
+            "id": "brief-kart",
+            "brief": "A three-lap kart race on a small island circuit for up to eight drivers, with CPU drivers filling empty karts."
+        },
+        {
+            "id": "brief-archery",
+            "brief": "An archery range: three rounds of three arrows at a moving target, highest total wins."
+        },
+        {
+            "id": "brief-tag",
+            "brief": "Freeze tag in a walled garden: one chaser, everyone else runs, two-minute rounds."
+        },
+        {
+            "id": "brief-bowling",
+            "brief": "Ten-pin bowling on two lanes, a full ten-frame game, taking turns."
+        },
+        {
+            "id": "brief-maze",
+            "brief": "A hedge maze race: first to the fountain in the middle wins, and the maze changes every round."
+        },
+        {
+            "id": "brief-sumo",
+            "brief": "Sumo on a round platform: push the others off the edge, best of five rounds."
+        },
+        {
+            "id": "brief-fishing",
+            "brief": "A fishing pond: cast, wait, reel; heaviest catch after three minutes wins."
+        },
+        {
+            "id": "brief-climb",
+            "brief": "A climbing wall race up a twenty-metre tower with a handhold route that differs each match."
+        },
+        {
+            "id": "brief-rhythm",
+            "brief": "A dance floor rhythm game: step on the lit tiles in time through one ninety-second song."
+        },
+        {
+            "id": "brief-minigolf",
+            "brief": "Nine holes of minigolf, fewest strokes wins, everyone playing the same hole at once."
+        },
+        {
+            "id": "brief-capture",
+            "brief": "Capture the flag between two teams on a small symmetrical field, first to three captures."
+        }
+    ]
+}

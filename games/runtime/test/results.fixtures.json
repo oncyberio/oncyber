@@ -1,0 +1,176 @@
+{
+    "comment": "Shared by games/runtime/test/results.test.mjs and frontend/features/games/gameResults.test.ts so the game side and the page side accept the same results.",
+    "valid": {
+        "match": "m_0123456789",
+        "format": "cpu",
+        "durationSeconds": 84.5,
+        "teams": [
+            {
+                "score": 2,
+                "players": [{ "id": "self", "name": "Ada", "kind": "self" }]
+            },
+            {
+                "score": 1,
+                "players": [{ "id": "cpu-pro", "name": "Rally", "kind": "cpu" }]
+            }
+        ],
+        "winner": 0
+    },
+    "alsoValid": [
+        { "name": "draw", "patch": { "winner": null } },
+        {
+            "name": "doubles with team names",
+            "patch": {
+                "format": "doubles",
+                "teams": [
+                    {
+                        "name": "Reds",
+                        "score": 6,
+                        "players": [
+                            { "id": "a", "name": "Ada", "kind": "self" },
+                            { "id": "b", "name": "Bo", "kind": "peer" }
+                        ]
+                    },
+                    {
+                        "name": "Blues",
+                        "score": 4,
+                        "players": [
+                            { "id": "c", "name": "Cy", "kind": "peer" },
+                            { "id": "d", "name": "Di", "kind": "peer" }
+                        ]
+                    }
+                ],
+                "winner": 1
+            }
+        }
+    ],
+    "invalid": [
+        { "error": "RESULT_MATCH_ID", "patch": { "match": "x" } },
+        {
+            "error": "RESULT_MATCH_ID",
+            "patch": { "match": "has spaces in it" }
+        },
+        { "error": "RESULT_FORMAT", "patch": { "format": "Singles!" } },
+        { "error": "RESULT_DURATION", "patch": { "durationSeconds": -1 } },
+        { "error": "RESULT_DURATION", "patch": { "durationSeconds": 90000 } },
+        { "error": "RESULT_DURATION", "patch": { "durationSeconds": "84" } },
+        {
+            "error": "RESULT_TEAMS",
+            "patch": {
+                "teams": [
+                    {
+                        "score": 1,
+                        "players": [
+                            { "id": "self", "name": "Ada", "kind": "self" }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_SCORE",
+            "patch": {
+                "teams": [
+                    {
+                        "score": "2",
+                        "players": [
+                            { "id": "self", "name": "Ada", "kind": "self" }
+                        ]
+                    },
+                    {
+                        "score": 1,
+                        "players": [
+                            { "id": "cpu", "name": "Rally", "kind": "cpu" }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_PLAYERS",
+            "patch": {
+                "teams": [
+                    { "score": 2, "players": [] },
+                    {
+                        "score": 1,
+                        "players": [
+                            { "id": "self", "name": "Ada", "kind": "self" }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_PLAYERS",
+            "patch": {
+                "teams": [
+                    {
+                        "score": 2,
+                        "players": [
+                            { "id": "self", "name": "Ada", "kind": "owner" }
+                        ]
+                    },
+                    {
+                        "score": 1,
+                        "players": [
+                            { "id": "cpu", "name": "Rally", "kind": "cpu" }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_PLAYER_REPEATED",
+            "patch": {
+                "teams": [
+                    {
+                        "score": 2,
+                        "players": [
+                            { "id": "a", "name": "Ada", "kind": "self" }
+                        ]
+                    },
+                    {
+                        "score": 1,
+                        "players": [{ "id": "a", "name": "Bo", "kind": "peer" }]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_SELF",
+            "patch": {
+                "teams": [
+                    {
+                        "score": 2,
+                        "players": [
+                            { "id": "a", "name": "Ada", "kind": "peer" }
+                        ]
+                    },
+                    {
+                        "score": 1,
+                        "players": [{ "id": "b", "name": "Bo", "kind": "peer" }]
+                    }
+                ]
+            }
+        },
+        {
+            "error": "RESULT_SELF",
+            "patch": {
+                "teams": [
+                    {
+                        "score": 2,
+                        "players": [
+                            { "id": "a", "name": "Ada", "kind": "self" }
+                        ]
+                    },
+                    {
+                        "score": 1,
+                        "players": [{ "id": "b", "name": "Bo", "kind": "self" }]
+                    }
+                ]
+            }
+        },
+        { "error": "RESULT_WINNER", "patch": { "winner": 2 } },
+        { "error": "RESULT_WINNER", "patch": { "winner": "0" } }
+    ]
+}

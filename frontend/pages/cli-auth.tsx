@@ -87,8 +87,8 @@ export default function CliAuth(props) {
                         <Body>
                             Signed in as <strong>{user?.id}</strong>. This lets
                             your terminal read and edit worlds you already have
-                            access to — the same access you have in the browser,
-                            nothing more.
+                            access to, and publish games under your account: the
+                            same access you have in the browser, nothing more.
                         </Body>
                         {error && <ErrorText>{error}</ErrorText>}
                         <Buttons>

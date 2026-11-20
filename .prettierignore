@@ -46,3 +46,9 @@ server/.env
 
 #samsy's three refactoring
 frontend/components/_3DExhibit-v2/three
+
+# the lobby's animation clips, copied byte for byte (npm run motion)
+games/kits/avatar/motion
+
+# generated from the design tokens (pnpm games:ui); a test compares it byte for byte
+games/kits/ui/oncyber-ui.css

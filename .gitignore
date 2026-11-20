@@ -81,3 +81,6 @@ scripts/gallery-maintenance/manifests/
 
 # Licensed fonts are fetched at build time (docs/fonts.md)
 frontend/public/fonts/licensed/
+
+# local game releases (pnpm games:publish with the local backend)
+.games-releases/

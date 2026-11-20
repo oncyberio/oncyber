@@ -1,0 +1,216 @@
+{
+    "version": 1,
+    "enter": {
+        "arrival": "lobby",
+        "party": 2
+    },
+    "steps": [
+        {
+            "type": "waitUntil",
+            "key": "standing",
+            "equals": true,
+            "maxFrames": 120
+        },
+        {
+            "type": "assert",
+            "key": "booted",
+            "equals": true
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "arrival"
+        },
+        {
+            "type": "assert",
+            "key": "cameFrom",
+            "equals": "lobby"
+        },
+        {
+            "type": "assert",
+            "key": "hostArrival",
+            "equals": "lobby"
+        },
+        {
+            "type": "assert",
+            "key": "partySize",
+            "equals": 2
+        },
+        {
+            "type": "assert",
+            "key": "hostParty",
+            "equals": 2
+        },
+        {
+            "type": "assert",
+            "key": "formats",
+            "equals": "doubles"
+        },
+        {
+            "type": "action",
+            "action": "up"
+        },
+        {
+            "type": "wait",
+            "frames": 40
+        },
+        {
+            "type": "action",
+            "action": "up",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "walked",
+            "equals": true
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "menu"
+        },
+        {
+            "type": "assert",
+            "key": "menu",
+            "equals": "setup"
+        },
+        {
+            "type": "action",
+            "action": "confirm"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "confirm",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "match"
+        },
+        {
+            "type": "assert",
+            "key": "matchesStarted",
+            "equals": 1
+        },
+        {
+            "type": "assert",
+            "key": "phase",
+            "equals": "serve"
+        },
+        {
+            "type": "assert",
+            "key": "server",
+            "equals": 0
+        },
+        {
+            "type": "assert",
+            "key": "score",
+            "equals": "0-0"
+        },
+        {
+            "type": "assert",
+            "key": "matchOpen",
+            "equals": true
+        },
+        {
+            "type": "action",
+            "action": "hit"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "hit",
+            "value": 0
+        },
+        {
+            "type": "waitUntil",
+            "key": "phase",
+            "equals": "rally",
+            "maxFrames": 300
+        },
+        {
+            "type": "waitUntil",
+            "key": "pointsPlayed",
+            "equals": 1,
+            "maxFrames": 3600
+        },
+        {
+            "type": "waitUntil",
+            "key": "phase",
+            "equals": "serve",
+            "maxFrames": 1800
+        },
+        {
+            "type": "action",
+            "action": "pause"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "pause",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "paused",
+            "equals": true
+        },
+        {
+            "type": "assert",
+            "key": "menu",
+            "equals": "pause"
+        },
+        {
+            "type": "action",
+            "action": "pause"
+        },
+        {
+            "type": "wait",
+            "frames": 2
+        },
+        {
+            "type": "action",
+            "action": "pause",
+            "value": 0
+        },
+        {
+            "type": "assert",
+            "key": "paused",
+            "equals": false
+        },
+        {
+            "type": "assert",
+            "key": "screen",
+            "equals": "match"
+        },
+        {
+            "type": "assert",
+            "key": "resultsSent",
+            "equals": 0
+        }
+    ]
+}

@@ -43,6 +43,7 @@ import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
 import LobbyVoiceRequests from "./LobbyVoiceRequests";
+import { useLobbySocialHandoff } from "@features/games/lobbySocialHandoff";
 import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";
@@ -359,6 +360,8 @@ export default function Lobby({
             scale: (loadedAvatar || avatar)?.scale,
         },
     });
+    // A game the visitor travels into continues this chat and voice.
+    useLobbySocialHandoff(journey.frameRef, social);
     const stopFlash = useCallback(
         (nonce?: string) => {
             if (nonce && flashRef.current?.nonce !== nonce) return;
@@ -1387,6 +1390,9 @@ export default function Lobby({
                                 active={exploreOpen}
                                 cards={cards}
                                 groupName={selectedGroup?.name}
+                                partyTrips={groups.flatMap((group) =>
+                                    group.travel ? [group.travel.id] : []
+                                )}
                                 onClose={closeExplore}
                                 onSelect={openPortal}
                             />
@@ -1650,6 +1656,7 @@ export default function Lobby({
             )}
             <LobbyConversationSurface
                 ref={socialElement}
+                data-game-overlay="party-chat"
                 data-search={exploreOpen || undefined}
                 data-entered={away || undefined}
                 data-people={peopleOpen || undefined}

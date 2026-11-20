@@ -1,0 +1,1090 @@
+{
+  "version": 1,
+  "game": "garden",
+  "checkedAt": "2026-11-15T18:44:26.171Z",
+  "status": "passed",
+  "scope": "scenario",
+  "files": {
+    "count": 8,
+    "bytes": 1393209,
+    "largest": {
+      "path": "assets/index-gr7fYcGP.js",
+      "bytes": 1042897
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [
+      {
+        "check": "arrival",
+        "why": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
+      }
+    ],
+    "ms": 30707,
+    "query": "&webgl",
+    "facts": {
+      "others": {
+        "booted": true,
+        "renderer": "webgl2",
+        "bloomlings": 1,
+        "stage0": "egg",
+        "held": "",
+        "match": "",
+        "matchPhase": "",
+        "menu": "",
+        "avatar": "vrm",
+        "online": true,
+        "peers": 1,
+        "talking": 0,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "none",
+        "avatarFacingCamera": false,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 0,
+        "avatarEmote": "",
+        "offers": 0,
+        "playerX": 0,
+        "playerZ": 13,
+        "screen": "arrival",
+        "position": [
+          0,
+          13
+        ],
+        "arrival": null,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 20,
+        "hostArrival": "",
+        "hostParty": 0,
+        "hostPartyArrived": 0,
+        "hostInputPaused": false
+      }
+    }
+  },
+  "hosted": {
+    "status": "passed",
+    "backend": "local",
+    "release": "6d68663cf8a6589a",
+    "files": 8,
+    "verified": 8,
+    "bootMs": 4364,
+    "ms": 4523
+  },
+  "findings": [],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 1781,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 1752,
+    "progress": {
+      "messages": 4,
+      "labels": [
+        "Planting the island…",
+        "Filling the pond…",
+        "Waking the bloomlings…",
+        "Welcome!"
+      ]
+    },
+    "resize": [],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": [
+      "resize not judged: the canvas reads as blank before any resize"
+    ]
+  },
+  "social": {
+    "stage": "social",
+    "status": "passed",
+    "ms": 5820,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "hello",
+        "audio",
+        "progress",
+        "saved",
+        "pose",
+        "first-frame",
+        "ready",
+        "health"
+      ]
+    }
+  },
+  "safeArea": {
+    "status": "passed",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 890.2,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 24,
+            "y": 658,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 1210.3,
+            "y": 687,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 242.5,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 14,
+            "y": 119,
+            "width": 172,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 380,
+            "y": 71,
+            "width": 520,
+            "height": 87
+          },
+          {
+            "id": "corner-buttons",
+            "x": 1172,
+            "y": 600,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 200,
+            "y": 119,
+            "width": 300,
+            "height": 209
+          },
+          {
+            "id": "menu-card",
+            "x": 420,
+            "y": 245,
+            "width": 440,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 612,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 1136,
+            "y": 514,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 260,
+            "y": 75,
+            "width": 760,
+            "height": 563
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 0.2,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 782,
+            "width": 280,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 320.3,
+            "y": 811,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 209.3,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 12,
+            "y": 714,
+            "width": 208,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 16,
+            "y": 71,
+            "width": 358,
+            "height": 124
+          },
+          {
+            "id": "corner-buttons",
+            "x": 282,
+            "y": 724,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 12,
+            "y": 119,
+            "width": 366,
+            "height": 209
+          },
+          {
+            "id": "menu-card",
+            "x": 16,
+            "y": 307,
+            "width": 358,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 167,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 246,
+            "y": 638,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 16,
+            "y": 75,
+            "width": 358,
+            "height": 687
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone-landscape",
+        "width": 844,
+        "height": 390,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 454.2,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 328,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 774.3,
+            "y": 357,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "brand",
+            "x": 16,
+            "y": 69,
+            "width": 242.5,
+            "height": 26
+          },
+          {
+            "id": "roster",
+            "x": 14,
+            "y": 119,
+            "width": 172,
+            "height": 56
+          },
+          {
+            "id": "toasts",
+            "x": 162,
+            "y": 71,
+            "width": 520,
+            "height": 87
+          },
+          {
+            "id": "corner-buttons",
+            "x": 736,
+            "y": 270,
+            "width": 92,
+            "height": 42
+          },
+          {
+            "id": "details",
+            "x": 200,
+            "y": 119,
+            "width": 300,
+            "height": 193
+          },
+          {
+            "id": "menu-card",
+            "x": 202,
+            "y": 80,
+            "width": 440,
+            "height": 223
+          },
+          {
+            "id": "match-top",
+            "x": 394,
+            "y": 69,
+            "width": 56,
+            "height": 18
+          },
+          {
+            "id": "cheer",
+            "x": 700,
+            "y": 184,
+            "width": 120,
+            "height": 120
+          },
+          {
+            "id": "help-card",
+            "x": 42,
+            "y": 75,
+            "width": 760,
+            "height": 233
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      }
+    ],
+    "findings": []
+  },
+  "party": {
+    "status": "passed",
+    "ms": 0,
+    "options": {},
+    "drops": []
+  },
+  "warnings": [
+    {
+      "code": "UI_KIT_UNUSED",
+      "message": "4 of 4 menu screen(s) use no UI kit classes: #hud, #details, #menu, #match. See docs/games/ui-kit.md."
+    }
+  ],
+  "ui": {
+    "screens": [
+      {
+        "name": "#hud",
+        "controls": 3,
+        "kit": false
+      },
+      {
+        "name": "#details",
+        "controls": 2,
+        "kit": false
+      },
+      {
+        "name": "#menu",
+        "controls": 2,
+        "kit": false
+      },
+      {
+        "name": "#match",
+        "controls": 4,
+        "kit": false
+      }
+    ]
+  },
+  "results": [],
+  "consoleErrors": [
+    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+  ],
+  "contract": {
+    "listed": true,
+    "prefix": "garden:",
+    "version": 1,
+    "visit": {
+      "arrival": "lobby",
+      "party": 0
+    },
+    "warnings": [
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "src/host/browser.js, src/host/host.js still says \"garden:<kind>\"; use connectPage() from @oncyber/game-runtime/page"
+      },
+      {
+        "code": "CONTRACT_LEGACY_PREFIX",
+        "message": "the build greets with \"garden:hello\"; rebuild it on connectPage() to speak \"oncyber:game:\""
+      }
+    ]
+  },
+  "devices": {
+    "declared": [
+      "desktop",
+      "gamepad"
+    ],
+    "notes": [
+      {
+        "code": "TOUCH_CUSTOM",
+        "message": "37 action(s) name touch controls the runtime does not draw (forward, backward, left, right, moveX, moveY, ...); the game's UI page must provide them"
+      },
+      {
+        "code": "DEVICE_CODE",
+        "message": "src/ui/main.js:77 reads touch or gamepad input directly (3 lines); declare a binding in game.json instead"
+      }
+    ],
+    "profiles": {
+      "desktop": {
+        "status": "passed",
+        "input": "keyboard",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "claimed": true
+      },
+      "phone": {
+        "status": "failed",
+        "input": "touch",
+        "viewport": "412 x 839",
+        "emulates": "Pixel 7",
+        "scope": "scenario",
+        "findings": [
+          {
+            "code": "STAGE_SCENARIO",
+            "message": "NO_TOUCH_CONTROL:forward"
+          }
+        ],
+        "controls": {
+          "stick": [],
+          "buttons": []
+        },
+        "consoleErrors": [
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+        ],
+        "run": {
+          "version": 1,
+          "status": "failed",
+          "backend": "webgpu",
+          "bootMs": 1539,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1539
+            },
+            {
+              "stage": "scenario",
+              "status": "failed",
+              "ms": 524,
+              "error": "NO_TOUCH_CONTROL:forward"
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 3010
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 16.7,
+            "p95Ms": 16.7,
+            "worstMs": 16.8
+          },
+          "inspect": {
+            "booted": true,
+            "renderer": "webgpu",
+            "bloomlings": 1,
+            "stage0": "egg",
+            "held": "",
+            "match": "",
+            "matchPhase": "",
+            "menu": "",
+            "avatar": "vrm",
+            "online": false,
+            "peers": 0,
+            "talking": 0,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "none",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "offers": 0,
+            "playerX": 0,
+            "playerZ": 13,
+            "screen": "arrival",
+            "position": [
+              0,
+              13
+            ],
+            "arrival": null,
+            "audioState": "suspended",
+            "audioRouted": false,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0,
+            "audioLevel": 0,
+            "hostPhase": "entered",
+            "hostFrames": 213,
+            "hostArrival": "",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": false
+      },
+      "gamepad": {
+        "status": "passed",
+        "input": "gamepad",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "findings": [],
+        "consoleErrors": [
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:37775/games/garden/assets/index-gr7fYcGP.js:21:18313)",
+          "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
+        ],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgpu",
+          "bootMs": 1645,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 1645
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 1024
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 3017
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 16.7,
+            "p95Ms": 16.8,
+            "worstMs": 16.8
+          },
+          "inspect": {
+            "booted": true,
+            "renderer": "webgpu",
+            "bloomlings": 1,
+            "stage0": "egg",
+            "held": "",
+            "match": "",
+            "matchPhase": "",
+            "menu": "",
+            "avatar": "vrm",
+            "online": false,
+            "peers": 0,
+            "talking": 0,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "none",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "offers": 0,
+            "playerX": 0,
+            "playerZ": 11.4,
+            "screen": "arrival",
+            "position": [
+              0,
+              11.35
+            ],
+            "arrival": null,
+            "audioState": "suspended",
+            "audioRouted": false,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0,
+            "audioLevel": 0,
+            "hostPhase": "entered",
+            "hostFrames": 238,
+            "hostArrival": "",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      }
+    }
+  },
+  "saved": {
+    "status": "passed",
+    "ms": 7887,
+    "keys": 1,
+    "runs": [
+      {
+        "run": "first visit",
+        "booted": true,
+        "ms": 1991,
+        "requests": 4
+      },
+      {
+        "run": "reload",
+        "booted": true,
+        "ms": 1489,
+        "requests": 3
+      },
+      {
+        "run": "old saves (1 of 1)",
+        "booted": true,
+        "ms": 1427,
+        "outcomes": {
+          "save": "migrated"
+        },
+        "requests": 3
+      },
+      {
+        "run": "unreadable version 0 saves",
+        "booted": true,
+        "ms": 1441,
+        "outcomes": {
+          "save": "reset"
+        },
+        "requests": 2
+      },
+      {
+        "run": "saves from a future version",
+        "booted": true,
+        "ms": 1368,
+        "outcomes": {
+          "save": "reset"
+        },
+        "requests": 2
+      }
+    ]
+  },
+  "listing": {
+    "thumbnail": "preview.jpg",
+    "thumbnailTaken": false,
+    "players": {
+      "min": 1,
+      "max": 32
+    },
+    "partySizes": [],
+    "devices": [
+      "desktop",
+      "gamepad"
+    ],
+    "tags": [
+      "pets",
+      "social",
+      "cozy"
+    ]
+  },
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
+  "credits": {
+    "thirdParty": 2,
+    "own": 1,
+    "warnings": [
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Lobby locomotion clips: LicenseRef-Oncyber-Lobby-Motion is outside the allow list and nobody has confirmed it. A copy of frontend/public/lobby/native-avatar-motion.json. The lobby's source manifests pin the clips by hash but record no author or licence."
+      }
+    ]
+  },
+  "run": {
+    "version": 1,
+    "status": "passed",
+    "backend": "webgpu",
+    "bootMs": 1634,
+    "stages": [
+      {
+        "stage": "boot",
+        "status": "passed",
+        "ms": 1634
+      },
+      {
+        "stage": "scenario",
+        "status": "passed",
+        "ms": 911
+      },
+      {
+        "stage": "lifecycle",
+        "status": "passed",
+        "ms": 0
+      },
+      {
+        "stage": "frames",
+        "status": "passed",
+        "ms": 3016
+      },
+      {
+        "stage": "sound",
+        "status": "passed",
+        "ms": 1521,
+        "facts": {
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 0.961,
+          "audioInput": 0.0467,
+          "audioLevel": 0.0448
+        }
+      },
+      {
+        "stage": "results",
+        "status": "passed",
+        "ms": 3
+      }
+    ],
+    "frames": {
+      "count": 180,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "worstMs": 16.8
+    },
+    "inspect": {
+      "booted": true,
+      "renderer": "webgpu",
+      "bloomlings": 1,
+      "stage0": "egg",
+      "held": "",
+      "match": "",
+      "matchPhase": "",
+      "menu": "",
+      "avatar": "vrm",
+      "online": false,
+      "peers": 0,
+      "talking": 0,
+      "avatarSelf": "vrm",
+      "avatarSelfInFrame": false,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "none",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": true,
+      "avatarTalking": 0,
+      "avatarEmote": "",
+      "offers": 0,
+      "playerX": 0,
+      "playerZ": 11.4,
+      "screen": "arrival",
+      "position": [
+        0,
+        11.35
+      ],
+      "arrival": null,
+      "audioState": "suspended",
+      "audioRouted": false,
+      "audioBypass": 0,
+      "audioMuted": false,
+      "audioVolume": 1,
+      "audioDucked": false,
+      "audioSuspended": false,
+      "audioGain": 1,
+      "audioInput": 0,
+      "audioLevel": 0,
+      "hostPhase": "entered",
+      "hostFrames": 238,
+      "hostArrival": "",
+      "hostParty": 0,
+      "hostPartyArrived": 0,
+      "hostInputPaused": false
+    }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 29,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 18,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
+  },
+  "process": {
+    "status": "passed",
+    "checks": [
+      {
+        "id": "brief",
+        "rule": "The brief was written first",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "offer",
+        "rule": "Respect the party",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "solo",
+        "rule": "Keep a solo path",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "bot",
+        "rule": "Ship a bot",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "arrival",
+        "rule": "Arrive like a world",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "handoff",
+        "rule": "Match the handoff",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "video",
+        "rule": "Leave a recording for review",
+        "status": "skipped",
+        "note": "recording is off; run the check with --video",
+        "findings": []
+      }
+    ],
+    "findings": [],
+    "video": null,
+    "log": [
+      {
+        "at": 1.9,
+        "event": "revealed",
+        "answered": true,
+        "screen": "arrival",
+        "arrival": {
+          "distance": 4.8,
+          "height": 1.91,
+          "fov": 58,
+          "avatarHeight": 1.62,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        }
+      },
+      {
+        "at": 4,
+        "event": "arrival",
+        "status": "passed"
+      },
+      {
+        "at": 4.3,
+        "event": "play",
+        "status": "passed"
+      },
+      {
+        "at": 5.3,
+        "event": "facts",
+        "facts": {
+          "booted": true,
+          "renderer": "webgpu",
+          "bloomlings": 1,
+          "stage0": "egg",
+          "held": "",
+          "match": "",
+          "matchPhase": "",
+          "menu": "",
+          "avatar": "vrm",
+          "online": false,
+          "peers": 0,
+          "talking": 0,
+          "avatarSelf": "vrm",
+          "avatarSelfInFrame": false,
+          "avatarOthers": 0,
+          "avatarOthersDrawn": 0,
+          "avatarOthersVrm": 0,
+          "avatarArrival": "none",
+          "avatarFacingCamera": false,
+          "avatarHandsEmpty": true,
+          "avatarTalking": 0,
+          "avatarEmote": "",
+          "offers": 0,
+          "playerX": -0.1,
+          "playerZ": 11.4,
+          "screen": "arrival",
+          "position": [
+            -0.1,
+            11.44
+          ],
+          "arrival": {
+            "distance": 4.8,
+            "height": 1.91,
+            "fov": 58,
+            "avatarHeight": 1.62,
+            "facingCamera": false,
+            "crouched": false,
+            "handsEmpty": true
+          },
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 1,
+          "audioInput": 0.0459,
+          "audioLevel": 0.0459,
+          "hostPhase": "entered",
+          "hostFrames": 213,
+          "hostArrival": "",
+          "hostParty": 0,
+          "hostPartyArrived": 0,
+          "hostInputPaused": false
+        }
+      }
+    ]
+  },
+  "network": {
+    "hosts": [
+      "cyber.mypinata.cloud"
+    ],
+    "requested": [
+      "cyber.mypinata.cloud"
+    ]
+  }
+}

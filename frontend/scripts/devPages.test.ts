@@ -23,12 +23,17 @@ const DEV = path.join(__dirname, "..", "pages", "dev");
 const GATE =
     /export function getServerSideProps\(\) \{\s*return process\.env\.NODE_ENV === "development"\s*\? \{ props: \{\} \}\s*: \{ notFound: true \};\s*\}/;
 
+// A page that loads data on the server starts by turning everyone else away.
+const EARLY_GATE =
+    /export async function getServerSideProps\(\) \{\s*if \(process\.env\.NODE_ENV !== "development"\) return \{ notFound: true \};/;
+
 const pages = readdirSync(DEV).filter(
     (file) => /\.(tsx?|jsx?)$/.test(file) && !/\.test\./.test(file)
 );
 
 test.each(pages)("pages/dev/%s is not found outside development", (file) => {
-    expect(readFileSync(path.join(DEV, file), "utf8")).toMatch(GATE);
+    const source = readFileSync(path.join(DEV, file), "utf8");
+    expect(GATE.test(source) || EARLY_GATE.test(source)).toBe(true);
 });
 
 describe("pages/dev/lobby-chat", () => {

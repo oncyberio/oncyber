@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "arrival": [{ "hold": "forward", "ms": 300 }],
+    "play": [
+        { "press": "interact" },
+        { "until": { "held": "bloomling" }, "timeoutMs": 5000 },
+        { "press": "throw" },
+        { "until": { "held": "" }, "timeoutMs": 5000 }
+    ],
+    "leave": []
+}

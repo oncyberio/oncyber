@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+        />
+        <meta name="theme-color" content="#3fbf5a" />
+        <title>Bloom Garden controls</title>
+            </head>
+    <body class="ui">
+        <div id="look" aria-label="Bloom Garden. Move with WASD, drag to look, E to pick up or use, F to pet, Q to throw."></div>
+        <div id="vignette" aria-hidden="true"></div>
+        <div id="wipe" aria-hidden="true"></div>
+
+        <div id="boot" class="screen show">
+            <div class="logo"><span>Bloom</span><b>Garden</b></div>
+            <div class="boot-bar"><i id="boot-fill"></i></div>
+            <p id="boot-text">Planting the island…</p>
+        </div>
+
+        <div id="hud" class="hud" hidden>
+            <div class="brand" data-hud="brand">
+                <span class="logo small"><span>Bloom</span><b>Garden</b></span>
+                <span class="clock" id="clock" title="Time of day"></span>
+            </div>
+            <div class="roster" id="roster" data-hud="roster" aria-label="Your bloomlings"></div>
+            <div class="prompt" id="prompt" data-hud="prompt" aria-live="polite"></div>
+            <div class="toasts" id="toasts" data-hud="toasts" aria-live="polite"></div>
+            <div class="offers" id="offers" data-hud="offers"></div>
+            <div class="corner-buttons" data-hud="corner-buttons">
+                <button class="chip" id="btn-help" aria-label="Controls">
+                    ?
+                </button>
+                <button class="chip" id="btn-sound" aria-label="Sound">
+                    ♪
+                </button>
+                
+            </div>
+        </div>
+
+        <aside id="details" class="panel" data-hud="details" hidden aria-label="Bloomling details">
+            <button class="close" data-close aria-label="Close">×</button>
+            <div class="details-head">
+                <div class="portrait" id="d-portrait"></div>
+                <div>
+                    <b id="d-name"></b>
+                    <p id="d-stage"></p>
+                </div>
+            </div>
+            <div class="meters" id="d-meters"></div>
+            <div class="align">
+                <span>Shade</span>
+                <div class="align-bar"><i id="d-align"></i></div>
+                <span>Sunny</span>
+            </div>
+            <div class="stats" id="d-stats"></div>
+            <p class="hint-line" id="d-hint"></p>
+            <div class="row">
+                <button class="pill" id="d-call">Call over</button>
+            </div>
+        </aside>
+
+        <div id="menu" class="screen modal">
+            <div class="card" data-hud="menu-card">
+                <h2 id="menu-title">Bloom Dash</h2>
+                <p id="menu-blurb" class="blurb"></p>
+                <div class="field">
+                    <span class="label">Who's competing?</span>
+                    <div class="choice" id="menu-who"></div>
+                </div>
+                <div class="field">
+                    <span class="label" id="menu-tier-label">Cup</span>
+                    <div class="choice" id="menu-tier"></div>
+                </div>
+                <div class="row">
+                    <button class="pill ghost" data-action="menuClose">
+                        Not now
+                    </button>
+                    <button class="pill big go" data-action="menuGo">
+                        Let's go!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="match" class="hud match" hidden>
+            <div class="match-top" data-hud="match-top">
+                <b id="m-title"></b>
+                <span id="m-timer"></span>
+            </div>
+            <div class="standings" id="m-standings" data-hud="standings"></div>
+            <div class="bout-bars" id="m-bout">
+                <div class="hp left">
+                    <span id="m-n0"></span>
+                    <div class="bar"><i id="m-hp0"></i></div>
+                </div>
+                <div class="hp right">
+                    <span id="m-n1"></span>
+                    <div class="bar"><i id="m-hp1"></i></div>
+                </div>
+            </div>
+            <div class="gauge" id="m-gauge" hidden>
+                <div class="gauge-track">
+                    <i class="sweet"></i><i class="needle" id="m-needle"></i>
+                </div>
+                <span>Cheer in the gold for a super bump!</span>
+            </div>
+            <button class="cheer" id="m-cheer" data-hud="cheer">
+                <span>Cheer!</span><small>C / Space</small
+                ><i id="m-cheer-cd"></i>
+            </button>
+            <div class="countdown" id="m-count"></div>
+            <div class="lobby-wait card" id="m-lobby" hidden>
+                <h3>Waiting for players</h3>
+                <p id="m-lobby-text"></p>
+                <div class="row">
+                    <button class="pill ghost" data-action="matchLeave">
+                        Leave
+                    </button>
+                    <button class="pill go" data-action="matchNow" id="m-now">
+                        Start now
+                    </button>
+                </div>
+            </div>
+            <div class="results card" id="m-results" hidden>
+                <h2 id="m-res-title"></h2>
+                <ol id="m-res-list"></ol>
+                <p id="m-res-reward" class="blurb"></p>
+                <div class="row">
+                    <button class="pill big go" data-action="matchLeave">
+                        Back to the garden
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="help" class="screen modal">
+            <div class="card wide" data-hud="help-card">
+                <h2>Looking after bloomlings</h2>
+                <div class="howto-grid">
+                    <div class="tip">
+                        <div class="keys">
+                            <span class="key">W</span><span class="key">A</span
+                            ><span class="key">S</span
+                            ><span class="key">D</span>
+                        </div>
+                        <b>Move</b>
+                        <p>
+                            Shift to walk, Space to jump. Drag to look, scroll
+                            to zoom.
+                        </p>
+                    </div>
+                    <div class="tip">
+                        <div class="keys"><span class="key">E</span></div>
+                        <b>Pick up · use</b>
+                        <p>
+                            Pick up bloomlings, fruit and critters. Near a tree,
+                            shake it. Holding food? E feeds the bloomling in
+                            front of you.
+                        </p>
+                    </div>
+                    <div class="tip">
+                        <div class="keys"><span class="key">F</span></div>
+                        <b>Pet</b>
+                        <p>
+                            Hold to pet. Petted bloomlings grow up Sunny. Pet
+                            eggs to hatch them sooner.
+                        </p>
+                    </div>
+                    <div class="tip">
+                        <div class="keys"><span class="key">Q</span></div>
+                        <b>Throw</b>
+                        <p>
+                            Toss what you hold. A little play is fine; lots of
+                            tossing raises a cheeky Shade.
+                        </p>
+                    </div>
+                    <div class="tip">
+                        <div class="keys"><span class="key">R</span></div>
+                        <b>Whistle</b>
+                        <p>Your bloomlings come running.</p>
+                    </div>
+                    <div class="tip">
+                        <div class="keys"><span class="key">Tab</span></div>
+                        <b>Your bloomlings</b>
+                        <p>
+                            Stats, hunger and mood. Click one in the world too.
+                        </p>
+                    </div>
+                </div>
+                <div class="howto-tips">
+                    <p>
+                        <b>Fruit:</b> Puffberries fill tummies and build
+                        stamina. Sun Peaches and Moon Plums nudge a bloomling
+                        toward Sunny or Shade.
+                    </p>
+                    <p>
+                        <b>Critters:</b> give a Hopper, Tweet, Fishlet, Digger
+                        or Shellby to a bloomling: its stat jumps and it grows
+                        ears, wings, fins, paws or a shell.
+                    </p>
+                    <p>
+                        <b>Mini games:</b> Bloom Dash at the arch on the east
+                        beach, Bump Dojo in the cliff cave. Other players can
+                        join.
+                    </p>
+                </div>
+                <div class="row">
+                    <button class="pill big" data-action="help">
+                        Got it!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="touch-pad" aria-hidden="true">
+            <div class="touch-stick"><div class="touch-knob"></div></div>
+            <div class="touch-buttons" data-hud="touch-buttons">
+                <button data-act="throw" class="t-throw">Throw</button>
+                <button data-act="pet" class="t-pet">Pet</button>
+                <button data-act="jump" class="t-jump">Jump</button>
+                <button data-act="interact" class="t-use">Use</button>
+            </div>
+        </div>
+
+        <script type="module" src="./src/ui/main.js"></script>
+    </body>
+</html>

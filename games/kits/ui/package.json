@@ -1,0 +1,16 @@
+{
+    "name": "@oncyber/game-ui",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Optional UI kit for Oncyber games: CSS variables and a few dependency-free elements generated from the design tokens, so a game's menus look like Oncyber.",
+    "exports": {
+        ".": "./src/index.ts",
+        "./oncyber-ui.css": "./oncyber-ui.css",
+        "./fonts.css": "./fonts.css"
+    },
+    "scripts": {
+        "generate": "node scripts/generate.mjs",
+        "test": "node --experimental-strip-types --test test/*.test.mjs"
+    }
+}

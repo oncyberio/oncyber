@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { siteOrigin } = require("./utils/siteOrigin");
+const { gameNetworkHeaders } = require("./features/games/networkPolicy");
 const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
@@ -295,6 +296,19 @@ const nextConfig = {
         ])
             headers.push({ source, headers: NO_THIRD_PARTY_FRAMES });
 
+        // Games run in an opaque-origin sandboxed frame (features/games), so
+        // the browser fetches their modules and files in CORS mode. They are
+        // public static files with no credentials.
+        headers.push({
+            source: "/games/:id/:path*",
+            headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+        });
+        // A game reaches its own files and the hosts it declared, nothing
+        // else (features/games/networkPolicy.js, docs/games/trust.md).
+        headers.push(
+            ...gameNetworkHeaders(path.join(__dirname, "public/games"), fs)
+        );
+
         // Browser caching for static files under public/ (Next already serves
         // /_next/static, where the engine and three.js chunks live, as
         // immutable). Without these, every file here is revalidated on each
@@ -389,6 +403,11 @@ const nextConfig = {
                 destination: "/api/docs/llms?full=1",
             },
             { source: "/docs.md", destination: "/api/docs/raw" },
+            // The games SDK's guide for agents (games/llms.txt).
+            {
+                source: "/games/llms.txt",
+                destination: "/api/docs/raw?slug=build-a-game",
+            },
             {
                 source: "/docs/:slug.md",
                 destination: "/api/docs/raw?slug=:slug",

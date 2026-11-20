@@ -22,6 +22,7 @@ const APP_PATHS = [
     "exhibits",
     "explore",
     "feed",
+    "games",
     "gl",
     "ingest",
     "ja",

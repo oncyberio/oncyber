@@ -1,0 +1,354 @@
+{
+  "name": "Bloom Garden",
+  "avatar": "vrm",
+  "listing": {
+    "tagline": "raise bloomlings with other players",
+    "description": "Hatch a bloomling, feed it, pet it and watch it grow up. Race and bump with other players' bloomlings.",
+    "thumbnail": "preview.jpg",
+    "players": {
+      "min": 1,
+      "max": 32
+    },
+    "tags": [
+      "pets",
+      "social",
+      "cozy"
+    ]
+  },
+  "page": {
+    "room": "oncyber-bloom-garden-v1",
+    "relay": true,
+    "crowdLabel": "in the garden",
+    "controls": {
+      "top": 14,
+      "left": "auto",
+      "right": 16
+    }
+  },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
+  "format": "world",
+  "avatars": {
+    "others": "avatar",
+    "arrival": "none",
+    "arrivalWhy": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
+  },
+  "arrival": {
+    "walkable": true
+  },
+  "party": {
+    "sizes": [
+      1,
+      8
+    ],
+    "formats": [
+      {
+        "id": "garden",
+        "label": "Share the garden",
+        "sizes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ],
+    "solo": "garden",
+    "shared": "Everyone on the island plays the same garden whatever the party's size; a party gets an island of its own.",
+    "late": "Arrives on the island as it is. Can join a mini game while its gate is open, or watch one under way.",
+    "dropped": "Their avatar and bloomlings leave the island; their save is kept by the page and returns with them. A mini game they were hosting is not handed to another member yet.",
+    "extra": "Mini games seat four racers or two fighters; everyone else watches and cheers. Empty spots get CPU rivals, so one member can always play."
+  },
+  "devices": [
+    "desktop",
+    "gamepad"
+  ],
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web",
+      "ios",
+      "android"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game/game.js",
+      "ui": "ui.html",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "assets",
+      "audio",
+      "avatar",
+      "network",
+      "results",
+      "storage",
+      "travel"
+    ],
+    "assets": [
+      "public/motion.json"
+    ],
+    "input": {
+      "forward": {
+        "keyboard": [
+          "KeyW",
+          "ArrowUp"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-up"
+      },
+      "backward": {
+        "keyboard": [
+          "KeyS",
+          "ArrowDown"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-down"
+      },
+      "left": {
+        "keyboard": [
+          "KeyA",
+          "ArrowLeft"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-left"
+      },
+      "right": {
+        "keyboard": [
+          "KeyD",
+          "ArrowRight"
+        ],
+        "touch": "stick",
+        "gamepad": "left-stick-right"
+      },
+      "moveX": {
+        "touch": "stick",
+        "gamepad": "left-stick-x"
+      },
+      "moveY": {
+        "touch": "stick",
+        "gamepad": "left-stick-y"
+      },
+      "walk": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "stick-half",
+        "gamepad": "left-stick-press"
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "jump",
+        "gamepad": "button-a"
+      },
+      "interact": {
+        "keyboard": [
+          "KeyE"
+        ],
+        "touch": "use",
+        "gamepad": "button-x"
+      },
+      "pet": {
+        "keyboard": [
+          "KeyF"
+        ],
+        "touch": "pet",
+        "gamepad": "button-y"
+      },
+      "throw": {
+        "keyboard": [
+          "KeyQ"
+        ],
+        "touch": "throw",
+        "gamepad": "button-b"
+      },
+      "whistle": {
+        "keyboard": [
+          "KeyR"
+        ],
+        "touch": "whistle",
+        "gamepad": "dpad-up"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ],
+        "touch": "wave",
+        "gamepad": "dpad-down"
+      },
+      "cheer": {
+        "keyboard": [
+          "KeyC"
+        ],
+        "touch": "cheer",
+        "gamepad": "right-trigger"
+      },
+      "panel": {
+        "keyboard": [
+          "Tab",
+          "KeyB"
+        ],
+        "touch": "roster",
+        "gamepad": "button-select"
+      },
+      "help": {
+        "keyboard": [
+          "KeyH"
+        ],
+        "touch": "help",
+        "gamepad": "button-start"
+      },
+      "mute": {
+        "touch": "sound"
+      },
+      "back": {
+        "keyboard": [
+          "Backspace"
+        ],
+        "touch": "close",
+        "gamepad": "button-b"
+      },
+      "lookX": {
+        "touch": "drag",
+        "gamepad": "right-stick-x"
+      },
+      "lookY": {
+        "touch": "drag",
+        "gamepad": "right-stick-y"
+      },
+      "zoom": {
+        "touch": "pinch",
+        "gamepad": "right-stick-press"
+      },
+      "looking": {
+        "touch": "drag"
+      },
+      "tapX": {
+        "touch": "tap"
+      },
+      "tapY": {
+        "touch": "tap"
+      },
+      "tap": {
+        "touch": "tap"
+      },
+      "details": {
+        "touch": "roster"
+      },
+      "callOne": {
+        "touch": "call"
+      },
+      "menuWho": {
+        "touch": "menu"
+      },
+      "menuTier": {
+        "touch": "menu"
+      },
+      "menuGo": {
+        "touch": "menu"
+      },
+      "menuClose": {
+        "touch": "menu"
+      },
+      "join": {
+        "touch": "offer"
+      },
+      "watch": {
+        "touch": "offer"
+      },
+      "matchLeave": {
+        "touch": "match"
+      },
+      "matchNow": {
+        "touch": "match"
+      },
+      "audioUnlock": {
+        "touch": "any"
+      },
+      "exit": {
+        "touch": "lobby"
+      },
+      "pick1": {
+        "keyboard": [
+          "Digit1"
+        ]
+      },
+      "pick2": {
+        "keyboard": [
+          "Digit2"
+        ]
+      },
+      "pick3": {
+        "keyboard": [
+          "Digit3"
+        ]
+      },
+      "pick4": {
+        "keyboard": [
+          "Digit4"
+        ]
+      }
+    }
+  },
+  "keysCheck": {
+    "move": "KeyW"
+  },
+  "results": true,
+  "saved": {
+    "save": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 262144,
+      "sample": {
+        "v": 1,
+        "saved": 1,
+        "list": []
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"v\":1,\"saved\":1,\"list\":[]}",
+          "expect": "migrated"
+        }
+      ]
+    }
+  },
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.jpg"
+      ],
+      "note": "A capture of the game."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "Lobby locomotion clips",
+      "kind": "motion",
+      "files": [
+        "motion.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "A copy of frontend/public/lobby/native-avatar-motion.json: idle, walk, run, jump and wave. Oncyber's lobby motion set. Its source manifests pin each clip by hash but record no author or licence."
+    }
+  ]
+}

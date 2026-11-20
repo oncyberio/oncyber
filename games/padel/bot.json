@@ -1,0 +1,56 @@
+{
+    "version": 1,
+    "query": "points=2",
+    "arrival": [
+        {
+            "hold": "up",
+            "ms": 1500
+        },
+        {
+            "press": "confirm",
+            "key": "KeyJ"
+        },
+        {
+            "until": {
+                "screen": "menu"
+            },
+            "timeoutMs": 10000
+        },
+        {
+            "press": "confirm",
+            "key": "KeyJ"
+        },
+        {
+            "until": {
+                "screen": "match"
+            },
+            "timeoutMs": 15000
+        }
+    ],
+    "play": [
+        {
+            "repeat": [
+                {
+                    "press": "hit",
+                    "key": "KeyJ"
+                },
+                {
+                    "wait": 2500
+                }
+            ],
+            "until": {
+                "screen": "results"
+            },
+            "timeoutMs": 480000
+        }
+    ],
+    "leave": [
+        {
+            "press": "down"
+        },
+        {
+            "press": "confirm",
+            "key": "KeyJ"
+        }
+    ]
+}
