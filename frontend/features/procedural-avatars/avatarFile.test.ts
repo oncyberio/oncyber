@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { recipeTransform } from "./recipes";
 import { fitCoatRow } from "./coatPanels";
-import { drawOrbVisor } from "./orbVisor";
+import { drawOrbVisor, orbContactUV } from "./orbVisor";
 import { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 import { readAvatarFile } from "./avatarFile";
@@ -826,6 +826,24 @@ test("a single orb rig keeps its closed ray facets, two pigments and grips in bo
             ]),
         })
     ).toThrow();
+    const rounded = [
+        [1.1, -0.16],
+        [1.25, -0.12],
+        [1.62, 0],
+        [1.3, 0.11],
+        [1.1, 0.14],
+    ];
+    const rays = [rounded, ...doc.sunRays.slice(1)];
+    expect(readAvatarFile({ ...doc, sunRays: rays }).recipe.sunRays[0]).toEqual(
+        rounded
+    );
+    for (const rim of [
+        [...rounded.slice(0, 2), [1.18, 0], ...rounded.slice(3)],
+        [rounded[0], rounded[2], rounded[4], rounded[1], rounded[3]],
+    ])
+        expect(() =>
+            readAvatarFile({ ...doc, sunRays: [rim, ...rays.slice(1)] })
+        ).toThrow();
     expect(() =>
         readAvatarFile({ ...scientist, orbPaint: doc.orbPaint })
     ).toThrow();
@@ -885,6 +903,20 @@ test("a single orb rig keeps its closed ray facets, two pigments and grips in bo
             [short, full].forEach((actor) => disposeAvatarGraph(actor.scene));
         }
     }
+});
+
+test("the contact shadow follows measured lenses and leaves the back exposed", () => {
+    const { visor } = readAvatarFile(vesper).recipe;
+    expect(orbContactUV({ ...visor, contact: undefined })).toBeUndefined();
+    const uv = orbContactUV({
+        ...visor,
+        contact: { strength: 0.72, width: 0.14 },
+    });
+    const y = visor.rows[8][1] * (1 + 3.5 / 61.2);
+    const x = visor.center * (1 + 3.5 / 60.5);
+    expect(uv(x, y, 0.9)).toEqual([0.72, 0]);
+    expect(uv(x, y, -0.9)[0]).toBe(0);
+    expect(uv(x, y + 0.14, 0.9)[1]).toBeCloseTo(1);
 });
 
 test("the lens, strap and crosses follow the orb through a turn", () => {

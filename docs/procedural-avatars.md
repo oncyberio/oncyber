@@ -101,14 +101,14 @@ Use `review-avatar-release.py candidate.json reference.webp /tmp/avatar-review -
 
 The fixture freezes four GPT Image drawings per family. The fixture records the generator name. The exact image-model version and original generation charges are unavailable. Each family has two full T-poses and two restricted portrait inputs. The evaluator opens the complete drawing for a portrait only after candidate selection. Compare inferred body proportions separately from visible portrait likeness. The first local run passed all automated likeness checks on **0 of 8**. The replay informed the mouth, shirt width and jersey changes. Those cases are now calibration examples for any subsequent evaluation. No candidate from this trial entered the catalogue. For a benchmark release review, generate evidence against the withheld full drawing after fitting and store the decision in the candidate pass’s `approval/` directory. Run `benchmark-avatar-holdout.py OUTPUT --score-reviews` to count independent first-pass and one-correction approvals without invoking the author again.
 
-On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. Moss, Lark, Solvi and Mora missed the full-body gates. All eight selected recipes have native turnarounds, a walk, a crouch and a right-hand item capture on both backends. All four inferred bodies missed the withheld full-body reference check. Independent approvals remain at **0/8**. The deterministic run took 12.15–57.99 seconds per drawing and made zero provider calls. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
+On the latest calibration replay, Rowan, Reed and Indigo passed the visible-image checks on their first draw. Poe passed after one correction. Moss, Lark, Solvi and Mora missed the full-body gates. All eight selected recipes have native turnarounds, a walk, a crouch and a right-hand item capture on both backends. All four inferred bodies missed the withheld full-body reference check. Independent approvals remain at **0/8**. The deterministic run took 12.21–35.84 seconds per drawing and made zero provider calls. [Replay measurements](../frontend/scripts/avatar_authoring/targets/holdout-v1/results.json)
 
 | Portrait input | Previous full-body silhouette IoU | Current IoU |
 | -------------- | --------------------------------: | ----------: |
 | Rowan          |                            0.6227 |      0.8131 |
 | Poe            |                            0.6643 |      0.7991 |
-| Reed           |                            0.7486 |      0.7650 |
-| Indigo         |                            0.7831 |      0.8031 |
+| Reed           |                            0.7486 |      0.7981 |
+| Indigo         |                            0.7831 |      0.8012 |
 
 Rowan’s recipe matched the previous replay byte for byte. Its native canvas was 22 pixels shorter after the hand inspection control was added, shifting the registered silhouette IoU from 0.8144 to 0.8131. Both hand comparisons used the same 1,200 × 684 native frame as their previous recipes.
 
@@ -116,7 +116,7 @@ The casual adult Rick-family body uses trouser, arm and shoe proportions measure
 
 A short bob and its face share one fitted scalp and jaw. The recipe stores a single pair of orbital contours. Eye spacing, size, pigment and gaze use the same household controls after an outfit or stature change. Lark’s swept bob covers her left brow, and her right brow follows the drawn ink. The mapper excludes narrow jaw ink when estimating the end of a dark haircut. The Sunshine fitter can recover the orb from two skin arcs when a photographic halo joins the rays to the head in the foreground mask. A visible throat and crew binding have separate measurements. The collar and chest share ordered rings around the scoop through the front and back.
 
-The eight recipe files total 56,149 bytes of JSON. Individually gzipped, they range from 902 to 3,745 bytes and total 14,300 bytes, excluding the shared engine. The fitter follows the background opening between the trouser legs up to the fork. The thigh and shin panels share one weighted ring, a continuous fabric coordinate and baked paint at the knee. The same ring survives crowd simplification. The benchmark measures the height of the opening directly on each native render as a fraction of standing height.
+The eight recipe files total 61,426 bytes of JSON. Individually gzipped, they range from 1,136 to 3,745 bytes and total 15,248 bytes, excluding the shared engine. The fitter follows the background opening between the trouser legs up to the fork. The thigh and shin panels share one weighted ring, a continuous fabric coordinate and baked paint at the knee. The same ring survives crowd simplification. The benchmark measures the height of the opening directly on each native render as a fraction of standing height.
 
 | Trouser opening from crown | Drawing | Previous WebGL2 | Current WebGL2 |
 | -------------------------- | ------: | --------------: | -------------: |
@@ -169,9 +169,20 @@ The reference and candidate use the same standing-height registration. The evalu
 
 ![Solvi and Mora’s socks and shoes in the drawings, previous render, fitted render and inferred profile](avatar-footwear-comparison.webp)
 
+The Sunshine fitter traces the painted boundary of each ray with up to six points. It follows shaded pigment beside the collar, detects pale rays against darker paper, and uses the shared distance of the ray bases from the orb to exclude sleeve accents. All four Sunshine inputs yielded 15 rays. The separate Halo reference retained its 11. Each measured visor can also store the width and strength of the contact shadow underneath its lower edge. The shadow uses the closed skull’s existing mesh and material. It moves with the face and fades at the temples.
+
+| Sunshine head, WebGL2 | Previous ray pigment IoU | Current ray pigment IoU | Drawn brightness beneath visor | Rendered brightness beneath visor | Full-body triangles |
+| --------------------- | -----------------------: | ----------------------: | -----------------------------: | --------------------------------: | ------------------: |
+| Solvi                 |                   0.6523 |                  0.8058 |                          107.9 |                             104.1 |               2,581 |
+| Mora                  |                   0.7044 |                  0.8349 |                           66.6 |                              67.6 |               2,659 |
+
+The two small rays beside each collar had zero pixel overlap in the previous render. Their overlap rose to 0.6060 on Solvi and 0.6339 on Mora. Whole-body silhouette overlap reached 0.8599 and 0.8685. The shirt graphics still miss the release check, including Solvi’s detached wave strokes. Indigo’s visible portrait scored 0.8610 and its withheld body scored 0.8012.
+
+![Solvi’s and Mora’s crowns in the drawing, previous render and updated render](avatar-sunshine-crowns.webp)
+
 Open `/preview/studies/rowan` on the branch preview to compare the reference and candidate in the native viewer. Each study supports rotation, portraits, walking, crouching and the right-hand attachment. The eight study recipes stay outside the installed avatar catalogue.
 
-Open `/preview/crowd?shadows=1` to animate 100 variations of those eight recipes. Select **Shadows only** to inspect each cast silhouette. In headless Chromium with SwiftShader, both WebGPU and WebGL2 submitted one avatar draw for color and one for the directional shadow map. Both screenshots contained figures or shadows in all 100 projected positions. The renderer submitted four total draws and 392,433 triangles per frame with the receiver and shadows enabled. Load-to-ready took 4.59 seconds on WebGPU and 4.01 seconds on WebGL2 with native release captures running on the same machine.
+Open `/preview/crowd?shadows=1` to animate 100 variations of those eight recipes. Select **Shadows only** to inspect each cast silhouette. In headless Chromium with SwiftShader, both WebGPU and WebGL2 submitted one avatar draw for color and one for the directional shadow map. Both screenshots contained figures or shadows in all 100 projected positions. The renderer submitted four total draws and 396,153 triangles per frame with the receiver and shadows enabled. Load-to-ready took 7.39 seconds on WebGPU and 5.89 seconds on WebGL2 with native release captures running on the same machine.
 
 Use the following commands after the eight-case benchmark and native release captures. The crowd test verifies the digest of the eight exported recipes. The last command verifies the capture hashes for all eight candidates on both backends before recording the results used by the branch preview. A reviewer can record the reason a candidate failed against these captures. Promotion requires both the original numerical thresholds and an independent passing decision.
 

@@ -14,7 +14,7 @@ from avatar_authoring.kit_footwear import compare_footwear
 from avatar_authoring.inked_hand import compare_hand_contours
 from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
-from avatar_authoring.visor import visor_seed
+from avatar_authoring.visor import measure_visor, visor_seed
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest, verified_captures
 
@@ -253,6 +253,81 @@ def orb_meridian_luma_step(path):
     return round(max(steps), 2)
 
 
+def compare_ray_paint(reference, native):
+    """Compare painted rays on a shared orb frame, excluding the jersey and collar."""
+    v, u = np.mgrid[-1.93:1.52:196j, -2.08:2.08:236j]
+    r = np.hypot(u, v)
+    sector = (r > 1.055) & (r < 2.02) & ((v < 0.92) | ((abs(u) > 0.47) & (v < 1.37)))
+    lower = sector & (v > 0.96) & (abs(u) < 0.93)
+    samples = []
+    for path in (reference, native):
+        rgb, mask = pixels(path, keep_components=True)
+        seed = visor_seed(rgb, mask)
+        if not seed:
+            return None
+        center, radius = seed
+        orb = measure_sun_rays(rgb, mask, center, [radius, radius], orb_only=True)
+        if orb is None:
+            return None
+        ox, oy, rx, ry = orb
+        cols = np.rint(ox + rx * u).astype(int).clip(0, mask.shape[1] - 1)
+        rows = np.rint(oy + ry * v).astype(int).clip(0, mask.shape[0] - 1)
+        samples.append(rgb[rows, cols])
+    source = samples[0]
+    ink = (np.ptp(source, axis=2) > 65) & sector & (v < -0.1)
+    if ink.sum() < 100:
+        return None
+    # The separated upper rays provide the measured ink. Ignore lightness so
+    # a soft shaded edge can count. Native colors must match the source hue.
+    pigment = np.median(source[ink], axis=0)
+    hue = pigment - pigment.mean()
+
+    def painted(rgb):
+        tint = rgb - rgb.mean(2, keepdims=True)
+        length = np.linalg.norm(tint, axis=2)
+        return (length > 0.35 * np.linalg.norm(hue)) & (
+            tint @ hue > 0.92 * length * np.linalg.norm(hue)
+        )
+
+    a, b = map(painted, samples)
+
+    def agreement(area):
+        return round(float((a & b & area).sum() / max(1, ((a | b) & area).sum())), 4)
+
+    return {"iou": agreement(sector), "lower_iou": agreement(lower)}
+
+
+def visor_shadow_luma(path):
+    """Sample the photographed edge and neighboring exposed cheek independently."""
+    rgb, mask = pixels(path, keep_components=True)
+    seed = visor_seed(rgb, mask)
+    if not seed:
+        return None
+    center, radius = seed
+    orb = measure_sun_rays(rgb, mask, center, [radius, radius], orb_only=True)
+    visor = measure_visor(rgb, mask, orb)
+    if not visor:
+        return None
+    ux = np.array([-0.63, -0.42, -0.22, -0.10, 0, 0.10, 0.22, 0.42, 0.63])
+    knots = visor["center"] + visor["span"] * np.linspace(-1, 1, len(visor["rows"]))
+    hem = np.interp(ux, knots, np.array(visor["rows"])[:, 1])
+    ox, oy, rx, ry = orb
+    x = np.rint(ox + ux * rx).astype(int)
+    y = np.rint(oy + (hem + np.array([[0.04], [0.18]])) * ry).astype(int)
+    if (
+        x.min() < 0
+        or x.max() >= mask.shape[1]
+        or y.min() < 0
+        or y.max() >= mask.shape[0]
+    ):
+        return None
+    exposed = mask[y, x].all(axis=0)
+    if exposed.sum() < 5:
+        return None
+    edge, cheek = np.median(rgb[y, x][:, exposed] @ [0.2126, 0.7152, 0.0722], axis=1)
+    return {"edge": round(float(edge), 1), "cheek": round(float(cheek), 1)}
+
+
 def compare_jersey_sleeves(reference, native):
     """Compare both sleeves in units of standing height relative to the arm axis."""
     images = [pixels(path, keep_components=True) for path in (reference, native)]
@@ -421,6 +496,19 @@ def record_preview(args):
                 "reference": orb_meridian_luma_step(reference),
                 **{
                     mode: orb_meridian_luma_step(evidence.parent / mode / "front.png")
+                    for mode in report["backends"]
+                },
+            }
+        if "sunRays" in recipe and case["framing"] == "full":
+            data["ray_paint"] = {
+                mode: compare_ray_paint(reference, evidence.parent / mode / "front.png")
+                for mode in report["backends"]
+            }
+        if recipe.get("visor", {}).get("contact"):
+            data["visor_shadow_luma"] = {
+                "reference": visor_shadow_luma(reference),
+                **{
+                    mode: visor_shadow_luma(evidence.parent / mode / "front.png")
                     for mode in report["backends"]
                 },
             }

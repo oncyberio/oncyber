@@ -2,11 +2,36 @@ import families from "./families.json";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 
+const lensLift = 3.5;
+
 export interface OrbVisor {
+    contact?: { strength: number; width: number };
     center: number;
     span: number;
     rows: [number, number][];
     marks: [number, number, number, number][];
+}
+
+/** Encode the measured lens shadow on the closed orb in its rest frame.
+ * The gradient follows its own head through a turn or a crowd instance. */
+export function orbContactUV(visor: OrbVisor) {
+    if (!visor.contact) return;
+    const { strength, width } = visor.contact;
+    const [, , rx, ry] = families.sunshine.crownRoot;
+    return (x: number, y: number, z: number): [number, number] => {
+        const offset = (x / (1 + lensLift / rx) - visor.center) / visor.span;
+        const knot =
+            Math.max(0, Math.min(1, 0.5 + 0.5 * offset)) *
+            (visor.rows.length - 1);
+        const i = Math.min(Math.floor(knot), visor.rows.length - 2);
+        const hem =
+            visor.rows[i][1] +
+            (knot - i) * (visor.rows[i + 1][1] - visor.rows[i][1]);
+        const fade =
+            Math.min(1, Math.max(0, (1.04 - Math.abs(offset)) / 0.18)) *
+            Math.min(1, Math.max(0, (z - 0.08) / 0.42));
+        return [strength * fade, (y - hem * (1 + lensLift / ry)) / width];
+    };
 }
 
 /** Front artwork defines the lens hem and glyphs. All layers share the orb's
@@ -60,24 +85,24 @@ export function drawOrbVisor(
             const a = j / 4,
                 b = (j + 1) / 4;
             quad(
-                knot(i, a, 3.5),
-                knot(i + 1, a, 3.5),
-                knot(i + 1, b, 3.5),
-                knot(i, b, 3.5)
+                knot(i, a, lensLift),
+                knot(i + 1, a, lensLift),
+                knot(i + 1, b, lensLift),
+                knot(i, b, lensLift)
             );
         }
         for (const edge of [0, 1])
             quad(
-                knot(i, edge, 3.5),
-                knot(i + 1, edge, 3.5),
+                knot(i, edge, lensLift),
+                knot(i + 1, edge, lensLift),
                 knot(i + 1, edge, 0.2),
                 knot(i, edge, 0.2)
             );
     }
     for (const i of [0, rim.length - 1])
         quad(
-            knot(i, 0, 3.5),
-            knot(i, 1, 3.5),
+            knot(i, 0, lensLift),
+            knot(i, 1, lensLift),
             knot(i, 1, 0.2),
             knot(i, 0, 0.2)
         );

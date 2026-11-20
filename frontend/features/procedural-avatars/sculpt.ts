@@ -199,6 +199,7 @@ export class Sculpt {
     penOutline = false;
     thinSkinOutline = false;
     orbSurface = false;
+    orbContact?: (x: number, y: number, z: number) => [number, number];
     familyPart?: string;
     crown = false;
     fineDetail = false;
@@ -598,7 +599,8 @@ export class Sculpt {
                     uv?.getY(i) ?? 0
                 );
             if (!eyeSamples) {
-                if (this.orbSurface) this.uvs[this.uvs.length - 2] -= 64;
+                if (this.orbSurface)
+                    this.uvs[this.uvs.length - 2] -= this.orbContact ? 72 : 64;
                 else if (this.eyeStroke) this.uvs[this.uvs.length - 2] -= 8;
                 else if (
                     ((this.inkedPortrait && this.fineDetail) ||
@@ -715,7 +717,19 @@ export class Sculpt {
                 const u = count ? j / count : 0.5,
                     a = 2 * Math.PI * u;
                 xyz.push(rad * Math.sin(a), Math.cos(theta), rad * Math.cos(a));
-                uv.push(wrap ? (1 + rad * Math.sin(a)) / 2 : u, 1 - r / rings);
+                if (this.orbContact)
+                    uv.push(
+                        ...this.orbContact(
+                            rad * Math.sin(a),
+                            Math.cos(theta),
+                            rad * Math.cos(a)
+                        )
+                    );
+                else
+                    uv.push(
+                        wrap ? (1 + rad * Math.sin(a)) / 2 : u,
+                        1 - r / rings
+                    );
             }
             if (wrap && count) wrap.set(first + count, first);
             if (r) {

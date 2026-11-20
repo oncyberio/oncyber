@@ -444,6 +444,83 @@ class FamilyTests(unittest.TestCase):
         self.assertGreater(fit["marks"][1][0], 0)
         self.assertLess(fit["rows"][8][1], fit["rows"][4][1])
 
+    def test_shaded_lower_rays_follow_the_paint_on_each_side_of_the_collar(self):
+        from .visor import visor_seed
+
+        for name in ("solvi", "mora"):
+            path = Path(__file__).parent / "targets/holdout-v1" / (name + "-full.webp")
+            rgb, mask = pixels(path, keep_components=True)
+            center, r = visor_seed(rgb, mask)
+            orb = measure_sun_rays(rgb, mask, center, [r, r], orb_only=True)
+            y, x = np.indices(mask.shape)
+            u, v = (x - orb[0]) / orb[2], (y - orb[1]) / orb[3]
+            angle = np.rad2deg(np.arctan2(v, u))
+
+            def angles():
+                shapes, _ = measure_sun_rays(rgb, mask, center, [r, r])
+                self.assertTrue(all(3 <= len(shape) <= 6 for shape in shapes))
+                return np.array(
+                    [
+                        np.rad2deg(np.arctan2(*np.mean(shape, axis=0)[::-1]))
+                        for shape in shapes
+                    ]
+                )
+
+            self.assertEqual(len(angles()), 15)
+
+            def lower():
+                a = angles()
+                return np.sort(a[(a > 50) & (a < 130)])
+
+            np.testing.assert_allclose(lower(), [59, 121], atol=3)
+            # A genuine asymmetry should survive when the opposite ray is present.
+            erase = (
+                (angle > 49)
+                & (angle < 68)
+                & (np.hypot(u, v) > 1.05)
+                & (np.hypot(u, v) < 1.51)
+            )
+            mask[erase] = False
+            rgb[erase] = np.median(rgb[0], axis=0)
+            np.testing.assert_allclose(lower(), [121], atol=3)
+
+    def test_neutral_rays_and_matching_sleeve_colors_on_a_portrait(self):
+        from .portrait import propose_portrait, compile_portrait
+
+        for name in ("indigo", "reed"):
+            path = (
+                Path(__file__).parent / "targets/holdout-v1" / (name + "-portrait.webp")
+            )
+            recipe = compile_portrait(
+                path, "sunshine", name, propose_portrait(path, "sunshine")
+            )
+            self.assertEqual(len(recipe["sunRays"]), 15)
+            self.assertTrue(
+                all(
+                    np.linalg.norm(ray, axis=1).min() < 1.5 for ray in recipe["sunRays"]
+                )
+            )
+
+    def test_lens_contact_requires_a_visible_soft_shadow(self):
+        from .visor import visor_contact
+
+        y, _ = np.indices((200, 200))
+        mask = np.ones_like(y, bool)
+        rgb = np.full((*y.shape, 3), [156, 98, 185], dtype=float)
+        rows = [[-0.35, 0.25]] * 17
+
+        def read():
+            return visor_contact(rgb, mask, [100, 72, 60, 60], 0, 0.85, rows)
+
+        self.assertIsNone(read())
+        t = np.clip((y - 87) / 9, 0, 1)
+        rgb *= (0.40 + 0.60 * t * t * (3 - 2 * t))[:, :, None] ** (1 / 2.2)
+        fitted = read()
+        self.assertAlmostEqual(fitted["strength"], 0.60, delta=0.10)
+        self.assertAlmostEqual(fitted["width"], 0.15, delta=0.025)
+        mask[85:107] = False
+        self.assertIsNone(read())
+
     def test_a_shaded_corona_preserves_all_eleven_separate_rays(self):
         image, mask = pixels(
             Path(__file__).parent / "targets" / "halo.webp", keep_components=True
@@ -456,7 +533,9 @@ class FamilyTests(unittest.TestCase):
         radius = (frame[2] - frame[0]) * h * 0.47
         rays, _ = measure_sun_rays(image, mask, [cx, cy], [radius, radius])
         self.assertEqual(len(rays), 11)
-        angles = np.sort(np.arctan2(*np.mean(rays, axis=1)[:, ::-1].T))
+        angles = np.sort(
+            np.arctan2(*np.array([np.mean(ray, axis=0) for ray in rays])[:, ::-1].T)
+        )
         self.assertGreater(np.min(np.diff(angles)), 0.16)
 
     def test_jersey_sleeves_require_two_visible_arms_and_follow_the_drawn_bands(self):

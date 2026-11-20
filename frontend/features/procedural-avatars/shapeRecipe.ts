@@ -5,7 +5,7 @@ import {
     type KitFootwear,
 } from "./kitFootwear";
 import { drawJerseySleeve, type JerseySleeve } from "./jerseySleeve";
-import { drawOrbVisor, type OrbVisor } from "./orbVisor";
+import { drawOrbVisor, orbContactUV, type OrbVisor } from "./orbVisor";
 import families from "./families.json";
 import { drawMarkedShirt, type ShirtMark } from "./shirtMark";
 import { garmentMapping, type PrintName, type PrintPath } from "./garmentPrint";
@@ -449,8 +449,10 @@ export function drawShapeRecipe(
                     const rim = ray.map(
                         ([u, v]): Point => [cx + u * rx, cy + v * ry, -2]
                     );
-                    const x = rim.reduce((sum, p) => sum + p[0], 0) / 3;
-                    const y = rim.reduce((sum, p) => sum + p[1], 0) / 3;
+                    const x =
+                        rim.reduce((sum, p) => sum + p[0], 0) / rim.length;
+                    const y =
+                        rim.reduce((sum, p) => sum + p[1], 0) / rim.length;
                     const thickness = Math.min(
                         3,
                         0.17 *
@@ -460,9 +462,37 @@ export function drawShapeRecipe(
                                 )
                             )
                     );
-                    for (let i = 0; i < 3; i++) {
+                    if (rim.length > 3) {
+                        // The center of a painted ray has a broad lit surface. Turn
+                        // only its outer strip through the bevel, on both faces.
+                        for (const side of [-1, 1]) {
+                            const outer = side === 1 ? rim : [...rim].reverse();
+                            const face = outer.map(
+                                ([px, py, z]): Point => [
+                                    x + 0.81 * (px - x),
+                                    y + 0.81 * (py - y),
+                                    z + side * thickness,
+                                ]
+                            );
+                            for (let i = 0; i < outer.length; i++) {
+                                const j = (i + 1) % outer.length;
+                                facets.push(
+                                    outer[i],
+                                    outer[j],
+                                    face[j],
+                                    outer[i],
+                                    face[j],
+                                    face[i]
+                                );
+                            }
+                            for (let i = 1; i + 1 < face.length; i++)
+                                facets.push(face[0], face[i], face[i + 1]);
+                        }
+                        continue;
+                    }
+                    for (let i = 0; i < rim.length; i++) {
                         const a = rim[i],
-                            b = rim[(i + 1) % 3];
+                            b = rim[(i + 1) % rim.length];
                         facets.push(a, b, [x, y, -2 + thickness], b, a, [
                             x,
                             y,
@@ -470,7 +500,11 @@ export function drawShapeRecipe(
                         ]);
                     }
                 }
+                if (sunRays.some((ray) => ray.length > 3))
+                    d.s.tone = (_x, _y, z) =>
+                        1.12 + 0.19 * Math.min(1, Math.abs(z + 2) / 1.4);
                 d.s.triangles(facets, pigment);
+                d.s.tone = undefined;
                 raysDrawn = true;
             }
             continue;
@@ -641,6 +675,7 @@ export function drawShapeRecipe(
             );
         } else if ("oval" in part) {
             d.s.orbSurface = !!visor && part.name === "skull";
+            d.s.orbContact = d.s.orbSurface ? orbContactUV(visor) : undefined;
             d.s.fineDetail = d.s.orbSurface;
             d.s.oval(
                 part.oval,
@@ -651,6 +686,7 @@ export function drawShapeRecipe(
             );
             d.s.fineDetail = false;
             d.s.orbSurface = false;
+            d.s.orbContact = undefined;
             const [x, y, z] = part.oval,
                 [rx, ry, rz] = part.radii;
             surface = (px, py) =>

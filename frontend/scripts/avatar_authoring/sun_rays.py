@@ -1,4 +1,4 @@
-"""Measure separate triangular rays relative to a floating mascot orb."""
+"""Measure individual painted rays relative to a floating mascot orb."""
 
 import numpy as np
 from scipy import ndimage, optimize
@@ -190,53 +190,77 @@ def measure_sun_rays(image, mask, center, radius, *, orb_only=False):
         return
     color = np.median(swatches, axis=0)
     near = np.linalg.norm(rgb - color, axis=2) < 48
+    # Shaded tips can be darker than the upper swatches. Grow only from
+    # matching pigment, through pixels of the same hue. For neutral rays the
+    # paper supplies no hue contrast, so retain the more selective seed.
+    active = annulus & mask[y0:y1, x0:x1]
+    if np.linalg.norm(color - color.mean()) > 38:
+        delta = rgb - color
+        chroma_gap = np.linalg.norm(delta - delta.mean(2, keepdims=True), axis=2)
+        shadow = (chroma_gap < 56) & (np.linalg.norm(delta, axis=2) < 82)
+        near = ndimage.binary_propagation(near & active, mask=shadow & active)
+    elif len(paper) >= 20:
+        # Pale rays can disappear entirely from a dark-foreground extraction.
+        # Recover the signed contrast against nearby paper, along the measured
+        # neutral pigment direction. The chroma bound excludes jersey and skin.
+        axis = color - background
+        contrast = np.linalg.norm(axis)
+        if contrast > 15:
+            axis /= contrast
+            level = (rgb - background) @ axis
+            noise = np.percentile(abs((paper - background) @ axis), 75)
+            neutral = np.ptp(rgb - color, axis=2) < 13
+            painted = neutral & (level > max(0.30 * contrast, 2.6 * noise, 8))
+            seed = ((active & near) | (painted & (level > 0.70 * contrast))) & annulus
+            active |= painted & annulus
+            near = ndimage.binary_propagation(seed, mask=active & (near | painted))
     islands = labels
-    labels, _ = ndimage.label(near & annulus & mask[y0:y1, x0:x1])
+    labels, _ = ndimage.label(near & active)
     rays = []
 
-    def triangle(region, box):
+    def outline(region, box):
         y, x = np.nonzero(region & ~ndimage.binary_erosion(region))
-        p = np.column_stack(
-            ((x + box[1].start + x0 - cx) / rx, (y + box[0].start + y0 - cy) / ry)
-        )
-        if len(p) < 6 or np.linalg.matrix_rank(p - p.mean(0)) < 2:
+        origin = np.array([box[1].start + x0 - cx, box[0].start + y0 - cy])
+        points = np.column_stack((x, y)) + origin
+        uv = points / [rx, ry]
+        if len(uv) < 6 or np.linalg.matrix_rank(points - points.mean(0)) < 2:
             return
-        hull = p[ConvexHull(p).vertices]
-        # A convex hull at image resolution typically has fewer than 25 vertices.
-        best, area = None, 0
-        for j in range(len(hull) - 2):
-            delta = hull[j + 1 :] - hull[j]
-            sizes = (
-                delta[:, 0, None] * delta[None, :, 1]
-                - delta[:, 1, None] * delta[None, :, 0]
-            )
-            a, b = np.unravel_index(sizes.argmax(), sizes.shape)
-            if sizes[a, b] > area:
-                best, area = hull[[j, j + 1 + a, j + 1 + b]], sizes[a, b]
-        if best is None or area * rx * ry / (2 * region.sum()) < 0.65:
+        direction = uv.mean(0)
+        direction /= np.linalg.norm(direction)
+        depth = uv @ direction
+        across = uv @ [-direction[1], direction[0]]
+        base = np.ptp(across[depth <= np.quantile(depth, 0.42)])
+        tip = np.ptp(across[depth >= np.quantile(depth, 0.58)])
+        # Binding can use exactly the same dye. A ray projects out from the
+        # head and tapers toward its outer end, across both large and small lobes.
+        if np.ptp(depth) < 0.55 * np.ptp(across) or base < 1.08 * tip:
             return
-        # Pixel centers define an inscribed triangle. On a small reference
-        # that can discard a whole row along each sloping edge. Fit the three
-        # supporting lines to the painted boundary in image pixels.
-        sides = np.roll(best, -1, axis=0) - best
-        normals = np.column_stack((sides[:, 1], -sides[:, 0]))
-        normals /= np.linalg.norm(normals, axis=1)[:, None]
-        boundary = np.percentile(p @ normals.T, 96, axis=0)
-        boundary += 0.42 * (abs(normals) / [rx, ry]).sum(1)
-        corners = np.array(
-            [
-                np.linalg.solve(normals[[k - 1, k]], boundary[[k - 1, k]])
-                for k in range(3)
-            ]
+        # Follow the half-pixel paint boundary with at most six convex knots.
+        # This retains rounded corners without baking image-resolution geometry.
+        edge = np.concatenate(
+            [points + d for d in ((-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5))]
         )
-        a, b = corners[1:] - corners[0]
-        coverage = (a[0] * b[1] - a[1] * b[0]) * rx * ry / (2 * region.sum())
-        if 0.85 < coverage <= 1.19 and np.all(
+        boundary = ConvexHull(edge)
+        hull = edge[boundary.vertices]
+        if boundary.volume > 1.35 * region.sum():
+            return
+        while len(hull) > 3:
+            before = np.roll(hull, 1, axis=0)
+            after = np.roll(hull, -1, axis=0)
+            chord = after - before
+            offset = hull - before
+            cross = abs(chord[:, 0] * offset[:, 1] - chord[:, 1] * offset[:, 0])
+            distance = cross / np.linalg.norm(chord, axis=1)
+            k = int(distance.argmin())
+            if len(hull) <= 6 and distance[k] >= 0.72:
+                break
+            hull = np.delete(hull, k, axis=0)
+        corners = (hull / [rx, ry]).round(3)
+        if np.all(
             (np.linalg.norm(corners, axis=1) >= 0.93)
             & (np.linalg.norm(corners, axis=1) <= 2.79)
         ):
-            best = corners
-        return best.round(3).tolist()
+            return corners.tolist()
 
     for i, box in enumerate(ndimage.find_objects(labels), 1):
         region = labels[box] == i
@@ -249,7 +273,7 @@ def measure_sun_rays(image, mask, center, radius, *, orb_only=False):
             full_box, full_region = components[island]
             if full_region.sum() <= 1.8 * region.sum():
                 region, box = full_region, full_box
-        tri = triangle(region, box)
+        tri = outline(region, box)
         if tri is not None:
             rays.append(tri)
 
@@ -269,9 +293,16 @@ def measure_sun_rays(image, mask, center, radius, *, orb_only=False):
         if any(np.linalg.norm(np.mean(ray, axis=0) - center) < 0.22 for ray in rays):
             continue
         core = ndimage.binary_fill_holes(local)
-        tri = triangle(core, box)
+        tri = outline(core, box)
         if tri is not None:
             rays.append(tri)
+    if rays:
+        # The bases of a single corona share an orbit even with long, unequal
+        # tips. A matching sleeve accent farther down the page is separate.
+        roots = np.array([np.linalg.norm(ray, axis=1).min() for ray in rays])
+        median = np.median(roots)
+        reach = max(0.32, 4 * np.median(abs(roots - median)))
+        rays = [ray for ray, root in zip(rays, roots) if root <= median + reach]
     if 5 <= len(rays) <= 24:
         rays.sort(key=lambda tri: np.arctan2(*np.mean(tri, axis=0)[::-1]))
         return rays, "#" + color.round().astype("uint8").tobytes().hex()
@@ -296,7 +327,7 @@ def orb_swatches(rgb, orb):
 
 
 def correct_ray_edges(rays, pigment, target, actual):
-    """Move a facet's three supporting lines by its measured native projection error."""
+    """Correct each convex rim from its native radial and tangential projection error."""
 
     def facets(sample):
         rgb, shape, visible, orb = sample
@@ -321,7 +352,8 @@ def correct_ray_edges(rays, pigment, target, actual):
 
     target_parts, actual_parts = facets(target), facets(actual)
     result = []
-    for corners in np.array(rays):
+    for ray in rays:
+        corners = np.asarray(ray, dtype=float)
         mid = corners.mean(0)
 
         def match(parts):
@@ -332,30 +364,21 @@ def correct_ray_edges(rays, pigment, target, actual):
 
         observed, drawn = match(target_parts), match(actual_parts)
         if observed is not None and drawn is not None:
-            edges = np.roll(corners, -1, axis=0) - corners
-            normals = np.column_stack((edges[:, 1], -edges[:, 0]))
-            normals /= np.linalg.norm(normals, axis=1)[:, None]
-            if np.dot(normals[0], mid - corners[0]) > 0:
-                normals *= -1
-            delta = np.percentile(observed @ normals.T, 98, axis=0) - np.percentile(
-                drawn @ normals.T, 98, axis=0
-            )
-            lines = (corners * normals).sum(1) + np.clip(delta, -0.12, 0.12)
-            revised = np.array(
-                [
-                    np.linalg.solve(normals[[i - 1, i]], lines[[i - 1, i]])
-                    for i in range(3)
-                ]
-            )
-            r = np.linalg.norm(revised, axis=1)
-            a, b = revised[1:] - revised[0]
-            area = abs(a[0] * b[1] - a[1] * b[0])
-            if (
-                np.all((r > 0.93) & (r < 2.79))
-                and area > 0.003
-                and np.linalg.norm(revised - corners, axis=1).max() < 0.29
-            ):
-                corners = revised
+            # Compare both silhouettes in the ray's radial and tangential
+            # frame. A single affine update keeps small rounded corners convex,
+            # even when adjacent supporting edges are nearly parallel.
+            radial = mid / np.linalg.norm(mid)
+            axes = np.array([radial, [-radial[1], radial[0]]])
+            lo, hi = np.percentile(observed @ axes.T, [2, 98], axis=0)
+            left, right = np.percentile(drawn @ axes.T, [2, 98], axis=0)
+            if np.all(right - left > 0.025):
+                scale = np.clip((hi - lo) / (right - left), 0.82, 1.22)
+                shift = np.clip((lo + hi - left - right) / 2, -0.10, 0.10)
+                center = (left + right) / 2
+                revised = ((corners @ axes.T - center) * scale + center + shift) @ axes
+                r = np.linalg.norm(revised, axis=1)
+                if np.all((r > 0.93) & (r < 2.79)):
+                    corners = revised
         result.append(corners.round(3).tolist())
     return result
 

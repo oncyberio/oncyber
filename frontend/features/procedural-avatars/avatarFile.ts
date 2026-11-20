@@ -130,6 +130,12 @@ const familyFile = z.strictObject({
         .optional(),
     visor: z
         .strictObject({
+            contact: z
+                .strictObject({
+                    strength: z.number().min(0.2).max(0.92),
+                    width: z.number().min(0.075).max(0.26),
+                })
+                .optional(),
             center: z.number().min(-0.13).max(0.13),
             span: z.number().min(0.65).max(1.15),
             rows: z
@@ -207,7 +213,8 @@ const familyFile = z.strictObject({
                         z.number().min(-2.8).max(2.8),
                     ])
                 )
-                .length(3)
+                .min(3)
+                .max(6)
         )
         .min(5)
         .max(24)
@@ -359,14 +366,23 @@ export function readAvatarFile(input: unknown): {
         if (
             file.sunRays &&
             (family.template !== "sunshine" ||
-                file.sunRays.some((tri) => {
-                    const [a, b, c] = tri;
+                file.sunRays.some((rim) => {
+                    const sides = rim.flatMap(([ax, ay], i) => {
+                        const next = (i + 1) % rim.length;
+                        const [bx, by] = rim[next];
+                        return rim.flatMap(([x, y], j) =>
+                            i === j || next === j
+                                ? []
+                                : [(bx - ax) * (y - ay) - (by - ay) * (x - ax)]
+                        );
+                    });
                     return (
-                        Math.abs(
-                            (b[0] - a[0]) * (c[1] - a[1]) -
-                                (b[1] - a[1]) * (c[0] - a[0])
-                        ) < 0.001 ||
-                        tri.some(
+                        !(
+                            sides.every((v) => v >= 0.00001) ||
+                            sides.every((v) => v <= -0.00001)
+                        ) ||
+                        Math.max(...sides.map(Math.abs)) < 0.001 ||
+                        rim.some(
                             ([x, y]) =>
                                 Math.hypot(x, y) < 0.92 ||
                                 Math.hypot(x, y) > 2.8
@@ -375,7 +391,7 @@ export function readAvatarFile(input: unknown): {
                 }))
         )
             throw new Error(
-                "Sun rays require distinct triangle corners outside the mascot orb"
+                "Sun rays require a convex outline outside the mascot orb"
             );
         const roles: Record<string, string[]> = family.paints;
         const palette: Record<string, string> = {};

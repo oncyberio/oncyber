@@ -141,7 +141,7 @@ def edit_schema(family=None, construction=None):
                     "items": {
                         "type": "array",
                         "minItems": 3,
-                        "maxItems": 3,
+                        "maxItems": 6,
                         "items": pair(-2.8, 2.8),
                     },
                 },
@@ -378,7 +378,9 @@ def edited_recipe(
                 and not recipe["design"]["household"].get("fallRows")
                 and not recipe["design"]["household"].get("measuredBob")
             ):
-                raise ValueError("Shoulder-length hair requires a measured cap and nape or fall rows")
+                raise ValueError(
+                    "Shoulder-length hair requires a measured cap and nape or fall rows"
+                )
             target = recipe
             *path, key = field.split(".")
             for section in path:
@@ -431,16 +433,22 @@ def edited_recipe(
         elif field == "orbOffset":
             recipe[field] = list(value)
         elif field == "sunRays":
-            for tri in value:
-                a, b, c = tri
-                area = abs(
-                    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-                )
-                if area < 0.001 or any(
-                    not 0.92 <= math.hypot(x, y) <= 2.8 for x, y in tri
+            for rim in value:
+                sides = []
+                for k, (ax, ay) in enumerate(rim):
+                    bx, by = rim[(k + 1) % len(rim)]
+                    sides.extend(
+                        (bx - ax) * (y - ay) - (by - ay) * (x - ax)
+                        for j, (x, y) in enumerate(rim)
+                        if j not in (k, (k + 1) % len(rim))
+                    )
+                if (
+                    not (min(sides) >= 0.00001 or max(sides) <= -0.00001)
+                    or max(map(abs, sides)) < 0.001
+                    or any(not 0.92 <= math.hypot(x, y) <= 2.8 for x, y in rim)
                 ):
                     raise ValueError(
-                        "Sun rays require distinct triangle corners outside the mascot orb"
+                        "Sun rays require a convex outline outside the mascot orb"
                     )
             recipe[field] = copy.deepcopy(value)
         elif field == "lapels":

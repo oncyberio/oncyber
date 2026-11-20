@@ -37,6 +37,48 @@ def visor_seed(rgb, mask):
         return center, span / 1.9
 
 
+def visor_contact(rgb, mask, orb, center, span, rows):
+    """Measure the soft shadow below the lower lens edge, in units of orb radius."""
+    ox, oy, rx, ry = orb
+    u = np.linspace(center - 0.64 * span, center + 0.64 * span, 23)
+    hem = np.interp(
+        u, np.linspace(center - span, center + span, len(rows)), np.array(rows)[:, 1]
+    )
+    depth = np.array([0.04, 0.065, 0.09, 0.12, 0.155, 0.195, 0.24])
+    x = np.rint(ox + u * rx).astype(int)
+    y = np.rint(oy + (hem[None, :] + depth[:, None]) * ry).astype(int)
+    if (
+        x.min() < 0
+        or x.max() >= mask.shape[1]
+        or y.min() < 0
+        or y.max() >= mask.shape[0]
+    ):
+        return
+    visible = mask[y, x].all(axis=0)
+    if visible.sum() < 12:
+        return
+    color = rgb[y, x][:, visible] / 255
+    linear = np.where(color <= 0.04045, color / 12.92, ((color + 0.055) / 1.055) ** 2.4)
+    luma = linear @ [0.2126, 0.7152, 0.0722]
+    far = np.median(luma[-2:], axis=0)
+    if np.median(far) < 0.025:
+        return
+    loss = 1 - np.median(luma / np.maximum(0.01, far), axis=1)
+    if loss[0] < 0.20 or loss[1] < 0.10:
+        return
+    widths = np.linspace(0.075, 0.26, 38)
+    t = np.minimum(1, depth[None, :] / widths[:, None])
+    kernel = 1 - t * t * (3 - 2 * t)
+    strength = np.clip((kernel @ loss) / np.sum(kernel**2, axis=1), 0, 0.92)
+    error = np.mean((strength[:, None] * kernel - loss) ** 2, axis=1)
+    i = error.argmin()
+    if strength[i] >= 0.20 and error[i] < 0.016:
+        return {
+            "strength": round(float(strength[i]), 3),
+            "width": round(float(widths[i]), 3),
+        }
+
+
 def measure_visor(rgb, mask, orb):
     from .family import FAMILIES
 
@@ -110,7 +152,9 @@ def measure_visor(rgb, mask, orb):
             0.07, (centerline[1] + 0.5 / np.array([rx, ry])) / (1 + glyph["stroke"])
         )
         marks.append(centerline.round(3).ravel().tolist())
+    contact = visor_contact(rgb, mask, orb, center, span, rows)
     return {
+        **({"contact": contact} if contact else {}),
         "center": round(float(center), 3),
         "span": round(float(span), 3),
         "rows": rows,
