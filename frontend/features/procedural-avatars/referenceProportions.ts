@@ -81,10 +81,20 @@ export function drawingRig(
                 0,
                 Math.min(1, (p[axis] - a[axis]) / (b[axis] - a[axis] || 1))
             );
+            // The custom wrist and palm specify their own thickness. Blend out
+            // the forearm girth by the wrist so their common ring stays sewn.
+            const width =
+                recipe.kitHand && part.endsWith("LowerArm")
+                    ? T.MathUtils.lerp(
+                          scale,
+                          1,
+                          T.MathUtils.smoothstep(t, 0.24, 0.92)
+                      )
+                    : scale;
             p = point.map((v, k) => {
                 if (k === axis) return v;
                 const mid = a[k] + (b[k] - a[k]) * t;
-                return mid + (v - mid) * scale;
+                return mid + (v - mid) * width;
             }) as Point;
         } else if (part === "coat" && recipe.coatFit) {
             const { hem, widths } = recipe.coatFit;

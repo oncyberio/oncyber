@@ -11,6 +11,7 @@ from avatar_authoring.family_review import compare_images
 from avatar_authoring.fit import pixels
 from avatar_authoring.household_front import trouser_opening
 from avatar_authoring.kit_footwear import compare_footwear
+from avatar_authoring.kit_hand import kit_hand
 from avatar_authoring.inked_hand import compare_hand_contours
 from avatar_authoring.jersey_sleeve import jersey_sleeve
 from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cut
@@ -227,6 +228,11 @@ def visible_shorts(path):
             "rise": round(float(cut[0]), 4),
             "hem_to_waist": round(float(cut[1]), 4),
         }
+
+
+def visible_hand(path):
+    rgb, mask = pixels(path, keep_components=True)
+    return kit_hand(rgb, mask, kit_landmarks(rgb, mask))
 
 
 def orb_meridian_luma_step(path):
@@ -579,6 +585,14 @@ def record_preview(args):
             data["kit_footwear"] = {
                 mode: compare_footwear(reference, evidence.parent / mode / "front.png")
                 for mode in report["backends"]
+            }
+        if "kitHand" in recipe:
+            data["visible_hand"] = {
+                "reference": visible_hand(reference),
+                **{
+                    mode: visible_hand(evidence.parent / mode / "front.png")
+                    for mode in report["backends"]
+                },
             }
         if "shortsCut" in recipe:
             data["visible_shorts"] = {

@@ -1,3 +1,4 @@
+import { drawKitPalm, drawKitDigit, type KitHand } from "./kitHand";
 import {
     drawKitLeg,
     drawKitSock,
@@ -278,7 +279,8 @@ export function drawShapeRecipe(
     orbCollar?: OrbCollar,
     shortsCut?: ShortsCut,
     jerseySleeve?: JerseySleeve,
-    footwear?: KitFootwear
+    footwear?: KitFootwear,
+    hand?: KitHand
 ) {
     const finishes = Object.fromEntries(
         Object.values(recipe.palette).map((p) => [p.color, finish[p.finish]])
@@ -308,6 +310,11 @@ export function drawShapeRecipe(
         finishes[footwear.upper] = finish.cloth;
         for (const c of [footwear.knit, ...footwear.bands.map((b) => b.color)])
             finishes[c] = finish.cloth;
+    }
+    if (hand?.band) {
+        const color = new T.Color(hand.band.color).getStyle();
+        finishes[color] = finish.cloth;
+        hand = { ...hand, band: { ...hand.band, color } };
     }
     d.s.palette(finishes);
     d.s.ambientByPaint = Object.fromEntries(
@@ -361,6 +368,28 @@ export function drawShapeRecipe(
                 : undefined;
         d.s.blend = part.blend;
         const pigment = recipe.palette[part.paint].color;
+        d.s.sectionLight =
+            part.paint === "pink" &&
+            /(?:Arm|Hand|Metacarpal|Proximal)$/.test(part.bone)
+                ? hand?.light
+                : undefined;
+        if (hand && part.paint === "pink") {
+            if ("across" in part && part.bone.endsWith("LowerArm")) {
+                drawKitPalm(d, part.bone, part.across, hand, pigment);
+                continue;
+            }
+            if ("across" in part && part.bone.endsWith("Hand")) continue;
+            if (
+                "sweep" in part &&
+                part.joints?.length === 3 &&
+                /(?:ThumbMetacarpal|(?:Index|Middle|Ring|Little)Proximal)$/.test(
+                    part.bone
+                )
+            ) {
+                drawKitDigit(d, part.bone, part.sweep, hand, pigment);
+                continue;
+            }
+        }
         if (
             footwear &&
             part.paint === "pink" &&
@@ -747,4 +776,5 @@ export function drawShapeRecipe(
             surfaces.set(part.name, surface);
     }
     d.s.crown = false;
+    d.s.sectionLight = undefined;
 }

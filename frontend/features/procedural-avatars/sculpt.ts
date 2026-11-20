@@ -186,6 +186,7 @@ export class Sculpt {
     detail: "full" | "crowd" = "full";
     blend?: { with: string; from: number; to: number };
     tone?: (x: number, y: number, z: number) => number;
+    sectionLight?: [number, number];
     printUV?: (x: number, y: number, angle: number) => [number, number];
     eyeSample?: (
         x: number,
@@ -550,7 +551,16 @@ export class Sculpt {
                 );
             const warmth = blush[i] || 0;
             const ao = contact ? contact[i] : 1;
-            const tone = (tones ? tones[i] : 1) * ao;
+            // A front drawing samples the top and bottom at 16% and 84%
+            // through a round limb. Their vertical normal components are ±0.68.
+            const roll = this.sectionLight
+                ? T.MathUtils.lerp(
+                      1,
+                      this.sectionLight[normal.y >= 0 ? 0 : 1],
+                      Math.min(1, Math.abs(normal.y) / 0.68)
+                  )
+                : 1;
+            const tone = (tones ? tones[i] : 1) * ao * roll;
             if (eyeSamples?.[i][4] != null) {
                 this.eyeFrontal.set(this.colors.length / 3, eyeSamples[i][5]);
                 this.colors.push(

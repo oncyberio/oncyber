@@ -111,6 +111,27 @@ const familyFile = z.strictObject({
                 .refine((rows) => rows.every((t, i) => !i || t > rows[i - 1])),
         })
         .optional(),
+    kitHand: z
+        .strictObject({
+            wristRadius: z.number().min(0.006).max(0.023),
+            padRadius: z.number().min(0.002).max(0.022),
+            light: z
+                .tuple([
+                    z.number().min(0.2).max(1.8),
+                    z.number().min(0.2).max(1.8),
+                ])
+                .optional(),
+            band: z
+                .strictObject({
+                    center: z.number().min(0.71).max(0.86),
+                    width: z.number().min(0.008).max(0.062),
+                    color: swatch,
+                    side: z.enum(["left", "right"]).optional(),
+                })
+                .optional(),
+        })
+        .refine((h) => h.padRadius < h.wristRadius)
+        .optional(),
     shortsCut: z
         .strictObject({
             rise: z.number().min(0.2).max(0.93),
@@ -354,6 +375,7 @@ export function readAvatarFile(input: unknown): {
         if (
             (file.orbOffset ||
                 file.kitFit ||
+                file.kitHand ||
                 file.kitFootwear ||
                 file.shortsCut ||
                 file.jerseySleeve ||
@@ -412,6 +434,9 @@ export function readAvatarFile(input: unknown): {
                 template: family.template as Character,
                 ...file.proportions,
                 palette,
+                ...(file.kitHand && {
+                    kitHand: file.kitHand as AvatarRecipe["kitHand"],
+                }),
                 ...(file.kitFootwear && {
                     kitFootwear:
                         file.kitFootwear as AvatarRecipe["kitFootwear"],

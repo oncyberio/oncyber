@@ -1,3 +1,4 @@
+import type { KitHand } from "./kitHand";
 import type { KitFootwear } from "./kitFootwear";
 import type { JerseySleeve } from "./jerseySleeve";
 import type { OrbVisor } from "./orbVisor";
@@ -37,6 +38,7 @@ export interface AvatarRecipe {
     shortsCut?: ShortsCut;
     jerseySleeve?: JerseySleeve;
     kitFootwear?: KitFootwear;
+    kitHand?: KitHand;
     visor?: OrbVisor;
     orbPaint?: { top: string; bottom: string };
     orbCollar?: OrbCollar;

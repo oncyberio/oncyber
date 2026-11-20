@@ -472,6 +472,80 @@ test("a narrower Sunshine jersey carries the shoulder socket with its sleeve", (
     expect(transform([389, 530, 0])).toEqual([389, 530, 0]);
 });
 
+test.each(["crowd", "full"] as const)(
+    "a measured Sunshine wrist bends into its palm and keeps its articulated grip at %s detail",
+    (detail) => {
+        const hand = {
+            wristRadius: 0.013,
+            padRadius: 0.008,
+            light: [1.25, 0.48],
+            band: { center: 0.79, width: 0.03, color: "#c13385", side: "left" },
+        };
+        expect(() => readAvatarFile({ ...scientist, kitHand: hand })).toThrow();
+        const file = {
+            ...scientist,
+            family: "sunshine",
+            paints: {},
+            proportions: {},
+            kitHand: hand,
+        };
+        expect(() =>
+            readAvatarFile({ ...file, kitHand: { ...hand, padRadius: 0.02 } })
+        ).toThrow();
+        const rig = buildCharacter(readAvatarFile(file).recipe, detail);
+        try {
+            const mesh = rig.scene.getObjectByProperty(
+                "isSkinnedMesh",
+                true
+            ) as T.SkinnedMesh;
+            expect(mesh.geometry.groups).toHaveLength(0);
+            const { skinIndex, skinWeight } = mesh.geometry.attributes;
+            for (const side of ["left", "right"] as const) {
+                const bone = (part: string) =>
+                    rig.humanoid.getNormalizedBoneNode(side + part);
+                const id = (part: string) =>
+                    mesh.skeleton.bones.indexOf(bone(part));
+                const forearm = id("LowerArm"),
+                    wrist = id("Hand");
+                const weighted = new Set<number>();
+                let joined = false;
+                for (let i = 0; i < skinIndex.count; i++) {
+                    const a = skinIndex.getX(i),
+                        b = skinIndex.getY(i);
+                    if (skinWeight.getX(i) > 0) weighted.add(a);
+                    if (skinWeight.getY(i) > 0) weighted.add(b);
+                    if (
+                        a === forearm &&
+                        b === wrist &&
+                        skinWeight.getX(i) > 0 &&
+                        skinWeight.getY(i) > 0
+                    )
+                        joined = true;
+                }
+                expect(joined).toBe(true);
+                for (const digit of [
+                    "Thumb",
+                    "Index",
+                    "Middle",
+                    "Ring",
+                    "Little",
+                ]) {
+                    expect(weighted.has(id(digit + "Distal"))).toBe(true);
+                }
+                const joint = bone("IndexDistal");
+                const open = joint.quaternion.clone();
+                const item = new T.Group();
+                rig.equipItem(side, item, { radius: 0.013 });
+                expect(item.parent.parent).toBe(bone("Hand"));
+                expect(joint.quaternion.angleTo(open)).toBeGreaterThan(0.01);
+                rig.releaseItems();
+            }
+        } finally {
+            disposeAvatarGraph(rig.scene);
+        }
+    }
+);
+
 test("a crown edit extends rays beyond the scalp while preserving their roots and the face", () => {
     const transform = recipeTransform(
         { template: "sunshine", crownLength: 1.5 },

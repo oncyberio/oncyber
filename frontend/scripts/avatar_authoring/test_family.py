@@ -29,6 +29,36 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_wrist_fit_reads_pigment_on_the_hand_that_wears_it(self):
+        from .kit_hand import kit_hand
+
+        paper, skin, dye = [229, 220, 211], [170, 115, 92], [42, 92, 170]
+        rgb = np.full((421, 401, 3), paper, dtype=float)
+        rgb[10:411, 196:205] = skin
+        radius = abs(np.arange(401) - 200)
+        rgb[139:150, radius <= 148] = skin
+        rgb[141:148, (148 < radius) & (radius <= 160)] = skin
+        rgb[147:150, radius <= 148] = np.array(skin) * 0.65
+        stripe = (125 <= radius) & (radius <= 129)
+        rgb[139:150, stripe] = dye
+        marks = [0, (144 - 10) / 400]
+
+        def fit():
+            return kit_hand(rgb, (rgb != paper).any(axis=2), marks)
+
+        both = fit()
+        self.assertEqual(both["wristRadius"], round(11 / 800, 5))
+        self.assertEqual(both["padRadius"], round(7 / 800, 5))
+        self.assertEqual(both["band"]["color"], "#2a5caa")
+        self.assertNotIn("side", both["band"])
+        self.assertLess(both["light"][1], 0.6)
+        rgb[139:150, stripe & (np.arange(401) < 200)] = skin
+        self.assertEqual(fit()["band"]["side"], "left")
+        rgb[139:150, stripe] = skin
+        self.assertNotIn("band", fit())
+        self.assertIsNone(kit_hand(rgb, (rgb != paper).any(axis=2), None))
+        self.assertIsNone(kit_hand(rgb, np.zeros(rgb.shape[:2], dtype=bool), marks))
+
     def test_crown_paper_control_preserves_enclosed_light_paint(self):
         from .paper_control import clear_crown_paper
 
