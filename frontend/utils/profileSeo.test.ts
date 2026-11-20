@@ -43,6 +43,14 @@ describe("profileSeo", () => {
         expect(seo.path).toBe(`/@${profile.id}`);
         expect(seo.image).toBeNull();
         expect(profileHandle({ id: "abc" })).toBe("abc");
+        // Its label is that same handle, whatever the account id is.
+        const wallet = "0xfd22004806a6846ea67ad883356be810f0428793";
+        expect(profileSeo({ id: "account-1", walletId: wallet }).name).toBe(
+            "0xfd22…8793"
+        );
+        expect(profileSeo({ id: undefined, walletId: wallet }).name).toBe(
+            "0xfd22…8793"
+        );
         // The wallet is what a nameless profile's link is looked up by.
         expect(profileHandle({ id: "abc", walletId: "0xwallet" })).toBe(
             "0xwallet"

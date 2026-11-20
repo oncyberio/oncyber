@@ -265,6 +265,8 @@ describe("review fixes", () => {
         const space = {
             id: "s",
             number_of_visits: 12,
+            createdAt: 1700000000000,
+            lastUpdatedAt: 1700000000000,
             info: { headline: "Members Only", description: "By invitation." },
             artworks: {
                 a: text("The secret story on the wall"),
@@ -282,10 +284,11 @@ describe("review fixes", () => {
             artists: [],
             portals: [],
             siblings: [],
-            visits: 12,
         });
         // The space itself is not changed.
         expect(spaceContent(space).texts).toHaveLength(1);
+        expect(spaceContent(space).visits).toBe(12);
+        expect(spaceContent(space).created).toBe("2023-11-14");
         expect(withoutContents(null)).toBeNull();
     });
 });

@@ -84,12 +84,21 @@ export function fontPreloadsFor(
     );
 }
 
-/** Does the page preview with its own image (a space's cover), not the share card? */
+/**
+ * Does the page preview with its own image (a space's or a template's
+ * cover), not the share card? The share card's size and type tags would
+ * describe the wrong picture there.
+ */
 export function showsOwnImage(
     pathname: string,
     slug?: string | string[]
 ): boolean {
-    if (pathname === "/spaces/[id]") return true;
+    if (
+        pathname === "/spaces/[id]" ||
+        pathname === "/destinations/[id]" ||
+        pathname === "/mints/[slug]"
+    )
+        return true;
     // `/[slug]` is a space, except `/@name`, which is a profile page.
     return (
         pathname === "/[slug]" &&

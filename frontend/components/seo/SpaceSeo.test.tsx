@@ -130,6 +130,9 @@ test("a visitor the gate turns away is told the space's name, not what is inside
     expect(html).not.toContain("Frame 1");
     expect(html).not.toContain("kunstkennerey");
     expect(html).not.toContain("Welcome to the gallery");
+    // Nor how much it is visited.
+    expect(html).not.toContain("interactionStatistic");
+    expect(html).not.toContain("1200");
     // The same space, admitted, says all of it.
     const open = renderToStaticMarkup(
         <SpaceSeo experience={gallery} ownerName="frahm" />

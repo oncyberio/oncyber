@@ -253,7 +253,14 @@ function NativeExhibit({
             <SpaceSeo
                 experience={experience}
                 destination={destination}
-                ownerName={_experience?.ownerName}
+                // The space on show: after travelling through a portal
+                // that is no longer the one the page loaded with.
+                ownerName={
+                    experience.ownerName ??
+                    (experience.id === _experience?.id
+                        ? _experience?.ownerName
+                        : undefined)
+                }
                 gated={!!gatingError}
             />
 

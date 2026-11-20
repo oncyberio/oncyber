@@ -236,6 +236,9 @@ test("the share card's size is claimed only where the share card is the image", 
     expect(width("/[slug]", { slug: "@6529" })).toBe("1200");
     expect(width("/[slug]", { slug: "frahm-gallery" })).toBeUndefined();
     expect(width("/spaces/[id]", { id: "abc" })).toBeUndefined();
+    // Templates preview with their own cover too.
+    expect(width("/destinations/[id]", { id: "x1" })).toBeUndefined();
+    expect(width("/mints/[slug]", { slug: "x1" })).toBeUndefined();
     expect(showsOwnImage("/about")).toBe(false);
 });
 

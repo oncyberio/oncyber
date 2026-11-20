@@ -232,8 +232,9 @@ export function spaceContent(space: any): SpaceContent {
 /**
  * A space as someone the gate turns away may know it: its name, creator and
  * own description, and none of what is inside (works, wall texts, portals,
- * the creator's other spaces). Search engines and assistants are such
- * visitors, so this is all a gated space's page says.
+ * the creator's other spaces) or how it is used (visits, dates). Search
+ * engines and assistants are such visitors, so this is all a gated space's
+ * page says.
  */
 export function withoutContents<T extends Record<string, any>>(space: T): T {
     if (!space) return space;
@@ -243,6 +244,10 @@ export function withoutContents<T extends Record<string, any>>(space: T): T {
         portals: {},
         ownerSpaces: [],
         artistSearch: undefined,
+        number_of_visits: undefined,
+        createdAt: undefined,
+        lastUpdatedAt: undefined,
+        lastContentUpdatedAt: undefined,
     };
 }
 

@@ -365,7 +365,14 @@ function readExhibitCache(id: string, v: number): Experience | null {
     }
 }
 
-function writeExhibitCache(id: string, v: number, exhibit: Experience): void {
+function writeExhibitCache(
+    id: string,
+    v: number,
+    exhibit: Experience,
+    // When the view was filled. A view promoted from the shared cache keeps
+    // its original time, so it is never served for longer than the TTL.
+    ts = Date.now()
+): void {
     if (!v) return; // unversioned doc — can't invalidate reliably, don't cache.
 
     let clone: Experience;
@@ -375,7 +382,7 @@ function writeExhibitCache(id: string, v: number, exhibit: Experience): void {
         return; // skip caching rather than risk sharing a mutable reference.
     }
 
-    exhibitViewCache.set(id, { v, ts: Date.now(), exhibit: clone });
+    exhibitViewCache.set(id, { v, ts, exhibit: clone });
 
     if (exhibitViewCache.size > EXHIBIT_VIEW_CACHE_MAX) {
         // Evict the least-recently-used entry (Map preserves insertion order).
@@ -399,7 +406,7 @@ function sharedExhibitCacheRef(id: string) {
 async function readSharedExhibitCache(
     id: string,
     v: number
-): Promise<Experience | null> {
+): Promise<{ exhibit: Experience; ts: number } | null> {
     if (!v) return null;
     try {
         const data = (await sharedExhibitCacheRef(id).get()).data();
@@ -408,7 +415,7 @@ async function readSharedExhibitCache(
             data.v === v &&
             Date.now() - data.ts < EXHIBIT_VIEW_CACHE_TTL_MS
         ) {
-            return data.exhibit as Experience;
+            return { exhibit: data.exhibit as Experience, ts: data.ts };
         }
     } catch (err) {
         // ignore — fall back to the live read
@@ -452,9 +459,13 @@ async function loadExhibitView(id: string, v: number): Promise<Experience> {
     // portals + kitbash. Warm the in-process cache so subsequent calls on this
     // instance skip Firestore entirely.
     // Entries written before passwords were hashed can still hold one.
-    const shared = stripExhibitSecrets(await readSharedExhibitCache(id, v));
+    const hit = await readSharedExhibitCache(id, v);
+    const shared = stripExhibitSecrets(hit?.exhibit ?? null);
     if (shared) {
-        writeExhibitCache(id, v, shared);
+        // With the time it was filled, not now: what the view carries (the
+        // owner's other spaces among it) is read again a day after the
+        // fill, however many instances pass it along.
+        writeExhibitCache(id, v, shared, hit.ts);
         return shared;
     }
 

@@ -7,7 +7,8 @@ description: Oncyber is a place on the web where people make and visit 3D spaces
 
 Oncyber is a place on the web where people make and visit 3D spaces. A
 space can be a gallery for your art, or a world you build yourself. Every
-space has its own link, and anyone who opens the link walks straight in.
+space has its own link, and anyone who opens the link walks straight in,
+unless its creator has put a password or a gate on it.
 
 ## What is Oncyber?
 

@@ -204,8 +204,8 @@ it("keeps a card's element while live search changes the cards around it", () =>
     render([covers[2], covers[1]], "narrow query");
     render(covers, "cleared");
     act(() => jest.advanceTimersByTime(600));
-    expect(card()).not.toBeNull();
     expect(first).not.toBeNull();
+    expect(card()).toBe(first);
 });
 it("keeps the grid mounted while empty results hide it", () => {
     render();

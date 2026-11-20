@@ -46,9 +46,10 @@ export function profileSeo(
 ): ProfileSeo | null {
     const handle = profileHandle(profile);
     if (!handle) return null;
+    // An unnamed profile goes by the handle its address uses.
     const name = profile.username
         ? `@${profile.username}`
-        : shortWallet(String(profile.id));
+        : shortWallet(handle);
     const names = spaces.slice(0, 3).map((space) => space.name);
     const list =
         names.length > 1
