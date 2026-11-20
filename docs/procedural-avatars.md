@@ -180,6 +180,8 @@ The two small rays beside each collar had zero pixel overlap in the previous ren
 
 ![Solvi’s and Mora’s crowns in the drawing, previous render and updated render](avatar-sunshine-crowns.webp)
 
+The source paper changes shade near the rays. The crown diagnostic holds the camera registration fixed and samples paper on both sides of the head. It removes only exterior-connected pixels within 12, 19 or 27 sRGB levels of that local paper. An enclosed highlight keeps its original pixels. At the narrowest tolerance, Solvi’s drawing compared with itself scores 0.814 overlap and Mora’s scores 0.851. Both native images score 1.000 against themselves. Comparing the visible painted crown in the native render and drawing gives 0.913 for Solvi and 0.918 for Mora. These figures apply to the frontal crown window. The frozen full-body, head, color, animation and independent review gates still determine promotion.
+
 The one allowed correction registers a jersey graphic to its first native render. It compares the source and rendered ink on the same chest frame, corrects its scale and position, follows detached strokes of the same pigment, and adjusts the dye for the observed lighting. A visible gap in a stroke can be represented by two adjoining fills on the curved cloth. The chest graphic remains part of the single skinned mesh.
 
 | Shirt graphic      | Previous agreement | After correction | Full-body triangles |

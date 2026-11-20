@@ -8584,6 +8584,48 @@
                         "WebGLBackend": 0.81,
                         "WebGPUBackend": 0.81
                     },
+                    "crown_paper_control": {
+                        "WebGLBackend": {
+                            "registered_crown_iou": 0.798,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8136,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9132
+                                },
+                                "19": {
+                                    "source_self_iou": 0.7841,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9075
+                                },
+                                "27": {
+                                    "source_self_iou": 0.7673,
+                                    "native_self_iou": 0.9944,
+                                    "painted_crown_iou": 0.9022
+                                }
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "registered_crown_iou": 0.7894,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8136,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9015
+                                },
+                                "19": {
+                                    "source_self_iou": 0.7841,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.8996
+                                },
+                                "27": {
+                                    "source_self_iou": 0.7673,
+                                    "native_self_iou": 0.9956,
+                                    "painted_crown_iou": 0.8918
+                                }
+                            }
+                        }
+                    },
                     "ray_paint": {
                         "WebGLBackend": {
                             "iou": 0.8058,
@@ -8773,6 +8815,48 @@
                         "reference": 2.19,
                         "WebGLBackend": 1.0,
                         "WebGPUBackend": 1.0
+                    },
+                    "crown_paper_control": {
+                        "WebGLBackend": {
+                            "registered_crown_iou": 0.8275,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8508,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9182
+                                },
+                                "19": {
+                                    "source_self_iou": 0.8144,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9158
+                                },
+                                "27": {
+                                    "source_self_iou": 0.8033,
+                                    "native_self_iou": 0.9774,
+                                    "painted_crown_iou": 0.9129
+                                }
+                            }
+                        },
+                        "WebGPUBackend": {
+                            "registered_crown_iou": 0.8311,
+                            "tolerances": {
+                                "12": {
+                                    "source_self_iou": 0.8508,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9267
+                                },
+                                "19": {
+                                    "source_self_iou": 0.8144,
+                                    "native_self_iou": 1.0,
+                                    "painted_crown_iou": 0.9276
+                                },
+                                "27": {
+                                    "source_self_iou": 0.8033,
+                                    "native_self_iou": 0.9786,
+                                    "painted_crown_iou": 0.9278
+                                }
+                            }
+                        }
                     },
                     "ray_paint": {
                         "WebGLBackend": {

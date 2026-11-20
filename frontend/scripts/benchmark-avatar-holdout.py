@@ -17,6 +17,7 @@ from avatar_authoring.sun_rays import kit_landmarks, measure_sun_rays, shorts_cu
 from avatar_authoring.visor import measure_visor, visor_seed
 from avatar_authoring.one_image import author_one, save
 from avatar_authoring.release import digest, verified_captures
+from avatar_authoring.paper_control import crown_paper_control
 
 
 def manifest_digest(manifest):
@@ -551,6 +552,10 @@ def record_preview(args):
                 },
             }
         if "sunRays" in recipe and case["framing"] == "full":
+            data["crown_paper_control"] = {
+                mode: crown_paper_control(reference, evidence.parent / mode / "front.png")
+                for mode in report["backends"]
+            }
             data["ray_paint"] = {
                 mode: compare_ray_paint(reference, evidence.parent / mode / "front.png")
                 for mode in report["backends"]

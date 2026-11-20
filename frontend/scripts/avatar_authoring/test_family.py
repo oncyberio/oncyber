@@ -29,6 +29,21 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_crown_paper_control_preserves_enclosed_light_paint(self):
+        from .paper_control import clear_crown_paper
+
+        # The crown has a bright painted center and an exterior paper halo.
+        rgb = np.full((30, 48, 3), 210.0)
+        rgb[6:23, 12:36] = 201
+        rgb[9:20, 16:32] = [62, 90, 184]
+        rgb[12:17, 19:29] = 210
+        alpha = np.zeros(rgb.shape[:2], dtype=bool)
+        alpha[6:23, 12:36] = True
+        trimmed = clear_crown_paper(rgb, alpha, 12)
+        self.assertEqual(trimmed.sum(), 11 * 16)
+        self.assertTrue(trimmed[14, 23])
+        self.assertFalse(trimmed[7, 13])
+
     def test_kit_footwear_measures_two_legs_and_requires_visible_shoes(self):
         from .kit_footwear import kit_footwear
         from .sun_rays import kit_landmarks
