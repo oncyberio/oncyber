@@ -5,9 +5,10 @@ from PIL import Image
 from scipy import ndimage
 
 from .fit import pixels
+from .eyes import measure_eye
 
 
-def eye_measures(path, frame, *, lowered=False, neutral_core=False):
+def eye_measures(path, frame, *, lowered=False, neutral_core=False, allow_contact=False):
     image, mask = pixels(path, keep_components=True)
     yy, xx = np.nonzero(mask)
     cx, top, span = (xx.min() + xx.max()) * 0.5, yy.min(), float(np.ptp(yy))
@@ -74,9 +75,17 @@ def eye_measures(path, frame, *, lowered=False, neutral_core=False):
             islands, n = ndimage.label(dark)
             if n:
                 dark = islands == (np.bincount(islands.ravel())[1:].argmax() + 1)
-            if not 1 <= dark.sum() < 0.23 * globe.sum():
+            if 1 <= dark.sum() < 0.23 * globe.sum():
+                py, px = ndimage.center_of_mass(dark)
+                size = np.sqrt(dark.sum())
+            elif allow_contact:
+                globe, dot = measure_eye(labels == i, patch)
+                if dot is None:
+                    continue
+                px, py, radius = dot
+                size = radius * np.sqrt(np.pi)
+            else:
                 continue
-            py, px = np.nonzero(dark)
             band = (
                 ndimage.binary_dilation(globe, iterations=max(1, round(h * 0.04)))
                 & ~globe
@@ -95,9 +104,9 @@ def eye_measures(path, frame, *, lowered=False, neutral_core=False):
                             (ys.min() + ys.max()) / 2 + y0 - top,
                             w,
                             h,
-                            np.sqrt(dark.sum()),
-                            np.mean(px) + x0 - cx,
-                            np.mean(py) + y0 - top,
+                            size,
+                            px + x0 - cx,
+                            py + y0 - top,
                         ]
                     )
                     / span,
@@ -188,6 +197,16 @@ def eye_agreement(source, native, frame, *, lowered=False):
         ]
         if core is not None:
             ref, drawn = core, candidate
+    if ref is None or drawn is None:
+        # When the dot meets the outer stroke it leaves no enclosed black
+        # island. Measure its thickness and surrounding white on both images.
+        # An unbroken outline alone contains no such disk.
+        contact, candidate = [
+            eye_measures(path, frame, lowered=lowered, allow_contact=True)
+            for path in (source, native)
+        ]
+        if contact is not None:
+            ref, drawn = contact, candidate
     if ref is None:
         return
     if drawn is None:

@@ -56,7 +56,7 @@ def source_eyes(rgb, mask, box):
         w, h = eye["size"]
         x = round(cx - (w - 1) / 2) + x0
         y = round(cy - (h - 1) / 2) + y0
-        result.append({"bounds": [x, y, x + w, y + h]})
+        result.append({"bounds": [x, y, x + w, y + h], "rim_pupil": eye["pupil"]})
     return result
 
 

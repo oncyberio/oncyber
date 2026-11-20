@@ -29,6 +29,59 @@ from .visor import measure_visor, profile_gap
 
 
 class FamilyTests(unittest.TestCase):
+    def test_gallery_identity_ties_do_not_count_as_a_match(self):
+        from runpy import run_path
+
+        rank = run_path(
+            str(Path(__file__).resolve().parents[1] / "compare-avatar-identities.py")
+        )["rank"]
+        same, other = np.eye(2)
+        self.assertEqual(rank({"a": same, "b": other}, same, "a")["rank"], 1)
+        self.assertEqual(rank({"a": same, "b": same}, same, "a")["rank"], 2)
+        self.assertLess(rank({"a": same, "b": other}, other, "a")["margin"], 0)
+
+    def test_graph_cut_recovers_known_inked_figures_on_grained_paper(self):
+        from importlib.util import find_spec
+        from .fit import pixels
+        from .paper_control import painted_figure
+
+        if find_spec("cv2") is None:
+            self.skipTest("Install OpenCV for the painted figure control")
+        # Paint independently on alpha, then composite, grain and compress
+        # three paper colours. The original alpha supplies the answer.
+        shape = Image.new("RGBA", (272, 320))
+        pen = ImageDraw.Draw(shape)
+        pen.ellipse((103, 30, 169, 100), fill="#e2a97a", outline="#241d20")
+        pen.ellipse((115, 52, 135, 74), fill="#fffdf6", outline="#28201c", width=2)
+        pen.rectangle((30, 109, 241, 124), fill="#d59b75", outline="#241d20")
+        pen.rectangle((105, 99, 167, 195), fill="#f3f0e9", outline="#231c24")
+        pen.rectangle((105, 196, 132, 282), fill="#2d4250")
+        pen.rectangle((144, 196, 167, 279), fill="#2d4250")
+        for x in (110, 137, 161):
+            pen.ellipse((x - 1, 18, x + 1, 25), fill="#738fcc")
+        truth = np.asarray(shape.getchannel("A")) > 127
+        y, x = np.indices(truth.shape)
+        rng = np.random.default_rng(882)
+        with TemporaryDirectory() as tmp:
+            for paper in ((246, 240, 225), (217, 219, 222), (193, 203, 225)):
+                grain = (
+                    8 * x / 272 + 5 * y / 320 - 6.5 + rng.normal(0, 1.7, truth.shape)
+                )
+                bg = Image.fromarray(
+                    np.clip(np.array(paper) + grain[:, :, None], 0, 255).astype("uint8")
+                )
+                bg.paste(shape, mask=shape.getchannel("A"))
+                path = Path(tmp) / "paper.webp"
+                bg.save(path, quality=83)
+                rgb, raw = pixels(path, keep_components=True)
+                paint = painted_figure(rgb, raw)
+                jaccard = lambda m: (m & truth).sum() / (m | truth).sum()
+                self.assertGreater(jaccard(paint), max(0.95, jaccard(raw)))
+                self.assertTrue(paint[130:180, 112:163].all())
+                self.assertTrue(paint[57:69, 121:131].all())
+                self.assertTrue(paint[20:24, [110, 137, 161]].all())
+                self.assertFalse(paint[210:276, 138:143].any())
+
     def test_orb_irradiance_recovers_a_frontal_key_and_excludes_the_lens(self):
         from .sun_rays import measured_orb_paint
 
@@ -1100,6 +1153,44 @@ class FamilyTests(unittest.TestCase):
             pen.rectangle((139, 58, 140, 59), fill="#242020")
             image.save(native)
             self.assertFalse(agrees())
+
+    def test_side_looking_dots_require_two_disks_at_the_observed_rims(self):
+        with TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            frame = [-0.16, 0.07, 0.16, 0.19]
+
+            def drawing(name, side, radius, count=2):
+                image = Image.new("RGB", (240, 430), "#fffdf8")
+                pen = ImageDraw.Draw(image)
+                pen.ellipse((57, 10, 183, 133), fill="#b47d63")
+                pen.rectangle((86, 117, 154, 410), fill="#535d6a")
+                for i, x in enumerate((95, 145)):
+                    pen.ellipse(
+                        (x - 21, 45, x + 21, 77),
+                        fill="#fffef6",
+                        outline="#282223",
+                        width=2,
+                    )
+                    if i < count:
+                        u = x + side * 17
+                        pen.ellipse(
+                            (u - radius, 58 - radius, u + radius, 58 + radius),
+                            fill="#211c1e",
+                        )
+                path = folder / (name + ".png")
+                image.save(path)
+                return path
+
+            source = drawing("left", -1, 5)
+            for other, expected in [
+                (source, True),
+                (drawing("right", 1, 5), False),
+                (drawing("large", -1, 10), False),
+                (drawing("single", -1, 5, 1), False),
+            ]:
+                pair = eye_agreement(source, other, frame)
+                self.assertIsNotNone(pair)
+                self.assertEqual(eyes_match({"globe_measurements": pair}), expected)
 
     def test_unmeasurable_picture_returns_a_family_miss_to_the_author(self):
         with TemporaryDirectory() as tmp:

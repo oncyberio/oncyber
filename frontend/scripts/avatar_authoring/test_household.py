@@ -326,6 +326,10 @@ class HouseholdTests(unittest.TestCase):
         design = recipe["design"]
         self.assertNotIn("useHouseholdDepth", design["household"]["measuredBob"])
         self.assertLess(design["gaze"], -0.60)
+        for orbit in design["household"]["orbits"]:
+            self.assertLess(orbit["pupil"][0] + design["gaze"], -0.76)
+            self.assertLess(orbit["pupil"][1], -0.23)
+        self.assertLess(design["pupil"]["radius"], 0.24)
         with TemporaryDirectory() as tmp:
             crop = Path(tmp) / "portrait.png"
             with Image.open(source) as image:
@@ -723,12 +727,30 @@ class HouseholdTests(unittest.TestCase):
                 design = fit_front(source, "New garment study")[0]["design"]
                 edges = design["household"]["body"]["sections"].get("garmentEdges", {})
                 self.assertEqual("rolledCuff" in edges, rolled)
-                self.assertEqual("frontHem" in edges, rolled)
+                self.assertTrue(0.35 <= edges["cuffInk"]["width"] <= 5)
+                self.assertTrue(0.35 <= edges["hemInk"]["width"] <= 5)
                 if rolled:
                     hem = edges["frontHem"]
                     self.assertLess(
                         hem[12] + 0.075, min(max(hem[5:11]), max(hem[14:20]))
                     )
+                else:
+                    self.assertLess(np.ptp(edges["frontHem"]), 0.07)
+
+    def test_paint_transition_requires_a_stroke_between_both_colors(self):
+        from .household_front import boundary_ink
+
+        fabric = np.array([104, 115, 177])
+        skin = np.array([222, 172, 133])
+        dye = np.array([24, 19, 17])
+        strip = np.array([fabric] * 6 + [dye] * 2 + [skin] * 7)
+        strips = np.tile(strip, (11, 1, 1))
+        self.assertEqual(
+            boundary_ink(strips, fabric, skin, 0.75), {"width": 1.5, "color": "#181311"}
+        )
+        self.assertIsNone(boundary_ink(strips[:, ::-1], fabric, skin, 0.75))
+        strips[3:, 6:8] = fabric
+        self.assertIsNone(boundary_ink(strips, fabric, skin, 0.75))
 
     def test_visible_jersey_width_requires_both_edges_below_the_sleeve(self):
         from .portrait import jersey_chest_width

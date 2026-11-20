@@ -97,6 +97,40 @@ def fit_frontal_features(design, lobes, units_per_pixel, *, separate_ears=False)
     household["depth"] = skull_depth(household["widths"])
 
 
+def fit_frontal_rim_pupils(design, pair, units_per_pixel):
+    """Register a pair of side-looking dots to the white inside each ink rim."""
+    if len(pair) != 2 or not all(eye.get("rim_pupil") for eye in pair):
+        return
+    dots = np.array([eye["rim_pupil"] for eye in pair])
+    offsets = 2 * dots[:, :2] - 1
+    if np.prod(offsets[:, 0]) <= 0 or np.min(abs(offsets[:, 0])) < 0.55:
+        return
+    bounds = np.array([eye["bounds"] for eye in pair])
+    aperture = bounds[:, 2:] - bounds[:, :2]
+    rx = design["face"]["eyeRadius"] * design["head"][0]
+    radii = np.array([rx, rx * design["face"]["eyeAspect"]])
+    positions = offsets * (aperture * units_per_pixel / (2 * radii))
+    # The shared gaze and each orbit's residual are added in the renderer.
+    # Decompose one observation so it is applied exactly once.
+    gaze = round(float(np.clip(positions[:, 0].mean(), -0.7, 0.7)), 3)
+    design["gaze"] = gaze
+    positions[:, 0] -= gaze
+    for orbit, position in zip(design["household"]["orbits"], positions):
+        orbit["pupil"] = position.clip(-0.8, 0.8).round(3).tolist()
+    # A dot cut by the rim exposes a circular segment. Recover its whole
+    # projected area from the distance between its centre and the edge.
+    radius = dots[:, 2] * aperture[:, 0] * 0.5
+    clearance = (1 - abs(offsets[:, 0])) * aperture[:, 0] * 0.5
+    visible_radius = radius.copy()
+    for _ in range(4):
+        chord = np.clip(clearance / radius, 0, 1)
+        fraction = 1 - (np.arccos(chord) - chord * np.sqrt(1 - chord**2)) / np.pi
+        radius = visible_radius / np.sqrt(fraction)
+    design["pupil"]["radius"] = round(
+        float(np.clip(np.median(radius) * units_per_pixel / rx, 0.06, 0.24)), 4
+    )
+
+
 def mouth_bands(strip, teeth, pigments=None):
     """Bound the cavity inside both lips before finding teeth and tongue."""
     color = np.median(strip, axis=1)

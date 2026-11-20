@@ -152,6 +152,12 @@ const fit = z.strictObject({
                 .strictObject({
                     frontHem: z.array(n(-0.24, 0.24)).length(25).optional(),
                     rolledCuff: n(0.5, 90).optional(),
+                    cuffInk: z
+                        .strictObject({ width: n(0.35, 5), color: paint })
+                        .optional(),
+                    hemInk: z
+                        .strictObject({ width: n(0.35, 5), color: paint })
+                        .optional(),
                 })
                 .optional(),
             leftReach: n(0.65, 1.45).optional(),

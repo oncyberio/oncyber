@@ -7,6 +7,7 @@ import guides from "../../../../scripts/avatar_authoring/targets/holdout-v1/turn
 import manifest from "../../../../scripts/avatar_authoring/targets/holdout-v1/manifest.json";
 import followups from "../../../../scripts/avatar_authoring/targets/holdout-v1/followup-studies.json";
 import archive from "../../../../scripts/avatar_authoring/targets/holdout-v1/results.json";
+import identities from "../../../../scripts/avatar_authoring/targets/holdout-v1/identity-comparison.json";
 
 const studyCases = [...manifest.cases, ...followups.cases];
 
@@ -49,6 +50,13 @@ interface Props {
     images: Images;
     inferred: boolean;
     guideStatus: keyof typeof guideInfo;
+    identity: {
+        count: number;
+        backends: Record<
+            Backend,
+            Record<string, Record<"color" | "gray", { rank: number }>>
+        >;
+    } | null;
     pose: {
         measured_joints: number;
         mean_error_in_statures: number | null;
@@ -70,6 +78,7 @@ function ReviewForm({
     inferred,
     guideStatus,
     pose,
+    identity,
 }: Props) {
     const [backend, setBackend] = useState<Backend>("WebGLBackend");
     const [reviewer, setReviewer] = useState("");
@@ -169,6 +178,48 @@ function ReviewForm({
                               100 * pose.mean_error_in_statures
                           ).toFixed(1)}% of standing height.`}
                 </p>
+            )}
+            {identity && (
+                <details>
+                    <summary>
+                        Which drawing does the front render resemble?
+                    </summary>
+                    <p>
+                        MobileNet V3 compared the render with {identity.count}{" "}
+                        original drawings from this family. Rank 1 means it
+                        picked {name}. Grayscale tests whether the match
+                        survives removing color.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Region</th>
+                                <th>Color rank</th>
+                                <th>Grayscale rank</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(identity.backends[backend]).map(
+                                ([region, scores]) => (
+                                    <tr key={region}>
+                                        <th scope="row">
+                                            {
+                                                {
+                                                    figure: "Full body",
+                                                    head: "Head",
+                                                    clothes:
+                                                        "Clothing and legs",
+                                                }[region]
+                                            }
+                                        </th>
+                                        <td>{scores.color.rank}</td>
+                                        <td>{scores.gray.rank}</td>
+                                    </tr>
+                                )
+                            )}
+                        </tbody>
+                    </table>
+                </details>
             )}
             {images[backend].turns && (
                 <figure aria-label={guideInfo[guideStatus][0]}>
@@ -395,6 +446,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
         }
         images[backend] = item;
     }
+    const identity = identities.cases[entry.id];
     const sourceImage = async (file: string) =>
         (
             await import(
@@ -419,6 +471,15 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                   }
                 : null,
             evidenceHash: receipt.evidence_sha256,
+            identity:
+                identity?.candidate_sha256 === receipt.candidate_sha256 &&
+                identity.evidence_sha256 === receipt.evidence_sha256 &&
+                identity.reference_sha256 === entry.reference_sha256
+                    ? {
+                          count: identity.family_gallery_size,
+                          backends: identity.backends,
+                      }
+                    : null,
             guideStatus: receipt.turn_guide?.candidate_frozen_before_guide
                 ? "frozen"
                 : guides[entry.id]?.frozen_candidate_sha256 ===

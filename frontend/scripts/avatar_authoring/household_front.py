@@ -10,6 +10,7 @@ from .eye_review import lid_pupil
 from .guide import source_eyes
 from .household import (
     fit_frontal_features,
+    fit_frontal_rim_pupils,
     fit_portrait,
     frontal_lobes,
     paint,
@@ -467,8 +468,38 @@ def inked_sections(rgb, mask, center, crown, scale, arm_y, samples, body):
         ]
 
 
-def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
-    """Read a split hem and a rolled cuff when the drawing shows their seams."""
+def boundary_ink(strips, before, after, scale):
+    """Measure a pen stroke crossed from one painted surface to the next."""
+    luma = np.array([0.213, 0.715, 0.072])
+    widths, dyes = [], []
+    for strip in strips:
+        left = np.linalg.norm(strip - before, axis=1)
+        right = np.linalg.norm(strip - after, axis=1)
+        dark = strip @ luma < min(before @ luma, after @ luma) * 0.68
+        labels, count = ndimage.label(dark)
+        for label in range(1, count + 1):
+            hit = np.flatnonzero(labels == label)
+            lo, hi = hit[0], hit[-1] + 1
+            if not lo or hi == len(strip) or len(hit) * scale > 5:
+                continue
+            a, b = slice(max(0, lo - 4), lo), slice(hi, hi + 4)
+            if not (
+                np.any((left[a] < 50) & (left[a] + 12 < right[a]))
+                and np.any((right[b] < 50) & (right[b] + 12 < left[b]))
+            ):
+                continue
+            widths.append(len(hit) * scale)
+            dyes.append(strip[hit[np.argmin(strip[hit] @ luma)]])
+            break
+    if len(dyes) >= max(4, len(strips) * 0.62):
+        return {
+            "width": round(float(np.clip(np.median(widths), 0.35, 5)), 3),
+            "color": paint(np.median(dyes, axis=0)),
+        }
+
+
+def garment_edges(rgb, center, crown, scale, body, fabric, trousers, skin):
+    """Read the cut and the pen strokes where fabric meets another surface."""
     sections = body["sections"]
     edges = {}
     length = body["hem"] - body["neckline"]
@@ -482,6 +513,9 @@ def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
         u = np.linspace(-0.84, 0.84, 33)
         xs = np.rint(waist + u * half_width).astype(int).clip(0, rgb.shape[1] - 1)
         patch = rgb[hem - reach : hem + reach + 1, xs]
+        hem_ink = boundary_ink(patch.transpose(1, 0, 2), fabric, trousers, scale)
+        if hem_ink:
+            edges["hemInk"] = hem_ink
         cloth = np.linalg.norm(patch - fabric, axis=2)
         pants = np.linalg.norm(patch - trousers, axis=2)
         heights = np.full(len(u), np.nan)
@@ -500,7 +534,7 @@ def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
         if valid.mean() > 0.7 and np.any(valid & (abs(u) < 0.10)):
             heights = np.interp(u, u[valid], heights[valid])
             notch = heights[abs(u) < 0.1].min()
-            if all(
+            if hem_ink or all(
                 heights[(u * side > 0.1) & (u * side < 0.49)].max() - notch > 0.07
                 for side in (-1, 1)
             ):
@@ -516,6 +550,21 @@ def garment_edges(rgb, center, crown, scale, body, fabric, trousers):
     cut = sections["sleeve"]
     arm = np.array(sections["arm"])
     radius = np.interp(cut, arm[:, 0], arm[:, 2])
+    if cut > arm[0, 0] and np.linalg.norm(fabric - skin) > 45:
+        mid = np.interp(cut, arm[:, 0], arm[:, 1])
+        yy = np.rint(
+            crown + (mid - 12 + np.linspace(-0.5, 0.5, 11) * radius) / scale
+        ).astype(int)
+        reach = max(5, round(radius * 0.85 / scale))
+        xx = round(center + cut / scale) + np.arange(-reach, reach + 1)
+        cuff_ink = boundary_ink(
+            rgb[np.ix_(yy.clip(0, len(rgb) - 1), xx.clip(0, rgb.shape[1] - 1))],
+            fabric,
+            skin,
+            scale,
+        )
+        if cuff_ink:
+            edges["cuffInk"] = cuff_ink
     # A rolled cuff has an ink line across the sleeve, with cloth of the
     # same hue before and after it. Sample the middle to exclude silhouette ink.
     offsets = np.arange(3, min(cut - arm[0, 0], radius * 1.7), scale)
@@ -965,6 +1014,7 @@ def fit_front(source, name, observation=None):
     fit_frontal_features(
         recipe["design"], raw if recovered else lobes, scale, separate_ears=recovered
     )
+    fit_frontal_rim_pupils(recipe["design"], actual, scale)
     family["body"] = {
         k: v
         for k, v in measured.items()
@@ -1104,6 +1154,7 @@ def fit_front(source, name, observation=None):
             family["body"],
             pigment(rgb, samples["shirt"]),
             pigment(rgb, samples["trousers"]),
+            skin,
         )
         if edges:
             family["body"]["sections"]["garmentEdges"] = edges
@@ -1222,13 +1273,38 @@ def review_edits(recipe, source, native, score, visual):
 
     if eyes_match(visual):
         return edits
-    seen = eye_measures(
-        source, score["eye_frame"], lowered=score.get("lowered_lids", False)
-    )
-    drawn = eye_measures(
-        native, score["eye_frame"], lowered=score.get("lowered_lids", False)
-    )
+    opts = {"lowered": score.get("lowered_lids", False)}
+    seen, drawn = [
+        eye_measures(path, score["eye_frame"], **opts) for path in (source, native)
+    ]
+    if seen is None or drawn is None:
+        seen, drawn = [
+            eye_measures(path, score["eye_frame"], allow_contact=True, **opts)
+            for path in (source, native)
+        ]
+        if seen is not None and drawn is not None:
+            # A clipped dot can have a different visible diameter on either
+            # side. Center both errors in log space for one shared radius.
+            expected, actual = seen[0], drawn[0]
+            diameters = [
+                m[:, 4] / np.sqrt(m[:, 2] * m[:, 3]) for m in (expected, actual)
+            ]
+            log_scale = np.log(diameters[0] / diameters[1])
+            if max(abs(log_scale)) > 0.39:
+                current = design["pupil"]["radius"]
+                radius = float(
+                    np.clip(current * np.exp(np.mean(log_scale)), 0.06, 0.24)
+                )
+                change("pupil.radius", round(radius, 4), current)
     if seen is not None and drawn is not None:
+        pair = visual.get("globe_measurements", {})
+        if (
+            pair.get("aperture_log_error", float("inf")) <= 0.19
+            and pair.get("position", float("inf")) <= 0.145
+        ):
+            # The pupil is its own primitive. Enlarging an already registered
+            # globe to fix clipped pigment also pushes the temple out in profile.
+            return edits
         target, actual = seen[0], drawn[0]
         ratios = target[:, 2:4] / actual[:, 2:4]
         if max(np.ptp(ratios, axis=0)) < 0.25:

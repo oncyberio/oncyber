@@ -10,7 +10,7 @@ from .fit import pixels
 from .fringe import forehead_fringe
 from .pinna import frontal_pinnae
 from .jersey_sleeve import JERSEY_ROWS, JERSEY_HALF_WIDTHS, bare_arms, measure_sleeves
-from .household import fit_frontal_features, fit_portrait, frontal_lobes, paint, pigment
+from .household import fit_frontal_features, fit_frontal_rim_pupils, fit_portrait, frontal_lobes, paint, pigment
 from .sun_rays import apply_sun_rays, jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
@@ -479,6 +479,8 @@ def compile_portrait(source, family, name, obs):
         fit_frontal_features(
             design, lobes, design["head"][1] / height, separate_ears=True
         )
+        if obs["yaw"] == 0:
+            fit_frontal_rim_pupils(design, pair, design["head"][1] / height)
         pinnae = frontal_pinnae(
             rgb,
             mask,

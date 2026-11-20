@@ -163,6 +163,8 @@ export interface CartoonDesign {
                 frontHem?: number[];
                 /** Width of the turned cuff in drawing units. */
                 rolledCuff?: number;
+                cuffInk?: { width: number; color: string };
+                hemInk?: { width: number; color: string };
             };
             seams?: { shirt?: Seam[]; trousers?: Seam[] };
             creases?: {

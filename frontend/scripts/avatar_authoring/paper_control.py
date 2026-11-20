@@ -139,3 +139,59 @@ def arm_paper_control(reference, native):
         for t, a in source.items()
         for b in [rendered[t]]
     }
+
+
+def painted_figure(rgb, mask):
+    """Cut an isolated painted figure from nonuniform paper using a seeded graph cut."""
+    import cv2
+
+    strip = max(2, round(mask.shape[1] * 0.015))
+    margins = (rgb[:, :strip], rgb[:, -strip:])
+    left, right = [
+        ndimage.median_filter(np.median(margin, axis=1), size=(11, 1))
+        for margin in margins
+    ]
+    u = np.linspace(0, 1, mask.shape[1])[None, :, None]
+    paper = left[:, None] * (1 - u) + right[:, None] * u
+    distance = abs(rgb - paper).max(2)
+    noise = np.percentile(
+        np.column_stack((distance[:, :strip], distance[:, -strip:])), 99
+    )
+    trimap = np.full(mask.shape, cv2.GC_BGD, dtype=np.uint8)
+    outer = ndimage.binary_dilation(mask, iterations=max(2, round(len(mask) * 0.007)))
+    trimap[outer] = cv2.GC_PR_BGD
+    trimap[mask & (distance > max(9, noise * 1.5))] = cv2.GC_PR_FGD
+    core = mask & (distance > max(42, noise * 6))
+    if core.sum() < 5 or np.sum(~outer) < 5:
+        raise ValueError("Paint and exposed paper must both be measurable")
+    trimap[core] = cv2.GC_FGD
+    cv2.setRNGSeed(0)
+    cv2.grabCut(
+        rgb.astype(np.uint8),
+        trimap,
+        None,
+        np.zeros((1, 65)),
+        np.zeros((1, 65)),
+        4,
+        cv2.GC_INIT_WITH_MASK,
+    )
+    cut = np.isin(trimap, (cv2.GC_FGD, cv2.GC_PR_FGD))
+    # Exterior paper can run between limbs and individual hair tips. A
+    # black rim around a white eye or jersey traps a pale region inside
+    # the figure. Preserve that region when it belonged to the input matte.
+    return cut | (ndimage.binary_fill_holes(cut) & mask)
+
+
+def painted_reference(reference, destination):
+    """Preserve input alpha when supplied and return the measured paper-area change."""
+    with Image.open(reference) as art:
+        has_alpha = np.mean(np.asarray(art.convert("RGBA"))[:, :, 3] < 10) > 0.05
+    rgb, raw = pixels(reference, keep_components=True)
+    painted = raw if has_alpha else painted_figure(rgb, raw)
+    trim = Image.fromarray(rgb.astype(np.uint8)).convert("RGBA")
+    trim.putalpha(Image.fromarray(painted.astype(np.uint8) * 255))
+    trim.save(destination)
+    return {
+        "reference_has_alpha": bool(has_alpha),
+        "removed_area_fraction": round(1 - float(painted.sum() / raw.sum()), 5),
+    }

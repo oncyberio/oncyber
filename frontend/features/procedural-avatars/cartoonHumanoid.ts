@@ -2283,11 +2283,24 @@ function clothing(d: Drawing, g: CartoonDesign) {
             previous = lower;
         });
     }
+    const hemInk = measured?.garmentEdges?.hemInk;
+    const topOfInk = hemInk
+        ? (a: number) => Math.max(previous(a), hemEdge(a) - hemInk.width)
+        : hemEdge;
     const fabric = () =>
-        d.wrap(rows, previous, hemEdge, o.color, 0, false, "both", shirtSides);
+        d.wrap(rows, previous, topOfInk, o.color, 0, false, "both", shirtSides);
     const mark = measured?.shirtMark;
     if (mark) drawMarkedShirt(d, mark, fabric, mark.box);
     else fabric();
+    if (hemInk)
+        d.s.surface(
+            [topOfInk, hemEdge].map((height) =>
+                loop(shirtSides, (a) => sectionPoint(rows, a, height(a), 0))
+            ),
+            hemInk.color,
+            false,
+            "both"
+        );
     if (hem || measured?.hemRise)
         d.wrap(
             rows,
@@ -2449,6 +2462,7 @@ function clothing(d: Drawing, g: CartoonDesign) {
             const cut = o.top === "tank" ? 0 : measured.sleeve;
             const sleeve = measured.arm.filter((row) => row[0] <= cut + 0.02),
                 skin = measured.arm.filter((row) => row[0] >= cut - 0.02);
+            const cuffInk = measured.garmentEdges?.cuffInk;
             if (station) {
                 const outer = sleeve
                     .filter((row) => row[0] >= station[0])
@@ -2505,13 +2519,39 @@ function clothing(d: Drawing, g: CartoonDesign) {
                         "perimeter"
                     );
                 }
+                // A hem encloses the narrower arm. Continue the slope of
+                // the bare forearm back into the mouth of the sleeve.
+                if (cuffInk && skin.length >= 3) {
+                    const p = skin[1],
+                        q = skin[2];
+                    const t = (x - p[0]) / (q[0] - p[0]);
+                    skin[0] = [
+                        x + 0.35,
+                        T.MathUtils.clamp(
+                            T.MathUtils.lerp(p[1], q[1], t),
+                            y - r * 0.16,
+                            y + r * 0.16
+                        ),
+                        T.MathUtils.clamp(
+                            T.MathUtils.lerp(p[2], q[2], t),
+                            r * 0.35,
+                            r * 0.93
+                        ),
+                    ];
+                }
                 d.s.surface(
                     [
-                        ring([x - 0.55, y, r * 1.012]),
+                        ring([
+                            x + 0.35 - (cuffInk?.width ?? 0.9),
+                            y,
+                            r * 1.012,
+                        ]),
                         ring([x + 0.35, y, r * 1.02]),
-                        ring([x + 0.35, y, r * 0.93]),
+                        cuffInk && skin.length >= 3
+                            ? ring(skin[0])
+                            : ring([x + 0.35, y, r * 0.93]),
                     ],
-                    swatch(fabric, ink, 0.45),
+                    cuffInk?.color ?? swatch(fabric, ink, 0.45),
                     true,
                     "both"
                 );

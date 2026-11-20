@@ -1,0 +1,1302 @@
+{
+    "observer": "MediaPipe MobileNet V3 image embedder",
+    "version": "1.2.3",
+    "weights_sha256": "11af3c560dfeed7737cb4c03c23bf52a8403020784192d4dea0b74862a12828d",
+    "metric": "cosine",
+    "cases": {
+        "moss": {
+            "family": "rick-classic",
+            "input": "full",
+            "candidate_sha256": "c2d21a75ef8e6843b16b1f9145450812ffc588295067bbdb08e9eff7ff0e4165",
+            "evidence_sha256": "29a7f84b3f3add6c4468732f6175e140f096f19bb372f2aa2c4f3c8da47b4426",
+            "reference_sha256": "a77fc8c03db312d356de234316497df54bd6421c18b1bc3eeee7d2855205832f",
+            "native_front_sha256": {
+                "WebGLBackend": "6f2becbc31c511619e398c5f8a4b6a264bebbfcfe971af0d60b8209ae3200977",
+                "WebGPUBackend": "5c086553dfe0778ff7872c7d7fedcf2be3e526fe829c54fca10a017afd1a06a6"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.87865,
+                            "nearest_other": "rowan",
+                            "margin": 0.13371
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.84697,
+                            "nearest_other": "rowan",
+                            "margin": 0.03814
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.77446,
+                            "nearest_other": "poe",
+                            "margin": 0.15569
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.7046,
+                            "nearest_other": "rowan",
+                            "margin": 0.05927
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.81048,
+                            "nearest_other": "rowan",
+                            "margin": 0.10127
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.78641,
+                            "nearest_other": "rowan",
+                            "margin": 0.02709
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.87933,
+                            "nearest_other": "rowan",
+                            "margin": 0.12136
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.85862,
+                            "nearest_other": "rowan",
+                            "margin": 0.04214
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.79216,
+                            "nearest_other": "rowan",
+                            "margin": 0.15836
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.70949,
+                            "nearest_other": "rowan",
+                            "margin": 0.05108
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.81245,
+                            "nearest_other": "rowan",
+                            "margin": 0.09095
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.79386,
+                            "nearest_other": "rowan",
+                            "margin": 0.02847
+                        }
+                    }
+                }
+            },
+            "paper_control": {
+                "reference_has_alpha": false,
+                "removed_area_fraction": 0.11878,
+                "matte_sha256": "b61bcf5d904a378954acafdf960fd68ab7e6772646ec32d70ea0a6c1254291de",
+                "WebGLBackend": {
+                    "native_sha256": "6f2becbc31c511619e398c5f8a4b6a264bebbfcfe971af0d60b8209ae3200977",
+                    "original": {
+                        "silhouette_iou": 0.8985,
+                        "head_iou": 0.9164,
+                        "head_edge_agreement": 0.7669,
+                        "body_edge_agreement": 0.6569,
+                        "rgb_mae": 27.23,
+                        "eye_pigment_agreement": 0.7791,
+                        "globe_measurements": {
+                            "position": 0.0861,
+                            "aperture_log_error": 0.0162,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5059
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.939,
+                        "head_iou": 0.9378,
+                        "head_edge_agreement": 0.9182,
+                        "body_edge_agreement": 0.8254,
+                        "rgb_mae": 18.57,
+                        "eye_pigment_agreement": 0.8539,
+                        "globe_measurements": {
+                            "position": 0.0358,
+                            "aperture_log_error": 0.0326,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5059
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "WebGPUBackend": {
+                    "native_sha256": "5c086553dfe0778ff7872c7d7fedcf2be3e526fe829c54fca10a017afd1a06a6",
+                    "original": {
+                        "silhouette_iou": 0.898,
+                        "head_iou": 0.917,
+                        "head_edge_agreement": 0.7616,
+                        "body_edge_agreement": 0.6615,
+                        "rgb_mae": 27.3,
+                        "eye_pigment_agreement": 0.7473,
+                        "globe_measurements": {
+                            "position": 0.0861,
+                            "aperture_log_error": 0.0162,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9422,
+                        "head_iou": 0.9404,
+                        "head_edge_agreement": 0.9213,
+                        "body_edge_agreement": 0.8385,
+                        "rgb_mae": 18.09,
+                        "eye_pigment_agreement": 0.7609,
+                        "globe_measurements": {
+                            "position": 0.0358,
+                            "aperture_log_error": 0.0326,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "first_pass": {
+                    "native_sha256": "35200e32070b9486f7d20edbbc0024a846c1b37f73f134c2dce091612680c36a",
+                    "original": {
+                        "silhouette_iou": 0.8985,
+                        "head_iou": 0.9164,
+                        "head_edge_agreement": 0.7648,
+                        "body_edge_agreement": 0.6448,
+                        "rgb_mae": 29.45,
+                        "eye_pigment_agreement": 0.7816,
+                        "globe_measurements": {
+                            "position": 0.0861,
+                            "aperture_log_error": 0.0162,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5059
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.939,
+                        "head_iou": 0.9378,
+                        "head_edge_agreement": 0.9162,
+                        "body_edge_agreement": 0.8301,
+                        "rgb_mae": 20.81,
+                        "eye_pigment_agreement": 0.9062,
+                        "globe_measurements": {
+                            "position": 0.0358,
+                            "aperture_log_error": 0.0326,
+                            "gaze": 0.0116,
+                            "pupil_log_error": 0.0331,
+                            "source_ink": 0.5217,
+                            "native_ink": 0.5059
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "lark": {
+            "family": "rick-classic",
+            "input": "full",
+            "candidate_sha256": "bb211e6d1e9b719a5a0d9c00baaaba6066c2477ac78b33ed80039999b046cd35",
+            "evidence_sha256": "b13fe4c006ad4bef06ada5ce15a7369e86849f9000fe52715d8991fcfc1165de",
+            "reference_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c",
+            "native_front_sha256": {
+                "WebGLBackend": "97ddcac682bc40e530badfb58930e1b676176d99751534e58f79ca89b9b14fbe",
+                "WebGPUBackend": "47d29021a76fd64920dea6af1a80ba9fef312b7039ac0559040bb61385d35ac6"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.85102,
+                            "nearest_other": "rowan",
+                            "margin": 0.11633
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.84736,
+                            "nearest_other": "moss",
+                            "margin": 0.03574
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.68913,
+                            "nearest_other": "rowan",
+                            "margin": 0.15
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.64592,
+                            "nearest_other": "rowan",
+                            "margin": 0.09226
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.82038,
+                            "nearest_other": "rowan",
+                            "margin": 0.18888
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.80266,
+                            "nearest_other": "rowan",
+                            "margin": 0.10487
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.84829,
+                            "nearest_other": "rowan",
+                            "margin": 0.11678
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.84098,
+                            "nearest_other": "moss",
+                            "margin": 0.03293
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.69085,
+                            "nearest_other": "rowan",
+                            "margin": 0.14895
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.65014,
+                            "nearest_other": "rowan",
+                            "margin": 0.09549
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.81519,
+                            "nearest_other": "rowan",
+                            "margin": 0.18903
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.8036,
+                            "nearest_other": "rowan",
+                            "margin": 0.10383
+                        }
+                    }
+                }
+            },
+            "paper_control": {
+                "reference_has_alpha": false,
+                "removed_area_fraction": 0.11089,
+                "matte_sha256": "bbf44fb117fe6be635cf2c728b011c34b746d957b1b0c18955cbe8b065bb863b",
+                "WebGLBackend": {
+                    "native_sha256": "97ddcac682bc40e530badfb58930e1b676176d99751534e58f79ca89b9b14fbe",
+                    "original": {
+                        "silhouette_iou": 0.8828,
+                        "head_iou": 0.8979,
+                        "head_edge_agreement": 0.7343,
+                        "body_edge_agreement": 0.6283,
+                        "rgb_mae": 29.25,
+                        "eye_pigment_agreement": 0.3837,
+                        "globe_measurements": {
+                            "position": 0.0467,
+                            "aperture_log_error": 0.0847,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2895
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9268,
+                        "head_iou": 0.9258,
+                        "head_edge_agreement": 0.7932,
+                        "body_edge_agreement": 0.7588,
+                        "rgb_mae": 23.14,
+                        "eye_pigment_agreement": 0.3889,
+                        "globe_measurements": {
+                            "position": 0.0307,
+                            "aperture_log_error": 0.0745,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2895
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "WebGPUBackend": {
+                    "native_sha256": "47d29021a76fd64920dea6af1a80ba9fef312b7039ac0559040bb61385d35ac6",
+                    "original": {
+                        "silhouette_iou": 0.8828,
+                        "head_iou": 0.8975,
+                        "head_edge_agreement": 0.7319,
+                        "body_edge_agreement": 0.6295,
+                        "rgb_mae": 29.22,
+                        "eye_pigment_agreement": 0.4257,
+                        "globe_measurements": {
+                            "position": 0.0467,
+                            "aperture_log_error": 0.0847,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2857
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9265,
+                        "head_iou": 0.9257,
+                        "head_edge_agreement": 0.7932,
+                        "body_edge_agreement": 0.7588,
+                        "rgb_mae": 23.14,
+                        "eye_pigment_agreement": 0.4778,
+                        "globe_measurements": {
+                            "position": 0.0307,
+                            "aperture_log_error": 0.0745,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2857
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "first_pass": {
+                    "native_sha256": "8f3f47f4f4797030ef31b640cc47d5fd0010cc55d19fe349490ce443f964556b",
+                    "original": {
+                        "silhouette_iou": 0.8789,
+                        "head_iou": 0.8979,
+                        "head_edge_agreement": 0.7319,
+                        "body_edge_agreement": 0.5728,
+                        "rgb_mae": 33.95,
+                        "eye_pigment_agreement": 0.3837,
+                        "globe_measurements": {
+                            "position": 0.0467,
+                            "aperture_log_error": 0.0847,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2895
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9015,
+                        "head_iou": 0.9258,
+                        "head_edge_agreement": 0.7913,
+                        "body_edge_agreement": 0.6473,
+                        "rgb_mae": 26.3,
+                        "eye_pigment_agreement": 0.3889,
+                        "globe_measurements": {
+                            "position": 0.0307,
+                            "aperture_log_error": 0.0745,
+                            "gaze": 0.026,
+                            "pupil_log_error": 0.0799,
+                            "source_ink": 0.5556,
+                            "native_ink": 0.2895
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": false
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "rowan": {
+            "family": "rick-classic",
+            "input": "portrait",
+            "candidate_sha256": "5b57d1b26d9be62938fac147e80a44b2ef29c2dace2d78c63913c01f88e6ed70",
+            "evidence_sha256": "2190308c4bda74f379dce9d4143cedba9f98c61b986b852edae05ac8ff80dc60",
+            "reference_sha256": "fae43e70ace0b6da093e95e3211cc4b71f9220aa932baaedc248fc3841f3b597",
+            "native_front_sha256": {
+                "WebGLBackend": "5b7ac03bf7a036d2db1d1517c0001766024bd31391dc08b124171e17cf786d30",
+                "WebGPUBackend": "e5cde4067fd89fab66b492c83509e8065c6f22946017c14fdf57a8a9a3d57538"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 2,
+                            "cosine": 0.76932,
+                            "nearest_other": "moss",
+                            "margin": -0.03637
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.86393,
+                            "nearest_other": "moss",
+                            "margin": 0.02596
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.73387,
+                            "nearest_other": "moss",
+                            "margin": 0.05494
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.70331,
+                            "nearest_other": "moss",
+                            "margin": 0.05702
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 3,
+                            "cosine": 0.68683,
+                            "nearest_other": "moss",
+                            "margin": -0.01022
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.73577,
+                            "nearest_other": "moss",
+                            "margin": 0.01358
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 2,
+                            "cosine": 0.76584,
+                            "nearest_other": "moss",
+                            "margin": -0.03247
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.87034,
+                            "nearest_other": "moss",
+                            "margin": 0.02942
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.73284,
+                            "nearest_other": "moss",
+                            "margin": 0.05414
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.70021,
+                            "nearest_other": "moss",
+                            "margin": 0.06011
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 3,
+                            "cosine": 0.68621,
+                            "nearest_other": "moss",
+                            "margin": -0.00906
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.73677,
+                            "nearest_other": "moss",
+                            "margin": 0.0155
+                        }
+                    }
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "poe": {
+            "family": "rick-classic",
+            "input": "portrait",
+            "candidate_sha256": "354aa3fc8f0b5acf7448e6aebe9598046e72596acb4e65e1094da1bcc2f92e69",
+            "evidence_sha256": "f77df6164019de815b88b47ae2725310a5c65c4e4bb0386d4b0eb1a654f302de",
+            "reference_sha256": "716c4e03a739704f2bb80309d2d32984e7b5a547348590889599cb022db8703c",
+            "native_front_sha256": {
+                "WebGLBackend": "ace2dfb1db27945dc0e4043507472e409920dec4f18948336482df1daf94a8a3",
+                "WebGPUBackend": "9fab0c1c7145bb6c9226fbf53ba183f8ae2b8ad1d5b28c4188badd8f2c4a921c"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.7394,
+                            "nearest_other": "moss",
+                            "margin": 0.07458
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.75942,
+                            "nearest_other": "moss",
+                            "margin": 0.02681
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.68658,
+                            "nearest_other": "moss",
+                            "margin": 0.01637
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.58703,
+                            "nearest_other": "moss",
+                            "margin": -0.07469
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 3,
+                            "cosine": 0.58412,
+                            "nearest_other": "moss",
+                            "margin": -0.08073
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.56016,
+                            "nearest_other": "moss",
+                            "margin": -0.10052
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.74483,
+                            "nearest_other": "moss",
+                            "margin": 0.07644
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.75828,
+                            "nearest_other": "moss",
+                            "margin": 0.02261
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.68286,
+                            "nearest_other": "moss",
+                            "margin": 0.02146
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.59339,
+                            "nearest_other": "moss",
+                            "margin": -0.06876
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 3,
+                            "cosine": 0.59138,
+                            "nearest_other": "moss",
+                            "margin": -0.0709
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.57347,
+                            "nearest_other": "moss",
+                            "margin": -0.09177
+                        }
+                    }
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "solvi": {
+            "family": "sunshine",
+            "input": "full",
+            "candidate_sha256": "bc2091c54418ef6e2ab36ff62e589feb961dc4c7639a65f472056643cf246199",
+            "evidence_sha256": "8528174ed534f83a0a8894d79bb043b260ded8de1fe08ad42c63afc160868243",
+            "reference_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6",
+            "native_front_sha256": {
+                "WebGLBackend": "fc75016b5af7924ed500ce3e992bc6d7b3f7d547ff3d31f9d5f638d67c7d6f7a",
+                "WebGPUBackend": "6af18c1513eabfc0d38d795fd8c7a87d3a84cfb72bc6b223a2f73053b42dea0f"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.91921,
+                            "nearest_other": "indigo",
+                            "margin": 0.17432
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.88076,
+                            "nearest_other": "mora",
+                            "margin": 0.05303
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.80571,
+                            "nearest_other": "indigo",
+                            "margin": 0.11
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.85883,
+                            "nearest_other": "mora",
+                            "margin": 0.06094
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.82751,
+                            "nearest_other": "indigo",
+                            "margin": 0.12289
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.85555,
+                            "nearest_other": "indigo",
+                            "margin": 0.07317
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.92397,
+                            "nearest_other": "indigo",
+                            "margin": 0.1718
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.9,
+                            "nearest_other": "mora",
+                            "margin": 0.04077
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.80896,
+                            "nearest_other": "indigo",
+                            "margin": 0.10657
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.83744,
+                            "nearest_other": "mora",
+                            "margin": 0.06027
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.85081,
+                            "nearest_other": "indigo",
+                            "margin": 0.11671
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.874,
+                            "nearest_other": "indigo",
+                            "margin": 0.05594
+                        }
+                    }
+                }
+            },
+            "paper_control": {
+                "reference_has_alpha": false,
+                "removed_area_fraction": 0.11809,
+                "matte_sha256": "fc5a8e4d6db09671b95762744b9fc1baeb54718c6ba213795f964d80d4eb8253",
+                "WebGLBackend": {
+                    "native_sha256": "fc75016b5af7924ed500ce3e992bc6d7b3f7d547ff3d31f9d5f638d67c7d6f7a",
+                    "original": {
+                        "silhouette_iou": 0.8795,
+                        "head_iou": 0.7858,
+                        "head_edge_agreement": 0.545,
+                        "body_edge_agreement": 0.7402,
+                        "rgb_mae": 20.92,
+                        "eye_pigment_agreement": 0.966,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.8499,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.976, 0.8839, 0.9341],
+                            "matched": true
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9129,
+                        "head_iou": 0.8872,
+                        "head_edge_agreement": 0.8867,
+                        "body_edge_agreement": 0.8535,
+                        "rgb_mae": 16.65,
+                        "eye_pigment_agreement": 0.9586,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.8736,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.9833, 0.8964, 0.9238],
+                            "matched": true
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "WebGPUBackend": {
+                    "native_sha256": "6af18c1513eabfc0d38d795fd8c7a87d3a84cfb72bc6b223a2f73053b42dea0f",
+                    "original": {
+                        "silhouette_iou": 0.8772,
+                        "head_iou": 0.783,
+                        "head_edge_agreement": 0.5429,
+                        "body_edge_agreement": 0.7414,
+                        "rgb_mae": 20.91,
+                        "eye_pigment_agreement": 0.9864,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.8769,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.9963, 0.8628, 0.9341],
+                            "matched": true
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9107,
+                        "head_iou": 0.8787,
+                        "head_edge_agreement": 0.873,
+                        "body_edge_agreement": 0.8648,
+                        "rgb_mae": 16.59,
+                        "eye_pigment_agreement": 0.9752,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.8846,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.9963, 0.8867, 0.9238],
+                            "matched": true
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "first_pass": {
+                    "native_sha256": "bfdc3448836713f827c26dba42f2907f3a4edaddc952c054feeea8a8e7ff5190",
+                    "original": {
+                        "silhouette_iou": 0.8484,
+                        "head_iou": 0.7858,
+                        "head_edge_agreement": 0.5472,
+                        "body_edge_agreement": 0.54,
+                        "rgb_mae": 26.66,
+                        "eye_pigment_agreement": 0.9864,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.4829,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.9041, 0.8179, 0.8901],
+                            "matched": true
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.8962,
+                        "head_iou": 0.8971,
+                        "head_edge_agreement": 0.8994,
+                        "body_edge_agreement": 0.6774,
+                        "rgb_mae": 22.25,
+                        "eye_pigment_agreement": 0.9793,
+                        "shirt_window": [-0.2, -0.35, 1.2, 1.25],
+                        "shirt_mark_agreement": 0.4891,
+                        "shirt_mark_sample": [0.51, 0.344],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        },
+                        "shirt_strokes": {
+                            "coverage": [0.9331, 0.8265, 0.8762],
+                            "matched": true
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": false
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "mora": {
+            "family": "sunshine",
+            "input": "full",
+            "candidate_sha256": "0b4c7cf734bda70475892b36e47c0e8e74a9b8c4dc0d41525f3393e9f8f1a282",
+            "evidence_sha256": "91233e0276ddbf98e87b7f82732210036195328ea19f5732c393af950b0be116",
+            "reference_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa",
+            "native_front_sha256": {
+                "WebGLBackend": "a7662731e7d23e3f89e8db2d0ef3dd294657b015a8fffc552b212a46e436e156",
+                "WebGPUBackend": "69ec854d01dabb123957eca32a54f3a1bb9a781a187312fc0983dcf3632a1b72"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.89856,
+                            "nearest_other": "reed",
+                            "margin": 0.06539
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.88693,
+                            "nearest_other": "indigo",
+                            "margin": 0.0238
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.80777,
+                            "nearest_other": "reed",
+                            "margin": 0.06828
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.8037,
+                            "nearest_other": "solvi",
+                            "margin": 0.00328
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.83131,
+                            "nearest_other": "reed",
+                            "margin": 0.06585
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.81966,
+                            "nearest_other": "indigo",
+                            "margin": 0.01742
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.89747,
+                            "nearest_other": "reed",
+                            "margin": 0.06744
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.88852,
+                            "nearest_other": "indigo",
+                            "margin": 0.02254
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.80647,
+                            "nearest_other": "reed",
+                            "margin": 0.06592
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.80094,
+                            "nearest_other": "solvi",
+                            "margin": 0.00781
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.82911,
+                            "nearest_other": "reed",
+                            "margin": 0.06681
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.818,
+                            "nearest_other": "indigo",
+                            "margin": 0.01959
+                        }
+                    }
+                }
+            },
+            "paper_control": {
+                "reference_has_alpha": false,
+                "removed_area_fraction": 0.10759,
+                "matte_sha256": "37b789df53615ae605ad1e2d4acd5b80dd4bc28175895b742eebd972bee2227b",
+                "WebGLBackend": {
+                    "native_sha256": "a7662731e7d23e3f89e8db2d0ef3dd294657b015a8fffc552b212a46e436e156",
+                    "original": {
+                        "silhouette_iou": 0.8858,
+                        "head_iou": 0.8099,
+                        "head_edge_agreement": 0.5158,
+                        "body_edge_agreement": 0.559,
+                        "rgb_mae": 17.94,
+                        "eye_pigment_agreement": 0.9968,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7963,
+                        "shirt_mark_sample": [0.792, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9299,
+                        "head_iou": 0.9063,
+                        "head_edge_agreement": 0.8573,
+                        "body_edge_agreement": 0.7644,
+                        "rgb_mae": 14.51,
+                        "eye_pigment_agreement": 0.9803,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7887,
+                        "shirt_mark_sample": [0.802, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "WebGPUBackend": {
+                    "native_sha256": "69ec854d01dabb123957eca32a54f3a1bb9a781a187312fc0983dcf3632a1b72",
+                    "original": {
+                        "silhouette_iou": 0.8857,
+                        "head_iou": 0.8094,
+                        "head_edge_agreement": 0.5076,
+                        "body_edge_agreement": 0.5675,
+                        "rgb_mae": 17.86,
+                        "eye_pigment_agreement": 0.9984,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7963,
+                        "shirt_mark_sample": [0.792, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.9297,
+                        "head_iou": 0.9061,
+                        "head_edge_agreement": 0.8552,
+                        "body_edge_agreement": 0.7638,
+                        "rgb_mae": 14.49,
+                        "eye_pigment_agreement": 0.9833,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7887,
+                        "shirt_mark_sample": [0.802, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": true
+                },
+                "first_pass": {
+                    "native_sha256": "de0241547b90e404c9481ddcf836d78940d145f8feb2230234c7fb6f2feb2b56",
+                    "original": {
+                        "silhouette_iou": 0.8427,
+                        "head_iou": 0.7725,
+                        "head_edge_agreement": 0.469,
+                        "body_edge_agreement": 0.3765,
+                        "rgb_mae": 24.85,
+                        "eye_pigment_agreement": 0.6279,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7963,
+                        "shirt_mark_sample": [0.792, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "painted": {
+                        "silhouette_iou": 0.8767,
+                        "head_iou": 0.8082,
+                        "head_edge_agreement": 0.7834,
+                        "body_edge_agreement": 0.5356,
+                        "rgb_mae": 21.27,
+                        "eye_pigment_agreement": 0.7016,
+                        "shirt_window": [-0.1, -0.32, 1.1, 1.14],
+                        "shirt_mark_agreement": 0.7887,
+                        "shirt_mark_sample": [0.802, 0.396],
+                        "floating_gap": {
+                            "source": 0.0,
+                            "native": 0.0
+                        }
+                    },
+                    "original_passed": false,
+                    "painted_passed": false
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "reed": {
+            "family": "sunshine",
+            "input": "portrait",
+            "candidate_sha256": "d0e6211dd74535c08342e7aa8d0fa305a825a08193594b29f517c29cada49234",
+            "evidence_sha256": "f62c6d6a23e9ee274a58cb7c9ee5696a7d50b15dc2dd295dcb6c9c3c66749fd9",
+            "reference_sha256": "a63dc202b89d462dbd0f07748ace21890ddb9b666c082cfa9b2de25fd3e1e769",
+            "native_front_sha256": {
+                "WebGLBackend": "dfa3785959bd6301a48f62a516822068268099ac7677c926b32091fc355976e1",
+                "WebGPUBackend": "d43175b66640a7f8ad17b8b43239216cc7d9863d5346016164d42982b48bccbf"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.86585,
+                            "nearest_other": "mora",
+                            "margin": 0.17397
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.80371,
+                            "nearest_other": "solvi",
+                            "margin": 0.06347
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.83888,
+                            "nearest_other": "mora",
+                            "margin": 0.12315
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.80754,
+                            "nearest_other": "solvi",
+                            "margin": -0.01329
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.75429,
+                            "nearest_other": "mora",
+                            "margin": 0.12863
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.69413,
+                            "nearest_other": "solvi",
+                            "margin": 0.0065
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.88049,
+                            "nearest_other": "mora",
+                            "margin": 0.17756
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.82383,
+                            "nearest_other": "solvi",
+                            "margin": 0.07117
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.8352,
+                            "nearest_other": "mora",
+                            "margin": 0.12562
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.78734,
+                            "nearest_other": "solvi",
+                            "margin": -0.01275
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.75533,
+                            "nearest_other": "mora",
+                            "margin": 0.12575
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.69181,
+                            "nearest_other": "solvi",
+                            "margin": 0.01087
+                        }
+                    }
+                }
+            },
+            "family_gallery_size": 4
+        },
+        "indigo": {
+            "family": "sunshine",
+            "input": "portrait",
+            "candidate_sha256": "7bc075d24912ca82901eb94d6b2779e1331dd11cb0e1014e6ab1eda5b51cea5a",
+            "evidence_sha256": "e520ef08921016d617967b73694b6b93f00fdbce1c3ef7d0ef4e7ed2aa22f3b4",
+            "reference_sha256": "43e1e7265c83256365f70cbd60bf49d103d81829241e0a7d78e460b483eac80d",
+            "native_front_sha256": {
+                "WebGLBackend": "5783844641e656e8f46fa4528124cd124d03ec28d91ff6f398c25c35fda6e5c7",
+                "WebGPUBackend": "92ad3b964e8e75caa06b9b0743878657c96a0b87d275b53c6ca44c1d8bb3057a"
+            },
+            "backends": {
+                "WebGLBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.85656,
+                            "nearest_other": "reed",
+                            "margin": 0.10232
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.84518,
+                            "nearest_other": "reed",
+                            "margin": 0.00562
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.84819,
+                            "nearest_other": "solvi",
+                            "margin": 0.1671
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.81686,
+                            "nearest_other": "mora",
+                            "margin": 0.08372
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.70304,
+                            "nearest_other": "reed",
+                            "margin": 0.0033
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.72559,
+                            "nearest_other": "solvi",
+                            "margin": -0.03951
+                        }
+                    }
+                },
+                "WebGPUBackend": {
+                    "figure": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.83105,
+                            "nearest_other": "solvi",
+                            "margin": 0.0785
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.81535,
+                            "nearest_other": "reed",
+                            "margin": 0.009
+                        }
+                    },
+                    "head": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.84268,
+                            "nearest_other": "solvi",
+                            "margin": 0.16509
+                        },
+                        "gray": {
+                            "rank": 1,
+                            "cosine": 0.822,
+                            "nearest_other": "solvi",
+                            "margin": 0.08094
+                        }
+                    },
+                    "clothes": {
+                        "color": {
+                            "rank": 1,
+                            "cosine": 0.71051,
+                            "nearest_other": "reed",
+                            "margin": 0.01491
+                        },
+                        "gray": {
+                            "rank": 3,
+                            "cosine": 0.72845,
+                            "nearest_other": "solvi",
+                            "margin": -0.03277
+                        }
+                    }
+                }
+            },
+            "family_gallery_size": 4
+        }
+    },
+    "seconds": 16.735,
+    "provider_charge_usd": 0
+}
