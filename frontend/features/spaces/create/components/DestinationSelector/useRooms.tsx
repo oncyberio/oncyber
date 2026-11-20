@@ -97,6 +97,8 @@ interface RoomsProviderProps {
         | "template";
     onCreateSpace?: (exhibit: Experience) => unknown;
     onCreateEmptyStudioSpace?: (kit?: string) => unknown;
+    /** "template" only: also load build-from-scratch kits. */
+    withKits?: boolean;
     children?: React.ReactNode;
 }
 
@@ -106,6 +108,7 @@ export function RoomsProvider({
     context,
     onCreateSpace,
     onCreateEmptyStudioSpace,
+    withKits = false,
 }: RoomsProviderProps) {
     //
     const router = useRouter();
@@ -395,7 +398,7 @@ export function RoomsProvider({
             if (context === "marketplace" || context === "studio") {
                 await fetchAllRooms({ isFuture: false });
             } else if (context === "template") {
-                await fetchAllRooms({ isFuture: false });
+                await fetchAllRooms(withKits ? {} : { isFuture: false });
             } else if (context === "world-builder") {
                 await fetchAllRooms({ isFuture: true });
             } else {

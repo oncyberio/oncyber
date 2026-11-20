@@ -1,4 +1,11 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { UserContext } from "@components/context/UserContext";
 import { useRouter } from "next/router";
 import type { TemplateGridData } from "./components/TemplateCatalog";
@@ -12,9 +19,11 @@ import { creationToggleStep, creationStep } from "./creationSteps";
 import Header from "./components/Header";
 import ImmersiveViewportStyle from "@features/content-host/ImmersiveViewportStyle";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import styled from "styled-components";
-import { ActionButton, compactActionSizing } from "@styles/brand";
+import { ActionButton, actionButton, outlineAction } from "@styles/brand";
 import EmptyState from "@ui/components/EmptyState";
+import ExperienceControlIcon from "@ui/components/ExperienceControlIcon";
 import {
     Page,
     BrowseSurface,
@@ -29,44 +38,41 @@ import { GLASSES_ICON_URL } from "./glassesIcon";
 import LoadingGrid from "./components/LoadingGrid";
 import { CoverImage } from "./components/ExperienceCard";
 import { LandingPageProps } from "./types";
+import { searchWordSuggestions } from "./notFound";
 import { setDefaultFeedCategory } from "./data";
 import useDiscovery from "./hooks/useDiscovery";
+import useWordMatches from "./hooks/useWordMatches";
 import { useLobbyPopulation } from "@features/lobby/useLobbyPopulation";
 import { pendingLobbyReturn } from "@utils/lobbyReturnTransition";
 import useDestinationPreviews from "./hooks/useDestinationPreviews";
+import useYourSpaces from "./hooks/useYourSpaces";
+import {
+    countSpaces,
+    createSpaceCards,
+    parseSpaceFilter,
+    RESET_SPACES_ID,
+    SHOW_ALL_SPACES_ID,
+    SPACE_FILTERS,
+    withSpaces,
+} from "./yourSpaces";
 import { CreateIcon } from "./components/CreateIcon";
 import {
     LandingActivityProvider,
     useActivitySignal,
     useLandingBusy,
 } from "./activity";
+import { useCyberTranslation } from "@components/context/I18nContext";
+import { MOBILE_GRID_QUERY } from "./coverPreloads";
 
 const Lobby = dynamic(() => import("../lobby/Lobby"), { ssr: false });
 
 const TemplateCatalog = dynamic(() => import("./components/TemplateCatalog"), {
     ssr: false,
 });
-const TEMPLATE_LOADING_CARDS: LandingCard[] = Array.from(
-    { length: 4 },
-    (_, index) => ({
-        ...BUILD_CARDS[0],
-        id: `loading-template-${index}`,
-        title: "Loading templates…",
-        href: "",
-        imageUrls: [],
-        buildStatus: "Your existing Oncyber templates",
-    })
-);
-const GRID_SIZES = [
-    { columns: 2, rows: 2 },
-    { columns: 1, rows: 1 },
-];
+const GRID = { columns: 2, rows: 2 };
 /** Phones show one column of two cards instead of the 2×2 grid. */
-const MOBILE_GRID_SIZES = [
-    { columns: 1, rows: 2 },
-    { columns: 1, rows: 1 },
-];
-const MOBILE_QUERY = "(max-width: 700px)";
+const MOBILE_GRID = { columns: 1, rows: 2 };
+const MOBILE_QUERY = MOBILE_GRID_QUERY;
 
 function useMobileLayout() {
     const [mobile, setMobile] = useState(false);
@@ -137,13 +143,12 @@ function LandingContent(props: LandingPageProps) {
         loadMoreError,
         loadMore,
     } = discovery;
-    // Image-only fallback for WebGL failures; curvature is never a user mode.
-    const [flat, setFlat] = useState(false);
-    const [gridChoice, setGridChoice] = useState(0);
-    const gridSizes = useMobileLayout() ? MOBILE_GRID_SIZES : GRID_SIZES;
-    const grid = gridSizes[gridChoice];
+    const { t } = useCyberTranslation();
+    const grid = useMobileLayout() ? MOBILE_GRID : GRID;
     const router = useRouter();
-    const inLobby = router.query.lobby === "1";
+    // A profile link to nobody carries ?lobby=1 too (see next.config.js);
+    // its page is the not-found search, not the lobby.
+    const inLobby = router.query.lobby === "1" && !props.notFound;
     const [browseVisible, setBrowseVisible] = useState(!inLobby);
     const [lobbyReady, setLobbyReady] = useState(false);
     const [lobbyClosing, setLobbyClosing] = useState(false);
@@ -161,6 +166,12 @@ function LandingContent(props: LandingPageProps) {
     }, [inLobby]);
     const setLobby = useCallback(
         (open: boolean) => {
+            // A not-found page is the landing in search mode at the missing
+            // link's address: the lobby opens from the home page instead.
+            if (open && props.notFound) {
+                void router.push("/?lobby=1");
+                return;
+            }
             const query = { ...router.query };
             if (open) {
                 query.lobby = "1";
@@ -171,8 +182,18 @@ function LandingContent(props: LandingPageProps) {
                 scroll: false,
             });
         },
-        [router]
+        [router, props.notFound]
     );
+    // A profile link (/@name) opens the lobby with their sidebar on the left.
+    const visitedProfile =
+        typeof router.query.profile === "string" ? props.profile : undefined;
+    const closeProfile = useCallback(() => {
+        const { profile, profileLink, ...query } = router.query;
+        void router.replace({ pathname: router.pathname, query }, undefined, {
+            shallow: true,
+            scroll: false,
+        });
+    }, [router]);
     const leaveLobby = useCallback(() => {
         setBrowseVisible(true);
         setLobbyClosing(true);
@@ -197,64 +218,98 @@ function LandingContent(props: LandingPageProps) {
         router.query.templateCategory
     );
     const updateTemplates = useCallback(
-        (patch: {
-            create?: string;
-            templateSearch?: string;
-            templateCategory?: TemplateCategory;
-        }) => {
+        (
+            patch: {
+                create?: string;
+                templateSearch?: string;
+                templateCategory?: TemplateCategory;
+            },
+            // Searches sent while typing replace one another in history.
+            typed = false
+        ) => {
             const query: typeof router.query = { ...router.query, ...patch };
             if (!query.templateSearch) delete query.templateSearch;
             if (query.templateCategory === "all") delete query.templateCategory;
             // Old availability links must not hide the rest of the catalog.
             delete query.availability;
-            void router.push({ pathname: router.pathname, query }, undefined, {
-                shallow: true,
-                scroll: false,
-            });
+            void router[typed ? "replace" : "push"](
+                { pathname: router.pathname, query },
+                undefined,
+                { shallow: true, scroll: false }
+            );
         },
         [router]
     );
     const creating = step !== "explore";
-    const cards = useDestinationPreviews(discoveryCards, !creating);
-    useEffect(() => {
-        if (loading || creating || inLobby) return;
-        let cancelled = false;
-        let frame: number;
-        let idle: number;
-        let timeout: number;
-        const clearScheduled = () => {
-            window.cancelAnimationFrame(frame);
-            if (idle !== undefined) window.cancelIdleCallback?.(idle);
-            window.clearTimeout(timeout);
-        };
-        const prepare = () => {
-            if (!cancelled && !document.hidden) warmLobbyAvatar();
-        };
-        const schedule = () => {
-            clearScheduled();
-            if (document.hidden) return;
-            // Let discovery paint before importing the avatar loader. The
-            // timeout also gives browsers without idle callbacks a quiet start.
-            frame = window.requestAnimationFrame(() => {
-                frame = window.requestAnimationFrame(() => {
-                    if (window.requestIdleCallback) {
-                        idle = window.requestIdleCallback(prepare, {
-                            timeout: 1200,
-                        });
-                    } else {
-                        timeout = window.setTimeout(prepare, 250);
-                    }
-                });
-            });
-        };
-        document.addEventListener("visibilitychange", schedule);
-        schedule();
-        return () => {
-            cancelled = true;
-            clearScheduled();
-            document.removeEventListener("visibilitychange", schedule);
-        };
-    }, [loading, creating, inLobby, warmLobbyAvatar]);
+    // A link that found nothing opens searching for its words: the matches,
+    // then the staff picks and popular worlds, each under its label. Any
+    // change to the search or filters returns to the usual results.
+    const notFound = props.notFound;
+    const notFoundMode =
+        !!notFound &&
+        !creating &&
+        filters.q === notFound.query &&
+        !filters.owner &&
+        !filters.chain &&
+        !filters.collection;
+    const searching = notFoundMode && !!notFound.query;
+    const fullSearchPending =
+        searching &&
+        (loading ||
+            (!discoveryCards.length &&
+                (loadingMore || (hasMore && !error && !loadMoreError))));
+    // Every word has to match, so "frahm genesis" can find nothing while
+    // "frahm" finds the Frahm galleries: show those as close matches.
+    const wordsWanted =
+        searching && !fullSearchPending && !discoveryCards.length;
+    const wordMatches = useWordMatches(filters, wordsWanted);
+    const resultsPending =
+        fullSearchPending || (wordsWanted && wordMatches === null);
+    const notFoundCards = useMemo(() => {
+        if (!notFoundMode || resultsPending) return null;
+        const results = !searching
+            ? []
+            : discoveryCards.length
+            ? discoveryCards
+            : wordMatches ?? [];
+        const shown = new Set(results.map((card) => card.id));
+        return [
+            ...results.map((card) => ({
+                ...card,
+                section: "results" as const,
+            })),
+            ...notFound.sections.filter((card) => !shown.has(card.id)),
+        ];
+    }, [
+        notFoundMode,
+        resultsPending,
+        searching,
+        discoveryCards,
+        wordMatches,
+        notFound,
+    ]);
+    const notFoundLabels = notFoundMode
+        ? {
+              results: t(
+                  discoveryCards.length
+                      ? "Results for \u201c{query}\u201d"
+                      : "Close to \u201c{query}\u201d",
+                  { query: notFound.query }
+              ),
+              ...(searching && !discoveryCards.length && !wordMatches?.length
+                  ? { staff: t("No matches \u00b7 Staff picks") }
+                  : {}),
+          }
+        : undefined;
+    const cards = useDestinationPreviews(
+        notFoundCards ?? (notFoundMode ? [] : discoveryCards),
+        !creating
+    );
+    // Only the matches page; more would land after the sections.
+    const pagedHasMore = notFoundMode ? false : hasMore;
+    // The lobby's avatar and its animations are only fetched once a visitor
+    // reaches for Jump In (pointer, focus or press): most visitors of the
+    // grid never open the lobby, and the files competed with the covers.
     const emptyPageLoader = useRef(loadMore);
     emptyPageLoader.current = loadMore;
     useEffect(() => {
@@ -265,9 +320,10 @@ function LandingContent(props: LandingPageProps) {
             !loading &&
             !loadingMore &&
             hasMore &&
+            (!notFoundMode || searching) &&
             !error &&
             !loadMoreError &&
-            !cards.length
+            !(notFoundMode ? discoveryCards.length : cards.length)
         )
             emptyPageLoader.current();
     }, [
@@ -278,13 +334,76 @@ function LandingContent(props: LandingPageProps) {
         error,
         loadMoreError,
         cards.length,
+        notFoundMode,
+        searching,
+        discoveryCards.length,
     ]);
     const [templates, setTemplates] = useState<TemplateGridData>(null);
     const [loadTemplates, setLoadTemplates] = useState(step === "gallery");
+    // Signed-in creators find their own spaces ahead of the templates. They
+    // load with the templates, before the first Create click.
+    const yourSpaces = useYourSpaces(loadTemplates);
+    const spacesExpanded = router.query.spaces === "all";
+    const spaceFilter = parseSpaceFilter(router.query.spacesFilter);
+    const filterSpaces = useCallback(
+        (filter: string) => {
+            const query: typeof router.query = {
+                ...router.query,
+                create: "gallery",
+            };
+            if (parseSpaceFilter(filter) === "latest")
+                delete query.spacesFilter;
+            else query.spacesFilter = filter;
+            // Each filter starts from its first spaces again.
+            delete query.spaces;
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
+        },
+        [router]
+    );
+    const showSpaces = step === "gallery" && templateCategory === "all";
+    const spaceCards = useMemo(
+        () =>
+            showSpaces && yourSpaces.spaces
+                ? createSpaceCards(
+                      yourSpaces.spaces,
+                      templateQuery,
+                      spacesExpanded,
+                      yourSpaces.currentId,
+                      spaceFilter
+                  ).map((card) =>
+                      card.spaceId && card.spaceId === yourSpaces.openingId
+                          ? { ...card, opening: true }
+                          : card
+                  )
+                : [],
+        [
+            showSpaces,
+            yourSpaces.spaces,
+            yourSpaces.currentId,
+            yourSpaces.openingId,
+            templateQuery,
+            spacesExpanded,
+            spaceFilter,
+        ]
+    );
+    const spaceCount = useMemo(
+        () =>
+            showSpaces && yourSpaces.spaces
+                ? countSpaces(yourSpaces.spaces, templateQuery, spaceFilter)
+                : 0,
+        [showSpaces, yourSpaces.spaces, templateQuery, spaceFilter]
+    );
     useLandingBusy(
         creating
             ? step === "gallery" &&
-                  (!templates || templates.loading || !!templates.opening)
+                  (!templates ||
+                      templates.loading ||
+                      !!templates.opening ||
+                      yourSpaces.loading ||
+                      !!yourSpaces.openingId)
             : loading || loadingMore
     );
     const routeActivity = useActivitySignal();
@@ -309,15 +428,21 @@ function LandingContent(props: LandingPageProps) {
             routeActivity(false);
         };
     }, [router.events, routeActivity]);
+    // Templates (a large catalog, plus prices and the visitor's own spaces)
+    // load once a visitor reaches for Create, not on every visit to the grid.
+    const prepareCreate = useCallback(() => setLoadTemplates(true), []);
     useEffect(() => {
-        // Prepare destinations while browsing, before the first Create click.
-        setLoadTemplates(true);
-    }, []);
+        if (step !== "explore") setLoadTemplates(true);
+    }, [step]);
     const goToStep = useCallback(
         (next: string) => {
             const query = { ...router.query };
             if (next === "explore") delete query.create;
             else query.create = next;
+            // "Show all" and a filter of your spaces last for one visit to
+            // Create.
+            delete query.spaces;
+            delete query.spacesFilter;
             // Stay on the same page: only the cards change, including browser Back/Forward.
             if (
                 router.pathname.startsWith("/studio/new-") &&
@@ -335,7 +460,37 @@ function LandingContent(props: LandingPageProps) {
         goToStep(creationToggleStep(step));
     }, [step, goToStep]);
     const activateCard = (card: LandingCard) => {
+        if (card.id === SHOW_ALL_SPACES_ID) {
+            const query = { ...router.query, create: "gallery", spaces: "all" };
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
+            return true;
+        }
+        if (card.id === RESET_SPACES_ID) {
+            // "Show all your spaces" clears the search too, or a search
+            // that matches none of them would keep the list empty.
+            const query: typeof router.query = {
+                ...router.query,
+                create: "gallery",
+            };
+            delete query.spacesFilter;
+            delete query.spaces;
+            delete query.templateSearch;
+            void router.push({ pathname: router.pathname, query }, undefined, {
+                shallow: true,
+                scroll: false,
+            });
+            return true;
+        }
+        if (card.spaceId) {
+            if (templates?.opening) return true;
+            void yourSpaces.open(card.spaceId);
+            return true;
+        }
         if (card.id.startsWith("template-")) {
+            if (yourSpaces.openingId) return true;
             templates?.open(card);
             return true;
         }
@@ -345,7 +500,9 @@ function LandingContent(props: LandingPageProps) {
         step === "gallery" &&
         templates &&
         !templates.loading &&
-        !templates.cards.length;
+        !yourSpaces.loading &&
+        !templates.cards.length &&
+        !spaceCards.length;
     useEffect(() => {
         if (!templateEmpty) return;
         const closeEmptyGallery = (event: KeyboardEvent) => {
@@ -362,13 +519,36 @@ function LandingContent(props: LandingPageProps) {
         document.addEventListener("keydown", closeEmptyGallery);
         return () => document.removeEventListener("keydown", closeEmptyGallery);
     }, [templateEmpty, toggleCreate]);
-    const gridCards =
-        step === "gallery"
-            ? templates?.cards.length
-                ? templates.cards
-                : TEMPLATE_LOADING_CARDS
-            : cards;
-    const showGrid = !templateEmpty && (creating || cards.length > 0);
+    // Both lists arrive before either is drawn, so the grid is drawn once
+    // and nothing shifts when the slower one lands.
+    const galleryReady =
+        !!templates &&
+        (!templates.loading || templates.cards.length > 0) &&
+        !yourSpaces.loading;
+    const templateCards = templates?.cards;
+    const galleryCards = useMemo(
+        () => (galleryReady ? withSpaces(spaceCards, templateCards || []) : []),
+        [galleryReady, spaceCards, templateCards]
+    );
+    // In the staff feed the popular worlds follow the picks under their own
+    // label, so the picks are named too and the two labels form a switch.
+    const worldCards = useMemo(
+        () =>
+            cards.some((card) => card.section === "popular") &&
+            cards.some((card) => !card.section)
+                ? cards.map((card) =>
+                      card.section
+                          ? card
+                          : { ...card, section: "staff" as const }
+                  )
+                : cards,
+        [cards]
+    );
+    const gridCards = step === "gallery" ? galleryCards : worldCards;
+    // Create waits the way the worlds do: the same placeholder grid.
+    const galleryLoading = step === "gallery" && !galleryReady;
+    const showGrid =
+        !templateEmpty && !galleryLoading && (creating || cards.length > 0);
     const retainedGridCards = useRef(gridCards);
     if (showGrid) retainedGridCards.current = gridCards;
 
@@ -378,58 +558,65 @@ function LandingContent(props: LandingPageProps) {
     const createControl = (
         <CreateControl
             id="open-create"
+            onPointerEnter={prepareCreate}
+            onPointerDown={prepareCreate}
+            onFocus={prepareCreate}
             onClick={toggleCreate}
             aria-pressed={creating}
-            title={creating ? "Back to exploring worlds" : "Create a gallery"}
+            title={t(
+                creating ? "Back to exploring worlds" : "Create a gallery"
+            )}
         >
             <span>
-                create
+                {t("create")}
                 <CreateIcon open={creating} />
             </span>
         </CreateControl>
     );
-    const gridControls = (
-        <ViewControls>
-            <div className="density" role="group" aria-label="Grid size">
-                {gridSizes.map((size, index) => (
-                    <button
-                        key={`${size.columns}x${size.rows}`}
-                        aria-label={`${size.columns} by ${size.rows} grid`}
-                        aria-pressed={gridChoice === index}
-                        onClick={() => setGridChoice(index)}
-                    >
-                        {size.columns}×{size.rows}
-                    </button>
-                ))}
-            </div>
-        </ViewControls>
+    // The way to the rest of the site, in the footer's left corner: the
+    // info mark a space shows beside its title, then the word. As quiet as
+    // "create" above it.
+    const aboutLink = (
+        <AboutLink href="/about">
+            <ExperienceControlIcon name="info" size={14} />
+            {t("about")}
+        </AboutLink>
     );
     const lobbyPopulation = useLobbyPopulation(!creating && !inLobby);
     const viewControls = (
         <ViewControls>
             {!creating && (
-                <button
-                    className="jump-in"
-                    onPointerEnter={warmLobbyAvatar}
-                    onFocus={warmLobbyAvatar}
-                    onClick={() => {
-                        warmLobbyAvatar();
-                        setLobby(true);
-                    }}
-                >
-                    <EnterPortalIcon aria-hidden="true" />
-                    <span className="jump-in-label">Jump In</span>
+                <span className="jump-group">
+                    {/* Who is in the lobby sits beside the button, not in
+                        it: the button stays the size of Sign in. */}
                     {lobbyPopulation != null && (
                         <span
                             className="lobby-count"
-                            aria-label={`${lobbyPopulation} ${
-                                lobbyPopulation === 1 ? "person" : "people"
-                            } in the lobby`}
+                            role="img"
+                            aria-label={t(
+                                lobbyPopulation === 1
+                                    ? "{count} person in the lobby"
+                                    : "{count} people in the lobby",
+                                { count: lobbyPopulation }
+                            )}
                         >
                             {lobbyPopulation}
                         </span>
                     )}
-                </button>
+                    <button
+                        className="jump-in"
+                        onPointerEnter={warmLobbyAvatar}
+                        onPointerDown={warmLobbyAvatar}
+                        onFocus={warmLobbyAvatar}
+                        onClick={() => {
+                            warmLobbyAvatar();
+                            setLobby(true);
+                        }}
+                    >
+                        <EnterPortalIcon aria-hidden="true" />
+                        <span className="jump-in-label">{t("Jump In")}</span>
+                    </button>
+                </span>
             )}
         </ViewControls>
     );
@@ -446,12 +633,27 @@ function LandingContent(props: LandingPageProps) {
                 className="skip-link"
                 href={inLobby ? "#lobby-controls" : "#worlds"}
             >
-                {inLobby
-                    ? "Skip to lobby controls"
-                    : creating
-                    ? "Skip to gallery destinations"
-                    : "Skip to worlds"}
+                {t(
+                    inLobby
+                        ? "Skip to lobby controls"
+                        : creating
+                        ? "Skip to gallery destinations"
+                        : "Skip to worlds"
+                )}
             </a>
+            {/* The page's heading, for screen readers and search engines:
+                the visible page is a logo over a canvas of cards. */}
+            <h1 className="landing-title">
+                {props.notFound?.query
+                    ? `Could not find \u201c${props.notFound.query}\u201d`
+                    : visitedProfile
+                    ? `${
+                          visitedProfile.username
+                              ? `@${visitedProfile.username}`
+                              : visitedProfile.id
+                      } on oncyber`
+                    : "oncyber: explore 3D spaces, galleries and worlds"}
+            </h1>
             {loadTemplates && !inLobby && (
                 <TemplateCatalog
                     onChange={setTemplates}
@@ -471,6 +673,13 @@ function LandingContent(props: LandingPageProps) {
                     templateContext
                         ? {
                               category: templateCategory,
+                              spaces:
+                                  showSpaces && yourSpaces.spaces?.length
+                                      ? {
+                                            filter: spaceFilter,
+                                            update: filterSpaces,
+                                        }
+                                      : undefined,
                               update: (category) =>
                                   updateTemplates({
                                       templateCategory: category,
@@ -484,17 +693,18 @@ function LandingContent(props: LandingPageProps) {
                 ref={mainRef}
                 aria-hidden={inLobby || undefined}
                 id="worlds"
-                aria-label={
+                aria-label={t(
                     creating ? "Create with Oncyber" : "Explore Oncyber worlds"
-                }
+                )}
             >
                 <BrowseSurface>
                     {/* Opening shows on the picked card itself. */}
-                    {step === "gallery" && templates?.error && (
-                        <TemplateStatus role="alert">
-                            {templates.error}
-                        </TemplateStatus>
-                    )}
+                    {step === "gallery" &&
+                        (yourSpaces.error || templates?.error) && (
+                            <TemplateStatus role="alert">
+                                {t(yourSpaces.error || templates.error)}
+                            </TemplateStatus>
+                        )}
                     <div className="results" aria-busy={!creating && loading}>
                         {retainedGridCards.current.length > 0 && (
                             <Scene
@@ -505,55 +715,79 @@ function LandingContent(props: LandingPageProps) {
                                 cards={retainedGridCards.current}
                                 contentKey={
                                     step === "gallery"
-                                        ? `gallery:${
-                                              templates?.cards
-                                                  .map((card) => card.id)
-                                                  .join(",") || "loading"
-                                          }`
+                                        ? // What the visitor chose, not what
+                                          // arrived: a refreshed catalog
+                                          // updates cards in place instead of
+                                          // fading the whole grid out and in.
+                                          galleryReady
+                                            ? `gallery:${templateCategory}:${templateQuery}:${spacesExpanded}:${spaceFilter}`
+                                            : "gallery:loading"
                                         : `explore:${discovery.resultKey}`
                                 }
                                 onCardActivate={activateCard}
                                 counterLabel={
                                     step === "gallery" ? "templates" : undefined
                                 }
-                                flat={flat}
-                                onFlatView={setFlat}
                                 columns={grid.columns}
                                 visibleRows={grid.rows}
-                                footerStart={gridControls}
+                                footerStart={aboutLink}
                                 viewControls={viewControls}
                                 resetKey={discovery.resultKey}
-                                hasMore={!creating && !loading && hasMore}
+                                hasMore={!creating && !loading && pagedHasMore}
                                 loadingMore={!creating && loadingMore}
                                 error={!creating && (error || loadMoreError)}
                                 loadMore={loadMore}
+                                sectionLabels={notFoundLabels}
+                                // The landing opens on the worlds alone;
+                                // its section names come in with the scroll.
+                                sectionLabelsOnScroll={
+                                    step !== "gallery" && !notFoundMode
+                                }
+                                sectionCounts={
+                                    spaceCount ? { spaces: spaceCount } : null
+                                }
+                                sectionFilter={
+                                    step === "gallery" &&
+                                    yourSpaces.spaces?.length
+                                        ? {
+                                              section: "spaces",
+                                              label: "Filter your worlds",
+                                              value: spaceFilter,
+                                              options: SPACE_FILTERS,
+                                              onChange: filterSpaces,
+                                          }
+                                        : null
+                                }
                             />
                         )}
-                        {!creating &&
-                        !cards.length &&
-                        (loading || (hasMore && !error && !loadMoreError)) ? (
+                        {galleryLoading ||
+                        (!creating &&
+                            !cards.length &&
+                            (loading ||
+                                resultsPending ||
+                                (pagedHasMore && !error && !loadMoreError))) ? (
                             <LoadingGrid grid={grid} />
                         ) : templateEmpty ? (
                             <EmptyState
                                 size="page"
                                 titleAs="h2"
                                 icon="globe"
-                                title={
+                                title={t(
                                     templateQuery
                                         ? "No matching rooms."
                                         : "No galleries found."
-                                }
-                                detail={
+                                )}
+                                detail={t(
                                     templateCategory !== "all"
                                         ? "Try another template category."
                                         : templateQuery
                                         ? "Try another name, artist, or style."
                                         : "The catalog updates automatically. Please try again in a moment."
-                                }
+                                )}
                                 action={
                                     templateCategory !== "all"
                                         ? {
-                                              label: "Show all templates",
+                                              label: t("Show all templates"),
                                               onClick: () =>
                                                   updateTemplates({
                                                       templateCategory: "all",
@@ -561,7 +795,7 @@ function LandingContent(props: LandingPageProps) {
                                           }
                                         : templateQuery
                                         ? {
-                                              label: "Clear template search",
+                                              label: t("Clear template search"),
                                               onClick: () =>
                                                   updateTemplates(
                                                       templateSearchPatch("")
@@ -576,20 +810,20 @@ function LandingContent(props: LandingPageProps) {
                                 titleAs="h2"
                                 role={error ? "alert" : "status"}
                                 icon={error ? "globe" : "search"}
-                                title={
+                                title={t(
                                     error
                                         ? "Couldn’t load worlds."
                                         : "No worlds found."
-                                }
-                                detail={
+                                )}
+                                detail={t(
                                     error
                                         ? "Please try again."
                                         : "Try another search or remove a filter."
-                                }
+                                )}
                                 action={
                                     error
                                         ? {
-                                              label: "Try again",
+                                              label: t("Try again"),
                                               icon: (
                                                   <Icon
                                                       name="arrow"
@@ -601,7 +835,7 @@ function LandingContent(props: LandingPageProps) {
                                                   : discovery.retry,
                                           }
                                         : {
-                                              label: "Explore all",
+                                              label: t("Explore all"),
                                               icon: (
                                                   <Icon
                                                       name="arrow"
@@ -612,6 +846,23 @@ function LandingContent(props: LandingPageProps) {
                                           }
                                 }
                             >
+                                {!error &&
+                                    searchWordSuggestions(filters.q).map(
+                                        (word) => (
+                                            // Every word has to match: one
+                                            // word at a time finds more.
+                                            <ActionButton
+                                                key={word}
+                                                onClick={() =>
+                                                    searchWorlds({ q: word })
+                                                }
+                                            >
+                                                Search {"\u201c"}
+                                                {word}
+                                                {"\u201d"}
+                                            </ActionButton>
+                                        )
+                                    )}
                                 {!error && hasMore && (
                                     // A failed "load more" with nothing
                                     // shown yet: loading the next page is
@@ -620,21 +871,35 @@ function LandingContent(props: LandingPageProps) {
                                         onClick={loadMore}
                                         disabled={loadingMore}
                                     >
-                                        {loadingMore ? "Loading…" : "Load more"}
+                                        {t(
+                                            loadingMore
+                                                ? "Loading…"
+                                                : "Load more"
+                                        )}
                                     </ActionButton>
                                 )}
                             </EmptyState>
                         ) : null}
                     </div>
-                    {(templateEmpty || (!creating && !cards.length)) && (
+                    {(templateEmpty ||
+                        galleryLoading ||
+                        (!creating && !cards.length)) && (
                         <EmptyFooter className="landing-footer">
-                            {gridControls}
+                            {aboutLink}
                             {viewControls}
                         </EmptyFooter>
                     )}
                     <noscript>
                         <FallbackLinks>
-                            {props.initialFeed.cards.map((card) => (
+                            {/* The footer is drawn in the browser; this is
+                                its about link for whoever reads the HTML. */}
+                            <a href="/about">
+                                <span>About Oncyber</span>
+                            </a>
+                            {[
+                                ...props.initialFeed.cards,
+                                ...(props.notFound?.sections ?? []),
+                            ].map((card) => (
                                 <a href={card.href} key={card.id}>
                                     <CoverImage card={card} />
                                     <span>{card.title}</span>
@@ -647,16 +912,21 @@ function LandingContent(props: LandingPageProps) {
             {!inLobby && (
                 <BottomSearch
                     scope={templateContext ? "templates" : "worlds"}
+                    withSpaces={templateContext && yourSpaces.signedIn}
                     value={templateContext ? templateQuery : filters.q}
                     onChange={
                         templateContext ? undefined : (q) => searchWorlds({ q })
                     }
-                    onSearch={(q) =>
+                    liveMs={templateContext ? 150 : undefined}
+                    onSearch={(q, typed) =>
                         templateContext
-                            ? updateTemplates({
-                                  ...templateSearchPatch(q),
-                                  create: "gallery",
-                              })
+                            ? updateTemplates(
+                                  {
+                                      ...templateSearchPatch(q),
+                                      create: "gallery",
+                                  },
+                                  typed
+                              )
                             : searchWorlds({ q })
                     }
                 />
@@ -667,6 +937,16 @@ function LandingContent(props: LandingPageProps) {
                     cards={cards.length ? cards : props.initialFeed.cards}
                     onExit={leaveLobby}
                     onReady={() => setLobbyReady(true)}
+                    profile={
+                        visitedProfile && {
+                            id: visitedProfile.id,
+                            name: visitedProfile.username
+                                ? `@${visitedProfile.username}`
+                                : visitedProfile.id,
+                            avatar: visitedProfile.avatar,
+                        }
+                    }
+                    onProfileClose={closeProfile}
                 />
             )}
         </LobbyPage>
@@ -681,6 +961,41 @@ const EnterPortalIcon = styled.span`
     margin: 0 1px 0 -2px;
     /* Anaglyph 3D glasses; the red lens is the Create accent token. */
     background: url("${GLASSES_ICON_URL}") center / contain no-repeat;
+`;
+
+const AboutLink = styled(Link)`
+    /* Twice, to outrank the page's own rule for links. The same type,
+       colour and height as "create". */
+    && {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 0;
+        color: var(--oc-secondary);
+        font-size: 14px;
+        white-space: nowrap;
+        transition: color var(--oc-fast);
+    }
+    /* The mark is quieter than the word, as it is beside a space's title. */
+    .experience-control-icon {
+        opacity: 0.6;
+        transition: opacity var(--oc-fast);
+    }
+    &&:hover {
+        color: var(--oc-ink);
+    }
+    &:hover .experience-control-icon,
+    &:focus-visible .experience-control-icon {
+        opacity: 1;
+    }
+    @media (max-width: 700px) {
+        && {
+            gap: 6px;
+            font-size: 12px;
+        }
+    }
 `;
 
 const CreateControl = styled.button`
@@ -801,50 +1116,50 @@ const LobbyPage = styled(Page)`
     &[data-lobby-ready] > header .account-detail {
         color: #969aa3;
     }
+    /* The shared outline action, exactly: the same height, padding,
+       corners, type and edge as every other action button (Sign in above
+       is its blue sibling). Nothing here resizes it. */
     .jump-in {
-        ${compactActionSizing}
-        /* A compact action beside the search bar, not a second bar. */
-        min-height: 36px;
-        height: 36px;
-        gap: 7px;
-        padding: 0 12px 0 10px;
-        border-radius: 10px;
-        font-size: 13px;
-        color: #f3f3ed;
-        background: transparent;
-        box-shadow: inset 0 0 0 1px rgba(243, 243, 237, 0.55);
-        transition: background 180ms ease, box-shadow 180ms ease;
+        ${actionButton}
+        ${outlineAction}
+        /* At rest it sits at the level of "create": the same secondary ink,
+           and an edge of that colour. */
+        color: var(--oc-secondary);
+        border-color: color-mix(in srgb, var(--oc-secondary) 55%, transparent);
     }
-    .jump-in:hover:not([aria-pressed="true"]) {
+    /* Under the pointer it is white. */
+    .jump-in:hover:not(:disabled) {
         color: #fff;
-        background: rgba(243, 243, 237, 0.08);
-        box-shadow: inset 0 0 0 1px #f3f3ed;
+        border-color: #fff;
     }
-    .jump-in .lobby-count {
+    .jump-group {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        margin-left: 1px;
-        padding-left: 7px;
-        border-left: 1px solid rgba(243, 243, 237, 0.3);
+        gap: 12px;
+    }
+    /* On a phone the arrows sit close by: keep the count clear of them. */
+    @media (max-width: 700px) {
+        .jump-group {
+            gap: 10px;
+            margin-left: 12px;
+        }
+    }
+    /* How many people are in the lobby: a count, so the quiet mono voice,
+       beside the button it belongs to. */
+    .lobby-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font: 400 11px/1 var(--oc-mono);
+        color: var(--oc-secondary);
         font-variant-numeric: tabular-nums;
     }
-    /* Aeonik sits its capitals ~0.5px below the line box centre; lift the
-       words (and the count's digits) so they line up with the icon. */
-    .jump-in .jump-in-label,
-    .jump-in .lobby-count {
-        position: relative;
-        top: -1px;
-    }
-    .jump-in .lobby-count::before {
-        position: relative;
-        top: 1px;
+    .lobby-count::before {
         content: "";
         width: 6px;
         height: 6px;
         border-radius: 50%;
         background: #4ade80;
-        box-shadow: 0 0 6px rgba(74, 222, 128, 0.7);
     }
     @media (max-width: 700px) {
         &[data-in-lobby] > header {

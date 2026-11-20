@@ -1,6 +1,7 @@
 import styled, { css } from "styled-components";
 import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
+import { tx } from "@components/context/I18nContext";
 const colors = ["#020202", "#5D4E43", "#CBA781"];
 export function ArtworkFramePicker({
     value = "black-borderless",
@@ -13,7 +14,7 @@ export function ArtworkFramePicker({
 }) {
     return (
         <Field>
-            <Label className="component-label">Select Frame</Label>
+            <Label className="component-label">{tx("Select Frame")}</Label>
             <BorderWrapper>
                 <Colors style={{ padding: 0 }}>
                     {[
@@ -41,7 +42,7 @@ export function ArtworkFramePicker({
                         color="wheel"
                     >
                         <input
-                            aria-label="Custom frame color"
+                            aria-label={tx("Custom frame color")}
                             style={{
                                 opacity: 0,
                                 width: "100%",

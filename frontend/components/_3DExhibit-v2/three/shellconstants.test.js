@@ -30,6 +30,18 @@ describe("three-free engine constants", () => {
         }).not.toThrow();
     });
 
+    it("loads the shell's world store without three.js", () => {
+        // The AI provider wraps every page and reads this store.
+        expect(() => require("../hooks/WorldStore")).not.toThrow();
+    });
+
+    it("shares one world-created promise with the engine's constants", async () => {
+        const shell = require("./shellconstants");
+        const world = { name: "world" };
+        shell.SET_WORLD_CREATED(world);
+        await expect(shell.WORLD_CREATED).resolves.toBe(world);
+    });
+
     it("keeps the default avatar picture a live, settable binding", () => {
         const shell = require("./shellconstants");
         const initial = shell.DEFAULT_PLAYER_AVATAR_PICTURE;

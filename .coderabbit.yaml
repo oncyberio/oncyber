@@ -1,0 +1,28 @@
+# Automated review on pull requests (free for public repositories).
+# It also reads AGENTS.md as the project's coding guidelines.
+language: en-US
+reviews:
+    profile: chill
+    request_changes_workflow: false
+    high_level_summary: true
+    poem: false
+    auto_review:
+        enabled: true
+        drafts: false
+    path_instructions:
+        - path: "frontend/pages/api/**"
+          instructions: >-
+              Check that writes verify ownership against this.userId, that
+              inputs go through the Zod schema, and that user-supplied URLs
+              are fetched through utils/net/publicFetch, never fetch directly.
+        - path: "**/*"
+          instructions: >-
+              Flag secrets or keys in NEXT_PUBLIC_* variables or committed
+              files. The product is Oncyber: flag other product or SDK names
+              added to code, docs or the interface.
+        - path: "frontend/{features,components,ui,pages}/**/*.tsx"
+          instructions: >-
+              Flag interface controls that skip the design system: native
+              <select> menus, unstyled browser inputs or buttons, or colours,
+              radii and spacing written by hand where docs/brand/README.md
+              and frontend/styles/tokens define them.

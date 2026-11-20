@@ -43,6 +43,7 @@ import {
     shouldRun,
     uploadTransition,
 } from "./uploadMachine";
+import { tx } from "@components/context/I18nContext";
 
 export interface UploadMetadata {
     id?: string;
@@ -228,7 +229,7 @@ const Loader = forwardRef<HTMLDivElement, LoaderProps>(
             //         let ok = await showConfirm(
             //             <>
             //                 <p>{warning}</p>
-            //                 <p>Are you sure you want to continue?</p>
+            //                 <p>{tx("Are you sure you want to continue?")}</p>
             //             </>
             //         );
 

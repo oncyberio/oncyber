@@ -4,6 +4,7 @@ import { studioField, studioFocus } from "@features/studio/styles/primitives";
 import { Field } from "@features/studio/styles/Field";
 import RadioBox from "@features/studio/styles/RadioBox";
 import { Label } from "@features/studio/styles/Label";
+import { tx } from "@components/context/I18nContext";
 export function ModelAnimationsView({
     names,
     animations,
@@ -37,7 +38,7 @@ export function ModelAnimationsView({
                 as="label"
                 htmlFor={avatarOptions ? "avatar-animation" : undefined}
             >
-                {avatarOptions ? "Animation" : "3D Animations"}
+                {avatarOptions ? tx("Animation") : tx("3D Animations")}
             </Label>
             {avatarOptions ? (
                 <AnimationSelect
@@ -54,10 +55,10 @@ export function ModelAnimationsView({
                         change(name ? { [name]: true } : {});
                     }}
                 >
-                    <option value="">Off</option>
+                    <option value="">{tx("Off")}</option>
                     {avatarOptions.map((option) => (
                         <option key={option.name} value={option.name}>
-                            {option.label}
+                            {tx(option.label)}
                         </option>
                     ))}
                     {names
@@ -72,7 +73,7 @@ export function ModelAnimationsView({
                 <Animations aria-disabled={disabled || pending}>
                     <RadioBox
                         onClick={() => change({})}
-                        item={{ value: "", title: "Off" }}
+                        item={{ value: "", title: tx("Off") }}
                         selected={!Object.values(animations).some(Boolean)}
                     />
                     {names.map((name) => (
@@ -86,14 +87,16 @@ export function ModelAnimationsView({
                             }}
                             item={{
                                 value: name,
-                                title: names.length > 1 ? name : "ON",
+                                title: names.length > 1 ? name : tx("ON"),
                             }}
                             selected={animations[name]}
                         />
                     ))}
                 </Animations>
             )}
-            {pending && <Status role="status">Loading animation…</Status>}
+            {pending && (
+                <Status role="status">{tx("Loading animation…")}</Status>
+            )}
             {error && <Status role="alert">{error}</Status>}
         </Field>
     );

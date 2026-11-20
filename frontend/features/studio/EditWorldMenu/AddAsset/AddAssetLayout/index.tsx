@@ -9,6 +9,7 @@ import {
     studioField,
     studioAction,
 } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 const panelCopy: Record<AssetType, { title: string; description: string }> = {
     avatar: {
@@ -75,11 +76,11 @@ export function AddAssetLayout({
             <div className="header">
                 <div className="heading">
                     <PanelTypeIcon>{option.icon}</PanelTypeIcon>
-                    <h2>{copy.title}</h2>
+                    <h2>{tx(copy.title)}</h2>
                     <button
                         type="button"
                         className="close"
-                        aria-label="Close asset panel"
+                        aria-label={tx("Close asset panel")}
                         onClick={onClose}
                     >
                         <svg
@@ -179,16 +180,17 @@ const Container = styled.div`
     }
     @media (max-width: 600px) {
         width: 100%;
-        height: min(420px, calc(100dvh - 150px));
-        max-height: min(420px, calc(100dvh - 150px));
+        /* Leave the world in view above the sheet. */
+        height: min(420px, calc(100dvh - 150px), 55dvh);
+        max-height: min(420px, calc(100dvh - 150px), 55dvh);
         border-radius: var(--studio-radius-panel) var(--studio-radius-panel) 0 0;
         border-bottom: 0;
         & > .header {
             padding: 8px 18px;
             .heading .close {
-                width: 44px;
-                height: 44px;
-                min-height: 44px;
+                width: 40px;
+                height: 40px;
+                min-height: 40px;
             }
         }
         & > .body {

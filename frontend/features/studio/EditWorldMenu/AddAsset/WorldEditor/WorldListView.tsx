@@ -1,4 +1,8 @@
-import { studioAction } from "@features/studio/styles/primitives";
+import {
+    studioAction,
+    studioPhoneIconButton,
+    studioPhoneSheet,
+} from "@features/studio/styles/primitives";
 import IconImg from "@ui/components/IconImg";
 import {
     KeyboardEventHandler,
@@ -7,7 +11,7 @@ import {
     useRef,
     useState,
 } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { SearchInput } from "../shared/SearchInput";
 import { PanelTypeIcon } from "../shared/PanelTypeIcon";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
@@ -35,6 +39,7 @@ import { IconButton } from "@ui/components/IconButton";
 import { MultiSelect } from "../EditAsset/MultiSelect";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { useStudioMenu } from "@features/studio/StudioMenu/context/StudioContext";
+import { tx } from "@components/context/I18nContext";
 
 //
 
@@ -476,7 +481,7 @@ export function WorldListView() {
             <ScenePanel
                 data-studio-surface
                 role="region"
-                aria-label="World contents"
+                aria-label={tx("World contents")}
                 tabIndex={0}
                 ref={(el) => {
                     // console.log("scenePanel ref", el);
@@ -490,10 +495,10 @@ export function WorldListView() {
                         size={16}
                         style={{ filter: "invert(0.9)" }}
                     />
-                    <span>World contents</span>
+                    <span>{tx("World contents")}</span>
                     <CollapseButton
                         type="button"
-                        aria-label="Collapse world contents"
+                        aria-label={tx("Collapse world contents")}
                         onClick={() => {
                             amplitude_logAnalyticsEvent("collapse_asset_list", {
                                 exhibitId: exhibit.id,
@@ -608,7 +613,7 @@ export function WorldListView() {
                     <div className="mobile-footer">
                         <div className="hr-mobile" />
                         <div className="controls">
-                            <span onClick={handleBack}>Back</span>
+                            <span onClick={handleBack}>{tx("Back")}</span>
                             <div className="center">
                                 <IconButton
                                     name="undo-v2"
@@ -634,7 +639,7 @@ export function WorldListView() {
                                     />
                                 )}
                             </div>
-                            <span onClick={handleDone}>Done</span>
+                            <span onClick={handleDone}>{tx("Done")}</span>
                         </div>
                     </div>
                 </>
@@ -878,9 +883,9 @@ const Container = styled.div`
     --right-panel-width: min(340px, calc(100vw - 12px));
 
     position: fixed;
-    top: 102px;
-    right: 6px;
-    max-height: calc(100dvh - 124px);
+    top: 76px;
+    right: 16px;
+    max-height: calc(100dvh - 92px);
     z-index: 1100;
 
     display: flex;
@@ -898,13 +903,12 @@ const Container = styled.div`
         }
     }
 
+    /* Phones: the contents button sits top right under the toolbar; the
+       list and the inspector open as bottom sheets, one at a time. */
     @media (max-width: 600px) {
-        top: 98px;
-        max-height: calc(100dvh - 180px);
-        width: calc(100% - 12px);
-        left: 0;
-        right: 0;
-        margin: auto;
+        top: 76px;
+        right: 12px;
+        max-height: none;
     }
 
     user-select: none;
@@ -981,6 +985,50 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
             right: 2px;
         }
     }
+    /* Collapsed, it is one 40px control like the toolbar's buttons. */
+    ${(p) =>
+        p.$collapsed &&
+        css`
+            box-sizing: border-box;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--studio-line, #303035);
+            border-radius: var(--studio-radius-control, 10px);
+            background: var(--studio-surface, #1c1c1f);
+            box-shadow: var(--panel-shadow);
+            > .wing {
+                display: none;
+            }
+            > .dock-content {
+                padding: 0;
+            }
+            button[aria-label="World contents"] {
+                width: 38px;
+                height: 38px;
+                border: 0;
+                border-radius: inherit;
+                background: transparent;
+                > .icon-img {
+                    transform: none;
+                }
+                /* The count sits on the corner, clear of the icon. */
+                > .badge {
+                    top: -7px;
+                    right: -7px;
+                    bottom: auto;
+                    min-width: 18px;
+                    height: 18px;
+                    padding: 0 5px;
+                    box-sizing: border-box;
+                    border-radius: 9px;
+                    background: var(--studio-accent, #2f6bff);
+                    color: #fff;
+                    font-size: 11px;
+                    line-height: 18px;
+                    text-align: center;
+                }
+            }
+        `}
     @keyframes world-contents-in {
         from {
             opacity: 0;
@@ -992,7 +1040,27 @@ const WorldDock = styled.div<{ $collapsed: boolean }>`
         }
     }
     @media (max-width: 600px) {
-        max-width: calc(100vw - 12px);
+        transition: none;
+        > .wing {
+            display: none;
+        }
+        > .dock-content {
+            padding: 0;
+            animation: none;
+        }
+        ${(p) =>
+            p.$collapsed
+                ? ""
+                : css`
+                      ${studioPhoneSheet()}
+                      .has-details & {
+                          display: none;
+                      }
+                      > .dock-content > [role="region"] {
+                          border: 0;
+                          border-radius: inherit;
+                      }
+                  `}
     }
     @media (prefers-reduced-motion: reduce) {
         transition: none;
@@ -1011,6 +1079,11 @@ const FilterBtn = styled.div`
     height: 28px;
     border-radius: 6px;
     cursor: pointer;
+    @media (max-width: 600px) {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--studio-radius-control, 10px);
+    }
 `;
 
 const filterCaption = (
@@ -1045,10 +1118,6 @@ const ScenePanel = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
-
-    @media (max-width: 600px) {
-        width: 100%;
-    }
 
     & > .sp-header {
         font: 500 16px/22px var(--studio-font, sans-serif);
@@ -1202,6 +1271,46 @@ const ScenePanel = styled.div`
         justify-content: flex-end;
         cursor: s-resize;
     }
+    /* Phone overrides last so they win over the base rules. */
+    @media (max-width: 600px) {
+        width: 100%;
+        height: min(420px, 55dvh);
+        max-height: none;
+        padding: 8px 0 12px;
+        gap: 10px;
+        border-radius: inherit;
+
+        & > .sp-header {
+            padding: 0 12px 0 18px;
+        }
+        & > .sp-seacrh {
+            padding: 0 18px;
+        }
+        & > .sp-list .sp-list-group > .sp-list-group-title {
+            min-height: 40px;
+            padding: 0 18px;
+            font-size: 13px;
+        }
+        & > .sp-list .sp-list-group .sp-list-group-items > .sp-item {
+            min-height: 44px;
+            padding: 0 18px 0 34px;
+            gap: 10px;
+            font-size: 14px;
+            line-height: 20px;
+
+            & > .sp-item-img {
+                width: 24px;
+                height: 24px;
+            }
+            /* No hover on touch: keep row actions visible. */
+            & > .sp-item-actions > .sp-icon {
+                visibility: visible;
+            }
+        }
+        & > .sp-grab {
+            display: none;
+        }
+    }
 `;
 
 const CtxMenu = styled.div`
@@ -1231,12 +1340,54 @@ const CtxMenu = styled.div`
     > .mobile-footer {
         display: none;
     }
+    ${studioPhoneSheet("0px")}
     @media (max-width: 600px) {
-        > [data-studio-surface] {
-            max-height: calc(100dvh - 266px) !important;
-        }
+        background: var(--studio-panel, #181818);
+        padding-bottom: env(safe-area-inset-bottom);
+        > [data-studio-surface],
         ${Container}:not(.collapsed) & > [data-studio-surface] {
-            max-height: calc(100dvh - 202px - min(252px, 30dvh)) !important;
+            flex: 1;
+            max-height: calc(min(420px, 55dvh) - 52px) !important;
+            box-shadow: none;
+            background: transparent;
+        }
+        > .mobile-footer {
+            display: block;
+            flex-shrink: 0;
+            border-top: 1px solid var(--studio-line, #303035);
+            > .hr-mobile {
+                display: none;
+            }
+            > .controls {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                height: 52px;
+                padding: 0 8px;
+                > span {
+                    display: grid;
+                    place-items: center;
+                    min-width: 64px;
+                    height: 40px;
+                    padding: 0 12px;
+                    border-radius: var(--studio-radius-control, 10px);
+                    font: 500 14px/20px var(--studio-font, sans-serif);
+                    color: var(--studio-ink, #f2f2f3);
+                    cursor: pointer;
+                }
+                > span:last-child {
+                    background: var(--studio-ink, #f2f2f3);
+                    color: var(--studio-bg, #141416);
+                }
+                > .center {
+                    display: flex;
+                    gap: 4px;
+                    > * {
+                        width: 40px;
+                        height: 40px;
+                    }
+                }
+            }
         }
     }
 `;
@@ -1249,4 +1400,11 @@ const CollapseButton = styled.button`
     padding: 0;
     margin-left: auto;
     color: var(--studio-muted);
+    ${studioPhoneIconButton}
+    @media (max-width: 600px) {
+        /* The sheet closes downwards. */
+        svg {
+            transform: rotate(90deg);
+        }
+    }
 `;

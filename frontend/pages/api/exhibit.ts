@@ -1,4 +1,7 @@
-import { GALLERY_SCRIPTS_RETIRED, hasLegacyGalleryScriptWrite } from "@utils/legacyGalleryScripts";
+import {
+    GALLERY_SCRIPTS_RETIRED,
+    hasLegacyGalleryScriptWrite,
+} from "@utils/legacyGalleryScripts";
 import { firestore } from "firebase-admin";
 import { searchSpaces } from "@utils/firestore/spaceSearch";
 import { DEFAULT_FILTERS } from "@features/landing-carousel/data";
@@ -18,11 +21,18 @@ import {
 } from "@utils/firestore/userProfiles";
 import { writesProtectedExhibitField } from "@utils/firestore/exhibitWrites";
 import { readStaffPickIds } from "@utils/staffPicks";
+import { ownerSpaceLinks } from "@utils/serverside/ownerSpaces";
+import { isPublicSpace } from "@utils/spaceVisibility";
+import { z } from "zod";
 import {
     stripExhibitSecrets,
     stripSecretsFromJson,
 } from "@utils/worldPassword/publicGating";
 import { writesWorldPassword } from "@utils/worldPassword/server";
+
+const publicUserExhibitsBody = z.object({
+    userId: z.string().trim().min(1),
+});
 
 function formatExhibitData(it: Experience) {
     if (it.portals == null) {
@@ -355,7 +365,14 @@ function readExhibitCache(id: string, v: number): Experience | null {
     }
 }
 
-function writeExhibitCache(id: string, v: number, exhibit: Experience): void {
+function writeExhibitCache(
+    id: string,
+    v: number,
+    exhibit: Experience,
+    // When the view was filled. A view promoted from the shared cache keeps
+    // its original time, so it is never served for longer than the TTL.
+    ts = Date.now()
+): void {
     if (!v) return; // unversioned doc — can't invalidate reliably, don't cache.
 
     let clone: Experience;
@@ -365,7 +382,7 @@ function writeExhibitCache(id: string, v: number, exhibit: Experience): void {
         return; // skip caching rather than risk sharing a mutable reference.
     }
 
-    exhibitViewCache.set(id, { v, ts: Date.now(), exhibit: clone });
+    exhibitViewCache.set(id, { v, ts, exhibit: clone });
 
     if (exhibitViewCache.size > EXHIBIT_VIEW_CACHE_MAX) {
         // Evict the least-recently-used entry (Map preserves insertion order).
@@ -389,7 +406,7 @@ function sharedExhibitCacheRef(id: string) {
 async function readSharedExhibitCache(
     id: string,
     v: number
-): Promise<Experience | null> {
+): Promise<{ exhibit: Experience; ts: number } | null> {
     if (!v) return null;
     try {
         const data = (await sharedExhibitCacheRef(id).get()).data();
@@ -398,7 +415,7 @@ async function readSharedExhibitCache(
             data.v === v &&
             Date.now() - data.ts < EXHIBIT_VIEW_CACHE_TTL_MS
         ) {
-            return data.exhibit as Experience;
+            return { exhibit: data.exhibit as Experience, ts: data.ts };
         }
     } catch (err) {
         // ignore — fall back to the live read
@@ -442,9 +459,13 @@ async function loadExhibitView(id: string, v: number): Promise<Experience> {
     // portals + kitbash. Warm the in-process cache so subsequent calls on this
     // instance skip Firestore entirely.
     // Entries written before passwords were hashed can still hold one.
-    const shared = stripExhibitSecrets(await readSharedExhibitCache(id, v));
+    const hit = await readSharedExhibitCache(id, v);
+    const shared = stripExhibitSecrets(hit?.exhibit ?? null);
     if (shared) {
-        writeExhibitCache(id, v, shared);
+        // With the time it was filled, not now: what the view carries (the
+        // owner's other spaces among it) is read again a day after the
+        // fill, however many instances pass it along.
+        writeExhibitCache(id, v, shared, hit.ts);
         return shared;
     }
 
@@ -477,6 +498,13 @@ async function loadExhibitView(id: string, v: number): Promise<Experience> {
     } catch (err) {
         exhibit.ownerName = null;
     }
+
+    // The owner's other public spaces, for the links a space page gives to
+    // its creator's other work. Resolved here, once per cache fill (at most
+    // daily), for the same reason as the owner's name above.
+    exhibit.ownerSpaces = exhibit.owner
+        ? await ownerSpaceLinks(exhibit.owner, exhibit.id)
+        : [];
 
     writeExhibitCache(id, v, exhibit);
     writeSharedExhibitCache(id, v, exhibit);
@@ -556,7 +584,10 @@ const getRadUserExhibits = async (walletId: string, lastVisible: string) => {
 
 /** Compatibility for existing Studio metadata search callers. */
 const searchExhibit = async (searchInput: string, page = 0): Promise<any[]> => {
-    const filters = { ...DEFAULT_FILTERS, q: String(searchInput || "").slice(0, 300) };
+    const filters = {
+        ...DEFAULT_FILTERS,
+        q: String(searchInput || "").slice(0, 300),
+    };
     if (filters.q.trim().length < 2) return [];
     if (!Number.isInteger(page) || page < 0 || page > 10) return [];
     let result = await searchSpaces(filters);
@@ -564,7 +595,7 @@ const searchExhibit = async (searchInput: string, page = 0): Promise<any[]> => {
         if (!result.hasMore) return [];
         result = await searchSpaces(filters, result.cursor);
     }
-    return result.exhibits.map(exhibit => ({ ...exhibit, editors: [] }));
+    return result.exhibits.map((exhibit) => ({ ...exhibit, editors: [] }));
 };
 
 /**
@@ -1781,11 +1812,20 @@ export default async (req, res) => {
         } else if (req.query.type === "DELETE_EXHIBIT") {
             await deleteExhibit(userId, req.body.exhibitId);
             return res.status(200).json({ success: true });
-        } else if (
-            req.query.type === "GET_USERS_EXHIBITS" ||
-            req.query.type === "GET_PUBLIC_USER_EXHIBITS"
-        ) {
+        } else if (req.query.type === "GET_USERS_EXHIBITS") {
             const exhibits = await getUserExhibits(userId);
+
+            return res.status(200).json({ success: true, exhibits });
+        } else if (req.query.type === "GET_PUBLIC_USER_EXHIBITS") {
+            const parsed = publicUserExhibitsBody.safeParse(req.body);
+            if (!parsed.success)
+                return res
+                    .status(400)
+                    .json({ success: false, error: "userId is required" });
+            // Anyone can ask for someone else's worlds: only the public ones.
+            const exhibits = (await getUserExhibits(parsed.data.userId)).filter(
+                isPublicSpace
+            );
 
             return res.status(200).json({ success: true, exhibits });
         } else if (req.query.type === "GET_PUBLIC_USER_SAVED_EXHIBITS") {

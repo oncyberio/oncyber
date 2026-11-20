@@ -5,7 +5,9 @@ import path from "path";
 // Keep lifecycle/deformation unit fixtures independent of the shipped asset pack.
 jest.mock("../optionalMotionPack", () => ({
     ...jest.requireActual("../optionalMotionPack"),
-    loadDefaultMotion: async (fetchAsset: (url: string) => Promise<ArrayBuffer>) =>
+    loadDefaultMotion: async (
+        fetchAsset: (url: string) => Promise<ArrayBuffer>
+    ) =>
         JSON.parse(
             new (require("util").TextDecoder)().decode(
                 await fetchAsset("/lobby/native-avatar-motion.json")
@@ -243,7 +245,10 @@ beforeEach(() => {
                     )
                 );
             if (url.includes("native-avatar-emotes"))
-                return encoded({ SITTALKING: rawClip("SITTALKING"), TECHNO: rawClip("TECHNO") });
+                return encoded({
+                    SITTALKING: rawClip("SITTALKING"),
+                    TECHNO: rawClip("TECHNO"),
+                });
             return new ArrayBuffer(8);
         },
     }));
@@ -260,11 +265,13 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 
-test("saved builtins and scale survive resolution; new guests use the current native Square", async () => {
+test("saved builtins and scale survive resolution; guests use Summer and accounts use their pfp", async () => {
     const guest = await adapter.resolveLobbyAvatar();
-    expect(guest.url).toContain(
-        "QmX7XfjWmKPXYe6eX9Kr719JtgiGMJe8iNt1YEJDdpTMhG"
-    );
+    expect(guest.id).toBe("sunshine");
+    expect(guest.url).toContain("filename=sunshine.glb");
+    const account = await adapter.resolveLobbyAvatar({ walletId: "owner" });
+    expect(account.id).toBe("square");
+    expect(account.url).toBe(adapter.DEFAULT_LOBBY_AVATAR_URL);
     const selected = await adapter.resolveLobbyAvatar({
         settings: { vrm: "pepe", default_vrm_scale: 1.3 },
     });
@@ -428,7 +435,8 @@ test("a profile texture that finishes after its avatar leaves is disposed", asyn
     });
     avatar.dispose();
     finish(texture);
-    await Promise.resolve();
+    // The load now includes the portrait-recovery catch before cancellation.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(dispose).toHaveBeenCalledTimes(1);
 });
 
@@ -784,8 +792,18 @@ test("Flash prepares lazily, plays the supplied rise once and breathes in its ho
     expect(action.getEffectiveWeight()).toBe(1);
     expect(action.loop).toBe(THREE.LoopOnce);
     expect(avatar.motionClips.FLASH_POINT.loop).toBe(false);
+    const held = action.time;
     avatar.update(0.1, undefined, { ...rest, speed: 2 });
+    const firstWeight = action.getEffectiveWeight();
+    expect(firstWeight).toBeGreaterThan(0);
+    expect(firstWeight).toBeLessThan(1);
+    expect(action.time).toBeGreaterThan(held);
     avatar.update(0.1, undefined, { ...rest, speed: 2 });
+    expect(action.getEffectiveWeight()).toBeGreaterThan(0);
+    expect(action.getEffectiveWeight()).toBeLessThan(firstWeight);
+    avatar.update(0.1, undefined, { ...rest, speed: 2 });
+    expect(action.getEffectiveWeight()).toBeGreaterThan(0);
+    avatar.update(0.02, undefined, { ...rest, speed: 2 });
     expect(action.getEffectiveWeight()).toBe(0);
     avatar.dispose();
 });
@@ -804,7 +822,8 @@ test("ending a Flash lowers the arms through the rest of the take, then returns 
     avatar.endFlash();
     avatar.update(0.1, undefined, rest);
     expect(action.time).toBeGreaterThan(13 / 30);
-    for (let frame = 0; frame < 15; frame++) avatar.update(0.1, undefined, rest);
+    for (let frame = 0; frame < 15; frame++)
+        avatar.update(0.1, undefined, rest);
     expect(action.time).toBeCloseTo(action.getClip().duration, 6);
     for (let frame = 0; frame < 10; frame++)
         avatar.update(0.1, undefined, rest);
@@ -873,21 +892,24 @@ test("Flash preparation retries after a failed asset without interrupting normal
     avatar.dispose();
 });
 
- test("Techno plays at authored speed after locomotion instead of using its legacy blend factor", async () => {
+test("Techno plays at authored speed after locomotion instead of using its legacy blend factor", async () => {
     const THREE = require("three/webgpu");
     const spy = jest.spyOn(THREE.AnimationMixer.prototype, "clipAction");
     const avatar = await adapter.createAvatar();
     avatar.update(0.1, undefined, { speed: 0, grounded: true });
-    const techno = adapter.LOBBY_EMOTES.find((emote) => emote.name === "TECHNO");
+    const techno = adapter.LOBBY_EMOTES.find(
+        (emote) => emote.name === "TECHNO"
+    );
     await avatar.playEmote(techno.index);
-    const action = spy.mock.results.find((result: any) => result.value.getClip().name === "TECHNO").value;
+    const action = spy.mock.results.find(
+        (result: any) => result.value.getClip().name === "TECHNO"
+    ).value;
     expect(action.getEffectiveTimeScale()).toBe(1);
     const before = action.time;
     avatar.update(0.1, "TECHNO");
     expect(action.time - before).toBeCloseTo(0.1, 6);
     avatar.dispose();
- });
-
+});
 
 test("avatar replacement closes decoded bitmap sources, including retired profile materials", async () => {
     const THREE = require("three/webgpu");
@@ -895,7 +917,10 @@ test("avatar replacement closes decoded bitmap sources, including retired profil
     const bitmap = { width: 16, height: 16, close: jest.fn() };
     const color = new THREE.Texture(bitmap);
     const normal = new THREE.Texture(bitmap);
-    const material = new THREE.MeshStandardMaterial({ map: color, normalMap: normal });
+    const material = new THREE.MeshStandardMaterial({
+        map: color,
+        normalMap: normal,
+    });
     avatar.root.add(new THREE.Mesh(new THREE.BoxGeometry(), material));
     const retiredBitmap = { width: 8, height: 8, close: jest.fn() };
     avatar.root.userData.lobbyRetiredMaterials = new Set([

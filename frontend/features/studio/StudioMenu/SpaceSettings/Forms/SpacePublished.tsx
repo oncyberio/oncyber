@@ -9,6 +9,8 @@ import { Footer } from "./styles/Footer";
 import { LinkStatus, LinkStatusProps } from "./shared/LinkStatus";
 import { Header, HeaderInfo } from "./styles/Header";
 import { Input } from "./shared/Input";
+import { tx } from "@components/context/I18nContext";
+import { spaceUrl } from "@utils/siteUrl";
 
 export interface SpacePublishedProps {
     exhibit: Experience;
@@ -20,9 +22,7 @@ export function SpacePublished({ exhibit, onGoBack }: SpacePublishedProps) {
     const [linkStatus, setLinkStatus] =
         useState<LinkStatusProps["status"]>("copy");
 
-    const link = `https://oncyber.io/${
-        exhibit?.info?.customLink || `spaces/${exhibit.id}`
-    }`;
+    const link = spaceUrl(exhibit);
 
     const onCopyLink = () => {
         setLinkStatus("success");
@@ -38,14 +38,15 @@ export function SpacePublished({ exhibit, onGoBack }: SpacePublishedProps) {
                 <CheckCircle className="check" color="white" />
                 <br />
                 <Header style={{ textAlign: "center" }}>
-                    Published Successfully
+                    {tx("Published Successfully")}
                 </Header>
                 <HeaderInfo>
-                    Your space will now be visible to oncyber explorers, you can
-                    also share it with the world!
+                    {tx(
+                        "Your space will now be visible to oncyber explorers, you can also share it with the world!"
+                    )}
                 </HeaderInfo>
                 <Form style={{ marginTop: "32px" }}>
-                    <FormLabel>Public Link</FormLabel>
+                    <FormLabel>{tx("Public Link")}</FormLabel>
                     <Input
                         disabled
                         icon={true}
@@ -65,14 +66,14 @@ export function SpacePublished({ exhibit, onGoBack }: SpacePublishedProps) {
                     </Input>
                 </Form>
                 {/* <Form overrideTheme={overrideTheme}>
-                            <label>Or share to</label>
+                            <label>{tx("Or share to")}</label>
                             <NButton
                                 size="small"
                                 className="social"
                                 overrideTheme={overrideTheme}
                             >
                                 <Twitter />
-                                <span>Twitter</span>
+                                <span>{tx("Twitter")}</span>
                             </NButton>
                         </Form> */}
             </div>
@@ -83,7 +84,7 @@ export function SpacePublished({ exhibit, onGoBack }: SpacePublishedProps) {
                     overrideTheme={"light"}
                     onClick={onGoBack}
                 >
-                    <span>Go back</span>
+                    <span>{tx("Go back")}</span>
                 </NButton>
                 <NButton
                     size="medium"

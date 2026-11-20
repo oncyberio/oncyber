@@ -1,9 +1,13 @@
-import { studioMenuItem } from "@features/studio/styles/primitives";
+import {
+    brandMenuPanel,
+    brandMenuRow,
+} from "@features/studio/styles/brandMenu";
 import IconImg from "@ui/components/IconImg";
 import React, { CSSProperties } from "react";
 import styled from "styled-components";
 import { OptionItem } from "../../types";
 import { classes } from "@utils/js";
+import { tx } from "@components/context/I18nContext";
 
 //
 export interface DropdownProps<K> {
@@ -50,9 +54,9 @@ export function Dropdown<K>({
                         <IconImg
                             className="check-icon"
                             name="check"
-                            size={12}
+                            size={14}
                         />
-                        <span className="title">{it.title}</span>
+                        <span className="title">{tx(it.title)}</span>
                     </button>
                 );
             })}
@@ -61,44 +65,25 @@ export function Dropdown<K>({
 }
 
 const Container = styled.div<{ noSelect?: boolean }>`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 4px;
-    gap: 2px;
-    min-width: 100px;
-    box-shadow: var(--panel-shadow);
-    border: var(--panel-border);
-    overflow: hidden;
-    border-radius: var(--studio-radius-card);
-
-    background: var(--panel-bg);
-    color: var(--panel-text-secondary);
+    ${brandMenuPanel}
+    min-width: 160px;
 
     & > .item {
-        ${studioMenuItem}
-        display: flex;
-        flex-direction: row;
-        gap: 6px;
-        align-items: center;
-        justify-content: flex-start;
-        padding: 8px 10px;
-        font: 13px/20px var(--studio-font, sans-serif);
-        cursor: pointer;
-        width: 100%;
+        ${brandMenuRow}
 
         &.center {
             justify-content: center;
         }
 
-        &.right {
-            justify-content: flex-end;
-        }
-
         & .check-icon {
+            order: 2;
             ${(props) => (props.noSelect ? "display: none;" : "")}
             visibility: hidden;
             filter: invert(1);
+        }
+
+        &.active {
+            color: var(--oc-ink);
         }
 
         &.active > .check-icon {
@@ -107,12 +92,6 @@ const Container = styled.div<{ noSelect?: boolean }>`
 
         & .title {
             white-space: nowrap;
-        }
-
-        transition: 0.2s;
-        &:hover {
-            background: var(--panel-bg-hover);
-            color: white;
         }
     }
 `;

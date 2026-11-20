@@ -12,7 +12,7 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 import { registerCrowdRoom, joinCrowd, crowdJoinLimiter, lobbyHealth } from "./rooms/crowd/join";
 
 const origins = new Set(
-    (process.env.LOBBY_ORIGINS || "https://oncyber.io,https://www.oncyber.io")
+    (process.env.LOBBY_ORIGINS || "https://www.oncyber.com,https://oncyber.com,https://oncyber.io,https://www.oncyber.io")
         .split(",")
         .map((origin) => origin.trim())
         .filter(Boolean)

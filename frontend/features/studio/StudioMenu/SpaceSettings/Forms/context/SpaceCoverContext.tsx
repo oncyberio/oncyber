@@ -9,6 +9,7 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { HeroImgUpdate } from "@features/studio/services/ExhibitStore";
 import { useWorldState } from "@components/_3DExhibit-v2/hooks/useWorldState";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
+import { tx } from "@components/context/I18nContext";
 
 export type CoverType = "2d" | "3d";
 
@@ -170,7 +171,7 @@ export function SpaceCoverProvider({ children }) {
 
                 if (!isAuto) {
                     openSnackbar(
-                        err?.message || "Failed to generate cover images",
+                        err?.message || tx("Failed to generate cover images"),
                         5000,
                         null,
                         "error"

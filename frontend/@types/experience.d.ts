@@ -126,7 +126,13 @@ export interface CollectionData {
     name?: string;
     address?: string;
     image?: string;
-    blockchain: "ethereum" | "tezos" | "counterparty" | "solana" | "base";
+    blockchain:
+        | "ethereum"
+        | "tezos"
+        | "counterparty"
+        | "solana"
+        | "base"
+        | "shape";
     verified?: boolean;
     type?: string;
 }
@@ -225,6 +231,8 @@ export interface Experience {
     // Cached data to speed up portal loading
     ownerData?: User;
     ownerName?: string;
+    /** Other public spaces by the owner, set when the cached view is filled. */
+    ownerSpaces?: { id: string; name: string; path: string }[];
     portalExhibits?: Record<string, Experience>;
     portalsDestinations?: Record<string, RoomParameters>;
     portalsOwners?: Record<string, User>;

@@ -7,6 +7,7 @@ import { Label } from "@features/studio/styles/Label";
 import { TextArea, TextInput } from "@features/studio/styles/Input";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 export function AssetMetadata() {
     //
@@ -46,13 +47,13 @@ export function AssetMetadata() {
                     !titleSaved
                 }
             >
-                <Label className="component-label">Title</Label>
+                <Label className="component-label">{tx("Title")}</Label>
                 <a onClick={handleSave}>
                     {name != selectedMesh?.userData?.name && !titleSaved
                         ? loading
-                            ? "Saving..."
-                            : "Save"
-                        : "Saved"}
+                            ? tx("Saving...")
+                            : tx("Save")
+                        : tx("Saved")}
                 </a>
             </SaveTitle>
             <TextInput
@@ -66,7 +67,7 @@ export function AssetMetadata() {
                         handleSave();
                     }
                 }}
-                placeholder="Untitled"
+                placeholder={tx("Untitled")}
             />
         </Field>
     );

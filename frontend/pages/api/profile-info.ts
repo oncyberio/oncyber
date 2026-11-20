@@ -3,17 +3,11 @@ import { db } from "@utils/firebaseAdmin";
 import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
 import { openSeaJson } from "@utils/openSeaFetch";
 import { toLandingCards } from "@features/landing-carousel/data";
-import { profileNft, shortAddress } from "@features/space-info/spaceInfo";
-import { resize } from "@utils/urlUtils";
-
-/** Only what a sidebar card shows, with ~320px covers. */
-const slimCards = (cards: ReturnType<typeof toLandingCards>) =>
-    cards.map((card) => ({
-        id: card.id,
-        title: card.title,
-        href: card.href,
-        imageUrls: card.imageUrls.map((url) => resize(url, 320)),
-    }));
+import {
+    profileNft,
+    profileSpaceCards,
+    shortAddress,
+} from "@features/space-info/spaceInfo";
 
 const SPACE_FIELDS = [
     "visibility",
@@ -26,7 +20,6 @@ const SPACE_FIELDS = [
     "number_of_visits",
     "createdAt",
 ];
-const MAX_SPACES = 30;
 const NFT_PAGE = 30;
 
 async function findAccount(id: string) {
@@ -62,7 +55,7 @@ async function deployedSpaces(accountId: string, wallets: string[]) {
             (a: any, b: any) =>
                 (b.number_of_visits || 0) - (a.number_of_visits || 0)
         );
-    return slimCards(toLandingCards(rows).slice(0, MAX_SPACES));
+    return profileSpaceCards(toLandingCards(rows));
 }
 
 async function featuredIn(wallets: string[]) {
@@ -87,7 +80,7 @@ async function featuredIn(wallets: string[]) {
             (a: any, b: any) =>
                 (b.number_of_visits || 0) - (a.number_of_visits || 0)
         );
-    return slimCards(toLandingCards(rows).slice(0, MAX_SPACES));
+    return profileSpaceCards(toLandingCards(rows));
 }
 
 async function ownedNfts(wallet: string, next: string) {

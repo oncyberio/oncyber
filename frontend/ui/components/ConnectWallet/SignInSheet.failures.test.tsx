@@ -32,9 +32,6 @@ jest.mock(
 jest.mock("@components/context/ThemeProvider", () => ({
     useCyberTheme: () => ({ isLightTheme: true }),
 }));
-jest.mock("@components/context/I18nContext", () => ({
-    useCyberTranslation: () => ({ t: (key) => String(key) }),
-}));
 jest.mock("@components/_3DExhibit-v2/three/constants", () => ({
     IS_MOBILE: false,
 }));

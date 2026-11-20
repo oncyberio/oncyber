@@ -35,6 +35,8 @@ import { useAI } from "@features/ai/context/AIContext";
 import Tooltip from "@ui/components/Tooltip";
 import StudioQuiz from "@features/onboarding/Studio/Quiz";
 import { PlayToggle } from "./DisplayToggle";
+import { tx } from "@components/context/I18nContext";
+import { BROWSE_TEMPLATES_HREF } from "./browseTemplates";
 
 const DestinationSelector = dynamic(
     () => import("@features/spaces/create/components/DestinationSelector"),
@@ -79,24 +81,10 @@ export function StudioToolbar() {
     const spaceStatus = getSpaceStatus(exhibit);
 
     useEffect(() => {
-        if (!exhibit && !isAnonymous) {
-            if (exhibit?.info?.room === "@@empty") {
-                //nextStudioQuiz("PickBuildMore");
-                toggleCreateModal("template");
-            } else {
-                nextStudioTuto("AssetsContent");
-            }
-        }
-    }, [exhibit]);
-
-    useEffect(() => {
+        // Visitors with no world never get here: pages/studio sends them to
+        // the template browser before the studio renders.
         if (isAnonymous && !getLocalAnonExhibit()) {
-            if (exhibit?.info?.room === "@@empty") {
-                //nextStudioQuiz("PickBuildMore");
-                toggleCreateModal("template");
-            } else {
-                nextStudioTuto("AssetsContent");
-            }
+            nextStudioTuto("AssetsContent");
         }
     }, []);
 
@@ -181,7 +169,15 @@ export function StudioToolbar() {
                 return;
             }
 
-            toggleCreateModal(isFuture ? "world-builder" : "template");
+            if (isFuture) {
+                toggleCreateModal("world-builder");
+            } else {
+                const opened = await router
+                    .push(BROWSE_TEMPLATES_HREF)
+                    .catch(() => false);
+                if (!opened)
+                    showError("Couldn't open the templates. Try again.");
+            }
             //
         },
         []
@@ -206,21 +202,29 @@ export function StudioToolbar() {
                         title={
                             isCreateModalShowing === "world-builder" ? (
                                 <>
-                                    Build From{" "}
-                                    <span className="art">Scratch</span>
+                                    {tx("Build From")}{" "}
+                                    <span className="art">{tx("Scratch")}</span>
                                 </>
                             ) : (
                                 <>
-                                    Browse{" "}
-                                    <span className="art">Templates</span>
+                                    {tx("Browse")}{" "}
+                                    <span className="art">
+                                        {tx("Templates")}
+                                    </span>
                                 </>
                             )
                         }
                         description={
                             <>
-                                {isCreateModalShowing === "world-builder"
-                                    ? "Choose from an array of kits to build your World from scratch"
-                                    : "Choose a ready made template and customize your World"}
+                                {tx(
+                                    isCreateModalShowing === "world-builder"
+                                        ? tx(
+                                              "Choose from an array of kits to build your World from scratch"
+                                          )
+                                        : tx(
+                                              "Choose a ready made template and customize your World"
+                                          )
+                                )}
                             </>
                         }
                     />
@@ -232,7 +236,9 @@ export function StudioToolbar() {
                     toggle={toggleAuth}
                     onlyEthereum={false}
                     open={isAuthShowing}
-                    header={isAnonLimit ? "Login to add more content!" : null}
+                    header={
+                        isAnonLimit ? tx("Sign in to add more content!") : null
+                    }
                     style={{ zIndex: 10000000 }}
                     callbackAfterAuth={async (
                         token,
@@ -310,8 +316,8 @@ export function StudioToolbar() {
                                             }}
                                         >
                                             {isAnonymous
-                                                ? "Draft"
-                                                : spaceStatus}{" "}
+                                                ? tx("Draft")
+                                                : tx(spaceStatus)}{" "}
                                             /
                                         </SMLabel>
 
@@ -336,7 +342,7 @@ export function StudioToolbar() {
                         <CinematicToggle />
 
                         {/* {ai?.isWhitelisted && (
-                            <Tooltip text="Magic Composer" orientation="bottom">
+                            <Tooltip text={tx("Magic Composer")} orientation="bottom">
                                 <LabelledIcon
                                     name="multi-star"
                                     toggled={ai.isShowing}
@@ -357,8 +363,8 @@ export function StudioToolbar() {
                         <Tooltip
                             text={
                                 isAnonymous
-                                    ? "Sign in to save and share"
-                                    : "Preview your World Live"
+                                    ? tx("Sign in to save and share")
+                                    : tx("Preview your World Live")
                             }
                             orientation="bottom"
                         >

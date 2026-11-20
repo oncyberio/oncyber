@@ -9,6 +9,7 @@ import {
 } from "@features/studio/export/spaceExport";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { Form, FormInfo, FormLabel, FormSep } from "../styles/Form";
+import { tx } from "@components/context/I18nContext";
 
 /**
  * Downloads the space as one JSON file that does not need Firebase or an
@@ -45,33 +46,32 @@ export function Export() {
     return (
         <Container>
             <Form>
-                <FormInfo>Download a copy of this world</FormInfo>
+                <FormInfo>{tx("Download a copy of this world")}</FormInfo>
                 <FormLabel className="hint">
-                    One JSON file with the layout, settings and room of this
-                    world, plus a list of every file it uses. It needs no
-                    account to read, so the world can be rebuilt or archived
-                    from it.
+                    {tx(
+                        "One JSON file with the layout, settings and room of this world, plus a list of every file it uses. It needs no account to read, so the world can be rebuilt or archived from it."
+                    )}
                 </FormLabel>
                 <FormSep />
                 <dl className="counts">
                     <div>
-                        <dt>Items</dt>
+                        <dt>{tx("Items")}</dt>
                         <dd>{summary.artworks}</dd>
                     </div>
                     <div>
-                        <dt>On IPFS</dt>
+                        <dt>{tx("On IPFS")}</dt>
                         <dd>{summary.pinned}</dd>
                     </div>
                     <div>
-                        <dt>Other links</dt>
+                        <dt>{tx("Other links")}</dt>
                         <dd>{summary.hosted}</dd>
                     </div>
                 </dl>
                 {summary.kind === "external" ? (
                     <FormLabel className="hint">
-                        This world runs from a page on another server. The file
-                        records its address, not the page itself, so keep a copy
-                        of that page too.
+                        {tx(
+                            "This world runs from a page on another server. The file records its address, not the page itself, so keep a copy of that page too."
+                        )}
                     </FormLabel>
                 ) : summary.hosted > 0 ? (
                     <FormLabel className="hint">
@@ -90,7 +90,7 @@ export function Export() {
                     </NButton>
                     {downloaded && (
                         <span className="done" role="status">
-                            Saved to your downloads.
+                            {tx("Saved to your downloads.")}
                         </span>
                     )}
                 </div>

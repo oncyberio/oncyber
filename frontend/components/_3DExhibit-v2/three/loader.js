@@ -60,6 +60,8 @@ import whitelist from "@3whitelist"
 
 import { cloudinary, isRelay, opensea, relay, resize } from '@utils/urlUtils';
 
+import { FAILED_MEDIA_URLS } from './utils/failedUrls';
+
 import { nodeEnv } from "env";
 
 import WorkerPool from '@3gl/utils/workerpool.js'
@@ -860,7 +862,13 @@ class Loader {
 
         if(urls.length === 0) throw new Error("No usable artwork media URL")
 
-        const [url, ...rest] = urls
+        // Skip links that just failed for another artwork; if every link did,
+        // fail now instead of asking for them again.
+        const fresh = urls.filter(url => !FAILED_MEDIA_URLS.has(url))
+
+        if(fresh.length === 0) throw new Error("Artwork media failed to load")
+
+        const [url, ...rest] = fresh
 
         try {
             return (await loader( url, abort ))
@@ -871,6 +879,8 @@ class Loader {
 
                 throw err
             }
+
+            FAILED_MEDIA_URLS.add(url)
 
             console.error("[loadAlts] failed to load", url)
 

@@ -110,13 +110,16 @@ pnpm format:all                                 # Prettier
 ```
 
 The Next.js build ignores type errors, so run `check:types` separately. The
-frontend has a few hundred known type errors; `scripts/type-baseline.json`
+frontend has a few hundred known type errors; `frontend/scripts/type-baseline.json`
 records them and the check fails only when a change adds one. Lower the
 baseline with `pnpm -C frontend check:types:update` when you fix some.
 
 CI runs the frontend tests, the type ratchet, the design-token check, the
 lobby world tests and the
 security regression tests on every pull request (`.github/workflows/`).
+Runs on a first pull request from a fork wait until a maintainer approves
+them, and so does its Vercel preview; see
+[CONTRIBUTING.md](CONTRIBUTING.md#after-you-open-a-pull-request).
 
 ## How the code is built
 
@@ -165,6 +168,10 @@ don't invent a look, and don't bring one from another product.
     set for the surface you are on (the table in `tokens.md`).
 -   **Follow the brand guide** for layout, wording and tone:
     [docs/brand/README.md](docs/brand/README.md).
+-   **Style every state a visitor can reach,** including open menus and
+    lists: no native `<select>` popups or unstyled browser controls in the
+    interface. Menus follow the brand guide's menu rows (a check on the
+    current choice, arrow keys, Escape, focus return).
 -   **A game's menus use the games UI kit** (`games/kits/ui/`,
     [docs/games/ui-kit.md](docs/games/ui-kit.md)), which carries the same
     tokens into the sandboxed frame. The game's world keeps its own look.

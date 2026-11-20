@@ -72,6 +72,18 @@ export const Page = styled.div<{ $gallery?: boolean }>`
     .skip-link:focus {
         top: 10px;
     }
+    .landing-title {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
     @media (max-width: 700px) {
         min-height: 560px;
         --landing-header-height: ${({ $gallery }) =>
@@ -87,6 +99,9 @@ export const BrowseSurface = styled.div`
     min-height: 0;
 `;
 
+// The accent span rule is for the footer's own buttons only: a bare span rule
+// also restyled the Jump In and grid controls inside it (19px accent text
+// while the grid loads).
 export const EmptyFooter = styled.div`
     height: 17.8svh;
     min-height: 76px;
@@ -106,7 +121,7 @@ export const EmptyFooter = styled.div`
         cursor: pointer;
         font-size: 14px;
     }
-    span {
+    > button span {
         color: var(--accent);
         font-size: 19px;
     }

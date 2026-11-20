@@ -10,6 +10,7 @@ import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { cloudinary } from "@utils/urlUtils";
+import { tx } from "@components/context/I18nContext";
 
 type Step = "preview" | "processing" | "download";
 type LoadingProgress = "" | "uploading" | "saving";
@@ -98,7 +99,7 @@ export function CinematicProvider({ children }) {
 
             amplitude_logAnalyticsEvent("error_cinematic", {
                 ...baseAnalyticsEvent,
-                error: err?.message || "Failed to play",
+                error: err?.message || tx("Failed to play"),
             });
         }
     }
@@ -217,15 +218,15 @@ export function CinematicProvider({ children }) {
 
             amplitude_logAnalyticsEvent("error_cinematic", {
                 ...baseAnalyticsEvent,
-                error: err?.message || "Failed to record",
+                error: err?.message || tx("Failed to record"),
             });
 
             let msg =
                 loadingProgress === "uploading"
-                    ? "Couldn't upload the video."
+                    ? tx("Couldn't upload the video.")
                     : loadingProgress === "saving"
-                    ? "Couldn't save the video."
-                    : "Couldn't record the video.";
+                    ? tx("Couldn't save the video.")
+                    : tx("Couldn't record the video.");
 
             // The preview comes back with the message under Record.
             setRecordFailure({ message: msg, canRetry: true });

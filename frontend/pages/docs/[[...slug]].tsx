@@ -1,5 +1,8 @@
 import type { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
+import { searchUrl } from "@utils/siteUrl";
+import { docStructuredData } from "@utils/structuredData";
+import JsonLd from "@components/JsonLd";
 import Link from "next/link";
 import styled, { css } from "styled-components";
 import {
@@ -25,11 +28,42 @@ export default function DocsPage({ doc, nav }: Props) {
     const index = nav.findIndex((entry) => entry.slug === doc.slug);
     const previous = nav[index - 1];
     const next = nav[index + 1];
+    const title = doc.slug ? `${doc.title} · Oncyber docs` : "Oncyber docs";
     return (
         <Page>
+            <JsonLd id="doc" data={docStructuredData(doc)} />
             <Head>
-                <title>{`${doc.title} · Oncyber docs`}</title>
-                <meta name="description" content={doc.description} />
+                <title key="title">{title}</title>
+                <meta key="ogTitle" property="og:title" content={title} />
+                <meta key="twitterTitle" name="twitter:title" content={title} />
+                <meta key="ogType" property="og:type" content="article" />
+                <link
+                    key="canonical"
+                    rel="canonical"
+                    href={searchUrl(href(doc.slug))}
+                />
+                <meta
+                    key="ogUrl"
+                    property="og:url"
+                    content={searchUrl(href(doc.slug))}
+                />
+                {/* Keyed, so it replaces the site's default description
+                    instead of following it. */}
+                <meta
+                    key="description"
+                    name="description"
+                    content={doc.description}
+                />
+                <meta
+                    key="ogDescription"
+                    property="og:description"
+                    content={doc.description}
+                />
+                <meta
+                    key="twitterDescription"
+                    name="twitter:description"
+                    content={doc.description}
+                />
                 <link
                     rel="alternate"
                     type="text/markdown"
@@ -200,6 +234,7 @@ const Page = styled.div`
         gap: 10px;
         margin-left: auto;
         padding-left: 12px;
+        white-space: nowrap;
         cursor: pointer;
     }
     .copy-prompt .agents {
@@ -212,6 +247,7 @@ const Page = styled.div`
         height: 18px;
     }
     .source {
+        white-space: nowrap;
         padding: 8px 4px;
         border-radius: ${radius.inset}px;
         color: var(--oc-secondary);
@@ -372,7 +408,8 @@ const Page = styled.div`
         padding: 0;
         border: 0;
         border-radius: ${radius.inset}px;
-        background: none;
+        /* Code scrolls under the button; keep it readable. */
+        background: var(--oc-panel);
         color: var(--oc-secondary);
         cursor: pointer;
     }
@@ -528,6 +565,9 @@ const Page = styled.div`
         .copy-prompt .agents {
             display: none;
         }
+        .copy-prompt {
+            padding-left: 14px;
+        }
         .docs-layout {
             display: block;
             padding: 0 16px 64px;
@@ -558,6 +598,11 @@ const Page = styled.div`
         .docs-body details > .table {
             margin-left: 16px;
             margin-right: 16px;
+        }
+    }
+    @media (max-width: 360px) {
+        .section {
+            display: none;
         }
     }
 `;

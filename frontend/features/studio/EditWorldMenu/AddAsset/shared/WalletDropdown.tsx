@@ -28,6 +28,7 @@ import { SearchInput } from "./SearchInput";
 import { useProfile } from "@components/hooks/useProfile";
 import { getProxyWallets } from "@utils/auth/proxyWallets";
 import AccountsAPI from "@api/accounts/_api";
+import { tx } from "@components/context/I18nContext";
 
 export interface WalletOpt {
     title: string;
@@ -40,7 +41,6 @@ const icons: Record<Blockchain, string> = {
     tezos: "/v2/icons/tezos.svg",
     solana: "/v2/icons/solana.svg",
     counterparty: "/v2/icons/counterparty.svg",
-    niftygateway: "/v2/icons/niftygateway.svg",
 };
 
 const FREE_ACCOUNTS_KEY = "free-accounts";
@@ -255,7 +255,7 @@ export function WalletDropdown({
                             />
                             <SearchInput
                                 className="search-input"
-                                placeholder="Search by wallet address..."
+                                placeholder={tx("Search by wallet address...")}
                                 value={searchInput}
                                 onChange={(v) => {
                                     setSearchInput(v);
@@ -327,7 +327,7 @@ export function WalletDropdown({
                                     size={20}
                                     style={{ filter: "invert(1)" }}
                                 />
-                                <div className="title">Add Wallet</div>
+                                <div className="title">{tx("Add Wallet")}</div>
                             </div>
 
                             <div
@@ -339,13 +339,15 @@ export function WalletDropdown({
                                     name="xcp"
                                     size={20}
                                 />
-                                <div className="title">Add XCP Wallet</div>
+                                <div className="title">
+                                    {tx("Add XCP Wallet")}
+                                </div>
                             </div>
                         </div>
 
                         {delegatedAccounts.length > 0 && (
                             <div className="group">
-                                <h2>Delegated</h2>
+                                <h2>{tx("Delegated")}</h2>
                                 {delegatedAccounts
                                     .filter((item) =>
                                         item.includes(searchInput.toLowerCase())

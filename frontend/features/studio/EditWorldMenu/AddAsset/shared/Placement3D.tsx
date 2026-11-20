@@ -5,6 +5,7 @@ import { useEventCallback } from "@components/hooks/useEventCallback";
 import { Label } from "@features/studio/styles/Label";
 import IconImg from "@ui/components/IconImg";
 import { TextInput } from "@features/studio/styles/Input";
+import { tx } from "@components/context/I18nContext";
 
 export type Placement3DMode = "position" | "rotation";
 
@@ -57,7 +58,7 @@ export function Placement3D({
             <div className="row">
                 <Header>
                     <IconImg name="move" mode="light" size={16} />
-                    <Label>Position</Label>
+                    <Label>{tx("Position")}</Label>
                     {locker && (
                         <div style={{ marginLeft: "auto" }}>{locker}</div>
                     )}
@@ -72,7 +73,7 @@ export function Placement3D({
                             name="x"
                             type="number"
                             disabled={locked}
-                            aria-label="Position X"
+                            aria-label={tx("Position X")}
                             value={position.x}
                             onChange={(e) => handleChange("position", e)}
                         />
@@ -84,7 +85,7 @@ export function Placement3D({
                             name="y"
                             type="number"
                             disabled={locked}
-                            aria-label="Position Y"
+                            aria-label={tx("Position Y")}
                             value={position.y}
                             onChange={(e) => handleChange("position", e)}
                         />
@@ -96,7 +97,7 @@ export function Placement3D({
                             name="z"
                             type="number"
                             disabled={locked}
-                            aria-label="Position Z"
+                            aria-label={tx("Position Z")}
                             value={position.z}
                             onChange={(e) => handleChange("position", e)}
                         />
@@ -106,7 +107,7 @@ export function Placement3D({
             <div className="row">
                 <Header>
                     <IconImg name="rotate-ccw" mode="light" size={16} />
-                    <Label>Rotation</Label>
+                    <Label>{tx("Rotation")}</Label>
                     {/* {locker && (
                         <div style={{ marginLeft: "auto" }}>{locker}</div>
                     )} */}
@@ -121,7 +122,7 @@ export function Placement3D({
                                 name="x"
                                 type="number"
                                 disabled={locked}
-                                aria-label="Rotation X"
+                                aria-label={tx("Rotation X")}
                                 value={rotation.x}
                                 onChange={(e) => handleChange("rotation", e)}
                             />
@@ -134,7 +135,7 @@ export function Placement3D({
                             name="y"
                             type="number"
                             disabled={locked}
-                            aria-label="Rotation Y"
+                            aria-label={tx("Rotation Y")}
                             value={rotation.y}
                             onChange={(e) => handleChange("rotation", e)}
                         />
@@ -147,7 +148,7 @@ export function Placement3D({
                                 name="z"
                                 type="number"
                                 disabled={locked}
-                                aria-label="Rotation Z"
+                                aria-label={tx("Rotation Z")}
                                 value={rotation.z}
                                 onChange={(e) => handleChange("rotation", e)}
                             />

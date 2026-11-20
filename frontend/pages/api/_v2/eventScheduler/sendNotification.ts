@@ -7,6 +7,7 @@ import crypto from "crypto";
 import moment from "moment";
 import { getUserNotificationId } from "@api/notifications/getNotificationId";
 import { db } from "@utils/firebaseAdmin";
+import { siteUrl } from "@utils/siteUrl";
 
 const ONE_SIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 
@@ -69,7 +70,7 @@ export const sendNotification = proc({
                 space_real_slug: exhibit.info?.customLink || "",
                 event_thumbnail: event?.thumbnail,
             },
-            url: "https://oncyber.io/spaces/" + exhibitId,
+            url: siteUrl("/spaces/" + exhibitId),
             send_after,
         };
 

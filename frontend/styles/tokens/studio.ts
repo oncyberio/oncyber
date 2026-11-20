@@ -55,6 +55,12 @@ export const studioTokens = {
     menuItem: { paddingX: 12, paddingY: 8 },
     layout: { inspectorWidth: 340, closeSize: 32, touchTarget: 44 },
     breakpoint: { compact: 600 },
+    /**
+     * Phone scale (at or under breakpoint.compact): every tap target is
+     * `target`, list rows are `row`, the asset bar is `dock` tall and
+     * bottom sheets stop at `sheet` of the screen.
+     */
+    phone: { target: 40, row: 44, dock: 60, sheet: "55dvh", icon: 18 },
     focus: { width: base.focus.width, offset: base.focus.offsetLoose },
     // Keep the editor's existing quick control feedback independent of travel motion.
     motion: { control: 150, ease: "ease" },

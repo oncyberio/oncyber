@@ -16,12 +16,15 @@ import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { blueAction, compactActionSizing } from "@styles/brand";
 import { showError, showModal } from "@components/Dialogs";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 const ConnectModal = dynamic(() => import("@ui/components/ConnectWallet"), {
     ssr: false,
 });
 
-const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), { ssr: false });
+const FriendsPanel = dynamic(() => import("@features/social/FriendsPanel"), {
+    ssr: false,
+});
 
 const AccountDashboard = dynamic(
     () => import("@components/modals/AccountDashboard"),
@@ -50,13 +53,14 @@ export default function Header({
 }) {
     const { user, userData, authenticated, isAnonymous, logout } =
         useContext(UserContext);
+    const { t } = useCyberTranslation();
     const username = userData?.username?.replace(/^@/, "");
-    const accountName = username ? `@${username}` : "My account";
+    const accountName = username ? `@${username}` : t("My account");
     const wallet = userData?.walletId || user?.id || "";
     const accountDetail =
         userData?.walletCustomName ||
         (userData?.type === "web2"
-            ? "My spaces"
+            ? t("My spaces")
             : wallet.length > 18
             ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}`
             : wallet);
@@ -68,7 +72,6 @@ export default function Header({
     const accountMenuId = useId();
     const accountButtonId = `${accountMenuId}-trigger`;
     const signedIn = !!(user?.id && authenticated && !isAnonymous);
-    const profileHref = `/@${encodeURIComponent(username || user?.id || "")}`;
 
     function closeAccountMenu() {
         setAccountOpen(false);
@@ -94,7 +97,7 @@ export default function Header({
         try {
             await logout();
         } catch {
-            showError("Please try again.", "Could not sign out");
+            showError(t("Please try again."), t("Could not sign out"));
         }
     }
     return (
@@ -104,7 +107,7 @@ export default function Header({
                 <Link
                     href="/"
                     className="brand"
-                    aria-label="Oncyber home"
+                    aria-label={t("Oncyber home")}
                     onClick={
                         onHome
                             ? (event) => {
@@ -130,7 +133,9 @@ export default function Header({
                                 ref={accountButton}
                                 id={accountButtonId}
                                 className="account-profile"
-                                aria-label={`${accountName} — Account menu`}
+                                aria-label={`${accountName} — ${t(
+                                    "Account menu"
+                                )}`}
                                 aria-haspopup="dialog"
                                 aria-expanded={accountOpen}
                                 aria-controls={accountMenuId}
@@ -172,7 +177,7 @@ export default function Header({
                             onClick={() => setAuthOpen(true)}
                         >
                             <span>
-                                Sign in <span aria-hidden="true">→</span>
+                                {t("Sign in")} <span aria-hidden="true">→</span>
                             </span>
                         </button>
                     )}
@@ -184,7 +189,6 @@ export default function Header({
                     name={accountName}
                     detail={accountDetail}
                     photo={userData?.avatar}
-                    profileHref={profileHref}
                     initialFocus={openingFocus.current}
                     onClose={() => setAccountOpen(false)}
                     onEditProfile={() => editProfile()}
@@ -221,6 +225,12 @@ export default function Header({
 const Container = styled.header`
     position: relative;
     z-index: 5;
+    /* The tall header overlaps the grid's section switch below its
+       controls; only the controls themselves take clicks. */
+    pointer-events: none;
+    > * {
+        pointer-events: auto;
+    }
     height: var(--landing-header-height, 106px);
     flex-shrink: 0;
     margin: 0 7%;

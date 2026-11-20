@@ -8,6 +8,7 @@ export const StudioToolbarFrame = styled.div<{
     left: 0;
     width: 100vw;
     height: 64px;
+    box-sizing: border-box;
     z-index: 2000;
     padding: 0 12px;
     user-select: none;
@@ -19,12 +20,16 @@ export const StudioToolbarFrame = styled.div<{
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
 
-    @media (min-width: 601px) and (max-width: 1000px) {
+    @media (max-width: 1000px) {
         grid-template-columns: auto minmax(0, 1fr) auto;
         column-gap: 12px;
         & > .center {
             max-width: 100%;
         }
+    }
+
+    @media (max-width: 600px) {
+        column-gap: 6px;
     }
 
     & .mode {
@@ -112,7 +117,7 @@ export const StudioToolbarFrame = styled.div<{
 
             @media (max-width: 600px) {
                 max-width: 140px;
-                height: 44px;
+                height: 40px;
                 border-radius: var(--studio-radius-control);
                 padding: 4px 12px 4px 4px;
                 gap: 6px;
@@ -127,7 +132,7 @@ export const StudioToolbarFrame = styled.div<{
             display: none;
 
             @media (max-width: 600px) {
-                width: 44px;
+                width: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;

@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { useEditWorld } from "../../context/WorldEditContext";
 import { Preview, PreviewGrid } from "../shared/Preview";
 import { ExhibitPreview } from "./ExhibitPreview";
+import { tx } from "@components/context/I18nContext";
 
 export interface ExhibitListProps {
     exhibits: Experience[];
@@ -33,7 +34,7 @@ export function ExhibitList({ exhibits, isElevator }: ExhibitListProps) {
         <PreviewGrid className="yt-grid y-scroll" columns={2}>
             {exhibits.map((exhibit, index) => {
                 //
-                const title = exhibit.info?.headline || "Untitled";
+                const title = exhibit.info?.headline || tx("Untitled");
 
                 const key = exhibit.id;
 

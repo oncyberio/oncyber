@@ -1316,6 +1316,12 @@ class Root extends Group {
                 Camera.setPhysicsOpts( opts.roomParameters )
                 break;
 
+            case UPLOADER_TYPES.AVATAR_SIZE:
+
+                // The preview stands at the head of this avatar.
+                this.scaleVRM( opts.roomParameters.avatarSize )
+                break;
+
             case UPLOADER_TYPES.NEAR:
 
                 Camera.current.near = Camera.current.baseNear = walkNear(opts.roomParameters.near);

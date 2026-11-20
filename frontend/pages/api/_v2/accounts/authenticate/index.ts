@@ -113,29 +113,22 @@ export const authenticate = proc({
                 // search should happen in both linked accounts first then in users
                 const user = await fetchUserByAccountId(accountId, true);
 
-                let token;
+                const token = jwt.sign(
+                    { user: accountId },
+                    process.env.SECRET_JWT_KEY,
+                    {
+                        expiresIn: "30d",
+                    }
+                );
 
-                if (sig.type !== "niftygateway") {
-                    // if nitfy then skip this
-                    token = jwt.sign(
-                        { user: accountId },
-                        process.env.SECRET_JWT_KEY,
-                        {
-                            expiresIn: "30d",
-                        }
-                    );
-
-                    this.res.setHeader(
-                        "Set-Cookie",
-                        cookie.serialize(
-                            accountId.toLowerCase(),
-                            token,
-                            cookieSettings
-                        )
-                    );
-                } else {
-                    token = sig.sig;
-                }
+                this.res.setHeader(
+                    "Set-Cookie",
+                    cookie.serialize(
+                        accountId.toLowerCase(),
+                        token,
+                        cookieSettings
+                    )
+                );
 
                 return { success: true, token: token, user, isNew };
             } else {

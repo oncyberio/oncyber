@@ -8,6 +8,7 @@ import { noop } from "lodash";
 import { Toggle } from "../../../shared/Toggle";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 export default function ArtworkCollider() {
     //
@@ -31,7 +32,7 @@ export default function ArtworkCollider() {
 
     return (
         <Container>
-            <p className="component-label">Set collider</p>
+            <p className="component-label">{tx("Set collider")}</p>
             <Toggle value={isCollider} onChange={handleSaveCollider} />
         </Container>
     );

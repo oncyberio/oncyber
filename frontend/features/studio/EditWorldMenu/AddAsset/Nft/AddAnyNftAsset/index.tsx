@@ -20,6 +20,7 @@ import { Secondary } from "@features/studio/styles/Secondary";
 import { NButton } from "@features/studio/components/StudioButton";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { useAnyContentAssets } from "./hooks/useAnyContentAssets";
+import { tx } from "@components/context/I18nContext";
 
 export function isCollection(url) {
     if (!url) return false;
@@ -31,7 +32,7 @@ export function isCollection(url) {
 
 function AssetNotFound({ query }) {
     return (
-        <NftEmptyState title="Artwork unavailable">
+        <NftEmptyState title={tx("Artwork unavailable")}>
             Check the {isCollection(query) ? "collection" : "NFT"} link.
         </NftEmptyState>
     );
@@ -128,7 +129,7 @@ function AddAsset({ query, chain }) {
     return (
         <>
             {state === "InitialLoading" ? (
-                <NftEmptyState title="Loading NFTs…" />
+                <NftEmptyState title={tx("Loading NFTs…")} />
             ) : (
                 <ArtworkPreview>
                     {assetsData?.shownAssets?.length ? (
@@ -149,7 +150,7 @@ function AddAsset({ query, chain }) {
                                 <div className="footer">
                                     <div
                                         className="select-info"
-                                        title="Unselect all"
+                                        title={tx("Unselect all")}
                                         onClick={() => {
                                             setSelectedAssets([]);
                                         }}
@@ -242,10 +243,10 @@ export function AddAnyNftContent({ togglerRef }) {
                 <SearchContainer>
                     <TextInput
                         id="nft-link"
-                        aria-label="NFT or collection URL"
+                        aria-label={tx("NFT or collection URL")}
                         aria-describedby="nft-link-sources"
                         value={link}
-                        placeholder="Paste an NFT or collection link"
+                        placeholder={tx("Paste an NFT or collection link")}
                         style={{ width: "100%" }}
                         onKeyDown={handleKeyPress}
                         onChange={handleChange}
@@ -262,14 +263,14 @@ export function AddAnyNftContent({ togglerRef }) {
             </div>
 
             <SupportedLinks id="nft-link-sources">
-                OpenSea · Objkt · Xchain
+                {tx("OpenSea · Objkt · Xchain")}
             </SupportedLinks>
             {query ? (
                 <AddAsset query={query} chain={openSeaColChain} />
             ) : (
                 <PanelPlaceholder
                     icon="nft"
-                    title="Artwork preview appears here"
+                    title={tx("Artwork preview appears here")}
                 />
             )}
         </Container>

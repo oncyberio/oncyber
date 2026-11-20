@@ -11,6 +11,7 @@ import { Label } from "@features/studio/styles/Label";
 import IconImg from "@ui/components/IconImg";
 import { noop } from "@utils/js";
 import { toXYZ } from "@3utils/three";
+import { tx } from "@components/context/I18nContext";
 
 export function MultiSelect() {
     //
@@ -84,7 +85,9 @@ export function MultiSelect() {
             }
         >
             <Field>
-                <Label className="component-label">Quick Edit Controls</Label>
+                <Label className="component-label">
+                    {tx("Quick Edit Controls")}
+                </Label>
                 <Toolbar className="quick-edit-toolbar">
                     <QuickTool icon="rotate-left-90" onClick={handleRotate} />
                     <QuickTool icon="flip-left" disabled />

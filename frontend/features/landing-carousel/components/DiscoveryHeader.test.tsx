@@ -184,7 +184,13 @@ test("menu has filter, create, go-to and help sections", () => {
     const sections = Array.from(
         menu().querySelectorAll(".command-section")
     ).map((el) => el.textContent);
-    expect(sections).toEqual(["Filter worlds", "Create", "Go to", "Help"]);
+    expect(sections).toEqual([
+        "Filter worlds",
+        "Create",
+        "Go to",
+        "Help",
+        "Language",
+    ]);
     const labels = options().map(label);
     expect(labels).toEqual(
         expect.arrayContaining([

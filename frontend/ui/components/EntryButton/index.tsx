@@ -11,6 +11,8 @@ interface Props {
     size?: "small" | "large";
     loading?: boolean;
     gated?: boolean;
+    /** Why entry is locked: a password gate gets its own label. */
+    gate?: string;
     isMobile?: boolean;
     epilepsyWarning?: boolean;
     isAnon?: boolean;
@@ -23,6 +25,7 @@ const EntryButton = forwardRef(
             size,
             loading,
             gated,
+            gate,
             isMobile,
             epilepsyWarning,
             isAnon,
@@ -43,7 +46,8 @@ const EntryButton = forwardRef(
         // }
 
         if (gated) {
-            text = `LOCKED_GATING`;
+            text =
+                gate === "password-error" ? `LOCKED_PASSWORD` : `LOCKED_GATING`;
             span = null;
         }
 
@@ -69,6 +73,8 @@ const EntryButton = forwardRef(
                         circleWidth={width}
                         isMobile={isMobile}
                         isDark={loading || isDark}
+                        role={gated ? "img" : undefined}
+                        aria-label={gated ? t(text) : undefined}
                     >
                         <p className="text">
                             {loading ? null : gated ? (

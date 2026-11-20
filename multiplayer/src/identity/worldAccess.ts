@@ -60,7 +60,7 @@ export type WorldAccess = { exists: false } | { exists: true; id: string; passwo
 
 export type WorldAccessLookup = (space: string) => Promise<WorldAccess | null>;
 
-const API_URL = process.env.ONCYBER_API_URL || "https://oncyber.io/api";
+const API_URL = process.env.ONCYBER_API_URL || "https://www.oncyber.com/api";
 const FETCH_TIMEOUT_MS = 5000;
 
 /** null when the API could not answer (unreachable, challenged, not deployed). */

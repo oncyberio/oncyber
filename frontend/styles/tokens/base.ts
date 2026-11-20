@@ -1,4 +1,11 @@
 /**
+ * Whether this build has the licensed brand fonts (docs/fonts.md). Without
+ * them the font faces that point at their files are not declared, so a
+ * visitor's browser does not ask for files that are not there.
+ */
+export const hasLicensedFonts = process.env.NEXT_PUBLIC_LICENSED_FONTS === "1";
+
+/**
  * Shared base for every Oncyber surface. Landing, lobby and studio each build
  * their own set on top of these values. See docs/brand/tokens.md.
  */

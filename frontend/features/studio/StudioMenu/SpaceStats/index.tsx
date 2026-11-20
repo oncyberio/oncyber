@@ -5,6 +5,7 @@ import { UserContext } from "@components/context/UserContext";
 import Tooltip from "@ui/components/Tooltip";
 import { Stats } from "./Stats";
 import { useContext } from "react";
+import { tx } from "@components/context/I18nContext";
 
 export function SpaceStats() {
     //
@@ -12,7 +13,11 @@ export function SpaceStats() {
     const { isAnonymous } = useContext(UserContext);
 
     const caption = ({ toggled }) => (
-        <Tooltip text="Review Stats" isToggled={toggled} orientation="bottom">
+        <Tooltip
+            text={tx("Review Stats")}
+            isToggled={toggled}
+            orientation="bottom"
+        >
             <LabelledIcon toggled={toggled} name="bar-chart-2" />
         </Tooltip>
     );

@@ -36,8 +36,11 @@ const Explore = dynamic(
     () => import("@components/_3DExhibit-v2/ui/ControlPanel/Modals/Explore")
 );
 
-const ProfileExplore = dynamic(
-    () => import("@components/_3DExhibit-v2/ui/ControlPanel/Profile/Explore")
+const PersonSidebar = dynamic(
+    () =>
+        import(
+            "@components/_3DExhibit-v2/ui/ControlPanel/Profile/PersonSidebar"
+        )
 );
 
 export default function Modals() {
@@ -52,6 +55,7 @@ export default function Modals() {
     });
 
     if (currentTab === "profile") return <Profile isShowing />;
+    if (currentTab === "profile-explore") return <PersonSidebar />;
 
     return (
         <NativeVisitorPanel
@@ -76,10 +80,6 @@ export default function Modals() {
 
             {currentTab === "explore" && (
                 <Explore feed={feed} isMobile={true} />
-            )}
-
-            {currentTab === "profile-explore" && (
-                <ProfileExplore isMobile={true} />
             )}
         </NativeVisitorPanel>
     );

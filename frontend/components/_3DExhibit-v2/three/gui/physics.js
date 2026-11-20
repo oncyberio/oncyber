@@ -11,6 +11,16 @@ import {
 
 } from '@3constants'
 
+import Players from "@3factory/player"
+
+import {
+    METER_AVATAR_HEIGHT,
+    MINIMUM_VRM_BOX,
+    MAXIMUM_VRM_BOX,
+    avatarHeightToSize,
+    avatarSizeToHeight,
+} from "@3utils/avatarHeight"
+
 const uploaderTypes = {
     jump: UPLOADER_TYPES.JUMP,
     rayleigh: UPLOADER_TYPES.RAYLEIGH,
@@ -1071,6 +1081,33 @@ export async function PhysicsGUI(uploaderSetRoomParameters) {
 
     if (!isFuture) {
         const player = gui.addFolder("Player");
+
+        // How tall visitors stand here, in world units. A destination
+        // modelled in metres wants a person's height; one saved without a
+        // size shows the height the preview is standing at.
+        const previewSize = roomParameters.avatarSize || Players.main?.avatar3D?.scale
+
+        const avatar = {
+            height: typeof previewSize === "number"
+                ? avatarSizeToHeight(previewSize)
+                : METER_AVATAR_HEIGHT,
+        }
+
+        player
+            .add(avatar, "height")
+            .label("Avatar height (m)")
+            .min(MINIMUM_VRM_BOX)
+            .max(MAXIMUM_VRM_BOX)
+            .step(0.05)
+            .onUpdate((height) => {
+                const payload = CURRENT_SPACE?.roomParameters
+                payload.avatarSize = avatarHeightToSize(height)
+
+                uploaderSetRoomParameters({
+                    type: UPLOADER_TYPES.AVATAR_SIZE,
+                    roomParameters: payload,
+                });
+            });
 
         player
             .add(roomParameters, "gravity")

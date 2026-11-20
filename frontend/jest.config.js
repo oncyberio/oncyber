@@ -9,8 +9,12 @@ module.exports = {
             },
         ],
     },
+    // Resolve bare imports from the frontend root ("env", "config/...") the
+    // way tsconfig's baseUrl does for Next, so tests load the same files.
+    modulePaths: ["<rootDir>"],
     moduleNameMapper: {
-        "^three/webgpu$": "<rootDir>/../node_modules/three/build/three.webgpu.js",
+        "^three/webgpu$":
+            "<rootDir>/../node_modules/three/build/three.webgpu.js",
         "^three/tsl$": "<rootDir>/../node_modules/three/build/three.tsl.js",
         "^@ui/(.*)$": "<rootDir>/ui/$1",
         "^@features/(.*)$": "<rootDir>/features/$1",
@@ -26,10 +30,5 @@ module.exports = {
             "<rootDir>/features/lobby/destinationWarmupWorkerFactory.jest.ts",
     },
     transformIgnorePatterns: ["/node_modules/(?!three/|@pixiv/)"],
-    testPathIgnorePatterns: [
-        "/node_modules/",
-        "/.next/",
-        "/dist/",
-        "<rootDir>/features/lobby/webgpu/",
-    ],
+    testPathIgnorePatterns: ["/node_modules/", "/.next/", "/dist/"],
 };

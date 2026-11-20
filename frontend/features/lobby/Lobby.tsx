@@ -91,18 +91,28 @@ export default function Lobby({
     onExit,
     onReady,
     initialReturn,
+    profile,
+    onProfileClose,
 }: {
     cards: LandingCard[];
     onExit: () => void;
     onReady: () => void;
     initialReturn?: LobbyReturnTransition | null;
+    /** A profile link (/@name): open the lobby's sidebar on that person. */
+    profile?: { id: string; name: string; avatar?: string } | null;
+    onProfileClose?: () => void;
 }) {
     const account = useContext(UserContext);
     const { user, userData, token, authenticated, isAnonymous } = account;
     // Falls back to the NFT's current image, then the guest portrait.
     const profilePhoto = useProfilePhoto(userData);
     const journey = useLobbyJourney(initialReturn);
-    const [lobbyInfoOpen, setLobbyInfoOpen] = useState(false);
+    const [lobbyInfoOpen, setLobbyInfoOpen] = useState(!!profile);
+    // A new profile link opens the panel again, on that person.
+    const profileId = profile?.id;
+    useEffect(() => {
+        if (profileId) setLobbyInfoOpen(true);
+    }, [profileId]);
     const journeyView = lobbyJourneyView(journey);
     const { entered, returning, preparingReturn } = journeyView;
     // Walking through a portal is no trip: no travel overlay and no
@@ -1109,6 +1119,7 @@ export default function Lobby({
                 />
                 {lobbyInfoOpen && (
                     <SpaceInfoSidebar
+                        key={profileId || "lobby"}
                         id="lobby-info"
                         fallback={{
                             title: "Lobby",
@@ -1126,7 +1137,11 @@ export default function Lobby({
                                 ? `${population} here now`
                                 : undefined
                         }
-                        onClose={() => setLobbyInfoOpen(false)}
+                        initialProfile={profile || undefined}
+                        onClose={() => {
+                            setLobbyInfoOpen(false);
+                            if (profile) onProfileClose?.();
+                        }}
                     />
                 )}
                 <div
@@ -2212,8 +2227,8 @@ const LobbySurface = styled.div`
     }
     @media (max-width: 680px) {
         .lobby-dock {
-            --lobby-dock-width: 194px;
-            --lobby-dock-height: 44px;
+            --lobby-dock-width: 170px;
+            --lobby-dock-height: 38px;
         }
     }
     @media (max-width: 550px) {
@@ -2223,7 +2238,7 @@ const LobbySurface = styled.div`
                 max(20px, env(safe-area-inset-bottom) + 8px) -
                     max(76px, env(safe-area-inset-bottom) + 68px)
             );
-            --lobby-dock-width: 194px;
+            --lobby-dock-width: 170px;
             left: 50%;
             right: auto;
             bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
@@ -2236,14 +2251,14 @@ const LobbySurface = styled.div`
             gap: 6px;
         }
         .dock-button {
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
         }
         .dock-item > span {
             display: none;
         }
         .chat-composer {
-            height: 44px;
+            height: 40px;
         }
         .chat-input-bar input {
             font-size: 16px;

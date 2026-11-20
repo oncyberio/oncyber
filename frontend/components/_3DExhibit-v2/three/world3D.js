@@ -106,6 +106,8 @@ import { createRenderGate } from './utils/renderDemandGate'
 
 import { xrSessionInit } from './xr/xrBackend'
 
+import { waitForArtworks } from './utils/waitForArtworks'
+
 // const USE_POSTPROCESSING = IS_FUTURE
 
 // The states a visitor settles in, where an unchanged frame is not drawn.
@@ -843,41 +845,9 @@ export default class World3D {
 
     }
 
-    async _waitForArtworksToLoad(camera, timeout = 0) {
+    _waitForArtworksToLoad(camera, timeout = 0) {
 
-
-        // Wait at most timeout milliseconds for artworks to load
-        return new Promise((resolve, reject) => {
-
-            const tid = setTimeout(() => {
-
-                clearInterval(iv)
-
-                if(Root.currentArtworks.hasArtworksLoading(camera)) {
-
-                    reject(new Error("Please wait for artworks to load"))
-                }
-                else {
-
-                    resolve()
-                }
-
-            }, timeout)
-
-            const iv = !timeout ? null : setInterval(() => {
-
-                if(!Root.currentArtworks.hasArtworksLoading(camera)) {
-
-                    clearTimeout(tid)
-
-                    clearInterval(iv)
-
-                    resolve()
-                }
-            }, 500)
-        })
-
-
+        return waitForArtworks(() => Root.currentArtworks, camera, timeout)
     }
 
     takeBase64Screenshot = async (opts = {}) => {

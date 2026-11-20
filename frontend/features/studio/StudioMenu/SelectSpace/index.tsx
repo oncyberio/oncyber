@@ -6,11 +6,12 @@ import { TextMenuCaption } from "@features/studio/components/TextMenuCaption";
 import { UserContext } from "@components/context/UserContext";
 import { useStudioMenu } from "../context/StudioContext";
 import { SpaceList } from "./SpaceList";
+import { tx } from "@components/context/I18nContext";
 
 export function SelectSpace({ onChangeSpace, onCreateSpace, className = "" }) {
     const { exhibit, toggleAuth } = useStudioMenu();
     const { isAnonymous } = useContext(UserContext);
-    const name = exhibit?.info?.headline || "Untitled";
+    const name = exhibit?.info?.headline || tx("Untitled");
     return (
         <CustomDropdown
             caption={
@@ -18,15 +19,17 @@ export function SelectSpace({ onChangeSpace, onCreateSpace, className = "" }) {
                     {name}
                 </TextMenuCaption>
             }
-            padding={30}
+            padding={24}
+            align="center"
+            anchor=".exhibit-wrapper"
             className={className}
         >
             {({ toggle }) =>
                 isAnonymous ? (
-                    <GuestWorlds aria-label="Current world">
-                        <span className="label">Current world</span>
+                    <GuestWorlds aria-label={tx("Current world")}>
+                        <span className="label">{tx("Current world")}</span>
                         <strong>{name}</strong>
-                        <span className="draft">Local draft</span>
+                        <span className="draft">{tx("Local draft")}</span>
                         <button
                             type="button"
                             onClick={() => {
@@ -34,10 +37,10 @@ export function SelectSpace({ onChangeSpace, onCreateSpace, className = "" }) {
                                 toggleAuth(true);
                             }}
                         >
-                            Sign in to access your worlds
+                            {tx("Sign in to access your worlds")}
                         </button>
                         <Link href="/?create=gallery">
-                            Browse gallery templates
+                            {tx("Browse gallery templates")}
                         </Link>
                     </GuestWorlds>
                 ) : (

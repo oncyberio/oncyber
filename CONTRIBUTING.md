@@ -93,6 +93,32 @@ locally.
 Note any configuration or data migration requirements. Include a screenshot or
 short recording when it makes a visual change easier to review.
 
+## After you open a pull request
+
+What to expect on your first pull request from a fork:
+
+-   **Checks wait for a maintainer.** GitHub holds workflow runs from new
+    contributors until a maintainer approves them, so the checks section may
+    stay empty or say "approval required" for a while. You don't need to do
+    anything; run the same checks locally in the meantime (see above).
+-   **The Vercel preview waits too.** Previews run with the project's own
+    keys, so a maintainer authorizes each fork's deployment by hand. Until
+    then, put steps to try the change locally in the "Try it" section of the
+    pull request.
+-   **Which checks run depends on the paths you touched.** Frontend changes
+    run the unit tests, the type check and the security regression tests;
+    `multiplayer/` and `frontend/features/lobby/` also run the lobby world
+    regression. The workflows are in `.github/workflows/`.
+
+### Trying changes that need outside services
+
+`pnpm dev:local` covers sign-in, spaces, the studio and the lobby with no
+keys. Some features still need a key of your own: NFT listings and NFT gating
+need `OPENSEA_X_API_KEY` (a free OpenSea key works) and an RPC for the chain.
+Put them in `frontend/.env.local`; `dev:local` reads that file too. If you
+couldn't try a change in a browser, say so in the pull request, along with
+what you checked instead.
+
 Do not include credentials, account data, private network captures, or sensitive
 logs in issues or change descriptions. Report suspected credential exposure
 privately to the maintainers before posting details publicly.

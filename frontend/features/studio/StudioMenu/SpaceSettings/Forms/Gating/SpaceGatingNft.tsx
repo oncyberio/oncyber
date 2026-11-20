@@ -17,6 +17,7 @@ import { useGatingEditCancel } from "./useGatingEditCancel";
 import { GatingCancelButton, GatingOkButton } from "./Buttons";
 import { useFormHandler } from "../context/ActionsContext";
 import { ComboBox } from "@features/studio/EditWorldMenu/AddAsset/shared/ComboBox";
+import { tx } from "@components/context/I18nContext";
 
 type NftGating = Experience["gating"]["nftOwnership"];
 
@@ -39,10 +40,15 @@ const items: Array<NftOptions> = [
         disabled: false,
         value: "ethereum",
     },
-     {
+    {
         title: "Base",
         disabled: false,
         value: "base",
+    },
+    {
+        title: "Shape",
+        disabled: false,
+        value: "shape",
     },
     {
         title: "Tezos",
@@ -81,6 +87,7 @@ const OBJKT_COLLECTION_URL_PREFIX = "https://objkt.com/collection/";
 const icons: Record<NftSource, string> = {
     ethereum: "/v2/icons/ethereum.svg",
     base: "/v2/icons/base.svg",
+    shape: "/v2/icons/shape.svg",
     tezos: "/v2/icons/tezos.svg",
     counterparty: "/v2/icons/counterparty.svg",
     mycollections: "",
@@ -90,6 +97,7 @@ const icons: Record<NftSource, string> = {
 const labels: Record<NftSource, string> = {
     ethereum: "Enter opensea collection URL or slug",
     base: "Enter opensea collection URL or slug",
+    shape: "Enter opensea collection URL or slug",
     tezos: "Enter objkt.com collection URL or contract",
     counterparty: "Search in offical xchain cards",
     mycollections: "Search in your NFT collections",
@@ -190,15 +198,16 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
 
                 let query = collectionInput.query.trim();
 
-
-                let sourceChain = nftSource
+                let sourceChain = nftSource;
 
                 // preporcess opensea urls
                 if (
-                    (nftSource === "ethereum" || nftSource === "base") &&
+                    (nftSource === "ethereum" ||
+                        nftSource === "base" ||
+                        nftSource === "shape") &&
                     query.startsWith(OPENSEA_COLLECTION_URL_PREFIX)
                 ) {
-                    sourceChain = "ethereum"
+                    sourceChain = "ethereum";
                     query = query.slice(OPENSEA_COLLECTION_URL_PREFIX.length);
                 } else if (
                     nftSource === "tezos" &&
@@ -298,7 +307,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
 
     return (
         <Container>
-            <Header>Access for specific NFT owners</Header>
+            <Header>{tx("Access for specific NFT owners")}</Header>
 
             <Form style={{ marginTop: "32px" }}>
                 <FormLabel>{label}</FormLabel>
@@ -326,7 +335,7 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                                         height: "100%",
                                         fontSize: "1.2rem",
                                     }}
-                                    title="Couldn't find anything"
+                                    title={tx("Couldn't find anything")}
                                 >
                                     ⚠️
                                 </span>
@@ -364,7 +373,9 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                                                         marginLeft: "5px",
                                                         marginTop: "2px",
                                                     }}
-                                                    alt="This collection is verified"
+                                                    alt={tx(
+                                                        "This collection is verified"
+                                                    )}
                                                 />
                                             )}
                                         </AutocompleteItem>
@@ -392,7 +403,9 @@ export function SpaceGatingNfts({ initState, onClose }: GatingUIProps) {
                             key={index}
                             onClick={() => handleDeleteCollection(collection)}
                         >
-                            <Icon src={icons[collection.blockchain]} />
+                            {icons[collection.blockchain] && (
+                                <Icon src={icons[collection.blockchain]} />
+                            )}
                             {collection.name || collection.slug} ✖{" "}
                         </NftBadge>
                     );

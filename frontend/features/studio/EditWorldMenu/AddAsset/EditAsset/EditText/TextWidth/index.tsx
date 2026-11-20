@@ -12,6 +12,7 @@ import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
 import Slider from "@features/studio/styles/Slider";
 import { useEventCallback } from "@components/hooks/useEventCallback";
+import { tx } from "@components/context/I18nContext";
 
 export function TextWidth() {
     //
@@ -55,7 +56,7 @@ export function TextWidth() {
 
     return (
         <Field>
-            <Label>Container Width</Label>
+            <Label>{tx("Container Width")}</Label>
             <Slider
                 min={300}
                 max={4000}

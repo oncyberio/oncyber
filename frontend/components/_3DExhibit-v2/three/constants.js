@@ -74,6 +74,8 @@ export {
     DEFAULT_PLAYER_AVATAR_PICTURE,
     SET_DEFAULT_AVATAR_PICTURE,
     IS_MULTIPLAYER_ENABLED,
+    WORLD_CREATED,
+    SET_WORLD_CREATED,
 } from "./shellconstants"
 
 export const USER_HEIGHT = 2.8
@@ -391,17 +393,8 @@ export const SET_USER_INTERACTED = (val) => {
 }
 
 
-let worldCreated = deferred()
-
-
-/** @type { Promise<import("./api").default> } */
-// @ts-ignore
-export const WORLD_CREATED = worldCreated.promise
-
-export const SET_WORLD_CREATED = (val) => {
-
-    worldCreated.resolve(val)
-}
+// WORLD_CREATED and SET_WORLD_CREATED are defined in shellconstants.js (the
+// shell's world store waits on the promise) and are re-exported above.
 
 
 let multiplayerInit = deferred()
@@ -764,6 +757,8 @@ export const UPLOADER_TYPES = {
 
     PLAYER_SPEED: asConst("PLAYER_SPEED"),
 
+    AVATAR_SIZE: asConst("AVATAR_SIZE"),
+
     BACKGROUND_TYPE: asConst("BACKGROUND_TYPE"),
 
     SKY_ENABLED: asConst("SKY_ENABLED"),
@@ -945,8 +940,9 @@ export var SET_COMPRESSED_SUPPORT = function( values ){
     console.log( 'COMPRESSED_SUPPORT', COMPRESSED_SUPPORT )
 }
 
-export const MINIMUM_VRM_BOX = 1.0
-export const MAXIMUM_VRM_BOX = 4.5
+import { MINIMUM_VRM_BOX, MAXIMUM_VRM_BOX } from "./utils/avatarHeight"
+
+export { MINIMUM_VRM_BOX, MAXIMUM_VRM_BOX }
 
 export const MINIMUM_MIX_RATIO = (1 * MINIMUM_VRM_BOX ) / MAXIMUM_VRM_BOX
 

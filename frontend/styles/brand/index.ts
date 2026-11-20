@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components";
 import { brandTokens as brand } from "./tokens";
 import { actionTokens as action } from "@styles/tokens/action";
-import { baseTokens as base } from "@styles/tokens/base";
+import { baseTokens as base, hasLicensedFonts } from "@styles/tokens/base";
 import { landingTokens as landing } from "@styles/tokens/landing";
 
 /**
@@ -19,6 +19,15 @@ import { landingTokens as landing } from "@styles/tokens/landing";
 /** The action font; also resolves outside a `brandFoundation` root. */
 const actionFont = `${action.type.font} var(--oc-font, ${action.type.family})`;
 
+/** Phones get a smaller action button, so controls leave room for content. */
+const phoneActionSizing = css`
+    @media (max-width: ${base.breakpoint.phone}px) {
+        min-height: 34px;
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+`;
+
 /** Shared geometry for the landing Sign in and Jump In actions. */
 export const compactActionSizing = css`
     display: inline-flex;
@@ -34,6 +43,7 @@ export const compactActionSizing = css`
         gap: ${landing.action.compactGap}px;
         font-size: ${base.font.size.md}px;
     }
+    ${phoneActionSizing}
 `;
 
 /**
@@ -50,6 +60,7 @@ export const actionSpec = css`
     font: ${actionFont};
     /* Keep a gradient fill from repeating under the transparent border. */
     background-origin: border-box;
+    ${phoneActionSizing}
 `;
 
 /** Pill shape. Add after `actionSpec` or `actionButton`. */
@@ -192,8 +203,11 @@ export const ActionButton = styled.button.attrs((props: any) => ({
     ${({ $shape }) => $shape === "pill" && pillAction}
 `;
 
-/** The Oncyber Sans and Mono faces. Part of `brandFoundation`. */
-export const brandFonts = css`
+/**
+ * Oncyber Sans is licensed (docs/fonts.md). A build without its files does
+ * not declare it, and the stack continues to Space Grotesk.
+ */
+const brandSansFaces = css`
     @font-face {
         font-family: "Oncyber Sans";
         src: url("${base.font.files.regular}") format("opentype");
@@ -208,6 +222,11 @@ export const brandFonts = css`
         font-style: normal;
         font-display: swap;
     }
+`;
+
+/** The Oncyber Sans and Mono faces. Part of `brandFoundation`. */
+export const brandFonts = css`
+    ${hasLicensedFonts ? brandSansFaces : ""}
     @font-face {
         font-family: "Oncyber Mono";
         src: url("${base.font.files.mono}") format("woff2");

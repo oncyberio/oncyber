@@ -12,6 +12,7 @@ import styled from "styled-components";
 import IconImg from "@ui/components/IconImg";
 import { useRouter } from "next/router";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
+import { tx } from "@components/context/I18nContext";
 
 const ConnectWallet = dynamic(() => import("@ui/components/ConnectWallet"));
 
@@ -57,7 +58,7 @@ export function Menu({ onCreateSpace }) {
         <ToolbarButton
             hasLabel
             toggled={toggled}
-            aria-label="Oncyber menu"
+            aria-label={tx("Oncyber menu")}
             aria-expanded={toggled}
         >
             <OncyberLockup />
@@ -102,7 +103,7 @@ export function Menu({ onCreateSpace }) {
             <div className="menu-arrow-left">
                 <button
                     type="button"
-                    aria-label="Go back"
+                    aria-label={tx("Go back")}
                     className="arrow-wrapper"
                     onClick={handleOnBack}
                 >
@@ -134,8 +135,8 @@ const Container = styled.div`
         display: none;
 
         & > .arrow-wrapper {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;

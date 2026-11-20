@@ -10,6 +10,7 @@ import { getUploadErrorMsg, getUploader } from "./utils";
 import { useEditWorld } from "../../context/WorldEditContext";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { reachedAnonLimits } from "@utils/anon";
+import { tx } from "@components/context/I18nContext";
 
 //
 const acceptedMimes = Object.keys(extToMime)
@@ -36,11 +37,6 @@ export function uploadFailure(err: Error): {
     canRetry: boolean;
 } {
     switch (err?.message) {
-        case "exists":
-            return {
-                message: "You have already uploaded this file.",
-                canRetry: false,
-            };
         case "mime":
             return {
                 message:
@@ -148,16 +144,17 @@ export function UploadAsset({ onUploadFinished }: UploadAssetProps) {
                 },
             });
 
-            if (result.exists) {
-                throw new Error("exists");
-            }
-
+            // A file already in the library is reused as it is: it moves to
+            // the top of the uploads list instead of failing.
             onUploadFinished(result);
 
-            amplitude_logAnalyticsEvent("upload_custom_asset", {
-                ...baseAnalyticsEvent,
-                type: mime,
-            });
+            amplitude_logAnalyticsEvent(
+                result.exists ? "reuse_custom_asset" : "upload_custom_asset",
+                {
+                    ...baseAnalyticsEvent,
+                    type: mime,
+                }
+            );
 
             //
         } catch (e) {
@@ -226,10 +223,10 @@ export function UploadAsset({ onUploadFinished }: UploadAssetProps) {
             >
                 {uploadState ? (
                     <Loader role="status" aria-live="polite">
-                        <p>Uploading…</p>
+                        <p>{tx("Uploading…")}</p>
                         <Progress
                             role="progressbar"
-                            aria-label="Upload progress"
+                            aria-label={tx("Upload progress")}
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={uploadState.progress}
@@ -247,13 +244,15 @@ export function UploadAsset({ onUploadFinished }: UploadAssetProps) {
                         className="prompt"
                         type="button"
                         onClick={handleZoneClick}
-                        aria-label="Upload files"
-                        title="Upload images, video, audio or 3D models"
+                        aria-label={tx("Upload files")}
+                        title={tx("Upload images, video, audio or 3D models")}
                     >
                         <span className="upload-symbol">
                             <AssetIcon name="upload" />
                         </span>
-                        <span>{isDragging ? "Drop file" : "Upload file"}</span>
+                        <span>
+                            {isDragging ? tx("Drop file") : tx("Upload file")}
+                        </span>
                     </button>
                 )}
 
@@ -304,6 +303,9 @@ const Container = styled.div<{ $isDragging: boolean }>`
     .upload-symbol {
         width: 36px;
         height: 36px;
+        @media (max-width: 600px) {
+            height: 40px;
+        }
         border-radius: 50%;
         display: grid;
         place-items: center;

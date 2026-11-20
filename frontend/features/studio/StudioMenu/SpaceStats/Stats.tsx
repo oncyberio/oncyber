@@ -32,6 +32,7 @@ import { useEditorService } from "@features/studio/context/ExhibitEditorContext"
 import { Commands } from "@features/studio/services/editor/CommandMap";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { useCurrentExhibit } from "@features/studio/context/ExhibitContext";
+import { tx } from "@components/context/I18nContext";
 
 const columns = [
     {
@@ -310,7 +311,9 @@ export function Stats({
                         disabled={removeLoading[artwork.id]}
                     >
                         {" "}
-                        {removeLoading[artwork.id] ? "Removing..." : "Remove"}
+                        {removeLoading[artwork.id]
+                            ? tx("Removing...")
+                            : tx("Remove")}
                     </button>
                 ),
             });
@@ -325,7 +328,7 @@ export function Stats({
                 <h2>Stats & performance</h2>
                 <button
                     type="button"
-                    aria-label="Close statistics"
+                    aria-label={tx("Close statistics")}
                     className="close"
                     onClick={onClose}
                 >
@@ -340,19 +343,19 @@ export function Stats({
 
             {loading ? (
                 <p className="status" role="status">
-                    Loading statistics…
+                    {tx("Loading statistics…")}
                 </p>
             ) : artworks.length == 0 ? (
-                <p className="status">No assets placed</p>
+                <p className="status">{tx("No assets placed")}</p>
             ) : (
                 <>
                     <TopBar>
                         <div className="title">
-                            <h3>Asset stats</h3>
+                            <h3>{tx("Asset stats")}</h3>
                             <button
                                 type="button"
                                 className="search"
-                                aria-label="Search assets"
+                                aria-label={tx("Search assets")}
                                 aria-expanded={isSearching}
                                 onClick={() => {
                                     setSearching(!isSearching);
@@ -365,7 +368,7 @@ export function Stats({
                             <Input
                                 borderWidth="0"
                                 overrideTheme="dark"
-                                placeholder="Search for asset"
+                                placeholder={tx("Search for asset")}
                                 iconPosition="left"
                                 onChange={(e) => {
                                     setSearch(e.target.value);
@@ -381,7 +384,7 @@ export function Stats({
                             !removeLoading[failedRemove.artwork.id] &&
                             (failedRemove.name
                                 ? `Couldn't remove “${failedRemove.name}”.`
-                                : "Couldn't remove this asset.")
+                                : tx("Couldn't remove this asset."))
                         }
                         onRetry={() =>
                             handleRemove(
@@ -511,8 +514,8 @@ const Container = styled.div`
         padding: 16px 16px 8px;
 
         & > .header .close {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
         }
     }
 `;
@@ -549,8 +552,8 @@ const TopBar = styled.div`
             }
 
             @media (max-width: 600px) {
-                width: 44px;
-                min-height: 44px;
+                width: 40px;
+                min-height: 40px;
             }
         }
     }

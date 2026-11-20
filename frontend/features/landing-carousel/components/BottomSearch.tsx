@@ -1,29 +1,55 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import Icon from "./Icon";
+import { useCyberTranslation } from "@components/context/I18nContext";
 
 export default function BottomSearch({
     value,
     onSearch,
     onChange,
     scope = "worlds",
+    withSpaces = false,
+    liveMs,
 }: {
     value: string;
+    /** Create also lists the visitor's own spaces, so search covers them. */
+    withSpaces?: boolean;
     scope?: "worlds" | "templates" | "destinations" | "game" | "gaussian";
-    onSearch: (query: string) => void;
+    /** `typed` is true for a search sent while typing (see `liveMs`). */
+    onSearch: (query: string, typed?: boolean) => void;
+    /**
+     * Search while typing, this long after the last keystroke, with no need
+     * for Enter. For lists that filter in place.
+     */
+    liveMs?: number;
     onChange?: (query: string) => void;
 }) {
     const [query, setQuery] = useState(value);
     const inputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => setQuery(value), [value, scope]);
+    // What this field last searched for. The page's value catching up with
+    // it must not overwrite what has been typed since.
+    const sent = useRef<string>(null);
+    const typing = useRef<ReturnType<typeof setTimeout>>();
+    useEffect(() => {
+        if (value !== sent.current) setQuery(value);
+        sent.current = null;
+    }, [value, scope]);
+    useEffect(() => () => clearTimeout(typing.current), []);
+    const search = (text: string, typed = false) => {
+        clearTimeout(typing.current);
+        sent.current = text.trim();
+        onSearch(sent.current, typed);
+    };
     const templates = scope === "templates";
     const destinations = scope === "destinations";
     const creating = scope === "game" || scope === "gaussian";
-    const contextLabel = scope === "game" ? "Game idea" : "Gallery name";
-    const question =
+    const { t } = useCyberTranslation();
+    const contextLabel = t(scope === "game" ? "Game idea" : "Gallery name");
+    const question = t(
         scope === "game"
             ? "What kind of game do you want to build?"
-            : "What would you like to name your gallery?";
+            : "What would you like to name your gallery?"
+    );
 
     return (
         <Search
@@ -32,14 +58,16 @@ export default function BottomSearch({
                 creating
                     ? contextLabel
                     : templates
-                    ? "Search templates"
+                    ? withSpaces
+                        ? t("Search your worlds and templates")
+                        : t("Search templates")
                     : destinations
-                    ? "Search my destinations"
-                    : "Search worlds"
+                    ? t("Search my destinations")
+                    : t("Search worlds")
             }
             onSubmit={(event) => {
                 event.preventDefault();
-                onSearch(query.trim());
+                search(query);
             }}
         >
             {!creating && <Icon name="search" size={18} />}
@@ -58,33 +86,46 @@ export default function BottomSearch({
                     creating
                         ? contextLabel
                         : templates
-                        ? "Search gallery templates"
+                        ? withSpaces
+                            ? t("Search your worlds and gallery templates")
+                            : t("Search gallery templates")
                         : destinations
-                        ? "Search my destinations"
-                        : "Search worlds, artists, and creators"
+                        ? t("Search my destinations")
+                        : t("Search worlds, artists, and creators")
                 }
                 placeholder={
                     creating
                         ? question
                         : templates
-                        ? "Search templates, artists, styles…"
+                        ? withSpaces
+                            ? t("Search your worlds and templates…")
+                            : t("Search templates, artists, styles…")
                         : destinations
-                        ? "Search destinations…"
-                        : "Search worlds, artists, creators…"
+                        ? t("Search destinations…")
+                        : t("Search worlds, artists, creators…")
                 }
                 aria-description={
                     scope === "worlds"
-                        ? "Type / to choose Popular, Latest, or another world feed."
+                        ? t(
+                              "Type / to choose Popular, Latest, or another world feed."
+                          )
                         : templates
-                        ? "Type / to choose a template category."
+                        ? t("Type / to choose a template category.")
                         : undefined
                 }
                 enterKeyHint={creating ? "done" : "search"}
                 autoComplete="off"
                 value={query}
                 onChange={(event) => {
-                    setQuery(event.target.value);
-                    onChange?.(event.target.value);
+                    const text = event.target.value;
+                    setQuery(text);
+                    onChange?.(text);
+                    if (liveMs == null || creating) return;
+                    clearTimeout(typing.current);
+                    typing.current = setTimeout(
+                        () => search(text, true),
+                        liveMs
+                    );
                 }}
                 onKeyDown={(event) => {
                     if (event.nativeEvent.isComposing || event.keyCode === 229)
@@ -97,17 +138,21 @@ export default function BottomSearch({
                     type="button"
                     aria-label={
                         creating
-                            ? `Clear ${contextLabel.toLowerCase()}`
+                            ? t("Clear {name}", {
+                                  name: contextLabel.toLowerCase(),
+                              })
                             : templates
-                            ? "Clear template search"
+                            ? withSpaces
+                                ? t("Clear search")
+                                : t("Clear template search")
                             : destinations
-                            ? "Clear destination search"
-                            : "Clear world search"
+                            ? t("Clear destination search")
+                            : t("Clear world search")
                     }
                     onClick={() => {
                         setQuery("");
                         if (creating) onChange?.("");
-                        else onSearch("");
+                        else search("");
                         inputRef.current?.focus();
                     }}
                 >

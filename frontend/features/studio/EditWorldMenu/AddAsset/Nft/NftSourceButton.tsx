@@ -32,6 +32,9 @@ const Container = styled.button`
     border-radius: var(--studio-radius-control);
     margin: 0;
     min-height: 36px;
+    @media (max-width: 600px) {
+        min-height: 40px;
+    }
     border: 1px solid var(--studio-line);
     background: var(--studio-surface);
     color: var(--nft-ink);
@@ -52,6 +55,6 @@ const Container = styled.button`
         outline-offset: 2px;
     }
     @media (max-width: 600px) {
-        min-height: 44px;
+        min-height: 40px;
     }
 `;

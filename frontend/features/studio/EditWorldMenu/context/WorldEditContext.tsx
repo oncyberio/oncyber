@@ -119,6 +119,7 @@ import { useOnClickOutside } from "@components/hooks/useClickOutside";
 import { useScreenSize } from "@components/hooks/useScreenSize";
 
 import { mutate } from "swr";
+import { tx } from "@components/context/I18nContext";
 
 export type WorldEditScope = "studio" | "uploader";
 
@@ -3931,7 +3932,7 @@ export function WorldEditProvider({
                         className="y-scroll scrollbar dark"
                     >
                         {!editorState?.undoStack.length ? (
-                            <div className="cmd">Nothing</div>
+                            <div className="cmd">{tx("Nothing")}</div>
                         ) : (
                             editorState.undoStack.map((cmd, index) => {
                                 //

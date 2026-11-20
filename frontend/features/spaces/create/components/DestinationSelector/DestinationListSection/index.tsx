@@ -1,3 +1,4 @@
+import { tx } from "@components/context/I18nContext";
 import styled from "styled-components";
 import Spinner from "@components/Spinner";
 import { DestinationCell } from "../DestinationCell";
@@ -166,7 +167,11 @@ export function DestinationListSection({
     return (
         <Section className="section" ref={_ref}>
             <div className="section-header">
-                {section == "owned" && !user?.id ? "FREE TO USE WORLDS" : title}{" "}
+                {tx(
+                    section == "owned" && !user?.id
+                        ? "FREE TO USE WORLDS"
+                        : title
+                )}{" "}
                 <span className="art">({rooms.length}) </span>
                 {oneRowPaging && maxOwnedPages > 1 && (
                     <div className="header-icons pagination">

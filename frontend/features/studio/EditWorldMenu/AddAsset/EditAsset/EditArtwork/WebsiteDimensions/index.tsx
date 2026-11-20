@@ -17,6 +17,7 @@ import { Label } from "@features/studio/styles/Label";
 import { deepEqual } from "@utils/js";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditContext";
+import { tx } from "@components/context/I18nContext";
 
 export function WebsiteDimensions() {
     //
@@ -67,7 +68,7 @@ export function WebsiteDimensions() {
 
     return (
         <Field>
-            <Label className="component-label">Dimensions</Label>
+            <Label className="component-label">{tx("Dimensions")}</Label>
 
             <InputWrapper>
                 <TextInput
@@ -75,7 +76,7 @@ export function WebsiteDimensions() {
                     onChange={(e) => {
                         handleChange(e, 0);
                     }}
-                    placeholder="Width"
+                    placeholder={tx("Width")}
                 />
 
                 <TextInput
@@ -83,7 +84,7 @@ export function WebsiteDimensions() {
                     onChange={(e) => {
                         handleChange(e, 1);
                     }}
-                    placeholder="Height"
+                    placeholder={tx("Height")}
                 />
             </InputWrapper>
         </Field>

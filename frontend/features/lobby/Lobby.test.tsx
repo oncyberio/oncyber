@@ -26,6 +26,14 @@ jest.mock("@components/InAppLink", () => ({
     __esModule: true,
     default: ({ href, children }) => <a href={href}>{children}</a>,
 }));
+const mockSidebarProps: any[] = [];
+jest.mock("@features/space-info/SpaceInfoSidebar", () => ({
+    __esModule: true,
+    default: (props) => {
+        mockSidebarProps.push(props);
+        return <div data-testid="space-info" />;
+    },
+}));
 jest.mock("./LobbyExplorePanel", () => ({
     __esModule: true,
     default: ({ cards, onSelect, onClose, active = true }) => (
@@ -1365,4 +1373,53 @@ test("Enter reaches the party chat from inside a space, and the lobby chat after
     expect(document.activeElement).toBe(input);
     const surface = input.closest(".lobby-chat").parentElement;
     expect(surface.hasAttribute("inert")).toBe(false);
+});
+
+test("a profile link opens the lobby sidebar on that person, and closing it says so", async () => {
+    const onProfileClose = jest.fn();
+    await act(async () => {
+        root.render(
+            <Lobby
+                cards={cards}
+                onExit={jest.fn()}
+                onReady={jest.fn()}
+                profile={{ id: "0xabc", name: "@rayan" }}
+                onProfileClose={onProfileClose}
+            />
+        );
+    });
+    for (let i = 0; i < 20 && !mockSidebarProps.length; i++)
+        await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    const props = mockSidebarProps[mockSidebarProps.length - 1];
+    expect(props.initialProfile).toEqual({ id: "0xabc", name: "@rayan" });
+    act(() => props.onClose());
+    expect(onProfileClose).toHaveBeenCalledTimes(1);
+});
+
+test("a second profile link reopens the sidebar on the new person", async () => {
+    const render = (profile) =>
+        root.render(
+            <Lobby
+                cards={cards}
+                onExit={jest.fn()}
+                onReady={jest.fn()}
+                profile={profile}
+                onProfileClose={jest.fn()}
+            />
+        );
+    await act(async () => render({ id: "0xabc", name: "@rayan" }));
+    for (let i = 0; i < 20 && !mockSidebarProps.length; i++)
+        await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    act(() => mockSidebarProps[mockSidebarProps.length - 1].onClose());
+    await act(async () => render(null));
+    mockSidebarProps.length = 0;
+    await act(async () => render({ id: "0xdef", name: "@sam" }));
+    for (let i = 0; i < 20 && !mockSidebarProps.length; i++)
+        await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(
+        mockSidebarProps[mockSidebarProps.length - 1].initialProfile
+    ).toEqual({
+        id: "0xdef",
+        name: "@sam",
+    });
 });

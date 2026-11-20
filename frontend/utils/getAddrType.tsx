@@ -5,13 +5,14 @@ import {
     isCounterpartyAddress,
     isValidBTCAddress,
 } from "./counterpartyAddress";
-import { isNiftyAddress } from "./niftyAssets";
 
 export function getAddrType(addr: string = ""): WalletConnection["type"] {
     if (!addr) return null;
-    if (isNiftyAddress(addr)) return "niftygateway";
     if (isCounterpartyAddress(addr)) return "counterparty";
     if (isEthereumAddress(addr)) return "ethereum";
+    // Chain addresses never hold "@"; account ids that do (such as the old
+    // "name@niftygateway" sign-ins) name no wallet to read.
+    if (addr.includes("@")) return null;
     if (isTezosAddress(addr)) return "tezos";
     if (isSolanaAddress(addr)) return "solana";
     return null;

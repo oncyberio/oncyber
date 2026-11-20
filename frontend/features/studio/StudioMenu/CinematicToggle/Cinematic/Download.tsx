@@ -7,6 +7,7 @@ import { NButton } from "@features/studio/components/StudioButton";
 import { useCinematic } from "../../context/CinematicContext";
 import IconImg from "@ui/components/IconImg";
 import { studioHeading } from "@features/studio/styles/primitives";
+import { tx } from "@components/context/I18nContext";
 
 export default function Download() {
     const { loadingProgress, isRecordCompleted, cancel, download } =
@@ -20,9 +21,9 @@ export default function Download() {
                     size={48}
                     style={{ filter: "invert(0.5)", marginBottom: "1.5em" }}
                 />
-                <h2>Your video is ready!</h2>
+                <h2>{tx("Your video is ready!")}</h2>
                 {!loadingProgress ? (
-                    <p>You can download it on the button below</p>
+                    <p>{tx("You can download it on the button below")}</p>
                 ) : loadingProgress === "uploading" ? (
                     <p
                         style={{
@@ -33,11 +34,12 @@ export default function Download() {
                         }}
                     >
                         <Spinner isLightTheme={false} width={18} />
-                        We're uploading your video, please don't close this
-                        page.
+                        {tx(
+                            "We're uploading your video, please don't close this page."
+                        )}
                     </p>
                 ) : loadingProgress === "saving" ? (
-                    <p>Saving...</p>
+                    <p>{tx("Saving...")}</p>
                 ) : null}
             </Wrapper>
 
@@ -49,7 +51,7 @@ export default function Download() {
                     overrideTheme="dark"
                     className="cancel"
                 >
-                    <span>Cancel</span>
+                    <span>{tx("Cancel")}</span>
                 </NButton>
                 <NButton
                     size="small"
@@ -59,7 +61,7 @@ export default function Download() {
                     onClick={download}
                     disabled={!isRecordCompleted}
                 >
-                    <span>Download video</span>
+                    <span>{tx("Download video")}</span>
                 </NButton>
             </Footer>
         </Container>

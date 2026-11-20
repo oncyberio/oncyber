@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { Button } from "@features/studio/styles/Button";
 import { TextArea } from "@features/studio/styles/Input";
+import { tx } from "@components/context/I18nContext";
 
 export function AddText({ onClose }) {
     //
@@ -35,16 +36,16 @@ export function AddText({ onClose }) {
         <Container>
             <TextArea
                 className="input"
-                placeholder="Enter text here ..."
+                placeholder={tx("Enter text here ...")}
                 value={text}
                 onChange={(e) => {
                     setText(e.target.value);
                 }}
             />
             <div className="button-bar">
-                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={onClose}>{tx("Cancel")}</Button>
                 <Button primary={true} onClick={handleAddTextClick}>
-                    Add text
+                    {tx("Add text")}
                 </Button>
             </div>
         </Container>

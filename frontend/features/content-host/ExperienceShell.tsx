@@ -69,6 +69,11 @@ export interface ExperienceShellChat {
 export interface ExperienceShellProps {
     title: string;
     onExit(): void;
+    /**
+     * Opens the 2D main page, for the back button of a visitor who did not
+     * come from the lobby. `onExit` when omitted.
+     */
+    onHome?(): void;
     exitLabel?: string;
     /** A line about the place itself, such as "Ready to enter". */
     status?: string;
@@ -137,6 +142,7 @@ export function ExperienceIcon({
 export default function ExperienceShell({
     title,
     onExit,
+    onHome,
     exitLabel = "Back to previous world",
     status,
     connection,
@@ -175,7 +181,12 @@ export default function ExperienceShell({
                     className="experience-back"
                     aria-label={exitLabel}
                     onClick={() =>
-                        goToPreviousExperience(() => goToLobby(onExit))
+                        // Back to the 3D lobby only for a visitor who came
+                        // from it; otherwise to the 2D main page.
+                        goToPreviousExperience(
+                            () => goToLobby(onExit),
+                            onHome ?? onExit
+                        )
                     }
                 >
                     <Icon name="back" size={17} />
@@ -284,6 +295,13 @@ export default function ExperienceShell({
                                     className="experience-badge"
                                     aria-hidden="true"
                                 >
+                                    <span
+                                        className="experience-badge-dot"
+                                        data-offline={
+                                            typeof action.badge !== "number" ||
+                                            undefined
+                                        }
+                                    />
                                     {action.badge}
                                 </span>
                             )}
@@ -696,19 +714,37 @@ const Shell = styled.div`
             visibility: hidden;
         }
     }
+    /* The lobby's count: a live dot and the number, under the button's
+       corner. */
     .experience-badge {
         position: absolute;
-        right: -6px;
-        top: -7px;
-        min-width: 18px;
-        padding: 1px 4px;
-        text-align: center;
+        right: -5px;
+        bottom: -5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-width: 20px;
+        height: 16px;
+        padding: 0 4px;
+        box-sizing: border-box;
         color: #c2c5cc;
-        font: 9px var(--oc-mono);
+        font-size: 9px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
         background: #14161b;
         border: 1px solid #ffffff18;
         border-radius: 6px;
         pointer-events: none;
+    }
+    .experience-badge-dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #2cf8d5;
+    }
+    .experience-badge-dot[data-offline] {
+        background: #ff6161;
     }
     .experience-chat {
         position: absolute;
@@ -855,7 +891,8 @@ const Shell = styled.div`
         .experience-place {
             top: 22px;
             left: 16px;
-            max-width: calc(50% - 35px);
+            /* Stop short of the centred logo (about 40px wide). */
+            max-width: calc(50% - 52px);
             gap: 8px;
         }
         .experience-title {
@@ -869,7 +906,7 @@ const Shell = styled.div`
             left: 16px;
         }
         .experience-chat-composer {
-            height: 44px;
+            height: 40px;
         }
         .experience-chat-input input {
             font-size: 16px;

@@ -36,6 +36,11 @@ export interface CustomDropdownProps {
      * goes above the ones opened before it.
      */
     zIndex?: string;
+    /**
+     * A selector for an ancestor of the caption to place the dropdown
+     * against, when the visible control is wider than the caption.
+     */
+    anchor?: string;
 }
 
 const captionsMap = new WeakMap<Element, Element>();
@@ -62,6 +67,7 @@ export function CustomDropdown({
     toggleAuth,
     addTogglerRef,
     zIndex,
+    anchor,
 }: CustomDropdownProps) {
     //
     const captionRef = useRef<HTMLDivElement>(null);
@@ -100,7 +106,7 @@ export function CustomDropdown({
         autoClose.current = b;
     }, []);
 
-    useIsoLayoutEffect(() => {
+    const place = useEventCallback(() => {
         //
         if (
             !isDropdownShoing ||
@@ -109,7 +115,11 @@ export function CustomDropdown({
         )
             return;
 
-        const captionBounds = captionRef.current.getBoundingClientRect();
+        const anchorEl =
+            (anchor && captionRef.current?.closest(anchor)) ||
+            captionRef.current;
+        if (anchorEl == null) return;
+        const captionBounds = anchorEl.getBoundingClientRect();
 
         const contentHeight = dropdownRef.current.clientHeight;
 
@@ -118,8 +128,6 @@ export function CustomDropdown({
         const containerHeight = window.innerHeight;
 
         const containerWidth = window.innerWidth;
-
-        dropdownRef.current.style.zIndex = String(zIndexCounter++);
 
         let _top = captionBounds.top + captionBounds.height + padding;
 
@@ -162,11 +170,15 @@ export function CustomDropdown({
             right = null;
         } else if (align === "right") {
             left = null;
-            right = containerWidth - captionBounds.left;
+            // Line the dropdown's right edge up with its caption's.
+            right = containerWidth - captionBounds.right;
         } else if (align === "center") {
             const width = contentWidth;
+            // Centre the dropdown under the middle of its caption.
             left = width
-                ? captionBounds.left - contentWidth / 2
+                ? captionBounds.left +
+                  captionBounds.width / 2 -
+                  contentWidth / 2
                 : captionBounds.left + 5;
             right = null;
         }
@@ -195,7 +207,37 @@ export function CustomDropdown({
             containerWidth - contentWidth - 5
         );
         //
-    }, [isDropdownShoing, dropdownRef.current]);
+    }, []);
+
+    // The dropdown mounts in a lazily loaded portal and its content can load
+    // after it opens, so place it again whenever it or its caption resizes.
+    const [dropdownEl, setDropdownEl] = useState<HTMLDivElement>(null);
+
+    const setDropdownRef = useEventCallback((el: HTMLDivElement) => {
+        dropdownRef.current = el;
+        if (el) setDropdownEl(el);
+        if (typeof addTogglerRef === "function") addTogglerRef(el);
+    }, []);
+
+    useIsoLayoutEffect(() => {
+        if (!isDropdownShoing || dropdownEl == null) return;
+        dropdownEl.style.zIndex = String(zIndexCounter++);
+        place();
+        const observer =
+            typeof ResizeObserver === "undefined"
+                ? null
+                : new ResizeObserver(() => place());
+        observer?.observe(dropdownEl);
+        const anchorEl =
+            (anchor && captionRef.current?.closest(anchor)) ||
+            captionRef.current;
+        if (anchorEl) observer?.observe(anchorEl);
+        window.addEventListener("resize", place);
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener("resize", place);
+        };
+    }, [isDropdownShoing, dropdownEl]);
 
     useEffect(() => {
         //
@@ -283,11 +325,7 @@ export function CustomDropdown({
                 <Portal>
                     <DropdownContent
                         data-studio-surface
-                        ref={(el) => {
-                            dropdownRef.current = el;
-                            if (typeof addTogglerRef === "function")
-                                addTogglerRef(el);
-                        }}
+                        ref={setDropdownRef}
                         className={`m-dropdown m-dropdown m-${className}`}
                         style={
                             !isDropdownShoing

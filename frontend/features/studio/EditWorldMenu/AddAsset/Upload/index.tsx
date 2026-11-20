@@ -23,6 +23,7 @@ import { UploadOpt } from "../shared/AssetTypes";
 import { PanelButton, PanelEmptyState } from "../shared/PanelContent";
 
 import { LibrarySearch } from "../shared/Library";
+import { tx } from "@components/context/I18nContext";
 
 const swrOptions = {
     revalidateOnFocus: false,
@@ -115,10 +116,15 @@ export function AddUpload({
         // Insert the new upload into the cached list instead of re-reading the
         // whole library (which cost up to MAX_UPLOADS doc reads on every upload).
         // Dedupe by hash so re-uploading an existing file just moves it to top.
-        userUploads.mutate((current: UserAsseUpload[] = []) => {
+        const moveToTop = (current: UserAsseUpload[]) => {
+            if (!current) return current;
             const without = current.filter((it) => it.hash !== hash);
+            // A reused file keeps the name it already has in the library.
+            const known = current.find((it) => it.hash === hash);
+            // It also keeps what the library knows about it (optimized files).
             const entry = {
-                name,
+                ...known,
+                name: known?.name ?? name,
                 hash,
                 url,
                 mimeType,
@@ -126,7 +132,18 @@ export function AddUpload({
                 lastModified: Date.now(),
             } as UserAsseUpload;
             return [entry, ...without];
-        }, false);
+        };
+        if (!userUploads.data) {
+            // Library not loaded yet. A local edit now would make SWR drop
+            // the first fetch, so fetch the library first, then move this
+            // upload to the top (a reused file keeps its old date there).
+            try {
+                await userUploads.mutate();
+            } catch {
+                // The list shows its own error and retry.
+            }
+        }
+        userUploads.mutate(moveToTop, false);
 
         let asset = await formatUploadedAsset(
             { url, name, hash, mimeType },
@@ -187,7 +204,7 @@ export function AddUpload({
                 <LibrarySearch
                     value={search}
                     onChange={setSearch}
-                    placeholder="Search uploads"
+                    placeholder={tx("Search uploads")}
                 >
                     <MimeFilterDropdown
                         value={filter}
@@ -201,7 +218,9 @@ export function AddUpload({
                     <UploadAsset onUploadFinished={handleUploadFinished} />
                     {userUploads.error ? (
                         <div className="library-error">
-                            <PanelEmptyState title="Couldn't load uploads" />
+                            <PanelEmptyState
+                                title={tx("Couldn't load uploads")}
+                            />
                             <PanelButton
                                 type="button"
                                 onClick={() => userUploads.mutate()}
@@ -301,11 +320,11 @@ export function AddUpload({
                             <PanelEmptyState
                                 title={
                                     filter === "all" && !search
-                                        ? "No uploads yet"
-                                        : "No matching files"
+                                        ? tx("No uploads yet")
+                                        : tx("No matching files")
                                 }
                             >
-                                Images, video, audio and 3D models.
+                                {tx("Images, video, audio and 3D models.")}
                             </PanelEmptyState>
                         </div>
                     )}

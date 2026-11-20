@@ -14,7 +14,7 @@ export const ADMINS = ["0xf02cb30a8963e6fe8cc7650a6169e603357650ad", "0xfd220048
 //   protection). Defaults to prod.
 // - VERCEL_PROTECTION_BYPASS: the "Protection Bypass for Automation" secret
 //   from Vercel project settings, sent as x-vercel-protection-bypass.
-const API_URL = process.env.ONCYBER_API_URL || "https://oncyber.io/api";
+const API_URL = process.env.ONCYBER_API_URL || "https://www.oncyber.com/api";
 
 const FETCH_TIMEOUT_MS = 5000;
 

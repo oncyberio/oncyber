@@ -77,9 +77,43 @@ const Container = styled.div`
     max-height: calc(100vh - var(--edit-asset-top) - 32px);
 
     @media (max-width: 600px) {
-        max-height: 30vh;
+        /* The bottom sheet around it sets the height on phones. */
+        max-height: none;
+        padding: 12px 18px 0;
+        border: 0;
         border-radius: 0 !important;
         width: 100% !important;
+        background: transparent;
+        box-shadow: none;
+
+        & > .header {
+            padding-bottom: 10px;
+            & > .side-action {
+                gap: 0;
+                & > * {
+                    display: grid;
+                    place-items: center;
+                    width: 40px;
+                    height: 40px;
+                }
+                img {
+                    filter: invert(0.8) !important;
+                }
+            }
+        }
+        & > .body {
+            padding-bottom: 16px;
+        }
+        & > .body > .cl-help > .cl-desc,
+        & > .body > .cl-help > .cl-tip {
+            font-size: 13px;
+            line-height: 18px;
+        }
+        /* The property editor is built for a mouse (24px rows). Scale it up
+           as a whole so every row, label and field grows together. */
+        & > .body > .cl-gui {
+            zoom: 1.25;
+        }
     }
 
     color: #ffffff;

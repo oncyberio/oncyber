@@ -1,5 +1,14 @@
 export type FeedCategory = "most-visited" | "latest" | "staff" | "oncyberlabs";
 
+/** A labelled part of the landing grid (see LandingCard.section). */
+export type GridSection =
+    | "results"
+    | "staff"
+    | "popular"
+    /** In Create: the visitor's own spaces, then the template catalog. */
+    | "spaces"
+    | "templates";
+
 export interface LandingCard {
     id: string;
     title: string;
@@ -16,6 +25,11 @@ export interface LandingCard {
     collections: string[];
     tags: string[];
     imageUrls: string[];
+    /**
+     * Several covers shown as one: a card that stands for many spaces draws
+     * them as leaning strips. Falls back to `imageUrls` under two.
+     */
+    collage?: string[];
     portrait: boolean;
     buildStatus?: string;
     actionLabel?: string;
@@ -23,11 +37,17 @@ export interface LandingCard {
     templateStatus?: "free" | "owned" | "uncollected" | "checking" | "scan";
     /** This template is being turned into a space; the card shows its progress. */
     opening?: boolean;
+    /** What the card says while `opening`; defaults to creating a space. */
+    openingLabel?: string;
+    /** A card for one of the visitor's own spaces opens it in Studio. */
+    spaceId?: string;
     /**
-     * Set on the popular worlds that follow the staff picks in the staff
-     * feed; the first one carries the section's label.
+     * The labelled part of the grid a card belongs to: the popular worlds
+     * after the staff picks in the staff feed, or, on a page answering a link
+     * that found nothing, the search results, staff picks and popular worlds.
+     * Each section starts a new column under its label.
      */
-    section?: "popular";
+    section?: GridSection;
 }
 
 export interface DiscoveryFilters {
@@ -50,4 +70,22 @@ export interface LandingPageProps {
     /** Feed opened by a URL without a category (staff picks once there are 5+). */
     defaultCategory?: FeedCategory;
     initialError: boolean;
+    /**
+     * Set when the page answers a link that found nothing (status 404): the
+     * words read from that link, which the page opens searching for, and the
+     * staff picks and popular worlds shown after the results.
+     */
+    notFound?: { query: string; sections: LandingCard[] };
+    /** Set by a profile link (/@name): the lobby opens with their sidebar. */
+    profile?: VisitedProfile;
+    /** That person's public spaces, as links for the page's HTML. */
+    profileSpaces?: { id: string; name: string; path: string }[];
+}
+
+/** The public part of an account, as a profile link shows it. */
+export interface VisitedProfile {
+    id?: string;
+    username?: string;
+    walletId?: string;
+    avatar?: string;
 }

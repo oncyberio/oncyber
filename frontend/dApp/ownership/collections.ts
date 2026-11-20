@@ -1,5 +1,5 @@
 import { BigNumber, ethers } from "ethers";
-import { nodeEnv } from "env";
+import { nodeEnv } from "@env";
 import { isOwnerOfEtherumNft } from "@utils/ethereumAssets";
 import {
     isEthereumAddress,
@@ -9,11 +9,18 @@ import {
 import { CollectionData } from "@uitypes/experience";
 import { isOwnerOfTezosNft } from "@utils/tezosAssets";
 
-import ABI_ERC165 from "config/ethereum/ERC165_abi.json";
-import ABI_ERC721 from "config/ethereum/ERC721_abi.json";
-import ABI_ERC1155 from "config/ethereum/ERC1155_abi.json";
+import ABI_ERC165 from "@config/ethereum/ERC165_abi.json";
+import ABI_ERC721 from "@config/ethereum/ERC721_abi.json";
+import ABI_ERC1155 from "@config/ethereum/ERC1155_abi.json";
 import { Failure, Result, Success } from "@utils/js";
 import { isOwnerOfSolanaNft } from "@utils/solanaAssets";
+
+// EVM chains gating can check on-chain, and the RPC each one uses.
+const EVM_RPC: Partial<Record<CollectionData["blockchain"], () => string>> = {
+    ethereum: () => nodeEnv.ETH_RPC,
+    base: () => nodeEnv.BASE_RPC,
+    shape: () => nodeEnv.SHAPE_RPC,
+};
 
 const ERC1155InterfaceId = "0xd9b67a26";
 const ERC721InterfaceId = "0x80ac58cd";
@@ -48,7 +55,7 @@ async function ETH_isCollectionOwner(
     }
 
     const provider = new ethers.providers.JsonRpcProvider(
-        blockchain === "base" ? nodeEnv.BASE_RPC : nodeEnv.ETH_RPC
+        (EVM_RPC[blockchain] || EVM_RPC.ethereum)()
     );
 
     // Normally we should always have this info when we setup the nft gating
@@ -75,7 +82,17 @@ async function ETH_isCollectionOwner(
 
         let ids = [];
 
-        let ts = await contract.queryFilter(filter);
+        let ts;
+
+        try {
+            ts = await contract.queryFilter(filter);
+        } catch (err) {
+            // Finding the wallet's token ids scans the chain's whole
+            // history, which public RPCs refuse (Shape's allows 10,000
+            // blocks per query). Ask OpenSea when we know the collection.
+            if (!slug) throw err;
+            return isOwnerOfEtherumNft(walletId, { slug, blockchain });
+        }
 
         ts.forEach((t) => {
             ids.push(t.args.id);
@@ -133,12 +150,12 @@ export async function isCollectionOwner(
     const { blockchain } = collection;
 
     try {
-        if (blockchain === "ethereum" || blockchain === "base") {
-            return ETH_isCollectionOwner(walletId, collection);
+        if (Object.prototype.hasOwnProperty.call(EVM_RPC, blockchain)) {
+            return await ETH_isCollectionOwner(walletId, collection);
         } else if (blockchain === "tezos") {
-            return TEZOS_isCollectionOwner(walletId, collection);
+            return await TEZOS_isCollectionOwner(walletId, collection);
         } else if (blockchain === "solana") {
-            return SOLANA_isCollectionOwner(walletId, collection);
+            return await SOLANA_isCollectionOwner(walletId, collection);
         } else {
             return Failure("Invalid blockchain param " + blockchain);
         }

@@ -10,6 +10,14 @@ import {
 } from "@features/landing-carousel/data";
 import { readStaffPickIds } from "@utils/staffPicks";
 import {
+    fetchUserByUsername,
+    fetchUserByWalletId,
+} from "@api/accounts/user/utils";
+import { lookUpProfile } from "./visitedProfile";
+import { notFoundLanding } from "./notFoundLanding";
+import { profileSpaceLinks } from "./ownerSpaces";
+import { profileHandle } from "@utils/profileSeo";
+import {
     FeedCategory,
     LandingFeed,
     LandingPageProps,
@@ -108,37 +116,123 @@ export function readLandingFeed(
     });
 }
 
+/**
+ * The landing's discovery props for a request: its filters, the feed the
+ * page opens on (staff picks once there are enough, else Popular) and its
+ * first page. Also serves pages that show the landing in place of a link that
+ * found nothing.
+ */
+export async function landingFeedProps(
+    query: Record<string, unknown>,
+    // A page that opens on a search fetches it in the browser instead.
+    { readFeed = true }: { readFeed?: boolean } = {}
+): Promise<
+    Pick<
+        LandingPageProps,
+        "initialFeed" | "initialFilters" | "defaultCategory" | "initialError"
+    >
+> {
+    // Staff picks lead once there are enough of them; until then Popular does.
+    const staffPickCount = await readStaffPickIds()
+        .then((ids) => ids.length)
+        .catch(() => 0);
+    const defaultCategory = defaultCategoryFor(staffPickCount);
+    setDefaultFeedCategory(defaultCategory);
+    const initialFilters = parseFilters(query);
+    if (!readFeed)
+        return {
+            initialFeed: { cards: [], cursor: "", hasMore: false },
+            initialFilters,
+            defaultCategory,
+            initialError: false,
+        };
+    const feed = await measureSsrStage("ssr_feed", () =>
+        readLandingFeed(initialFilters.category)
+    ).catch(() => null);
+    return {
+        initialFeed: feed ?? { cards: [], cursor: "", hasMore: false },
+        initialFilters,
+        defaultCategory,
+        initialError: !feed,
+    };
+}
+
 export const landingServerSideProps: GetServerSideProps<LandingPageProps> = (
     context
 ) =>
     withSsrTiming(context.res, async () => {
-        // Staff picks lead once there are enough of them; until then Popular does.
-        const staffPickCount = await readStaffPickIds()
-            .then((ids) => ids.length)
-            .catch(() => 0);
-        const defaultCategory = defaultCategoryFor(staffPickCount);
-        setDefaultFeedCategory(defaultCategory);
-        const initialFilters = parseFilters(context.query);
-        const [authResult, feedResult] = await Promise.allSettled([
+        const [authResult, feedProps, lookup] = await Promise.all([
             measureSsrStage("ssr_auth", () =>
                 feedBasicServerSideProps(context)
+            ).then(
+                (value) => ({ status: "fulfilled" as const, value }),
+                () => ({ status: "rejected" as const })
             ),
-            measureSsrStage("ssr_feed", () =>
-                readLandingFeed(initialFilters.category)
-            ),
+            landingFeedProps(context.query),
+            // A profile link (/@name) lands here with ?profile=name.
+            context.query.profile
+                ? lookUpProfile(
+                      context.query.profile,
+                      fetchUserByUsername,
+                      fetchUserByWalletId
+                  )
+                : null,
         ]);
+        const profile = lookup?.profile ?? null;
+        const auth =
+            authResult.status === "fulfilled"
+                ? authResult.value.props
+                : { authenticated: false };
+        // The name came from a profile link (/@name, see next.config.js).
+        if (context.query.profileLink === "1") {
+            const asked = String(context.query.profile ?? "");
+            // The accounts could not be read. That is not "nobody by that
+            // name": the lobby opens without the panel, and the answer says
+            // to come back, so a search engine keeps the person's page.
+            if (!profile && lookup?.failed) {
+                context.res.statusCode = 503;
+                context.res.setHeader("Retry-After", "120");
+            }
+            // Nobody by that name: a real 404, searching for the name.
+            else if (!profile) {
+                const {
+                    lobby,
+                    profile: _name,
+                    profileLink,
+                    ...rest
+                } = context.query;
+                return {
+                    props: {
+                        ...auth,
+                        ...(await notFoundLanding(
+                            context.res,
+                            rest,
+                            `/@${asked}`
+                        )),
+                    },
+                };
+            }
+            // One address per person: their username when they have one.
+            const handle = profileHandle(profile);
+            if (handle && handle !== asked.replace(/^@/, ""))
+                return {
+                    redirect: {
+                        destination: `/@${encodeURIComponent(handle)}`,
+                        permanent: true,
+                    },
+                };
+        }
         return {
             props: {
-                ...(authResult.status === "fulfilled"
-                    ? authResult.value.props
-                    : { authenticated: false }),
-                initialFeed:
-                    feedResult.status === "fulfilled"
-                        ? feedResult.value
-                        : { cards: [], cursor: "", hasMore: false },
-                initialFilters,
-                defaultCategory,
-                initialError: feedResult.status === "rejected",
+                ...auth,
+                ...feedProps,
+                ...(profile
+                    ? {
+                          profile,
+                          // Their spaces, as links in the page's HTML.
+                          profileSpaces: await profileSpaceLinks(profile.id),
+                      }
+                    : {}),
             },
         };
     });

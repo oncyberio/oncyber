@@ -7,6 +7,7 @@ import { noop } from "lodash";
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { tx } from "@components/context/I18nContext";
 
 export default function SceneUpdating({ onClose, step }) {
     //
@@ -49,16 +50,34 @@ export default function SceneUpdating({ onClose, step }) {
                     <Success>
                         <div>
                             <CheckCircle color=" #fff" />
-                            <h1>Success!</h1>
-                            <p>The destination's physics have been updated.</p>
+                            <h1>{tx("Success!")}</h1>
+                            <p>
+                                {tx(
+                                    "The destination's physics have been updated."
+                                )}
+                            </p>
                         </div>
                     </Success>
                 ) : (
-                    <State height="220px" type="pending" title="Pending…" className="pending" description="Updating the physics. This may take a few minutes." />
+                    <State
+                        height="220px"
+                        type="pending"
+                        title={tx("Pending…")}
+                        className="pending"
+                        description={tx(
+                            "Updating the physics. This may take a few minutes."
+                        )}
+                    />
                 )}
                 <Footer>
-                    <RoundButton isLight={true} className="close" onClick={onClose} background="#1e1e1e" disabled={step !== "success"}>
-                        Got it
+                    <RoundButton
+                        isLight={true}
+                        className="close"
+                        onClick={onClose}
+                        background="#1e1e1e"
+                        disabled={step !== "success"}
+                    >
+                        {tx("Got it")}
                     </RoundButton>
                 </Footer>
             </Container>

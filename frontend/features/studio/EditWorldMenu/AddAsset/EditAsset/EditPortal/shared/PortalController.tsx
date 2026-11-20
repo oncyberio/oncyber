@@ -8,6 +8,7 @@ import { useEditWorld } from "@features/studio/EditWorldMenu/context/WorldEditCo
 import { useEventCallback } from "@components/hooks/useEventCallback";
 import { Label } from "@features/studio/styles/Label";
 import { ArtworkCoordinates } from "../../EditArtwork/ArtworkCoordinates";
+import { tx } from "@components/context/I18nContext";
 
 type SaveState = "idle" | "Disconnecting" | "Changing-Shape";
 
@@ -37,11 +38,11 @@ export default function PortalController() {
             {spawn && <ArtworkCoordinates />}
 
             {saveState === "Disconnecting" ? (
-                <Label>Disconnecting portal</Label>
+                <Label>{tx("Disconnecting portal")}</Label>
             ) : (
                 <Command onClick={handleDisconnectPortal}>
                     <img src="/v2/icons/portal-disconnect.svg" />
-                    Disconnect Portal
+                    {tx("Disconnect Portal")}
                 </Command>
             )}
         </Container>

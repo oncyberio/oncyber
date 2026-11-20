@@ -24,7 +24,7 @@ const Feedback = dynamic(() => import("../Modals/Feedback"));
 
 const Extra = dynamic(() => import("../Modals/Extra"));
 
-const ProfileExplore = dynamic(() => import("../Profile/Explore"));
+const PersonSidebar = dynamic(() => import("../Profile/PersonSidebar"));
 
 const AudioSharing = dynamic(() => import("../Modals/AudioSharing"));
 
@@ -116,7 +116,6 @@ export default function Toolbar({
         currentTab !== "help" &&
         currentTab !== "explore" &&
         currentTab !== "profile" &&
-        currentTab !== "profile-explore" &&
         currentTab !== "select-media-placeholder"
     ) {
         content = <p>{t(tabs[currentTab]?.title)}</p>;
@@ -151,9 +150,9 @@ export default function Toolbar({
             />
         ) : currentTab === "voiceRequests" ? (
             <VoiceRequests />
-        ) : currentTab === "profile-explore" ? (
-            <ProfileExplore />
         ) : null;
+    // Someone picked in the space opens the person sidebar, not a panel.
+    if (currentTab === "profile-explore") return <PersonSidebar />;
     if (embedded) return panelContent;
 
     return (

@@ -24,6 +24,7 @@ import {
     FormSep,
     FormLabelAction,
 } from "../styles/Form";
+import { tx } from "@components/context/I18nContext";
 
 const labelStyle = {
     fontWeight: 400,
@@ -192,11 +193,12 @@ export function SpawnPoint() {
     return (
         <Container>
             <Form>
-                <FormInfo>Set custom spawn point</FormInfo>
+                <FormInfo>{tx("Set custom spawn point")}</FormInfo>
                 <FormLabelWrapper>
                     <FormLabel style={labelStyle}>
-                        You can choose coordinates or set you current location
-                        in the studio as a starting point
+                        {tx(
+                            "You can choose coordinates or set you current location in the studio as a starting point"
+                        )}
                     </FormLabel>
                     <Toggle
                         disabled={!canEdit}
@@ -212,7 +214,7 @@ export function SpawnPoint() {
                 }`}
             >
                 <Form>
-                    <Label>Paste coordinates</Label>
+                    <Label>{tx("Paste coordinates")}</Label>
                     <Input
                         hasError={!!errors.spawn}
                         placeholder={defSpawn}
@@ -239,7 +241,7 @@ export function SpawnPoint() {
                         size={16}
                         style={{ filter: "invert(1)", paddingTop: "2px" }}
                     />
-                    <span>Use my current locations</span>
+                    <span>{tx("Use my current locations")}</span>
                 </FormLabelAction>
             </div>
         </Container>

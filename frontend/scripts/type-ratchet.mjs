@@ -175,13 +175,15 @@ async function main(argv) {
         console.log(`Running tsc --noEmit (heap ${heapMb} MB)…`);
         const { code, signal, out } = await runTsc({ heapMb });
         text = out;
-        // tsc exits 0 with no errors and 2 with errors it reported. Anything
-        // else (out of memory, a crash) is not a type-check result.
+        // tsc exits 0 with no errors. Diagnostics exit 2 on a fresh incremental
+        // build and 1 when cached errors are replayed without emitting output.
+        // Require actual diagnostics for either error status; a crash or an
+        // interrupted compiler is not a type-check result.
         const parsed = parseTscOutput(out);
         if (
             signal ||
-            (code !== 0 && code !== 2) ||
-            (code === 2 && !parsed.size)
+            (code !== 0 && code !== 1 && code !== 2) ||
+            (code !== 0 && !parsed.size)
         ) {
             process.stdout.write(out);
             console.error(

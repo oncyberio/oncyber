@@ -2,6 +2,7 @@
 import { api } from "@utils/rpc/server";
 import { updateAssetMediaDb as updateAssetMedia } from "./updateAssetMediaDb";
 import { uploadMedia } from "./uploadMedia";
+import { createUploadUrl } from "./createUploadUrl";
 
 export const config = {
     api: {
@@ -22,6 +23,8 @@ const UploaderService = {
     updateAssetMedia,
 
     uploadMedia,
+
+    createUploadUrl,
     //...
 };
 

@@ -19,6 +19,7 @@ import { showConfirm } from "@components/Dialogs";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 
 import { ProviderButtonsWrapper } from "@components/modals/SignupProvider/ProviderButtonsWrapper";
+import { tx } from "@components/context/I18nContext";
 
 export default function AccountLink(props) {
     const { userData, dispatch } = useContext(UserContext);
@@ -121,7 +122,7 @@ export default function AccountLink(props) {
                         onClick={() => setIsLinkOpen(true)}
                     >
                         <IconImg name="users" mode="light" size={21} />
-                        <p>Link Account</p>
+                        <p>{tx("Link Account")}</p>
                     </IconButton>
 
                     {error ? (

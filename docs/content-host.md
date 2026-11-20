@@ -95,14 +95,13 @@ stop a document already running in a visitor's browser or the external site.
 ## Optional engine bridge
 
 Copy `frontend/public/oncyber-content.js` into the game's static assets, or serve
-it from the Oncyber deployment. The parent origin defaults to
-`https://oncyber.io`; set `data-host-origin` explicitly for an alternate host.
+it from the Oncyber deployment. Without `data-host-origin` it accepts any of
+Oncyber's own domains as the parent page (`https://www.oncyber.com`, and the
+older `oncyber.io`); set `data-host-origin` to accept only one host, such as a
+preview deployment or a local server.
 
 ```html
-<script
-    src="/oncyber-content.js"
-    data-host-origin="https://oncyber.io"
-></script>
+<script src="/oncyber-content.js"></script>
 <script>
     // After the first rendered frame:
     window.oncyberContent?.ready().catch(console.error);

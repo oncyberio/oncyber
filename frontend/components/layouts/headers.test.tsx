@@ -2,7 +2,7 @@
 import React from "react";
 import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
-import Headers, { fontPreloadsFor, SITE_TITLE } from "./headers";
+import Headers, { fontPreloadsFor, showsOwnImage, SITE_TITLE } from "./headers";
 import { siteOrigin } from "@utils/siteOrigin";
 
 let mockRouter: { pathname: string; query: Record<string, string> };
@@ -149,10 +149,12 @@ test("the preview image URL is absolute for each deployment", () => {
     expect(
         siteOrigin({
             VERCEL_ENV: "production",
-            VERCEL_PROJECT_PRODUCTION_URL: "oncyber.io",
+            VERCEL_PROJECT_PRODUCTION_URL: "www.oncyber.com",
         })
-    ).toBe("https://oncyber.io");
-    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe("https://oncyber.io");
+    ).toBe("https://www.oncyber.com");
+    expect(siteOrigin({ VERCEL_ENV: "production" })).toBe(
+        "https://www.oncyber.com"
+    );
     expect(
         siteOrigin({
             VERCEL_ENV: "preview",
@@ -161,4 +163,91 @@ test("the preview image URL is absolute for each deployment", () => {
         })
     ).toBe("https://oncyber-git-x-oncyber.vercel.app");
     expect(siteOrigin({})).toBe("http://localhost:13000");
+});
+
+function headOf(pathname: string) {
+    mockRouter = { pathname, query: {} };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<Headers />));
+    const result = {
+        title: container.querySelector("title")?.textContent,
+        description: container
+            .querySelector('meta[name="description"]')
+            ?.getAttribute("content"),
+        canonical: container
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute("href"),
+        ogUrl: container
+            .querySelector('meta[property="og:url"]')
+            ?.getAttribute("content"),
+        siteName: container
+            .querySelector('meta[property="og:site_name"]')
+            ?.getAttribute("content"),
+        jsonLd: container.querySelector('script[type="application/ld+json"]')
+            ?.textContent,
+    };
+    act(() => root.unmount());
+    return result;
+}
+
+test("the home page names its own address and describes the site once", () => {
+    const head = headOf("/");
+    expect(head.title).toBe(SITE_TITLE);
+    expect(head.canonical).toMatch(/^https:\/\/[^/]+\/$/);
+    expect(head.ogUrl).toBe(head.canonical);
+    expect(head.siteName).toBe("oncyber");
+    const types = JSON.parse(head.jsonLd)["@graph"].map(
+        (node) => node["@type"]
+    );
+    expect(types).toEqual(["Organization", "WebSite"]);
+    expect(headOf("/about").jsonLd).toBeUndefined();
+});
+
+test("pages that repeated the home title say which page they are", () => {
+    const about = headOf("/about");
+    expect(about.title).toMatch(/^About oncyber/);
+    expect(about.description).not.toBe(headOf("/").description);
+    expect(about.canonical).toMatch(/\/about$/);
+    expect(headOf("/privacy").title).toBe("Privacy notice · oncyber");
+    expect(headOf("/studio").title).toBe("Studio · oncyber");
+});
+
+test("pages that set their own address, or should have none, get no default", () => {
+    // Spaces, profiles and docs name theirs; a missing link is not indexed.
+    for (const pathname of ["/[slug]", "/spaces/[id]", "/docs/[[...slug]]"])
+        expect(headOf(pathname).canonical).toBeUndefined();
+    expect(headOf("/destinations").canonical).toBeUndefined();
+});
+
+test("the share card's size is claimed only where the share card is the image", () => {
+    const width = (pathname: string, query: Record<string, string> = {}) => {
+        mockRouter = { pathname, query };
+        const container = document.createElement("div");
+        const root = createRoot(container);
+        act(() => root.render(<Headers />));
+        const value = container
+            .querySelector('meta[property="og:image:width"]')
+            ?.getAttribute("content");
+        act(() => root.unmount());
+        return value;
+    };
+    expect(width("/")).toBe("1200");
+    expect(width("/[slug]", { slug: "@6529" })).toBe("1200");
+    expect(width("/[slug]", { slug: "frahm-gallery" })).toBeUndefined();
+    expect(width("/spaces/[id]", { id: "abc" })).toBeUndefined();
+    // Templates preview with their own cover too.
+    expect(width("/destinations/[id]", { id: "x1" })).toBeUndefined();
+    expect(width("/mints/[slug]", { slug: "x1" })).toBeUndefined();
+    expect(showsOwnImage("/about")).toBe(false);
+});
+
+test("a page that found nothing names no address", () => {
+    mockRouter = { pathname: "/", query: {} };
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<Headers notFound />));
+    expect(container.querySelector('link[rel="canonical"]')).toBeNull();
+    expect(container.querySelector('meta[property="og:url"]')).toBeNull();
+    act(() => root.unmount());
 });

@@ -15,7 +15,7 @@ import {
     createGridLayout,
     cylinderMetrics,
     projectPoint,
-} from "./three/layout";
+} from "./grid/layout";
 
 jest.mock("@utils/urlUtils", () => ({ resize: (url: string) => url }));
 
@@ -341,6 +341,24 @@ describe("cylindrical grid", () => {
             expect(createGridLayout(cards.slice(0, 12)).sectionColumn).toBe(-1);
         }
     );
+    it("starts each labelled section of a missing link's page on its own column", () => {
+        const section = (index: number) =>
+            index < 3 ? "results" : index < 6 ? "staff" : "popular";
+        const mixed = cards.slice(0, 9).map((card, index) => ({
+            ...card,
+            section: section(index) as "results" | "staff" | "popular",
+        }));
+        const layout = createGridLayout(mixed, 2, 2);
+        expect(layout.sections).toEqual([
+            { column: 0, section: "results" },
+            { column: 2, section: "staff" },
+            { column: 4, section: "popular" },
+        ]);
+        expect(layout.cells[3]).toMatchObject({ row: 0, column: 2 });
+        expect(layout.cells[6]).toMatchObject({ row: 0, column: 4 });
+        // The first labelled section after the start, as before.
+        expect(layout.sectionColumn).toBe(2);
+    });
     it("does not move existing cards when another page is appended", () => {
         expect(createGridLayout(cards).cells.slice(0, 30)).toEqual(
             createGridLayout(cards.slice(0, 30)).cells

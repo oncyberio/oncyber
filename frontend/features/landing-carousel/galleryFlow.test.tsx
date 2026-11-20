@@ -36,6 +36,11 @@ jest.mock(
 );
 
 jest.mock("next/router", () => ({ useRouter: () => mockRouter }));
+// Create shows the worlds' loading grid until its catalog arrives; it
+// measures itself with a ResizeObserver, which jsdom lacks.
+jest.mock("./components/LoadingGrid", () => () => (
+    <div role="status" aria-label="Loading world previews" />
+));
 // Keep the page's dynamic-loading behavior while replacing only its expensive
 // grid renderer and authenticated catalog data source below.
 jest.mock("next/dynamic", () => ({
@@ -225,8 +230,14 @@ it("opens the gallery catalog in one click, activates its templates, and returns
     await render();
     const browseQuery = { ...mockRouter.query };
     expect(titles()).toEqual(["Rayan's gallery"]);
-    // Fetch the catalog in the background without replacing the browse cards.
-    expect(container.querySelector("[data-catalog]")).not.toBeNull();
+    // Browsing alone loads no templates.
+    expect(container.querySelector("[data-catalog]")).toBeNull();
+    // Reaching for Create fetches the catalog in the background, without
+    // replacing the browse cards.
+    await act(async () =>
+        container.querySelector<HTMLButtonElement>("#open-create").focus()
+    );
+    expect(titles()).toEqual(["Rayan's gallery"]);
     expect(
         container.querySelector("[data-catalog]").hasAttribute("hidden")
     ).toBe(true);
@@ -365,18 +376,41 @@ async function paintAndIdle() {
     });
 }
 
-it("warms the saved native avatar after painting without mounting or entering the lobby", async () => {
+it("opens the lobby from the home page when Jump In is pressed on a not-found page", async () => {
+    mockRouter.query = { slug: "no-such-space" };
+    mockRouter.pathname = "/[slug]";
+    await act(async () =>
+        root.render(
+            <LandingCarouselPage
+                {...props}
+                notFound={{ query: "no such space", sections: [] }}
+            />
+        )
+    );
+    await click(".jump-in");
+    // A full visit to the home page: this page keeps its 404 otherwise.
+    expect(mockRouter.push).toHaveBeenLastCalledWith("/?lobby=1");
+    expect(container.querySelector("[data-test-lobby]")).toBeNull();
+});
+
+it("leaves the lobby's avatar alone until a visitor reaches for Jump In", async () => {
     await render();
+    await paintAndIdle();
     expect(mockAvatarPreload).not.toHaveBeenCalled();
     expect(container.querySelector("[data-test-lobby]")).toBeNull();
-    await paintAndIdle();
+    await act(async () =>
+        container
+            .querySelector(".jump-in")
+            .dispatchEvent(new MouseEvent("pointerover", { bubbles: true }))
+    );
     expect(mockAvatarPreload).toHaveBeenCalledTimes(1);
     expect(mockAvatarPreload).toHaveBeenCalledWith(mockUserData);
+    // Warming is not entering: no lobby, no navigation.
     expect(container.querySelector("[data-test-lobby]")).toBeNull();
     expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
-it("uses Jump In focus to start the same avatar warm-up early and deduplicates idle work", async () => {
+it("uses Jump In focus to start the avatar warm-up, once", async () => {
     await render();
     await act(async () =>
         container.querySelector<HTMLButtonElement>(".jump-in").focus()
@@ -388,32 +422,35 @@ it("uses Jump In focus to start the same avatar warm-up early and deduplicates i
 });
 
 it("warms a newly selected avatar and retries an opportunistic failure on intent", async () => {
+    const reach = () =>
+        act(async () => {
+            const jumpIn =
+                container.querySelector<HTMLButtonElement>(".jump-in");
+            jumpIn.blur();
+            jumpIn.focus();
+        });
     await render();
-    await paintAndIdle();
+    await reach();
+    expect(mockAvatarPreload).toHaveBeenCalledTimes(1);
     mockAvatarPreload.mockRejectedValueOnce(
         new Error("temporary asset failure")
     );
     mockUserData = { ...mockUserData, settings: { vrm: "pepe" } };
     await render();
-    await paintAndIdle();
+    await reach();
+    expect(mockAvatarPreload).toHaveBeenCalledTimes(2);
     expect(mockAvatarPreload).toHaveBeenLastCalledWith(mockUserData);
-    await act(async () =>
-        container.querySelector<HTMLButtonElement>(".jump-in").focus()
-    );
+    // The failed attempt does not stand in the way of the next one.
+    await reach();
     expect(mockAvatarPreload).toHaveBeenCalledTimes(3);
 });
 
-it("defers avatar work while the document is hidden and cancels it on leaving browse", async () => {
+it("does not warm the avatar while the document is hidden", async () => {
     const hidden = jest.spyOn(document, "hidden", "get").mockReturnValue(true);
     await render();
-    await paintAndIdle();
+    await act(async () =>
+        container.querySelector<HTMLButtonElement>(".jump-in").focus()
+    );
     expect(mockAvatarPreload).not.toHaveBeenCalled();
     hidden.mockReturnValue(false);
-    await act(async () =>
-        document.dispatchEvent(new Event("visibilitychange"))
-    );
-    expect(mockFrames.size).toBe(1);
-    await render({ ...mockRouter.query, create: "gallery" });
-    await paintAndIdle();
-    expect(mockAvatarPreload).not.toHaveBeenCalled();
 });

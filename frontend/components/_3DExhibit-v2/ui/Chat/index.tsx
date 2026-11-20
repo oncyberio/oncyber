@@ -4,6 +4,7 @@ import { brandFoundation } from "@styles/brand";
 import LobbyChat, { ConversationSocial } from "@features/lobby/LobbyChat";
 import { conversationStyles } from "@features/lobby/conversationStyles";
 import { nativeChatPlacement } from "@features/content-host/experienceChrome";
+import SpaceVoiceRequests from "@features/content-host/SpaceVoiceRequests";
 import { useMultiplayer } from "../../context/MultiplayerProvider";
 import { CHAT_TYPES } from "../../context/hooks/useChat";
 import { useWorld } from "../../hooks/useWorld";
@@ -159,11 +160,14 @@ export default function Chat({
                 buttonRef={buttonRef}
                 hidden={hidden}
                 notices={
-                    Notice && (
-                        <div className="native-chat-notice" role="status">
-                            <Notice />
-                        </div>
-                    )
+                    <>
+                        <SpaceVoiceRequests />
+                        {Notice && (
+                            <div className="native-chat-notice" role="status">
+                                <Notice />
+                            </div>
+                        )}
+                    </>
                 }
             />
         </Container>

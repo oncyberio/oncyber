@@ -6,6 +6,7 @@ import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
 import Spinner from "@ui/components/Spinner";
 import { useState } from "react";
+import { tx } from "@components/context/I18nContext";
 
 export function Toggle360() {
     //
@@ -42,7 +43,7 @@ export function Toggle360() {
 
     return (
         <Field inline={true}>
-            <Label className="component-label"> Toggle 360 </Label>
+            <Label className="component-label"> {tx("Toggle 360")} </Label>
 
             {!loading ? (
                 <input

@@ -1,4 +1,7 @@
-import { failLobbyDestination, isLobbyDestinationPreparing } from "@utils/lobbyDestinationBridge";
+import {
+    failLobbyDestination,
+    isLobbyDestinationPreparing,
+} from "@utils/lobbyDestinationBridge";
 import { trackExperienceNavigation } from "@utils/experienceNavigation";
 import { finishWorldTravel } from "@utils/nativeWorldTravel";
 import { finishSpaceEntrance } from "@utils/spaceEntrance";
@@ -39,11 +42,21 @@ import dynamic from "next/dynamic";
 
 import Iframe from "@components/layouts/iframe";
 import { isSupportedRuntime } from "@utils/runtimeKind";
+import { watchChunkErrors, withChunkReload } from "@utils/browser/chunkReload";
 
-const AIProvider = dynamic(() => import("@features/ai/context/AIContext"));
+// Licensed faces only where the build has their files (docs/fonts.md). The
+// value is fixed at build time, so other builds leave the rules out.
+if (process.env.NEXT_PUBLIC_LICENSED_FONTS === "1")
+    require("@styles/licensed-fonts.css");
+
+const AIProvider = dynamic(
+    withChunkReload(() => import("@features/ai/context/AIContext"))
+);
 
 const EmailAuthHandler = dynamic(
-    () => import("@components/modals/SignupProvider/EmailAuthHandler"),
+    withChunkReload(
+        () => import("@components/modals/SignupProvider/EmailAuthHandler")
+    ),
     {
         ssr: false,
     }
@@ -52,6 +65,8 @@ const EmailAuthHandler = dynamic(
 const MyApp = ({ Component, pageProps }: AppProps) => {
     const router = useRouter();
     useEffect(() => trackExperienceNavigation(router), [router.events]);
+    // A script chunk that fails to load would leave the page blank.
+    useEffect(() => watchChunkErrors(), []);
 
     const world = useRef(null);
 
@@ -61,30 +76,56 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
     // Preparation documents render the same empty shell on the server and
     // first client pass. Decide parent ownership before mounting a runtime.
     const lobbyAttempt = router.query.__lobbyAttempt;
-    const lobbyRequest = typeof lobbyAttempt === "string" && /^[a-z0-9-]{20,80}$/i.test(lobbyAttempt);
+    const lobbyRequest =
+        typeof lobbyAttempt === "string" &&
+        /^[a-z0-9-]{20,80}$/i.test(lobbyAttempt);
     const [lobbyFrameChecked, setLobbyFrameChecked] = useState(false);
-    useEffect(() => { setLobbyFrameChecked(true); }, []);
+    useEffect(() => {
+        setLobbyFrameChecked(true);
+    }, []);
     const lobbyPreparation = lobbyFrameChecked && isLobbyDestinationPreparing();
     // Built-in worlds (pageProps.lobbyWorld) own the lobby bridge themselves.
-    const lobbyUnsupported = lobbyPreparation && !pageProps.lobbyWorld && (
-        !pageProps.experience ||
-        (pageProps.experience && !isSupportedRuntime(pageProps.experience.runtime)) ||
-        (pageProps.gatingError && pageProps.gatingError.type !== "success")
-    );
+    const lobbyUnsupported =
+        lobbyPreparation &&
+        !pageProps.lobbyWorld &&
+        (!pageProps.experience ||
+            (pageProps.experience &&
+                !isSupportedRuntime(pageProps.experience.runtime)) ||
+            (pageProps.gatingError &&
+                pageProps.gatingError.type !== "success"));
     useEffect(() => {
         if (!lobbyUnsupported) return;
-        if (pageProps.experience && !isSupportedRuntime(pageProps.experience.runtime)) {
-            failLobbyDestination("This world opens in its own page.", "unsupported");
-        } else if (pageProps.gatingError && pageProps.gatingError.type !== "success") {
-            failLobbyDestination("Open this world to complete its access requirements.", "gated");
+        if (
+            pageProps.experience &&
+            !isSupportedRuntime(pageProps.experience.runtime)
+        ) {
+            failLobbyDestination(
+                "This world opens in its own page.",
+                "unsupported"
+            );
+        } else if (
+            pageProps.gatingError &&
+            pageProps.gatingError.type !== "success"
+        ) {
+            failLobbyDestination(
+                "Open this world to complete its access requirements.",
+                "gated"
+            );
         } else {
-            failLobbyDestination("This world is unavailable for lobby preparation.", "unavailable");
+            failLobbyDestination(
+                "This world is unavailable for lobby preparation.",
+                "unavailable"
+            );
         }
     }, [lobbyUnsupported, pageProps]);
 
     useEffect(() => {
         // Error/profile/gated destinations must never remain behind the entrance.
-        if (!pageProps.experience || !isSupportedRuntime(pageProps.experience.runtime) || (pageProps.gatingError && pageProps.gatingError.type !== "success")) {
+        if (
+            !pageProps.experience ||
+            !isSupportedRuntime(pageProps.experience.runtime) ||
+            (pageProps.gatingError && pageProps.gatingError.type !== "success")
+        ) {
             finishSpaceEntrance();
             finishWorldTravel();
         }
@@ -134,7 +175,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
     if (isGL)
         return (
             <>
-                <Headers />
+                <Headers notFound={!!pageProps?.notFound} />
                 <Component {...pageProps} />
             </>
         );
@@ -143,7 +184,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
         <ThemeProvider>
             <I18nProvider>
                 <SnackbarProvider>
-                    <Headers />
+                    <Headers notFound={!!pageProps?.notFound} />
                     <UserProvider {...pageProps}>
                         <OnboardingProvider>
                             <AIProvider>

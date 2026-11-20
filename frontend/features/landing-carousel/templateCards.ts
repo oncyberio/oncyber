@@ -27,7 +27,21 @@ export function templateCover(room?: Parameters<typeof destinationCover>[0]) {
     return cover && cardImage(cover);
 }
 
-/** One gallery catalog: usable rooms and a blank canvas, then collectibles. */
+/** A world built from the blank canvas. */
+export const BLANK_CANVAS_COVER = "/landing-build/blank-canvas-1280.webp";
+
+/** Kept out of Create for now (Cyber Classic, Art Blocks gallery). */
+export const HIDDEN_TEMPLATES = ["classic", "artblocksgallery"];
+
+/** A build-from-scratch kit: it opens the empty void with its pieces. */
+export function isKitRoom(room?: { params?: { isFuture?: boolean } }) {
+    return room?.params?.isFuture === true;
+}
+
+/**
+ * One gallery catalog: usable rooms, a blank canvas, the build-from-scratch
+ * kits, then collectibles.
+ */
 export function createTemplateCards(
     groups: {
         owned: Destination[];
@@ -39,7 +53,9 @@ export function createTemplateCards(
     category: TemplateCategory,
     checking = false
 ): LandingCard[] {
-    const available = selectTemplateRooms(groups, query, category);
+    const available = selectTemplateRooms(groups, query, category).filter(
+        (room) => !HIDDEN_TEMPLATES.includes(room.slug)
+    );
     const collectible = new Set(groups.purchase.map((room) => room.slug));
     const roomCard = (room: Destination): LandingCard => {
         const ready = canUseTemplate(room, ownedRooms, checking);
@@ -78,6 +94,15 @@ export function createTemplateCards(
             portrait: false,
         };
     };
+    // A kit that can't be used yet opens its details, like other templates.
+    const kitCard = (room: Destination): LandingCard =>
+        canUseTemplate(room, ownedRooms, checking)
+            ? {
+                  ...roomCard(room),
+                  buildStatus: "Build with this kit",
+                  actionLabel: `Build with the ${room.name} kit`,
+              }
+            : roomCard(room);
     const starters: LandingCard[] = [
         {
             ...BUILD_CARDS[0],
@@ -85,13 +110,15 @@ export function createTemplateCards(
             title: "Blank canvas",
             room: "@@empty",
             href: "/studio?templateId=%40%40empty",
+            imageUrls: [BLANK_CANVAS_COVER],
             buildStatus: "Start from scratch",
             templateStatus: "free",
             description: "Build your own space in Studio.",
         },
     ];
+    const templates = available.filter((room) => !isKitRoom(room));
     return [
-        ...available
+        ...templates
             .filter((room) => !collectible.has(room.slug))
             .map(roomCard),
         ...(category === "all" || category === "free"
@@ -99,6 +126,7 @@ export function createTemplateCards(
                   matchesTemplate(query, card.title, card.description)
               )
             : []),
-        ...available.filter((room) => collectible.has(room.slug)).map(roomCard),
+        ...available.filter(isKitRoom).map(kitCard),
+        ...templates.filter((room) => collectible.has(room.slug)).map(roomCard),
     ];
 }

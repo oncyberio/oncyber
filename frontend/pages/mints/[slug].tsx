@@ -33,6 +33,8 @@ import { checkUserWhitelisted } from "@utils/checkUserWhitelisted";
 import { useCyberTranslation } from "@components/context/I18nContext";
 import InlineError from "@ui/components/InlineError";
 import { switchWalletNetwork, wrongNetworkMessage } from "@dapp/switchNetwork";
+import { SITE_DISPLAY_HOST } from "@utils/siteUrl";
+import DestinationSeo from "@components/seo/DestinationSeo";
 
 const chains = {
     "oncyber-ethereum-community": "ethereum",
@@ -483,6 +485,7 @@ function Minter({ destination, notfound }: MinterProps) {
 
     return (
         <Container>
+            <DestinationSeo destination={destination} kind="mint" />
             <ConnectWallet
                 noShowClose={false}
                 onlyEthereum={true}
@@ -528,8 +531,8 @@ function Minter({ destination, notfound }: MinterProps) {
                     {" "}
                     This page allows you to claim the above space if you had 1
                     or more {project || ""} at the time of the snapshot. <br />{" "}
-                    You will then be able to use it as your own at
-                    oncyber.io/studio.
+                    You will then be able to use it as your own at{" "}
+                    {SITE_DISPLAY_HOST}/studio.
                 </p>
                 <Details>
                     <Description>

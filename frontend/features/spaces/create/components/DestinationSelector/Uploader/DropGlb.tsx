@@ -11,6 +11,7 @@ import { SimpleDropzone } from "@utils/dropzone/index";
 import ProgressBar from "@ui/components/ProgressBar";
 import GlbFile from "@ui/icons/files/Glb";
 import { Button } from "@components/Form";
+import { tx } from "@components/context/I18nContext";
 
 export interface UploadGlbProps {
     message?: ReactNode;
@@ -67,7 +68,8 @@ export const DropGlb = forwardRef<HTMLDivElement, UploadGlbProps>(
                         <>
                             {message ?? (
                                 <p>
-                                    Drop your <b>.glb</b> file here
+                                    {tx("Drop your")} <b>{tx(".glb")}</b>{" "}
+                                    {tx("file here")}
                                 </p>
                             )}
 
@@ -97,11 +99,11 @@ export const DropGlb = forwardRef<HTMLDivElement, UploadGlbProps>(
 
                             <span className="hr">
                                 <div></div>
-                                <div>or</div>
+                                <div>{tx("or")}</div>
                                 <div></div>
                             </span>
                             <Button onClick={handleSelectFile}>
-                                Select file
+                                {tx("Select file")}
                             </Button>
                         </>
                     </div>

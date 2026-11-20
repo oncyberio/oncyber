@@ -3,6 +3,7 @@ import { AssetPreview } from "@components/_3DExhibit-v2/ui/AssetsMenu/shared/Art
 import EnterBg from "@ui/components/Icons/EnterBg";
 
 import styled from "styled-components";
+import { tx } from "@components/context/I18nContext";
 
 export function getPortalsSuggestions({
     onSelect,
@@ -55,8 +56,17 @@ export function getPortalsSuggestions({
 export function PortalSuggestion({ destination }) {
     return (
         <PlaceholderContainer>
-            <img src={destination?.info?.cHeroImg || `/images/sq_image_placeholder.png`} alt="preview" />
-            <div>{destination?.info?.headline || ("Untitled " + destination?.info?.room)}</div>
+            <img
+                src={
+                    destination?.info?.cHeroImg ||
+                    `/images/sq_image_placeholder.png`
+                }
+                alt={tx("preview")}
+            />
+            <div>
+                {destination?.info?.headline ||
+                    "Untitled " + destination?.info?.room}
+            </div>
         </PlaceholderContainer>
     );
 }

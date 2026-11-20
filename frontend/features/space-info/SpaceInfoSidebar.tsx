@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import styled from "styled-components";
 import Link from "next/link";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
-import { brandFoundation } from "@styles/brand";
+import { actionButton, brandFoundation, outlineAction } from "@styles/brand";
 import { baseTokens } from "@styles/tokens";
 import Icon from "@features/landing-carousel/components/Icon";
 import { STAFF_PICKS_DEFAULT_MIN } from "@features/landing-carousel/data";
@@ -32,6 +32,8 @@ type Props = {
     presence?: string;
     /** Open straight onto a profile (wallet or username). */
     initialProfile?: { id: string; name: string; avatar?: string };
+    /** Buttons under the opening profile, e.g. Teleport inside a space. */
+    profileActions?: React.ReactNode;
     onClose(): void;
 };
 
@@ -57,6 +59,7 @@ export default function SpaceInfoSidebar({
     fallback,
     presence,
     initialProfile,
+    profileActions,
     onClose,
 }: Props) {
     const dialog = useRef<HTMLDialogElement>(null);
@@ -116,7 +119,9 @@ export default function SpaceInfoSidebar({
         const previous = document.activeElement as HTMLElement;
         document.exitPointerLock?.();
         element.showModal();
-        element.querySelector<HTMLElement>(".close-info")?.focus();
+        // Focus arrives on the panel itself: Tab then reaches Back or Close,
+        // and a link that opens the panel does not land on a ringed button.
+        element.querySelector<HTMLElement>(".info-sidebar")?.focus();
         return () => {
             clearTimeout(closeTimer.current);
             element.close();
@@ -185,7 +190,7 @@ export default function SpaceInfoSidebar({
                 }
             }}
         >
-            <aside className="info-sidebar">
+            <aside className="info-sidebar" tabIndex={-1}>
                 <header className="info-header">
                     {view && (stack.length > 1 || !initialProfile) && (
                         <button
@@ -199,7 +204,8 @@ export default function SpaceInfoSidebar({
                     )}
                     <h2 id={`${id}-title`}>
                         {view?.kind === "profile"
-                            ? view.name
+                            ? // The person's name is in the panel, once.
+                              "Profile"
                             : view?.kind === "location"
                             ? info.location?.name
                             : guestbook
@@ -221,6 +227,11 @@ export default function SpaceInfoSidebar({
                             profileId={view.id}
                             fallbackName={view.name}
                             fallbackAvatar={view.avatar}
+                            actions={
+                                stack.length === 1 && initialProfile
+                                    ? profileActions
+                                    : undefined
+                            }
                             renderImage={(urls, className) => (
                                 <FallbackImage
                                     urls={urls}
@@ -575,6 +586,9 @@ const Surface = styled.dialog`
         outline: 2px solid var(--oc-accent);
         outline-offset: -2px;
     }
+    .info-sidebar:focus {
+        outline: none;
+    }
     .info-sidebar {
         width: 380px;
         max-width: 100%;
@@ -683,33 +697,148 @@ const Surface = styled.dialog`
     button.person:hover {
         background: var(--oc-surface);
     }
-    .profile-head {
+    /* Who this is, said once: the same summary as the account sidebar. */
+    .profile-summary {
         display: flex;
         align-items: center;
         gap: 16px;
-        padding: 4px 0 8px;
+        padding: 8px 0 4px;
     }
-    .profile-head .profile-portrait {
-        width: 64px;
-        height: 64px;
-        flex: 0 0 64px;
+    .profile-summary .profile-portrait {
+        width: 56px;
+        height: 56px;
+        flex: 0 0 56px;
     }
-    .profile-head > span {
+    .identity {
         min-width: 0;
         display: flex;
         flex-direction: column;
         gap: 4px;
     }
-    .profile-head strong {
+    .identity strong {
         font-size: 17px;
         font-weight: 500;
+        line-height: 1.4;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .profile-head .mono {
+    .identity-detail {
         font: 11px/1.5 var(--oc-mono);
         color: var(--oc-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Actions on a person (Teleport): the shared outline action. */
+    .profile-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+    }
+    .profile-actions button {
+        ${actionButton}
+        ${outlineAction}
+    }
+    /* The sections of a profile, one at a time. The same voice as the
+       landing's section switch: quiet mono labels, the open one in ink,
+       each count quieter than its name. It stays in reach while its
+       section scrolls. */
+    .profile-switch {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        gap: 20px;
+        margin: 16px -24px 0;
+        padding: 16px 24px 12px;
+        border-bottom: 1px solid var(--oc-line);
+        background: var(--oc-panel);
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .profile-switch::-webkit-scrollbar {
+        display: none;
+    }
+    .profile-switch button {
+        position: relative;
+        flex: 0 0 auto;
+        padding: 0;
+        border: 0;
+        background: none;
+        white-space: nowrap;
+        font: 400 11px/16px var(--oc-mono);
+        color: var(--oc-muted);
+        transition: color var(--oc-fast);
+    }
+    /* A larger target than the text itself. */
+    .profile-switch button::before {
+        content: "";
+        position: absolute;
+        inset: -12px -10px;
+    }
+    .profile-switch button:hover,
+    .profile-switch button[aria-selected="true"] {
+        color: var(--oc-ink);
+    }
+    .profile-switch button:focus-visible {
+        outline: 1px solid var(--oc-accent);
+        outline-offset: 4px;
+    }
+    .profile-switch .count {
+        margin-left: 6px;
+        color: var(--oc-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .profile-panel {
+        padding-top: 16px;
+    }
+    .profile-loading {
+        margin-top: 32px;
+    }
+    .profile-panel .profile-loading {
+        margin-top: 0;
+    }
+    .profile-panel .artworks + .profile-loading {
+        margin-top: 16px;
+    }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    /* Placeholders in the shape of the cards that are coming. */
+    .card-skeleton {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 12px;
+    }
+    .card-skeleton span,
+    .card-skeleton i {
+        display: block;
+        border-radius: var(--oc-radius-inset);
+        background: var(--oc-surface);
+        animation: info-skeleton 1.4s ease-in-out infinite alternate;
+    }
+    .card-skeleton span {
+        aspect-ratio: 16 / 10;
+    }
+    .card-skeleton[data-square] span {
+        aspect-ratio: 1;
+    }
+    .card-skeleton i {
+        width: 60%;
+        height: 10px;
+        margin-top: 10px;
+        border-radius: 4px;
     }
     .info-link.small {
         font-size: 12px;
@@ -751,39 +880,28 @@ const Surface = styled.dialog`
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .nft-tabs {
-        display: inline-flex;
-        gap: 2px;
-        padding: 3px;
-        margin-bottom: 14px;
-        border: 1px solid var(--oc-line);
-        border-radius: 999px;
+    /* Visit counts take the mono voice, as on the landing's cards. */
+    .space-cards .mono {
+        font: 10px/1.5 var(--oc-mono);
+        color: var(--oc-muted);
+        font-variant-numeric: tabular-nums;
     }
-    .nft-tabs button {
-        height: 30px;
-        padding: 0 16px;
-        border: 0;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--oc-secondary);
-        font-size: 13px;
+    .space-cover,
+    .thumb {
+        outline: 1px solid transparent;
+        outline-offset: -1px;
+        transition: outline-color var(--oc-fast);
     }
-    .nft-tabs button[aria-selected="true"] {
-        background: var(--oc-ink);
-        color: var(--oc-panel);
+    .space-cards a:hover .space-cover,
+    .artworks a:hover .thumb {
+        outline-color: var(--oc-line-strong);
     }
+    /* More of a list: the shared outline action, across the panel. */
     .load-more {
-        margin-top: 16px;
+        ${actionButton}
+        ${outlineAction}
         width: 100%;
-        height: 38px;
-        border: 1px solid var(--oc-line);
-        border-radius: 999px;
-        background: transparent;
-        color: var(--oc-ink);
-        font-size: 13px;
-    }
-    .load-more:hover {
-        background: var(--oc-surface);
+        margin-top: 20px;
     }
     .person .portrait {
         width: 36px;
@@ -986,6 +1104,14 @@ const Surface = styled.dialog`
             background: #0000;
         }
     }
+    @keyframes info-skeleton {
+        from {
+            opacity: 0.45;
+        }
+        to {
+            opacity: 1;
+        }
+    }
     @media (max-width: ${baseTokens.breakpoint.phone}px) {
         padding: 0;
         .info-sidebar {
@@ -999,6 +1125,12 @@ const Surface = styled.dialog`
         .info-scroll {
             padding: 4px 20px calc(24px + env(safe-area-inset-bottom, 0px));
         }
+        .profile-switch {
+            margin-left: -20px;
+            margin-right: -20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
         .close-info {
             width: 44px;
             height: 44px;
@@ -1008,7 +1140,9 @@ const Surface = styled.dialog`
         &::backdrop,
         .info-sidebar,
         &[data-closing] .info-sidebar,
-        &[data-closing]::backdrop {
+        &[data-closing]::backdrop,
+        .card-skeleton span,
+        .card-skeleton i {
             animation: none;
         }
     }

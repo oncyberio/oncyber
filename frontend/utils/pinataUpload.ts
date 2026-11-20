@@ -16,6 +16,60 @@ const PINATA_GATEWAY = "https://cyber.mypinata.cloud/ipfs/";
 const MAX_MODEL_SIZE = 50 * 1024 * 1024;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
+const PINATA_UPLOADS_URL = "https://uploads.pinata.cloud/v3";
+
+// Pinata takes a file of up to 100MB in a single request.
+const MAX_DIRECT_UPLOAD_SIZE = 100 * 1024 * 1024;
+
+// How long a signed upload URL can be used to start an upload.
+const SIGNED_UPLOAD_SECONDS = 10 * 60;
+
+/**
+ * Ask Pinata for a signed URL the browser can upload one file to, without
+ * the key. It stops working after `SIGNED_UPLOAD_SECONDS` and refuses files
+ * over `MAX_DIRECT_UPLOAD_SIZE`. Files get the same CIDv0 hashes as the
+ * server-side uploads below.
+ */
+export async function createSignedUploadUrl(): Promise<string> {
+    const jwt = process.env.PINATA_JWT_KEY;
+
+    if (!jwt) {
+        throw new Error("Uploads are not set up: PINATA_JWT_KEY is missing");
+    }
+
+    const response = await fetch(`${PINATA_UPLOADS_URL}/files/sign`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+            network: "public",
+            date: Math.floor(Date.now() / 1000),
+            expires: SIGNED_UPLOAD_SECONDS,
+            max_file_size: MAX_DIRECT_UPLOAD_SIZE,
+            cid_version: "v0",
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+            `Pinata signed upload URL failed (${response.status}): ${errorText}`
+        );
+    }
+
+    const result = await response.json();
+
+    const url = result?.data;
+
+    if (typeof url !== "string" || !url.startsWith(`${PINATA_UPLOADS_URL}/`)) {
+        throw new Error("Pinata signed upload URL: no URL returned");
+    }
+
+    return url;
+}
+
 /**
  * Convert a data URL (base64) to a Blob.
  */
@@ -202,4 +256,9 @@ export async function uploadJsonToPinata(
     return `${PINATA_GATEWAY}${result.IpfsHash}`;
 }
 
-export { MAX_MODEL_SIZE, MAX_IMAGE_SIZE, PINATA_GATEWAY };
+export {
+    MAX_MODEL_SIZE,
+    MAX_IMAGE_SIZE,
+    MAX_DIRECT_UPLOAD_SIZE,
+    PINATA_GATEWAY,
+};

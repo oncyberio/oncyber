@@ -19,6 +19,7 @@ import {
     LinkStatus,
 } from "../../SpaceSettings/Forms/shared/LinkStatus";
 import { isSupportedRuntime } from "@utils/runtimeKind";
+import { tx } from "@components/context/I18nContext";
 
 export default function Invite() {
     //
@@ -195,9 +196,9 @@ export default function Invite() {
     if (exhibit && !isSupportedRuntime(exhibit.runtime)) {
         return (
             <Container className="scrollbar light">
-                <label>Invite link</label>
+                <label>{tx("Invite link")}</label>
                 <p style={{ color: "#777980", fontSize: 13 }}>
-                    This space can't have additional editors yet.
+                    {tx("This space can't have additional editors yet.")}
                 </p>
             </Container>
         );
@@ -205,7 +206,7 @@ export default function Invite() {
 
     return (
         <Container className="scrollbar light">
-            <label>Invite link</label>
+            <label>{tx("Invite link")}</label>
 
             <InputWrapper>
                 <Input
@@ -214,8 +215,8 @@ export default function Invite() {
                     onChange={(e) => setWalletId(e.target.value)}
                     placeholder={
                         linkState === "loading" || loading
-                            ? "Loading..."
-                            : "No link generated yet..."
+                            ? tx("Loading...")
+                            : tx("No link generated yet...")
                     }
                     data-cy="invite-input"
                     icon
@@ -241,7 +242,7 @@ export default function Invite() {
                         />
                     ) : null}
                     {/* <button onClick={copyToClipboard}>
-                        {copied ? <p> Let's go!</p> : <p>COPY LINK</p>}
+                        {copied ? <p>{" "}{tx("Let's go!")}</p> : <p>{tx("COPY LINK")}</p>}
                     </button> */}
                 </Input>
 
@@ -281,10 +282,10 @@ export default function Invite() {
                                 >
                                     <p>
                                         {loading
-                                            ? "Loading..."
+                                            ? tx("Loading...")
                                             : link
-                                            ? "Regenerate link"
-                                            : "Generate link"}
+                                            ? tx("Regenerate link")
+                                            : tx("Generate link")}
                                     </p>
                                 </DropdownWrapper>
                             );

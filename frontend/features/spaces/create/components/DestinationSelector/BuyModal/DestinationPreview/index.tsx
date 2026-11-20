@@ -11,6 +11,7 @@ import styled from "styled-components";
 import useSWR from "swr";
 import { useCurrentRoom } from "../RoomContext";
 import EmptyState from "@ui/components/EmptyState";
+import { tx } from "@components/context/I18nContext";
 
 export interface DestinationPreviewProps {}
 
@@ -101,7 +102,7 @@ export function DestinationPreview() {
             <EmptyState
                 role="alert"
                 icon="globe"
-                title="Couldn't fetch related spaces"
+                title={tx("Couldn't fetch related spaces")}
             />
         );
     } else if (relatedStatus === "loading") {
@@ -110,7 +111,7 @@ export function DestinationPreview() {
         spacesContent = (
             <EmptyState
                 icon="globe"
-                title="No worlds use this destination yet."
+                title={tx("No worlds use this destination yet.")}
             />
         );
     } else if (createdTopOfDest.length) {
@@ -186,7 +187,7 @@ export function DestinationPreview() {
 
                 {!previewLoaded && (
                     <div className="embed">
-                        {/* <h1>Loading scene preview ...</h1> */}
+                        {/* <h1>{tx("Loading scene preview ...")}</h1> */}
                         <Spinner />
                     </div>
                 )}
@@ -195,7 +196,7 @@ export function DestinationPreview() {
             {spacesContent && (
                 <>
                     <div className="worldCreatedTitle">
-                        Spaces created on top of <strong>{name}</strong>
+                        {tx("Spaces created on top of")} <strong>{name}</strong>
                     </div>
                     <div
                         className={
