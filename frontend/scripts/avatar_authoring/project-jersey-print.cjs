@@ -1,43 +1,15 @@
 // Map source ink back onto the undeformed sewing pattern before the first render.
-require("./load-typescript.cjs");
 const { readFileSync } = require("node:fs");
-const { Drawing } = require("../../features/procedural-avatars/drawing.ts");
-const {
-    drawCharacter,
-} = require("../../features/procedural-avatars/buildCharacter.ts");
+const { drawingPattern } = require("./drawing-pattern.cjs");
 const {
     readAvatarFile,
 } = require("../../features/procedural-avatars/avatarFile.ts");
 const { sunshine } = require("../../features/procedural-avatars/families.json");
 
 const { candidate, frame } = JSON.parse(readFileSync(0, "utf8"));
-const { recipe } = readAvatarFile(candidate);
-const drawing = new Drawing("sunshine", recipe);
-drawing.s.record = { points: [], runs: [] };
-drawCharacter(drawing, { ...recipe, shirtMark: undefined });
-const { points, runs } = drawing.s.record;
-const transform = drawing.rig.transform;
-let left = Infinity,
-    right = -Infinity,
-    top = Infinity,
-    bottom = -Infinity;
-for (const run of runs) {
-    for (let i = run.start; i < run.start + run.count; i++) {
-        const [x, y] = transform(
-            points.slice(i * 3, i * 3 + 3),
-            run.bone === "head",
-            run.eyes,
-            run.crown,
-            !!run.pupil,
-            run.familyPart ?? run.bone
-        );
-        left = Math.min(left, x);
-        right = Math.max(right, x);
-        top = Math.min(top, y);
-        bottom = Math.max(bottom, y);
-    }
-}
-
+const { transform, left, right, top, bottom } = drawingPattern(
+    readAvatarFile(candidate).recipe
+);
 const [x0, y0, x1, y1] = sunshine.shirtBox;
 const height = bottom - top;
 function project(u, v) {

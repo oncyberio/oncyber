@@ -66,7 +66,13 @@
       "trousers": "#465568",
       "shoes": "#4e4141",
       "footwear": "flat",
-      "color": "#fbc754"
+      "color": "#fbc754",
+      "buttons": [
+        0.2112,
+        0.4595
+      ],
+      "buttonColor": "#72511d",
+      "placketDepth": 0.1336
     },
     "skin": "#e7915d",
     "household": {

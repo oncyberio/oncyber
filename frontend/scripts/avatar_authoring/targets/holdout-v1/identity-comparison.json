@@ -220,60 +220,130 @@
                     "painted_passed": true
                 }
             },
+            "turn_identity": {
+                "guide_sha256": "bcb9feeeeaae4532aefc5d646a47e0045294b07bc34d5cf16eff9212c50f03fa",
+                "backends": {
+                    "WebGLBackend": {
+                        "35": {
+                            "native_sha256": "e140527802ccf1367cddba5dfe62d7cb487f633eae5438b9760d2ae5b5c2cb8a",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.79489,
+                                "nearest_other": "moss/90",
+                                "margin": 0.08389
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.72635,
+                                "nearest_other": "moss/90",
+                                "margin": 0.12573
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "86b8a584389a6a6cd1d0e8f3e946cd54bcd61e6a6b064d2ad109b75601c4bc7c",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.69347,
+                                "nearest_other": "moss/35",
+                                "margin": 0.10743
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.59345,
+                                "nearest_other": "lark/90",
+                                "margin": 0.1139
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "35": {
+                            "native_sha256": "2b467413546c2cea1ff5caa4ab4013b4ec9121e3c18079c9c845b1eb5c1a07c8",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.79554,
+                                "nearest_other": "moss/90",
+                                "margin": 0.08055
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.7259,
+                                "nearest_other": "moss/90",
+                                "margin": 0.12475
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "54d69478fd08652072a63052837ee442d39d399edff40ef618cc03572d99d884",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.70177,
+                                "nearest_other": "moss/35",
+                                "margin": 0.10122
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.60001,
+                                "nearest_other": "moss/35",
+                                "margin": 0.11749
+                            }
+                        }
+                    }
+                },
+                "gallery_size": 4
+            },
             "family_gallery_size": 4
         },
         "lark": {
             "family": "rick-classic",
             "input": "full",
-            "candidate_sha256": "bb211e6d1e9b719a5a0d9c00baaaba6066c2477ac78b33ed80039999b046cd35",
-            "evidence_sha256": "b13fe4c006ad4bef06ada5ce15a7369e86849f9000fe52715d8991fcfc1165de",
+            "candidate_sha256": "e0667f2d751ffe2788f92b4a843ff007e96b39ab390005fb2bd5e36c2a12015a",
+            "evidence_sha256": "13a189ee6935daf31b76686ddb5a26992484fca1ebda7480cf8c10c426c955d3",
             "reference_sha256": "8561b05d8859a9998f7c815dfe7db035ebc008d954ebf82701a3afe3de3c700c",
             "native_front_sha256": {
-                "WebGLBackend": "97ddcac682bc40e530badfb58930e1b676176d99751534e58f79ca89b9b14fbe",
-                "WebGPUBackend": "47d29021a76fd64920dea6af1a80ba9fef312b7039ac0559040bb61385d35ac6"
+                "WebGLBackend": "a11042a5d08f9379470ceabe20ed94ac65dbf95452d545295929f7b32a0e18bc",
+                "WebGPUBackend": "2b9f572206caae2d270c1cb679f5213ce77417c8f1feb73a51a08da0a84c1bc8"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.85102,
+                            "cosine": 0.85614,
                             "nearest_other": "rowan",
-                            "margin": 0.11633
+                            "margin": 0.10295
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.84736,
+                            "cosine": 0.85112,
                             "nearest_other": "moss",
-                            "margin": 0.03574
+                            "margin": 0.03828
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.68913,
+                            "cosine": 0.68903,
                             "nearest_other": "rowan",
-                            "margin": 0.15
+                            "margin": 0.1554
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.64592,
+                            "cosine": 0.649,
                             "nearest_other": "rowan",
-                            "margin": 0.09226
+                            "margin": 0.09601
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.82038,
+                            "cosine": 0.81672,
                             "nearest_other": "rowan",
-                            "margin": 0.18888
+                            "margin": 0.18295
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80266,
+                            "cosine": 0.80589,
                             "nearest_other": "rowan",
-                            "margin": 0.10487
+                            "margin": 0.09963
                         }
                     }
                 },
@@ -281,43 +351,43 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84829,
+                            "cosine": 0.84556,
                             "nearest_other": "rowan",
-                            "margin": 0.11678
+                            "margin": 0.10622
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.84098,
-                            "nearest_other": "moss",
-                            "margin": 0.03293
+                            "cosine": 0.84036,
+                            "nearest_other": "rowan",
+                            "margin": 0.03088
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.69085,
+                            "cosine": 0.69524,
                             "nearest_other": "rowan",
-                            "margin": 0.14895
+                            "margin": 0.15414
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.65014,
+                            "cosine": 0.65463,
                             "nearest_other": "rowan",
-                            "margin": 0.09549
+                            "margin": 0.10102
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81519,
+                            "cosine": 0.82734,
                             "nearest_other": "rowan",
-                            "margin": 0.18903
+                            "margin": 0.18887
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.8036,
+                            "cosine": 0.80979,
                             "nearest_other": "rowan",
-                            "margin": 0.10383
+                            "margin": 0.09985
                         }
                     }
                 }
@@ -327,13 +397,13 @@
                 "removed_area_fraction": 0.11089,
                 "matte_sha256": "bbf44fb117fe6be635cf2c728b011c34b746d957b1b0c18955cbe8b065bb863b",
                 "WebGLBackend": {
-                    "native_sha256": "97ddcac682bc40e530badfb58930e1b676176d99751534e58f79ca89b9b14fbe",
+                    "native_sha256": "a11042a5d08f9379470ceabe20ed94ac65dbf95452d545295929f7b32a0e18bc",
                     "original": {
-                        "silhouette_iou": 0.8828,
+                        "silhouette_iou": 0.884,
                         "head_iou": 0.8979,
-                        "head_edge_agreement": 0.7343,
-                        "body_edge_agreement": 0.6283,
-                        "rgb_mae": 29.25,
+                        "head_edge_agreement": 0.734,
+                        "body_edge_agreement": 0.627,
+                        "rgb_mae": 29.28,
                         "eye_pigment_agreement": 0.3837,
                         "globe_measurements": {
                             "position": 0.0467,
@@ -345,11 +415,11 @@
                         }
                     },
                     "painted": {
-                        "silhouette_iou": 0.9268,
+                        "silhouette_iou": 0.9256,
                         "head_iou": 0.9258,
-                        "head_edge_agreement": 0.7932,
-                        "body_edge_agreement": 0.7588,
-                        "rgb_mae": 23.14,
+                        "head_edge_agreement": 0.7936,
+                        "body_edge_agreement": 0.7516,
+                        "rgb_mae": 23.51,
                         "eye_pigment_agreement": 0.3889,
                         "globe_measurements": {
                             "position": 0.0307,
@@ -364,13 +434,13 @@
                     "painted_passed": true
                 },
                 "WebGPUBackend": {
-                    "native_sha256": "47d29021a76fd64920dea6af1a80ba9fef312b7039ac0559040bb61385d35ac6",
+                    "native_sha256": "2b9f572206caae2d270c1cb679f5213ce77417c8f1feb73a51a08da0a84c1bc8",
                     "original": {
-                        "silhouette_iou": 0.8828,
+                        "silhouette_iou": 0.8839,
                         "head_iou": 0.8975,
-                        "head_edge_agreement": 0.7319,
-                        "body_edge_agreement": 0.6295,
-                        "rgb_mae": 29.22,
+                        "head_edge_agreement": 0.7326,
+                        "body_edge_agreement": 0.6306,
+                        "rgb_mae": 29.25,
                         "eye_pigment_agreement": 0.4257,
                         "globe_measurements": {
                             "position": 0.0467,
@@ -382,11 +452,11 @@
                         }
                     },
                     "painted": {
-                        "silhouette_iou": 0.9265,
+                        "silhouette_iou": 0.9254,
                         "head_iou": 0.9257,
-                        "head_edge_agreement": 0.7932,
-                        "body_edge_agreement": 0.7588,
-                        "rgb_mae": 23.14,
+                        "head_edge_agreement": 0.7936,
+                        "body_edge_agreement": 0.7542,
+                        "rgb_mae": 23.46,
                         "eye_pigment_agreement": 0.4778,
                         "globe_measurements": {
                             "position": 0.0307,
@@ -401,13 +471,13 @@
                     "painted_passed": true
                 },
                 "first_pass": {
-                    "native_sha256": "8f3f47f4f4797030ef31b640cc47d5fd0010cc55d19fe349490ce443f964556b",
+                    "native_sha256": "100720582eb2f4e920249a818f24292ffeb57988d2bf3d02c2845dc4155c4804",
                     "original": {
-                        "silhouette_iou": 0.8789,
+                        "silhouette_iou": 0.8819,
                         "head_iou": 0.8979,
                         "head_edge_agreement": 0.7319,
-                        "body_edge_agreement": 0.5728,
-                        "rgb_mae": 33.95,
+                        "body_edge_agreement": 0.6114,
+                        "rgb_mae": 30.8,
                         "eye_pigment_agreement": 0.3837,
                         "globe_measurements": {
                             "position": 0.0467,
@@ -419,11 +489,11 @@
                         }
                     },
                     "painted": {
-                        "silhouette_iou": 0.9015,
+                        "silhouette_iou": 0.9256,
                         "head_iou": 0.9258,
                         "head_edge_agreement": 0.7913,
-                        "body_edge_agreement": 0.6473,
-                        "rgb_mae": 26.3,
+                        "body_edge_agreement": 0.7447,
+                        "rgb_mae": 25.0,
                         "eye_pigment_agreement": 0.3889,
                         "globe_measurements": {
                             "position": 0.0307,
@@ -435,8 +505,78 @@
                         }
                     },
                     "original_passed": false,
-                    "painted_passed": false
+                    "painted_passed": true
                 }
+            },
+            "turn_identity": {
+                "guide_sha256": "5b3051a4caa4bb5099730a0790e2435f7470fd83e6e685018d3a5ed6afd49f78",
+                "backends": {
+                    "WebGLBackend": {
+                        "35": {
+                            "native_sha256": "4b2a2c24b3e8a2d6f1d62924f12372a71c272117502844dded0bab1e08c215fa",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.53284,
+                                "nearest_other": "moss/90",
+                                "margin": -0.03615
+                            },
+                            "gray": {
+                                "rank": 2,
+                                "cosine": 0.53163,
+                                "nearest_other": "moss/90",
+                                "margin": -0.03074
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "e01188c42b69ae33977cca21f3ca035ddf2f8449ef88fc551b30d26a69e8dba8",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.51174,
+                                "nearest_other": "moss/90",
+                                "margin": -0.00557
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.55719,
+                                "nearest_other": "moss/90",
+                                "margin": 0.02351
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "35": {
+                            "native_sha256": "903525e788244e05d7697fa83d3f97fdcdfa3a111cfcc2e568efda94fab54cb5",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.5193,
+                                "nearest_other": "moss/90",
+                                "margin": -0.04687
+                            },
+                            "gray": {
+                                "rank": 2,
+                                "cosine": 0.52183,
+                                "nearest_other": "moss/90",
+                                "margin": -0.03306
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "224d884761eede94f921fa736ab839aade6ec57208a3e410f79e440dde5c28fc",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.51446,
+                                "nearest_other": "moss/90",
+                                "margin": -0.00795
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.56469,
+                                "nearest_other": "moss/90",
+                                "margin": 0.03171
+                            }
+                        }
+                    }
+                },
+                "gallery_size": 4
             },
             "family_gallery_size": 4
         },
@@ -545,55 +685,55 @@
         "poe": {
             "family": "rick-classic",
             "input": "portrait",
-            "candidate_sha256": "354aa3fc8f0b5acf7448e6aebe9598046e72596acb4e65e1094da1bcc2f92e69",
-            "evidence_sha256": "f77df6164019de815b88b47ae2725310a5c65c4e4bb0386d4b0eb1a654f302de",
+            "candidate_sha256": "28605946e8ad78dc31eec1f145343c673284ae35797472743aa718b72aa24e42",
+            "evidence_sha256": "da0c30050c97cc54d0357aeab7bfe01e9e400d0ce8594c66ef95f863bdf50e44",
             "reference_sha256": "716c4e03a739704f2bb80309d2d32984e7b5a547348590889599cb022db8703c",
             "native_front_sha256": {
-                "WebGLBackend": "ace2dfb1db27945dc0e4043507472e409920dec4f18948336482df1daf94a8a3",
-                "WebGPUBackend": "9fab0c1c7145bb6c9226fbf53ba183f8ae2b8ad1d5b28c4188badd8f2c4a921c"
+                "WebGLBackend": "6729ca26b7c35bbfbe3b2b9954a6a8024a4ac78c11b69c51be6a4997dc40a901",
+                "WebGPUBackend": "78083df9ff67e109eb0331c76bade7f1e84b69ea5a4b6d6a0384fb58ac9d83e9"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.7394,
+                            "cosine": 0.74292,
                             "nearest_other": "moss",
-                            "margin": 0.07458
+                            "margin": 0.10461
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.75942,
+                            "cosine": 0.7623,
                             "nearest_other": "moss",
-                            "margin": 0.02681
+                            "margin": 0.01062
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.68658,
+                            "cosine": 0.73492,
                             "nearest_other": "moss",
-                            "margin": 0.01637
+                            "margin": 0.03093
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.58703,
+                            "cosine": 0.63851,
                             "nearest_other": "moss",
-                            "margin": -0.07469
+                            "margin": -0.07885
                         }
                     },
                     "clothes": {
                         "color": {
-                            "rank": 3,
-                            "cosine": 0.58412,
+                            "rank": 2,
+                            "cosine": 0.62746,
                             "nearest_other": "moss",
-                            "margin": -0.08073
+                            "margin": -0.01021
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.56016,
+                            "cosine": 0.59281,
                             "nearest_other": "moss",
-                            "margin": -0.10052
+                            "margin": -0.09896
                         }
                     }
                 },
@@ -601,43 +741,43 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.74483,
+                            "cosine": 0.74864,
                             "nearest_other": "moss",
-                            "margin": 0.07644
+                            "margin": 0.10589
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.75828,
+                            "cosine": 0.76646,
                             "nearest_other": "moss",
-                            "margin": 0.02261
+                            "margin": 0.01077
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.68286,
+                            "cosine": 0.73136,
                             "nearest_other": "moss",
-                            "margin": 0.02146
+                            "margin": 0.03525
                         },
                         "gray": {
-                            "rank": 3,
-                            "cosine": 0.59339,
+                            "rank": 2,
+                            "cosine": 0.64561,
                             "nearest_other": "moss",
-                            "margin": -0.06876
+                            "margin": -0.07667
                         }
                     },
                     "clothes": {
                         "color": {
-                            "rank": 3,
-                            "cosine": 0.59138,
+                            "rank": 2,
+                            "cosine": 0.63153,
                             "nearest_other": "moss",
-                            "margin": -0.0709
+                            "margin": -0.00295
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.57347,
+                            "cosine": 0.60456,
                             "nearest_other": "moss",
-                            "margin": -0.09177
+                            "margin": -0.08951
                         }
                     }
                 }
@@ -648,11 +788,11 @@
             "family": "sunshine",
             "input": "full",
             "candidate_sha256": "e74140476948964e254e115bd42355127d6bb014756a46d75cae924ac80d43cb",
-            "evidence_sha256": "847e09aab76202174d6e974d8bd1f2515154f637cdaed9b995975e9e771443d2",
+            "evidence_sha256": "369109a05b20475a1d3e46d7b345f35339509718871bca280638b977adbb0340",
             "reference_sha256": "113284e32a3132cb1913cfd2ea50789d6b9f5e8d5a8e2f9894cba32cb12919c6",
             "native_front_sha256": {
-                "WebGLBackend": "16fe493693cff7ee80d78a1e5ddc7166f27282ea633785d37f765e58270feaaf",
-                "WebGPUBackend": "82de753e77f070a5b5ab6e2ace76cc605d273395946de79867fd740100293b9b"
+                "WebGLBackend": "ca1b6f66281b3ba38920e3b79741c51af0bd2948ba73820b520f456094903ec4",
+                "WebGPUBackend": "eedac55727bdee5f24d8309110e543ef74f7baccc6ae92e2d8af8e77daa06bd8"
             },
             "backends": {
                 "WebGLBackend": {
@@ -661,7 +801,7 @@
                             "rank": 1,
                             "cosine": 0.93402,
                             "nearest_other": "indigo",
-                            "margin": 0.19266
+                            "margin": 0.19264
                         },
                         "gray": {
                             "rank": 1,
@@ -673,13 +813,13 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.80518,
+                            "cosine": 0.80507,
                             "nearest_other": "indigo",
-                            "margin": 0.11668
+                            "margin": 0.11665
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.85263,
+                            "cosine": 0.85253,
                             "nearest_other": "mora",
                             "margin": 0.06563
                         }
@@ -689,13 +829,13 @@
                             "rank": 1,
                             "cosine": 0.84466,
                             "nearest_other": "indigo",
-                            "margin": 0.12811
+                            "margin": 0.12813
                         },
                         "gray": {
                             "rank": 1,
                             "cosine": 0.86804,
                             "nearest_other": "indigo",
-                            "margin": 0.07291
+                            "margin": 0.07297
                         }
                     }
                 },
@@ -749,7 +889,7 @@
                 "removed_area_fraction": 0.11809,
                 "matte_sha256": "fc5a8e4d6db09671b95762744b9fc1baeb54718c6ba213795f964d80d4eb8253",
                 "WebGLBackend": {
-                    "native_sha256": "16fe493693cff7ee80d78a1e5ddc7166f27282ea633785d37f765e58270feaaf",
+                    "native_sha256": "ca1b6f66281b3ba38920e3b79741c51af0bd2948ba73820b520f456094903ec4",
                     "original": {
                         "silhouette_iou": 0.8795,
                         "head_iou": 0.7858,
@@ -792,7 +932,7 @@
                     "painted_passed": true
                 },
                 "WebGPUBackend": {
-                    "native_sha256": "82de753e77f070a5b5ab6e2ace76cc605d273395946de79867fd740100293b9b",
+                    "native_sha256": "eedac55727bdee5f24d8309110e543ef74f7baccc6ae92e2d8af8e77daa06bd8",
                     "original": {
                         "silhouette_iou": 0.8775,
                         "head_iou": 0.783,
@@ -835,7 +975,7 @@
                     "painted_passed": true
                 },
                 "first_pass": {
-                    "native_sha256": "ff14c2f409f390fe80e6c46132fdbb2a6361f34edd3cc8614f9221085dc87173",
+                    "native_sha256": "352986f73c975be3dcf7299827197a7bb33c74f8e97f0b42ed7ec3ccfb040707",
                     "original": {
                         "silhouette_iou": 0.8722,
                         "head_iou": 0.7858,
@@ -878,26 +1018,96 @@
                     "painted_passed": false
                 }
             },
+            "turn_identity": {
+                "guide_sha256": "e9fc978dcbc857d144b5c8ad7d5d2c1528273fa258b12b5abc629a436faa23e9",
+                "backends": {
+                    "WebGLBackend": {
+                        "35": {
+                            "native_sha256": "20acca762cd3e2aac05217880a756eff92c2ebcfb26ee49661848e885410369a",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.87441,
+                                "nearest_other": "mora/35",
+                                "margin": 0.19298
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.85919,
+                                "nearest_other": "mora/35",
+                                "margin": 0.06163
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "5e74346de14b1b5ad16ff97a447f50f6ce0a7d01a35bd132ec5c92a4a31f4c0e",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.82311,
+                                "nearest_other": "mora/90",
+                                "margin": 0.36096
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.70324,
+                                "nearest_other": "mora/90",
+                                "margin": 0.18276
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "35": {
+                            "native_sha256": "6e161a0fa7e86fa17799dac71762686fd2d04e12dbf153480a4a2fc166887755",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.87383,
+                                "nearest_other": "mora/35",
+                                "margin": 0.18943
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.85713,
+                                "nearest_other": "mora/35",
+                                "margin": 0.06176
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "d6150e8f597205cfac4645eaa8b30f59b5b5c0fc6832767bc8bfc7d52abe8a36",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.82167,
+                                "nearest_other": "mora/90",
+                                "margin": 0.35956
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.70797,
+                                "nearest_other": "mora/90",
+                                "margin": 0.17757
+                            }
+                        }
+                    }
+                },
+                "gallery_size": 4
+            },
             "family_gallery_size": 4
         },
         "mora": {
             "family": "sunshine",
             "input": "full",
             "candidate_sha256": "9ee7f01c2d258ab525d6146df9305cdac6f6aeb0c70e32edfd215f89444560c0",
-            "evidence_sha256": "dbd4826e434da3b7640b5f0708a488e5a063e084bc9b1bce7b7981e63717c97a",
+            "evidence_sha256": "ede550fb590772f04357f044131e96fe1865759a28029f8c5ea4a648c8c7b658",
             "reference_sha256": "8f01c6744f88dfe29639e1be8ab814e749c60d5981b5379c97790bd773db8dfa",
             "native_front_sha256": {
-                "WebGLBackend": "a4fa13ef8faef92540fca4f59132ef6408983b74c0e71831447ad3634d13e2f5",
-                "WebGPUBackend": "cc368930d6cf2eb8b22ec9ff53b8eaedd9ff8736b660d8c093504d83a2fa084d"
+                "WebGLBackend": "ee83fb193aee1d51856d4866aa4840e20744b7b1fe315f34e8cb65fdbe9fd511",
+                "WebGPUBackend": "1fbc1337583d3dd6491baf8e434512d897bb9e07bcd8cf61c22db8108417405b"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.90482,
+                            "cosine": 0.9048,
                             "nearest_other": "reed",
-                            "margin": 0.06182
+                            "margin": 0.06183
                         },
                         "gray": {
                             "rank": 1,
@@ -909,29 +1119,29 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81443,
+                            "cosine": 0.81454,
                             "nearest_other": "reed",
-                            "margin": 0.07
+                            "margin": 0.07004
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80924,
+                            "cosine": 0.80925,
                             "nearest_other": "solvi",
-                            "margin": 0.004
+                            "margin": 0.00404
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81162,
+                            "cosine": 0.81154,
                             "nearest_other": "reed",
-                            "margin": 0.06595
+                            "margin": 0.06594
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.78182,
+                            "cosine": 0.78174,
                             "nearest_other": "indigo",
-                            "margin": 0.021
+                            "margin": 0.02099
                         }
                     }
                 },
@@ -939,29 +1149,29 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.90453,
+                            "cosine": 0.90452,
                             "nearest_other": "reed",
-                            "margin": 0.06432
+                            "margin": 0.06431
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.90814,
+                            "cosine": 0.90819,
                             "nearest_other": "indigo",
-                            "margin": 0.03154
+                            "margin": 0.03157
                         }
                     },
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.81608,
+                            "cosine": 0.81611,
                             "nearest_other": "reed",
-                            "margin": 0.06925
+                            "margin": 0.06927
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80281,
+                            "cosine": 0.8028,
                             "nearest_other": "solvi",
-                            "margin": 0.00542
+                            "margin": 0.00553
                         }
                     },
                     "clothes": {
@@ -969,11 +1179,11 @@
                             "rank": 1,
                             "cosine": 0.81172,
                             "nearest_other": "reed",
-                            "margin": 0.06654
+                            "margin": 0.0665
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.7775,
+                            "cosine": 0.77743,
                             "nearest_other": "indigo",
                             "margin": 0.01932
                         }
@@ -985,7 +1195,7 @@
                 "removed_area_fraction": 0.10759,
                 "matte_sha256": "37b789df53615ae605ad1e2d4acd5b80dd4bc28175895b742eebd972bee2227b",
                 "WebGLBackend": {
-                    "native_sha256": "a4fa13ef8faef92540fca4f59132ef6408983b74c0e71831447ad3634d13e2f5",
+                    "native_sha256": "ee83fb193aee1d51856d4866aa4840e20744b7b1fe315f34e8cb65fdbe9fd511",
                     "original": {
                         "silhouette_iou": 0.892,
                         "head_iou": 0.812,
@@ -1020,7 +1230,7 @@
                     "painted_passed": true
                 },
                 "WebGPUBackend": {
-                    "native_sha256": "cc368930d6cf2eb8b22ec9ff53b8eaedd9ff8736b660d8c093504d83a2fa084d",
+                    "native_sha256": "1fbc1337583d3dd6491baf8e434512d897bb9e07bcd8cf61c22db8108417405b",
                     "original": {
                         "silhouette_iou": 0.8917,
                         "head_iou": 0.8107,
@@ -1055,7 +1265,7 @@
                     "painted_passed": true
                 },
                 "first_pass": {
-                    "native_sha256": "bfd0d3caf0cad3db74f63d1bd35ec4816a2364fbe59eb1ab436b8b59c50a9ba8",
+                    "native_sha256": "a03d5ddc00ee42059c0858c2b6153bed009a9b4566a2db8f6439d1730b845c92",
                     "original": {
                         "silhouette_iou": 0.886,
                         "head_iou": 0.812,
@@ -1090,17 +1300,87 @@
                     "painted_passed": true
                 }
             },
+            "turn_identity": {
+                "guide_sha256": "4e4fc18456f90c4e84c4e2e1ade8323de3975423e20a2b35b440e09d25450208",
+                "backends": {
+                    "WebGLBackend": {
+                        "35": {
+                            "native_sha256": "e7c4834b7bc2aa10ea4dbb98dba5a1e2e80037042c645f865685faec7e0c7f69",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.87764,
+                                "nearest_other": "solvi/35",
+                                "margin": 0.18637
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.8504,
+                                "nearest_other": "solvi/35",
+                                "margin": 0.03071
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "20dc462b1593e03b1b92c4a038aa399aab87771a3f1e13b7681a64e5ba0746b2",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.53807,
+                                "nearest_other": "solvi/90",
+                                "margin": -0.11783
+                            },
+                            "gray": {
+                                "rank": 2,
+                                "cosine": 0.54501,
+                                "nearest_other": "solvi/90",
+                                "margin": -0.20141
+                            }
+                        }
+                    },
+                    "WebGPUBackend": {
+                        "35": {
+                            "native_sha256": "e5da0889df129db7c6f434a34d1134b2dd6134317d54a11e729251508d6f3e5d",
+                            "color": {
+                                "rank": 1,
+                                "cosine": 0.88145,
+                                "nearest_other": "mora/90",
+                                "margin": 0.19063
+                            },
+                            "gray": {
+                                "rank": 1,
+                                "cosine": 0.85577,
+                                "nearest_other": "solvi/35",
+                                "margin": 0.03899
+                            }
+                        },
+                        "90": {
+                            "native_sha256": "5be8e9fab82a20d9b58678d5a695a569ee48f34f82aea6aed42600d2bba7d1e5",
+                            "color": {
+                                "rank": 2,
+                                "cosine": 0.54102,
+                                "nearest_other": "solvi/90",
+                                "margin": -0.11439
+                            },
+                            "gray": {
+                                "rank": 2,
+                                "cosine": 0.5467,
+                                "nearest_other": "solvi/90",
+                                "margin": -0.19645
+                            }
+                        }
+                    }
+                },
+                "gallery_size": 4
+            },
             "family_gallery_size": 4
         },
         "reed": {
             "family": "sunshine",
             "input": "portrait",
             "candidate_sha256": "d0e6211dd74535c08342e7aa8d0fa305a825a08193594b29f517c29cada49234",
-            "evidence_sha256": "f2446850513881bacf43ef9f63df05ded5a5b2b2c5878be590e841864e0a6ec8",
+            "evidence_sha256": "409e66dd54db611f090d32dbf6149165ea2ff9ba9db1472f7963346f769d64a3",
             "reference_sha256": "a63dc202b89d462dbd0f07748ace21890ddb9b666c082cfa9b2de25fd3e1e769",
             "native_front_sha256": {
-                "WebGLBackend": "bf6365719839bf9db7ddd1df0c6622e57b0a74beaa00055519c2a034a75b0376",
-                "WebGPUBackend": "1e9f7e52de5bede16f318d7640c54f591d59b01e74ad7d6fc87a673d646bc38c"
+                "WebGLBackend": "3474bcaa8bed326eb078063b801f3ba46bd5bde8d98dbe80422f54fed3ec63cf",
+                "WebGPUBackend": "f4acba6db94cec5ad778c1b1e1c0a588a1b415cdbb88761cbcc694ae0a11548d"
             },
             "backends": {
                 "WebGLBackend": {
@@ -1113,7 +1393,7 @@
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.80369,
+                            "cosine": 0.80367,
                             "nearest_other": "solvi",
                             "margin": 0.06349
                         }
@@ -1123,27 +1403,27 @@
                             "rank": 1,
                             "cosine": 0.83889,
                             "nearest_other": "mora",
-                            "margin": 0.12314
+                            "margin": 0.12316
                         },
                         "gray": {
                             "rank": 3,
                             "cosine": 0.80752,
                             "nearest_other": "solvi",
-                            "margin": -0.01331
+                            "margin": -0.01335
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.7543,
+                            "cosine": 0.75429,
                             "nearest_other": "mora",
-                            "margin": 0.12861
+                            "margin": 0.12862
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.69398,
+                            "cosine": 0.69399,
                             "nearest_other": "solvi",
-                            "margin": 0.0064
+                            "margin": 0.00638
                         }
                     }
                 },
@@ -1151,9 +1431,9 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.88048,
+                            "cosine": 0.88049,
                             "nearest_other": "mora",
-                            "margin": 0.17757
+                            "margin": 0.17756
                         },
                         "gray": {
                             "rank": 1,
@@ -1167,27 +1447,27 @@
                             "rank": 1,
                             "cosine": 0.8352,
                             "nearest_other": "mora",
-                            "margin": 0.12561
+                            "margin": 0.1256
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.7874,
+                            "cosine": 0.78733,
                             "nearest_other": "solvi",
-                            "margin": -0.01279
+                            "margin": -0.01277
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.75533,
+                            "cosine": 0.75534,
                             "nearest_other": "mora",
-                            "margin": 0.12576
+                            "margin": 0.12574
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.69181,
+                            "cosine": 0.69178,
                             "nearest_other": "solvi",
-                            "margin": 0.01091
+                            "margin": 0.01082
                         }
                     }
                 }
@@ -1198,18 +1478,18 @@
             "family": "sunshine",
             "input": "portrait",
             "candidate_sha256": "7bc075d24912ca82901eb94d6b2779e1331dd11cb0e1014e6ab1eda5b51cea5a",
-            "evidence_sha256": "4e5438700dd5e6aab17382c29d7120a94d94ddb8d2c2632f25689c429a018bad",
+            "evidence_sha256": "c8ff62a42f6ec4847d4802c8a7cf5eff1d497c4ecb582f191b38390983b3b046",
             "reference_sha256": "43e1e7265c83256365f70cbd60bf49d103d81829241e0a7d78e460b483eac80d",
             "native_front_sha256": {
-                "WebGLBackend": "665e7d5e7a89865a604d10eba79f413dc02d79987650ea383dc933e090bad805",
-                "WebGPUBackend": "4fb8f9be0e11d44df7eeb74f245b7a2c110611491c531b5911fb36d6d10f9613"
+                "WebGLBackend": "2b9d43fb86341d809d5df51455b207725fb0d7abdad4536b26205b0800730c63",
+                "WebGPUBackend": "d86f215109113b11e067e991f860d3fd9b7e459bbc7f7c1f5d1c6793f9a232c2"
             },
             "backends": {
                 "WebGLBackend": {
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.85653,
+                            "cosine": 0.85654,
                             "nearest_other": "reed",
                             "margin": 0.1023
                         },
@@ -1223,29 +1503,29 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84819,
+                            "cosine": 0.84821,
                             "nearest_other": "solvi",
-                            "margin": 0.16711
+                            "margin": 0.16718
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.81682,
+                            "cosine": 0.81675,
                             "nearest_other": "mora",
-                            "margin": 0.08371
+                            "margin": 0.0837
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.70295,
+                            "cosine": 0.70302,
                             "nearest_other": "reed",
-                            "margin": 0.00322
+                            "margin": 0.00323
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.72551,
+                            "cosine": 0.72557,
                             "nearest_other": "solvi",
-                            "margin": -0.03959
+                            "margin": -0.03955
                         }
                     }
                 },
@@ -1253,13 +1533,13 @@
                     "figure": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.83105,
+                            "cosine": 0.83106,
                             "nearest_other": "solvi",
-                            "margin": 0.0785
+                            "margin": 0.07851
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.81535,
+                            "cosine": 0.81536,
                             "nearest_other": "reed",
                             "margin": 0.009
                         }
@@ -1267,29 +1547,29 @@
                     "head": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.84267,
+                            "cosine": 0.84269,
                             "nearest_other": "solvi",
-                            "margin": 0.16503
+                            "margin": 0.1651
                         },
                         "gray": {
                             "rank": 1,
-                            "cosine": 0.82206,
+                            "cosine": 0.822,
                             "nearest_other": "solvi",
-                            "margin": 0.08093
+                            "margin": 0.08094
                         }
                     },
                     "clothes": {
                         "color": {
                             "rank": 1,
-                            "cosine": 0.71047,
+                            "cosine": 0.71053,
                             "nearest_other": "reed",
-                            "margin": 0.01491
+                            "margin": 0.01492
                         },
                         "gray": {
                             "rank": 3,
-                            "cosine": 0.72845,
+                            "cosine": 0.72842,
                             "nearest_other": "solvi",
-                            "margin": -0.03279
+                            "margin": -0.03277
                         }
                     }
                 }
@@ -1297,6 +1577,6 @@
             "family_gallery_size": 4
         }
     },
-    "seconds": 18.693,
+    "seconds": 32.829,
     "provider_charge_usd": 0
 }

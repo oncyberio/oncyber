@@ -14,6 +14,7 @@ from .household import fit_frontal_features, fit_frontal_rim_pupils, fit_portrai
 from .sun_rays import apply_sun_rays, jersey_neck, measure_sun_rays, measured_orb_paint
 from .visor import measure_visor, visor_seed
 from .visible_parts import (
+    button_front,
     closed_lips,
     inked_cheeks,
     open_smile,
@@ -537,4 +538,25 @@ def compile_portrait(source, family, name, obs):
     from .household import fit_crop_back
 
     fit_crop_back(recipe["design"])
+    if design["outfit"]["top"] == "polo" and obs["yaw"] == 0:
+        from .household_pattern import measure
+
+        # Test the visible overlap and button column in the body's actual
+        # pattern coordinates, even when the crop ends above the waist.
+        pattern = measure(recipe)
+        unit = height / design["head"][1]
+        neck, hem = (top + (pattern[k] - 12) * unit for k in ("neck", "hem"))
+        buttons = button_front(
+            rgb,
+            (left + right) / 2,
+            neck,
+            hem,
+            pigment(rgb, colors["shirt"]),
+            pigment(rgb, colors["skin"]),
+        )
+        if buttons:
+            if neck + buttons.get("placketEnd", 1) * (hem - neck) >= h - 3:
+                buttons.pop("placketEnd", None)
+            buttons["buttonColor"] = paint(buttons["buttonColor"])
+            design["outfit"].update(buttons)
     return recipe

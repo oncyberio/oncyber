@@ -52,6 +52,13 @@ interface Props {
     guideStatus: keyof typeof guideInfo;
     identity: {
         count: number;
+        turns: {
+            gallery_size: number;
+            backends: Record<
+                Backend,
+                Record<string, Record<"color" | "gray", { rank: number }>>
+            >;
+        } | null;
         backends: Record<
             Backend,
             Record<string, Record<"color" | "gray", { rank: number }>>
@@ -239,6 +246,29 @@ function ReviewForm({
                         />
                     </a>
                 </figure>
+            )}
+            {identity?.turns && (
+                <details>
+                    <summary>
+                        Can the image encoder identify this head turn?
+                    </summary>
+                    <p>
+                        MobileNet V3 ranks {identity.turns.gallery_size}{" "}
+                        drawings from this family. The choices include the same
+                        character at another angle. Rank 1 means both the
+                        character and the view matched.
+                    </p>
+                    <ul>
+                        {Object.entries(identity.turns.backends[backend]).map(
+                            ([angle, scores]) => (
+                                <li key={angle}>
+                                    {angle}° · Color rank {scores.color.rank} ·
+                                    Grayscale rank {scores.gray.rank}
+                                </li>
+                            )
+                        )}
+                    </ul>
+                </details>
             )}
             <form
                 onSubmit={(e) => {
@@ -478,6 +508,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                     ? {
                           count: identity.family_gallery_size,
                           backends: identity.backends,
+                          turns: identity.turn_identity ?? null,
                       }
                     : null,
             guideStatus: receipt.turn_guide?.candidate_frozen_before_guide

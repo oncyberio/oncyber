@@ -118,15 +118,15 @@
         },
         "tess": {
             "candidate_sha256": "fc4998671fa5a5a924c3b76568b344a47ff9007adc9847f06be1449855ae3bea",
-            "evidence_sha256": "fe0c423bf079358da7eeef7c053b500aa479403508367c3dfd2d6b9130a427f9",
+            "evidence_sha256": "2b3fa1a8cbd44d795df418e5b1bca1a6faa8b17f196e52329ad6ba8b8f127b34",
             "review_assets": {
                 "WebGLBackend": {
                     "views": "7ebb80580604cdede383ce8df8528896f7e5ee0d5e3bd9e3ad534f4171d19cb9",
-                    "walk": "9196a12ba2a5e685bf16827fa5f47e163aa297213a51803bbe4863032358eaff"
+                    "walk": "b0cfbc1df7c0b92b9d5862b2079bc00445af8ed9a52bca57573ce53fe5edec69"
                 },
                 "WebGPUBackend": {
                     "views": "99d2ae5807822ca571fb0cb5e2c8ec5d0e9e7c2d230ab39c25a65d184680411c",
-                    "walk": "576e39317b0a736933f15bd577ec25b44c948eee6b84af5ca8b6a96bf8b9f334"
+                    "walk": "dfeabdccc6afff5c4b68f378f90e6743ce6ec632cb32bc912879a7396e8487c5"
                 }
             },
             "independent_pose": {
@@ -1515,6 +1515,36 @@
                             "pupil_x_error": 0.319
                         }
                     }
+                },
+                "arm_pattern": {
+                    "candidate_sha256": "fc4998671fa5a5a924c3b76568b344a47ff9007adc9847f06be1449855ae3bea",
+                    "backend": "WebGLBackend",
+                    "turns": {
+                        "35": {
+                            "guide_sha256": "197d9b7a461f1a72e2efccf0df6bdcfe1bb8f99115f8a9ec7f8281013d91e62f",
+                            "native_sha256": "5b7d39fbdd71d333bbb2a41ff5bb1d7a5b51be51c4c5a9503416ef795ed9da1c",
+                            "silhouette_iou": 0.8422,
+                            "skin_iou": 0.7727,
+                            "hair_iou": 0.6246,
+                            "pupil_x_error": 0.844
+                        },
+                        "90": {
+                            "guide_sha256": "11c73f399a24497453fbf5a557717da0dfd09391300c68965b1a7dfcc9779de3",
+                            "native_sha256": "cb33db4c42546a5248f31db81bdd0d57f40583d90248302d681da5965d04bb1f",
+                            "silhouette_iou": 0.8535,
+                            "skin_iou": 0.6905,
+                            "hair_iou": 0.7512,
+                            "pupil_x_error": 0.077
+                        },
+                        "-90": {
+                            "guide_sha256": "e79d9a6b5befd381da751d1f67870bd7cd8f2bdaa8aa3229836af841a4a51bd5",
+                            "native_sha256": "8a26944d51d36dd6434feb80bb82038b31db96b937bc9aee7d45442a10a5b70e",
+                            "silhouette_iou": 0.8555,
+                            "skin_iou": 0.6853,
+                            "hair_iou": 0.7518,
+                            "pupil_x_error": 0.319
+                        }
+                    }
                 }
             },
             "ink_contact": {
@@ -1766,6 +1796,131 @@
                 },
                 "source_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
                 "evidence_sha256": "fe0c423bf079358da7eeef7c053b500aa479403508367c3dfd2d6b9130a427f9"
+            },
+            "arm_pattern": {
+                "transport": "local-blip",
+                "seconds": 47.89,
+                "model_calls": [
+                    {
+                        "transport": "local",
+                        "reported_model": "BLIP VQA (blip)",
+                        "weights_sha256": "1113701091eef45deed6a2648388a4d1af2f678d6418f23b8e7ba2072454e2fe",
+                        "torch": "2.8.0+cpu",
+                        "transformers": "4.51.3",
+                        "operation": "observe_source",
+                        "source_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
+                        "seconds": 8.108,
+                        "questions": {
+                            "glasses": "Is this person wearing sunglasses?",
+                            "top": "What kind of shirt is the person wearing?",
+                            "hair": "How is this person's hair styled?",
+                            "feet": "What type of shoes is the person wearing?"
+                        },
+                        "answers": {
+                            "glasses": "no",
+                            "top": "t shirt",
+                            "hair": "short",
+                            "feet": "sneakers"
+                        },
+                        "usage": {
+                            "cost": 0
+                        }
+                    }
+                ],
+                "selected_pass": 2,
+                "reported_provider_cost": 0,
+                "passes": [
+                    {
+                        "accepted": false,
+                        "front": {
+                            "silhouette_iou": 0.9244,
+                            "head_iou": 0.9524,
+                            "head_edge_agreement": 0.807,
+                            "body_edge_agreement": 0.6448,
+                            "rgb_mae": 22.89,
+                            "eye_pigment_agreement": 0.3375,
+                            "globe_measurements": {
+                                "position": 0.0616,
+                                "aperture_log_error": 0.0842,
+                                "gaze": 0.0527,
+                                "pupil_log_error": 0.4036,
+                                "source_ink": 0.778,
+                                "native_ink": 0.4362
+                            }
+                        },
+                        "reason": "Native comparison missed body_edge_agreement, eyes.",
+                        "triangles": 3872
+                    },
+                    {
+                        "accepted": true,
+                        "front": {
+                            "silhouette_iou": 0.9392,
+                            "head_iou": 0.9525,
+                            "head_edge_agreement": 0.8151,
+                            "body_edge_agreement": 0.6666,
+                            "rgb_mae": 21.26,
+                            "eye_pigment_agreement": 0.325,
+                            "globe_measurements": {
+                                "position": 0.0471,
+                                "aperture_log_error": 0.0842,
+                                "gaze": 0.0701,
+                                "pupil_log_error": 0.2203,
+                                "source_ink": 0.778,
+                                "native_ink": 0.4255
+                            }
+                        },
+                        "reason": null,
+                        "triangles": 3874
+                    }
+                ],
+                "routed_family": "rick-classic",
+                "routed_framing": "full",
+                "visible_checks_passed": true,
+                "error": null,
+                "source_edits": [],
+                "candidate_sha256": "fc4998671fa5a5a924c3b76568b344a47ff9007adc9847f06be1449855ae3bea",
+                "full_body_silhouette_iou": 0.9392,
+                "full_body_rgb_mae": 21.26,
+                "independent_pose": {
+                    "observer": "MediaPipe Pose Landmarker",
+                    "version": "1.2.3",
+                    "weights_sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+                    "reference_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
+                    "native_sha256": "9d3e47505d0cf3cfd68169c24c51901592284d488042a8ce04877efc93366e0b",
+                    "source": {},
+                    "native": {
+                        "shoulder": [
+                            [-0.1055, 0.3176],
+                            [0.06766, 0.30361]
+                        ],
+                        "elbow": [
+                            [-0.20404, 0.32986],
+                            [0.19071, 0.32629]
+                        ],
+                        "wrist": [
+                            [-0.32897, 0.33324],
+                            [0.30798, 0.33048]
+                        ],
+                        "hip": [
+                            [-0.05303, 0.58076],
+                            [0.05422, 0.57773]
+                        ],
+                        "knee": [
+                            [-0.07313, 0.75692],
+                            [0.06076, 0.75658]
+                        ],
+                        "ankle": [
+                            [-0.08229, 0.93235],
+                            [0.07523, 0.93146]
+                        ]
+                    },
+                    "joint_error_in_statures": {},
+                    "mean_error_in_statures": null,
+                    "measured_joints": 0,
+                    "seconds": 1.57
+                },
+                "source_sha256": "082e7ec168a0327fa72a106921f04b3a774c580e097db04d060a1c9ef9cf88fd",
+                "evidence_sha256": "2b3fa1a8cbd44d795df418e5b1bca1a6faa8b17f196e52329ad6ba8b8f127b34"
             }
         }
     }

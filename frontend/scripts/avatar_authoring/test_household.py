@@ -618,6 +618,11 @@ class HouseholdTests(unittest.TestCase):
         design = candidate["design"]
         self.assertEqual(design["mouth"], "speaking")
         self.assertEqual(design["outfit"]["top"], "polo")
+        np.testing.assert_allclose(
+            design["outfit"]["buttons"], [0.21, 0.46], atol=0.015
+        )
+        self.assertAlmostEqual(design["outfit"]["placketDepth"], 0.134, delta=0.02)
+        self.assertNotIn("placketEnd", design["outfit"])
         self.assertTrue(
             all(orbit.get("browRim") for orbit in design["household"]["orbits"])
         )
@@ -625,6 +630,19 @@ class HouseholdTests(unittest.TestCase):
         self.assertIn("mouthPaint", design["household"])
         self.assertEqual(design["household"]["portraitPreset"], "adult-casual")
         self.assertNotIn("body", design["household"])
+
+    def test_a_shared_arm_shift_requires_two_consistent_measured_arms(self):
+        from .household_pattern import bilateral_offset
+
+        self.assertEqual(bilateral_offset([185, 184], [187, 186.5]), -2.25)
+        for source, projected in [
+            (None, [185, 184]),
+            ([185, 184], None),
+            ([185, 184], [187, 183]),
+            ([185, 184], [186, 188]),
+            ([185, 184], [185.1, 184.3]),
+        ]:
+            self.assertIsNone(bilateral_offset(source, projected))
 
     def test_foot_opening_distinguishes_a_pale_sock_from_bare_skin(self):
         for subject, sock in (("moss", True), ("lark", False)):

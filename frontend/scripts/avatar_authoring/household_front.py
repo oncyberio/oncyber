@@ -808,7 +808,7 @@ def inked_foot_columns(
     return np.asarray(cols, dtype=float), hem
 
 
-def fit_front(source, name, observation=None):
+def fit_front(source, name, observation=None, *, project_arms=True):
     """Use the family skull around measured eyes and retain the drawn T-pose body."""
     from .draft import propose
     from .fit import bounds, fit, pixels
@@ -1195,14 +1195,16 @@ def fit_front(source, name, observation=None):
     if np.min((boxes[:, 2] - boxes[:, 0]) / (boxes[:, 3] - boxes[:, 1])) > 1.85:
         score["lowered_lids"] = True
     from .household import fit_crop_back
+    from .household_pattern import fit_arm_height
 
     fit_crop_back(recipe["design"])
-    return recipe, score
+    return (fit_arm_height(recipe, source) if project_arms else recipe), score
 
 
 def review_edits(recipe, source, native, score, visual):
     from .family_eyes import eye_measures
     from .inked_hand import arm_centerlines
+    from .household_pattern import bilateral_offset
 
     edits = []
     design = recipe["design"]
@@ -1220,20 +1222,9 @@ def review_edits(recipe, source, native, score, visual):
             edits.append({"field": "shirtSideOffset", "value": shift})
     if body and body["sections"].get("palmContours"):
         levels = [arm_centerlines(p, body, design["height"]) for p in (source, native)]
-        if all(v is not None for v in levels):
-            offset = levels[0] - levels[1]
-            # Move the shared sleeve, wrist and grip only when both arms agree.
-            if (
-                np.prod(offset) > 0
-                and np.ptp(offset) < 2
-                and 0.8 < abs(offset.mean()) <= 7
-            ):
-                edits.append(
-                    {
-                        "field": "armHeightOffset",
-                        "value": round(float(offset.mean()), 2),
-                    }
-                )
+        shift = bilateral_offset(*levels)
+        if shift:
+            edits.append({"field": "armHeightOffset", "value": shift})
     if visual["rgb_mae"] > 12:
         from .household_registration import dye, frame, role_masks, swatches
 

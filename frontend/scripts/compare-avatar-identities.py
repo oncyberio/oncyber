@@ -8,11 +8,13 @@ from time import monotonic
 
 import numpy as np
 from PIL import Image, ImageOps
+from scipy import ndimage
 
 from avatar_authoring.fit import bounds, pixels
 from avatar_authoring.family_review import native_front
 from avatar_authoring.paper_control import painted_reference
 from avatar_authoring.release import digest, reference_passes, verified_captures
+from avatar_authoring.turn_guides import registered_turn_pairs
 
 # All cameras use figure height. A wider hairstyle or thinner waist must
 # remain visible in the comparison. The family and identity are withheld
@@ -56,6 +58,69 @@ def rank(gallery, actual, expected):
     }
 
 
+def neutral_turn(frame):
+    """Retain internal highlights and place only border-connected paper on gray."""
+    frame = frame.astype(float)
+    background = np.median(np.vstack((frame[:1], frame[-1:])), axis=(0, 1))
+    near = np.max(abs(frame - background), axis=2) < 25
+    border = np.zeros_like(near)
+    border[[0, -1]] = near[[0, -1]]
+    border[:, [0, -1]] = near[:, [0, -1]]
+    frame[ndimage.binary_propagation(border, mask=near)] = 220
+    return ImageOps.pad(
+        Image.fromarray(frame.astype(np.uint8)),
+        (224, 224),
+        Image.Resampling.BICUBIC,
+        color=(220, 220, 220),
+    )
+
+
+def score_turns(cases, guides, embed):
+    # The distractors include the correct character at the other angle.
+    guides = {
+        key: data
+        for key, data in guides.items()
+        if any(
+            other != key and cases[other]["family"] == cases[key]["family"]
+            for other in guides
+        )
+    }
+    vectors = {}
+    for key, (review, recipe, proof) in guides.items():
+        guide = proof["turn_guide"]
+        item = cases[key]["turn_identity"] = {
+            "guide_sha256": guide["sha256"],
+            "backends": {},
+        }
+        for backend, capture in proof["backends"].items():
+            item["backends"][backend] = {}
+            for angle, filename, pair in registered_turn_pairs(
+                review / "turn-guide", guide["split_x"], recipe, review / backend
+            ):
+                angle = str(angle)
+                item["backends"][backend][angle] = {
+                    "native_sha256": capture["views"][filename]
+                }
+                for label, (frame, _) in zip(("guide", backend), pair):
+                    idx = (key, angle, label)
+                    if idx not in vectors:
+                        vectors[idx] = embed(neutral_turn(frame))
+    for key in guides:
+        item = cases[key]["turn_identity"]
+        same = [k for k in guides if cases[k]["family"] == cases[key]["family"]]
+        angles = ("35", "90")
+        item["gallery_size"] = len(same) * len(angles)
+        for backend, poses in item["backends"].items():
+            for angle, receipt in poses.items():
+                for mode, actual in vectors[key, angle, backend].items():
+                    gallery = {
+                        f"{k}/{yaw}": vectors[k, yaw, "guide"][mode]
+                        for k in same
+                        for yaw in angles
+                    }
+                    receipt[mode] = rank(gallery, actual, f"{key}/{angle}")
+
+
 def compare(manifest, output, model, paper_control=False):
     import mediapipe as mp
     from mediapipe.tasks.python import BaseOptions, vision
@@ -71,6 +136,7 @@ def compare(manifest, output, model, paper_control=False):
         "cases": {},
     }
     images = {}
+    guides = {}
     for entry in entries:
         key = entry["id"]
         row = studies[key]
@@ -80,6 +146,8 @@ def compare(manifest, output, model, paper_control=False):
         )
         review = candidate.parent / "approval"
         evidence = verified_captures(candidate, review)
+        if evidence.get("turn_guide"):
+            guides[key] = review, json.loads(candidate.read_bytes()), evidence
         reference = manifest.parent / entry["evaluation_reference"]
         if (
             digest(reference) != entry["reference_sha256"]
@@ -129,24 +197,30 @@ def compare(manifest, output, model, paper_control=False):
             base_options=BaseOptions(model_asset_path=str(model)), l2_normalize=True
         )
     ) as engine:
+
+        def embed(frame):
+            result = {}
+            for mode, image in (
+                ("color", frame),
+                ("gray", ImageOps.grayscale(frame).convert("RGB")),
+            ):
+                response = engine.embed(
+                    mp.Image(image_format=mp.ImageFormat.SRGB, data=np.asarray(image))
+                )
+                vector = response.embeddings[0].embedding
+                length = np.linalg.norm(vector)
+                if not np.isfinite(length) or length < 1e-8:
+                    raise ValueError("Invalid image embedding")
+                result[mode] = vector / length
+            return result
+
         vectors = {}
         for key, paths in images.items():
             for name, path in paths.items():
                 for region, frame in crops(path):
-                    for mode, im in [
-                        ("color", frame),
-                        ("gray", ImageOps.grayscale(frame).convert("RGB")),
-                    ]:
-                        response = engine.embed(
-                            mp.Image(
-                                image_format=mp.ImageFormat.SRGB, data=np.asarray(im)
-                            )
-                        )
-                        vec = response.embeddings[0].embedding
-                        length = np.linalg.norm(vec)
-                        if not np.isfinite(length) or length < 1e-8:
-                            raise ValueError(f"Invalid {region} embedding for {key}")
-                        vectors[key, name, region, mode] = vec / length
+                    for mode, vector in embed(frame).items():
+                        vectors[key, name, region, mode] = vector
+        score_turns(result["cases"], guides, embed)
         for key, item in result["cases"].items():
             same = [
                 other

@@ -57,19 +57,14 @@ def orb_roles(path, paints):
     }
 
 
-def compare_turns(guide, split_x, candidate, captures, output):
-    """Keep the two projected comparisons separate; a reviewer judges identity."""
-    canvas = Image.new("RGB", (960, 566), "#f5f2eb")
-    pen = ImageDraw.Draw(canvas)
-    scores = {}
+def registered_turn_pairs(guide, split_x, candidate, captures):
+    """Yield drawing and mesh in the same head frame for each recorded angle."""
     with Image.open(guide) as sheet, TemporaryDirectory() as tmp:
         if not 0 < split_x < sheet.width:
             raise ValueError("Invalid guide split")
-        for row, (angle, bounds, native) in enumerate(
-            (
-                (35, (0, 0, split_x, sheet.height), "portrait-quarter.png"),
-                (90, (split_x, 0, sheet.width, sheet.height), "portrait-profile.png"),
-            )
+        for angle, bounds, native in (
+            (35, (0, 0, split_x, sheet.height), "portrait-quarter.png"),
+            (90, (split_x, 0, sheet.width, sheet.height), "portrait-profile.png"),
         ):
             art = Path(tmp) / f"{angle}.png"
             sheet.crop(bounds).save(art)
@@ -87,23 +82,34 @@ def compare_turns(guide, split_x, candidate, captures, output):
                         "silhouette": levels > 0,
                     }
                 pair.append((frame, regions))
-            origin = 283 * row
-            a, b = (regions for _, regions in pair)
-            scores[str(angle)] = {key + "_iou": iou(a[key], b[key]) for key in a}
-            silhouette_a = np.logical_or.reduce(list(a.values()))
-            silhouette_b = np.logical_or.reduce(list(b.values()))
-            overlay = np.full((*silhouette_a.shape, 3), [246, 242, 233], dtype=np.uint8)
-            overlay[silhouette_a] = [215, 132, 87]
-            overlay[silhouette_b] = [48, 141, 169]
-            overlay[silhouette_a & silhouette_b] = [82, 71, 71]
-            for col, (im, label) in enumerate(
-                [
-                    (pair[0][0], f"{angle}°  Guide drawing"),
-                    (pair[1][0], f"{angle}°  Native render"),
-                    (overlay, "Orange drawing · blue mesh · dark overlap"),
-                ]
-            ):
-                canvas.paste(Image.fromarray(im), (320 * col, origin + 25))
-                pen.text((320 * col + 6, origin + 5), label, fill="#252625")
+            yield angle, native, pair
+
+
+def compare_turns(guide, split_x, candidate, captures, output):
+    """Keep the two projected comparisons separate; a reviewer judges identity."""
+    canvas = Image.new("RGB", (960, 566), "#f5f2eb")
+    pen = ImageDraw.Draw(canvas)
+    scores = {}
+    for row, (angle, _, pair) in enumerate(
+        registered_turn_pairs(guide, split_x, candidate, captures)
+    ):
+        origin = 283 * row
+        a, b = (regions for _, regions in pair)
+        scores[str(angle)] = {key + "_iou": iou(a[key], b[key]) for key in a}
+        silhouette_a = np.logical_or.reduce(list(a.values()))
+        silhouette_b = np.logical_or.reduce(list(b.values()))
+        overlay = np.full((*silhouette_a.shape, 3), [246, 242, 233], dtype=np.uint8)
+        overlay[silhouette_a] = [215, 132, 87]
+        overlay[silhouette_b] = [48, 141, 169]
+        overlay[silhouette_a & silhouette_b] = [82, 71, 71]
+        for col, (im, label) in enumerate(
+            [
+                (pair[0][0], f"{angle}°  Guide drawing"),
+                (pair[1][0], f"{angle}°  Native render"),
+                (overlay, "Orange drawing · blue mesh · dark overlap"),
+            ]
+        ):
+            canvas.paste(Image.fromarray(im), (320 * col, origin + 25))
+            pen.text((320 * col + 6, origin + 5), label, fill="#252625")
     canvas.save(output, lossless=True)
     return scores

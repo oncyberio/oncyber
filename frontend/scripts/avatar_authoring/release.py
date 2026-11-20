@@ -76,7 +76,7 @@ def registration_from_source(recipe, source):
     if data.get("construction") == "household":
         from .household_front import fit_front
 
-        _, registration = fit_front(source, "Reference measurement")
+        _, registration = fit_front(source, "Reference measurement", project_arms=False)
     else:
         from .family import fit_family
 
