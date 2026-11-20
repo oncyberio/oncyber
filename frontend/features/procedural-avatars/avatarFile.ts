@@ -250,7 +250,7 @@ const familyFile = z.strictObject({
     shirtMark: shirtMarkSchema
         .extend({
             outline: printOutline,
-            islands: z.array(printOutline).min(1).max(3).optional(),
+            islands: z.array(printOutline).min(1).max(4).optional(),
         })
         .optional(),
     paints: z.record(z.string().max(16), swatch),

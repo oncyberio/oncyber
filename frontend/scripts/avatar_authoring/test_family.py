@@ -538,6 +538,51 @@ class FamilyTests(unittest.TestCase):
         )
         self.assertGreater(np.min(np.diff(angles)), 0.16)
 
+    def test_projected_jersey_print_preserves_a_counter_and_corrects_native_displacement(
+        self,
+    ):
+        from .jersey_print import ink_fills, projected_print
+        from scipy import ndimage
+
+        shape = np.zeros((47, 47), dtype=bool)
+        shape[6:40, 7:38] = True
+        shape[14:31, 16:28] = False
+        fills = ink_fills(shape)
+        self.assertEqual(len(fills), 2)
+        np.testing.assert_array_equal(np.logical_or.reduce(fills), shape)
+        self.assertTrue(
+            all(np.array_equal(f, ndimage.binary_fill_holes(f)) for f in fills)
+        )
+
+        with TemporaryDirectory() as tmp:
+            stock = Image.new("RGB", (240, 300), "#ccc9c4")
+            pen = ImageDraw.Draw(stock)
+            pen.rectangle((106, 10, 134, 289), fill="#978075")
+            pen.rectangle((50, 65, 190, 221), fill="#85c09b")
+            frame = [-0.25, 0.25, 0.25, 0.65]
+
+            def stamp(filename, x, dye):
+                im = stock.copy()
+                if dye:
+                    ImageDraw.Draw(im).ellipse((x - 14, 118, x + 14, 136), fill=dye)
+                path = Path(tmp) / filename
+                im.save(path)
+                return path
+
+            ref = stamp("source.png", 135, "#e27064")
+            shown = stamp("native.png", 144, "#cc6258")
+            mark = {
+                "color": "#e27064",
+                "outline": [[0.50, 0.35], [0.61, 0.30], [0.70, 0.41], [0.61, 0.50]],
+            }
+            fit = projected_print(ref, shown, frame, mark)
+            self.assertLess(np.mean(fit["outline"], axis=0)[0], 0.58)
+            self.assertGreater(int(fit["color"][1:3], 16), 0xE2)
+            self.assertNotIn("islands", fit)
+            self.assertIsNone(
+                projected_print(ref, stamp("blank.png", 144, None), frame, mark)
+            )
+
     def test_jersey_sleeves_require_two_visible_arms_and_follow_the_drawn_bands(self):
         from .jersey_sleeve import jersey_sleeve
 

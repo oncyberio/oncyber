@@ -68,21 +68,25 @@ def edit_schema(family=None, construction=None):
             **point,
             "items": {"type": "number", "minimum": -0.5, "maximum": 1.5},
         }
-        mark = record(
-            {
-                "color": color,
-                "outline": {
-                    "type": "array",
-                    "items": outline_point,
-                    "minItems": 3,
-                    "maxItems": 32,
-                },
-            }
-        )
+        contour = {
+            "type": "array",
+            "items": outline_point,
+            "minItems": 3,
+            "maxItems": 32,
+        }
+        mark = {"color": color, "outline": contour}
+        islands = {"type": "array", "items": contour, "minItems": 1, "maxItems": 4}
         branches.append(
             fields(
                 ["shirtMark"],
-                {"anyOf": [mark, record({"sample": point}), {"type": "null"}]},
+                {
+                    "anyOf": [
+                        record(mark),
+                        record({**mark, "islands": islands}),
+                        record({"sample": point}),
+                        {"type": "null"},
+                    ]
+                },
             )
         )
     if family != "rick-classic":

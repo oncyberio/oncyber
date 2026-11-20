@@ -16,6 +16,7 @@ from .family_body import body_edits, sleeve_cut
 from .family_edits import edited_recipe
 from .family_eyes import eye_agreement, eye_edits
 from .fit import pixels
+from .jersey_print import projected_print
 from .lapel import has_contour_ink, lapel_edit, panel_edit
 from .review import render
 from .sun_rays import collar_closed, floating_gap, kit_edits, open_collar, orb_edits
@@ -395,8 +396,23 @@ def registered_edits(recipe, source, directory, score, visual, gap, closed, miss
         )
     if visual.get("shirt_mark_agreement", 1) < 0.65:
         point = visual.get("shirt_mark_sample")
+        mark = None
+        if (
+            recipe.get("plainJersey")
+            and recipe.get("shirtMark")
+            and score.get("shirt_frame")
+        ):
+            mark = projected_print(
+                source,
+                directory / "front.png",
+                score["shirt_frame"],
+                recipe["shirtMark"],
+            )
         edits.append(
-            {"field": "shirtMark", "value": {"sample": point} if point else None}
+            {
+                "field": "shirtMark",
+                "value": mark or ({"sample": point} if point else None),
+            }
         )
     if closed and not misses:
         # Independent coat or pigment adjustments would disturb an already

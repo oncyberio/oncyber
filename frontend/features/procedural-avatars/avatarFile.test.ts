@@ -408,13 +408,11 @@ test("family members retain a single skinned mesh, both grips and their own clot
 });
 
 test("disconnected shirt strokes add skinned fabric detail in the same material", () => {
-    const islands = [
-        [
-            [0.2, 0.86],
-            [0.76, 0.76],
-            [0.55, 0.94],
-        ],
-    ];
+    const islands = [0.16, 0.32, 0.48, 0.64].map((x) => [
+        [x, 0.83],
+        [x + 0.12, 0.77],
+        [x + 0.08, 0.93],
+    ]);
     const build = (shirtMark: unknown) =>
         buildCharacter(
             readAvatarFile({ ...scientist, shirtMark }).recipe,
@@ -437,7 +435,7 @@ test("disconnected shirt strokes add skinned fabric detail in the same material"
         expect(() =>
             readAvatarFile({
                 ...scientist,
-                shirtMark: { ...mark, islands: Array(4).fill(islands[0]) },
+                shirtMark: { ...mark, islands: [...islands, islands[0]] },
             })
         ).toThrow();
     } finally {
