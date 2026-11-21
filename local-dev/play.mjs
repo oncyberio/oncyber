@@ -76,9 +76,12 @@ const model = modelSettings();
 const hasModel = Object.keys(model).length === 3;
 const children = [];
 const start = (command, args, env) => {
+    // Each part gets its own process group, so stopping reaches the
+    // servers themselves and not only the npm or pnpm that launched them.
     const child = spawn(command, args, {
         cwd: ROOT,
         stdio: "inherit",
+        detached: true,
         env: { ...process.env, ...env },
     });
     children.push(child);
@@ -91,7 +94,13 @@ const start = (command, args, env) => {
 let stopping = false;
 function stop(code = 0) {
     stopping = true;
-    for (const child of children) child.kill("SIGTERM");
+    for (const child of children) {
+        try {
+            process.kill(-child.pid, "SIGTERM");
+        } catch {
+            // Already gone.
+        }
+    }
     setTimeout(() => process.exit(code), 500);
 }
 process.on("SIGINT", () => stop(0));
