@@ -18,6 +18,7 @@ from avatar_authoring.release import (
     export_review_views,
     verified_captures,
 )
+from avatar_authoring.street_oblique import compare_mesh, iris_coverage, oblique_sheet
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from scipy import ndimage
 
@@ -417,6 +418,13 @@ def review(args):
             path,
         )
         assets["outlines"] = digest(path)
+        turns = args.destination / (args.slug + "-oblique.webp")
+        oblique_sheet(
+            args.previous_captures / "WebGLBackend",
+            args.captures / "WebGLBackend",
+            turns,
+        )
+        assets["oblique"] = digest(turns)
     if args.previous_face:
         revision = args.destination / (args.slug + "-portrait-revision.webp")
         portrait_revision(
@@ -430,6 +438,9 @@ def review(args):
             "sha256": digest(revision),
         }
     for backend in result["backends"]:
+        result["backends"][backend]["three_quarter_iris"] = iris_coverage(
+            args.captures / backend
+        )
         result["backends"][backend]["facial_landmarks"] = face_gallery(
             args.captures / backend, targets
         )
@@ -448,6 +459,21 @@ def review(args):
             )
         copyfile(shot, path)
         result["drawing_pose"] = {**pose, "sha256": digest(path)}
+        if args.illustration:
+            # Cache with the captures: a future mesh-builder revision may
+            # produce different geometry from these same recipe bytes.
+            sample = (
+                args.captures
+                / f"{shot.stem}-{digest(args.illustration)[:12]}-mesh.json"
+            )
+            if not args.use_captures:
+                errors = compare_mesh(args.recipe, args.illustration, pose["turn"])
+                sample.write_text(json.dumps(errors, indent=2) + "\n")
+            if not sample.is_file():
+                raise ValueError(
+                    "This capture set has no mesh measurements for the marked drawing and pose"
+                )
+            result["eye_registered_mesh"] = json.loads(sample.read_text())
     result["studies"] = assets
     result["captures"] = export_review_views(
         args.captures, args.destination, args.slug, report
@@ -484,6 +510,11 @@ if __name__ == "__main__":
         type=Path,
         help="Pose output from fitting a marked three-quarter illustration",
     )
+    parser.add_argument(
+        "--illustration",
+        type=Path,
+        help="Original face marks for eye-registered mesh comparison at the fitted turn",
+    )
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--budget", default=5500, type=int)
     parser.add_argument(
@@ -491,4 +522,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Rebuild the comparison from the same verified captures",
     )
-    print(json.dumps(review(parser.parse_args()), indent=2))
+    args = parser.parse_args()
+    if args.illustration and not args.drawing_pose:
+        parser.error("--illustration requires --drawing-pose")
+    print(json.dumps(review(args), indent=2))

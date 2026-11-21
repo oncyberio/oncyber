@@ -369,6 +369,18 @@ def register_illustration(recipe, drawing):
         loss="soft_l1",
         f_scale=3,
     )
+    if face.get("finish") == "brush":
+        # Register by the eye pair alone so the chin cannot absorb its own
+        # residual by changing the camera scale. Share the correction with
+        # the front/profile stations, bounded to 0.7% of standing height.
+        baseline = image[1] - image[0]
+        span = np.linalg.norm(baseline)
+        down = np.array([-baseline[1], baseline[0]]) / span
+        eye_scale = span / (2 * eye[0] * np.cos(np.radians(fit.x[0])))
+        chin_drop = (np.array(drawing["face"]["chin"]) - image[0]) @ down / eye_scale
+        face["jawOffset"] = round(
+            float(np.clip(0.5 * (chin_drop - (anchors["chin"][1] - eye[1])), -7, 7)), 1
+        )
     matrix = camera(fit.x)
     shift = fit.x[3:]
     names = [
@@ -408,6 +420,35 @@ def register_illustration(recipe, drawing):
             matrix.T @ (target - (matrix @ tips[idx] + shift)),
         )
         tips[idx] += offset
+    # A back tuft grazing the face in the opposite turn reads as a second
+    # nose. A declared overlap keeps its tip behind the face at that height
+    # without moving the tip in the marked illustration or changing its height.
+    for name, turn in drawing.get("hiddenTipsAtTurn", {}).items():
+        if name not in names or not np.isfinite(turn) or not 15 <= abs(turn) <= 75:
+            raise ValueError("A hidden spike needs a named tip and a 15–75 degree turn")
+        tip = tips[names.index(name)]
+        if (
+            np.sign(tip[0]) != np.sign(turn)
+            or not sections[0][0] <= tip[1] <= sections[-1][0]
+        ):
+            raise ValueError("The hidden tip must be on the far side at face height")
+        angle = np.radians(abs(turn))
+        center_depth = np.interp(
+            tip[1], [row[0] for row in sections], [row[2] for row in sections]
+        )
+        normal = np.array([np.sign(turn) * np.cos(angle), np.sin(angle)])
+        excess = normal @ tip[[0, 2]] - (center_depth * np.sin(angle) - 3)
+        if excess > 0:
+            # In the registered view a horizontal movement along its view
+            # direction has zero projected length, even with head roll.
+            yaw = np.radians(fit.x[0])
+            ray = np.array([-np.sin(yaw), np.cos(yaw)])
+            leverage = normal @ ray
+            if abs(leverage) < 0.1:
+                raise ValueError(
+                    "The hidden turn needs separation from the drawing view"
+                )
+            tip[[0, 2]] -= ray * excess / leverage
     for tip, row in zip(tips, recipe["hair"]["spikes"], strict=True):
         row[3:6] = np.rint(tip).astype(int).tolist()
     after = error(tips.round())

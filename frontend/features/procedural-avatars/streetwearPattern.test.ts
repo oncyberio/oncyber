@@ -8,6 +8,7 @@ import {
     streetPaintUV,
     streetSkinTile,
     streetEyeTile,
+    streetIrisX,
     streetHairTile,
     streetClothTile,
 } from "./streetBrush";
@@ -353,9 +354,9 @@ test("the shared eye chart keeps the upper lid, pupil, catchlight and blue lower
         return [...sheet.data.slice(pixel, pixel + 3)];
     }
     const lid = sample(23, 126.4),
-        pupil = sample(23.8, 130),
-        highlight = sample(27.47, 129.75),
-        lower = sample(24, 135.4);
+        pupil = sample(streetIrisX + 0.25, 130),
+        highlight = sample(streetIrisX + 3.92, 129.75),
+        lower = sample(streetIrisX + 0.45, 135.4);
     expect(Math.max(...lid, ...pupil)).toBeLessThan(80);
     expect(Math.min(...highlight)).toBeGreaterThan(175);
     expect(lower[2] - lower[0]).toBeGreaterThan(55);

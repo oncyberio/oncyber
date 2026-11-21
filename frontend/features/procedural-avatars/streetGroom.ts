@@ -2,7 +2,7 @@ import * as T from "three/webgpu";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 import { inkPart } from "./streetInk";
-import { streetHairTile } from "./streetBrush";
+import { margin, upperLid, streetHairTile } from "./streetBrush";
 import { streetShade, type StreetPattern } from "./streetwearPattern";
 
 const mix = T.MathUtils.lerp,
@@ -120,7 +120,15 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
     const fringe = p.hair.fringe
         .filter(([x]) => Math.abs(x) <= 36)
         .map(([x, y]) => {
-            return [Math.asin(x / 53.28), y + 1.6 * smooth(y, 111, 123)];
+            const lid = margin(
+                upperLid,
+                T.MathUtils.clamp(
+                    Math.abs(x),
+                    upperLid[0][0],
+                    upperLid.at(-1)[0]
+                )
+            );
+            return [Math.asin(x / 53.28), Math.min(y, lid - 3.2)];
         });
     const lateral = p.faceFit.crown
         .filter(([a]) => Math.abs(a) > 0.85 && Math.abs(a) < 1.34)
@@ -215,7 +223,8 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
                 // A drawn lock holds its width through the middle and narrows
                 // quickly near the tip. Keep the inside edge close to straight.
                 const mid =
-                    mix(a, tip, t ** 1.42) + 0.058 * (right - left) * bend;
+                    mix(a, tip, t ** mix(1.05, 1.72, u)) -
+                    0.14 * (right - left) * bend;
                 return surface(
                     mid,
                     mix(h, ty, t),
@@ -267,6 +276,10 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
             const rows = stations.map(([y, inside, outside, fore, back]) =>
                 series(5).map((u) => {
                     const a = (half + u) * pi;
+                    // Sweep the hanging lock behind the cheekbone before
+                    // returning to its measured tip beside the collar.
+                    const sweep =
+                        8.5 * smooth(y, 125, 166) * (1 - smooth(y, 166, 230));
                     // Give the temple a convex outer face across its full
                     // depth, so the skull cannot pierce a diagonal ribbon.
                     const arc = (n: number) =>
@@ -278,7 +291,8 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
                             width) /
                             48,
                         y,
-                        (mix(back, fore, 0.5 + 0.5 * arc(Math.sin(a))) *
+                        ((mix(back, fore, 0.5 + 0.5 * arc(Math.sin(a))) -
+                            sweep) *
                             depth) /
                             54,
                     ] as Point;

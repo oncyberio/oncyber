@@ -7,6 +7,7 @@
         "chin": [117, 160],
         "mouth": [122, 151]
     },
+    "hiddenTipsAtTurn": { "leftLower": -35 },
     "spikeTips": {
         "leftUpper": [31, 21],
         "leftMiddle": [16, 90],

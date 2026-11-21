@@ -23,8 +23,8 @@ function union(a: number, b: number, width: number) {
 }
 
 /** Work in front-view drawing units. Sample the construction once into the
- * rigged mesh. Each horizontal slice has a rounded cranium, two malar pads,
- * the muzzle and the nose. Eyelid margins belong to the socket and cornea. */
+ * rigged mesh. The cheekbones, nasal bridge and lips share a continuous
+ * midface. Eyelid margins belong to the socket and cornea. */
 export function streetHeadForm(p: StreetPattern) {
     const { width, depth, chin, eyeGap, eyeLine } = p.head,
         fit = p.faceFit;
@@ -36,10 +36,34 @@ export function streetHeadForm(p: StreetPattern) {
         const cached = cache.get(y);
         if (cached) return cached;
         const row = paths.map((path) => margin(path, y));
+        // Pixel-sized steps in the sampled outline make a second corner under
+        // the ear. Smooth the intervening jaw stations, keeping the endpoints.
+        const jaw = smoothstep(y, 141, 151) * (1 - smoothstep(y, 178, 184));
+        if (jaw > 0) {
+            for (const i of [0, 2])
+                row[i] = lerp(
+                    row[i],
+                    (margin(paths[i], y - 3) +
+                        2 * row[i] +
+                        margin(paths[i], y + 3)) /
+                        4,
+                    jaw
+                );
+        }
+        if (y > 177) {
+            // Round the last few stations into a menton. A linear taper
+            // makes the lower jaw end in a pyramid from every diagonal.
+            const t = clamp((y - 177) / 7, 0, 1);
+            const cap = margin(paths[0], 177) * Math.sqrt(1 - t * t);
+            row[0] = lerp(row[0], Math.max(row[0], cap), smoothstep(t, 0, 0.5));
+        }
         cache.set(y, row);
         return row;
     }
-    const height = (y: number) => 51 + ((y - 51) * (chin - 51)) / 133;
+    const height = (y: number) =>
+        51 +
+        ((y - 51) * (chin - 51)) / 133 +
+        (fit.jawOffset ?? 0) * smoothstep(y, 149, 184);
     const facialX = (x: number, y: number) =>
         ((x +
             Math.sign(x) *
@@ -90,7 +114,8 @@ export function streetHeadForm(p: StreetPattern) {
         const roll = union(a - limbus, 0, 2.5);
         const recession = roll * 0.74;
         return (
-            station[3] +
+            station[3] -
+            2.5 +
             sag * (arc(a) - arc(station[1])) -
             recession -
             0.026 * (y - 131.3) ** 2
@@ -100,31 +125,41 @@ export function streetHeadForm(p: StreetPattern) {
         const a = clamp(Math.abs(x), inner, outer);
         return [margin(upperLid, a), margin(lowerLid, a)];
     }
+    // The nasal bridge and the lip sit on one continuous facial plane.
+    // Interpolate that plane between the brow, eye socket and symphysis.
+    // Its depth must not rise and fall with every sample of the nose profile.
+    const eyeDepth = station[3] - 2.5;
+    const midface = [
+        [115, section(115)[1]],
+        [132, eyeDepth + 5.0],
+        [145, eyeDepth + 7.7],
+        [156, eyeDepth + 10],
+        [165, section(165)[1] - 6.0],
+        [174, section(174)[1] - 1.7],
+        [184, section(184)[1]],
+    ];
     function relief(x: number, y: number) {
         const [w, fore, back] = section(y),
             a = Math.abs(x),
             u = clamp(a / w, 0, 1);
-        const side = lerp(fore, back, 0.52 + 0.25 * smoothstep(y, 159, 175));
-        const nose =
-            13.5 * Math.exp(-(((y - 149) / 9.6) ** 2)) +
-            3.5 * Math.exp(-(((y - 137) / 15) ** 2));
-        const forehead = fore - nose;
-        const cranium =
-            side + (forehead - side) * Math.max(0, 1 - u * u) ** 0.84;
-        // Start each pad inside the skull. Only its outermost few units
-        // emerge, leaving the temple and underside of the jaw rounded.
-        const cheek =
-            forehead -
-            5.8 -
-            13 * ((a - 20) / 13) ** 2 -
-            10 * ((y - 147) / 14) ** 2;
-        const muzzle =
-            fore - 0.95 - 6 * (x / 11) ** 2 - 8 * ((y - 166) / 8.8) ** 2;
-        const ball =
-            cranium +
-            nose *
-                Math.exp(-((x / (5.8 + 1.8 * smoothstep(y, 140, 151))) ** 2));
-        const z = union(union(ball, cheek, 3.4), muzzle, 1.8);
+        const flat = Math.min(
+            fore,
+            lerp(fore, margin(midface, y), smoothstep(y, 111, 120))
+        );
+        const side = lerp(flat, back, 0.53 + 0.15 * smoothstep(y, 157, 178));
+        const round = Math.sqrt(Math.max(0, 1 - u * u));
+        const malar =
+            2.7 *
+            Math.sin(Math.PI * u) ** 2 *
+            smoothstep(u, 0.22, 0.65) *
+            Math.exp(-(((y - 144) / 14) ** 2));
+        const skull =
+            side + (flat - side) * round * (1 - 0.075 * u * u) + malar;
+        const tip = 2.6 * Math.exp(-(((y - 149) / 5.1) ** 2));
+        const nasalWidth = 4.6 + 2.25 * smoothstep(y, 138, 151);
+        const ridgeWidth = lerp(nasalWidth, 11.5, smoothstep(y, 154, 165));
+        const z =
+            skull + (fore + tip - flat) * Math.exp(-((x / ridgeWidth) ** 2));
         // The brow and cheek turn around the entire socket. Interpolating
         // from a narrow aperture straight into the skull creates deep dimples.
         const orbital = Math.min(
@@ -135,7 +170,7 @@ export function streetHeadForm(p: StreetPattern) {
             (1 - smoothstep(Math.abs(y - 131.5), 1, 19)) *
             smoothstep(a, 5, 15) *
             (1 - smoothstep(u, 0.87, 1));
-        return lerp(Math.min(fore, z), orbital, band);
+        return lerp(Math.min(fore + tip, z), orbital, band);
     }
     function surface(x: number, y: number) {
         const [top, bottom] = limits(x),
@@ -160,7 +195,12 @@ export function streetHeadForm(p: StreetPattern) {
             (1 - smoothstep(a, outer - 4, outer));
         const roll = d / 1.52;
         const lid = (y < top ? 1.2 : 0.62) * roll * Math.exp(1 - roll) * arch;
-        return lerp(eyeball + ledge, base, smoothstep(d, 0, extent)) + lid;
+        // The pointed lash finishes before the side seam. Beyond the
+        // canthus shorten the transition to the temporal fossa.
+        const around = 1 - smoothstep(a, outer, section(y)[0]);
+        const influence =
+            (1 - smoothstep(d, 0, extent)) * (a <= outer ? 1 : around);
+        return lerp(base, eyeball + ledge, influence) + lid;
     }
     function at(col: number, y: number) {
         const x = lateral(col, y);

@@ -1,3 +1,4 @@
+import json
 import runpy
 import unittest
 from pathlib import Path
@@ -61,3 +62,27 @@ class StreetPoseTests(unittest.TestCase):
             self.assertTrue(
                 all(r[:3] == [0, 92, -15] for r in recipe["hair"]["spikes"])
             )
+
+    def test_vale_three_quarter_survives_reduction_and_hides_far_tuft(self):
+        from .street_oblique import compare_mesh
+
+        scripts = Path(__file__).resolve().parents[1]
+        recipe = scripts.parent / "public/lobby/procedural/recipes/vale-streetwear.json"
+        marks = (
+            scripts / "avatar_authoring/targets/streetwear-v1/vale-illustration.json"
+        )
+        measured = compare_mesh(recipe, marks, 43)
+        for lod in ("full", "crowd"):
+            self.assertLess(measured[lod]["rms_px"], 7.2)
+            self.assertLess(measured[lod]["landmark_error_px"]["nose"], 4.5)
+        model = json.loads(recipe.read_text())
+        turn = np.deg2rad(
+            json.loads(marks.read_text())["hiddenTipsAtTurn"]["leftLower"]
+        )
+        x, y, z = model["hair"]["spikes"][2][3:6]
+        rows = np.asarray(model["faceFit"]["sections"])
+        face_depth = np.interp(y, rows[:, 0], rows[:, 2])
+        # The tip sits inside the face in the counterturn, with drawing-unit clearance.
+        self.assertGreater(
+            x * np.cos(turn) + z * np.sin(turn), face_depth * np.sin(turn) + 2
+        )

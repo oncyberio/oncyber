@@ -548,9 +548,9 @@ function ears(d: Drawing, p: StreetPattern) {
             return [
                 s *
                     (width +
-                        (brushed ? 4.5 : 5.9) +
+                        (brushed ? 3.8 : 5.9) +
                         rim -
-                        (brushed ? 0.68 : 0.46) * (z + 6) -
+                        0.46 * (z + 6) -
                         v +
                         offset),
                 137 + v * 16.7,
@@ -618,6 +618,7 @@ function ears(d: Drawing, p: StreetPattern) {
         d.s.vertexPaint = undefined;
         d.s.tone = undefined;
         d.s.gradient = undefined;
+        if (brushed) continue;
         const rim = [0.94, 1.011].map((r) =>
             ring(14, (a) => shell(r * Math.cos(a), r * Math.sin(a), 0.42))
         );
@@ -628,7 +629,6 @@ function ears(d: Drawing, p: StreetPattern) {
             false,
             "perimeter"
         );
-        if (brushed) continue;
         // The folds follow the relief of the pinna. They only need a narrow
         // ribbon on that surface, including when the ear turns into profile.
         const crease = (path: number[][], color: string) => {

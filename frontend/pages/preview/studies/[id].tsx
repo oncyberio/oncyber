@@ -31,6 +31,7 @@ interface Props {
         comparison: string;
         layers: string;
         outlines?: string;
+        oblique?: string;
         face: string;
         illustration: { image: string; turn: number; tilt: number };
         triangles: number;
@@ -124,6 +125,14 @@ export default function RecipeReview({
                                 triangles · one skinned mesh
                             </p>
                             {[
+                                ...(evidence.oblique
+                                    ? [
+                                          {
+                                              src: evidence.oblique,
+                                              title: "Face at both 35° turns, in paint and clay",
+                                          },
+                                      ]
+                                    : []),
                                 ...(evidence.outlines
                                     ? [
                                           {
@@ -367,6 +376,12 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                         report.comparison_sha256
                     ),
                     face: await asset("vale-face", report.studies.face),
+                    ...("oblique" in report.studies && {
+                        oblique: await asset(
+                            "vale-oblique",
+                            String(report.studies.oblique)
+                        ),
+                    }),
                     ...("outlines" in report.studies && {
                         outlines: await asset(
                             "vale-outlines",

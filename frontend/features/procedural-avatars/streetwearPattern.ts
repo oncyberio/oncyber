@@ -111,6 +111,7 @@ export const streetwearFile = z.strictObject({
     faceFit: z
         .strictObject({
             finish: z.literal("brush").optional(),
+            jawOffset: near(-7, 7).optional(),
             orbit: z
                 .array(
                     z.tuple([

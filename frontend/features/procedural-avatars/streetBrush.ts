@@ -90,11 +90,11 @@ const brow = [
     [35.6, 118.35],
 ];
 const mouth = [
-    [-6.3, 168.45],
-    [-3.6, 167.83],
-    [-0.7, 167.8],
-    [2.8, 167.65],
-    [6.3, 167.3],
+    [-8.0, 167.9],
+    [-4.5, 167.35],
+    [-1.1, 167.3],
+    [2.8, 167.48],
+    [7.2, 167.05],
 ];
 function stroke(path: Line, x: number, y: number, r: number) {
     if (x < path[0][0] || x > path.at(-1)[0]) return 0;
@@ -108,6 +108,14 @@ function stroke(path: Line, x: number, y: number, r: number) {
         )
     );
 }
+const ala = [
+    [-4.3, 152.2],
+    [-2.8, 153.3],
+    [-1.1, 153.8],
+    [0, 153.9],
+    [2.4, 153.0],
+    [3.8, 150.8],
+];
 function complexion(x: number, y: number): RGB {
     const a = Math.abs(x);
     let c: RGB = [255, 228, 199];
@@ -129,15 +137,25 @@ function complexion(x: number, y: number): RGB {
             0.18 * wash(x, y, 4, 149, 3.9, 5)
     );
     c = blend(c, [255, 242, 218], 0.67 * wash(x, y, -1.55, 150.45, 1.45, 3.6));
-    c = blend(c, [137, 83, 57], 0.87 * wash(a, y, 2.43, 154.0, 0.77, 0.91));
+    // The light breaks across the bridge and the tucked-under tip. Keep
+    // the two alar creases separate across the columella through a turn.
+    const bridge = 2.1 + 2.4 * T.MathUtils.smoothstep(y, 139, 151);
+    c = blend(c, [215, 149, 111], 0.42 * wash(x, y, bridge, 146.8, 2.5, 7.9));
+    c = blend(c, [227, 174, 138], 0.34 * wash(x, y, -bridge, 146.5, 2, 6.7));
+    const underside = 153.8 - 1.55 * (a / 4.4) ** 2;
+    c = blend(c, [199, 133, 98], 0.58 * wash(x, y, 0.6, underside, 4.6, 1.35));
+    c = blend(c, [149, 93, 65], 0.78 * stroke(ala, x, y, 0.72));
+    c = blend(c, [132, 83, 60], 0.65 * wash(a, y, 3.55, 153.2, 0.95, 0.68));
     c = blend(c, [239, 187, 159], 0.8 * wash(x, y, 0, 169.3, 5.8, 1.55));
-    c = blend(c, [77, 50, 43], stroke(mouth, x, y, 0.9));
+    c = blend(c, [67, 45, 42], stroke(mouth, x, y, 0.95));
     c = blend(c, [255, 235, 211], 0.76 * wash(x, y, -0.25, 170.3, 3.1, 0.58));
-    c = blend(c, [116, 75, 48], 0.98 * stroke(brow, a, y, 0.97));
+    c = blend(c, [100, 64, 43], 0.98 * stroke(brow, a, y, 1.12));
     const fold = margin(upperLid, clamp(a, 12, 38)) - 2.18;
     c = blend(c, [172, 124, 90], 0.53 * wash(a, y, 23, fold, 11.8, 0.66));
     return c;
 }
+// The two charts are mirrored over the sagittal plane.
+export const streetIrisX = 22.45;
 function eyeBrush(x: number, y: number): RGB {
     const top = margin(innerLid, x),
         bottom = margin(lowerLid, x);
@@ -148,21 +166,22 @@ function eyeBrush(x: number, y: number): RGB {
     );
     // The dark upper iris disappears into the lash. The lower half opens
     // into a blue crescent and closes against a narrow, desaturated limbus.
-    const radius = Math.hypot((x - 23.55) / 7.12, (y - 130.3) / 7.08);
+    const irisX = x + (23.55 - streetIrisX);
+    const radius = Math.hypot((irisX - 23.55) / 6.85, (y - 130.3) / 7.08);
     if (radius < 1.07) {
         const lower = T.MathUtils.smoothstep(y, 130.3, 135.55);
         let iris = blend([9, 34, 66], [78, 148, 207], lower);
         iris = blend(
             iris,
             [103, 175, 222],
-            0.65 * wash(x, y, 23.8, 134.55, 4.2, 1.4)
+            0.65 * wash(irisX, y, 23.8, 134.55, 4.2, 1.4)
         );
         iris = blend(
             iris,
             [21, 44, 65],
             T.MathUtils.smoothstep(radius, 0.78, 0.98)
         );
-        const pupil = Math.hypot((x - 23.6) / 3.23, (y - 129.7) / 3.98);
+        const pupil = Math.hypot((irisX - 23.6) / 3.23, (y - 129.7) / 3.98);
         iris = blend(
             iris,
             [13, 13, 19],
@@ -171,17 +190,17 @@ function eyeBrush(x: number, y: number): RGB {
         iris = blend(
             iris,
             [145, 180, 204],
-            0.78 * wash(x, y, 27.35, 130.0, 2.3, 1.11)
+            0.78 * wash(irisX, y, 27.35, 130.0, 2.3, 1.11)
         );
         iris = blend(
             iris,
             [221, 240, 246],
-            0.94 * wash(x, y, 27.47, 129.75, 1.02, 0.65)
+            0.94 * wash(irisX, y, 27.47, 129.75, 1.02, 0.65)
         );
         iris = blend(
             iris,
             [118, 148, 165],
-            0.78 * wash(x, y, 20.3, 129.67, 1.65, 0.98)
+            0.78 * wash(irisX, y, 20.3, 129.67, 1.65, 0.98)
         );
         c = blend(c, iris, 1 - T.MathUtils.smoothstep(radius, 0.96, 1.06));
     }
@@ -276,7 +295,7 @@ function earBrush(u: number, v: number): RGB {
         0.53 * wash(u, v, 0.16, helix + 0.12, 0.25, 0.1)
     );
     c = blend(c, [138, 89, 60], 0.72 * wash(u, v, 0.18, -0.54, 0.15, 0.13));
-    return blend(c, [62, 43, 32], T.MathUtils.smoothstep(rim, 0.945, 1));
+    return blend(c, [161, 111, 76], T.MathUtils.smoothstep(rim, 0.94, 1));
 }
 // A fold has a soft plane facing the light and a narrow occlusion at the
 // overlap. All coordinates belong to the cut of the garment in the rest pose.

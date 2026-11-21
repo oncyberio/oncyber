@@ -35,19 +35,33 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     d.s.sourcePaint = false;
     d.s.sculptedCartoon = false;
     d.s.thinSkinOutline = false;
-    d.s.vertexPaint = (px, py) => {
-        const [x, y] = author(px, py);
-        if (y > 141) return rawSkin;
+    const complexion = (x: number, y: number, z: number) => {
+        // The jaw turns away from the key light under the cheek. Carry
+        // the same wash across the side seam and onto the submental plane.
+        const underJaw = smoothstep(
+            y + 0.48 * Math.abs(x) - 0.24 * (z - 40),
+            167,
+            184
+        );
+        const temple =
+            0.11 *
+            smoothstep(Math.abs(x), 25, 45) *
+            (1 - smoothstep(Math.abs(y - 142), 5, 28));
+        const shadow = 0.32 * underJaw + temple;
         const contact =
             (1 - smoothstep(y - margin(fringe, x), -2, 9)) *
             smoothstep(y, 89, 108);
         return color
             .setRGB(
-                base.r * (1 - 0.12 * contact),
-                base.g * (1 - 0.29 * contact),
-                base.b * (1 - 0.38 * contact)
+                base.r * (1 - 0.12 * contact - 0.38 * shadow),
+                base.g * (1 - 0.29 * contact - 0.69 * shadow),
+                base.b * (1 - 0.38 * contact - 0.83 * shadow)
             )
             .getHex();
+    };
+    d.s.vertexPaint = (px, py, pz) => {
+        const [x, y] = author(px, py);
+        return complexion(x, y, (pz * 54) / depth);
     };
     d.s.printUV = (x, y) => {
         const [u, v] = author(x, y);
@@ -61,29 +75,50 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     const normalOf =
         (field: typeof form.surface, joinTemple = false) =>
         (px: number, py: number): Point => {
-            const [x, y] = author(px, py),
-                e = 0.75;
+            const [x, y] = author(px, py);
+            const width = form.section(y)[0],
+                u = x / width;
+            // Average the broad cheek over its local control spacing. A
+            // one-pixel derivative follows quantization in the drawing and
+            // produces bands when those normals span a reduced triangle.
+            const broad = joinTemple ? smoothstep(y, 137, 145) : 0;
+            const radius =
+                0.75 + broad * (1.3 + 3.0 * smoothstep(Math.abs(x), 5, 16));
             const point = (a: number, b: number) =>
                 new T.Vector3(...form.position(a, b, field(a, b)));
-            const across = point(x + e, y).sub(point(x - e, y));
-            const down = point(x, y + e).sub(point(x, y - e));
-            const n = across.cross(down).normalize();
-            const edge = smoothstep(
-                Math.abs(x) / form.section(y)[0],
-                0.9,
-                0.995
+            const across = point(Math.min(width, x + radius), y).sub(
+                point(Math.max(-width, x - radius), y)
             );
+            // Follow the same longitude down the taper. Sampling fixed x
+            // beyond the jaw gives a normal from outside the head surface.
+            const longitudinal = (h: number) =>
+                point(u * form.section(h)[0], h);
+            const down = longitudinal(Math.min(184, y + radius)).sub(
+                longitudinal(Math.max(51, y - radius))
+            );
+            const n = across.cross(down).normalize();
+            const edge = smoothstep(Math.abs(u), 0.9, 0.995);
             if (joinTemple && edge > 0)
                 n.lerp(seamNormal(y, Math.sign(px)), edge).normalize();
             return n.toArray();
         };
+    const fineDetail = d.s.fineDetail;
+    d.s.fineDetail = true;
     d.s.surfaceNormal = normalOf(form.surface, true);
     // These interior meridians become the silhouette as the camera turns.
     // Keep the nose tip, philtrum, lip and chin after edge collapse.
     d.s.preserveVertex = (px, py) => {
         const [x, y] = author(px, py);
         const bridge = Math.abs(x) <= (form.section(y)[0] * 3.01) / 44;
-        return y >= 139 && (Math.abs(x) < 0.02 || (y <= 175 && bridge));
+        const radius = Math.abs(x) / form.section(y)[0];
+        const cheekTurn =
+            [149, 156, 165, 174, 181].includes(y) &&
+            (Math.abs(radius - 0.705) < 0.009 ||
+                Math.abs(radius - 0.41) < 0.009);
+        return (
+            y >= 139 &&
+            (Math.abs(x) < 0.02 || (y <= 175 && bridge) || cheekTurn)
+        );
     };
     // Use the same meridian on both sides of each lid. The two curves
     // coincide outside the eyes, closing the bridge and temples as well.
@@ -105,29 +140,58 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     d.s.surface(top, p.colors.skin, false, "perimeter");
     d.s.surface(jaw, p.colors.skin, false, "perimeter");
     d.s.surfaceNormal = undefined;
-    d.s.vertexPaint = () => rawSkin;
     const frontRings = [...top, ...jaw.slice(1)];
     const backPoint = (angle: number, y: number): Point => {
         const side = form.at(44, y),
             back = (form.section(y)[2] * depth) / 54;
+        // The mandibular angle sits behind and below the cheek. Fill its
+        // corners without changing the front width or the midline profile.
+        const jaw =
+            0.36 * Math.exp(-(((y - 164) / 9) ** 2)) * Math.sin(2 * angle) ** 2;
         return [
             side[0] * Math.cos(angle),
             side[1],
-            lerp(side[2], back, Math.sin(angle)),
+            lerp(lerp(side[2], back, Math.sin(angle)), back, jaw),
         ];
     };
     const rearChart = new Map<string, [number, number]>();
     const rear = frontRings.map((row) => {
         const right = row.at(-1),
             [, y] = author(right[0], right[1]);
-        return Array.from({ length: 7 }, (_, i) => {
-            const angle = (Math.PI * i) / 6;
-            const v = i === 0 ? right : i === 6 ? row[0] : backPoint(angle, y);
+        // Sample the ellipse where it turns into silhouette. These two
+        // longitudes normally fall between the side and quarter-circle rows.
+        const back = (form.section(y)[2] * depth) / 54;
+        const tangent = Math.atan2(
+            Math.max(0, right[2] - back) * Math.tan(Math.PI / 5),
+            right[0]
+        );
+        const middle = (tangent + Math.PI / 2) / 2;
+        const angles = [
+            0,
+            tangent,
+            middle,
+            Math.PI / 2,
+            Math.PI - middle,
+            Math.PI - tangent,
+            Math.PI,
+        ];
+        return angles.map((angle, i) => {
+            const v =
+                i === 0
+                    ? right
+                    : i === angles.length - 1
+                    ? row[0]
+                    : backPoint(angle, y);
             rearChart.set(key(v[0], v[1]), [angle, y]);
             return v;
         });
     });
-    d.s.preserveVertex = undefined;
+    d.s.preserveVertex = (px, py) => {
+        const [a, y] = rearChart.get(key(px, py));
+        return (
+            [149, 156, 161, 168, 174, 177, 181].includes(y) && a !== Math.PI / 2
+        );
+    };
     d.s.surfaceNormal = (px, py) => {
         const [angle, y] = rearChart.get(key(px, py));
         if (angle === 0 || angle === Math.PI)
@@ -148,7 +212,15 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
             y
         );
     };
+    d.s.vertexPaint = (x, y, z) =>
+        complexion(
+            (x * 48) / width,
+            rearChart.get(key(x, y))[1],
+            (z * 54) / depth
+        );
     d.s.surface(rear, p.colors.skin, false, "perimeter");
+    d.s.preserveVertex = undefined;
+    d.s.vertexPaint = () => rawSkin;
     d.s.surfaceNormal = undefined;
     d.s.printUV = () => streetPaintUV("skin", 37, 155);
     for (const j of [0, rear.length - 1]) {
@@ -194,6 +266,7 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
         d.s.vertexPaint = () => pigment;
         d.s.surface(eye, p.colors.iris, false, "perimeter");
     }
+    d.s.fineDetail = fineDetail;
     d.s.printUV = undefined;
     d.s.vertexPaint = undefined;
     d.s.surfaceNormal = undefined;

@@ -18,12 +18,15 @@ python frontend/scripts/fit-streetwear.py \
   --pose-output /tmp/vale-pose.json
 python frontend/scripts/review-streetwear.py \
   frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-turnaround.webp \
-  /tmp/vale.json /tmp/vale-captures /tmp/vale-study --split 979 --slug vale --drawing-pose /tmp/vale-pose.json
+  /tmp/vale.json /tmp/vale-captures /tmp/vale-study --split 979 --slug vale --drawing-pose /tmp/vale-pose.json \
+  --illustration frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-illustration.json
 ```
 
 Five hand-marked features in the supplied drawing register the head turn, tilt, scale and position. Marking the visible spike tips resolves which tuft lies in front. The fitter adjusts their free ends while retaining the attachment points and weighting the front and profile constraints. The fitted pose records the reprojection error in drawing pixels. The study’s illustration-pose link opens that camera angle and head tilt. Switch between paint and clay to inspect the construction. [Vale’s drawing marks](../frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-illustration.json)
 
-The optional `faceFit` records the skull sections, orbital depth and fringe in both views. The renderer blends the cheek pads, nose and mouth into a rounded skull with a polynomial smooth maximum. It samples this surface into a skinned mesh when the avatar loads. Curves cut the eyelid openings and supply the boundary vertices for the convex eyes. The fringe grows from a shared crown, with each lock narrowing along a curved ridge into an inked free edge. [Smooth minimum and polynomial blending](https://iquilezles.org/articles/smin/)
+The optional `faceFit` records the skull sections, orbital depth and fringe in both views. The cheekbone, bridge, lips and chin sit on one continuous surface. The fitter uses the eye pair to estimate lower-face height from the oblique drawing. The bounded jaw adjustment starts below the nose. The renderer samples the surface into the skinned mesh at load time. Curves cut the eyelid openings and supply the boundary vertices for the convex eyes. The fringe grows from a shared crown, with each lock narrowing along a curved ridge into an inked free edge.
+
+The oblique review projects landmarks from the triangles retained at both levels of detail. Two eyes register the pose to the drawing, leaving the nose, mouth and chin available to measure independently. Both neutral 35° turns also get native paint captures and visible iris counts. A tuft marked as hidden in a counterturn can move along the illustration’s line of sight to clear the face. [Three-quarter comparison](../frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-oblique.webp)
 
 The model takes its forehead shadow from the fitted fringe. Each temple lock has an inner and outer edge measured from the front and a leading and trailing edge measured from the side. The skin pigment uses a soft light across the cheek. Hair and cloth use two broad light bands in the same bind-pose frame. The three-quarter cheek and the back of the hair are inferred. Earlier recipes with vertex-painted faces still load.
 
@@ -31,7 +34,7 @@ The family draws the skin, eyes, ears and cloth folds into a shared atlas on fir
 
 A brushed streetwear recipe marks the skin, head, garments and hair masses as it builds them. The crown and nape share a region, as do the eyelid and eye. In the portrait viewer, lobby and main desktop room color pass, the same draw writes its color and a small map of the visible regions and their depth. One screen pass inks the edges on the figure, tapers the line with distance and uses lighter ink where hair overlaps hair. Captures, portals and immersive XR in the native room renderer use the material shading without that screen pass. Pass `--previous-captures` to the review script to compare registered turns. It reports the fraction of sampled light silhouettes where the edge is at least 42 luminance levels darker than the interior, at full-body and portrait scales. [Before and after](../frontend/scripts/avatar_authoring/targets/streetwear-v1/vale-outlines.webp)
 
-Vale’s recipe is 21,367 bytes (6,903 bytes gzipped). The playable outfit uses 5,027 triangles. The crowd test varies head width, spike length, hair length and shirt color across 100 recipes. It records assembly time, color and shadow draw calls, and checks the rendered pixels for every figure and its shadow on each backend. Run `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows` to reproduce it. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
+Vale’s recipe is 21,384 bytes (6,920 bytes gzipped). The playable outfit uses 5,144 triangles at full detail and 4,150 at crowd detail. The crowd test varies head width, spike length, hair length and shirt color across 100 recipes. It records assembly time, color and shadow draw calls, and checks the rendered pixels for every figure and its shadow on each backend. Run `python frontend/scripts/verify-cartoon-crowd.py /tmp/vale-crowd /tmp/vale.json --count 100 --shadows` to reproduce it. [Crowd measurements](../frontend/scripts/avatar_authoring/targets/streetwear-v1/crowd.json)
 
 ## Rick and Morty family
 
