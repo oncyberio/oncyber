@@ -1,7 +1,7 @@
 import * as T from "three/webgpu";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
-import { silhouetteTile } from "./surfaces";
+import { inkPart } from "./streetInk";
 import { streetHairTile } from "./streetBrush";
 import { streetShade, type StreetPattern } from "./streetwearPattern";
 
@@ -41,6 +41,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
     d.s.sourcePaint = false;
     d.s.thinSkinOutline = false;
     d.drape("head", "upperChest", 193, p.hair.nape);
+    d.s.markInkPart(inkPart.crown);
     const length = p.hair.nape;
     const fall = [
         [103, 40, 0, -52],
@@ -79,6 +80,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
         fiber(rows, 2, dye("#fff0d5"));
     }
     d.bind("head");
+    d.s.markInkPart(inkPart.spikes);
     for (const [ax, ay, az, bx, by, bz, r] of p.hair.spikes) {
         const a = new T.Vector3(ax, ay, az).lerp(
                 new T.Vector3(0, 98, -10),
@@ -88,21 +90,12 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
             v = b.clone().sub(a).normalize();
         const wide = new T.Vector3(-v.y, v.x, 0).normalize(),
             round = v.clone().cross(wide).normalize();
-        const spoke = (
-            t: number,
-            size: number,
-            angle: number,
-            outline = 0
-        ): Point => {
+        const spoke = (t: number, size: number, angle: number): Point => {
             const center = a.clone().lerp(b, t);
             center.y += 2.4 * Math.sin(pi * t);
             return center
-                .addScaledVector(v, t * outline)
-                .addScaledVector(wide, (r * size + outline) * Math.cos(angle))
-                .addScaledVector(
-                    round,
-                    (0.62 * r * size + outline) * Math.sin(angle)
-                )
+                .addScaledVector(wide, r * size * Math.cos(angle))
+                .addScaledVector(round, 0.62 * r * size * Math.sin(angle))
                 .toArray() as Point;
         };
         // The broad base lives under the crown. A slight concavity in
@@ -120,24 +113,8 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
             );
             fiber(rows, 3, dye("#f7dcb1"));
         }
-        // The ring matches the spike's own sections. A backface line stays
-        // visible at oblique angles where a painted edge would leave the tip.
-        d.s.printUV = () => [silhouetteTile + 0.5, 0.5];
-        d.s.vertexPaint = () => dye("#443324");
-        const shell = shape
-            .filter(([t]) => t === 0.21 || t === 0.79 || t === 1)
-            .map(([t, size]) =>
-                series(8).map((u) =>
-                    t === 1
-                        ? (b
-                              .clone()
-                              .addScaledVector(v, 1.35)
-                              .toArray() as Point)
-                        : spoke(t, size, (u % 1) * tau, 0.8)
-                )
-            );
-        d.s.surface(shell, p.colors.hair, false, "perimeter");
     }
+    d.s.markInkPart(inkPart.crown);
     // The front drawing determines each central cleft. Around the temple the
     // side drawing determines where the lock frees itself from the forehead.
     const fringe = p.hair.fringe
@@ -247,34 +224,8 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
             });
         const edgeRows = [roots[2], tongue(0.44), tongue(0.78), tongue(1)];
         fiber(roots, 0, dye("#fff1d9"), us);
-        // Split off the two ink edges before emitting the blonde interior.
-        // All three patches share their vertices along the cut in space.
-        const middle = edgeRows.map((row, i) => {
-            const core = row.slice();
-            for (const side of [0, 1]) {
-                const end = side === 0 ? 0 : row.length - 1,
-                    v = row[end],
-                    near = row[side === 0 ? 1 : end - 1];
-                const dist = Math.hypot(
-                    near[0] - v[0],
-                    near[1] - v[1],
-                    near[2] - v[2]
-                );
-                const t = dist && i > 0 ? Math.min(0.82, 1.12 / dist) : 0;
-                core[end] = v.map((c, j) => mix(c, near[j], t)) as Point;
-            }
-            return core;
-        });
-        fiber(middle, 5, dye("#fff0d6"), us);
+        fiber(edgeRows, 5, dye("#fff0d6"), us);
         d.s.printUV = undefined;
-        d.s.vertexPaint = () => dye("#38291f");
-        for (const col of [0, us.length - 1])
-            d.s.surface(
-                edgeRows.map((row, i) => [row[col], middle[i][col]]),
-                p.colors.hair,
-                false,
-                "perimeter"
-            );
         const outline = [
             ...edgeRows.map((row) => row[0]),
             ...edgeRows
@@ -299,6 +250,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
         dye("#fff1d9"),
         domeAngles.map((a) => (a + pi) / tau)
     );
+    d.s.markInkPart(inkPart.locks);
     d.s.surfaceNormal = undefined;
     for (const s of [-1, 1]) {
         d.drape("head", "upperChest", 184, 231);

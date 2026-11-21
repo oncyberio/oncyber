@@ -1,3 +1,4 @@
+import { StreetInkPass } from "../../procedural-avatars/streetInk";
 import * as THREE from "three/webgpu";
 import {
     cameraPosition,
@@ -22,6 +23,7 @@ import type { LobbySceneBackend } from "../createLobbyScene";
 
 /** Pure rendering graph: webpack isolates all transitive Three imports here. */
 export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
+    const inkPasses = new WeakMap<THREE.WebGPURenderer, StreetInkPass>();
     const backend = {
         three: THREE,
         createAvatar,
@@ -103,6 +105,7 @@ export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
             };
             // WebGPURenderer may replace this backend while falling back during
             // init. Retain it so a partially initialized owned device is released.
+            inkPasses.set(renderer, new StreetInkPass());
             const initialBackend = renderer.backend as DeviceBackend;
             let device: GPUDevice | undefined;
             let disposed = false;
@@ -131,6 +134,8 @@ export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
                 // Destroying our device resolves its lost promise asynchronously.
                 // A disposed renderer must never report loss to a reused canvas.
                 renderer.onDeviceLost = () => undefined;
+                inkPasses.get(renderer)?.dispose();
+                inkPasses.delete(renderer);
                 try {
                     disposeRenderer();
                 } finally {
@@ -190,10 +195,13 @@ export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
         render(
             renderer: THREE.WebGPURenderer,
             scene: THREE.Scene,
-            camera: THREE.PerspectiveCamera
+            camera: THREE.PerspectiveCamera,
+            ink = false
         ) {
             renderer.info.reset();
-            renderer.render(scene, camera);
+            if (ink)
+                inkPasses.get(renderer).render(renderer, scene, camera, true);
+            else renderer.render(scene, camera);
         },
         stats: (renderer: THREE.WebGPURenderer) => ({
             draws: renderer.info.render.drawCalls,

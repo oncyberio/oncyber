@@ -1,3 +1,5 @@
+import vale from "../../public/lobby/procedural/recipes/vale-streetwear.json";
+import { readAvatarFile } from "./avatarFile";
 import tess from "../../public/lobby/procedural/recipes/tess-brindle.json";
 import { readCartoonFile } from "./cartoonFile";
 import * as T from "three/webgpu";
@@ -115,4 +117,52 @@ test("gaze blends independently on two batched avatars and restores both eye buf
     expect(batch.triangles).toBe(triangles);
     expect(batch.visible).toBe(2);
     batch.dispose();
+});
+
+test("a mixed crowd preserves the ink regions of each visible avatar through a rebuild", () => {
+    const scene = new T.Scene();
+    const batch = new RecipeCrowdBatch(scene, T.WebGLCoordinateSystem);
+    const camera = new T.PerspectiveCamera(60, 1, 0.1, 40);
+    camera.position.set(0, 1, -6);
+    camera.lookAt(0, 1, 0);
+    camera.updateMatrixWorld();
+    const recipes = [
+        recipeForUrl("/models/procedural/rick/83"),
+        readAvatarFile(vale).recipe,
+    ];
+    const meshes: T.SkinnedMesh[] = [];
+    const actors = recipes.map((recipe, i) => {
+        const { scene: root } = buildCharacter(recipe, "crowd");
+        meshes.push(
+            root.getObjectByProperty("isSkinnedMesh", true) as T.SkinnedMesh
+        );
+        root.position.x = i;
+        scene.add(root);
+        return batch.add({
+            root,
+            sourceUrl: recipe.template,
+            height: 1.8,
+            update: () => {},
+            playEmote: async () => {},
+            dispose: () => disposeAvatarGraph(root),
+        });
+    });
+    try {
+        batch.flush(camera);
+        const mesh = scene.getObjectByName("Procedural avatar crowd") as T.Mesh;
+        const counts = meshes.map(
+            (m) => m.geometry.getAttribute("position").count
+        );
+        const tags = mesh.geometry.getAttribute("streetInk").array;
+        expect(tags.length).toBe(counts[0] + counts[1]);
+        expect(tags.slice(0, counts[0]).every((id) => id === 0)).toBe(true);
+        expect(tags.slice(counts[0])).toEqual(
+            meshes[1].geometry.getAttribute("streetInk").array
+        );
+        actors[1].dispose();
+        batch.flush(camera);
+        expect(mesh.geometry.hasAttribute("streetInk")).toBe(false);
+    } finally {
+        batch.dispose();
+    }
 });

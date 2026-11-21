@@ -367,6 +367,10 @@ class Loader {
             const recipe = await loadRecipeForUrl(url);
             CHECK_ABORT_SIGNAL(signal);
             const vrm = buildCharacter(recipe);
+            if (vrm.scene.userData.streetInk) {
+                const { trackRoomInk } = await import("./renderer/postprocessing/roomInk");
+                trackRoomInk(vrm.scene);
+            }
             return { scene: vrm.scene, scenes: [vrm.scene], animations: [], userData: { vrm, proceduralCharacter: recipe.template } };
         }
         var gltf = null

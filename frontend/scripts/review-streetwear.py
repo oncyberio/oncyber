@@ -10,6 +10,7 @@ from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
+from avatar_authoring.contours import contour_review, contour_sheet
 from avatar_authoring.fit import pixels
 from avatar_authoring.release import (
     digest,
@@ -370,7 +371,15 @@ def review(args):
                     )
                     canvas.paste(tile, (offset, 65))
                     offset += tile.width
-        result["backends"][backend] = {"silhouette_iou": metrics, **native}
+        result["backends"][backend] = {
+            "silhouette_iou": metrics,
+            "light_contours": contour_review(args.captures / backend),
+            **native,
+        }
+        if args.previous_captures:
+            result["backends"][backend]["previous_light_contours"] = contour_review(
+                args.previous_captures / backend
+            )
     comparison = args.destination / (args.slug + "-comparison.webp")
     canvas.thumbnail((2048, 1100), Image.Resampling.LANCZOS)
     canvas.save(comparison, quality=92, method=6)
@@ -400,6 +409,14 @@ def review(args):
         path = args.destination / (args.slug + "-" + name + ".webp")
         make(path)
         assets[name] = digest(path)
+    if args.previous_captures:
+        path = args.destination / (args.slug + "-outlines.webp")
+        contour_sheet(
+            args.previous_captures / "WebGLBackend",
+            args.captures / "WebGLBackend",
+            path,
+        )
+        assets["outlines"] = digest(path)
     if args.previous_face:
         revision = args.destination / (args.slug + "-portrait-revision.webp")
         portrait_revision(
@@ -452,6 +469,11 @@ if __name__ == "__main__":
         help="Pixel column dividing front and profile",
     )
     parser.add_argument("--slug", required=True)
+    parser.add_argument(
+        "--previous-captures",
+        type=Path,
+        help="Registered earlier turns for light-contour comparison",
+    )
     parser.add_argument(
         "--previous-face",
         type=Path,

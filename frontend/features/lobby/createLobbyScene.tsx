@@ -97,7 +97,8 @@ export interface LobbySceneBackend {
     render: (
         renderer: THREE.WebGLRenderer,
         scene: THREE.Scene,
-        camera: THREE.PerspectiveCamera
+        camera: THREE.PerspectiveCamera,
+        streetInk?: boolean
     ) => void;
     compile: (
         renderer: THREE.WebGLRenderer,
@@ -591,6 +592,26 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 self.shadow = shadow(self.group, 0, 0, 1.4, 1.4);
                 scene.add(self.group);
                 const avatars = new Map<string, Visitor>();
+                function renderFrame() {
+                    let ink = !!(
+                        self.group.visible &&
+                        self.model?.root.visible &&
+                        self.model.root.userData.streetInk
+                    );
+                    if (!ink)
+                        for (const visitor of avatars.values()) {
+                            if (
+                                visitor.model?.root.visible &&
+                                visitor.model.root.userData.streetInk &&
+                                visitor.group.visible
+                            ) {
+                                ink = true;
+                                break;
+                            }
+                        }
+                    backend.render(renderer, scene, camera, ink);
+                }
+
                 let localFlashNonce: string | undefined;
                 let dismissedFlashNonce: string | undefined;
                 let readyFlashNonce: string | undefined;
@@ -932,7 +953,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             !compiling &&
                             !contextLost
                         )
-                            backend.render(renderer, scene, camera);
+                            renderFrame();
                     }
                 }
 
@@ -3185,7 +3206,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             projectSpeech
                         );
                         try {
-                            backend.render(renderer, scene, camera);
+                            renderFrame();
                         } catch {
                             onContextLost(new Event("lobbycontextlost"));
                             return;

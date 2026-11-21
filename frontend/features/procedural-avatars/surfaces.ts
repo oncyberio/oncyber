@@ -12,10 +12,6 @@ import { coatShadowUV, garmentInk } from "./garmentPrint";
 export const finish = { enamel: 0, skin: 1, fiber: 2, cloth: 3 } as const;
 export const coatUVBase = 43;
 export const streetFaceUVBase = 50;
-export const silhouetteTile = 54;
-export function illustratedMask() {
-    return N.floor(N.uv().x).notEqual(silhouetteTile).or(N.frontFacing.not());
-}
 // Both crease tiles retain the skin finish in their low three bits.
 export const creaseUVBase = 41,
     frontalCreaseUVBase = 49;
@@ -485,31 +481,34 @@ export function surfaceGrain(
     );
     let finishLight = N.select(crease, surface.mul(creasePigment), surface);
     if (streetBrushes) {
-        const tile = N.floor(uv.x);
+        // Resolve chart IDs on the vertices. MSAA can extrapolate a UV outside
+        // a narrow fringe triangle at the edge of a covered pixel.
+        const tile = N.round(N.varying(N.floor(N.uv().x)));
+        // Paint the broad shadow and light planes in the model's bind
+        // frame. The palette stays anchored to the figure during a camera turn.
+        const formNormal = N.varying(N.attribute("normal", "vec3")).normalize();
+        const light = N.dot(formNormal, N.vec3(-0.46, 0.68, 0.57));
+        const feather = N.max(0.09, N.fwidth(light));
+        const tone = (threshold: number) =>
+            N.smoothstep(
+                N.float(threshold).sub(feather),
+                N.float(threshold).add(feather),
+                light
+            );
+        const cel = tone(0.04)
+            .mul(0.62)
+            .add(tone(0.56).mul(0.25))
+            .add(light.mul(0.065))
+            .add(0.09);
         const skinLight = ink.rgb
             .div(N.vec3(0.98225, 0.68669, 0.46778))
             .mul(
                 N.mix(
-                    N.vec3(0.79, 0.68, 0.58),
-                    N.vec3(1.035, 1.02, 1.002),
-                    N.smoothstep(
-                        -0.47,
-                        0.79,
-                        N.dot(oriented, N.vec3(-0.46, 0.58, 0.67))
-                    )
-                )
-            )
-            .mul(
-                N.mix(
-                    N.vec3(1),
-                    N.vec3(0.057, 0.042, 0.035),
-                    brush(N.vertexColor().a.mul(64), 1.1).mul(
-                        N.smoothstep(0.95, 0.999, turn)
-                    )
+                    N.vec3(0.87, 0.78, 0.71),
+                    N.vec3(1.03, 1.025, 1.01),
+                    N.smoothstep(-0.55, 0.82, light)
                 )
             );
-        // Darken the true tangent using the smooth bind-pose normals. Eye and
-        // skin pigment stay attached to their own surfaces during a head turn.
         const irisTint = N.smoothstep(0.008, 0.045, ink.b.sub(ink.r));
         const enamelLight = ink.rgb
             .mul(
@@ -521,11 +520,12 @@ export function surfaceGrain(
             )
             .div(N.max(dye, 0.00001));
         // Local U follows the strand and is continuous along each shaped lock.
-        const down = N.fract(uv.y),
-            mode = N.floor(uv.y);
+        const mode = N.round(N.varying(N.floor(N.uv().y)));
+        const down = N.clamp(uv.y.sub(mode), 0, 1);
+        const hairU = N.clamp(uv.x.sub(tile), 0, 1);
         const dome = mode.equal(4);
         const tongue = mode.equal(5);
-        const warp = N.select(dome, u.mul(8), u).add(
+        const warp = N.select(dome, hairU.mul(8), hairU).add(
             N.sin(down.mul(5.1)).mul(0.035)
         );
         const wave = N.cos(warp.sub(0.47).mul(6.283)).mul(0.5).add(0.5);
@@ -535,16 +535,20 @@ export function surfaceGrain(
         const broad = N.mix(
             N.vec3(0.79, 0.6, 0.42),
             N.vec3(1.05, 1.035, 1.015),
-            wave.mul(0.49).add(fine.mul(0.12)).add(key.mul(0.39))
+            wave.mul(0.49).add(fine.mul(0.12)).add(cel.mul(0.39))
         );
-        const edgeDistance = N.min(u, N.float(1).sub(u));
+        const edgeDistance = N.min(hairU, N.float(1).sub(hairU));
         const freeTip = N.select(
             mode.equal(0).or(dome),
             N.float(0),
             N.select(
                 mode.equal(2),
                 N.smoothstep(0.23, 0.62, down).mul(0.3),
-                N.select(tongue, N.smoothstep(0.02, 0.21, down), N.float(0.9))
+                N.select(
+                    tongue,
+                    N.smoothstep(0.12, 0.8, down).mul(0.24),
+                    N.float(0.55)
+                )
             )
         );
         const strandEdge = N.float(1)
@@ -569,7 +573,7 @@ export function surfaceGrain(
                 N.float(0.32).mul(N.float(1).sub(N.smoothstep(0.48, 1, down))),
                 N.smoothstep(0.03, 0.9, down).mul(0.73)
             )
-        ).mul(N.mix(N.vec3(0.95, 0.88, 0.77), N.vec3(1.02, 1.014, 1), key));
+        ).mul(N.mix(N.vec3(0.95, 0.88, 0.77), N.vec3(1.02, 1.014, 1), cel));
         const strandLight = N.mix(
             N.select(
                 mode.equal(0).or(dome).or(tongue),
@@ -600,27 +604,19 @@ export function surfaceGrain(
             N.select(
                 tile.equal(streetEyeTile),
                 enamelLight,
-                strandLight
-                    .mul(
-                        N.select(
-                            mode.equal(3),
-                            N.mix(
-                                N.vec3(0.8, 0.66, 0.51),
-                                N.vec3(1.04, 1.028, 1.013),
-                                N.smoothstep(0.0, 0.68, down)
-                                    .mul(0.43)
-                                    .add(key.mul(0.57))
-                            ),
-                            N.vec3(1)
-                        )
-                    )
-                    .mul(
+                strandLight.mul(
+                    N.select(
+                        mode.equal(3),
                         N.mix(
-                            N.vec3(0.04, 0.027, 0.018),
-                            N.vec3(1),
-                            N.smoothstep(0.09, 0.275, incidence)
-                        )
+                            N.vec3(0.8, 0.66, 0.51),
+                            N.vec3(1.04, 1.028, 1.013),
+                            N.smoothstep(0.0, 0.68, down)
+                                .mul(0.43)
+                                .add(cel.mul(0.57))
+                        ),
+                        N.vec3(1)
                     )
+                )
             )
         );
         finishLight = N.select(
@@ -636,7 +632,7 @@ export function surfaceGrain(
                         N.mix(
                             N.vec3(0.85, 0.83, 0.84),
                             N.vec3(1.07, 1.06, 1.04),
-                            key
+                            cel
                         )
                     ),
                 finishLight

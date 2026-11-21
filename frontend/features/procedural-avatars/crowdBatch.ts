@@ -10,7 +10,6 @@ import {
     streetFaceUVBase,
     insetPupilUVBase,
     surfaceGrain,
-    illustratedMask,
 } from "./surfaces";
 
 const BONES = 64,
@@ -57,7 +56,6 @@ export class RecipeCrowdBatch {
         const material = new T.MeshBasicNodeMaterial({
             side: T.DoubleSide,
             vertexColors: true,
-            maskNode: illustratedMask(),
             colorNode: surfaceGrain(
                 () => N.transformNormalToView(cornea),
                 true
@@ -216,6 +214,11 @@ export class RecipeCrowdBatch {
         const position = new Float32Array(vertices * 3),
             normal = new Float32Array(vertices * 3),
             rig = new Float32Array(vertices * 3);
+        const ink = entries.some((e) =>
+            e.mesh.geometry.hasAttribute("streetInk")
+        )
+            ? new Float32Array(vertices)
+            : null;
         entries.forEach((entry, slot) => {
             const { mesh, start } = entry;
             entry.gazeVersion = (
@@ -225,6 +228,8 @@ export class RecipeCrowdBatch {
             position.set(a.position.array, 3 * start);
             normal.set(a.normal.array, 3 * start);
             uv.set(a.uv.array, 2 * start);
+            if (ink && a.streetInk)
+                ink.set(a.streetInk.array as Float32Array, start);
             for (let i = 0; i < a.position.count; i++) {
                 const o = start + i;
                 color[4 * o] = Math.min(255, Math.round(a.color.getX(i) * 255));
@@ -249,6 +254,7 @@ export class RecipeCrowdBatch {
         out.setAttribute("normal", new T.BufferAttribute(normal, 3));
         out.setAttribute("uv", new T.BufferAttribute(uv, 2));
         out.setAttribute("color", new T.BufferAttribute(color, 4, true));
+        if (ink) out.setAttribute("streetInk", new T.BufferAttribute(ink, 1));
         out.setAttribute("recipeRig", new T.BufferAttribute(rig, 3));
         out.setIndex(
             new T.BufferAttribute(new Uint32Array(count), 1).setUsage(
@@ -256,6 +262,7 @@ export class RecipeCrowdBatch {
             )
         );
         this.geometryBytes =
+            (ink?.byteLength ?? 0) +
             position.byteLength +
             normal.byteLength +
             uv.byteLength +

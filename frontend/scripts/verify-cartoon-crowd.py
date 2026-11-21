@@ -120,7 +120,9 @@ def verify(base, dest, sources, count, preview=False, shadows=False):
                 raise RuntimeError(f"{expected} shadow pass reported {stats}")
             report[expected] = {**stats, "uniqueRecipesLoaded": distinct}
             color = dest / f"crowd-{mode}.png"
-            canvas.screenshot(path=color)
+            # The animated canvas has a fixed frame. Capture that rectangle
+            # directly so pixel readback does not wait for two idle GPU frames.
+            page.screenshot(clip=canvas.bounding_box(), path=color, timeout=90000)
             occupied = occupied_cells(color, count)
             report[expected]["occupiedColorCells"] = occupied
             if occupied != count:
@@ -131,7 +133,7 @@ def verify(base, dest, sources, count, preview=False, shadows=False):
                 page.get_by_role("checkbox", name="Shadows only").check()
                 page.wait_for_function("document.querySelector('canvas').dataset.shadowOnly === 'true'")
                 shadow = dest / f"shadows-{mode}.png"
-                canvas.screenshot(path=shadow)
+                page.screenshot(clip=canvas.bounding_box(), path=shadow, timeout=90000)
                 occupied = occupied_cells(shadow, count, shadow_only=True)
                 report[expected]["occupiedShadowCells"] = occupied
                 if occupied != count:

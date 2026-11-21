@@ -2,7 +2,7 @@ import * as T from "three/webgpu";
 import type { Drawing } from "./drawing";
 import type { Point } from "./sculpt";
 import type { StreetPattern } from "./streetwearPattern";
-import { silhouetteTile } from "./surfaces";
+import { inkPart } from "./streetInk";
 import { prepareStreetBrushes } from "./garmentPrint";
 import { streetPaintUV, margin } from "./streetBrush";
 import { streetHeadForm, faceColumns, eyeColumns } from "./streetHeadForm";
@@ -12,6 +12,7 @@ const { lerp, smoothstep } = T.MathUtils;
 /** Lay the topology along the drawing: the lids and the eyes use the same
  * two boundary curves. Their shared rim stays closed in both levels of detail. */
 export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
+    d.s.markInkPart(inkPart.head);
     prepareStreetBrushes();
     const form = streetHeadForm(p),
         { width, depth, chin } = p.head;
@@ -51,16 +52,6 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     d.s.printUV = (x, y) => {
         const [u, v] = author(x, y);
         return streetPaintUV("skin", u, v);
-    };
-    d.s.vertexAlpha = (px, py, z) => {
-        const [, y] = author(px, py);
-        return y < 124
-            ? 1
-            : T.MathUtils.clamp(
-                  (form.section(y)[1] - (z * 54) / depth) / 64,
-                  0,
-                  1
-              );
     };
     const seamNormal = (y: number, sign: number) => {
         const a = form.at(44, y - 0.55),
@@ -114,7 +105,6 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     d.s.surface(top, p.colors.skin, false, "perimeter");
     d.s.surface(jaw, p.colors.skin, false, "perimeter");
     d.s.surfaceNormal = undefined;
-    d.s.vertexAlpha = undefined;
     d.s.vertexPaint = () => rawSkin;
     const frontRings = [...top, ...jaw.slice(1)];
     const backPoint = (angle: number, y: number): Point => {
@@ -177,49 +167,6 @@ export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
             p.colors.skin
         );
     }
-    // The backface line follows the mandibular rim. Tuck the front of the
-    // shell under the lips, which carry their own sagittal contour ink.
-    d.s.hasIllustratedHull = true;
-    d.s.printUV = () => [silhouetteTile + 0.5, 0.5];
-    d.s.vertexPaint = () => 0x493123;
-    const angles = Array.from(
-        { length: 21 },
-        (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / 20
-    )
-        .concat(-0.145, 0.145)
-        .sort((a, b) => a - b);
-    const outline = [146, 153, 161, 168, 174, 177, 182, 184].map((y) => {
-        const side = form.at(44, y),
-            back = (form.section(y)[2] * depth) / 54;
-        return angles.map((angle): Point => {
-            const a = angle === angles.at(-1) ? angles[0] : angle;
-            const c = Math.cos(a),
-                u = Math.sin(a);
-            const v =
-                c >= -1e-8
-                    ? form.at(u * 44, y)
-                    : [side[0] * u, side[1], lerp(side[2], back, -c)];
-            const tuck =
-                9 * Math.max(0, c) ** 1.5 * (1 - smoothstep(y, 168, 181));
-            return [
-                v[0] + 1.33 * u,
-                v[1] + 1.46 * smoothstep(y, 144, 182),
-                v[2] + 0.7 * c - tuck,
-            ];
-        });
-    });
-    d.s.preserveVertex = (x, _y, z) =>
-        Math.abs(x) < 0.02 && z > (35 * depth) / 54;
-    d.s.surface(outline, "#453122", false, "perimeter");
-    d.s.preserveVertex = undefined;
-    const last = outline.at(-1),
-        z = last.reduce((s, v) => s + v[2], 0) / last.length;
-    d.s.surface(
-        [last, last.map(([, y]): Point => [0, y + 0.18, z])],
-        "#453122",
-        false,
-        "both"
-    );
     const iris = new T.Color(p.colors.iris);
     iris.r = Math.max(0.0022, iris.r);
     iris.g = Math.max(0.0022, iris.g);

@@ -11,6 +11,7 @@ import {
     streetHairTile,
     streetClothTile,
 } from "./streetBrush";
+import { inkPart } from "./streetInk";
 import { streetShade } from "./streetwearPattern";
 
 test.each(["full", "crowd"] as const)(
@@ -53,7 +54,21 @@ test.each(["full", "crowd"] as const)(
                 streetClothTile,
             ])
                 expect(tiles.has(tile)).toBe(true);
-            expect((material as T.MeshBasicNodeMaterial).maskNode).toBeTruthy();
+            const part = geometry.getAttribute("streetInk");
+            expect(avatar.scene.userData.streetInk).toBe(true);
+            expect(new Set(part.array)).toEqual(
+                new Set(Object.values(inkPart))
+            );
+            for (let i = 0; i < geometry.index.count; i += 3) {
+                const id = part.getX(geometry.index.getX(i));
+                expect(part.getX(geometry.index.getX(i + 1))).toBe(id);
+                expect(part.getX(geometry.index.getX(i + 2))).toBe(id);
+                if (
+                    Math.floor(uv.getX(geometry.index.getX(i))) ===
+                    streetEyeTile
+                )
+                    expect(id).toBe(inkPart.head);
+            }
             // Both pigment charts must end on the same lid loop after reduction.
             const position = geometry.attributes.position;
             const point = (i: number) =>
@@ -218,6 +233,7 @@ test("dressing preserves the complete figure, exposes the right skin and uses th
             "uv",
             "skinWeight",
             "skinIndex",
+            "streetInk",
         ]) {
             const reference = g.getAttribute(name),
                 compact = game.geometry.getAttribute(name);

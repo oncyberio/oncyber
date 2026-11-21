@@ -30,6 +30,7 @@ interface Props {
     evidence?: {
         comparison: string;
         layers: string;
+        outlines?: string;
         face: string;
         illustration: { image: string; turn: number; tilt: number };
         triangles: number;
@@ -123,6 +124,14 @@ export default function RecipeReview({
                                 triangles · one skinned mesh
                             </p>
                             {[
+                                ...(evidence.outlines
+                                    ? [
+                                          {
+                                              src: evidence.outlines,
+                                              title: "Outline comparison at portrait and full-body scale",
+                                          },
+                                      ]
+                                    : []),
                                 {
                                     src: evidence.illustration.image,
                                     title: "Paint and clay in the supplied head pose",
@@ -358,6 +367,12 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                         report.comparison_sha256
                     ),
                     face: await asset("vale-face", report.studies.face),
+                    ...("outlines" in report.studies && {
+                        outlines: await asset(
+                            "vale-outlines",
+                            String(report.studies.outlines)
+                        ),
+                    }),
                     illustration: {
                         image: await asset(
                             "vale-illustration-pose",

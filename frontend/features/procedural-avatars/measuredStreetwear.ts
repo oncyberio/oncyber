@@ -1,3 +1,4 @@
+import { inkPart } from "./streetInk";
 import * as T from "three/webgpu";
 import { Drawing, frontOfLoft, lift, type Depth, type XY } from "./drawing";
 import type { Point } from "./sculpt";
@@ -758,13 +759,16 @@ export function drawMeasuredStreetwear(d: Drawing, p: StreetPattern) {
         [p.colors.tee]: finish.cloth,
         [p.colors.under]: finish.cloth,
     });
+    if (p.faceFit?.finish === "brush") d.s.markInkPart(inkPart.skin);
     drawStreetBody(d, p);
     measuredStreetHead(d, p);
     d.s.endLayer("body");
     d.s.sourcePaint = false;
     d.s.sculptedCartoon = true;
+    if (p.faceFit?.finish === "brush") d.s.markInkPart(inkPart.denim);
     trousers(d, p);
     d.s.endLayer("bottoms");
+    if (p.faceFit?.finish === "brush") d.s.markInkPart(inkPart.tee);
     shirt(d, p);
     sleeves(d, p);
     d.s.referenceFrame = undefined;

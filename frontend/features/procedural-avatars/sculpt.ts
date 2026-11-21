@@ -1,10 +1,10 @@
+import { inkAttribute, type InkPart } from "./streetInk";
 import { createHandItems, type Hand, type GripOptions } from "./handItems";
 import { createGazePose, type PupilSpan } from "./gazePose";
 import { compactIndexedGeometry, retopologize } from "./retopology";
 import {
     coatUVBase,
     surfaceGrain,
-    illustratedMask,
     finish,
     pupilUVBase,
     streetFaceUVBase,
@@ -117,13 +117,15 @@ export class Sculpt {
     private colors: number[] = [];
     private colorAlpha = new Map<number, number>();
     /** Optional normalized finish data in the shared RGBA vertex stream. */
-    vertexAlpha?: (x: number, y: number, z: number) => number;
     private featureErrors: number[] = [];
     pupilShift?: Point;
     cornealSurface = false;
     private hasCorneas = false;
     hasSkinCreases = false;
-    hasIllustratedHull = false;
+    private inkRanges: { start: number; part: InkPart }[] = [];
+    markInkPart(part: InkPart) {
+        this.inkRanges.push({ start: this.positions.length / 3, part });
+    }
     private pupilSpans: PupilSpan[] = [];
     private smoothNormals = new Map<number, Point>();
     faceDistances?: (x: number, y: number, z: number) => [number, number];
@@ -468,18 +470,6 @@ export class Sculpt {
                     i * 2
                 );
             g.setAttribute("faceDistances", new T.BufferAttribute(uv, 2));
-        }
-        if (this.vertexAlpha) {
-            const start = this.positions.length / 3;
-            for (let i = 0; i < local.count; i++)
-                this.colorAlpha.set(
-                    start + i,
-                    this.vertexAlpha(
-                        local.getX(i),
-                        local.getY(i),
-                        local.getZ(i)
-                    )
-                );
         }
         if (this.vertexPaint) {
             const swatch = new T.Color(),
@@ -1395,7 +1385,10 @@ export class Sculpt {
         }
         if (this.hasCorneas) g.userData.hasCorneas = true;
         if (this.hasSkinCreases) g.userData.hasSkinCreases = true;
-        if (this.hasIllustratedHull) g.userData.hasIllustratedHull = true;
+        if (this.inkRanges.length) {
+            g.setAttribute("streetInk", inkAttribute(this.inkRanges, kept));
+            this.scene.userData.streetInk = true;
+        }
         if (this.pupilSpans.length) {
             const spans: PupilSpan[] = [];
             for (const span of this.pupilSpans) {
@@ -1454,14 +1447,11 @@ export class Sculpt {
             g,
             new T.MeshBasicNodeMaterial({
                 vertexColors: true,
-                ...(g.userData.hasIllustratedHull && {
-                    maskNode: illustratedMask(),
-                }),
                 side: T.DoubleSide,
                 colorNode: surfaceGrain(
                     g.userData.hasCorneas ||
                         g.userData.hasSkinCreases ||
-                        g.userData.hasIllustratedHull
+                        g.hasAttribute("streetInk")
                         ? (normal) =>
                               N.cameraViewMatrix.mul(
                                   N.objectWorldMatrix(
@@ -1469,7 +1459,7 @@ export class Sculpt {
                                   ).mul(N.vec4(normal, 0))
                               ).xyz
                         : undefined,
-                    !!g.userData.hasIllustratedHull
+                    !!g.hasAttribute("streetInk")
                 ),
             })
         );

@@ -27,10 +27,12 @@ export default function ProceduralCrowdStudy({
         let stopped = false,
             dispose = () => {};
         (async () => {
-            const [T, { LobbyAvatarCrowd }] = await Promise.all([
-                import("three/webgpu"),
-                import("@features/lobby/webgpu/avatarCrowd"),
-            ]);
+            const [T, { LobbyAvatarCrowd }, { StreetInkPass }] =
+                await Promise.all([
+                    import("three/webgpu"),
+                    import("@features/lobby/webgpu/avatarCrowd"),
+                    import("@features/procedural-avatars/streetInk"),
+                ]);
             if (stopped) return;
             const params = new URLSearchParams(location.search),
                 count = Math.min(
@@ -55,6 +57,7 @@ export default function ProceduralCrowdStudy({
                 scene = new T.Scene();
             scene.background = new T.Color("#e8e2d6");
             const camera = new T.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
+            const ink = new StreetInkPass();
             const crowd = new LobbyAvatarCrowd(scene, renderer),
                 avatars: LobbyAvatar[] = [];
             const shadows = params.get("shadows") === "1";
@@ -93,6 +96,7 @@ export default function ProceduralCrowdStudy({
             let frame = 0;
             dispose = () => {
                 cancelAnimationFrame(frame);
+                ink.dispose();
                 crowd.dispose();
                 avatars.forEach((a) => a.dispose());
                 backdrop?.geometry.dispose();
@@ -171,6 +175,9 @@ export default function ProceduralCrowdStudy({
             const caster = scene.getObjectByName("Procedural avatar crowd") as
                 | Mesh<BufferGeometry, Material>
                 | undefined;
+            const streetInk = avatars.some(
+                (avatar) => avatar.root.userData.streetInk
+            );
             const readyMs = performance.now() - start;
             let last = 0,
                 frames = 0,
@@ -241,7 +248,12 @@ export default function ProceduralCrowdStudy({
                 }
                 avatarCalls = shadowCalls = 0;
                 renderer.info.reset();
-                renderer.render(scene, camera);
+                ink.render(
+                    renderer,
+                    scene,
+                    camera,
+                    !shadowOnly.current && streetInk
+                );
                 const stats = renderer.info.render;
                 el.dataset.calls = String(avatarCalls);
                 if (shadows) {

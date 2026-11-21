@@ -11,6 +11,9 @@ import {
 } from 'three/webgpu'
 
 import Renderer from '@3renderer'
+import { StreetInkPass } from "@features/procedural-avatars/streetInk"
+import { hasRoomInk } from "./roomInk"
+import { legacyGpuResources } from "../../utils/sessionResources"
 
 import {
 
@@ -73,6 +76,8 @@ class PostProcessing {
 			FBOHelper.attach(this.occlusion, 'occlusion')
 
 		}
+
+		this.avatarInk = new StreetInkPass()
 
 		this.isLightingEnabled = false
 
@@ -171,6 +176,11 @@ class PostProcessing {
 
 		Emitter.emit(Events.PRE_RENDER, scene, camera )
 
+        // The screen-space pen belongs on the main room color image. Portals,
+        // captures, XR views and the separate bloom mask own their target layout.
+        const ink = target == null && Renderer.getRenderTarget() == null && !Renderer.xr?.isPresenting && hasRoomInk(scene, camera)
+        if (ink) legacyGpuResources.track(this.avatarInk)
+
 		if ( roomParameters?.usePostProcessing?.enabled == true ) {
 
 
@@ -193,7 +203,7 @@ class PostProcessing {
 
 			Renderer.clear(true,true,false)
 
-			Renderer.render(scene, camera)
+			this.avatarInk.render(Renderer, scene, camera, ink)
 
 			if( type == POST_TYPES.BLOOM || type == POST_TYPES.CYBERCITY ) {
 
@@ -222,7 +232,7 @@ class PostProcessing {
 				Renderer.setRenderTarget( target )
 			}
 
-			Renderer.render(scene, camera)
+			this.avatarInk.render(Renderer, scene, camera, ink)
 		}
 
 	}

@@ -473,6 +473,7 @@ async function parseAvatar(
     const root = new THREE.Group();
     root.name = "oncyber-lobby-avatar";
     root.add(vrm.scene);
+    if (vrm.scene.userData.streetInk) root.userData.streetInk = true;
     vrm.scene.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(vrm.scene);
     const rawHeight = bounds.max.y - bounds.min.y;

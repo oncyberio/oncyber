@@ -87,3 +87,24 @@ test("a frame rendered into a caller's target goes back to that target", () => {
 
     expect(mockRenderer.getRenderTarget()).toBe(portalTarget);
 });
+
+test("the room pen follows a pooled avatar through parent visibility and scene transfers", async () => {
+    const { Group, PerspectiveCamera, Scene, SkinnedMesh } = await import("three/webgpu");
+    const { trackRoomInk, hasRoomInk } = await import("./roomInk");
+    const room = new Scene(), portal = new Scene(), camera = new PerspectiveCamera();
+    const group = new Group(), avatar = new Group();
+    const mesh = new SkinnedMesh();
+    avatar.add(mesh);
+    trackRoomInk(avatar);
+    group.add(avatar);
+    room.add(group);
+    expect(hasRoomInk(room,camera)).toBe(true);
+    group.visible=false;
+    expect(hasRoomInk(room,camera)).toBe(false);
+    group.visible=true;
+    portal.add(group);
+    expect(hasRoomInk(room,camera)).toBe(false);
+    expect(hasRoomInk(portal,camera)).toBe(true);
+    avatar.removeFromParent();
+    expect(hasRoomInk(portal,camera)).toBe(false);
+});

@@ -6,19 +6,69 @@
     "backends": {
         "WebGLBackend": {
             "silhouette_iou": {
-                "front": 0.9102,
-                "profile": 0.8919
+                "front": 0.9095,
+                "profile": 0.8901
             },
-            "triangles": 5387,
+            "light_contours": {
+                "body-front": {
+                    "samples": 773,
+                    "ink_fraction": 0.9935
+                },
+                "body-quarter": {
+                    "samples": 741,
+                    "ink_fraction": 0.9838
+                },
+                "body-profile": {
+                    "samples": 480,
+                    "ink_fraction": 0.9875
+                },
+                "body-back": {
+                    "samples": 738,
+                    "ink_fraction": 0.9959
+                },
+                "portrait": {
+                    "samples": 1080,
+                    "ink_fraction": 1.0
+                },
+                "portrait-quarter": {
+                    "samples": 869,
+                    "ink_fraction": 0.9988
+                },
+                "portrait-profile": {
+                    "samples": 1140,
+                    "ink_fraction": 1.0
+                },
+                "portrait-rear-quarter": {
+                    "samples": 1098,
+                    "ink_fraction": 1.0
+                },
+                "portrait-back": {
+                    "samples": 1116,
+                    "ink_fraction": 1.0
+                },
+                "portrait-other-rear": {
+                    "samples": 847,
+                    "ink_fraction": 1.0
+                },
+                "portrait-other-profile": {
+                    "samples": 980,
+                    "ink_fraction": 1.0
+                },
+                "portrait-other-quarter": {
+                    "samples": 1119,
+                    "ink_fraction": 1.0
+                }
+            },
+            "triangles": 5027,
             "backend": "WebGLBackend",
             "clothing_fit_control": {
-                "pixels": 34844,
-                "largest_patch": 34785
+                "pixels": 34916,
+                "largest_patch": 34916
             },
             "layer_triangles": {
-                "body": 3389,
-                "bottoms": 4599,
-                "dressed": 5387
+                "body": 3029,
+                "bottoms": 4239,
+                "dressed": 5027
             },
             "clothing_fit": {
                 "front": {
@@ -30,8 +80,177 @@
                     "largest_patch": 78
                 },
                 "profile": {
-                    "pixels": 10,
-                    "largest_patch": 4
+                    "pixels": 11,
+                    "largest_patch": 2
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "crouch": {
+                    "pixels": 20,
+                    "largest_patch": 15
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.7919,
+            "previous_light_contours": {
+                "body-front": {
+                    "samples": 825,
+                    "ink_fraction": 0.4776
+                },
+                "body-quarter": {
+                    "samples": 755,
+                    "ink_fraction": 0.3589
+                },
+                "body-profile": {
+                    "samples": 502,
+                    "ink_fraction": 0.5916
+                },
+                "body-back": {
+                    "samples": 837,
+                    "ink_fraction": 0.4695
+                },
+                "portrait": {
+                    "samples": 1104,
+                    "ink_fraction": 0.8995
+                },
+                "portrait-quarter": {
+                    "samples": 814,
+                    "ink_fraction": 0.8575
+                },
+                "portrait-profile": {
+                    "samples": 1093,
+                    "ink_fraction": 0.7768
+                },
+                "portrait-rear-quarter": {
+                    "samples": 955,
+                    "ink_fraction": 0.9058
+                },
+                "portrait-back": {
+                    "samples": 1101,
+                    "ink_fraction": 0.8093
+                },
+                "portrait-other-rear": {
+                    "samples": 728,
+                    "ink_fraction": 0.9093
+                },
+                "portrait-other-profile": {
+                    "samples": 893,
+                    "ink_fraction": 0.9059
+                },
+                "portrait-other-quarter": {
+                    "samples": 1086,
+                    "ink_fraction": 0.7689
+                }
+            },
+            "facial_landmarks": {
+                "front": {
+                    "eye_rgb_mae": 39.08,
+                    "eye_ink_f1_2px": 0.8202,
+                    "iris_iou": 0.7837
+                },
+                "profile": {
+                    "eye_rgb_mae": 42.55,
+                    "eye_ink_f1_2px": 0.7883,
+                    "iris_iou": 0.6321
+                }
+            }
+        },
+        "WebGPUBackend": {
+            "silhouette_iou": {
+                "front": 0.9119,
+                "profile": 0.8911
+            },
+            "light_contours": {
+                "body-front": {
+                    "samples": 774,
+                    "ink_fraction": 0.9935
+                },
+                "body-quarter": {
+                    "samples": 745,
+                    "ink_fraction": 0.9785
+                },
+                "body-profile": {
+                    "samples": 486,
+                    "ink_fraction": 0.9856
+                },
+                "body-back": {
+                    "samples": 751,
+                    "ink_fraction": 0.9933
+                },
+                "portrait": {
+                    "samples": 1087,
+                    "ink_fraction": 0.9991
+                },
+                "portrait-quarter": {
+                    "samples": 874,
+                    "ink_fraction": 1.0
+                },
+                "portrait-profile": {
+                    "samples": 1136,
+                    "ink_fraction": 1.0
+                },
+                "portrait-rear-quarter": {
+                    "samples": 1102,
+                    "ink_fraction": 1.0
+                },
+                "portrait-back": {
+                    "samples": 1111,
+                    "ink_fraction": 1.0
+                },
+                "portrait-other-rear": {
+                    "samples": 846,
+                    "ink_fraction": 0.9988
+                },
+                "portrait-other-profile": {
+                    "samples": 990,
+                    "ink_fraction": 1.0
+                },
+                "portrait-other-quarter": {
+                    "samples": 1116,
+                    "ink_fraction": 1.0
+                }
+            },
+            "triangles": 5027,
+            "backend": "WebGPUBackend",
+            "clothing_fit_control": {
+                "pixels": 34921,
+                "largest_patch": 34921
+            },
+            "layer_triangles": {
+                "body": 3029,
+                "bottoms": 4239,
+                "dressed": 5027
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 77,
+                    "largest_patch": 77
+                },
+                "profile": {
+                    "pixels": 12,
+                    "largest_patch": 2
                 },
                 "back": {
                     "pixels": 0,
@@ -39,10 +258,10 @@
                 },
                 "walk": {
                     "pixels": 11,
-                    "largest_patch": 7
+                    "largest_patch": 8
                 },
                 "crouch": {
-                    "pixels": 23,
+                    "pixels": 20,
                     "largest_patch": 15
                 },
                 "idle_back": {
@@ -60,93 +279,74 @@
             "moving_steps": 11,
             "hand": "right",
             "crouch_height_ratio": 0.7932,
-            "facial_landmarks": {
-                "front": {
-                    "eye_rgb_mae": 36.42,
-                    "eye_ink_f1_2px": 0.8353,
-                    "iris_iou": 0.7537
+            "previous_light_contours": {
+                "body-front": {
+                    "samples": 826,
+                    "ink_fraction": 0.4831
                 },
-                "profile": {
-                    "eye_rgb_mae": 43.45,
-                    "eye_ink_f1_2px": 0.7587,
-                    "iris_iou": 0.6604
-                }
-            }
-        },
-        "WebGPUBackend": {
-            "silhouette_iou": {
-                "front": 0.9106,
-                "profile": 0.8924
-            },
-            "triangles": 5387,
-            "backend": "WebGPUBackend",
-            "clothing_fit_control": {
-                "pixels": 34844,
-                "largest_patch": 34786
-            },
-            "layer_triangles": {
-                "body": 3389,
-                "bottoms": 4599,
-                "dressed": 5387
-            },
-            "clothing_fit": {
-                "front": {
-                    "pixels": 0,
-                    "largest_patch": 0
+                "body-quarter": {
+                    "samples": 757,
+                    "ink_fraction": 0.3501
                 },
-                "quarter": {
-                    "pixels": 74,
-                    "largest_patch": 74
+                "body-profile": {
+                    "samples": 503,
+                    "ink_fraction": 0.5885
                 },
-                "profile": {
-                    "pixels": 10,
-                    "largest_patch": 3
+                "body-back": {
+                    "samples": 838,
+                    "ink_fraction": 0.4547
                 },
-                "back": {
-                    "pixels": 0,
-                    "largest_patch": 0
+                "portrait": {
+                    "samples": 1101,
+                    "ink_fraction": 0.9092
                 },
-                "walk": {
-                    "pixels": 4,
-                    "largest_patch": 2
+                "portrait-quarter": {
+                    "samples": 806,
+                    "ink_fraction": 0.8524
                 },
-                "crouch": {
-                    "pixels": 23,
-                    "largest_patch": 17
+                "portrait-profile": {
+                    "samples": 1096,
+                    "ink_fraction": 0.7646
                 },
-                "idle_back": {
-                    "pixels": 0,
-                    "largest_patch": 0
+                "portrait-rear-quarter": {
+                    "samples": 949,
+                    "ink_fraction": 0.9041
+                },
+                "portrait-back": {
+                    "samples": 1106,
+                    "ink_fraction": 0.8119
+                },
+                "portrait-other-rear": {
+                    "samples": 736,
+                    "ink_fraction": 0.909
+                },
+                "portrait-other-profile": {
+                    "samples": 893,
+                    "ink_fraction": 0.9048
+                },
+                "portrait-other-quarter": {
+                    "samples": 1093,
+                    "ink_fraction": 0.7685
                 }
             },
-            "grip_test": {
-                "minimum_curl_radians": {
-                    "right": 0.55,
-                    "left": 0.55
-                },
-                "released": true
-            },
-            "moving_steps": 11,
-            "hand": "right",
-            "crouch_height_ratio": 0.7946,
             "facial_landmarks": {
                 "front": {
-                    "eye_rgb_mae": 36.37,
-                    "eye_ink_f1_2px": 0.8326,
-                    "iris_iou": 0.7537
+                    "eye_rgb_mae": 39.4,
+                    "eye_ink_f1_2px": 0.815,
+                    "iris_iou": 0.7736
                 },
                 "profile": {
-                    "eye_rgb_mae": 43.56,
-                    "eye_ink_f1_2px": 0.7557,
-                    "iris_iou": 0.6667
+                    "eye_rgb_mae": 42.42,
+                    "eye_ink_f1_2px": 0.7916,
+                    "iris_iou": 0.6321
                 }
             }
         }
     },
-    "comparison_sha256": "e053ccbb1b05a988daae70f17f21cde79227f85d813588379eeb79248601cf67",
+    "comparison_sha256": "22937377d913ead2620a13024a785ddd85d81495674792bd828aabcdee76430c",
     "portrait_revision": {
-        "previous_face_sha256": "01eb3295f7f7d1e06087042abef3c0f6182afb806d11d94c04abc6446b5925e0",
-        "sha256": "f6af40df22c08f33c87a6d27a9e8a9c3e4af4ec184b1760e56cc9a5ec1be8644"
+        "previous_face_sha256": "02908f93d2084c7115c893d85d21b2e6261292546a0eed57c6c9a59180950bd6",
+        "sha256": "ffcb17d07d6e2fc8a1cdd79fa7d5480ed84488756b197173e9fa4231fb78bc04"
     },
     "drawing_pose": {
         "turn": 43,
@@ -155,20 +355,21 @@
         "marked_spikes": 4,
         "spike_rms_before_px": 66.53,
         "spike_rms_after_px": 15.82,
-        "sha256": "9cd6b3d1b38e1a35fe82f579b52727152199c295ea68ad992c0847699311932a"
+        "sha256": "a91ae3ed0c12c94d6cb2654a18d768ed8c6ab4746ffaae94577cc9c89f2918d4"
     },
     "studies": {
-        "body-and-clothes": "51ea0d12fb23ea517b05f7803e968359cd77b04046de024c0663b79b294d2266",
-        "face": "02908f93d2084c7115c893d85d21b2e6261292546a0eed57c6c9a59180950bd6"
+        "body-and-clothes": "17836426644884a20f50cfb497a1ee82bf42d22a5529148c30d48d3c3cca8fd4",
+        "face": "681ad12b7c433156e7a5696b921c9c9da58763f5b7f96486126bc41c3c809c74",
+        "outlines": "f62ad6cae1e3588934785d8f212615ff31b339d7c57704cc3257ad92f485c3c0"
     },
     "captures": {
         "WebGLBackend": {
-            "views": "bc033bd101e74b2168b524104d76aeece0f5d1fc77f437c81cb23d0274be4b03",
-            "walk": "8430c2d76771f2d51a54c7d91e5e9fcc0a29b8ad8f259853b6668912611a12f0"
+            "views": "3b94e8e2df9dff65da3e644ef625ab31bb1df97f963c44da9faaa4530c5b1aec",
+            "walk": "ed200aca75adcfba7cae475136e69e16f9038a62d27386ad51c48cb05c3c6101"
         },
         "WebGPUBackend": {
-            "views": "ac1f46c2dc28de600d18762859b25e1a705debc826342e2327d26c90d0a4c761",
-            "walk": "bbef3b5d8d632593f06e4661ae7755758ff459e87195f2f5aa4ccbce1deee06a"
+            "views": "d9b0e96d911a9ecafc902dbd783f5e242a0dacb5d483fbe409a2ae27da7ca2f1",
+            "walk": "731f11e409fc39ffbce6ef4112d77b832e813e78c658374af4944474d8932012"
         }
     }
 }

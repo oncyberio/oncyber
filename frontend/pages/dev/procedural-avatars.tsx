@@ -152,15 +152,16 @@ export default function AvatarStudy({
                 { createAvatar },
                 { referencePose },
                 nodes,
-                { silhouetteTile },
+                { StreetInkPass },
             ] = await Promise.all([
                 import("three/webgpu"),
                 import("@features/lobby/webgpu/avatarAdapter"),
                 import("@features/procedural-avatars/referencePose"),
                 import("three/tsl"),
-                import("@features/procedural-avatars/surfaces"),
+                import("@features/procedural-avatars/streetInk"),
             ]);
             if (stopped) return;
+            const ink = new StreetInkPass();
             const renderer = new T.WebGPURenderer({
                 canvas: canvas.current,
                 antialias: true,
@@ -197,9 +198,6 @@ export default function AvatarStudy({
             const clayMaterial = new T.MeshBasicNodeMaterial({
                 side: T.DoubleSide,
             });
-            clayMaterial.maskNode = nodes
-                .floor(nodes.uv().x)
-                .notEqual(silhouetteTile);
             const normal = nodes.normalView.z
                 .lessThan(0)
                 .select(nodes.normalView.negate(), nodes.normalView);
@@ -349,6 +347,7 @@ export default function AvatarStudy({
                 micMaterial.dispose();
                 maskMaterial.dispose();
                 coatMask.dispose();
+                ink.dispose();
                 renderer.dispose();
             };
             await renderer.init();
@@ -790,7 +789,16 @@ export default function AvatarStudy({
                     camera.lookAt(wristCenter);
                     camera.updateMatrixWorld();
                 }
-                renderer.render(scene, camera);
+                ink.render(
+                    renderer,
+                    scene,
+                    camera,
+                    !scene.overrideMaterial &&
+                        finish === "paint" &&
+                        models.some(
+                            (m) => m.root.visible && m.root.userData.streetInk
+                        )
+                );
                 canvas.current.dataset.coatMask = String(
                     scene.overrideMaterial === coatMask
                 );
