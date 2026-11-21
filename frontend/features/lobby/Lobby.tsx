@@ -262,7 +262,7 @@ export default function Lobby({
     // Reaching for the avatar button fetches the picker's first screen, so
     // it opens with pictures in place.
     const warmAvatarPictures = () =>
-        warmAvatarThumbs(avatarChoices.slice(0, 8).map((item) => item.img));
+        warmAvatarThumbs(avatarChoices.slice(0, 10).map((item) => item.img));
     useEffect(() => {
         controlsElement.current?.toggleAttribute("inert", avatarOpen);
     }, [avatarOpen]);
