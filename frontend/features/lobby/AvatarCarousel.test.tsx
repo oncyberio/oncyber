@@ -482,7 +482,7 @@ test("an empty owned tab says why, and says so while the wallet is read", () => 
 });
 
 test("pictures come at card size, the first screens at once, with the original as a fallback", () => {
-    const many: LobbyAvatarChoice[] = Array.from({ length: 30 }, (_, i) => ({
+    const many: LobbyAvatarChoice[] = Array.from({ length: 40 }, (_, i) => ({
         id: `a${i}`,
         name: `Avatar ${i}`,
         url: `/a${i}.vrm`,
@@ -495,10 +495,10 @@ test("pictures come at card size, the first screens at once, with the original a
     expect(first.searchParams.get("img-format")).toBe("webp");
     expect(picture("Avatar 0").getAttribute("loading")).toBe("eager");
     expect(picture("Avatar 0").getAttribute("fetchpriority")).toBe("high");
-    expect(picture("Avatar 9").getAttribute("fetchpriority")).toBe("high");
-    expect(picture("Avatar 10").getAttribute("loading")).toBe("eager");
-    expect(picture("Avatar 10").hasAttribute("fetchpriority")).toBe(false);
-    expect(picture("Avatar 20").getAttribute("loading")).toBe("lazy");
+    expect(picture("Avatar 13").getAttribute("fetchpriority")).toBe("high");
+    expect(picture("Avatar 14").getAttribute("loading")).toBe("eager");
+    expect(picture("Avatar 14").hasAttribute("fetchpriority")).toBe(false);
+    expect(picture("Avatar 28").getAttribute("loading")).toBe("lazy");
 
     // The host would not resize it: the original is tried, then the initial.
     act(() => picture("Avatar 0").dispatchEvent(new Event("error")));

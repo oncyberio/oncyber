@@ -647,8 +647,8 @@ and captions legible over a subtle dark gradient; preserve the material's
 reduced-transparency and forced-colors fallbacks.
 Remove the catalog thumbnails' baked-in slate-blue backdrop with the shared
 image-only color key, preserving the artwork's colors. Show two rows in the
-shared 656 px rail (five columns on a desktop, four on a phone), with 8 px gaps and clipped edge gutters. Use overflow clipping instead of a CSS mask so the glass can blur the
-world behind it. Cards are 112 px wide on a desktop and shrink to fit four columns
+shared 656 px rail (six columns on a desktop, four on a phone), with 8 px gaps and clipped edge gutters. Use overflow clipping instead of a CSS mask so the glass can blur the
+world behind it. Cards are 89 px wide on a desktop and shrink to fit four columns
 on smaller screens. Touch screens drop the selection check from the caption:
 a tap puts the avatar on, the brighter border marks it, and closing the
 picker goes back. Leave 24 px of horizontal padding for the 3D projection.

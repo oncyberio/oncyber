@@ -40,8 +40,8 @@ const tabOf = (item: LobbyAvatarChoice): AvatarTab =>
     item.owned ? "owned" : "free";
 /** A phone shows four columns; this many avatars or fewer take one row. */
 const COLUMNS = 4;
-/** Up to five columns of two rows are on screen; the next page follows. */
-const FIRST_SCREEN = 10;
+/** Up to seven columns of two rows are on screen; the next page follows. */
+const FIRST_SCREEN = 14;
 const EAGER = FIRST_SCREEN * 2;
 
 const prefersReducedMotion = () =>
@@ -580,8 +580,8 @@ const enter = keyframes`
 `;
 const Shell = styled.section`
     ${lobbyPanelTokens}
-    /* 112 px on a desktop, where five columns show; four share a phone. */
-    --card-width: min(111.7px, calc((100vw - 104px) / 4 * 0.9));
+    /* 89 px on a desktop, where six columns show; four share a phone. */
+    --card-width: min(89.4px, calc((100vw - 104px) / 4 * 0.9));
     --avatar-rows: 2;
     /* A card is its picture, a 28.8 px caption and its border. Naming the
        heights keeps the panel the same size on both tabs, however many
