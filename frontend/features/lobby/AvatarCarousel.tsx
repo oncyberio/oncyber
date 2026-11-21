@@ -38,9 +38,10 @@ const TABS: { id: AvatarTab; label: string }[] = [
 ];
 const tabOf = (item: LobbyAvatarChoice): AvatarTab =>
     item.owned ? "owned" : "free";
-/** Four columns of two rows are on screen; the page after them is next. */
+/** A phone shows four columns; this many avatars or fewer take one row. */
 const COLUMNS = 4;
-const FIRST_SCREEN = COLUMNS * 2;
+/** Up to five columns of two rows are on screen; the next page follows. */
+const FIRST_SCREEN = 10;
 const EAGER = FIRST_SCREEN * 2;
 
 const prefersReducedMotion = () =>
@@ -579,7 +580,8 @@ const enter = keyframes`
 `;
 const Shell = styled.section`
     ${lobbyPanelTokens}
-    --card-width: min(131.4px, calc((100vw - 104px) / 4 * 0.9));
+    /* 112 px on a desktop, where five columns show; four share a phone. */
+    --card-width: min(111.7px, calc((100vw - 104px) / 4 * 0.9));
     --avatar-rows: 2;
     /* A card is its picture, a 28.8 px caption and its border. Naming the
        heights keeps the panel the same size on both tabs, however many
@@ -864,6 +866,13 @@ const Shell = styled.section`
     }
     footer {
         ${lobbyPanelFooter}
+    }
+    /* On a touch screen a tap puts the avatar on and the brighter border
+       says which one is worn; there is no box to tick. */
+    @media (max-width: 540px), (hover: none) and (pointer: coarse) {
+        .check {
+            display: none;
+        }
     }
     @media (max-width: 540px) {
         .avatar-hint {
