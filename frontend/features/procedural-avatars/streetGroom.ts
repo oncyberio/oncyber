@@ -54,7 +54,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
     ];
     for (let j = 0; j < 7; j++) {
         const rows = fall.map(([y, w, front, back]) =>
-            series(4).map((u) => {
+            series(3).map((u) => {
                 const restAngle = ((j + u) * tau) / 7;
                 const a =
                         restAngle +
@@ -80,7 +80,10 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
     }
     d.bind("head");
     for (const [ax, ay, az, bx, by, bz, r] of p.hair.spikes) {
-        const a = new T.Vector3(ax, ay, az),
+        const a = new T.Vector3(ax, ay, az).lerp(
+                new T.Vector3(0, 98, -10),
+                0.15
+            ),
             b = new T.Vector3(bx, by, bz),
             v = b.clone().sub(a).normalize();
         const wide = new T.Vector3(-v.y, v.x, 0).normalize(),
@@ -102,32 +105,35 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
                 )
                 .toArray() as Point;
         };
+        // The broad base lives under the crown. A slight concavity in
+        // the taper makes the sides read as drawn tufts through a turn.
         const shape = [
-            [0, 0.88],
-            [0.24, 1],
-            [0.69, 0.43],
+            [0, 0.87],
+            [0.21, 1],
+            [0.52, 0.62],
+            [0.79, 0.24],
             [1, 0],
         ];
         for (let half = 0; half < 2; half++) {
             const rows = shape.map(([t, size]) =>
-                series(5).map((u) => spoke(t, size, (half + u) * pi))
+                series(4).map((u) => spoke(t, size, (half + u) * pi))
             );
-            fiber(rows, 3, dye("#f8dfb8"));
+            fiber(rows, 3, dye("#f7dcb1"));
         }
         // The ring matches the spike's own sections. A backface line stays
         // visible at oblique angles where a painted edge would leave the tip.
         d.s.printUV = () => [silhouetteTile + 0.5, 0.5];
         d.s.vertexPaint = () => dye("#443324");
         const shell = shape
-            .filter(([t]) => t === 0.24 || t === 1)
+            .filter(([t]) => t === 0.21 || t === 0.79 || t === 1)
             .map(([t, size]) =>
-                series(10).map((u) =>
+                series(8).map((u) =>
                     t === 1
                         ? (b
                               .clone()
                               .addScaledVector(v, 1.35)
                               .toArray() as Point)
-                        : spoke(t, size, (u % 1) * tau, 1.24)
+                        : spoke(t, size, (u % 1) * tau, 0.8)
                 )
             );
         d.s.surface(shell, p.colors.hair, false, "perimeter");
@@ -137,17 +143,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
     const fringe = p.hair.fringe
         .filter(([x]) => Math.abs(x) <= 36)
         .map(([x, y]) => {
-            const phi = Math.acos((107 - y) / ry);
-            return [
-                Math.asin(
-                    T.MathUtils.clamp(
-                        x / (53.28 * Math.sin(phi)),
-                        -0.996,
-                        0.996
-                    )
-                ),
-                y + 1.6 * smooth(y, 111, 123),
-            ];
+            return [Math.asin(x / 53.28), y + 1.6 * smooth(y, 111, 123)];
         });
     const lateral = p.faceFit.crown
         .filter(([a]) => Math.abs(a) > 0.85 && Math.abs(a) < 1.34)
@@ -165,104 +161,138 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
         [pi, 160],
     ].sort((a, b) => a[0] - b[0]);
     const edge = observed.filter(
-        (v, i) => i === 0 || v[0] - observed[i - 1][0] > 0.022
+        (v, i) => i === 0 || v[0] - observed[i - 1][0] > 0.003
     );
+    // Split the negative spaces first. A short notch inside a broad clump
+    // stays with the clump. The two long temple locks are separate below.
     const boundaries = [0];
     for (let i = 1; i < edge.length - 1; i++) {
+        const [a, y] = edge[i];
         if (
-            edge[i][1] < edge[i - 1][1] &&
-            edge[i][1] < edge[i + 1][1] &&
-            edge[i][0] - edge[boundaries.at(-1)][0] > 0.123
+            y < edge[i - 1][1] &&
+            y < edge[i + 1][1] &&
+            a - edge[boundaries.at(-1)][0] > 0.064 &&
+            (y <= 116 || Math.abs(a) > 1.3)
         )
             boundaries.push(i);
     }
     boundaries.push(edge.length - 1);
-    const point = (a: number, t: number, across: number, h: number): Point => {
-        const end = Math.acos(T.MathUtils.clamp((107 - h) / ry, -0.996, 0.996));
-        // Keep the dome circular down to the brow. Each fringe tip leaves that
-        // horizontal ring independently, preserving a smooth turn at the temple.
-        const lat =
-            t < 0.68 ? (1.26 * t) / 0.68 : mix(1.26, end, (t - 0.68) / 0.32);
-        const flow = a + 0.045 * Math.sin(2 * a - 0.3) * Math.sin(pi * t);
-        const relief =
-            1.55 * Math.sin(pi * across) ** 2 * smooth(t, 0.68, 0.95);
+    const surface = (a: number, y: number, lift: number): Point => {
+        const v = T.MathUtils.clamp((107 - y) / 57.3, -1, 1);
+        // Leave clearance over the fitted rear skull and the buried spike roots.
+        const r = Math.sqrt(1 - v * v) * (1 + 0.046 * (1 - smooth(y, 72, 96)));
+        const tuck = 8.5 * smooth(y, 86, 122) * Math.max(0, Math.cos(a));
         return [
-            (rx + relief) * Math.sin(lat) * Math.sin(flow),
-            107 - ry * Math.cos(lat),
-            10 + (rz + relief) * Math.sin(lat) * Math.cos(flow),
+            (rx + 0.85 + lift) * r * Math.sin(a),
+            y,
+            10 + (rz - tuck + lift) * r * Math.cos(a),
         ];
     };
-    d.s.surfaceNormal = (x, y, z) =>
-        new T.Vector3(
+    const crownNormal = (x: number, y: number, z: number): Point => {
+        const n = new T.Vector3(
             x / (rx * rx),
             (y - 107) / (ry * ry),
             (z - 10) / (rz * rz)
-        )
-            .normalize()
-            .toArray() as Point;
+        );
+        return n.normalize().toArray() as Point;
+    };
+    d.s.surfaceNormal = crownNormal;
     const domeAngles: number[] = [];
     for (let k = 1; k < boundaries.length; k++) {
-        const first = boundaries[k - 1],
-            last = boundaries[k],
-            left = edge[first][0],
-            right = edge[last][0];
-        const count = Math.max(2, Math.ceil((right - left) * 6));
-        const samples = [
-            left,
-            ...series(count)
-                .slice(1, -1)
-                .map((t) => mix(left, right, t)),
-            ...edge.slice(first + 1, last).map(([a]) => a),
-            right,
-        ].sort((a, b) => a - b);
-        const angles = samples.filter(
-            (a, i) =>
-                i === 0 ||
-                a - samples[i - 1] > 0.0035 ||
-                i === samples.length - 1
-        );
-        const us = angles.map((a) => (a - left) / (right - left));
-        const heights = angles.map((a) => {
-            const i = edge.findIndex(([angle]) => angle >= a);
-            if (i <= 0) return i === 0 ? edge[0][1] : edge.at(-1)[1];
-            const lo = edge[i - 1],
-                hi = edge[i];
-            return mix(lo[1], hi[1], (a - lo[0]) / (hi[0] - lo[0]));
-        });
-        const ringAt = (t: number) =>
-            angles.map((a, i) => point(a, t, us[i], heights[i]));
-        const hem = ringAt(1);
-        // A sloping cut needs more vertical thickness than a horizontal cut
-        // to give the same width of ink on the surface.
-        const inkEdge = angles.map((a, i) => {
-            const before = Math.max(0, i - 1),
-                after = Math.min(i + 1, angles.length - 1);
-            const slope =
-                (heights[after] - heights[before]) /
-                ((angles[after] - angles[before]) * rx);
-            const width = Math.min(4.5, 1.12 * Math.hypot(1, slope));
-            return point(a, 1, us[i], heights[i] - width);
-        });
+        const contour = edge.slice(boundaries[k - 1], boundaries[k] + 1);
+        const [left, ly] = contour[0],
+            [right, ryEnd] = contour.at(-1);
+        const [tip, ty] = contour.reduce((a, b) => (a[1] > b[1] ? a : b));
+        const lock =
+            Math.abs(tip) < 1.5 &&
+            tip > left &&
+            tip < right &&
+            ty > Math.max(ly, ryEnd) + 3;
+        const us = series(Math.max(2, Math.ceil((right - left) * 6)));
+        const angles = us.map((u) => mix(left, right, u));
         domeAngles.push(...(k === 1 ? angles : angles.slice(1)));
-        const rows = [0.68, 0.83, 0.93].map((t) => ringAt(t));
-        rows.push(inkEdge);
-        fiber(rows, 0, dye("#fff1d9"), us);
-        // Both sides terminate at the same stitched ring. An ink overlay
-        // on the dome would flicker as the underlying mesh simplifies.
-        d.s.printUV = undefined;
-        d.s.vertexPaint = () => dye("#422e21");
-        d.s.surface([inkEdge, hem], p.colors.hair, false, "both");
-        const underside = hem.map(
-            ([x, y, z]): Point => [x * 0.966, y + 1.45, 10 + (z - 10) * 0.942]
+        const shoulder = (u: number) => mix(ly, ryEnd, u);
+        // An ascending curved ridge starts in the crown. The exposed tongue
+        // below the fork converges on its own tip, swept across the forehead.
+        const cross = (u: number) => Math.sin(pi * u) ** 1.4;
+        const roots = [0, 0.5, 1].map((t) =>
+            us.map((u) => {
+                const a = mix(left, right, u);
+                const y = mix(86, shoulder(u), t);
+                return surface(
+                    a - 0.052 * Math.sin(pi * t) * Math.cos(a),
+                    y,
+                    (lock ? 2.2 : 0.65) * t * cross(u)
+                );
+            })
         );
-        d.s.vertexPaint = () => dye("#bb8965");
-        d.s.surface([hem, underside], p.colors.hair, false, "both");
+        if (!lock) {
+            fiber(roots, 0, dye("#fff0d6"), us);
+            continue;
+        }
+        const tongue = (t: number) =>
+            us.map((u) => {
+                const a = mix(left, right, u);
+                const h = shoulder(u);
+                const bend = Math.sin(pi * t);
+                // A drawn lock holds its width through the middle and narrows
+                // quickly near the tip. Keep the inside edge close to straight.
+                const mid =
+                    mix(a, tip, t ** 1.42) + 0.058 * (right - left) * bend;
+                return surface(
+                    mid,
+                    mix(h, ty, t),
+                    cross(u) * 2.2 * (1 - t) + bend * 1.35
+                );
+            });
+        const edgeRows = [roots[2], tongue(0.44), tongue(0.78), tongue(1)];
+        fiber(roots, 0, dye("#fff1d9"), us);
+        // Split off the two ink edges before emitting the blonde interior.
+        // All three patches share their vertices along the cut in space.
+        const middle = edgeRows.map((row, i) => {
+            const core = row.slice();
+            for (const side of [0, 1]) {
+                const end = side === 0 ? 0 : row.length - 1,
+                    v = row[end],
+                    near = row[side === 0 ? 1 : end - 1];
+                const dist = Math.hypot(
+                    near[0] - v[0],
+                    near[1] - v[1],
+                    near[2] - v[2]
+                );
+                const t = dist && i > 0 ? Math.min(0.82, 1.12 / dist) : 0;
+                core[end] = v.map((c, j) => mix(c, near[j], t)) as Point;
+            }
+            return core;
+        });
+        fiber(middle, 5, dye("#fff0d6"), us);
+        d.s.printUV = undefined;
+        d.s.vertexPaint = () => dye("#38291f");
+        for (const col of [0, us.length - 1])
+            d.s.surface(
+                edgeRows.map((row, i) => [row[col], middle[i][col]]),
+                p.colors.hair,
+                false,
+                "perimeter"
+            );
+        const outline = [
+            ...edgeRows.map((row) => row[0]),
+            ...edgeRows
+                .slice(0, -1)
+                .reverse()
+                .map((row) => row.at(-1)),
+        ];
+        const inside = outline.map(
+            ([x, y, z]): Point => [x * 0.97, y - 0.65, 10 + (z - 10) * 0.958]
+        );
+        d.s.vertexPaint = () => dye("#916343");
+        d.s.surface([outline, inside], p.colors.hair, false, "both");
     }
-    // All locks start on the same ring of one smooth dome. Sharing those
-    // meridians removes hairline cracks up to the pole when the mesh reduces.
-    const dome = [0, 0.25, 0.49, 0.68].map((t) =>
-        domeAngles.map((a) => point(a, t, 0, 107))
+    // Each lock shares its whole root edge with the same smooth cranial cap.
+    const dome = [49.7, 52.5, 60, 72, 86].map((y) =>
+        domeAngles.map((a) => surface(a, y, 0))
     );
+
     fiber(
         dome,
         4,
@@ -292,6 +322,7 @@ export function drawStreetGroom(d: Drawing, p: StreetPattern) {
                     return [
                         (s *
                             mix(inside, outside, 0.5 + 0.5 * arc(Math.cos(a))) *
+                            mix(0.85, 1, smooth(y, 78, 117)) *
                             width) /
                             48,
                         y,

@@ -1,24 +1,24 @@
 {
-    "recipe_sha256": "7b4a841a68a6475988909ac0860d9950c0fa1c8434ca41d0167f1fccf5670e0b",
+    "recipe_sha256": "a51a080e7ca9a66a457efd8be418d68bbbc3eb2f737a83c56264c398b1989e8f",
     "turnaround_sha256": "8c7477d8a1cab1e67a68635e3474a896cae495777b839d989c16023b68de2a95",
     "front_split_x": 979,
     "triangle_budget": 5500,
     "backends": {
         "WebGLBackend": {
             "silhouette_iou": {
-                "front": 0.9202,
-                "profile": 0.8985
+                "front": 0.9102,
+                "profile": 0.8919
             },
-            "triangles": 5359,
+            "triangles": 5387,
             "backend": "WebGLBackend",
             "clothing_fit_control": {
-                "pixels": 35030,
-                "largest_patch": 34976
+                "pixels": 34844,
+                "largest_patch": 34785
             },
             "layer_triangles": {
-                "body": 3361,
-                "bottoms": 4571,
-                "dressed": 5359
+                "body": 3389,
+                "bottoms": 4599,
+                "dressed": 5387
             },
             "clothing_fit": {
                 "front": {
@@ -26,92 +26,23 @@
                     "largest_patch": 0
                 },
                 "quarter": {
-                    "pixels": 79,
-                    "largest_patch": 79
+                    "pixels": 78,
+                    "largest_patch": 78
                 },
                 "profile": {
-                    "pixels": 14,
-                    "largest_patch": 3
+                    "pixels": 10,
+                    "largest_patch": 4
                 },
                 "back": {
                     "pixels": 0,
                     "largest_patch": 0
                 },
                 "walk": {
-                    "pixels": 6,
-                    "largest_patch": 5
-                },
-                "crouch": {
-                    "pixels": 19,
-                    "largest_patch": 12
-                },
-                "idle_back": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                }
-            },
-            "grip_test": {
-                "minimum_curl_radians": {
-                    "right": 0.55,
-                    "left": 0.55
-                },
-                "released": true
-            },
-            "moving_steps": 11,
-            "hand": "right",
-            "crouch_height_ratio": 0.8288,
-            "facial_landmarks": {
-                "front": {
-                    "eye_rgb_mae": 35.32,
-                    "eye_ink_f1_2px": 0.8378,
-                    "iris_iou": 0.7609
-                },
-                "profile": {
-                    "eye_rgb_mae": 43.98,
-                    "eye_ink_f1_2px": 0.6737,
-                    "iris_iou": 0.6277
-                }
-            }
-        },
-        "WebGPUBackend": {
-            "silhouette_iou": {
-                "front": 0.9211,
-                "profile": 0.8987
-            },
-            "triangles": 5359,
-            "backend": "WebGPUBackend",
-            "clothing_fit_control": {
-                "pixels": 35063,
-                "largest_patch": 35063
-            },
-            "layer_triangles": {
-                "body": 3361,
-                "bottoms": 4571,
-                "dressed": 5359
-            },
-            "clothing_fit": {
-                "front": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "quarter": {
-                    "pixels": 77,
-                    "largest_patch": 77
-                },
-                "profile": {
                     "pixels": 11,
-                    "largest_patch": 2
-                },
-                "back": {
-                    "pixels": 0,
-                    "largest_patch": 0
-                },
-                "walk": {
-                    "pixels": 0,
-                    "largest_patch": 0
+                    "largest_patch": 7
                 },
                 "crouch": {
-                    "pixels": 20,
+                    "pixels": 23,
                     "largest_patch": 15
                 },
                 "idle_back": {
@@ -128,38 +59,116 @@
             },
             "moving_steps": 11,
             "hand": "right",
-            "crouch_height_ratio": 0.8305,
+            "crouch_height_ratio": 0.7932,
             "facial_landmarks": {
                 "front": {
-                    "eye_rgb_mae": 35.36,
-                    "eye_ink_f1_2px": 0.8446,
-                    "iris_iou": 0.7577
+                    "eye_rgb_mae": 36.42,
+                    "eye_ink_f1_2px": 0.8353,
+                    "iris_iou": 0.7537
                 },
                 "profile": {
-                    "eye_rgb_mae": 43.92,
-                    "eye_ink_f1_2px": 0.6632,
-                    "iris_iou": 0.6316
+                    "eye_rgb_mae": 43.45,
+                    "eye_ink_f1_2px": 0.7587,
+                    "iris_iou": 0.6604
+                }
+            }
+        },
+        "WebGPUBackend": {
+            "silhouette_iou": {
+                "front": 0.9106,
+                "profile": 0.8924
+            },
+            "triangles": 5387,
+            "backend": "WebGPUBackend",
+            "clothing_fit_control": {
+                "pixels": 34844,
+                "largest_patch": 34786
+            },
+            "layer_triangles": {
+                "body": 3389,
+                "bottoms": 4599,
+                "dressed": 5387
+            },
+            "clothing_fit": {
+                "front": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "quarter": {
+                    "pixels": 74,
+                    "largest_patch": 74
+                },
+                "profile": {
+                    "pixels": 10,
+                    "largest_patch": 3
+                },
+                "back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                },
+                "walk": {
+                    "pixels": 4,
+                    "largest_patch": 2
+                },
+                "crouch": {
+                    "pixels": 23,
+                    "largest_patch": 17
+                },
+                "idle_back": {
+                    "pixels": 0,
+                    "largest_patch": 0
+                }
+            },
+            "grip_test": {
+                "minimum_curl_radians": {
+                    "right": 0.55,
+                    "left": 0.55
+                },
+                "released": true
+            },
+            "moving_steps": 11,
+            "hand": "right",
+            "crouch_height_ratio": 0.7946,
+            "facial_landmarks": {
+                "front": {
+                    "eye_rgb_mae": 36.37,
+                    "eye_ink_f1_2px": 0.8326,
+                    "iris_iou": 0.7537
+                },
+                "profile": {
+                    "eye_rgb_mae": 43.56,
+                    "eye_ink_f1_2px": 0.7557,
+                    "iris_iou": 0.6667
                 }
             }
         }
     },
-    "comparison_sha256": "da5f9e0756997c7bf57a997ad708049be7c30454bc2566598cfd04bb9adbbac8",
+    "comparison_sha256": "e053ccbb1b05a988daae70f17f21cde79227f85d813588379eeb79248601cf67",
     "portrait_revision": {
-        "previous_face_sha256": "4731c838eada53e3ba2dd4034b97797472d191126d2fe0dd1c04be9308ffd95c",
-        "sha256": "bc25fef2848b02ff516bbe8cf0fd520a7b81ffb1266ca55a57deadff85f99b56"
+        "previous_face_sha256": "01eb3295f7f7d1e06087042abef3c0f6182afb806d11d94c04abc6446b5925e0",
+        "sha256": "f6af40df22c08f33c87a6d27a9e8a9c3e4af4ec184b1760e56cc9a5ec1be8644"
+    },
+    "drawing_pose": {
+        "turn": 43,
+        "tilt": 13,
+        "face_rms_px": 4.9,
+        "marked_spikes": 4,
+        "spike_rms_before_px": 66.53,
+        "spike_rms_after_px": 15.82,
+        "sha256": "9cd6b3d1b38e1a35fe82f579b52727152199c295ea68ad992c0847699311932a"
     },
     "studies": {
-        "body-and-clothes": "f8eb1696a203d2638f662e5914cff269ac606a5d795c495aa377e5c7b5301dc4",
-        "face": "01eb3295f7f7d1e06087042abef3c0f6182afb806d11d94c04abc6446b5925e0"
+        "body-and-clothes": "51ea0d12fb23ea517b05f7803e968359cd77b04046de024c0663b79b294d2266",
+        "face": "02908f93d2084c7115c893d85d21b2e6261292546a0eed57c6c9a59180950bd6"
     },
     "captures": {
         "WebGLBackend": {
-            "views": "d0d74467586536a81182f9d9e1189bb461e97c634c0098f90e5f16495f5a4806",
-            "walk": "d212eb8308c87f434210fc287666cc15bdd2faf0804d2ef88d394bd8e761163a"
+            "views": "bc033bd101e74b2168b524104d76aeece0f5d1fc77f437c81cb23d0274be4b03",
+            "walk": "8430c2d76771f2d51a54c7d91e5e9fcc0a29b8ad8f259853b6668912611a12f0"
         },
         "WebGPUBackend": {
-            "views": "6fb250ddd579c9ef17aca2254d6d8861d7e63bd434c3b57160604ea3f9651df5",
-            "walk": "424ef992ba36eda440b45421d37a1d958f07e51ef4394339eaab3cb594b06d0e"
+            "views": "ac1f46c2dc28de600d18762859b25e1a705debc826342e2327d26c90d0a4c761",
+            "walk": "bbef3b5d8d632593f06e4661ae7755758ff459e87195f2f5aa4ccbce1deee06a"
         }
     }
 }

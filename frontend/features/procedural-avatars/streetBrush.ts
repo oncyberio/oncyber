@@ -77,8 +77,8 @@ const innerLid = [
     [11.1, 131.5],
     [15, 130.7],
     [19.5, 129.0],
-    [25, 128.85],
-    [30.5, 128.6],
+    [25, 128.45],
+    [30.5, 128.35],
     [35.5, 129.05],
     [39.6, 127.3],
 ];
@@ -90,11 +90,11 @@ const brow = [
     [35.6, 118.35],
 ];
 const mouth = [
-    [-5.9, 168.8],
+    [-6.3, 168.45],
     [-3.6, 167.83],
     [-0.7, 167.8],
-    [2.4, 167.75],
-    [5.5, 168.5],
+    [2.8, 167.65],
+    [6.3, 167.3],
 ];
 function stroke(path: Line, x: number, y: number, r: number) {
     if (x < path[0][0] || x > path.at(-1)[0]) return 0;
@@ -125,7 +125,7 @@ function complexion(x: number, y: number): RGB {
     c = blend(
         c,
         [227, 161, 123],
-        0.43 * wash(a, y, 3.5, 154.9, 3.0, 2.0) +
+        0.53 * wash(a, y, 3.5, 154.6, 3.3, 2.1) +
             0.18 * wash(x, y, 4, 149, 3.9, 5)
     );
     c = blend(c, [255, 242, 218], 0.67 * wash(x, y, -1.55, 150.45, 1.45, 3.6));
@@ -162,7 +162,7 @@ function eyeBrush(x: number, y: number): RGB {
             [21, 44, 65],
             T.MathUtils.smoothstep(radius, 0.78, 0.98)
         );
-        const pupil = Math.hypot((x - 23.75) / 2.36, (y - 129.1) / 3.46);
+        const pupil = Math.hypot((x - 23.6) / 3.23, (y - 129.7) / 3.98);
         iris = blend(
             iris,
             [13, 13, 19],
@@ -188,7 +188,7 @@ function eyeBrush(x: number, y: number): RGB {
     c = blend(
         c,
         [103, 77, 68],
-        0.86 * (1 - T.MathUtils.smoothstep(bottom - y, 0.04, 0.61))
+        0.86 * (1 - T.MathUtils.smoothstep(bottom - y, 0.12, 0.79))
     );
     return blend(c, dark, 1 - T.MathUtils.smoothstep(y - top, -0.12, 0.17));
 }

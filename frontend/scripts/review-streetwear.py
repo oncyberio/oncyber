@@ -7,6 +7,7 @@ Align floor, height and horizontal center separately in each view, preserving as
 import argparse
 import json
 from pathlib import Path
+from shutil import copyfile
 
 import numpy as np
 from avatar_authoring.fit import pixels
@@ -80,7 +81,7 @@ def body_and_clothes(folder, output):
     canvas.save(output, quality=91, method=6)
 
 
-def face_gallery(folder, targets, output=None):
+def face_gallery(folder, targets, output=None, clay_output=None):
     # Anchor matching crops at the iris centers. Use the orthographic cameras
     # to keep a millimetre on the face the same size in both drawings and renders.
     cameras = json.loads((folder / "camera.json").read_text())
@@ -141,6 +142,20 @@ def face_gallery(folder, targets, output=None):
             (left, top, left + width, top + width),
             Image.Resampling.BICUBIC,
         )
+        if (
+            clay_output
+            and angle == "quarter"
+            and (folder / "portrait-quarter-clay.png").is_file()
+        ):
+            with Image.open(folder / "portrait-quarter-clay.png") as clay:
+                if clay.size != image.size:
+                    raise ValueError("Paint and clay require the same camera")
+                clay.transform(
+                    (240, 240),
+                    Image.Transform.EXTENT,
+                    (left, top, left + width, top + width),
+                    Image.Resampling.BICUBIC,
+                ).save(clay_output)
         tiles.append(np.asarray(tile).astype(float))
         canvas.paste(tile, (i * 240, 38))
         draw.text((i * 240 + 8, 8), title, font=font, fill="#332f2e")
@@ -184,25 +199,112 @@ def face_gallery(folder, targets, output=None):
     return result
 
 
-def portrait_revision(previous, current, output):
-    """Compare published galleries at their existing eye-registered scale."""
+def portrait_revision(previous, current, clay, output):
+    """Compare the construction and both renders at the same eye-registered scale."""
     with Image.open(previous) as before, Image.open(current) as after:
         if before.size != after.size or after.size != (1200, 278):
             raise ValueError("Expected two front, quarter and profile galleries")
-        sheet = Image.new("RGB", (756, 565), "#f6f3ef")
+        sheet = Image.new("RGB", (756, 856), "#f6f3ef")
         pen = ImageDraw.Draw(sheet)
-        font = ImageFont.truetype("DejaVuSans.ttf", 18)
-        for col, title in enumerate(
-            ("Turnaround drawing", "Previous avatar", "Revised avatar")
+        font = ImageFont.truetype("DejaVuSans.ttf", 16)
+
+        def panel(image, index):
+            return image.crop((240 * index, 38, 240 * (index + 1), 278))
+
+        for row, (name, ref, index) in enumerate(
+            [("Front", 0, 1), ("35°", None, 2), ("Profile", 4, 3)]
         ):
-            pen.text((12 + 252 * col, 12), title, fill="#302b2a", font=font)
-        for row, (source, native) in enumerate(((0, 1), (4, 3))):
-            for col, (image, index) in enumerate(
-                ((after, source), (before, native), (after, native))
+            construction = (
+                panel(after, ref)
+                if ref is not None
+                else Image.open(clay).convert("RGB")
+                if clay and clay.is_file()
+                else None
+            )
+            for col, (title, tile) in enumerate(
+                [
+                    (
+                        "Turnaround drawing"
+                        if ref is not None
+                        else "Clay construction",
+                        construction,
+                    ),
+                    ("Previous avatar", panel(before, index)),
+                    ("Revised avatar", panel(after, index)),
+                ]
             ):
-                face = image.crop((240 * index, 38, 240 * (index + 1), 278))
-                sheet.paste(face, (8 + 252 * col, 44 + row * 254))
+                if tile is None:
+                    continue
+                pen.text(
+                    (8 + 252 * col, 12 + row * 284),
+                    f"{name} · {title}",
+                    font=font,
+                    fill="#302b2a",
+                )
+                sheet.paste(tile, (8 + 252 * col, 38 + row * 284))
         sheet.save(output, quality=94, method=6)
+
+
+def capture_drawing_pose(recipe, base, pose, output):
+    from io import BytesIO
+    from runpy import run_path
+
+    from avatar_authoring.review import native_page
+    from playwright.sync_api import sync_playwright
+
+    turn, tilt = pose["turn"], pose["tilt"]
+    set_angle = run_path(
+        str(Path(__file__).with_name("capture-procedural-avatars.py"))
+    )["set_angle"]
+    with sync_playwright() as pw:
+        browser, page = native_page(pw, base, "webgl")
+        page.get_by_label("Open cartoon recipe").set_input_files(recipe)
+        stage = page.locator(".stage canvas")
+        page.wait_for_function(
+            "document.querySelector('.stage canvas')?.dataset.layer==='dressed'"
+        )
+        page.get_by_role("button", name="Portrait", exact=True).click()
+        set_angle(page.get_by_label("Rotation", exact=True), turn)
+        set_angle(page.get_by_label("Head tilt", exact=True), tilt)
+        page.wait_for_function(
+            "([a,r])=>{const d=document.querySelector('.stage canvas').dataset;return d.framing.endsWith('/'+a+'/portrait') && d.headTilt===String(r)}",
+            arg=[turn, tilt],
+        )
+        panels = []
+        for finish in ("paint", "clay"):
+            if finish == "clay":
+                page.get_by_role("button", name="Clay study", exact=True).click()
+                page.wait_for_function(
+                    "document.querySelector('.stage canvas').dataset.finish==='clay'"
+                )
+            with Image.open(BytesIO(stage.screenshot())) as im:
+                w, h = im.size
+                side = min(w, h)
+                panels.append(
+                    im.crop(
+                        (
+                            (w - side) // 2,
+                            (h - side) // 2,
+                            (w + side) // 2,
+                            (h + side) // 2,
+                        )
+                    ).resize((460, 460), Image.Resampling.LANCZOS)
+                )
+        browser.close()
+    sheet = Image.new("RGB", (920, 498), "#f6f3ef")
+    pen = ImageDraw.Draw(sheet)
+    font = ImageFont.truetype("DejaVuSans.ttf", 17)
+    for i, (title, img) in enumerate(
+        zip(["Painted avatar", "Clay construction"], panels, strict=True)
+    ):
+        sheet.paste(img, (460 * i, 38))
+        pen.text(
+            (12 + 460 * i, 9),
+            f"{title} · {turn}° turn, {tilt}° tilt",
+            font=font,
+            fill="#302b2a",
+        )
+    sheet.save(output, quality=94, method=6)
 
 
 def review(args):
@@ -273,6 +375,12 @@ def review(args):
     canvas.thumbnail((2048, 1100), Image.Resampling.LANCZOS)
     canvas.save(comparison, quality=92, method=6)
     result["comparison_sha256"] = digest(comparison)
+    clay = (
+        args.captures / "quarter-clay.png"
+        if args.previous_face
+        and (args.captures / "WebGLBackend/portrait-quarter-clay.png").is_file()
+        else None
+    )
     assets = {}
     for name, make in [
         (
@@ -281,7 +389,12 @@ def review(args):
         ),
         (
             "face",
-            lambda path: face_gallery(args.captures / "WebGLBackend", targets, path),
+            lambda path: face_gallery(
+                args.captures / "WebGLBackend",
+                targets,
+                path,
+                clay,
+            ),
         ),
     ]:
         path = args.destination / (args.slug + "-" + name + ".webp")
@@ -290,7 +403,10 @@ def review(args):
     if args.previous_face:
         revision = args.destination / (args.slug + "-portrait-revision.webp")
         portrait_revision(
-            args.previous_face, args.destination / (args.slug + "-face.webp"), revision
+            args.previous_face,
+            args.destination / (args.slug + "-face.webp"),
+            clay,
+            revision,
         )
         result["portrait_revision"] = {
             "previous_face_sha256": digest(args.previous_face),
@@ -300,6 +416,21 @@ def review(args):
         result["backends"][backend]["facial_landmarks"] = face_gallery(
             args.captures / backend, targets
         )
+    if args.drawing_pose:
+        pose = json.loads(args.drawing_pose.read_text())
+        path = args.destination / (args.slug + "-illustration-pose.webp")
+        shot = (
+            args.captures
+            / f"drawing-pose-{digest(args.recipe)[:12]}-{digest(args.drawing_pose)[:12]}.webp"
+        )
+        if not args.use_captures:
+            capture_drawing_pose(args.recipe, args.base, pose, shot)
+        if not shot.is_file():
+            raise ValueError(
+                "This capture set has no portrait for the specified recipe and drawing pose"
+            )
+        copyfile(shot, path)
+        result["drawing_pose"] = {**pose, "sha256": digest(path)}
     result["studies"] = assets
     result["captures"] = export_review_views(
         args.captures, args.destination, args.slug, report
@@ -325,6 +456,11 @@ if __name__ == "__main__":
         "--previous-face",
         type=Path,
         help="Earlier face gallery for a before-and-after comparison",
+    )
+    parser.add_argument(
+        "--drawing-pose",
+        type=Path,
+        help="Pose output from fitting a marked three-quarter illustration",
     )
     parser.add_argument("--base", default="http://localhost:13000")
     parser.add_argument("--budget", default=5500, type=int)

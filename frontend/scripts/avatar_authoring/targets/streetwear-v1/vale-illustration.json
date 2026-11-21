@@ -1,0 +1,16 @@
+{
+    "source": "Hand-marked pixels on the supplied 246-pixel-wide three-quarter illustration. Sides refer to the neutral front drawing.",
+    "face": {
+        "leftEye": [101, 110],
+        "rightEye": [138, 120],
+        "nose": [140, 140],
+        "chin": [117, 160],
+        "mouth": [122, 151]
+    },
+    "spikeTips": {
+        "leftUpper": [31, 21],
+        "leftMiddle": [16, 90],
+        "leftLower": [39, 122],
+        "rightUpper": [169, 6]
+    }
+}

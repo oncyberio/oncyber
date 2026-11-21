@@ -241,6 +241,17 @@ def render(recipe, dest, base, motion=False, backend="webgl", *, gaze_only=False
                 "height": side,
             }
             page.screenshot(clip=clip, path=dest / (title + ".png"))
+            if layers and title == "portrait-quarter":
+                clay = page.get_by_role("button", name="Clay study", exact=True)
+                clay.click()
+                page.wait_for_function(
+                    "document.querySelector('.stage canvas').dataset.finish==='clay'"
+                )
+                page.screenshot(clip=clip, path=dest / "portrait-quarter-clay.png")
+                clay.click()
+                page.wait_for_function(
+                    "document.querySelector('.stage canvas').dataset.finish==='paint'"
+                )
             gaze = page.get_by_role("slider", name="Gaze pose", exact=True)
             if title == "portrait-quarter" and gaze.count():
                 for weight in (1, 0):

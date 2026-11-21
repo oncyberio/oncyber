@@ -4,240 +4,250 @@ import type { Point } from "./sculpt";
 import type { StreetPattern } from "./streetwearPattern";
 import { silhouetteTile } from "./surfaces";
 import { prepareStreetBrushes } from "./garmentPrint";
-import { streetPaintUV, margin, upperLid, lowerLid } from "./streetBrush";
+import { streetPaintUV, margin } from "./streetBrush";
+import { streetHeadForm, faceColumns, eyeColumns } from "./streetHeadForm";
 
-const mix = T.MathUtils.lerp;
-type Front = (unitWidth: number, y: number) => Point;
-type Section = (y: number) => number[];
-type SideDepth = (fore: number, back: number, y: number) => number;
+const { lerp, smoothstep } = T.MathUtils;
 
-/** The front and profile drawings share a closed skin surface. The eye margins,
- * pigment and jaw line follow that surface at intermediate camera angles. */
-export function drawStreetBrushFace(
-    d: Drawing,
-    p: StreetPattern,
-    front: Front,
-    section: Section,
-    height: (y: number) => number,
-    sideDepth: SideDepth
-) {
-    const { width, depth, chin } = p.head,
-        fit = p.faceFit;
+/** Lay the topology along the drawing: the lids and the eyes use the same
+ * two boundary curves. Their shared rim stays closed in both levels of detail. */
+export function drawStreetBrushFace(d: Drawing, p: StreetPattern) {
     prepareStreetBrushes();
+    const form = streetHeadForm(p),
+        { width, depth, chin } = p.head;
+    const chart = new Map<string, [number, number]>();
+    const key = (x: number, y: number) => Math.fround(x) + "," + Math.fround(y);
+    const rawSkin = parseInt(p.colors.skin.slice(1), 16);
+    const base = new T.Color(rawSkin),
+        color = new T.Color();
+    const fringe = p.hair.fringe.map(([x, y]) => [x, y]);
+    const vertex = (col: number, y: number) => {
+        const v = form.at(col, y);
+        chart.set(key(v[0], v[1]), [form.lateral(col, y), y]);
+        return v;
+    };
+    const author = (x: number, y: number) =>
+        chart.get(key(x, y)) ?? [
+            (x * 48) / width,
+            51 + ((y - 51) * 133) / (chin - 51),
+        ];
     d.s.sourcePaint = false;
     d.s.sculptedCartoon = false;
     d.s.thinSkinOutline = false;
-    const rawSkin = parseInt(p.colors.skin.slice(1), 16);
-    const fromHeight = (y: number) => 184 - ((chin - y) * 133) / (chin - 51);
-    const ux = (x: number, y: number) => x / Math.max(0.01, section(y)[1]);
-    // The eye opening is a raised, convex patch on a recessed orbit. It
-    // wraps around the temple, with both margins meeting at each canthus.
-    const skull = (u: number, y: number): Point => {
-        const v = front(u, y),
-            x = u * section(y)[1];
-        v[2] -=
-            2.1 *
-            Math.exp(
-                -(((Math.abs(x) - 24.5) / 14) ** 4 + ((y - 131.4) / 6.2) ** 4)
-            );
-        return v;
-    };
-    const skinRows = [
-        ...new Set([
-            ...fit.sections.map((s) => s[0]),
-            120,
-            128,
-            134,
-            141,
-            146,
-            151,
-            159,
-            164,
-            170,
-            176,
-            179,
-            183,
-        ]),
-    ].sort((a, b) => a - b);
-    const meridians = d.s.detail === "full" ? 32 : 24;
-    const rows = skinRows.map((y) =>
-        Array.from({ length: meridians + 1 }, (_, i) =>
-            skull(Math.sin(-Math.PI / 2 + (Math.PI * i) / meridians), y)
-        )
-    );
-    const chart = new Map<string, [number, number]>();
-    const key = (x: number, y: number) => Math.fround(x) + "," + Math.fround(y);
-    rows.forEach((row, j) =>
-        row.forEach(([x, y], i) =>
-            chart.set(
-                key(x, y),
-                streetPaintUV(
-                    "skin",
-                    Math.sin(-Math.PI / 2 + (Math.PI * i) / meridians) *
-                        section(skinRows[j])[1],
-                    skinRows[j]
-                )
-            )
-        )
-    );
-    const skinBase = new T.Color(rawSkin),
-        tintedSkin = new T.Color();
-    const fringe = p.hair.fringe.map(([x, y]) => [x, y]);
-    d.s.vertexPaint = (x, v) => {
-        const y = fromHeight(v),
-            lateral = (x * 48) / width;
-        if (y > 140) return rawSkin;
-        const fringeY = margin(fringe, lateral);
+    d.s.vertexPaint = (px, py) => {
+        const [x, y] = author(px, py);
+        if (y > 141) return rawSkin;
         const contact =
-            (1 - T.MathUtils.smoothstep(y - fringeY, -2, 9)) *
-            T.MathUtils.smoothstep(y, 89, 108);
-        return tintedSkin
+            (1 - smoothstep(y - margin(fringe, x), -2, 9)) *
+            smoothstep(y, 89, 108);
+        return color
             .setRGB(
-                skinBase.r * (1 - 0.12 * contact),
-                skinBase.g * (1 - 0.29 * contact),
-                skinBase.b * (1 - 0.38 * contact)
+                base.r * (1 - 0.12 * contact),
+                base.g * (1 - 0.29 * contact),
+                base.b * (1 - 0.38 * contact)
             )
             .getHex();
     };
-    d.s.printUV = (x, y) =>
-        chart.get(key(x, y)) ??
-        streetPaintUV("skin", (x * 48) / width, fromHeight(y));
-    d.s.surfaceNormal = (x, y) => {
-        const h = fromHeight(y),
-            u = T.MathUtils.clamp(ux((x * 48) / width, h), -0.999, 0.999);
-        const dx = new T.Vector3(...skull(Math.min(1, u + 0.04), h)).sub(
-            new T.Vector3(...skull(Math.max(-1, u - 0.04), h))
-        );
-        const dy = new T.Vector3(...skull(u, Math.min(184, h + 1.7))).sub(
-            new T.Vector3(...skull(u, Math.max(51, h - 1.7)))
-        );
-        return dx.cross(dy).normalize().toArray() as Point;
+    d.s.printUV = (x, y) => {
+        const [u, v] = author(x, y);
+        return streetPaintUV("skin", u, v);
     };
-    // The distance to the actual sagittal outline interpolates in drawing
-    // units across the triangles, even where the nose or chin turns sharply.
-    d.s.vertexAlpha = (_x, y, z) => {
-        const h = fromHeight(y);
-        if (h < 124) return 1;
-        return T.MathUtils.clamp(
-            (front(0, h)[2] - z) / (depth / 54) / 64,
-            0,
-            1
-        );
+    d.s.vertexAlpha = (px, py, z) => {
+        const [, y] = author(px, py);
+        return y < 124
+            ? 1
+            : T.MathUtils.clamp(
+                  (form.section(y)[1] - (z * 54) / depth) / 64,
+                  0,
+                  1
+              );
     };
-    d.s.surface(rows, p.colors.skin, false, "perimeter");
-    d.s.vertexAlpha = undefined;
+    const seamNormal = (y: number, sign: number) => {
+        const a = form.at(44, y - 0.55),
+            b = form.at(44, y + 0.55);
+        return new T.Vector3(sign * (b[1] - a[1]), a[0] - b[0], 0).normalize();
+    };
+    const normalOf =
+        (field: typeof form.surface, joinTemple = false) =>
+        (px: number, py: number): Point => {
+            const [x, y] = author(px, py),
+                e = 0.75;
+            const point = (a: number, b: number) =>
+                new T.Vector3(...form.position(a, b, field(a, b)));
+            const across = point(x + e, y).sub(point(x - e, y));
+            const down = point(x, y + e).sub(point(x, y - e));
+            const n = across.cross(down).normalize();
+            const edge = smoothstep(
+                Math.abs(x) / form.section(y)[0],
+                0.9,
+                0.995
+            );
+            if (joinTemple && edge > 0)
+                n.lerp(seamNormal(y, Math.sign(px)), edge).normalize();
+            return n.toArray();
+        };
+    d.s.surfaceNormal = normalOf(form.surface, true);
+    // These interior meridians become the silhouette as the camera turns.
+    // Keep the nose tip, philtrum, lip and chin after edge collapse.
+    d.s.preserveVertex = (px, py) => {
+        const [x, y] = author(px, py);
+        const bridge = Math.abs(x) <= (form.section(y)[0] * 3.01) / 44;
+        return y >= 139 && (Math.abs(x) < 0.02 || (y <= 175 && bridge));
+    };
+    // Use the same meridian on both sides of each lid. The two curves
+    // coincide outside the eyes, closing the bridge and temples as well.
+    const upper = [51, 64, 86, 104, 115, 121, 124, 126, 128, 130, 131.5];
+    const lower = [
+        131.5, 133.6, 136, 139, 143, 147, 149, 152, 156, 161, 165, 168, 171,
+        174, 177, 181, 184,
+    ];
+    const ring = (y: number, above: boolean) =>
+        faceColumns.map((col) => {
+            const marginY = form.limits(col)[above ? 0 : 1];
+            const t = above
+                ? smoothstep(y, 116, 131.5)
+                : 1 - smoothstep(y, 131.5, 145);
+            return vertex(col, y + t * (marginY - 131.5));
+        });
+    const top = upper.map((y) => ring(y, true)),
+        jaw = lower.map((y) => ring(y, false));
+    d.s.surface(top, p.colors.skin, false, "perimeter");
+    d.s.surface(jaw, p.colors.skin, false, "perimeter");
     d.s.surfaceNormal = undefined;
-    d.s.printUV = () => streetPaintUV("skin", 37, 155);
+    d.s.vertexAlpha = undefined;
     d.s.vertexPaint = () => rawSkin;
-    const rear = skinRows.map((y) => {
-        const [, w, fore, back] = section(y),
-            side = sideDepth(fore, back, y);
-        return Array.from({ length: 9 }, (_, i): Point => {
-            const a = (Math.PI * i) / 8;
-            if (i === 0 || i === 8) return skull(i === 0 ? 1 : -1, y);
-            return [
-                (width / 48) * w * Math.cos(a),
-                height(y),
-                ((side + (back - side) * Math.sin(a)) * depth) / 54,
-            ];
+    const frontRings = [...top, ...jaw.slice(1)];
+    const backPoint = (angle: number, y: number): Point => {
+        const side = form.at(44, y),
+            back = (form.section(y)[2] * depth) / 54;
+        return [
+            side[0] * Math.cos(angle),
+            side[1],
+            lerp(side[2], back, Math.sin(angle)),
+        ];
+    };
+    const rearChart = new Map<string, [number, number]>();
+    const rear = frontRings.map((row) => {
+        const right = row.at(-1),
+            [, y] = author(right[0], right[1]);
+        return Array.from({ length: 7 }, (_, i) => {
+            const angle = (Math.PI * i) / 6;
+            const v = i === 0 ? right : i === 6 ? row[0] : backPoint(angle, y);
+            rearChart.set(key(v[0], v[1]), [angle, y]);
+            return v;
         });
     });
+    d.s.preserveVertex = undefined;
+    d.s.surfaceNormal = (px, py) => {
+        const [angle, y] = rearChart.get(key(px, py));
+        if (angle === 0 || angle === Math.PI)
+            return seamNormal(y, Math.sign(px)).toArray();
+        const point = (a: number, h: number) =>
+            new T.Vector3(...backPoint(a, h));
+        const across = point(angle + 0.01, y).sub(point(angle - 0.01, y));
+        return across
+            .cross(point(angle, y + 0.55).sub(point(angle, y - 0.55)))
+            .normalize()
+            .toArray();
+    };
+    d.s.printUV = (px, py) => {
+        const [angle, y] = rearChart.get(key(px, py));
+        return streetPaintUV(
+            "skin",
+            Math.sign(Math.cos(angle)) * form.section(y)[0],
+            y
+        );
+    };
     d.s.surface(rear, p.colors.skin, false, "perimeter");
-    for (const j of [0, skinRows.length - 1]) {
-        const ring = [...rows[j], ...rear[j].slice(1, -1)];
+    d.s.surfaceNormal = undefined;
+    d.s.printUV = () => streetPaintUV("skin", 37, 155);
+    for (const j of [0, rear.length - 1]) {
+        const loop = [...frontRings[j], ...rear[j].slice(1, -1)];
         const center: Point = [
             0,
-            height(skinRows[j]) + (j === 0 ? -0.25 : 0.32),
-            ring.reduce((s, v) => s + v[2], 0) / ring.length,
+            loop[0][1] + (j === 0 ? -0.2 : 0.26),
+            loop.reduce((s, v) => s + v[2], 0) / loop.length,
         ];
         d.s.triangles(
-            ring.flatMap((v, k) => [center, v, ring[(k + 1) % ring.length]]),
+            loop.flatMap((point, i) => [
+                center,
+                point,
+                loop[(i + 1) % loop.length],
+            ]),
             p.colors.skin
         );
     }
-    // The shell follows the mandibular edge through a head turn. Tuck its
-    // anterior wall inside the cheeks. The skin carries the nose profile.
+    // The backface line follows the mandibular rim. Tuck the front of the
+    // shell under the lips, which carry their own sagittal contour ink.
     d.s.hasIllustratedHull = true;
     d.s.printUV = () => [silhouetteTile + 0.5, 0.5];
-    d.s.vertexPaint = () => 0x483027;
-    const edgeRows = fit.sections
-        .filter(([y]) => y >= 144)
-        .map(([y, w, fore, back]) => {
-            const side = sideDepth(fore, back, y);
-            return Array.from({ length: 25 }, (_, i): Point => {
-                const a = -Math.PI / 2 + (Math.PI * 2 * (i % 24)) / 24,
-                    c = Math.cos(a),
-                    u = Math.sin(a);
-                const v: Point =
-                    c >= -1e-8
-                        ? skull(u, y)
-                        : [
-                              (width / 48) * w * u,
-                              height(y),
-                              ((side + (back - side) * -c) * depth) / 54,
-                          ];
-                const tuck =
-                    9.5 *
-                    Math.max(0, c) ** 2 *
-                    (1 - T.MathUtils.smoothstep(y, 157, 173));
-                return [
-                    v[0] + 1.18 * u,
-                    v[1] + 1.44 * T.MathUtils.smoothstep(y, 143, 181),
-                    v[2] +
-                        (0.35 + 0.79 * T.MathUtils.smoothstep(y, 151, 162)) *
-                            c -
-                        tuck,
-                ];
-            });
+    d.s.vertexPaint = () => 0x493123;
+    const angles = Array.from(
+        { length: 21 },
+        (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / 20
+    )
+        .concat(-0.145, 0.145)
+        .sort((a, b) => a - b);
+    const outline = [146, 153, 161, 168, 174, 177, 182, 184].map((y) => {
+        const side = form.at(44, y),
+            back = (form.section(y)[2] * depth) / 54;
+        return angles.map((angle): Point => {
+            const a = angle === angles.at(-1) ? angles[0] : angle;
+            const c = Math.cos(a),
+                u = Math.sin(a);
+            const v =
+                c >= -1e-8
+                    ? form.at(u * 44, y)
+                    : [side[0] * u, side[1], lerp(side[2], back, -c)];
+            const tuck =
+                9 * Math.max(0, c) ** 1.5 * (1 - smoothstep(y, 168, 181));
+            return [
+                v[0] + 1.33 * u,
+                v[1] + 1.46 * smoothstep(y, 144, 182),
+                v[2] + 0.7 * c - tuck,
+            ];
         });
-    d.s.surface(edgeRows, "#483027", false, "perimeter");
-    const bottom = edgeRows.at(-1);
+    });
+    d.s.preserveVertex = (x, _y, z) =>
+        Math.abs(x) < 0.02 && z > (35 * depth) / 54;
+    d.s.surface(outline, "#453122", false, "perimeter");
+    d.s.preserveVertex = undefined;
+    const last = outline.at(-1),
+        z = last.reduce((s, v) => s + v[2], 0) / last.length;
     d.s.surface(
-        [
-            bottom,
-            bottom.map(
-                ([, y]): Point => [
-                    0,
-                    y + 0.18,
-                    ((fit.sections.at(-1)[2] + fit.sections.at(-1)[3]) *
-                        0.5 *
-                        depth) /
-                        54,
-                ]
-            ),
-        ],
-        "#483027",
+        [last, last.map(([, y]): Point => [0, y + 0.18, z])],
+        "#453122",
         false,
         "both"
     );
-    for (const sign of [-1, 1]) {
-        chart.clear();
-        const columns = [
-            11.1, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 35.5, 37.3,
-            39.6,
-        ];
-        const eye = columns.map((x) => {
-            const top = margin(upperLid, x),
-                low = margin(lowerLid, x);
-            return [0, 0.25, 0.5, 0.75, 1].map((f) => {
-                const y = mix(top, low, f),
-                    v = front(ux(sign * x, y), y);
-                v[2] += 0.9 + 0.65 * Math.sin(f * Math.PI);
-                chart.set(key(v[0], v[1]), streetPaintUV("eye", x, y));
-                return v;
-            });
-        });
-        d.s.printUV = (x, y) =>
-            chart.get(key(x, y)) ?? streetPaintUV("eye", 24, 131);
-        // Absolute highlights and sclera must survive a dye with a zero channel.
-        const iris = parseInt(p.colors.iris.slice(1), 16);
-        const pigment =
-            (Math.max(7, iris >> 16) << 16) |
-            (Math.max(7, (iris >> 8) & 255) << 8) |
-            Math.max(7, iris & 255);
+    const iris = new T.Color(p.colors.iris);
+    iris.r = Math.max(0.0022, iris.r);
+    iris.g = Math.max(0.0022, iris.g);
+    iris.b = Math.max(0.0022, iris.b);
+    const pigment = iris.getHex();
+    d.s.surfaceNormal = normalOf(form.cornea);
+    for (const side of [-1, 1]) {
+        const cols =
+            side === 1
+                ? eyeColumns
+                : eyeColumns
+                      .slice()
+                      .reverse()
+                      .map((x) => -x);
+        const eye = [0, 0.22, 0.5, 0.78, 1].map((t) =>
+            cols.map((x) => {
+                const [a, b] = form.limits(x);
+                return vertex(x, lerp(a, b, t));
+            })
+        );
+        d.s.printUV = (x, y) => {
+            const [u, v] = author(x, y);
+            return streetPaintUV("eye", Math.abs(u), v);
+        };
         d.s.vertexPaint = () => pigment;
         d.s.surface(eye, p.colors.iris, false, "perimeter");
     }
-    d.s.vertexPaint = undefined;
     d.s.printUV = undefined;
+    d.s.vertexPaint = undefined;
+    d.s.surfaceNormal = undefined;
 }

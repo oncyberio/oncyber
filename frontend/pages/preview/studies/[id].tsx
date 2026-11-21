@@ -31,6 +31,7 @@ interface Props {
         comparison: string;
         layers: string;
         face: string;
+        illustration: { image: string; turn: number; tilt: number };
         triangles: number;
         frontOverlap: number;
         profileOverlap: number;
@@ -112,11 +113,20 @@ export default function RecipeReview({
                             <a className="evidence" href="/preview/vale">
                                 Walk around as Vale
                             </a>
+                            <a
+                                href={`?focus=portrait&layer=dressed&angle=${evidence.illustration.turn}&tilt=${evidence.illustration.tilt}`}
+                            >
+                                View the illustration pose
+                            </a>
                             <p>
                                 {evidence.triangles.toLocaleString("en-US")}{" "}
                                 triangles · one skinned mesh
                             </p>
                             {[
+                                {
+                                    src: evidence.illustration.image,
+                                    title: "Paint and clay in the supplied head pose",
+                                },
                                 {
                                     src: evidence.face,
                                     title: "Face from the drawing, front, 35° and profile",
@@ -348,6 +358,14 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
                         report.comparison_sha256
                     ),
                     face: await asset("vale-face", report.studies.face),
+                    illustration: {
+                        image: await asset(
+                            "vale-illustration-pose",
+                            report.drawing_pose.sha256
+                        ),
+                        turn: report.drawing_pose.turn,
+                        tilt: report.drawing_pose.tilt,
+                    },
                     layers: await asset(
                         "vale-body-and-clothes",
                         report.studies["body-and-clothes"]

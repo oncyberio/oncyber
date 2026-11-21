@@ -10,6 +10,10 @@ const mix = T.MathUtils.lerp;
  * Coordinates across the front are fractions of the measured jaw width. */
 export function drawFittedStreetFace(d: Drawing, p: StreetPattern) {
     const fit = p.faceFit;
+    if (fit.finish === "brush") {
+        drawStreetBrushFace(d, p);
+        return;
+    }
     const sampledSections = new Map<number, number[]>();
     const sections = fit.sections.map(([y, width, front, back]) => [
         y,
@@ -115,10 +119,6 @@ export function drawFittedStreetFace(d: Drawing, p: StreetPattern) {
             (z * depth) / 54,
         ];
     };
-    if (fit.finish === "brush") {
-        drawStreetBrushFace(d, p, front, section, height, sideDepth);
-        return;
-    }
     d.s.thinSkinOutline = true;
     d.s.sourcePaint = true;
     d.s.sculptedCartoon = false;

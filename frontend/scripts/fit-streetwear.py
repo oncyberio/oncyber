@@ -307,6 +307,122 @@ def measure(sheet, center, side, floor, height, name):
     }
 
 
+def register_illustration(recipe, drawing):
+    """Resolve overlapping spikes from a three-quarter sketch in its own pixels."""
+    from scipy.optimize import least_squares
+
+    face = recipe["faceFit"]
+    orbit = min(face["orbit"], key=lambda r: abs(r[0] - 131))
+    eye = [(orbit[1] + orbit[2]) / 2, orbit[0], (orbit[3] + orbit[4]) / 2]
+    sections = face["sections"]
+    nose = max(
+        (row for row in sections if 140 <= row[0] <= 158), key=lambda row: row[2]
+    )
+    lip = min(sections, key=lambda row: abs(row[0] - 168))
+    anchors = {
+        "leftEye": [-eye[0], *eye[1:]],
+        "rightEye": eye,
+        "nose": [0, nose[0], nose[2]],
+        "chin": [0, sections[-1][0], sections[-1][2]],
+        "mouth": [0, lip[0], lip[2]],
+    }
+    pts = np.array(list(anchors.values()))
+    marks = drawing.get("face", {})
+    if not anchors.keys() <= marks.keys():
+        raise ValueError(
+            "Mark both eyes, the nose tip, chin and mouth in drawing pixels"
+        )
+    image = np.array([marks[key] for key in anchors], dtype=float)
+    if (
+        image.shape != (5, 2)
+        or not np.isfinite(image).all()
+        or np.ptp(image, axis=0).min() < 1
+        or np.linalg.norm(image[0] - image[1]) < 1
+    ):
+        raise ValueError(
+            "Mark both eyes, the nose tip, chin and mouth in drawing pixels"
+        )
+
+    def camera(parameters):
+        yaw, roll, scale = parameters[:3]
+        a, r = np.radians([yaw, roll])
+        return scale * np.array(
+            [
+                [np.cos(r) * np.cos(a), -np.sin(r), np.cos(r) * np.sin(a)],
+                [np.sin(r) * np.cos(a), np.cos(r), np.sin(r) * np.sin(a)],
+            ]
+        )
+
+    def residual(v):
+        return (pts @ camera(v).T + v[3:] - image).ravel()
+
+    start = [
+        30,
+        0,
+        np.linalg.norm(image[0] - image[1]) / (2 * eye[0]),
+        *image.mean(axis=0),
+    ]
+    fit = least_squares(
+        residual,
+        start,
+        bounds=([-78, -25, 0.001, -np.inf, -np.inf], [78, 25, np.inf, np.inf, np.inf]),
+        loss="soft_l1",
+        f_scale=3,
+    )
+    matrix = camera(fit.x)
+    shift = fit.x[3:]
+    names = [
+        "leftUpper",
+        "leftMiddle",
+        "leftLower",
+        "rightUpper",
+        "rightMiddle",
+        "rightLower",
+    ]
+    tips = np.array([row[3:6] for row in recipe["hair"]["spikes"]], dtype=float)
+    marks = drawing["spikeTips"]
+    if len(tips) != 6 or not marks or not set(marks) <= set(names):
+        raise ValueError("Use tips from the three-pair spiked family")
+    ids = [names.index(name) for name in marks]
+    targets = np.array(list(marks.values()), dtype=float)
+    if targets.shape != (len(ids), 2) or not np.isfinite(targets).all():
+        raise ValueError("Each visible spike tip requires two drawing coordinates")
+
+    def error(points):
+        return np.linalg.norm(points[ids] @ matrix.T + shift - targets, axis=1)
+
+    before = error(tips)
+    # An orthographic pair alone cannot tell which side owns a depth.
+    # Match the assignments before adjusting the observed free ends.
+    for i in range(3):
+        swapped = tips.copy()
+        swapped[[i, i + 3], 2] = tips[[i + 3, i], 2]
+        if np.square(error(swapped)).sum() < np.square(error(tips)).sum():
+            tips = swapped
+    # Keep the front-view width as the strongest constraint. Bend depth
+    # and height where the original drawing disagrees with the turnaround.
+    prior = fit.x[2] ** 2 * np.diag([1.35, 0.28, 0.18])
+    for idx, target in zip(ids, targets, strict=True):
+        offset = np.linalg.solve(
+            matrix.T @ matrix + prior,
+            matrix.T @ (target - (matrix @ tips[idx] + shift)),
+        )
+        tips[idx] += offset
+    for tip, row in zip(tips, recipe["hair"]["spikes"], strict=True):
+        row[3:6] = np.rint(tip).astype(int).tolist()
+    after = error(tips.round())
+    return {
+        "turn": round(float(fit.x[0])),
+        "tilt": round(float(fit.x[1])),
+        "face_rms_px": round(
+            float(np.sqrt((residual(fit.x).reshape(-1, 2) ** 2).sum(1).mean())), 2
+        ),
+        "marked_spikes": len(ids),
+        "spike_rms_before_px": round(float(np.sqrt(np.mean(before**2))), 2),
+        "spike_rms_after_px": round(float(np.sqrt(np.mean(after**2))), 2),
+    }
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sheet", type=Path)
@@ -316,8 +432,28 @@ if __name__ == "__main__":
     parser.add_argument("--floor", type=float, required=True)
     parser.add_argument("--height", type=float, required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument(
+        "--illustration",
+        type=Path,
+        help="Face landmarks and visible spike tips in the original drawing",
+    )
+    parser.add_argument(
+        "--pose-output",
+        type=Path,
+        help="Write the fitted pose for the native portrait review",
+    )
     a = parser.parse_args()
+    if a.pose_output and not a.illustration:
+        parser.error("--pose-output requires --illustration")
     recipe = measure(
         a.sheet, a.front_center, a.profile_center, a.floor, a.height, a.name
     )
+    if a.illustration:
+        pose = json.dumps(
+            register_illustration(recipe, json.loads(a.illustration.read_text())),
+            indent=2,
+        )
+        if a.pose_output:
+            a.pose_output.write_text(pose + "\n")
+        print(pose)
     a.output.write_text(json.dumps(recipe, separators=(",", ":")) + "\n")

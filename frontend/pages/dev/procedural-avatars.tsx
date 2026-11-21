@@ -70,6 +70,12 @@ export default function AvatarStudy({
                 ? layer
                 : defaultLayer
         );
+        const turn = Number(params.get("angle") ?? 0);
+        if (Number.isFinite(turn))
+            setAngle(Math.max(-180, Math.min(180, turn)));
+        const lean = Number(params.get("tilt") ?? 0);
+        if (Number.isFinite(lean)) setTilt(Math.max(-25, Math.min(25, lean)));
+        setFinish(params.get("finish") === "clay" ? "clay" : "paint");
         if (focus === "portrait" || focus === "hand") setCloseup(focus);
     }, [defaultLayer]);
     const [view, setView] = useState<View>(
@@ -78,10 +84,11 @@ export default function AvatarStudy({
     const [hasGaze, setHasGaze] = useState(false);
     const [gaze, setGaze] = useState(0);
     const [angle, setAngle] = useState(0);
+    const [tilt, setTilt] = useState(0);
     const [motion, setMotion] = useState(
         customSubjects ? "T-pose" : "Reference"
     );
-    const [checkFit, setCheckFit] = useState(false);
+    const [finish, setFinish] = useState<"paint" | "fit" | "clay">("paint");
     const [rawPaint, setRawPaint] = useState(false);
     const [silhouettes, setSilhouettes] = useState<boolean | "coat">(false);
     const [compareSun, setCompareSun] = useState(false);
@@ -97,6 +104,7 @@ export default function AvatarStudy({
     const controls = useRef({
         view,
         angle,
+        tilt,
         gaze,
         motion,
         paused,
@@ -106,12 +114,13 @@ export default function AvatarStudy({
         silhouettes,
         rawPaint,
         wardrobe,
-        checkFit,
+        finish,
         itemHand,
     });
     controls.current = {
         view,
         angle,
+        tilt,
         gaze,
         motion,
         paused,
@@ -121,7 +130,7 @@ export default function AvatarStudy({
         silhouettes,
         rawPaint,
         wardrobe,
-        checkFit,
+        finish,
         itemHand,
     };
     useEffect(() => {
@@ -138,13 +147,19 @@ export default function AvatarStudy({
         let stopped = false,
             cleanup = () => {};
         (async () => {
-            const [T, { createAvatar }, { referencePose }, nodes] =
-                await Promise.all([
-                    import("three/webgpu"),
-                    import("@features/lobby/webgpu/avatarAdapter"),
-                    import("@features/procedural-avatars/referencePose"),
-                    import("three/tsl"),
-                ]);
+            const [
+                T,
+                { createAvatar },
+                { referencePose },
+                nodes,
+                { silhouetteTile },
+            ] = await Promise.all([
+                import("three/webgpu"),
+                import("@features/lobby/webgpu/avatarAdapter"),
+                import("@features/procedural-avatars/referencePose"),
+                import("three/tsl"),
+                import("@features/procedural-avatars/surfaces"),
+            ]);
             if (stopped) return;
             const renderer = new T.WebGPURenderer({
                 canvas: canvas.current,
@@ -179,6 +194,21 @@ export default function AvatarStudy({
             const fitMaterial = new T.MeshBasicNodeMaterial({
                 side: T.DoubleSide,
             });
+            const clayMaterial = new T.MeshBasicNodeMaterial({
+                side: T.DoubleSide,
+            });
+            clayMaterial.maskNode = nodes
+                .floor(nodes.uv().x)
+                .notEqual(silhouetteTile);
+            const normal = nodes.normalView.z
+                .lessThan(0)
+                .select(nodes.normalView.negate(), nodes.normalView);
+            const clayKey = nodes
+                .dot(normal, nodes.vec3(-0.53, 0.58, 0.62))
+                .clamp(0, 1);
+            clayMaterial.colorNode = nodes
+                .vec3(0.7, 0.6, 0.5)
+                .mul(clayKey.mul(0.73).add(0.27));
             const minCoverage = nodes.uniform(0.9);
             fitMaterial.colorNode = nodes
                 .attribute("coveredSkin", "float")
@@ -311,6 +341,7 @@ export default function AvatarStudy({
                 }
                 if (wardrobeMesh) wardrobeMesh.material = wardrobeMaterial;
                 fitMaterial.dispose();
+                clayMaterial.dispose();
                 rawMaterial.dispose();
                 for (const model of models) model.dispose();
                 original?.dispose();
@@ -396,11 +427,17 @@ export default function AvatarStudy({
                 lastView = "",
                 lastLayer = "",
                 lastMotion = "";
+            const headJoint = wardrobeMesh?.skeleton.getBoneByName("head");
+            const neutralHead = new T.Quaternion(),
+                parentFrame = new T.Quaternion();
+            const axis = new T.Vector3();
+            let tilted = false;
             const draw = (now: number) => {
                 if (stopped) return;
                 const {
                     view,
                     angle,
+                    tilt,
                     gaze,
                     motion,
                     paused,
@@ -410,7 +447,7 @@ export default function AvatarStudy({
                     silhouettes,
                     rawPaint,
                     wardrobe,
-                    checkFit,
+                    finish,
                     itemHand,
                 } = controls.current;
                 const dt = Math.min(0.05, (now - previous) / 1000);
@@ -430,11 +467,14 @@ export default function AvatarStudy({
                 previousControls = controls.current;
                 dirty = false;
                 if (wardrobeMesh) {
-                    const inspect = checkFit;
+                    const inspect = finish === "fit";
                     minCoverage.value = wardrobe === "bottoms" ? 1.9 : 0.65;
                     wardrobeMesh.material = inspect
                         ? fitMaterial
+                        : finish === "clay"
+                        ? clayMaterial
                         : wardrobeMaterial;
+                    canvas.current.dataset.finish = finish;
                     canvas.current.dataset.fitCheck = String(inspect);
                 }
                 const raw = view === "rick-classic" && rawPaint;
@@ -527,6 +567,10 @@ export default function AvatarStudy({
                 camera.updateProjectionMatrix();
                 if (models.length === 1) models[0].setGazePose?.(gaze);
                 canvas.current.dataset.gaze = String(gaze);
+                if (tilted) {
+                    headJoint.quaternion.copy(neutralHead);
+                    tilted = false;
+                }
                 if (lastMotion !== motion) {
                     restore.forEach((fn) => fn());
                     restore = [];
@@ -634,6 +678,28 @@ export default function AvatarStudy({
                         }
                     }
                 });
+                if (
+                    headJoint &&
+                    portrait &&
+                    motion === "T-pose" &&
+                    tilt !== 0
+                ) {
+                    neutralHead.copy(headJoint.quaternion);
+                    headJoint.parent.getWorldQuaternion(parentFrame);
+                    // Pose around the camera's optical axis, expressed in the
+                    // joint parent's frame. The shoulders stay at their rest angle.
+                    camera
+                        .getWorldDirection(axis)
+                        .applyQuaternion(parentFrame.invert());
+                    headJoint.quaternion.premultiply(
+                        parentFrame.setFromAxisAngle(
+                            axis,
+                            T.MathUtils.degToRad(tilt)
+                        )
+                    );
+                    tilted = true;
+                }
+                canvas.current.dataset.headTilt = String(tilted ? tilt : 0);
                 if (original) {
                     original.root.visible = compare;
                     original.root.position.x = 1.05;
@@ -879,11 +945,21 @@ export default function AvatarStudy({
                             )
                         )}
                         <button
-                            aria-pressed={checkFit}
-                            onClick={() => setCheckFit(!checkFit)}
+                            aria-pressed={finish === "fit"}
+                            onClick={() =>
+                                setFinish(finish === "fit" ? "paint" : "fit")
+                            }
                             title="Pink marks skin under the garment, including areas visible through an opening"
                         >
                             Check clothing fit
+                        </button>
+                        <button
+                            aria-pressed={finish === "clay"}
+                            onClick={() =>
+                                setFinish(finish === "clay" ? "paint" : "clay")
+                            }
+                        >
+                            Clay study
                         </button>
                     </div>
                 )}
@@ -967,6 +1043,23 @@ export default function AvatarStudy({
                         />
                     </label>
                 )}
+                {defaultLayer &&
+                    closeup === "portrait" &&
+                    motion === "T-pose" && (
+                        <label>
+                            Head tilt · {tilt}°
+                            <input
+                                aria-label="Head tilt"
+                                type="range"
+                                min="-25"
+                                max="25"
+                                value={tilt}
+                                onChange={(e) =>
+                                    setTilt(Number(e.target.value))
+                                }
+                            />
+                        </label>
+                    )}
                 <label>
                     Rotation · {angle}°
                     <input

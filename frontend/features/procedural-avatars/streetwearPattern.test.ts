@@ -54,6 +54,45 @@ test.each(["full", "crowd"] as const)(
             ])
                 expect(tiles.has(tile)).toBe(true);
             expect((material as T.MeshBasicNodeMaterial).maskNode).toBeTruthy();
+            // Both pigment charts must end on the same lid loop after reduction.
+            const position = geometry.attributes.position;
+            const point = (i: number) =>
+                [position.getX(i), position.getY(i), position.getZ(i)]
+                    .map((v) => Math.round(v * 1e6))
+                    .join(",");
+            const skin = new Set<string>(),
+                edges = new Map<string, number>();
+            for (let i = 0; i < geometry.index.count; i += 3) {
+                const tri = [0, 1, 2].map((j) => geometry.index.getX(i + j));
+                const tile = Math.floor(uv.getX(tri[0]));
+                if (tile === streetSkinTile)
+                    tri.forEach((idx) => skin.add(point(idx)));
+                if (tile !== streetEyeTile) continue;
+                for (let j = 0; j < 3; j++) {
+                    const line = [point(tri[j]), point(tri[(j + 1) % 3])]
+                        .sort()
+                        .join("|");
+                    edges.set(line, (edges.get(line) ?? 0) + 1);
+                }
+            }
+            const rim = [...edges].filter(([, count]) => count === 1);
+            expect(rim.length).toBeGreaterThan(20);
+            for (const [line] of rim)
+                expect(line.split("|").every((key) => skin.has(key))).toBe(
+                    true
+                );
+            // The upper lip and chin are interior vertices in front view and
+            // silhouette vertices from the side. Both LODs need these stations.
+            for (const y of [149, 161, 165, 168, 171, 174]) {
+                const [u, v] = streetPaintUV("skin", 0, y);
+                expect(
+                    Array.from({ length: uv.count }, (_, i) => i).some(
+                        (i) =>
+                            Math.abs(uv.getX(i) - u) < 0.00001 &&
+                            Math.abs(uv.getY(i) - v) < 0.00001
+                    )
+                ).toBe(true);
+            }
             const bound = new Set<number>();
             const weights = geometry.attributes.skinWeight,
                 joints = geometry.attributes.skinIndex;
