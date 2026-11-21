@@ -6,6 +6,8 @@ import { NftBuyContext } from "@components/context/NftBuyContext";
 import { WorldContext } from "@components/_3DExhibit-v2/context/WorldProvider";
 import BasicArtworkInfoBulle from "../Basic";
 import HelperArtworkInfoBulle from "../Helper";
+import SeeArtwork from "../../Panel/Mobile/SeeArtwork";
+import { PanelContext } from "../../context/PanelProvider";
 
 const background = "/landing-build/gallery-previews/wolfgang-n2-gpt.webp";
 const image = "/landing-build/gallery-previews/white-cube-gpt.webp";
@@ -49,28 +51,44 @@ const history = [
     {
         type: "Sale",
         date: new Date(Date.now() - 2 * day),
-        from: account("0x3333333333333333333333333333333333333333", "Sample artist"),
-        to: account("0x2222222222222222222222222222222222222222", "Sample collector"),
+        from: account(
+            "0x3333333333333333333333333333333333333333",
+            "Sample artist"
+        ),
+        to: account(
+            "0x2222222222222222222222222222222222222222",
+            "Sample collector"
+        ),
         price: 0.28,
         paymentToken: { symbol: "ETH" },
     },
     {
         type: "Transfer",
         date: new Date(Date.now() - 40 * day),
-        from: account("0x4444444444444444444444444444444444444444", "Earlier owner"),
-        to: account("0x3333333333333333333333333333333333333333", "Sample artist"),
+        from: account(
+            "0x4444444444444444444444444444444444444444",
+            "Earlier owner"
+        ),
+        to: account(
+            "0x3333333333333333333333333333333333333333",
+            "Sample artist"
+        ),
     },
     {
         type: "Mint",
         date: new Date(Date.now() - 90 * day),
-        to: account("0x3333333333333333333333333333333333333333", "Sample artist"),
+        to: account(
+            "0x3333333333333333333333333333333333333333",
+            "Sample artist"
+        ),
     },
 ];
 
 /**
  * Development-only visual fixture for the in-space artwork UI: the bulle shown
  * while looking at an artwork and the details overlay opened with E. Sample
- * metadata, inert actions. `?view=bulle|details&bulle=basic|helper`.
+ * metadata, inert actions. `?view=bulle|details&bulle=basic|helper|mobile`.
+ * `bulle=mobile` is the small-screen bubble, placed where it sits in a space.
  */
 export default function ArtworkInfoPreview() {
     const { query } = useRouter();
@@ -122,7 +140,18 @@ export default function ArtworkInfoPreview() {
                         {view === "details" && open && (
                             <ArtworkInfoDesktop toggle={setOpen} />
                         )}
-                        {view === "bulle" && (
+                        {view === "bulle" && query.bulle === "mobile" && (
+                            <PanelContext.Provider
+                                value={
+                                    {
+                                        setIsMobileArtworkInfoOpened: () => {},
+                                    } as any
+                                }
+                            >
+                                <SeeArtwork artwork={artwork} assetType="Nft" />
+                            </PanelContext.Provider>
+                        )}
+                        {view === "bulle" && query.bulle !== "mobile" && (
                             <div
                                 style={{
                                     position: "absolute",

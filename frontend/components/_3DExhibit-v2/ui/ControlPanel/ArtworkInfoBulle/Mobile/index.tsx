@@ -17,6 +17,7 @@ export default function MobileArtworkInfoBulle() {
         return (
             <ArtworkInfoDesktop
                 type="3d"
+                keepWorldHeader
                 toggle={() => setIsMobileArtworkInfoOpened(false)}
             />
         );
@@ -46,7 +47,10 @@ const Container = styled.div`
     width: 100%;
     height: var(--100-vh);
     max-height: var(--100-vh);
-    z-index: 99999;
+    /* Under the world chrome (10010): its header stays in place on top. */
+    z-index: 10005;
+    padding-top: calc(max(22px, env(safe-area-inset-top)) + 44px + 8px);
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;

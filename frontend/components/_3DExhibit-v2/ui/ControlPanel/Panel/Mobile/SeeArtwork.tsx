@@ -1,11 +1,22 @@
 import { formatUser } from "@components/modals/ArtworkInfo/D/utils";
-import React, { useEffect, useState } from "react";
-import styled, { css } from "styled-components";
-import { usePanel } from "../../context/PanelProvider";
-import { getMime } from "@utils/formatAssets";
-import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
+import React, { useEffect, useRef, useState } from "react";
+import styled from "styled-components";
 import { motion } from "framer-motion";
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
+import { promptGlass } from "@ui/components/PromptGlass";
+import IconImg from "@ui/components/IconImg";
+import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
+import { usePanel } from "../../context/PanelProvider";
+import {
+    focusArtwork,
+    releaseArtworkFocus,
+} from "../../ArtworkInfoBulle/focusArtwork";
 
+/**
+ * The small-screen artwork bubble: title and creator of the artwork in
+ * view, sitting under the world header. For NFTs it is a button; tapping
+ * it walks the camera to the artwork and then opens the full details.
+ */
 export default function SeeArtwork({ artwork, assetType }) {
     const { setIsMobileArtworkInfoOpened } = usePanel();
 
@@ -13,118 +24,203 @@ export default function SeeArtwork({ artwork, assetType }) {
 
     const title =
         artwork?.name ||
-        `${artwork?.collection?.name} #${artwork?.token_id}` ||
-        `${artwork?.contract_address}`;
+        (artwork?.collection?.name
+            ? `${artwork.collection.name} #${artwork.token_id}`
+            : artwork?.contract_address) ||
+        "Artwork";
 
     const author = formatUser(artwork?.creator);
+    const createdBy = author.username ?? shortAddress(author.id);
 
     const art = world.current
-        .getArtworks()
+        ?.getArtworks?.()
         .find((a) => a.userData.id === artwork?.id);
 
-    const shouldShowAction = art?.infoAction || assetType === "Nft";
+    const hasDetails = !!art?.infoAction || assetType === "Nft";
 
-    const toggleArtwork = async () => {
-        if (art.infoAction) {
-            //
+    const [isOpening, setIsOpening] = useState(false);
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
+
+    const openDetails = async () => {
+        if (isOpening || !hasDetails) return;
+
+        if (art?.infoAction) {
             const cont = await Promise.resolve(art.infoAction()).catch((e) => {
-                //
                 console.error(e);
-
                 return false;
             });
-
             if (!cont) return;
         }
 
         if (assetType !== "Nft") return;
+
+        // Walk up to the artwork first, then open its details on top of it.
+        setIsOpening(true);
+        await focusArtwork(world.current, art);
+        if (!mounted.current) {
+            // Looked away during the move: nothing opens, give the camera back.
+            releaseArtworkFocus(world.current);
+            return;
+        }
+        setIsOpening(false);
         setIsMobileArtworkInfoOpened(true);
     };
 
-    useEffect(() => {
-        if (assetType !== "Nft") return;
-    }, [assetType]);
-
-    const assetMimeType = getMime(artwork);
-
-    const assetIcon =
-        assetType == "Nft"
-            ? "/icons/NFT.svg" //nft
-            : assetMimeType.split("/")[0] == "image"
-            ? "https://cyber.mypinata.cloud/ipfs/QmeNSRu7rG9e1ZiKEjUXM78oJVfhhTTC887fPzHnkzwrQe?filename=PNG_1_vvdzj8.png" //png
-            : assetMimeType.split("/")[0] == "video"
-            ? "https://cyber.mypinata.cloud/ipfs/QmecjJWLnnFVC25dAd8Z9sKJX9rApTVD7Y92MvN67HNn6X?filename=videomp4_w5acp8.svg" //video
-            : assetMimeType.split("/")[0] == "model"
-            ? "https://cyber.mypinata.cloud/ipfs/QmYu49iEEj6scSxyQCgWgxQUjMGveSBCJGtjtRCyFUSU8W?filename=3d.png" //3d
-            : assetMimeType == "embed/youtube"
-            ? "https://cyber.mypinata.cloud/ipfs/QmYS8amVLgTivAjMfibxvppA5DWPabR7Ri3k6uPoxuNh8i?filename=PNG_xmfudk.png" //ytb
-            : assetMimeType == "embed/html/website"
-            ? "https://cyber.mypinata.cloud/ipfs/QmeAkfmZAPrwGFC83GsphMXxjKzZnjbLupVjVWCVo25rqD?filename=WEB_m3sa5z.png" //web
-            : "https://cyber.mypinata.cloud/ipfs/QmSyDc8efJJZ7sxfCNrTBSossnn9nUpyPt4Ei9ZxqiZ236?filename=FILE_lypcxo.png"; //file
-
-    const createdBy = author.username ?? author.id;
+    const content = (
+        <>
+            <span className="text">
+                <span className="title">{title}</span>
+                {createdBy && <span className="author">{createdBy}</span>}
+            </span>
+            {hasDetails && (
+                <span className="cta" aria-hidden="true">
+                    <IconImg name="chevron-right" size={14} mode="light" />
+                </span>
+            )}
+        </>
+    );
 
     return (
-        <Container>
-            <motion.div
-                key={"see-artwork"}
-                exit={{ opacity: 0 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onClick={toggleArtwork}
-                className="see-artwork-container"
-            >
-                <span className="title ellipsis">{title}</span>
-                {createdBy && (
-                    <span className="author ellipsis">{createdBy}</span>
-                )}
-            </motion.div>
-        </Container>
+        <Bubble
+            key="see-artwork"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: base.motion.enter / 1000 }}
+            data-artwork-bubble
+            onPointerDown={(e) => e.stopPropagation()}
+        >
+            {hasDetails ? (
+                <button
+                    type="button"
+                    className="surface"
+                    aria-label={`${title}: open artwork details`}
+                    aria-busy={isOpening || undefined}
+                    disabled={isOpening}
+                    onClick={openDetails}
+                >
+                    {content}
+                </button>
+            ) : (
+                <div className="surface" role="status">
+                    {content}
+                </div>
+            )}
+        </Bubble>
     );
 }
 
-const Container = styled.div`
-    .see-artwork-container {
-        top: 20px;
-        left: 50%;
-        position: fixed;
-        padding: 8px 24px;
-        border-radius: 900px;
-        transform: translateX(-50%);
-        background: rgba(7, 7, 7, 0.8);
-        backdrop-filter: blur(22.2973px);
+/** 0xb734…ca97: an address is a label here, not something to copy. */
+function shortAddress(address?: string) {
+    if (!address) return address;
+    return address.length > 14
+        ? `${address.slice(0, 6)}…${address.slice(-4)}`
+        : address;
+}
+
+/** Header row is 44px tall at a 22px inset (ExperienceShell); sit under it. */
+const HEADER_ROW = 44;
+const HEADER_INSET = 22;
+
+const Bubble = styled(motion.div)`
+    /* A full-width row that centres the surface: framer-motion owns this
+       element's transform for the enter/exit slide, so no translateX here. */
+    position: fixed;
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
+    top: calc(
+        max(${HEADER_INSET}px, env(safe-area-inset-top)) + ${HEADER_ROW}px +
+            ${lobby.panel.gap}px
+    );
+    display: flex;
+    justify-content: center;
+    /* Above the world chrome (10010) so the header never covers it. */
+    z-index: 10011;
+    pointer-events: none;
+    font-family: ${base.font.sans};
+
+    .surface {
+        ${promptGlass}
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: ${lobby.control.touchSize}px;
+        /* A label, not a banner: it never spans the screen. */
+        max-width: min(100%, 62vw, 280px);
+        margin: 0;
+        padding: 6px 14px;
+        pointer-events: auto;
+        border: 0;
+        border-radius: ${base.radius.control}px;
+        text-align: left;
+        box-sizing: border-box;
+    }
+
+    button.surface {
+        cursor: pointer;
+        padding-right: 10px;
+        transition: background ${base.motion.standard}ms ease,
+            transform ${base.motion.fast}ms ${base.motion.ease};
+        &:active {
+            transform: scale(0.98);
+        }
+        &:focus-visible {
+            outline: ${base.focus.width}px solid ${lobby.color.controlInk};
+            outline-offset: ${base.focus.offset}px;
+        }
+        &:disabled {
+            cursor: progress;
+            opacity: 0.7;
+        }
+    }
+
+    .text {
         display: flex;
         flex-direction: column;
-        max-width: calc(100% - 200px);
+        min-width: 0;
+        line-height: 16px;
+    }
 
-        .ellipsis {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
+    .title,
+    .author {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-        & > span {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-left: 8px;
-            margin-right: 8px;
-        }
+    .title {
+        font-size: ${base.font.size.md}px;
+        font-weight: ${base.font.weight.medium};
+        color: ${lobby.color.ink};
+    }
 
-        & > span.title {
-            font-weight: 500;
-            font-size: 13px;
-            color: #ffffff;
-            margin: 0px;
-            padding: 0px;
-        }
+    .author {
+        font-size: ${base.font.size.xs}px;
+        font-weight: ${base.font.weight.regular};
+        color: ${lobby.color.meta};
+    }
 
-        & > span.author {
-            font-weight: 400;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.5);
-            margin: 0px;
-            padding: 0px;
+    .cta {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: ${base.radius.inset}px;
+        background: ${base.color.line.subtle};
+        box-shadow: inset 0 0 0 1px ${base.color.line.soft};
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        button.surface {
+            transition: none;
         }
     }
 `;

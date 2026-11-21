@@ -7,6 +7,7 @@ import { Mode, usePanel } from "../context/PanelProvider";
 import BasicArtworkInfoBulle from "./Basic";
 import HelperArtworkInfoBulle from "./Helper";
 import MobileArtworkInfoBulle from "./Mobile";
+import SeeArtwork from "../Panel/Mobile/SeeArtwork";
 
 const ArtworkInfoC = dynamic(() => import("@components/modals/ArtworkInfo/C"), {
     ssr: false,
@@ -35,7 +36,11 @@ import { IS_MOBILE } from "@components/_3DExhibit-v2/three/constants";
 export default function ArtworkInfoBulle(props: ArtworkInfoBulleProps) {
     let artworkInfoBulle = null;
 
-    const { activeArtworkInfoBulle, setActiveArtworkInfoBulle } = usePanel();
+    const {
+        activeArtworkInfoBulle,
+        setActiveArtworkInfoBulle,
+        isMobileArtworkInfoOpened,
+    } = usePanel();
 
     const assetType: AssetType =
         props?.artwork?.contract_address && props?.artwork?.token_id
@@ -118,6 +123,16 @@ export default function ArtworkInfoBulle(props: ArtworkInfoBulleProps) {
 
     if (activeArtworkInfoBulle === "helper") {
         artworkInfoBulle = <HelperArtworkInfoBulle {...props} />;
+    } else if (
+        activeArtworkInfoBulle === "mobile" &&
+        !isMobileArtworkInfoOpened
+    ) {
+        // Small screens: looking at an artwork shows only its title and
+        // creator. The full details cover the controls, so they open only
+        // when that bubble is tapped.
+        artworkInfoBulle = (
+            <SeeArtwork artwork={props.artwork} assetType={assetType} />
+        );
     } else if (activeArtworkInfoBulle === "mobile") {
         artworkInfoBulle = (
             <StyledThemeProvider
