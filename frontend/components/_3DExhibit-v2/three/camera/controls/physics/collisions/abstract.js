@@ -1,7 +1,8 @@
 import { Vector3 } from "three";
 
 
-import { CAPSULE_RADIUS, USER_HEIGHT } from '@3constants';
+import { CAPSULE_RADIUS, USER_HEIGHT, IS_FIRST_PERSON, CURRENT_SPACE } from '@3constants';
+import { walkingEyeHeight } from '../../../../utils/eyeHeight';
         // capsuleRadius: CAPSULE_RADIUS,
         // colliderHeight,
         // userHeight: USER_HEIGHT,
@@ -30,7 +31,11 @@ export class AbstractCollisions {
 
     getColliderHeight(){
 
-        return Players.main != null ? Players.main.avatar3D.headPosition.y : USER_HEIGHT
+        const head = Players.main != null ? Players.main.avatar3D.headPosition.y : USER_HEIGHT
+
+        // The first-person camera sits on top of this capsule, so in first
+        // person it takes the destination's own height (see eyeHeight.ts).
+        return IS_FIRST_PERSON ? walkingEyeHeight( CURRENT_SPACE, head ) : head
     }
 
     /**
