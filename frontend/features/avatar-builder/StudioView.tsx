@@ -5,7 +5,7 @@ import {
     type LobbyAvatar,
 } from "@features/lobby/webgpu/avatarAdapter";
 import { applyLiveLook } from "./liveLook";
-import { editUrl, type Look } from "./look";
+import { editUrl, expressionLabels, type Expression, type Look } from "./look";
 
 export type Framing = "Figure" | "Portrait";
 export type Movement = "Idle" | "Walk" | "Run";
@@ -14,11 +14,20 @@ type Props = {
     look: Look;
     framing: Framing;
     motion: Movement;
+    expression: Expression;
     angle: number;
     onTurn: (angle: number) => void;
     onStatus: (s: "loading" | "ready" | "error") => void;
     attempt: number;
 };
+function previewExpression(avatar: LobbyAvatar, expression: Expression) {
+    for (const name of Object.keys(expressionLabels)) {
+        avatar.setExpressionWeight?.(
+            name,
+            name === expression && name !== "neutral" ? 1 : 0
+        );
+    }
+}
 export default function StudioView(props: Props) {
     const host = useRef<HTMLDivElement>(null);
     const [engine, setEngine] = useState<Engine>();
@@ -188,6 +197,7 @@ export default function StudioView(props: Props) {
                     throw Error("The selected rig could not load");
                 }
                 model = result;
+                previewExpression(model, current.current.expression);
                 applyLiveLook(model.root, current.current.look);
                 engine.scene.add(model.root);
                 engine.avatar = model;
@@ -206,6 +216,9 @@ export default function StudioView(props: Props) {
     useEffect(() => {
         if (engine?.avatar) applyLiveLook(engine.avatar.root, props.look);
     }, [engine, props.look]);
+    useEffect(() => {
+        if (engine?.avatar) previewExpression(engine.avatar, props.expression);
+    }, [engine, props.expression]);
     return (
         <div
             ref={host}

@@ -1,4 +1,11 @@
 export const bases = ["atelier", "relay"] as const;
+export const expressionLabels = {
+    neutral: "Neutral",
+    happy: "Smile",
+    surprised: "Surprise",
+    angry: "Angry",
+} as const;
+export type Expression = keyof typeof expressionLabels;
 export type Base = (typeof bases)[number];
 export const palettes = {
     skin: [

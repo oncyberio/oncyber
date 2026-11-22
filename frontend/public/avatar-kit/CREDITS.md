@@ -6,7 +6,7 @@ Relay is derived from **Seed-san**, © VirtualCast, Inc. Credit is required for 
 
 Both authors permit modification, redistribution, and corporate commercial use under the VRM Public License 1.0. Each model's embedded metadata contains the author's specific permissions and conditions and is included in every downloaded VRM. [License](https://vrm.dev/licenses/1.0/)
 
-Oncyber added jaw, eye, hair and torso morphs, dyeable painted materials, vertex shading and selectable outfit variants. The four starter portraits are rendered from these models.
+Oncyber added jaw, eye, cheek, nose, hair and torso morphs, dyeable painted materials, vertex shading and selectable outfit variants. The four starter portraits are rendered from these models.
 
 ## Rebuilding the kits
 

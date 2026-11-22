@@ -7,6 +7,8 @@ import {
     cuts,
     decodeLook,
     encodeLook,
+    expressionLabels,
+    type Expression,
     kits,
     modelUrl,
     palettes,
@@ -160,6 +162,7 @@ export default function AvatarStudio() {
         [framing, setFraming] = useState<Framing>("Figure"),
         [motion, setMotion] = useState<Movement>("Idle"),
         [angle, setAngle] = useState(12);
+    const [expression, setExpression] = useState<Expression>("neutral");
     const [status, setStatus] = useState<"ready" | "loading" | "error">(
             "loading"
         ),
@@ -280,6 +283,11 @@ export default function AvatarStudio() {
         <main className={s.studio}>
             <Head>
                 <title>Avatar Studio · Oncyber</title>
+                <meta property="og:title" content="Avatar Studio · Oncyber" />
+                <meta
+                    property="og:image"
+                    content="/avatar-kit/studio-preview.webp"
+                />
                 <meta
                     name="description"
                     content="Build, customize and play as your own anime avatar."
@@ -329,6 +337,7 @@ export default function AvatarStudio() {
                     <Viewer
                         look={look}
                         framing={framing}
+                        expression={section === "Face" ? expression : "neutral"}
                         motion={motion}
                         angle={angle}
                         onTurn={setAngle}
@@ -480,6 +489,24 @@ export default function AvatarStudio() {
                         )}
                         {section === "Face" && (
                             <>
+                                <fieldset className={s.group}>
+                                    <legend>Preview expression</legend>
+                                    <div className={s.expressions}>
+                                        {(
+                                            Object.keys(
+                                                expressionLabels
+                                            ) as Expression[]
+                                        ).map((e) => (
+                                            <button
+                                                key={e}
+                                                aria-pressed={e === expression}
+                                                onClick={() => setExpression(e)}
+                                            >
+                                                {expressionLabels[e]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </fieldset>
                                 <Swatches
                                     title="Skin tone"
                                     field="skin"

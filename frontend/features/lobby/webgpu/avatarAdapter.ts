@@ -98,6 +98,7 @@ type EquipItem = ReturnType<
     typeof import("@features/procedural-avatars/buildCharacter").buildCharacter
 >["equipItem"];
 export interface LobbyAvatar {
+    setExpressionWeight?: (name: string, weight: number) => void;
     setGazePose?: (weight: number) => void;
     equipItem?: EquipItem;
     root: THREE.Group;
@@ -156,6 +157,7 @@ interface ModernVRM {
         resetNormalizedPose(): void;
         setNormalizedPose(pose: unknown): void;
     };
+    expressionManager?: { setValue(name: string, weight: number): void };
     meta?: { metaVersion: string };
     springBoneManager?: { joints?: { size: number } };
     update(delta: number): void;
@@ -1213,6 +1215,9 @@ async function parseAvatar(
         lookup("hips") as unknown as Parameters<typeof createMotionInertia>[2]
     );
     const avatar: LobbyAvatar = {
+        setExpressionWeight: vrm.expressionManager?.setValue.bind(
+            vrm.expressionManager
+        ),
         setGazePose: vrm.setGazePose,
         equipItem: vrm.equipItem,
         root,

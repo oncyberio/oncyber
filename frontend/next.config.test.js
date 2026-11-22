@@ -105,6 +105,8 @@ describe("static file caching", () => {
         ["/lobby/cc0/quaternius-core.c66c3d2a7450.lcp", IMMUTABLE],
         ["/lobby/travel/travel.f7d646d776ff.lcp", IMMUTABLE],
         ["/detect-gpu/3.1.30/d-apple.json", IMMUTABLE],
+        ["/avatar-kit/atelier-c3a488ed96.bin", IMMUTABLE],
+        ["/avatar-kit/sora.webp", REVALIDATED],
         ["/lobby/cc0/manifest.json", REVALIDATED],
         ["/lobby/native-avatar-motion.json", REVALIDATED],
         ["/draco/draco_decoder.wasm", REVALIDATED],

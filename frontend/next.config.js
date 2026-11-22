@@ -61,6 +61,8 @@ const STATIC_IMMUTABLE = [
     { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
 ];
 const STATIC_IMMUTABLE_SOURCES = [
+    // The builder reuses the same geometry and painted maps across saved looks.
+    "/avatar-kit/:file([a-z]+-[0-9a-f]{10}\\.bin)",
     // Lobby motion packs: name.<12 hex content hash>.lcp (the manifests that
     // point at them are not hashed and stay in the revalidated tier).
     "/lobby/:pack/:file([A-Za-z0-9_-]+\\.[0-9a-f]{12}\\.lcp)",
@@ -81,6 +83,7 @@ const STATIC_REVALIDATED = [
     },
 ];
 const STATIC_REVALIDATED_SOURCES = [
+    "/avatar-kit/:path*",
     "/draco/:path*",
     "/basis/:path*",
     "/libs/basis/:path*",

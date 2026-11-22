@@ -680,6 +680,22 @@
 .save:hover {
     filter: brightness(1.07);
 }
+.expressions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.expressions button {
+    font-size: 12px;
+    border: 1px solid var(--line);
+    padding: 6px 9px;
+    border-radius: 6px;
+}
+.expressions button[aria-pressed="true"] {
+    background: var(--lime);
+    color: var(--ink);
+    border-color: var(--lime);
+}
 .transfer {
     display: flex;
     align-items: center;
