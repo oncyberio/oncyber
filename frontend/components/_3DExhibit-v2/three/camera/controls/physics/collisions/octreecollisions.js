@@ -338,7 +338,12 @@ export class OctreeCollisions extends AbstractCollisions {
 
             let y =   position.y //Math.round(position.y * 100) / 100
 
-            const collider_height = this.isFlymode ? flyHeight : this.collider_height
+            // Refreshed here too: the first-person eye sits on this capsule,
+            // and the height can change after the controls are built (the
+            // avatar's size arrives later, or the destination sets its own).
+            this.collider_height = this.isFlymode ? flyHeight : this.getColliderHeight()
+
+            const collider_height = this.collider_height
 
             this.capsule.start.setY(y - collider_height + this.capsuleRadius)
 
