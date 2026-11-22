@@ -49,9 +49,15 @@ import {
 
     SET_FAST_ADJUSTMENT_SPEED,
 
-    USER_HEIGHT
+    USER_HEIGHT,
+
+    IS_FIRST_PERSON,
+
+    CURRENT_SPACE
 
 } from '@3constants'
+
+import { walkingEyeHeight } from '../utils/eyeHeight'
 
 import Mediator from '@3mediator'
 
@@ -589,6 +595,12 @@ class PlayerCamera extends AbstractCamera {
         if ( Players.main ){
 
             height = Players.main.getHeadPosition()
+        }
+
+        // First person sees from the destination's height (see eyeHeight.ts)
+        if ( IS_FIRST_PERSON ) {
+
+            height = walkingEyeHeight( CURRENT_SPACE, height )
         }
 
         return  height
