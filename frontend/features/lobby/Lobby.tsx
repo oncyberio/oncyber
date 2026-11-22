@@ -1,4 +1,5 @@
 import { useProfilePhoto } from "./profilePhoto";
+import { libraryKey, readBuilds } from "@features/avatar-builder/library";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import { flashWallets } from "./useFlashNfts";
@@ -245,10 +246,30 @@ export default function Lobby({
         flashWallets(account),
         avatarOpen
     );
+    const [studioAvatars, setStudioAvatars] = useState<
+        { id: string; url: string; name: string }[]
+    >([]);
+    useEffect(() => {
+        if (!avatarOpen) return;
+        try {
+            const saved = readBuilds(localStorage.getItem(libraryKey));
+            setStudioAvatars(
+                saved.map((build) => {
+                    const url = new URL(
+                        "/api/avatar-kit/" + build.code,
+                        window.location.origin
+                    ).href;
+                    return { id: url, url, name: build.name };
+                })
+            );
+        } catch {
+            setStudioAvatars([]);
+        }
+    }, [avatarOpen]);
     const avatarChoices = useMemo(
         () =>
             ownedFirst(
-                ownedAvatars.items,
+                [...studioAvatars, ...ownedAvatars.items],
                 Object.values(VRMS).map((item) => ({
                     id: item.id,
                     name: item.name,
@@ -256,7 +277,7 @@ export default function Lobby({
                     img: item.image,
                 }))
             ),
-        [ownedAvatars.items]
+        [ownedAvatars.items, studioAvatars]
     );
     useEffect(() => {
         controlsElement.current?.toggleAttribute("inert", avatarOpen);

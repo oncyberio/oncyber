@@ -297,6 +297,9 @@ export default function AvatarCarousel({
                     <span className="avatar-hint">
                         Scroll to browse · click to choose
                     </span>
+                    <a className="studio-link" href="/avatar-builder">
+                        Avatar Studio ↗
+                    </a>
                     <nav aria-label="Browse avatars">
                         <button
                             className="arrow"
@@ -475,6 +478,14 @@ const Shell = styled.section`
         font-size: 12px;
         font-weight: 500;
     }
+    .studio-link {
+        color: inherit;
+        font-size: 12px;
+        margin-left: auto;
+        pointer-events: auto;
+        text-underline-offset: 3px;
+        white-space: nowrap;
+    }
     .avatar-hint {
         font-size: 11px;
         color: #c2c2bd;
@@ -482,7 +493,6 @@ const Shell = styled.section`
     nav {
         display: flex;
         gap: 4px;
-        margin-left: auto;
     }
     .strip-mask {
         overflow: hidden;
