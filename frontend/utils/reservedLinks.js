@@ -10,6 +10,7 @@ const APP_PATHS = [
     "_next",
     "about",
     "api",
+    "avatar-builder",
     "cli-auth",
     "collections",
     "create",
