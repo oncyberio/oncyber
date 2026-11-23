@@ -449,3 +449,20 @@ test("an admitted registered space retains its explicit address capability and e
         globalThis.fetch = previousFetch;
     }
 });
+
+test("a player can require a fresh ready message on each document load", async () => {
+    await render({ ...descriptor, readyOn: "message" });
+    (lobbyDestinationPrepared as jest.Mock).mockClear();
+    loadFrame();
+    expect(lobbyDestinationPrepared).not.toHaveBeenCalled();
+    request("ready");
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(1);
+    const oldSession = session;
+    act(() => frame.dispatchEvent(new Event("load")));
+    session = post.mock.calls.at(-1)[0].session;
+    request("ready", makePort(), { session: oldSession });
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Loading world");
+    request("ready");
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(2);
+});

@@ -5,6 +5,8 @@ export interface EmbeddedRuntime {
     url: string;
     /** Descriptive only. No engine code is imported into the host. */
     engine?: string;
+    /** Wait for the document to announce that its player is ready. */
+    readyOn?: "message";
     capabilities?: Array<"wallet.connect">;
 }
 
@@ -24,7 +26,7 @@ export function resolveEmbeddedRuntime(
     });
     if (value.kind === "awe-app") {
         if (
-            !["awe.box", "www.awe.box"].includes(url.hostname) &&
+            !["awe.box", "www.awe.box"].includes(url.host) &&
             !(
                 allowLocalhost &&
                 ["localhost", "127.0.0.1"].includes(url.hostname)
@@ -33,8 +35,12 @@ export function resolveEmbeddedRuntime(
             throw new Error(
                 "Use an awe.box play link for an AWE app experience."
             );
-        if (!/^\/play\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname))
+        if (!/^\/play\/[a-zA-Z0-9_-]{1,128}\/?$/.test(url.pathname))
             throw new Error("Use an AWE app /play/ link.");
+        const draft = url.searchParams.get("draft") === "true";
+        url.search = "";
+        url.hash = "";
+        if (draft) url.searchParams.set("draft", "true");
         url.searchParams.set("embed", "oncyber");
     }
     if (
@@ -48,6 +54,9 @@ export function resolveEmbeddedRuntime(
     return {
         kind: value.kind,
         url: url.href,
+        ...(value.kind === "awe-app" || value.readyOn === "message"
+            ? { readyOn: "message" as const }
+            : {}),
         ...(typeof value.engine === "string"
             ? { engine: value.engine.slice(0, 40) }
             : {}),

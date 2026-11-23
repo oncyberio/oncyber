@@ -4,13 +4,14 @@ test("preserves AWE draft selection and chooses renderer-only embed", () => {
     const runtime = resolveEmbeddedRuntime(
         {
             kind: "awe-app",
-            url: "https://awe.box/play/DmFRffk2waOgtkemeAyt?draft=true",
+            url: "https://awe.box/play/DmFRffk2waOgtkemeAyt?draft=true&ref=discard#private",
         },
         "https://oncyber.io"
     );
     expect(runtime.url).toBe(
         "https://awe.box/play/DmFRffk2waOgtkemeAyt?draft=true&embed=oncyber"
     );
+    expect(runtime.readyOn).toBe("message");
     expect(runtime.capabilities).toEqual([]);
     expect(inferContentKind(runtime.url)).toBe("awe-app");
 });
@@ -46,6 +47,7 @@ test("rejects provider and host origins masquerading as an AWE app", () => {
     for (const url of [
         "https://awe.box.evil.test/play/id",
         "https://awe.box/studio/id",
+        "https://awe.box:444/play/id",
         "https://oncyber.io/a-game",
         "javascript:alert(1)",
     ])

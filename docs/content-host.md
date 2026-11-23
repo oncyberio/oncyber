@@ -27,8 +27,13 @@ existing experience, so `/spaces/:id` and its custom slug use the same player:
 ```
 
 Runtime kinds are `cyber` (also the default when absent), `web`, and
-`awe-app`. `awe-app` serves awe.box `/play/` experiences; the code is in place
-but not live yet. Records with any other kind are treated as unsupported. `engine` is descriptive; host code never imports
+`awe-app`. To attach a public AWE world, register
+`{"kind":"awe-app","url":"https://awe.box/play/WORLD_ID"}` on an existing space.
+The provider must serve its anonymous player for `embed=oncyber`. The host
+preserves an explicit public draft selection and waits for the player's
+`ready` message before revealing the space. Any `web` integration can opt
+into the same handshake with `"readyOn":"message"`. Other web pages enter on
+document load. Records with any other kind are treated as unsupported. `engine` is descriptive; host code never imports
 the engine. Arbitrary same-origin documents, credential-bearing URLs,
 `javascript:`, `data:`, and non-HTTPS sources are rejected. Separate loopback
 HTTP origins, including `*.localhost`, are accepted only in development.
