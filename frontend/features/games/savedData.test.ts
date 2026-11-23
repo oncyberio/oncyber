@@ -465,6 +465,7 @@ describe("page bridge", () => {
         const detach = attachSavedData({
             game: "ace",
             remote: null,
+            documentId: () => 1,
             fromGame: () => true,
             send: (message) => sent.push(message),
             account: () => null,
@@ -491,3 +492,51 @@ describe("page bridge", () => {
         detach();
     });
 });
+
+test.each(["same", "reload", "account", "detach"])(
+    "a delayed save reply belongs to its requesting document and account (%s)",
+    async (change) => {
+        let receive;
+        let document = 1;
+        let account = "ada";
+        const port = { postMessage: jest.fn(), close: jest.fn() };
+        const send = jest.fn();
+        const detach = attachSavedData({
+            game: "ace",
+            fromGame: () => true,
+            send,
+            remote: {
+                read: async () => ({ ok: true, entry: null }),
+                write: jest.fn(),
+            },
+            documentId: () => document,
+            account: () => account,
+            party: () => null,
+            target: {
+                addEventListener: (_type, listener) => {
+                    receive = listener;
+                },
+                removeEventListener: jest.fn(),
+            } as any,
+        });
+        receive({
+            data: {
+                type: "oncyber:game:saved",
+                request: 1,
+                op: "get",
+                key: "settings",
+            },
+            ports: [port],
+        });
+        if (change === "reload") document++;
+        if (change === "account") account = "other";
+        if (change === "detach") detach();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(port.postMessage).toHaveBeenCalledTimes(
+            change === "same" ? 1 : 0
+        );
+        expect(port.close).toHaveBeenCalledTimes(1);
+        expect(send).not.toHaveBeenCalled();
+        detach();
+    }
+);

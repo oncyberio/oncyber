@@ -230,3 +230,25 @@ test("page transport matches replies to requests and times out", async () => {
     assert.deepEqual(await a, { ok: false, reason: "unavailable" });
     transport.dispose();
 });
+
+test("a saved reply can arrive on the requesting document's port", async () => {
+    const transport = pageSavedTransport({
+        prefix: "oncyber:game:",
+        useReplyPort: true,
+        listen: () => () => {},
+        post(message, [port]) {
+            port.postMessage({
+                ...message,
+                type: message.type + "-result",
+                ok: true,
+                entry: null,
+            });
+            port.close();
+        },
+    });
+    assert.deepEqual(await transport({ op: "get", key: "settings" }), {
+        ok: true,
+        entry: null,
+    });
+    transport.dispose();
+});

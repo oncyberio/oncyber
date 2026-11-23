@@ -329,14 +329,15 @@ export function storageSavedTransport(
  */
 export function pageSavedTransport(options: {
     prefix: string;
-    post(message: object): void;
+    post(message: object, transfer?: Transferable[]): void;
+    useReplyPort?: boolean;
     /** Calls `listener` with each message from the page; returns the unsubscribe. */
     listen(listener: (data: any) => void): () => void;
     timeoutMs?: number;
 }): SavedTransport & { dispose(): void } {
     const pending = new Map<number, (reply: SavedReply) => void>();
     let next = 1;
-    const stop = options.listen((data) => {
+    const receive = (data: any) => {
         if (data?.type !== `${options.prefix}saved-result`) return;
         const done = pending.get(data.request);
         if (!done) return;
@@ -353,25 +354,36 @@ export function pageSavedTransport(options: {
                       entry: data.entry,
                   }
         );
-    });
+    };
+    const stop = options.listen(receive);
     const transport = (request: SavedRequest) =>
         new Promise<SavedReply>((resolve) => {
             const id = next++;
+            const channel = options.useReplyPort ? new MessageChannel() : null;
             const timer = setTimeout(() => {
+                pending.get(id)?.({ ok: false, reason: "unavailable" });
                 pending.delete(id);
-                resolve({ ok: false, reason: "unavailable" });
             }, options.timeoutMs ?? 5000);
             pending.set(id, (reply) => {
                 clearTimeout(timer);
+                channel?.port1.close();
                 resolve(reply);
             });
+            if (channel)
+                channel.port1.onmessage = (event) => {
+                    if (event.data?.request === id) receive(event.data);
+                };
             try {
-                options.post({
-                    type: `${options.prefix}saved`,
-                    request: id,
-                    ...request,
-                });
+                options.post(
+                    {
+                        type: `${options.prefix}saved`,
+                        request: id,
+                        ...request,
+                    },
+                    channel ? [channel.port2] : undefined
+                );
             } catch {
+                channel?.port2.close();
                 pending.get(id)?.({ ok: false, reason: "invalid" });
                 pending.delete(id);
             }
@@ -409,7 +421,8 @@ export function connectSavedData(options: {
     const prefix = options.prefix ?? GAME_MESSAGE_PREFIX;
     const embedded = window.parent !== window;
     const fromPage = (event: MessageEvent) => event.source === window.parent;
-    const post = (message: object) => window.parent.postMessage(message, "*");
+    const post = (message: object, transfer: Transferable[] = []) =>
+        window.parent.postMessage(message, "*", transfer);
     const listeners = new Set<(data: any) => void>();
     const onMessage = (event: MessageEvent) => {
         if (fromPage(event))
@@ -430,6 +443,7 @@ export function connectSavedData(options: {
               prefix,
               post,
               listen,
+              useReplyPort: typeof MessageChannel !== "undefined",
               timeoutMs: options.timeoutMs,
           })
         : storageSavedTransport(
