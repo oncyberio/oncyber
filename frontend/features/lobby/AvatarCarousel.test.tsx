@@ -535,3 +535,116 @@ test("the other tab's first pictures are fetched before it is opened", () => {
         globalThis.Image = RealImage;
     }
 });
+
+test("a click away from the picker closes it; a click inside or a drag in the world does not", () => {
+    render("pepe", [...mine, ...items]);
+    const world = document.createElement("canvas");
+    document.body.append(world);
+    const at = (target: Element, type: string, x: number, y: number) => {
+        const event = new MouseEvent(type, {
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+        });
+        act(() => target.dispatchEvent(event));
+    };
+    // Inside: a card, a label and the search field.
+    click(tab("Owned"));
+    click(card("My upload"));
+    click(container.querySelector('input[type="search"]'));
+    expect(onClose).not.toHaveBeenCalled();
+    // Turning the avatar or the camera: the pointer travels before release.
+    at(world, "pointerdown", 100, 100);
+    at(world, "click", 260, 120);
+    expect(onClose).not.toHaveBeenCalled();
+    // A click on the world.
+    at(world, "pointerdown", 100, 100);
+    at(world, "click", 102, 101);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    world.remove();
+});
+
+test("the gaps between cards count as the picker, not as a click away", () => {
+    render("pepe", items);
+    const box = container.querySelector(".avatar-picker");
+    jest.spyOn(box, "getBoundingClientRect").mockReturnValue({
+        left: 300,
+        right: 900,
+        top: 400,
+        bottom: 740,
+        width: 600,
+        height: 340,
+    } as DOMRect);
+    const press = (x: number, y: number) =>
+        act(() =>
+            document.body.dispatchEvent(
+                new MouseEvent("click", {
+                    clientX: x,
+                    clientY: y,
+                    bubbles: true,
+                })
+            )
+        );
+    press(600, 500);
+    expect(onClose).not.toHaveBeenCalled();
+    press(600, 200);
+    expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test("search narrows the open tab by name and says what the other tab holds", () => {
+    render("pepe", [...mine, ...items]);
+    const field = container.querySelector<HTMLInputElement>(
+        'input[type="search"]'
+    );
+    const type = (text: string) =>
+        act(() => {
+            Object.getOwnPropertyDescriptor(
+                HTMLInputElement.prototype,
+                "value"
+            ).set.call(field, text);
+            field.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+    expect(field.placeholder).toBe("Search avatars…");
+    // "/" from the cards moves to the field without typing a slash.
+    const slash = key(card("Roller Pepe"), "/");
+    expect(slash.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(field);
+
+    type("  ro");
+    expect(shown()).toEqual(["Roller Pepe", "Robot", "Astronaut"]);
+    // Typing keeps the keyboard in the field and chooses nothing.
+    expect(document.activeElement).toBe(field);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="status"]').textContent).toBe(
+        "Roller Pepe · 3 avatars"
+    );
+
+    type("wallet");
+    expect(shown()).toEqual([]);
+    expect(container.querySelector(".avatar-empty").textContent).toBe(
+        "No free avatars match “wallet”. 1 in Owned."
+    );
+    click(tab("Owned"));
+    expect(shown()).toEqual(["Wallet one"]);
+
+    // Down steps into the results; Escape empties the field before it
+    // closes the picker.
+    key(field, "ArrowDown");
+    expect(document.activeElement).toBe(card("Wallet one"));
+    act(() => field.focus());
+    const first = key(field, "Escape");
+    expect(first.defaultPrevented).toBe(true);
+    expect(field.value).toBe("");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(shown()).toEqual(["My upload", "Wallet one"]);
+    key(field, "Escape");
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    type("zzz");
+    expect(container.querySelector(".avatar-empty").textContent).toBe(
+        "No owned avatars match “zzz”."
+    );
+    click(button("Clear avatar search"));
+    expect(field.value).toBe("");
+    expect(document.activeElement).toBe(field);
+});

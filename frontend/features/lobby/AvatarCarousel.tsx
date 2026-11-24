@@ -117,7 +117,21 @@ export default function AvatarCarousel({
     const shownTab = useRef(tab);
     const tabs = useRef(new Map<AvatarTab, HTMLButtonElement>());
     const ids = useId();
-    const items = allItems.filter((item) => tabOf(item) === tab);
+    const [query, setQuery] = useState("");
+    const needle = query.trim().toLowerCase();
+    const matches = (item: LobbyAvatarChoice) =>
+        !needle || item.name.toLowerCase().includes(needle);
+    const items = allItems.filter(
+        (item) => tabOf(item) === tab && matches(item)
+    );
+    // What the search would find behind the other label.
+    const elsewhere = needle
+        ? allItems.filter((item) => tabOf(item) !== tab && matches(item)).length
+        : 0;
+    const picker = useRef<HTMLDivElement>(null);
+    const search = useRef<HTMLInputElement>(null);
+    const close = useRef(onClose);
+    close.current = onClose;
     const [activeId, setActiveId] = useState(selectedId);
     const [focusedId, setFocusedId] = useState(selectedId);
     const [edges, setEdges] = useState({ start: true, end: false });
@@ -191,10 +205,14 @@ export default function AvatarCarousel({
         // scroll to the worn avatar, or back to the start.
         const switched = shownTab.current !== tab && tabChosen.current;
         shownTab.current = tab;
-        const onTab = Array.from(tabs.current.values()).includes(
-            document.activeElement as HTMLButtonElement
-        );
-        const focus = !switched && !onTab;
+        // Typing a search or stepping along the labels keeps the keyboard
+        // where it is; the cards only scroll.
+        const busy =
+            document.activeElement === search.current ||
+            Array.from(tabs.current.values()).includes(
+                document.activeElement as HTMLButtonElement
+            );
+        const focus = !switched && !busy;
         if (selectedTargetId)
             reveal(selectedTargetId, mounted.current && !switched, focus);
         else if (focus) closeButton.current?.focus();
@@ -211,6 +229,46 @@ export default function AvatarCarousel({
     useEffect(() => {
         if (otherTabPictures) warmAvatarThumbs(otherTabPictures.split("\n"));
     }, [otherTabPictures]);
+
+    // A click anywhere outside the picker closes it. A drag in the world
+    // (turning the avatar or the camera) is not a click away, and neither is
+    // the click that opened the picker, which is still on its way up.
+    useEffect(() => {
+        const openedAt = performance.now();
+        let pressed: { x: number; y: number } | null = null;
+        const press = (event: PointerEvent) => {
+            pressed = { x: event.clientX, y: event.clientY };
+        };
+        const away = (event: MouseEvent) => {
+            const from = pressed;
+            pressed = null;
+            const box = picker.current;
+            if (!box || event.timeStamp <= openedAt) return;
+            if (
+                from &&
+                Math.hypot(event.clientX - from.x, event.clientY - from.y) > 8
+            )
+                return;
+            if (box.contains(event.target as Node)) return;
+            // The gaps between the cards belong to the picker too.
+            const area = box.getBoundingClientRect();
+            if (
+                area.width > 0 &&
+                event.clientX >= area.left &&
+                event.clientX <= area.right &&
+                event.clientY >= area.top &&
+                event.clientY <= area.bottom
+            )
+                return;
+            close.current();
+        };
+        document.addEventListener("pointerdown", press, true);
+        document.addEventListener("click", away);
+        return () => {
+            document.removeEventListener("pointerdown", press, true);
+            document.removeEventListener("click", away);
+        };
+    }, []);
 
     const chooseTab = (next: AvatarTab, focus = false) => {
         tabChosen.current = true;
@@ -336,6 +394,13 @@ export default function AvatarCarousel({
             onClose();
             return;
         }
+        if (event.key === "/" && event.target !== search.current) {
+            event.preventDefault();
+            event.stopPropagation();
+            search.current?.focus();
+            search.current?.select();
+            return;
+        }
         const index = items.findIndex(
             (item) => cards.current.get(item.id) === event.target
         );
@@ -408,7 +473,7 @@ export default function AvatarCarousel({
 
     return (
         <Shell aria-label="Choose your avatar" onKeyDown={onKeyDown}>
-            <div className="avatar-picker">
+            <div className="avatar-picker" ref={picker}>
                 {error && (
                     <p className="avatar-error" role="alert">
                         {error}
@@ -471,14 +536,26 @@ export default function AvatarCarousel({
                     role="tabpanel"
                     aria-labelledby={`${ids}tab-${tab}`}
                 >
-                    {!items.length && tab === "owned" && (
+                    {!items.length && (needle || tab === "owned") && (
                         <p className="avatar-empty">
-                            {ownedLoading ? "Finding your avatars…" : ownedHint}
+                            {needle
+                                ? `No ${tab} avatars match “${query.trim()}”.${
+                                      elsewhere
+                                          ? ` ${elsewhere} in ${
+                                                tab === "owned"
+                                                    ? "Free"
+                                                    : "Owned"
+                                            }.`
+                                          : ""
+                                  }`
+                                : ownedLoading
+                                ? "Finding your avatars…"
+                                : ownedHint}
                         </p>
                     )}
                     <div
                         className="strip"
-                        hidden={!items.length && tab === "owned"}
+                        hidden={!items.length && (!!needle || tab === "owned")}
                         // A handful of avatars reads left to right on one
                         // row; the panel keeps its two-row height.
                         style={
@@ -542,10 +619,69 @@ export default function AvatarCarousel({
                     >
                         <Icon name="close" size={16} />
                     </button>
+                    <span className="search-mark" aria-hidden>
+                        <Icon name="search" size={18} />
+                    </span>
+                    <form
+                        role="search"
+                        aria-label="Search avatars"
+                        onSubmit={(event) => event.preventDefault()}
+                    >
+                        <input
+                            ref={search}
+                            type="search"
+                            aria-label="Search avatars by name"
+                            placeholder="Search avatars…"
+                            enterKeyHint="search"
+                            autoComplete="off"
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (
+                                    event.nativeEvent.isComposing ||
+                                    event.keyCode === 229
+                                )
+                                    return;
+                                if (event.key === "Escape" && query) {
+                                    // The first Escape empties the field;
+                                    // the next one closes the picker.
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setQuery("");
+                                } else if (event.key === "ArrowDown") {
+                                    const card = cards.current.get(
+                                        items.find(
+                                            (item) => item.id === focusedId
+                                        )?.id ?? items[0]?.id
+                                    );
+                                    if (!card) return;
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    card.focus({ preventScroll: true });
+                                }
+                            }}
+                        />
+                        {query ? (
+                            <button
+                                type="button"
+                                className="search-clear"
+                                aria-label="Clear avatar search"
+                                onClick={() => {
+                                    setQuery("");
+                                    search.current?.focus();
+                                }}
+                            >
+                                <Icon name="close" size={14} />
+                            </button>
+                        ) : (
+                            <kbd aria-hidden="true">/</kbd>
+                        )}
+                    </form>
                     <span
                         className="panel-status"
                         role="status"
                         aria-live="polite"
+                        data-busy={loading || ownedLoading || undefined}
                     >
                         {(loading || ownedLoading) && (
                             <span className="panel-spinner" aria-hidden />
@@ -659,8 +795,20 @@ const Shell = styled.section`
     }
     .avatar-tabs {
         grid-area: 1 / 2;
+        position: relative;
+        isolation: isolate;
         display: flex;
         gap: 4px;
+    }
+    /* The chat's soft wash, so the labels read over a bright world. It
+       fades out all round and has no edge. */
+    .avatar-tabs::before {
+        content: "";
+        position: absolute;
+        inset: -10px -36px;
+        z-index: -1;
+        pointer-events: none;
+        background: ${lobby.panel.labelWash};
     }
     .avatar-tabs [role="tab"] {
         position: relative;
@@ -864,8 +1012,85 @@ const Shell = styled.section`
     .arrow {
         ${lobbyPanelIconButton}
     }
+    /* The same bar as the worlds search: close, the search mark, the
+       field, then its key hint. */
     footer {
         ${lobbyPanelFooter}
+        width: min(${lobby.panel.searchWidth}px, 100%);
+    }
+    .search-mark {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        color: ${lobby.color.secondary};
+    }
+    footer form {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: 8px;
+        min-width: 0;
+        height: 100%;
+        color: ${base.color.muted};
+    }
+    footer input {
+        width: 100%;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: ${lobby.color.ink};
+        font: inherit;
+        font-size: 14px;
+        line-height: 20px;
+        text-overflow: ellipsis;
+        outline: none;
+        pointer-events: auto;
+    }
+    footer input::placeholder {
+        color: ${base.color.muted};
+    }
+    footer input::-webkit-search-cancel-button {
+        display: none;
+    }
+    footer kbd {
+        flex-shrink: 0;
+        padding: 1px 5px;
+        border: 1px solid ${base.color.line.subtle};
+        border-radius: 5px;
+        font-family: var(--oc-mono, "SFMono-Regular", monospace);
+        font-size: 11px;
+    }
+    .search-clear {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 9px;
+        background: none;
+        color: ${base.color.muted};
+    }
+    .search-clear:hover {
+        background: ${base.color.line.faint};
+        color: ${lobby.color.ink};
+    }
+    /* The status line is for screen readers, and shows only while
+       something is loading. */
+    footer .panel-status {
+        flex: 0 0 auto;
+        padding: 0 6px 0 0;
+    }
+    footer .panel-status:not([data-busy]) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
     }
     /* On a touch screen a tap puts the avatar on and the brighter border
        says which one is worn; there is no box to tick. */
@@ -890,6 +1115,14 @@ const Shell = styled.section`
         }
         footer {
             height: 44px;
+        }
+        footer input {
+            /* Below 16 px, iOS zooms the page into a focused field. */
+            font-size: 16px;
+        }
+        footer kbd,
+        footer .panel-status > span:not(.panel-spinner) {
+            display: none;
         }
     }
     @media (max-height: 540px) {
