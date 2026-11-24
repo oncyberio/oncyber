@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/router";
+import { nodeEnv } from "@env";
 import { UserContext } from "@components/context/UserContext";
 import type { Experience } from "@uitypes/experience";
 import { finishSpaceEntrance } from "@utils/spaceEntrance";
@@ -185,7 +186,8 @@ function ContentDocument({
                 const next = resolveEmbeddedRuntime(
                     descriptor,
                     window.location.origin,
-                    process.env.NODE_ENV === "development"
+                    process.env.NODE_ENV === "development",
+                    nodeEnv.AWE_PLAYER_ORIGIN
                 );
                 // Only a server-admitted space may request an address in production.
                 // A supplied descriptor or URL query is not proof of admission.

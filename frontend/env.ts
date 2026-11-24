@@ -25,6 +25,7 @@ export const firebaseEmulators = {
 };
 
 export const nodeEnv = {
+    AWE_PLAYER_ORIGIN: process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN,
     POLAR_SAMA: "/api/proxyv2?url=",
     DEV_FORCED_OWNERSHIP_WALLET:
         process.env.NODE_ENV === "development"

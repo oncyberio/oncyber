@@ -18,10 +18,11 @@ export function isEmbeddedRuntime(value: unknown): value is EmbeddedRuntime {
 export function resolveEmbeddedRuntime(
     value: unknown,
     hostOrigin: string,
-    allowLocalhost = false
+    allowLocalhost = false,
+    awePlayerOrigin?: string
 ): EmbeddedRuntime {
     if (!isEmbeddedRuntime(value)) throw new Error("Unsupported content type.");
-    const url = validateExternalContentUrl(value.url, hostOrigin, {
+    let url = validateExternalContentUrl(value.url, hostOrigin, {
         allowLocalhost,
     });
     if (value.kind === "awe-app") {
@@ -42,6 +43,21 @@ export function resolveEmbeddedRuntime(
         url.hash = "";
         if (draft) url.searchParams.set("draft", "true");
         url.searchParams.set("embed", "oncyber");
+        // Registration retains the original world ID and URL across player moves.
+        if (awePlayerOrigin) {
+            const player = validateExternalContentUrl(
+                awePlayerOrigin,
+                hostOrigin,
+                {
+                    allowLocalhost,
+                }
+            );
+            if (player.href !== player.origin + "/")
+                throw new Error(
+                    "Configure a player origin without a path or query."
+                );
+            url = new URL(url.pathname + url.search, player.origin);
+        }
     }
     if (
         value.capabilities != null &&

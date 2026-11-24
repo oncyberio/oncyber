@@ -38,6 +38,14 @@ the engine. Arbitrary same-origin documents, credential-bearing URLs,
 `javascript:`, `data:`, and non-HTTPS sources are rejected. Separate loopback
 HTTP origins, including `*.localhost`, are accepted only in development.
 
+To move the player off awe.box, deploy the compatible guest player on a separate
+Oncyber-operated origin and set `NEXT_PUBLIC_AWE_PLAYER_ORIGIN` at frontend build
+time. Stored AWE links still identify the world. At launch only the world ID,
+draft selector and embed flag go to the configured origin. With the setting
+empty, legacy links keep their original host. Other providers use their own URLs.
+This routes visits. World data, external assets and multiplayer services need
+their own preservation and restore checks before retiring the old deployment.
+
 `POST /api/content/register` takes `{experienceId,runtime}`. It requires an
 exact same-origin request and an authenticated owner/editor checked inside a
 Firestore transaction. Registering `{kind:"cyber"}` restores the saved gallery

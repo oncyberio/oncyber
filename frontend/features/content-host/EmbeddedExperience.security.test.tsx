@@ -8,6 +8,7 @@ import { Simulate } from "react-dom/test-utils";
 import { UserContext } from "@components/context/UserContext";
 import EmbeddedExperience from "./EmbeddedExperience";
 import { CONTENT_BRIDGE_TAG } from "./protocol";
+import { nodeEnv } from "@env";
 import type { EmbeddedRuntime } from "./runtime";
 import * as contentSecurity from "./security";
 import {
@@ -465,4 +466,29 @@ test("a player can require a fresh ready message on each document load", async (
     expect(container.textContent).toContain("Loading world");
     request("ready");
     expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(2);
+});
+
+
+test("loads the preserved AWE world from the configured player inside the guest sandbox", async () => {
+    const previous = nodeEnv.AWE_PLAYER_ORIGIN;
+    try {
+        nodeEnv.AWE_PLAYER_ORIGIN = "https://player.example";
+        await render({
+            kind: "awe-app",
+            url: "https://awe.box/play/one?draft=true&extra=discard",
+        });
+        loadFrame();
+        expect(frame.src).toBe(
+            "https://player.example/play/one?draft=true&embed=oncyber"
+        );
+        expect(frame.getAttribute("sandbox")).toBe(
+            contentSecurity.CONTENT_SANDBOX
+        );
+        expect(
+            post.mock.calls.find(([message]) => message.kind === "init")[0]
+                .capabilities
+        ).toEqual([]);
+    } finally {
+        nodeEnv.AWE_PLAYER_ORIGIN = previous;
+    }
 });
