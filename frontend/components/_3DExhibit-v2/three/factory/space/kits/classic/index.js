@@ -11,7 +11,7 @@ import { EDIT_MODE, ERROR_CODES, GPU_TIER } from '@3constants'
 
 import { PortalPlaceholderFactory } from '@3portal/index'
 
-import { Space } from '@3factory/space/space'
+import { Space, SPACE_EVENTS } from '@3factory/space/space'
 
 import Reflector from '@3factory/reflector'
 
@@ -36,7 +36,7 @@ import WaterFactory from '@3factory/water'
 
 
 import BackgroundFactory from '@3factory/background'
-import { applyWorldMod } from '@features/worldMods'
+import { applyWorldMod, applyWorldScene } from '@features/worldMods'
 
 
 import {
@@ -372,6 +372,16 @@ class ClassicSpaceFactory extends SpaceFactoryAbstract {
                 scene.fog = fog
 
                 textureUpgrade?.attach(scene)
+
+                // This world's own changes to its model and to what visitors
+                // collide with, before either is used (features/worldMods)
+                await applyWorldScene( opts.roomParameters?.slug, {
+                    scene: res.scene,
+                    colliders: colliderMeshes,
+                    portalIds: Object.values(opts.exhibit?.portals || {}).map(portal => portal?.id).filter(Boolean),
+                    mobile: IS_MOBILE,
+                    onDispose: dispose => scene.once(SPACE_EVENTS.DISPOSE, dispose),
+                })
 
                 resolve ({
                     scene,
