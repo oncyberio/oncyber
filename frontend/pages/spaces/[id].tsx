@@ -34,12 +34,19 @@ import { getJSON } from "@utils/js";
 import NotificationService from "@api/notifications/_api";
 import { isEmbeddedRuntime } from "@features/content-host/runtime";
 import { isNativeRuntime, isSupportedRuntime } from "@utils/runtimeKind";
+import { WORLD_SCRIPTS_ENABLED } from "@features/world-scripts/store";
 
 // Gate boots the engine only after a WebGL preflight (renderer.js throws without
 // a WebGL context); shows a graceful fallback otherwise.
 import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
 import SpaceSeo from "@components/seo/SpaceSeo";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
+
+// Sandboxed scripts on top of the world; off unless NEXT_PUBLIC_WORLD_SCRIPTS.
+const WorldScriptLayer = dynamic(
+    () => import("@features/world-scripts/WorldScriptLayer"),
+    { ssr: false }
+);
 
 const EmbeddedExperience = dynamic(
     () => import("@features/content-host/EmbeddedExperience"),
@@ -288,6 +295,9 @@ function NativeExhibit({
                             onWorldRendered={handleWorldRendered}
                             enableEditor={true}
                         />
+                        {WORLD_SCRIPTS_ENABLED && !gatingError && (
+                            <WorldScriptLayer experience={experience} />
+                        )}
                     </GatingErrorProvider>
                 </SceneContainer>
             </Container>

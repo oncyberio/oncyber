@@ -137,6 +137,10 @@ them, and so does its Vercel preview; see
 -   **Content host.** Outside experiences run in a sandboxed frame and talk to
     the page through the message bridge in `features/content-host/`. See
     [docs/content-host.md](docs/content-host.md).
+-   **World scripts.** AI-written scripts on top of a native space run in an
+    opaque sandboxed frame and change the scene only through checked
+    messages (`features/world-scripts/`). Off unless
+    `NEXT_PUBLIC_WORLD_SCRIPTS=1`. See [docs/world-scripts.md](docs/world-scripts.md).
 -   **Wallets.** `dApp/connect.tsx` returns a connection per chain. An Ethereum
     connection carries an ethers provider (`getEthersProvider(connection)`);
     sign and send through it.

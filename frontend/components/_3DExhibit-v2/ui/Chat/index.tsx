@@ -10,6 +10,14 @@ import { CHAT_TYPES } from "../../context/hooks/useChat";
 import { useWorld } from "../../hooks/useWorld";
 import { UPDATE_CHAT } from "../../three/factory/player/constants";
 import { nativeConversation } from "@utils/chat/nativeConversations";
+import {
+    addGameLine,
+    mergeGameLines,
+    readAiCommand,
+    useWorldScripts,
+    worldScriptsController,
+    WORLD_SCRIPTS_ENABLED,
+} from "@features/world-scripts/store";
 
 /** The native room owns identity and transport; the lobby supplies the shared view only. */
 export default function Chat({
@@ -37,33 +45,38 @@ export default function Chat({
             })),
         [chat.playersInfo, self]
     );
+    // Lines from the world's script ("Game"): what /ai is doing and did.
+    const gameLines = useWorldScripts().lines;
     const messages = useMemo(
         () =>
-            chat.messages
-                .filter(
-                    (message) =>
-                        message.type === CHAT_TYPES.MESSAGE.label &&
-                        nativeConversation(message, self)
-                )
-                .slice()
-                .reverse()
-                .map((message, index) => ({
-                    id: `${message.sessionId}:${message.direct || "room"}:${
-                        message.acc_date || index
-                    }`,
-                    sessionId: message.sessionId,
-                    recipientId: message.direct || undefined,
-                    name:
-                        players.find(
-                            (player) => player.id === message.sessionId
-                        )?.name ||
-                        message.username ||
-                        "Visitor",
-                    avatar: message.avatar,
-                    text: message.text,
-                    sentAt: Date.parse(message.acc_date || "") || 0,
-                })),
-        [chat.messages, self, players]
+            mergeGameLines(
+                chat.messages
+                    .filter(
+                        (message) =>
+                            message.type === CHAT_TYPES.MESSAGE.label &&
+                            nativeConversation(message, self)
+                    )
+                    .slice()
+                    .reverse()
+                    .map((message, index) => ({
+                        id: `${message.sessionId}:${message.direct || "room"}:${
+                            message.acc_date || index
+                        }`,
+                        sessionId: message.sessionId,
+                        recipientId: message.direct || undefined,
+                        name:
+                            players.find(
+                                (player) => player.id === message.sessionId
+                            )?.name ||
+                            message.username ||
+                            "Visitor",
+                        avatar: message.avatar,
+                        text: message.text,
+                        sentAt: Date.parse(message.acc_date || "") || 0,
+                    })),
+                gameLines
+            ),
+        [chat.messages, self, players, gameLines]
     );
     const social: ConversationSocial = {
         sessionId: self,
@@ -71,6 +84,17 @@ export default function Chat({
         players,
         messages,
         sendMessage(text, recipientId) {
+            // "/ai ..." asks for a change to the world's script; it is not chat.
+            const aiRequest =
+                WORLD_SCRIPTS_ENABLED && !recipientId
+                    ? readAiCommand(text)
+                    : null;
+            if (aiRequest != null) {
+                const controller = worldScriptsController();
+                if (controller) void controller.ask(aiRequest);
+                else addGameLine("This world can't run scripts yet.");
+                return true;
+            }
             const sent = chat.sendMessage({
                 type: CHAT_TYPES.MESSAGE.label,
                 payload: {

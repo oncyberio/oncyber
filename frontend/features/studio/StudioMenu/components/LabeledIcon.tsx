@@ -14,6 +14,7 @@ export function LabelledIcon({ name, label = null, toggled, onClick = null }) {
                     settings: "World settings",
                     "bar-chart-2": "World statistics",
                     video: "Cinematic tools",
+                    code: "Scripts and games",
                 }[name] ||
                 name
             }

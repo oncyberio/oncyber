@@ -90,7 +90,9 @@ export type WorldScriptOp =
     | { op: "toast"; text: string; seconds: number }
     | { op: "banner"; text: string | null; seconds: number }
     | { op: "sound"; name: SoundName; volume: number }
-    | { op: "log"; level: "log" | "warn" | "error"; text: string };
+    | { op: "log"; level: "log" | "warn" | "error"; text: string }
+    | { op: "hud-clear" }
+    | { op: "player"; position: Vec3 };
 
 const ID = /^[a-zA-Z0-9_.:-]+$/;
 const COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -126,7 +128,7 @@ export function cleanId(value: unknown): string | null {
 
 export function cleanText(
     value: unknown,
-    max: number = WORLD_SCRIPT_LIMITS.maxTextLength,
+    max: number = WORLD_SCRIPT_LIMITS.maxTextLength
 ) {
     if (value == null) return "";
     const text = typeof value === "string" ? value : String(value);
@@ -281,6 +283,17 @@ export function cleanOp(raw: unknown): WorldScriptOp | null {
                 name: input.name as SoundName,
                 volume: finite(input.volume) ? clamp(input.volume, 0, 1) : 0.6,
             };
+        case "hud-clear":
+            return { op: "hud-clear" };
+        case "player": {
+            const L = WORLD_SCRIPT_LIMITS;
+            const position = cleanVec(
+                input.position,
+                -L.maxCoordinate,
+                L.maxCoordinate
+            );
+            return position ? { op: "player", position } : null;
+        }
         case "log": {
             const level =
                 input.level === "warn" || input.level === "error"
