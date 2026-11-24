@@ -5,6 +5,10 @@ import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
 import { presentAccount } from "@features/games/accountIdentity";
 import {
+    publicExperienceHref,
+    replaceExperienceLocation,
+} from "@utils/experienceLocation";
+import {
     GameLoadingCover,
     useGameLoading,
 } from "@features/games/GameLoadingCover";
@@ -14,6 +18,7 @@ import {
     readGameMessage,
 } from "@features/games/gameContract";
 import { WORLD_GAME_ID } from "./worldDocument";
+import { readWorldLocation, worldSpaceId } from "./worldLocation";
 import { worldVisitorMessage } from "./worldVisitor";
 import {
     WORLD_PERMISSIONS,
@@ -52,6 +57,45 @@ export default function FramedWorld({
         setFailed(false);
         setAttempt((count) => count + 1);
     };
+    // The frame is loaded at the page's address once; from then on the
+    // world says where it is and the address bar follows it.
+    const [src] = useState(() => worldFrameUrl(router.asPath, frame));
+    // A portal taken inside the frame: another space, named by the world,
+    // whose id the page has looked up itself.
+    const [elsewhere, setElsewhere] = useState<{
+        pathname: string;
+        title: string;
+        spaceId?: string;
+    } | null>(null);
+    const home = useRef("");
+    const follow = (href: unknown, saidTitle: unknown) => {
+        const location = readWorldLocation(href, window.location.origin);
+        if (!location) return;
+        home.current ||= window.location.pathname;
+        replaceExperienceLocation(location.href);
+        if (location.pathname === home.current) return setElsewhere(null);
+        const there = {
+            pathname: location.pathname,
+            title:
+                typeof saidTitle === "string" && saidTitle.trim()
+                    ? saidTitle.slice(0, 120)
+                    : "Untitled world",
+        };
+        setElsewhere((current) =>
+            current?.pathname === there.pathname ? current : there
+        );
+        void worldSpaceId(location).then((spaceId) =>
+            setElsewhere((current) =>
+                spaceId && current?.pathname === there.pathname
+                    ? { ...current, spaceId }
+                    : current
+            )
+        );
+    };
+    const travel = (href: unknown) => {
+        const to = publicExperienceHref(href, window.location.origin);
+        if (to) void router.push(to);
+    };
     return (
         <main
             data-framed-world
@@ -64,15 +108,17 @@ export default function FramedWorld({
             <WorldFrameView
                 key={attempt}
                 title={title}
-                src={worldFrameUrl(router.asPath, frame)}
+                src={src}
                 frame={frame}
                 visitor={visitor}
                 onFailed={() => setFailed(true)}
                 onVisitorChanged={reload}
+                onLocation={follow}
+                onTravel={travel}
             />
             <ExperienceShell
-                title={title}
-                spaceId={spaceId}
+                title={elsewhere ? elsewhere.title : title}
+                spaceId={elsewhere ? elsewhere.spaceId : spaceId}
                 onExit={() => void router.push("/")}
                 notice={
                     failed
@@ -132,6 +178,8 @@ function WorldFrameView({
     visitor,
     onFailed,
     onVisitorChanged,
+    onLocation,
+    onTravel,
 }: {
     title: string;
     src: string;
@@ -140,6 +188,10 @@ function WorldFrameView({
     onFailed(): void;
     /** The world was told one visitor and the page now has another. */
     onVisitorChanged(): void;
+    /** The world's address changed, and the title it gives the place. */
+    onLocation(href: unknown, title: unknown): void;
+    /** The world asks to go somewhere else on the site. */
+    onTravel(href: unknown): void;
 }) {
     const element = useRef<HTMLIFrameElement>(null);
     const loading = useGameLoading(WORLD_GAME_ID, element, frame.world);
@@ -150,11 +202,20 @@ function WorldFrameView({
     // fields only (./worldVisitor). The world starts once it has them.
     const present = useRef(visitor);
     present.current = visitor;
+    const handlers = useRef({ onLocation, onTravel });
+    handlers.current = { onLocation, onTravel };
     const told = useRef<object | null>(null);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             if (!fromFrame(event, element.current, frame.world)) return;
             const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
+            if (kind === "location")
+                return handlers.current.onLocation(
+                    event.data.href,
+                    event.data.title
+                );
+            if (kind === "travel")
+                return handlers.current.onTravel(event.data.href);
             if (kind !== "hello" || !present.current) return;
             told.current = present.current;
             element.current?.contentWindow?.postMessage(

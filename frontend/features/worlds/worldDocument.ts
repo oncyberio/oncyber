@@ -5,7 +5,8 @@
  *
  * It speaks the games contract (docs/games/contract.md): `hello` until the
  * page answers with `identity` (who is visiting, ./worldVisitor), then
- * `progress`, `first-frame` and `ready`.
+ * `progress`, `first-frame` and `ready`; `location` as it moves, and
+ * `travel` to leave for somewhere else on the site.
  * Messages go to the site's origin and are heard from it alone.
  */
 import { useEffect, useState } from "react";
@@ -29,6 +30,13 @@ export interface WorldDocument {
      * never answers: the world then runs for its own guest.
      */
     visitor(): Promise<WorldVisitor | null>;
+    /**
+     * The world's own address changed: it walked, or took a portal without
+     * leaving the frame. The page keeps its address bar on it.
+     */
+    location(href: string, title?: string): void;
+    /** Go somewhere else on the site: only the page can. */
+    travel(href: string): void;
     /** 0–1, while the world loads. */
     progress(value: number, label?: string): void;
     /** The world has drawn: the page may show it. */
@@ -97,8 +105,17 @@ export function createWorldDocument(
     };
     win.addEventListener("message", receive);
 
+    let reported = "";
     return {
         visitor: () => visitor,
+        location(href, title) {
+            if (href === reported) return;
+            reported = href;
+            post("location", { href, ...(title ? { title } : {}) });
+        },
+        travel(href) {
+            post("travel", { href });
+        },
         progress(value, label = "") {
             if (!drawn) post("progress", { value, label });
         },

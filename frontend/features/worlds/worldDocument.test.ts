@@ -160,6 +160,37 @@ describe("createWorldDocument", () => {
         expect(await second.visitor()).toBeNull();
     });
 
+    test("says where it is when that changes, and asks the page to travel", () => {
+        const w = fakeWindow();
+        const world = createWorldDocument(w.win, frame);
+        w.posted.length = 0;
+        world.location("/spaces/abc?coords=1x2x3x0");
+        world.location("/spaces/abc?coords=1x2x3x0");
+        world.location("/spaces/def?coords=4x5x6x0", "Second space");
+        world.travel("/?lobby=1");
+        expect(w.posted).toEqual([
+            {
+                message: {
+                    type: "oncyber:game:location",
+                    href: "/spaces/abc?coords=1x2x3x0",
+                },
+                target: frame.site,
+            },
+            {
+                message: {
+                    type: "oncyber:game:location",
+                    href: "/spaces/def?coords=4x5x6x0",
+                    title: "Second space",
+                },
+                target: frame.site,
+            },
+            {
+                message: { type: "oncyber:game:travel", href: "/?lobby=1" },
+                target: frame.site,
+            },
+        ]);
+    });
+
     test("reports progress, then that it has drawn, once", () => {
         const w = fakeWindow();
         const world = createWorldDocument(w.win, frame);

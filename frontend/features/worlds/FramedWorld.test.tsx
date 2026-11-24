@@ -5,18 +5,19 @@ import { readWorldFrame } from "./worldFrame";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+const mockPush = jest.fn();
 jest.mock("next/router", () => ({
     useRouter: () => ({
         asPath: "/spaces/abc?coords=1x2x3x0",
-        push: jest.fn(),
+        push: mockPush,
     }),
 }));
 // The page's chrome is its own component with its own tests; here it shows
 // what it was given.
 jest.mock("@features/content-host/ExperienceShell", () => ({
     __esModule: true,
-    default: ({ title, notice }: any) => (
-        <div data-shell>
+    default: ({ title, spaceId, notice }: any) => (
+        <div data-shell data-space={spaceId ?? ""}>
             <span data-title>{title}</span>
             {notice && (
                 <button data-retry onClick={notice.onRetry}>
@@ -90,8 +91,17 @@ const render = async () => {
 const hello = () =>
     fromWorld({ type: "oncyber:game:hello", contract: 2, world: true });
 
+const shell = () => host.querySelector<HTMLElement>("[data-shell]")!;
+const shown = () => host.querySelector("[data-title]")!.textContent;
+
 beforeEach(async () => {
     jest.useFakeTimers();
+    mockPush.mockReset();
+    window.history.replaceState(null, "", "/spaces/abc?coords=1x2x3x0");
+    (globalThis as any).fetch = jest.fn(async () => ({
+        ok: true,
+        json: async () => ({ exists: true, id: "def" }),
+    }));
     account = { isSignedIn: false, userData: null };
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -239,4 +249,67 @@ test("a world that never draws is taken as failed", () => {
     expect(retry()).toBeNull();
     act(() => void jest.advanceTimersByTime(2));
     expect(retry().textContent).toBe("This world didn't load.");
+});
+
+test("the address bar follows the world as the visitor walks", () => {
+    const first = element();
+    fromWorld({
+        type: "oncyber:game:location",
+        href: "/spaces/abc?coords=9x8x7x1",
+    });
+    expect(window.location.pathname + window.location.search).toBe(
+        "/spaces/abc?coords=9x8x7x1"
+    );
+    // the same world in the same frame, and still this page's space
+    expect(element()).toBe(first);
+    expect(element().src).toBe(
+        "https://worlds.example/spaces/abc?coords=1x2x3x0"
+    );
+    expect(shown()).toBe("Starry Night");
+    expect(shell().dataset.space).toBe("abc");
+});
+
+test("a portal taken inside the frame: the page shows that place, with an id it looked up itself", async () => {
+    const first = element();
+    await act(async () => {
+        window.dispatchEvent(
+            new MessageEvent("message", {
+                data: {
+                    type: "oncyber:game:location",
+                    href: "/second-space?from=abc",
+                    title: "Second space",
+                    spaceId: "not-believed",
+                },
+                origin: frame.world,
+                source: element().contentWindow,
+            })
+        );
+    });
+    expect(window.location.pathname).toBe("/second-space");
+    expect(shown()).toBe("Second space");
+    expect(fetch).toHaveBeenCalledWith("/api/world-access?space=second-space");
+    expect(shell().dataset.space).toBe("def");
+    expect(element()).toBe(first);
+
+    // and back through the portal
+    fromWorld({ type: "oncyber:game:location", href: "/spaces/abc" });
+    expect(shown()).toBe("Starry Night");
+    expect(shell().dataset.space).toBe("abc");
+});
+
+test("an address that is not a world's is not shown", () => {
+    for (const href of ["https://elsewhere.example/x", "/@ada", "/studio"])
+        fromWorld({ type: "oncyber:game:location", href });
+    expect(window.location.pathname).toBe("/spaces/abc");
+});
+
+test("travel the world asks for is done by the page, on this site only", () => {
+    fromWorld({ type: "oncyber:game:travel", href: "/?lobby=1" });
+    expect(mockPush).toHaveBeenCalledWith("/?lobby=1");
+    fromWorld({
+        type: "oncyber:game:travel",
+        href: "https://elsewhere.example/",
+    });
+    fromWorld({ type: "oncyber:game:travel", href: "//elsewhere.example" });
+    expect(mockPush).toHaveBeenCalledTimes(1);
 });

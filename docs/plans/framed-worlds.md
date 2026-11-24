@@ -97,15 +97,23 @@ default.
    the cover until the first frame, reports a world that fails to load and
    offers to reload it. The world hides the header the page now draws. The
    visitor is a guest inside the world. _(This change.)_
-2. **Identity.** The page answers the world's `hello` with who is
-   visiting: a name, a portrait and an avatar, the same public fields a
-   game gets (`features/worlds/worldVisitor.ts`). The world waits for that
-   answer before it starts, so it never starts as a guest and restarts.
-   No account id and no proof of one cross: until slice 3 the room knows a
-   framed visitor by name and avatar only, so they have no moderator
-   rights in it. Signing in or out on the page starts the world again as
-   that visitor. The address bar follows the world (`location`), and Back
-   and travel go through the page.
+2. **Identity and navigation.** _(Done.)_ The page answers the world's
+   `hello` with who is visiting: a name, a portrait and an avatar, the
+   same public fields a game gets (`features/worlds/worldVisitor.ts`). The
+   world waits for that answer before it starts, so it never starts as a
+   guest and restarts. No account id and no proof of one cross: until
+   slice 3 the room knows a framed visitor by name and avatar only, so
+   they have no moderator rights in it. Signing in or out on the page
+   starts the world again as that visitor.
+
+    The world says where it is (`location`) and the page keeps the address
+    bar on it. The page believes the address only: after a portal taken
+    inside the frame it shows the title the world gives the place, as text,
+    and looks up which space that address is itself
+    (`features/worlds/worldLocation.ts`). A world cannot leave its frame,
+    so its ways out (search, the lobby) are a `travel` request the page
+    carries out, on the site only. Back is the page's.
+
 3. **The room, voice and chat in the page.** The engine's multiplayer gets a
    transport seam: poses up, peers down, as games do. Voice and chat move to
    the page's existing game code and keep running when a world stops. The
@@ -138,6 +146,14 @@ The studio stays unframed until editing has its own plan.
     or the parent document threw, a popup and a top-level navigation from
     the world were refused, and opening the world host directly landed on
     the site. WebGPU, Safari, phones and a real GPU _(not tested)_.
+-   Slice 2, the same way: signed in as the local demo account, the
+    world's name tag showed that name and portrait, with no cookie or
+    token inside the frame; as a guest it showed the world's own guest.
+    The address bar and title followed locations sent from the world's
+    window, an address that is not a world's was ignored, and `travel`
+    went through for a page on the site and not for another site. The
+    headless browser could not walk the avatar, so the engine's own
+    location reports were not seen end to end _(not tested)_.
 -   First measurement on a production build and a real device: cold and warm
     load against today's page _(not measured)_.
 
@@ -150,5 +166,10 @@ The studio stays unframed until editing has its own plan.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a
     headset to try it _(not tested)_.
 -   Who draws phone controls, the page or the world.
+-   Inside a framed world the avatar picker and saved settings still try
+    to save to an account the world does not have. They move to the page
+    with slice 4.
+-   A script in a world can ask the page to `travel` without the visitor
+    clicking anything. It can only reach this site's own pages.
 -   A frame-rate setting at the Oncyber level, by game and hardware. Not
     part of this work.
