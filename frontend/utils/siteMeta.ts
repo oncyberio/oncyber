@@ -3,7 +3,15 @@
 /** The site's name as search results and link previews show it. */
 export const SITE_NAME = "oncyber";
 
+/** The title on the link-preview card, whose picture carries the same words. */
 export const SITE_TITLE = "oncyber: forever";
+
+/**
+ * The home page's title in a browser tab and a search result, where it has
+ * to say what the site is: "oncyber: forever" alone gave a search engine no
+ * words to match (Semrush audit, November 2026).
+ */
+export const HOME_TITLE = "oncyber: open metaverse for the creative ones";
 
 export const SITE_DESCRIPTION =
     "A multiverse for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free.";
