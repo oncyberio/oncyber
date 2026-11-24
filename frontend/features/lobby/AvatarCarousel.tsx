@@ -367,7 +367,12 @@ export default function AvatarCarousel({
         if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
-            onClose();
+            // The first Escape empties a search, wherever the keyboard is;
+            // the next one closes the picker.
+            if (query) {
+                setQuery("");
+                search.current?.focus();
+            } else onClose();
             return;
         }
         if (event.key === "/" && event.target !== search.current) {
@@ -618,13 +623,7 @@ export default function AvatarCarousel({
                                     event.keyCode === 229
                                 )
                                     return;
-                                if (event.key === "Escape" && query) {
-                                    // The first Escape empties the field;
-                                    // the next one closes the picker.
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setQuery("");
-                                } else if (event.key === "ArrowDown") {
+                                if (event.key === "ArrowDown") {
                                     const card = cards.current.get(
                                         items.find(
                                             (item) => item.id === focusedId
@@ -1024,6 +1023,11 @@ const Shell = styled.section`
         text-overflow: ellipsis;
         outline: none;
         pointer-events: auto;
+    }
+    /* The field has no outline of its own, so the bar shows where the
+       keyboard is, as the worlds bar does. */
+    footer:has(input:focus-visible) {
+        border-color: ${lobby.panel.cardHover};
     }
     footer input::placeholder {
         color: ${base.color.muted};

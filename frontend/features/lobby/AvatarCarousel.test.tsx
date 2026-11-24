@@ -642,6 +642,17 @@ test("search narrows the open tab by name and says what the other tab holds", ()
     key(field, "Escape");
     expect(onClose).toHaveBeenCalledTimes(1);
 
+    // From a result card too: Escape empties the search first.
+    render("pepe", [...mine, ...items]);
+    onClose.mockClear();
+    type("wallet");
+    key(field, "ArrowDown");
+    expect(document.activeElement).toBe(card("Wallet one"));
+    key(card("Wallet one"), "Escape");
+    expect(field.value).toBe("");
+    expect(document.activeElement).toBe(field);
+    expect(onClose).not.toHaveBeenCalled();
+
     type("zzz");
     expect(container.querySelector(".avatar-empty").textContent).toBe(
         "No owned avatars match “zzz”."

@@ -48,28 +48,35 @@ export default function useClickAway(
         if (!active) return;
         const openedAt = performance.now();
         let pressed: { x: number; y: number } | null = null;
+        let dragged = false;
+        const travelled = (event: MouseEvent) =>
+            !!pressed &&
+            Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) >
+                DRAG_DISTANCE;
         const press = (event: PointerEvent) => {
             pressed = { x: event.clientX, y: event.clientY };
+            dragged = false;
+        };
+        // A drag that comes back to where it began is still a drag.
+        const move = (event: PointerEvent) => {
+            if (travelled(event)) dragged = true;
         };
         const away = (event: MouseEvent) => {
-            const from = pressed;
+            const wasDrag = dragged || travelled(event);
             pressed = null;
-            if (event.timeStamp <= openedAt) return;
-            if (
-                from &&
-                Math.hypot(event.clientX - from.x, event.clientY - from.y) >
-                    DRAG_DISTANCE
-            )
-                return;
+            dragged = false;
+            if (event.timeStamp <= openedAt || wasDrag) return;
             if (clickedWithin(latest.current.parts(), event)) return;
             latest.current.onAway();
         };
         // Panels stop pointer events from reaching the world, so the press
         // is read on the way down.
         document.addEventListener("pointerdown", press, true);
+        document.addEventListener("pointermove", move, true);
         document.addEventListener("click", away);
         return () => {
             document.removeEventListener("pointerdown", press, true);
+            document.removeEventListener("pointermove", move, true);
             document.removeEventListener("click", away);
         };
     }, [active]);

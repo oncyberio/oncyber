@@ -14,14 +14,19 @@ import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 
 import Avatar from "@ui/components/Avatar";
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 import styled from "styled-components";
 
 import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 
 import { personMore } from "./User";
-import { DropdownItem, DropdownWrapper } from "./UserDropdown";
+import {
+    DropdownItem,
+    DropdownWrapper,
+    focusFirstMenuItem,
+    menuKeyDown,
+} from "./UserDropdown";
 
 export default function SpaceControl({ setCurrentTab }) {
     //
@@ -38,6 +43,12 @@ export default function SpaceControl({ setCurrentTab }) {
             setDropdownShowing(false);
         },
     });
+
+    const trigger = useRef<HTMLButtonElement>(null);
+    // Once open, the menu takes the keyboard.
+    useEffect(() => {
+        if (isDropdownShowing) focusFirstMenuItem(clickRef.current);
+    }, [isDropdownShowing]);
 
     function handleSummonAllToMe() {
         if (!room.isMod) return;
@@ -92,7 +103,10 @@ export default function SpaceControl({ setCurrentTab }) {
                     aria-label={t`SPACE_GLOBAL`}
                     aria-expanded={isDropdownShowing}
                     onClick={() => setDropdownShowing((state) => !state)}
-                    ref={(el) => addTogglerRef("parent", el)}
+                    ref={(el) => {
+                        trigger.current = el;
+                        addTogglerRef("parent", el);
+                    }}
                 >
                     •••
                 </button>
@@ -102,6 +116,11 @@ export default function SpaceControl({ setCurrentTab }) {
                         ref={(el) => {
                             clickRef.current = el;
                         }}
+                        role="menu"
+                        onKeyDown={menuKeyDown(() => {
+                            setDropdownShowing(false);
+                            trigger.current?.focus();
+                        })}
                     >
                         {room.isMod ? (
                             <DropdownItem
