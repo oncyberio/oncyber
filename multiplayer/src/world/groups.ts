@@ -210,7 +210,7 @@ export class LobbyGroups {
             } else if (command.action === "travel-ready") {
                 // A traveller back on a new connection prepares again and says so, whatever step the trip has reached.
                 this.require(travel.responses[actor] === "accepted" && typeof command.success === "boolean" && (command.success || ["inviting", "preparing"].includes(travel.status)), "You have not joined this trip.");
-                if (!command.success) this.cancel(group, "Someone could not prepare the world. Everyone is still in the lobby.");
+                if (!command.success) this.unprepared(group, actor, command.reason);
                 else {
                     if (!travel.readyIds.includes(actor)) travel.readyIds.push(actor);
                     this.advance(group);
@@ -395,6 +395,33 @@ export class LobbyGroups {
     }
     private forgetInvitations(id: string) {
         for (const invite of [...this.invitations.values()]) if (invite.inviteeId === id || invite.inviter.id === id) { this.invitations.delete(invite.id); this.publish(invite.inviteeId); }
+    }
+    /**
+     * One traveller's lobby could not load the destination. Everyone else who is ready still goes; that traveller stays in
+     * the lobby with their own reason. When the initiator fails, or only the initiator would be left, the trip is called off
+     * with a reason that names who could not load it.
+     */
+    private unprepared(group: GroupRecord, actor: string, detail?: unknown) {
+        const travel = group.travel!, name = this.member(actor)?.name || "Someone";
+        const reason = typeof detail === "string" ? detail.slice(0, 160) : "";
+        console.warn(`[lobby-groups] ${travel.id} could not prepare ${travel.destination.href} for ${actor}${reason ? `: ${reason}` : ""}`);
+        const others = travel.acceptedIds.filter(id => id !== actor);
+        // A party of one is no party trip: the initiator would leave alone.
+        if (actor === travel.initiatorId || others.length < 2) {
+            this.cancel(group, `${name} could not load ${travel.destination.title}. Everyone is still in the lobby.`);
+            return;
+        }
+        travel.responses[actor] = "declined";
+        travel.acceptedIds = others;
+        travel.readyIds = travel.readyIds.filter(id => id !== actor);
+        group.placementAcks.delete(actor); group.entered.delete(actor);
+        const pose = travel.poses[actor];
+        delete travel.poses[actor];
+        if (this.claims.get(actor) === travel.id) {
+            this.claims.delete(actor);
+            if (pose && this.member(actor)) this.options.place(actor, travel.id, pose, [], false);
+        }
+        this.advance(group);
     }
     private cancel(group: GroupRecord, reason: string) {
         if (!liveTravel(group.travel)) return;

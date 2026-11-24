@@ -28,6 +28,8 @@ export interface GroupJourneyController {
     phase: LobbyDestinationPhase;
     selected: LobbyDestination | null;
     attempt: string | null;
+    /** Why this visitor's own preparation failed, when it did. */
+    error?: { message?: string } | null;
     select(destination: LobbyDestination): void;
     enter(): boolean;
     cancel(): void;
@@ -49,6 +51,8 @@ interface Prepared {
     attempt: string | null;
     ready: boolean;
     failed: boolean;
+    /** This visitor's own reason, kept over the party's shorter one. */
+    failure?: string;
     started: boolean;
     entered: boolean;
     completed: boolean;
@@ -79,7 +83,8 @@ export default function useLobbyGroupJourney({
     const candidates = social.groups.filter((group) => group.travel);
     const group =
         candidates.find(
-            (entry) => entry.travel.id === prepared.current?.travelId &&
+            (entry) =>
+                entry.travel.id === prepared.current?.travelId &&
                 entry.travel.status !== "complete"
         ) ||
         candidates.find(
@@ -88,7 +93,9 @@ export default function useLobbyGroupJourney({
                 entry.travel.responses[social.sessionId] === "accepted"
         ) ||
         candidates.find((entry) => active(entry.travel.status)) ||
-        candidates.find((entry) => entry.travel.id === prepared.current?.travelId) ||
+        candidates.find(
+            (entry) => entry.travel.id === prepared.current?.travelId
+        ) ||
         null;
     const activeTravel = group?.travel || null;
 
@@ -130,8 +137,12 @@ export default function useLobbyGroupJourney({
         const owned = prepared.current;
         const currentGroup =
             owned && social.groups.find((entry) => entry.id === owned.groupId);
-        if (owned && currentGroup?.travel?.id === owned.travelId &&
-            currentGroup.travel.status === "complete") owned.completed = true;
+        if (
+            owned &&
+            currentGroup?.travel?.id === owned.travelId &&
+            currentGroup.travel.status === "complete"
+        )
+            owned.completed = true;
         if (
             owned &&
             (!currentGroup ||
@@ -139,7 +150,16 @@ export default function useLobbyGroupJourney({
                 currentGroup.travel.status === "cancelled" ||
                 currentGroup.travel.responses[social.sessionId] !== "accepted")
         ) {
-            if (currentGroup?.travel?.reason)
+            // Whoever could not load the world reads their own reason; the
+            // others read who it was.
+            if (owned.failure)
+                setError(
+                    currentGroup?.travel?.id === owned.travelId &&
+                        currentGroup.travel.status !== "cancelled"
+                        ? `${owned.failure} The party went on without you.`
+                        : owned.failure
+                );
+            else if (currentGroup?.travel?.reason)
                 setError(currentGroup.travel.reason);
             cancelPrepared();
         }
@@ -226,7 +246,9 @@ export default function useLobbyGroupJourney({
             owned.attempt = journey.attempt;
         const ownsAttempt = owned.attempt && journey.attempt === owned.attempt;
         // The host clears its attempt while preserving the failed selection.
-        const ownsFailure = journey.phase === "error" && !journey.attempt &&
+        const ownsFailure =
+            journey.phase === "error" &&
+            !journey.attempt &&
             journey.selected?.href === owned.destinationHref;
         if (!ownsAttempt && !ownsFailure) return;
         if (journey.phase === "ready" && !owned.ready) {
@@ -239,12 +261,17 @@ export default function useLobbyGroupJourney({
             }).catch(() => {});
         } else if (journey.phase === "error" && !owned.failed) {
             owned.failed = true;
+            const reason = journey.error?.message;
+            owned.failure = reason || undefined;
+            const late = ["gathering", "travelling"].includes(
+                activeTravel.status
+            );
             void send({
-                action: ["gathering", "travelling"].includes(activeTravel.status)
-                    ? "travel-cancel" : "travel-ready",
+                action: late ? "travel-cancel" : "travel-ready",
                 groupId: owned.groupId,
                 travelId: owned.travelId,
                 success: false,
+                ...(reason && !late ? { reason: reason.slice(0, 160) } : {}),
             }).catch(() => {});
         } else if (journey.phase === "entered" && !owned.entered) {
             owned.entered = true;
@@ -379,7 +406,9 @@ export default function useLobbyGroupJourney({
                 current.journey.cancel();
                 await send({ action: "active-world", active: false });
                 if (latest.current.social.sessionId !== sessionId)
-                    throw new Error("The lobby connection changed. Join the trip again.");
+                    throw new Error(
+                        "The lobby connection changed. Join the trip again."
+                    );
             }
             return send({
                 action: "travel-respond",

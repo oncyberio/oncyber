@@ -98,6 +98,8 @@ export interface LobbyGroupAction {
     travelId?: string;
     destination?: LobbyGroupDestination;
     success?: boolean;
+    /** With a failed `travel-ready`: why this traveller's lobby could not load the destination, for the server log. */
+    reason?: string;
     active?: boolean;
     location?: LobbyGroupLocation;
 }

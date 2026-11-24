@@ -180,6 +180,27 @@ describe("authoritative lobby groups", () => {
         assert(!f.action("2", "travel-respond", { groupId, travelId, accepted: true }).error);
         assert.equal(f.service.snapshot("1").groups[0].travel!.responses["2"], "accepted");
     });
+    it("lets the rest of the party go when one traveller cannot prepare the world", () => {
+        const t = trip();
+        t.act("1", "travel-launch");
+        t.act("1", "travel-ready", { success: true });
+        t.act("3", "travel-ready", { success: false, reason: "This world could not load." });
+        assert.equal(t.travel().status, "preparing");
+        assert.equal(t.travel().responses["3"], "declined");
+        assert.deepEqual(t.travel().acceptedIds, ["1", "2"]);
+        // Traveller 3 is off this trip: a late "ready" from them is refused.
+        assert(t.action("3", "travel-ready", { groupId: t.groupId, travelId: t.travelId, success: true }).error);
+        t.act("2", "travel-ready", { success: true });
+        assert.equal(t.travel().status, "gathering");
+        assert(!("3" in t.travel().poses));
+        wellFormed(t.events);
+    });
+    it("calls the trip off, naming who failed, when its initiator cannot prepare the world", () => {
+        const t = trip();
+        t.act("1", "travel-ready", { success: false });
+        assert.equal(t.travel().status, "cancelled");
+        assert.equal(t.travel().reason, "Guest 1 could not load X. Everyone is still in the lobby.");
+    });
     it("cancels and releases on failures, timeouts, and a last traveller who never comes back; rejects stale trips", () => {
         const f = fixture(), groupId = f.create(); f.accept("2");
         const destination = { id: "x", title: "X", href: "/x" };
@@ -188,6 +209,8 @@ describe("authoritative lobby groups", () => {
         f.action("2", "travel-respond", { groupId, travelId, accepted: true });
         f.action("2", "travel-ready", { groupId, travelId, success: false });
         assert.equal(f.service.snapshot("1").groups[0].travel!.status, "cancelled");
+        // Only the initiator would be left, so the trip is off, and the reason says who could not load it.
+        assert.equal(f.service.snapshot("1").groups[0].travel!.reason, "Guest 2 could not load X. Everyone is still in the lobby.");
         assert(f.places.some(place => place[4] === false));
         f.action("1", "travel-propose", { groupId, destination });
         assert(f.action("1", "travel-ready", { groupId, travelId, success: true }).error);

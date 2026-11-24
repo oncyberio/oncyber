@@ -17,6 +17,7 @@ import {
 
 let root: ReturnType<typeof createRoot>, container: HTMLDivElement;
 let journey: ReturnType<typeof useLobbyJourney>, social: GroupJourneySocial;
+let group: ReturnType<typeof useLobbyGroupJourney>;
 const trip = "travel-real-123456789";
 const person = (id: string) => ({
     id,
@@ -27,7 +28,7 @@ const person = (id: string) => ({
 });
 function Harness() {
     journey = useLobbyJourney();
-    useLobbyGroupJourney({ social, journey });
+    group = useLobbyGroupJourney({ social, journey });
     return journey.frameUrl ? (
         <iframe
             key={journey.attempt}
@@ -144,6 +145,8 @@ test.each([false, true])(
             groupId: "group",
             travelId: trip,
             success: false,
+            // Before departure the server logs why this lobby could not prepare.
+            ...(afterStart ? {} : { reason: "Group arrivals unavailable" }),
         };
         expect(social.groupAction).toHaveBeenLastCalledWith(command);
         act(() => root.render(<Harness />));
@@ -153,6 +156,47 @@ test.each([false, true])(
                     sent.action === command.action && sent.success === false
             )
         ).toHaveLength(1);
+    }
+);
+
+test.each([
+    [
+        "the party goes on",
+        "preparing",
+        "This world could not load. The party went on without you.",
+    ],
+    ["the trip is called off", "cancelled", "This world could not load."],
+])(
+    "a visitor whose world failed to prepare reads their own reason when %s",
+    async (_case, status, expected) => {
+        await act(async () =>
+            message("error", {
+                code: "load-failed",
+                message: "This world could not load.",
+            })
+        );
+        const travel = social.groups[0].travel;
+        social = {
+            ...social,
+            groups: [
+                {
+                    ...social.groups[0],
+                    travel: {
+                        ...travel,
+                        status: status as typeof travel.status,
+                        responses: { ...travel.responses, self: "declined" },
+                        acceptedIds: ["peer"],
+                        ...(status === "cancelled"
+                            ? {
+                                  reason: "self could not load Gallery. Everyone is still in the lobby.",
+                              }
+                            : {}),
+                    },
+                },
+            ],
+        };
+        await act(async () => root.render(<Harness />));
+        expect(group.error).toBe(expected);
     }
 );
 
