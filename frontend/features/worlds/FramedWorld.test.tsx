@@ -16,10 +16,22 @@ jest.mock("next/router", () => ({
 // what it was given.
 jest.mock("@features/content-host/ExperienceShell", () => ({
     __esModule: true,
-    default: ({ title, spaceId, notice }: any) => (
+    default: ({ title, spaceId, notice, actions = [] }: any) => (
         <div data-shell data-space={spaceId ?? ""}>
+            {actions.map((action: any) => (
+                <button
+                    key={action.id}
+                    data-action={action.id}
+                    aria-pressed={!!action.active}
+                    disabled={action.disabled}
+                    onClick={action.onClick}
+                >
+                    {action.label}
+                </button>
+            ))}
+            {notice && !notice.onRetry && <p data-notice>{notice.message}</p>}
             <span data-title>{title}</span>
-            {notice && (
+            {notice?.onRetry && (
                 <button data-retry onClick={notice.onRetry}>
                     {notice.message}
                 </button>
@@ -55,6 +67,22 @@ jest.mock("@utils/arena/join", () => ({
         onLeave: jest.fn(),
         leave: jest.fn(),
     }),
+}));
+
+// The page's voice in a room: what was asked of it, and a way to answer.
+const mockVoices: any[] = [];
+jest.mock("@features/games/roomVoice", () => ({
+    RoomVoice: class {
+        toggle = jest.fn();
+        listen = jest.fn(async () => {});
+        close = jest.fn();
+        updateVolumes = jest.fn();
+        options: any;
+        constructor(_room: unknown, mockOptions: any) {
+            this.options = mockOptions;
+            mockVoices.push(this);
+        }
+    },
 }));
 
 import { UserContext } from "@components/context/UserContext";
@@ -411,5 +439,110 @@ describe("the world's room", () => {
             token: "",
             username: "ada",
         });
+    });
+});
+
+describe("the one dock", () => {
+    const action = (id: string) =>
+        host.querySelector<HTMLButtonElement>(`[data-action="${id}"]`);
+    const worldDock = () =>
+        fromWorld({
+            type: "oncyber:game:dock",
+            actions: [
+                { id: "voice", label: "Enable microphone", icon: "mic-off" },
+                { id: "emotes", label: "Emotes", icon: "emote" },
+            ],
+        });
+    const joinRoom = () =>
+        act(async () => {
+            window.dispatchEvent(
+                new MessageEvent("message", {
+                    data: {
+                        type: "oncyber:game:room-join",
+                        seq: 1,
+                        options: {
+                            label: "starry-night",
+                            position: { x: 1, y: 2, z: 3 },
+                            avatar: "https://cdn.example/me.png",
+                        },
+                    },
+                    origin: frame.world,
+                    source: element().contentWindow,
+                })
+            );
+            for (let i = 0; i < 8; i++) await Promise.resolve();
+        });
+    beforeEach(() => {
+        mockVoices.length = 0;
+        mockSeat.mockReset();
+        mockSeat.mockResolvedValue({ reservation: {} });
+    });
+
+    test("the page draws the world's buttons and tells the world when one is pressed", () => {
+        expect(action("emotes")).toBeNull();
+        worldDock();
+        expect(action("emotes").textContent).toBe("Emotes");
+        act(() => action("emotes").click());
+        expect(sent.at(-1)).toEqual({
+            message: { type: "oncyber:game:dock-press", id: "emotes" },
+            target: "https://worlds.example",
+        });
+    });
+
+    test("the microphone is the page's: its button never asks the world", async () => {
+        worldDock();
+        // no room yet: nothing to talk in
+        expect(action("voice").disabled).toBe(true);
+
+        await joinRoom();
+        expect(mockVoices).toHaveLength(1);
+        // heard at once, a microphone only on the visitor's own press
+        expect(mockVoices[0].listen).toHaveBeenCalled();
+        expect(mockVoices[0].toggle).not.toHaveBeenCalled();
+        expect(action("voice").textContent).toBe("Enable microphone");
+
+        sent.length = 0;
+        act(() => action("voice").click());
+        expect(mockVoices[0].toggle).toHaveBeenCalledTimes(1);
+        expect(sent).toEqual([]);
+
+        act(() => mockVoices[0].options.onChange("live", ""));
+        expect(action("voice").textContent).toBe("Mute microphone");
+        expect(action("voice").getAttribute("aria-pressed")).toBe("true");
+    });
+
+    test("a world cannot turn the microphone on", async () => {
+        worldDock();
+        await joinRoom();
+        fromWorld({ type: "oncyber:game:dock-press", id: "voice" });
+        fromWorld({ type: "oncyber:game:voice", on: true });
+        fromWorld({
+            type: "oncyber:game:room-send",
+            seq: 1,
+            name: "rtc-ready",
+        });
+        expect(mockVoices[0].toggle).not.toHaveBeenCalled();
+    });
+
+    test("why the microphone did not start is said on the page", async () => {
+        worldDock();
+        await joinRoom();
+        act(() =>
+            mockVoices[0].options.onChange(
+                "off",
+                "Microphone access was declined. You can still listen."
+            )
+        );
+        expect(host.querySelector("[data-notice]").textContent).toBe(
+            "Microphone access was declined. You can still listen."
+        );
+    });
+
+    test("leaving the room ends the page's voice in it", async () => {
+        worldDock();
+        await joinRoom();
+        fromWorld({ type: "oncyber:game:room-leave", seq: 1 });
+        expect(mockVoices[0].close).toHaveBeenCalled();
+        expect(action("voice").disabled).toBe(true);
     });
 });

@@ -14,6 +14,7 @@ import ExperienceControlIcon, {
 import { brandFoundation } from "@styles/brand";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
 import { useIsWorldDocument } from "@features/worlds/worldDocument";
+import { useWorldDock } from "@features/worlds/useWorldDock";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -163,6 +164,10 @@ export default function ExperienceShell({
     // Inside the site's frame the page draws the header, the title and
     // Back; the world keeps only its own controls (features/worlds).
     const framedWorld = useIsWorldDocument();
+    // ... and the dock: its buttons are drawn by the page, in this place,
+    // and a press comes back here. The world's own stays laid out, unseen,
+    // so what opens from a button still opens beside it.
+    useWorldDock(framedWorld ? actions : null);
     return (
         <Shell
             data-experience-chrome
@@ -260,6 +265,8 @@ export default function ExperienceShell({
                     className="experience-dock"
                     role="toolbar"
                     aria-label="World actions"
+                    aria-hidden={framedWorld || undefined}
+                    style={framedWorld ? { visibility: "hidden" } : undefined}
                 >
                     {actions.map((action) => (
                         <div

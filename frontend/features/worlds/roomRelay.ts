@@ -47,6 +47,18 @@ export function readRoomPlayers(state: any): RoomPlayer[] {
     return players;
 }
 
+/** How far a room member stands from the page's own visitor. */
+export function roomDistance(state: any, self: string, id: string): number {
+    const from = state?.players?.get?.(self);
+    const to = state?.players?.get?.(id);
+    const distance = Math.hypot(
+        Number(to?.positionX) - Number(from?.positionX),
+        Number(to?.positionY) - Number(from?.positionY),
+        Number(to?.positionZ) - Number(from?.positionZ)
+    );
+    return Number.isFinite(distance) ? distance : Infinity;
+}
+
 const text = (value: unknown, max: number) =>
     typeof value === "string" && value.length <= max ? value : undefined;
 const number = (value: unknown) =>

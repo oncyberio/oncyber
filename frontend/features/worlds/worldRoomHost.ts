@@ -36,6 +36,8 @@ export interface WorldRoomHostOptions {
         body: RoomJoinRequest & RoomIdentity,
         signal: AbortSignal
     ): Promise<HostedRoom>;
+    /** The room the page holds now, for the page's own use (voice); null when it has none. */
+    onRoom?(room: HostedRoom | null): void;
 }
 
 interface Session {
@@ -48,14 +50,22 @@ interface Session {
 const quietly = (leaving: unknown) =>
     void Promise.resolve(leaving).catch(() => {});
 
-export function hostWorldRoom({ post, identify, join }: WorldRoomHostOptions) {
+export function hostWorldRoom({
+    post,
+    identify,
+    join,
+    onRoom,
+}: WorldRoomHostOptions) {
     let current: Session | null = null;
 
     const end = () => {
         const session = current;
         current = null;
         session?.abort.abort();
-        if (session?.room) quietly(session.room.leave(true));
+        if (session?.room) {
+            onRoom?.(null);
+            quietly(session.room.leave(true));
+        }
     };
 
     async function start(seq: number, asked: unknown) {
@@ -102,6 +112,7 @@ export function hostWorldRoom({ post, identify, join }: WorldRoomHostOptions) {
             room.onLeave((code) => {
                 if (!live()) return;
                 current = null;
+                onRoom?.(null);
                 post("room-left", { seq, code });
             });
             post("room-joined", {
@@ -110,6 +121,7 @@ export function hostWorldRoom({ post, identify, join }: WorldRoomHostOptions) {
                 roomId: room.id ?? "",
             });
             if (room.state) state(room.state);
+            onRoom?.(room);
         } catch (error) {
             if (!live()) return;
             current = null;
