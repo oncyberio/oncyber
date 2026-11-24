@@ -31,7 +31,7 @@ import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
 import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
 import { activeSpeech } from "./speechBubbles";
-import LobbyChat from "./LobbyChat";
+import LobbyChat, { type LobbySystemMessage } from "./LobbyChat";
 import LobbyPlace from "./LobbyPlace";
 import LobbyArrivalStatus from "./LobbyArrivalStatus";
 import LobbyConversationSurface from "./LobbyConversationSurface";
@@ -426,6 +426,25 @@ export default function Lobby({
         }
     }, [travelling, entered, avatarOpen, stopFlash]);
     const groupJourney = useLobbyGroupJourney({ social, journey });
+    // Why a party trip did not happen is said in the chat, as a line from
+    // Oncyber, so it reads like the rest of the conversation.
+    const [systemMessages, setSystemMessages] = useState<LobbySystemMessage[]>(
+        []
+    );
+    useEffect(() => {
+        if (!groupJourney.error) return;
+        const sentAt = Date.now();
+        setSystemMessages((current) =>
+            [
+                ...current,
+                {
+                    id: `oncyber-${sentAt}-${current.length}`,
+                    text: groupJourney.error,
+                    sentAt,
+                },
+            ].slice(-5)
+        );
+    }, [groupJourney.error]);
     const participatingTravel =
         groupJourney.activeTravel?.responses[social.sessionId] === "accepted" &&
         isLobbyTravelLive(groupJourney.activeTravel.status);
@@ -1687,6 +1706,7 @@ export default function Lobby({
                 )}
                 <LobbyChat
                     social={social}
+                    systemMessages={systemMessages}
                     open={chatOpen}
                     onOpenChange={setChatOpen}
                     inputRef={chatInput}
@@ -1757,7 +1777,7 @@ export default function Lobby({
                     }
                 />
                 <InlineError
-                    message={groupError || groupJourney.error}
+                    message={groupError}
                     onRetry={groupError ? groupRetry?.run : undefined}
                 />
             </LobbyConversationSurface>

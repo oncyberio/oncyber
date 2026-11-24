@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import Icon from "../landing-carousel/components/Icon";
 import type { LobbyMessage, LobbyPlayer } from "./LobbyConnection";
 import LobbyDockIcon from "./LobbyDockIcon";
@@ -72,6 +78,15 @@ function GlobalIcon({ size }: { size: number }) {
     );
 }
 
+/** A line Oncyber itself says in the conversation, such as why a trip failed. */
+export interface LobbySystemMessage {
+    id: string;
+    text: string;
+    sentAt: number;
+}
+const ONCYBER_MARK =
+    "M8.20228 20C10.7327 20 12.9954 18.8825 14.5 17.1258C16.0046 18.8825 18.2673 20 20.7977 20C25.3276 20 29 16.4183 29 12C29 7.58173 25.3276 4 20.7977 4C18.2673 4 16.0046 5.11755 14.5 6.8742C12.9954 5.11755 10.7327 4 8.20228 4C3.67227 4 0 7.58173 0 12C0 16.4183 3.67227 20 8.20228 20ZM12.4288 13.1269C11.9219 14.9398 10.2216 16.2724 8.20228 16.2724C5.783 16.2724 3.8218 14.3596 3.8218 12C3.8218 9.64038 5.783 7.72755 8.20228 7.72755C10.2216 7.72755 11.9219 9.06025 12.4288 10.8731H16.5711C17.0781 9.06025 18.7784 7.72755 20.7977 7.72755C23.217 7.72755 25.1782 9.64038 25.1782 12C25.1782 14.3596 23.217 16.2724 20.7977 16.2724C18.7784 16.2724 17.0781 14.9398 16.5711 13.1269H12.4288Z";
+
 function Portrait({ name, avatar }: { name: string; avatar?: string }) {
     return (
         <span className="chat-avatar" aria-hidden="true">
@@ -109,8 +124,11 @@ export default function LobbyChat({
     disabledReason = "",
     groupConversations,
     notices,
+    systemMessages = [],
 }: {
     social: ConversationSocial;
+    /** Oncyber's own lines, shown in whichever conversation is open and in the feed. */
+    systemMessages?: LobbySystemMessage[];
     groupConversations?: GroupConversations;
     notices?: React.ReactNode;
     /** The shared view's public conversation is scoped by its transport. */
@@ -184,12 +202,24 @@ export default function LobbyChat({
         ? !selectedGroup
         : !!recipient && !liveRecipient;
     const message = drafts[current] || "";
+    const withSystem = useCallback(
+        <T extends { sentAt: number }>(items: T[]) =>
+            systemMessages.length
+                ? [...items, ...systemMessages].sort(
+                      (a, b) => a.sentAt - b.sentAt
+                  )
+                : items,
+        [systemMessages]
+    );
     const messages = useMemo(
         () =>
-            allMessages.filter(
-                (item) => conversationFor(item, social.sessionId) === current
+            withSystem(
+                allMessages.filter(
+                    (item) =>
+                        conversationFor(item, social.sessionId) === current
+                )
             ),
-        [allMessages, social.sessionId, current]
+        [allMessages, social.sessionId, current, withSystem]
     );
     const contacts = useMemo(() => {
         const people = new Map<string, Contact>();
@@ -277,14 +307,14 @@ export default function LobbyChat({
     const feedMessages = useMemo(
         () =>
             feedVisible
-                ? allMessages
-                      .filter(
+                ? withSystem(
+                      allMessages.filter(
                           (item) =>
                               conversationFor(item, social.sessionId) === GLOBAL
                       )
-                      .slice(-FEED_LENGTH)
+                  ).slice(-FEED_LENGTH)
                 : [],
-        [feedVisible, allMessages, social.sessionId]
+        [feedVisible, allMessages, social.sessionId, withSystem]
     );
     const previewId =
         highlightedContact === GLOBAL ||
@@ -921,7 +951,31 @@ export default function LobbyChat({
         </div>
     );
 
-    const renderMessage = (item: LobbyMessage | LobbyGroupMessage) => {
+    const renderMessage = (
+        item: LobbyMessage | LobbyGroupMessage | LobbySystemMessage
+    ) => {
+        if (!("sessionId" in item))
+            return (
+                <div
+                    className="chat-message chat-oncyber"
+                    key={item.id}
+                    title={new Date(item.sentAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })}
+                >
+                    <span className="chat-avatar" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 29 24">
+                            <path d={ONCYBER_MARK} fill="currentColor" />
+                        </svg>
+                    </span>
+                    <p className="chat-line">
+                        <span className="chat-name">oncyber</span>
+                        <span className="chat-separator">: </span>
+                        <span className="chat-text">{item.text}</span>
+                    </p>
+                </div>
+            );
         const player = social.players.find(
             (entry) => entry.id === item.sessionId
         );

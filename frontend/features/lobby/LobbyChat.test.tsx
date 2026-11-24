@@ -10,6 +10,7 @@ let root: ReturnType<typeof createRoot>;
 let social: any;
 let hidden: boolean;
 let setOpen: (open: boolean) => void;
+let systemMessages: { id: string; text: string; sentAt: number }[] = [];
 const inputRef = React.createRef<HTMLInputElement>();
 const buttonRef = React.createRef<HTMLButtonElement>();
 
@@ -24,6 +25,7 @@ function Chat() {
             inputRef={inputRef}
             buttonRef={buttonRef}
             hidden={hidden}
+            systemMessages={systemMessages}
         />
     );
 }
@@ -410,6 +412,29 @@ test("a closed chat keeps the latest Global messages in view", () => {
     hidden = true;
     render();
     expect(container.querySelector(".chat-feed")).toBeNull();
+});
+
+test("Oncyber's own lines read as chat messages, open or closed", () => {
+    systemMessages = [
+        {
+            id: "oncyber-1",
+            text: "Ana could not load Starry Night.",
+            sentAt: Date.now(),
+        },
+    ];
+    try {
+        render();
+        const feed = container.querySelector<HTMLElement>(".chat-feed");
+        expect(feed.querySelector(".chat-oncyber").textContent).toBe(
+            "oncyber: Ana could not load Starry Night."
+        );
+        act(() => feed.click());
+        expect(
+            container.querySelector("#lobby-chat-log .chat-oncyber").textContent
+        ).toBe("oncyber: Ana could not load Starry Night.");
+    } finally {
+        systemMessages = [];
+    }
 });
 
 test("messages received in a background tab stay unread until the tab is visible", () => {
