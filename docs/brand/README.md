@@ -653,7 +653,7 @@ on smaller screens. Touch screens drop the selection check from the caption:
 a tap puts the avatar on, the brighter border marks it, and closing the
 picker goes back. Leave 24 px of horizontal padding for the 3D projection.
 Short viewports reduce portrait height while keeping the shared panel width. Page
-controls advance four columns at a time. Keep free scrolling without CSS snap,
+controls advance one view of whole columns at a time (six on a desktop, four on a phone). Keep free scrolling without CSS snap,
 which would align projected bounds instead of the grid. Follow the animation picker's quiet
 heading and browse controls, without an enclosing panel. Arrange whole cards
 on the shared convex horizontal 3D arc under a 1000 px perspective. The middle

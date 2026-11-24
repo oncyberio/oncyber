@@ -331,10 +331,19 @@ export default function AvatarCarousel({
     const page = (direction: number) => {
         const viewport = strip.current;
         if (!viewport) return;
-        // Four columns, including the gap before the next page. Using the
-        // viewport keeps fractional card widths aligned on narrow screens.
-        // CSS snapping would instead align projected 3D bounds and drift.
-        const distance = viewport.clientWidth - 48 + 8;
+        // One view of whole columns: six on a desktop, four on a phone.
+        // Stepping by the card's own pitch keeps the next page starting on
+        // a card's edge, whatever the card width. CSS snapping would instead
+        // align projected 3D bounds and drift.
+        const card = cards.current.values().next().value as
+            | HTMLElement
+            | undefined;
+        const gap =
+            Number.parseFloat(getComputedStyle(viewport).columnGap) || 8;
+        const view = viewport.clientWidth - 48 + gap;
+        const pitch = (card?.offsetWidth || 0) + gap;
+        const distance =
+            pitch > gap ? Math.max(1, Math.floor(view / pitch)) * pitch : view;
         viewport.scrollTo?.({
             left: Math.max(
                 0,

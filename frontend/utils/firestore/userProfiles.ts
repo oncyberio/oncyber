@@ -57,7 +57,8 @@ function memSet(id: string, ts: number, user: any) {
 export interface ProfileReadOptions {
     /**
      * A time (ms) the caller knows the profile was written at. Cached copies
-     * taken before it are skipped, so the read is at least that fresh. This
+     * taken at or before it are skipped (one taken in the same millisecond
+     * may still be the old profile), so the read is fresher than that. This
      * is how someone's own edit shows on their next page: another warm
      * instance still holds its older in-process copy (see
      * utils/auth/profileWrites.ts).
@@ -88,7 +89,7 @@ export async function getUserProfilesByWalletIds(
     // 1. in-process
     for (const id of ids) {
         const hit = mem.get(id);
-        if (hit && hit.ts >= notBefore && now - hit.ts < profileTtl(hit.user)) {
+        if (hit && hit.ts > notBefore && now - hit.ts < profileTtl(hit.user)) {
             resolved[id] = hit.user;
         } else {
             misses.push(id);
@@ -105,7 +106,7 @@ export async function getUserProfilesByWalletIds(
                 const data = snap.data();
                 if (
                     data &&
-                    data.ts >= notBefore &&
+                    data.ts > notBefore &&
                     now - data.ts < profileTtl(data.user)
                 ) {
                     resolved[id] = data.user;
