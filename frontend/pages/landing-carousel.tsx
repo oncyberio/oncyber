@@ -1,7 +1,7 @@
 import Head from "next/head";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { SITE_TITLE } from "@components/layouts/headers";
+import { HOME_TITLE } from "@components/layouts/headers";
 import LandingCarouselPage from "@features/landing-carousel";
 import { firstScreenCovers } from "@features/landing-carousel/coverPreloads";
 import JsonLd from "@components/JsonLd";
@@ -36,7 +36,7 @@ export default function LandingCarousel(props: LandingPageProps) {
             ) : (
                 <>
                     <Head>
-                        <title key="title">{SITE_TITLE}</title>
+                        <title key="title">{HOME_TITLE}</title>
                         {/* Keyed, so the home page has this one description
                             and not the site default before it. */}
                         <meta

@@ -7,12 +7,13 @@ import {
     SHARE_IMAGE_PATH,
     SITE_DESCRIPTION,
     SITE_NAME,
+    HOME_TITLE,
     SITE_TITLE,
 } from "@utils/siteMeta";
 import { searchUrl } from "@utils/siteUrl";
 import { jsonLdScript, siteStructuredData } from "@utils/structuredData";
 
-export { SHARE_IMAGE_PATH, SITE_TITLE };
+export { HOME_TITLE, SHARE_IMAGE_PATH, SITE_TITLE };
 
 /**
  * Fonts preloaded at high priority: only those a page shows first.
@@ -132,7 +133,9 @@ export default function Headers({
     const canonical = notFound ? null : defaultCanonical(router?.pathname);
     const ownImage = showsOwnImage(router?.pathname, router?.query?.slug);
     const page = PAGE_META[router?.pathname];
-    const title = page?.title || SITE_TITLE;
+    const title = page?.title || HOME_TITLE;
+    // The card's picture says "oncyber: forever", so its title does too.
+    const previewTitle = page?.title || SITE_TITLE;
     const description = page?.description || SITE_DESCRIPTION;
     // Link previews keep the site's own wording unless the page has its own.
     const previewDescription = page?.description || PREVIEW_DESCRIPTION;
@@ -182,7 +185,7 @@ export default function Headers({
                     }}
                 />
             )}
-            <meta key="ogTitle" property="og:title" content={title} />
+            <meta key="ogTitle" property="og:title" content={previewTitle} />
             <meta
                 key="ogDescription"
                 property="og:description"
@@ -222,7 +225,11 @@ export default function Headers({
                 name="twitter:card"
                 content="summary_large_image"
             />
-            <meta key="twitterTitle" name="twitter:title" content={title} />
+            <meta
+                key="twitterTitle"
+                name="twitter:title"
+                content={previewTitle}
+            />
             <meta
                 key="twitterDescription"
                 name="twitter:description"

@@ -46,6 +46,10 @@ creator's name ("@name's space"), but it is not put forward to crawlers.
 `/discover`, the old "Live worlds" list, redirects to the home page like
 `/explore`: it shared the home page's title and no longer loaded its cards.
 
+The home page's title in a browser tab and a search result is "oncyber: open
+metaverse for the creative ones" (`HOME_TITLE`). Its link-preview card keeps
+"oncyber: forever" (`SITE_TITLE`), the words on the card's picture.
+
 ## What the November 2026 audit found
 
 A Semrush crawl of oncyber.io and of this site, and its link and keyword
