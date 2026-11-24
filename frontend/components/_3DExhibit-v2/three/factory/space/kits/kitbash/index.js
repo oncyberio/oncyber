@@ -29,7 +29,7 @@ import {
 	
 } from '@3constants'
 
-import { Space } 	from '@3factory/space/space'
+import { Space, SPACE_EVENTS } 	from '@3factory/space/space'
 
 import KitBuilder 	from './kitbuilder.js'
 
@@ -38,7 +38,7 @@ import { PortalPlaceholderFactory } from '@3portal/index'
 import SpaceFactoryAbstract from '@3factory/abstract/spacefactory.js'
 
 import BackgroundFactory from '@3factory/background'
-import { applyWorldMod } from '@features/worldMods'
+import { applyWorldMod, applyWorldScene } from '@features/worldMods'
 
 import Reflector from '@3factory/reflector'
 
@@ -231,6 +231,16 @@ class FutureSpaceFactory extends SpaceFactoryAbstract {
 				// const now = performance.now()
 
 				let kitbashImgs = isNewUpload ? await KitBuilder.bakeAssets( scene ) : null
+
+				// This world's own changes to its model and to what visitors
+				// collide with, before either is used (features/worldMods)
+				await applyWorldScene( opts.roomParameters?.slug, {
+					scene: kitbash.scene,
+					colliders: kitbash.collisions,
+					portalIds: Object.values(opts.exhibit?.portals || {}).map(portal => portal?.id).filter(Boolean),
+					mobile: IS_MOBILE,
+					onDispose: dispose => scene.once(SPACE_EVENTS.DISPOSE, dispose),
+				})
 
 				// console.log('bakeAssets', performance.now() - now)
 
