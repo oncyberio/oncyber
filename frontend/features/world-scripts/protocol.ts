@@ -7,6 +7,12 @@
  */
 
 import { cleanShader } from "./shaderGraph";
+import {
+    cleanLamp,
+    cleanParts,
+    type ModelLamp,
+    type PartCommand,
+} from "./parts";
 
 export const WORLD_SCRIPT_LIMITS = {
     /** Objects one script can have in the world at once. */
@@ -29,6 +35,19 @@ export const WORLD_SCRIPT_LIMITS = {
     maxScriptsPerSpace: 3,
     /** Errors before the host stops a script for good. */
     maxErrors: 25,
+    /** Models one script can have (a painted one is thousands of strokes). */
+    maxModels: 8,
+    /** Holes one script can open in the world's own model. */
+    maxOpenings: 6,
+    /** Longest side of one opening, in metres. */
+    maxOpeningSize: 60,
+    /** Avatars one script can have standing in the world. */
+    maxAvatars: 12,
+    /** Boxes and walls in one "solid". */
+    maxSolidParts: 64,
+    /** Characters of an avatar's name, and of what it says. */
+    maxNameLength: 40,
+    maxSpeechLength: 200,
 } as const;
 
 export const THING_SHAPES = [
@@ -44,8 +63,38 @@ export const THING_SHAPES = [
     "lathe",
     "extrude",
     "text",
+    // An object built from flat shapes, boxes, beams and columns, drawn
+    // the way the world's style says (parts.ts).
+    "model",
+    // Nothing to see: boxes and walls a visitor cannot walk through.
+    "solid",
+    // A box-shaped hole in the world's own model, for as long as it exists.
+    "opening",
+    // One of Oncyber's avatars, standing in the world.
+    "avatar",
 ] as const;
 export type ThingShape = (typeof THING_SHAPES)[number];
+
+/** Shapes a script may have only a few of (WORLD_SCRIPT_LIMITS). */
+export const SCARCE_SHAPES: Partial<Record<ThingShape, number>> = {
+    model: WORLD_SCRIPT_LIMITS.maxModels,
+    opening: WORLD_SCRIPT_LIMITS.maxOpenings,
+    avatar: WORLD_SCRIPT_LIMITS.maxAvatars,
+};
+
+/** What an avatar is doing. */
+export const AVATAR_MOTIONS = [
+    "idle",
+    "wave",
+    "dance",
+    "shuffle",
+    "pray",
+    "sit",
+] as const;
+export type AvatarMotion = (typeof AVATAR_MOTIONS)[number];
+
+/** A wall of a "solid": four corners, counter-clockwise from the side it stops. */
+export type SolidWall = [Vec3, Vec3, Vec3, Vec3];
 
 /**
  * How a thing's surface is drawn. "style" (the default) uses the world's own
@@ -123,6 +172,43 @@ export interface ThingProps {
     points?: number;
     /** A custom surface as a tree of building blocks (shaderGraph.ts). */
     shader?: import("./shaderGraph").ShaderGraph | null;
+    /** A box, cylinder or plane a visitor cannot walk through. */
+    solid?: boolean;
+    /** model: what it is made of, in the thing's own frame (parts.ts). */
+    parts?: PartCommand[];
+    /** model: a lamp whose light is worked into its colours. */
+    lamp?: ModelLamp | null;
+    /** solid: boxes ([min, max]) and one-sided walls, in the thing's frame. */
+    boxes?: Array<[Vec3, Vec3]>;
+    walls?: SolidWall[];
+    /** avatar: which of Oncyber's avatars, by id. */
+    avatar?: string;
+    /** avatar: the name shown over its head. */
+    name?: string;
+    /** avatar: what it is saying now ("" for nothing). */
+    say?: string;
+    /**
+     * avatar: what it does while standing. Walking and running come from
+     * moving it: the avatar steps along as its position changes.
+     */
+    motion?: AvatarMotion;
+}
+
+/** A door of the world's own model, as a script is told about it. */
+export interface DoorInfo {
+    id: string;
+    /** The middle of the doorway, on the ground. */
+    position: Vec3;
+    /** The way out through the door, as a turn about the up axis. */
+    yaw: number;
+    width: number;
+    height: number;
+    /** The space has made this door a portal: a script cannot open it. */
+    portal: boolean;
+    /** How far it stands open now: 0 shut, 1 fully open. */
+    open: number;
+    /** The building behind it, roughly: its middle on the ground and its size. */
+    building: { position: Vec3; size: Vec3 } | null;
 }
 
 /** What a script may change on one of the space's artworks (not saved). */
@@ -146,7 +232,9 @@ export type WorldScriptOp =
     | { op: "sound"; name: SoundName; volume: number }
     | { op: "log"; level: "log" | "warn" | "error"; text: string }
     | { op: "hud-clear" }
-    | { op: "player"; position: Vec3 };
+    | { op: "player"; position: Vec3 }
+    /** Swings one of the world's doors: 0 shut, 1 fully open. */
+    | { op: "door"; id: string; open: number };
 
 const ID = /^[a-zA-Z0-9_.:-]+$/;
 const COLOR = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -282,7 +370,44 @@ export function cleanThingProps(raw: unknown): ThingProps {
         const shader = cleanShader(input.shader);
         if (shader) props.shader = shader;
     }
+    if (typeof input.solid === "boolean") props.solid = input.solid;
+    if (Array.isArray(input.parts))
+        props.parts = cleanParts(input.parts, cleanColor);
+    if (input.lamp === null) props.lamp = null;
+    else if (input.lamp != null) {
+        const lamp = cleanLamp(input.lamp);
+        if (lamp) props.lamp = lamp;
+    }
+    const boxes = cleanCorners(input.boxes, 2);
+    if (boxes) props.boxes = boxes as Array<[Vec3, Vec3]>;
+    const walls = cleanCorners(input.walls, 4);
+    if (walls) props.walls = walls as SolidWall[];
+    if (typeof input.avatar === "string" && AVATAR_ID.test(input.avatar))
+        props.avatar = input.avatar;
+    if (input.name != null) props.name = cleanText(input.name, L.maxNameLength);
+    if (input.say != null) props.say = cleanText(input.say, L.maxSpeechLength);
+    if (AVATAR_MOTIONS.includes(input.motion as AvatarMotion))
+        props.motion = input.motion as AvatarMotion;
     return props;
+}
+
+const AVATAR_ID = /^[a-zA-Z0-9_-]{1,40}$/;
+const DOOR_ID = /^[a-zA-Z0-9_ .:-]{1,60}$/;
+
+/** A list of point groups (a box's two corners, a wall's four), checked. */
+function cleanCorners(value: unknown, corners: number): Vec3[][] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const L = WORLD_SCRIPT_LIMITS;
+    const out: Vec3[][] = [];
+    for (const item of value.slice(0, L.maxSolidParts)) {
+        if (!Array.isArray(item) || item.length !== corners) continue;
+        const points = item.map((point) =>
+            cleanVec(point, -L.maxSize, L.maxSize)
+        );
+        if (points.every((point) => point && Array.isArray(point)))
+            out.push(points as Vec3[]);
+    }
+    return out;
 }
 
 function cleanPoints(
@@ -387,6 +512,14 @@ export function cleanOp(raw: unknown): WorldScriptOp | null {
                 L.maxCoordinate
             );
             return position ? { op: "player", position } : null;
+        }
+        case "door": {
+            const id =
+                typeof input.id === "string" && DOOR_ID.test(input.id)
+                    ? input.id
+                    : null;
+            if (!id || !finite(input.open)) return null;
+            return { op: "door", id, open: clamp(input.open, 0, 1) };
         }
         case "log": {
             const level =

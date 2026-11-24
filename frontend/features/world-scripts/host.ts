@@ -15,6 +15,8 @@
  */
 import {
     cleanOps,
+    DoorInfo,
+    SCARCE_SHAPES,
     ThingProps,
     Vec3,
     WorldScriptOp,
@@ -53,6 +55,11 @@ export interface WorldScriptSink {
     removeThing(id: string): void;
     setArtwork(id: string, props: Partial<ArtworkInfo>): void;
     resetArtworks(): void;
+    /** The world's own doors, and how far each stands open. */
+    doors(): DoorInfo[];
+    /** Swings a door: 0 shut, 1 fully open. A portal's door is left alone. */
+    setDoor(id: string, open: number): void;
+    resetDoors(): void;
     movePlayer(position: Vec3): void;
     hud(key: string, text: string | null, corner: HudCorner): void;
     clearHud(): void;
@@ -330,6 +337,7 @@ export class WorldScriptHost {
                 view: this.sink.view(),
                 style: this.style,
                 artworks: this.sink.artworks(),
+                doors: this.sink.doors(),
             }).catch((error) => finish(error.message));
         });
 
@@ -349,6 +357,7 @@ export class WorldScriptHost {
         const added = new Set<string>();
         if (mode === "fresh") {
             this.sink.resetArtworks();
+            this.sink.resetDoors();
             this.sink.clearHud();
             this.sink.banner(null, 0);
             if (previous && this.startPosition)
@@ -443,6 +452,14 @@ export class WorldScriptHost {
                     );
                     return;
                 }
+                const few = SCARCE_SHAPES[op.props.shape];
+                if (few !== undefined && this.count(op.props.shape) >= few) {
+                    this.events.onLog?.(
+                        "warn",
+                        `A script can have ${few} of "${op.props.shape}" at once.`
+                    );
+                    return;
+                }
                 this.table.set(op.id, cloneProps(op.props));
                 sink.addThing(op.id, op.props);
                 return;
@@ -459,6 +476,9 @@ export class WorldScriptHost {
                 return;
             case "artwork":
                 sink.setArtwork(op.id, op.props);
+                return;
+            case "door":
+                sink.setDoor(op.id, op.open);
                 return;
             case "hud":
                 sink.hud(op.key, op.text, op.corner);
@@ -486,6 +506,14 @@ export class WorldScriptHost {
                 this.events.onLog?.(op.level, op.text);
                 return;
         }
+    }
+
+    private count(shape: ThingProps["shape"]) {
+        let count = 0;
+        this.table.forEach((props) => {
+            if (props.shape === shape) count++;
+        });
+        return count;
     }
 
     /** Called once per rendered frame with seconds since the last one. */
@@ -532,6 +560,7 @@ export class WorldScriptHost {
         for (const id of this.table.keys()) this.sink.removeThing(id);
         this.table.clear();
         this.sink.resetArtworks();
+        this.sink.resetDoors();
         this.sink.clearHud();
         this.sink.banner(null, 0);
         this.events.onStatus?.({ state: "idle" });
