@@ -13,6 +13,7 @@ import ExperienceControlIcon, {
 } from "@ui/components/ExperienceControlIcon";
 import { brandFoundation } from "@styles/brand";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
+import { useIsWorldDocument } from "@features/worlds/worldDocument";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -159,6 +160,9 @@ export default function ExperienceShell({
 }: ExperienceShellProps) {
     const locked = usePointerLocked();
     const [infoOpen, setInfoOpen] = useState(false);
+    // Inside the site's frame the page draws the header, the title and
+    // Back; the world keeps only its own controls (features/worlds).
+    const framedWorld = useIsWorldDocument();
     return (
         <Shell
             data-experience-chrome
@@ -166,7 +170,7 @@ export default function ExperienceShell({
             data-pointer-locked={locked || undefined}
         >
             <ImmersiveViewportStyle />
-            {showHeader && (
+            {showHeader && !framedWorld && (
                 <Header
                     menu={null}
                     search={null}
@@ -175,7 +179,10 @@ export default function ExperienceShell({
                     onConnected={onConnected}
                 />
             )}
-            <div className="experience-place">
+            <div
+                className="experience-place"
+                style={framedWorld ? { display: "none" } : undefined}
+            >
                 <button
                     type="button"
                     className="experience-back"

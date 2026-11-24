@@ -6,6 +6,7 @@ import {
     failLobbyDestination, holdLobbyDestinationAudio, isLobbyDestinationPreparing,
     lobbyDestinationPrepared, lobbyDestinationProgress,
 } from "@utils/lobbyDestinationBridge";
+import { worldDocument } from "@features/worlds/worldDocument";
 import audioListener from "@3gl/globals/audioListener";
 import { loadSceneAssets } from "@utils/loadSceneAssets";
 import { finishSpaceEntrance } from "@utils/spaceEntrance";
@@ -110,6 +111,12 @@ import {
 
 import { overrideInitialCoords } from "@3utils/spaceutils";
 import { observeSceneSize } from "@utils/artworks/observeSceneSize";
+
+/** Load progress, to whichever page is showing this world's cover. */
+function loadProgress(value: number) {
+    lobbyDestinationProgress(value);
+    worldDocument()?.progress(value);
+}
 
 export interface Scene3DProps {
     // Props from top page
@@ -359,7 +366,7 @@ export function Scene3D_Child({
             stage = "starting";
 
             setSceneLoaded(false);
-            lobbyDestinationProgress(.1);
+            loadProgress(.1);
 
             SET_DEFAULT_AVATAR_PICTURE(initExhibit); //! SHOULD REFACTOR
 
@@ -555,7 +562,7 @@ export function Scene3D_Child({
 
                     checkpoint();
 
-                    lobbyDestinationProgress(.3);
+                    loadProgress(.3);
                     markLoad("scene-assets-start");
                     // Record completed resources even if the avatar fails, so
                     // the session can dispose the unattached space safely.
@@ -613,7 +620,7 @@ export function Scene3D_Child({
                 cinematic = { export: spline.export };
             }
 
-            lobbyDestinationProgress(.75);
+            loadProgress(.75);
             await yieldLobbyLoadingWork({ signal, force: true });
             attachedSpace = true;
             await world.current.setState(APP_STATES.SPACE, {

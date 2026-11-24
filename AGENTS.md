@@ -142,6 +142,11 @@ them, and so does its Vercel preview; see
 -   **Content host.** Outside experiences run in a sandboxed frame and talk to
     the page through the message bridge in `features/content-host/`. See
     [docs/content-host.md](docs/content-host.md).
+-   **Framed worlds.** With `NEXT_PUBLIC_WORLD_ORIGIN` set, a space's page
+    on the site frames the same address on the world host, and the world
+    speaks the games contract to it (`features/worlds/`). Unset, worlds run
+    in the page. The plan and its slices:
+    [docs/plans/framed-worlds.md](docs/plans/framed-worlds.md).
 -   **Wallets.** `dApp/connect.tsx` returns a connection per chain. An Ethereum
     connection carries an ethers provider (`getEthersProvider(connection)`);
     sign and send through it.

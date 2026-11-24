@@ -102,6 +102,10 @@ export const nodeEnv = {
     YOUTUBE_API_KEY_GET: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY,
     // Server-only: never expose a Pinata JWT with a NEXT_PUBLIC_ prefix.
     PINATA_JWT_KEY: process.env.PINATA_JWT_KEY,
+    // The origin native worlds are served from, in a frame, when it is a
+    // second host of this app (docs/plans/framed-worlds.md). Unset: worlds
+    // run in the page. Read through WORLD_FRAME in features/worlds.
+    WORLD_ORIGIN: process.env.NEXT_PUBLIC_WORLD_ORIGIN,
     // Server-only. Who may publish a game from outside the repository
     // (docs/games/publishing.md): unset is off (open on the development
     // server), "open", or a comma list of account ids. Read through

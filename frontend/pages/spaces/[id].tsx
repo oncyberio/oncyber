@@ -41,6 +41,14 @@ import Exhibit3DDisplay from "@3/displyUI/Exhibit3DGate";
 import SpaceSeo from "@components/seo/SpaceSeo";
 import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
+import {
+    WORLD_FRAME,
+    worldFrameRole,
+    type WorldFrameRole,
+} from "@features/worlds/worldFrame";
+import { worldDocument } from "@features/worlds/worldDocument";
+
+const FramedWorld = dynamic(() => import("@features/worlds/FramedWorld"));
 const EmbeddedExperience = dynamic(
     () => import("@features/content-host/EmbeddedExperience"),
     { ssr: false }
@@ -52,6 +60,8 @@ export default function Exhibit(props: {
     gatingError?: GatingCheckResult;
     getExhibitPath: (exhibit: Experience, pathname: string) => string;
     notFound?: { query: string };
+    /** Set where worlds are framed: which side of the frame this page is. */
+    worldFrameRole?: WorldFrameRole | null;
 }) {
     const { isAnonInitialized } = useContext(UserContext);
     if (props.notFound) return <NotFoundPage {...(props as any)} />;
@@ -73,6 +83,34 @@ export default function Exhibit(props: {
                 <EmbeddedExperience
                     key={props.experience.id}
                     experience={props.experience}
+                />
+            </>
+        );
+    }
+    // Where worlds are framed, the site's page is the frame around the
+    // world and the world host serves the world itself (features/worlds).
+    // A gated world stays in the page: the world host has no session to
+    // check a visitor against yet.
+    if (
+        props.worldFrameRole === "page" &&
+        WORLD_FRAME &&
+        props.experience &&
+        props.dest &&
+        !props.gatingError
+    ) {
+        return (
+            <>
+                <SpaceSeo
+                    experience={props.experience}
+                    destination={props.dest}
+                    ownerName={props.experience.ownerName}
+                    gated={false}
+                />
+                <FramedWorld
+                    key={props.experience.id}
+                    title={props.experience.info?.headline || "Untitled world"}
+                    spaceId={props.experience.id}
+                    frame={WORLD_FRAME}
                 />
             </>
         );
@@ -124,6 +162,11 @@ function NativeExhibit({
         portalPreload.current = new AbortController();
         preloadExhibitPortalData(world, portalPreload.current.signal);
     }, []);
+    // In the site's frame, the page lifts its cover once the world has drawn.
+    const handleWorldDrawn = useCallback(() => {
+        worldDocument()?.drawn();
+        handleWorldRendered();
+    }, [handleWorldRendered]);
 
     useEffect(() => {
         if (shouldPreloadPortals(experience)) {
@@ -285,7 +328,7 @@ function NativeExhibit({
                             artworks={artworks}
                             exhibit={experience || null}
                             changeExhibit={changeExhibit}
-                            onWorldRendered={handleWorldRendered}
+                            onWorldRendered={handleWorldDrawn}
                             enableEditor={true}
                         />
                     </GatingErrorProvider>
@@ -296,7 +339,7 @@ function NativeExhibit({
 }
 
 export const getServerSideProps = AuthServerSidePropsLite(
-    async ({ query, res, resolvedUrl }, user, token) => {
+    async ({ query, req, res, resolvedUrl }, user, token) => {
         // Links pasted with a trailing newline or space (".../spaces/<id>%0A")
         // still reach the space.
         const id = String(query.id ?? "");
@@ -348,6 +391,7 @@ export const getServerSideProps = AuthServerSidePropsLite(
         return {
             ...data,
             gatingError,
+            worldFrameRole: worldFrameRole(req.headers.host),
         };
     }
 );

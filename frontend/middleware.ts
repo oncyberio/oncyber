@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { WORLD_FRAME, worldFrameRole } from "@features/worlds/worldFrame";
+import { answerOnWorldHost } from "@features/worlds/worldHost";
 
 // ---------------------------------------------------------------------------
 // Bot blocking at the edge.
@@ -49,6 +51,47 @@ function deny() {
     });
 }
 
+/**
+ * A request to the world host (features/worlds): sent to the site when a
+ * person opened it directly, otherwise served without its cookies, so
+ * nothing there is ever signed in, and framable by the site alone.
+ */
+function onWorldHost(req: NextRequest) {
+    const answer = answerOnWorldHost(
+        {
+            path: req.nextUrl.pathname + req.nextUrl.search,
+            dest: req.headers.get("sec-fetch-dest"),
+            mode: req.headers.get("sec-fetch-mode"),
+        },
+        WORLD_FRAME
+    );
+    if ("redirect" in answer) {
+        // A page, not a Location header: Next rewrites a redirect to another
+        // host of the same server into a relative one, which would lead
+        // straight back here.
+        const to = answer.redirect
+            .replace(/["<>]/g, encodeURIComponent)
+            .replace(/&/g, "&amp;");
+        return new NextResponse(
+            `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${to}"><title>Oncyber</title><a href="${to}">Continue to Oncyber</a>`,
+            {
+                headers: {
+                    "content-type": "text/html; charset=utf-8",
+                    "cache-control": "no-store",
+                    "x-robots-tag": "noindex",
+                },
+            }
+        );
+    }
+    const headers = new Headers(req.headers);
+    headers.delete("cookie");
+    const response = NextResponse.next({ request: { headers } });
+    response.headers.set("Content-Security-Policy", answer.policy);
+    // The site's own address is the one to index.
+    response.headers.set("X-Robots-Tag", "noindex");
+    return response;
+}
+
 export function middleware(req: NextRequest) {
     const ua = req.headers.get("user-agent") || "";
     const path = req.nextUrl.pathname;
@@ -70,6 +113,9 @@ export function middleware(req: NextRequest) {
     if (!isApi && TOOL.test(ua)) {
         return deny();
     }
+
+    if (worldFrameRole(req.headers.get("host")) === "world")
+        return onWorldHost(req);
 
     return NextResponse.next();
 }
