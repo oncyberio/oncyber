@@ -7,6 +7,9 @@ import voiceChat from "../voiceChat";
 import SocialApi from "@api/social/_api";
 
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "./constants";
+import { requestSeat, takeSeat } from "./join";
+import { joinRelayedRoom } from "@features/worlds/relayedRoom";
+import { worldDocument } from "@features/worlds/worldDocument";
 
 export const ARENA_SERVER = ARENA_HTTP_URL;
 
@@ -105,37 +108,38 @@ class Arena {
         }
 
         checkCancelled();
+        // In the site's frame the page holds the connection, joined as its
+        // own visitor; the world gets the room relayed (features/worlds).
+        const framed = worldDocument();
+        if (framed) {
+            this.room = (await joinRelayedRoom(
+                framed,
+                userData,
+                abortController.signal
+            )) as unknown as Colyseus.Room<any>;
+            return this.room;
+        }
         userData.username = encodeURIComponent(userData.username);
 
-        const request = await fetch(`${ARENA_SERVER}/join`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(userData),
+        const response = await requestSeat(userData, {
             signal: abortController.signal,
         });
-
-        const response = await request.json();
-
-        if (response.success) {
-            if (userData.lobbyGroupCohort &&
-                response.lobbyGroupCohort !== userData.lobbyGroupCohort)
-                throw new Error("Group arrivals are not available in this world yet.");
-            checkCancelled();
-            const joined = await this.client.consumeSeatReservation(response.reservation);
-            if (abortController.signal.aborted) {
-                // Seat consumption cannot be cancelled in Colyseus. A late seat
-                // belongs to the abandoned attempt, never to the current room.
-                void Promise.resolve(joined.leave(true)).catch(() => {});
-                checkCancelled();
-            }
-            this.room = joined;
-        } else {
+        if (
+            userData.lobbyGroupCohort &&
+            response.lobbyGroupCohort !== userData.lobbyGroupCohort
+        )
             throw new Error(
-                response.message || "Failed to join multiplayer room"
+                "Group arrivals are not available in this world yet."
             );
+        checkCancelled();
+        const joined = await takeSeat(response.reservation);
+        if (abortController.signal.aborted) {
+            // Seat consumption cannot be cancelled in Colyseus. A late seat
+            // belongs to the abandoned attempt, never to the current room.
+            void Promise.resolve(joined.leave(true)).catch(() => {});
+            checkCancelled();
         }
+        this.room = joined;
 
         // const [room] = rooms
         //     .filter((room) => room.metadata.spaceId === userData.label)

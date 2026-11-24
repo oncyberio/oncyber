@@ -35,17 +35,18 @@ export function readWorldLocation(
 }
 
 /**
- * The id of the space at an address, asked of the site itself. Null when
+ * The id of a space named by id, or by its link or room label, asked of
+ * the site itself. Null when
  * there is no such space or the site cannot say.
  */
 export async function worldSpaceId(
-    location: WorldLocation,
+    space: WorldLocation["space"],
     request: typeof fetch = fetch
 ): Promise<string | null> {
-    if ("id" in location.space) return location.space.id;
+    if ("id" in space) return space.id;
     try {
         const response = await request(
-            `/api/world-access?space=${encodeURIComponent(location.space.link)}`
+            `/api/world-access?space=${encodeURIComponent(space.link)}`
         );
         const body = response.ok ? await response.json() : null;
         return typeof body?.id === "string" ? body.id : null;

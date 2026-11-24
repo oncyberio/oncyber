@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import shortid from "shortid";
 import { baseTokens } from "@styles/tokens";
 import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
@@ -19,6 +20,8 @@ import {
 } from "@features/games/gameContract";
 import { WORLD_GAME_ID } from "./worldDocument";
 import { readWorldLocation, worldSpaceId } from "./worldLocation";
+import type { RoomIdentity } from "./roomRelay";
+import { hostWorldRoom } from "./worldRoomHost";
 import { worldVisitorMessage } from "./worldVisitor";
 import {
     WORLD_PERMISSIONS,
@@ -84,13 +87,31 @@ export default function FramedWorld({
         setElsewhere((current) =>
             current?.pathname === there.pathname ? current : there
         );
-        void worldSpaceId(location).then((spaceId) =>
+        void worldSpaceId(location.space).then((spaceId) =>
             setElsewhere((current) =>
                 spaceId && current?.pathname === there.pathname
                     ? { ...current, spaceId }
                     : current
             )
         );
+    };
+    // Who the page joins a room as. The session is lent only to the room
+    // of the space this page opened: a room reached through a portal inside
+    // the frame is joined by name alone.
+    const { token, user, userData, isSignedIn } = useContext(UserContext);
+    const guestId = useRef("");
+    const identify = async (label: string): Promise<RoomIdentity> => {
+        if (!isSignedIn || !user?.id)
+            return {
+                userId: (guestId.current ||= `Anon-${shortid.generate()}`),
+                token: "",
+            };
+        const here = (await worldSpaceId({ link: label })) === spaceId;
+        return {
+            userId: user.id,
+            token: here ? token : "",
+            username: userData?.username,
+        };
     };
     const travel = (href: unknown) => {
         const to = publicExperienceHref(href, window.location.origin);
@@ -115,6 +136,7 @@ export default function FramedWorld({
                 onVisitorChanged={reload}
                 onLocation={follow}
                 onTravel={travel}
+                identify={identify}
             />
             <ExperienceShell
                 title={elsewhere ? elsewhere.title : title}
@@ -180,6 +202,7 @@ function WorldFrameView({
     onVisitorChanged,
     onLocation,
     onTravel,
+    identify,
 }: {
     title: string;
     src: string;
@@ -192,6 +215,8 @@ function WorldFrameView({
     onLocation(href: unknown, title: unknown): void;
     /** The world asks to go somewhere else on the site. */
     onTravel(href: unknown): void;
+    /** Who the page joins a room as, for the world's room. */
+    identify(label: string): Promise<RoomIdentity>;
 }) {
     const element = useRef<HTMLIFrameElement>(null);
     const loading = useGameLoading(WORLD_GAME_ID, element, frame.world);
@@ -202,13 +227,37 @@ function WorldFrameView({
     // fields only (./worldVisitor). The world starts once it has them.
     const present = useRef(visitor);
     present.current = visitor;
-    const handlers = useRef({ onLocation, onTravel });
-    handlers.current = { onLocation, onTravel };
+    const handlers = useRef({ onLocation, onTravel, identify });
+    handlers.current = { onLocation, onTravel, identify };
+    // The world's room: the page holds the connection and relays it
+    // (./roomRelay), so the session that joins it never enters the frame.
+    const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
+    useEffect(() => {
+        const host = hostWorldRoom({
+            post: (kind, data) =>
+                element.current?.contentWindow?.postMessage(
+                    { ...data, type: GAME_MESSAGE_PREFIX + kind },
+                    frameTarget(frame.world)
+                ),
+            identify: (label) => handlers.current.identify(label),
+            join: async (body, signal) => {
+                const { requestSeat, takeSeat } = await import(
+                    "@utils/arena/join"
+                );
+                const { reservation } = await requestSeat(body, { signal });
+                return takeSeat(reservation);
+            },
+        });
+        room.current = host;
+        return () => host.dispose();
+    }, [frame.world]);
     const told = useRef<object | null>(null);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             if (!fromFrame(event, element.current, frame.world)) return;
             const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
+            if (kind?.startsWith("room-"))
+                return room.current?.receive(kind, event.data);
             if (kind === "location")
                 return handlers.current.onLocation(
                     event.data.href,

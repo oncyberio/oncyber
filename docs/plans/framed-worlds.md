@@ -120,10 +120,29 @@ default.
     so its ways out (search, the lobby) are a `travel` request the page
     carries out, on the site only. Back is the page's.
 
-3. **The room, voice and chat in the page.** The engine's multiplayer gets a
-   transport seam: poses up, peers down, as games do. Voice and chat move to
-   the page's existing game code and keep running when a world stops. The
-   engine's copies are removed in the same slice.
+3. **The room, voice and chat in the page.** In three steps.
+
+    1. **The room.** _(Done.)_ The page holds the world's room connection,
+       joined as the page's own visitor, and relays it into the frame
+       (`features/worlds/roomRelay.ts`): each patch of who is in the room
+       goes down, the world's own moves go up. The world's code sees a
+       room like the one it has always had, so presence, chat and the
+       people list work as before. Who is joining is the page's to say:
+       the world cannot rename a signed-in visitor, and `login` and voice
+       signalling never come from a world. The session is lent only to the
+       room of the space the page opened; a room reached through a portal
+       inside the frame is joined by name alone. One join function now
+       serves worlds, games and this (`utils/arena/join.ts`).
+    2. **Voice.** The page runs voice on that room, as it does for games,
+       with volume from the room's positions; the world is told who is
+       talking. Until then a framed world has no voice. Screen share drawn
+       in 3D needs its own answer: a stream cannot cross into the frame.
+    3. **Chat and people.** The chat, the people list and moderation move
+       to the page's interface, so they outlive a world that stops. The
+       engine's copies go in the same step. Until then they are drawn
+       inside the world, and a moderator's own controls are hidden there
+       (the room does know them as one).
+
 4. **What the world asks the page for.** Artwork info and its links, opening
    a link, sharing, gating and password prompts, fullscreen, screenshots.
    A heartbeat, so the page can tell a hung world from a slow one.
@@ -160,6 +179,12 @@ The studio stays unframed until editing has its own plan.
     went through for a page on the site and not for another site. The
     headless browser could not walk the avatar, so the engine's own
     location reports were not seen end to end _(not tested)_.
+-   Slice 3, the room: with the room server running locally, a
+    signed-in visitor and a guest opened the same framed world. Both were
+    in one room, each world drew the other's avatar, and the room knew the
+    signed-in visitor as the space's admin, with the session on the page
+    only. Chat between them, moving, and leaving _(not tested)_ in a
+    browser; the relay's two halves are tested against each other.
 -   First measurement on a production build and a real device: cold and warm
     load against today's page _(not measured)_.
 

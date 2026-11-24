@@ -37,7 +37,9 @@ describe("readWorldLocation", () => {
 describe("worldSpaceId", () => {
     test("an address by id needs no lookup", async () => {
         const request = jest.fn();
-        expect(await worldSpaceId(read("/spaces/abc"), request)).toBe("abc");
+        expect(await worldSpaceId(read("/spaces/abc").space, request)).toBe(
+            "abc"
+        );
         expect(request).not.toHaveBeenCalled();
     });
 
@@ -46,9 +48,9 @@ describe("worldSpaceId", () => {
             ok: true,
             json: async () => ({ exists: true, id: "abc" }),
         }));
-        expect(await worldSpaceId(read("/starry night"), request as any)).toBe(
-            "abc"
-        );
+        expect(
+            await worldSpaceId(read("/starry night").space, request as any)
+        ).toBe("abc");
         expect(request).toHaveBeenCalledWith(
             "/api/world-access?space=starry%20night"
         );
@@ -62,7 +64,7 @@ describe("worldSpaceId", () => {
         const down = jest.fn(async () => {
             throw new Error("offline");
         });
-        expect(await worldSpaceId(read("/gone"), none as any)).toBeNull();
-        expect(await worldSpaceId(read("/gone"), down as any)).toBeNull();
+        expect(await worldSpaceId(read("/gone").space, none as any)).toBeNull();
+        expect(await worldSpaceId(read("/gone").space, down as any)).toBeNull();
     });
 });

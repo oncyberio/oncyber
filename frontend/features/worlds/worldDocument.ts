@@ -37,6 +37,9 @@ export interface WorldDocument {
     location(href: string, title?: string): void;
     /** Go somewhere else on the site: only the page can. */
     travel(href: string): void;
+    /** Any other message to the page, and the page's to the world. */
+    send(kind: string, data?: object): void;
+    listen(handler: (kind: string, data: any) => void): () => void;
     /** 0–1, while the world loads. */
     progress(value: number, label?: string): void;
     /** The world has drawn: the page may show it. */
@@ -81,6 +84,7 @@ export function createWorldDocument(
 
     let greeted = false;
     let drawn = false;
+    const heard = new Set<(kind: string, data: any) => void>();
     let name: (visitor: WorldVisitor | null) => void = () => {};
     const visitor = new Promise<WorldVisitor | null>((resolve) => {
         name = resolve;
@@ -99,7 +103,10 @@ export function createWorldDocument(
     const receive = (event: MessageEvent) => {
         if (event.source !== win.parent || event.origin !== frame.site) return;
         const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
-        if (kind !== "identity" || greeted) return;
+        if (!kind) return;
+        if (kind !== "identity")
+            return [...heard].forEach((handler) => handler(kind, event.data));
+        if (greeted) return;
         greeted = true;
         name(readWorldVisitor(event.data));
     };
@@ -108,6 +115,11 @@ export function createWorldDocument(
     let reported = "";
     return {
         visitor: () => visitor,
+        send: post,
+        listen(handler) {
+            heard.add(handler);
+            return () => void heard.delete(handler);
+        },
         location(href, title) {
             if (href === reported) return;
             reported = href;
@@ -136,6 +148,7 @@ export function createWorldDocument(
             name(null);
             win.clearInterval(asking);
             win.removeEventListener("message", receive);
+            heard.clear();
         },
     };
 }

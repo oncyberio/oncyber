@@ -1,5 +1,6 @@
-import { Client, type Room } from "colyseus.js";
-import { ARENA_HTTP_URL, ARENA_WS_URL } from "@utils/arena/constants";
+import type { Room } from "colyseus.js";
+import { ARENA_HTTP_URL } from "@utils/arena/constants";
+import { requestSeat, takeSeat } from "@utils/arena/join";
 import { ColyseusSignaling } from "@utils/voiceChat/ColyseusSignaling";
 import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
 import {
@@ -116,10 +117,8 @@ export class GameRoom implements SocialRoom {
 
     async connect() {
         try {
-            const response = await fetch(`${ARENA_HTTP_URL}/join`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            const { reservation } = await requestSeat(
+                {
                     label: this.label,
                     currentSpace: this.label,
                     userId: this.identity.userId,
@@ -134,16 +133,10 @@ export class GameRoom implements SocialRoom {
                         z: String(this.pose.z),
                     },
                     rotationY: String(this.pose.h),
-                }),
-            });
-            const result = await response.json();
-            if (!result?.success)
-                throw new Error(
-                    result?.message || "The game room is unavailable."
-                );
-            const room = await new Client(ARENA_WS_URL).consumeSeatReservation(
-                result.reservation
+                },
+                { unavailable: "The game room is unavailable." }
             );
+            const room = await takeSeat(reservation);
             if (this.closed) {
                 void Promise.resolve(room.leave(true)).catch(() => {});
                 return;

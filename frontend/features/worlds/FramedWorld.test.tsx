@@ -43,6 +43,20 @@ jest.mock("@features/lobby/avatarSelection", () => ({
     ),
 }));
 
+const mockSeat = jest.fn();
+jest.mock("@utils/arena/join", () => ({
+    requestSeat: (...args: unknown[]) => mockSeat(...args),
+    takeSeat: async () => ({
+        sessionId: "me",
+        id: "room-1",
+        send: jest.fn(),
+        onStateChange: jest.fn(),
+        onMessage: jest.fn(),
+        onLeave: jest.fn(),
+        leave: jest.fn(),
+    }),
+}));
+
 import { UserContext } from "@components/context/UserContext";
 import FramedWorld, { WORLD_LOAD_TIMEOUT_MS } from "./FramedWorld";
 
@@ -312,4 +326,90 @@ test("travel the world asks for is done by the page, on this site only", () => {
     });
     fromWorld({ type: "oncyber:game:travel", href: "//elsewhere.example" });
     expect(mockPush).toHaveBeenCalledTimes(1);
+});
+
+describe("the world's room", () => {
+    const join = (label: string) =>
+        act(async () => {
+            window.dispatchEvent(
+                new MessageEvent("message", {
+                    data: {
+                        type: "oncyber:game:room-join",
+                        seq: 1,
+                        options: {
+                            label,
+                            position: { x: 1, y: 2, z: 3 },
+                            avatar: "https://cdn.example/me.png",
+                            username: "anything",
+                            userId: "0xmallory",
+                            token: "made up",
+                        },
+                    },
+                    origin: frame.world,
+                    source: element().contentWindow,
+                })
+            );
+            // the lookup, the seat and the join each take a turn
+            for (let i = 0; i < 8; i++) await Promise.resolve();
+        });
+    const signIn = async () => {
+        account = {
+            isSignedIn: true,
+            token: "page-session",
+            user: { id: "0xada" },
+            userData: { username: "ada" },
+        } as any;
+        await render();
+        listen();
+    };
+    beforeEach(() => {
+        mockSeat.mockReset();
+        mockSeat.mockResolvedValue({ reservation: {} });
+    });
+
+    test("a guest's world joins as a guest the page names", async () => {
+        await join("starry-night");
+        expect(mockSeat.mock.calls[0][0]).toMatchObject({
+            label: "starry-night",
+            userId: expect.stringMatching(/^Anon-/),
+            token: "",
+            username: "anything",
+        });
+        expect(sent.at(-1).message).toEqual({
+            type: "oncyber:game:room-joined",
+            seq: 1,
+            sessionId: "me",
+            roomId: "room-1",
+        });
+    });
+
+    test("a signed-in visitor joins this space's room with the page's session, which stays on the page", async () => {
+        (fetch as jest.Mock).mockResolvedValue({
+            ok: true,
+            json: async () => ({ exists: true, id: "abc" }),
+        });
+        await signIn();
+        await join("starry-night");
+        expect(fetch).toHaveBeenCalledWith(
+            "/api/world-access?space=starry-night"
+        );
+        expect(mockSeat.mock.calls[0][0]).toMatchObject({
+            userId: "0xada",
+            token: "page-session",
+            username: "ada",
+        });
+        expect(JSON.stringify(sent)).not.toContain("page-session");
+    });
+
+    test("a room reached through a portal is joined by name, without the session", async () => {
+        // the label is another space's (the lookup says "def", not "abc")
+        await signIn();
+        await join("someone-elses-space");
+        expect(mockSeat.mock.calls[0][0]).toMatchObject({
+            label: "someone-elses-space",
+            userId: "0xada",
+            token: "",
+            username: "ada",
+        });
+    });
 });
