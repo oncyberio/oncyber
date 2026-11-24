@@ -539,6 +539,11 @@ export default function NativeExperienceChrome({
                                 nativePanelTitles[currentTab] || "Space options"
                             }
                             returnFocusRef={moreButton}
+                            // A report or feedback being written is not
+                            // thrown away by a stray click on the world.
+                            closeOnClickAway={
+                                !["feedback", "report"].includes(currentTab)
+                            }
                             onClose={() => setCurrentTab("")}
                             onBack={() => {
                                 setCurrentTab("");
