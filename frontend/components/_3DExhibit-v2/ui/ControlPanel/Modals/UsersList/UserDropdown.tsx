@@ -232,18 +232,17 @@ export const DropdownWrapper = styled.ul<{
     top: 12px;
     z-index: 10000000000;
 
-    min-width: 184px;
+    /* The lobby People panel's row menu. */
+    min-width: 168px;
     margin: 0;
-    padding: 6px;
+    padding: 4px;
     list-style: none;
 
-    background: rgba(18, 18, 20, 0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
-    color: #fff;
+    background: #15181ef5;
+    border: 1px solid #ffffff1a;
+    border-radius: 10px;
+    box-shadow: 0 10px 28px #00000080;
+    color: #f3f3f1;
 
     ${(props) => {
         if (props.position) {
@@ -258,13 +257,15 @@ export const DropdownWrapper = styled.ul<{
     & > li {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
 
-        padding: 8px 10px;
-        border-radius: 8px;
+        min-height: 30px;
+        padding: 0 10px;
+        box-sizing: border-box;
+        border-radius: 6px;
 
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 400;
         line-height: 1;
         cursor: pointer;
         white-space: nowrap;
@@ -281,7 +282,7 @@ export const DropdownWrapper = styled.ul<{
         }
 
         &:hover {
-            background: rgba(255, 255, 255, 0.09);
+            background: #ffffff10;
 
             & .item-icon {
                 opacity: 1;
@@ -289,11 +290,7 @@ export const DropdownWrapper = styled.ul<{
         }
 
         &.danger {
-            color: #ff6b6b;
-
-            &:hover {
-                background: rgba(255, 90, 90, 0.14);
-            }
+            color: #ff8a80;
         }
     }
 `;

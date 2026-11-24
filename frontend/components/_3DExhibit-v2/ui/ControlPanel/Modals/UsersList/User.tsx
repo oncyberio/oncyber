@@ -20,8 +20,6 @@ import {
 
 import Avatar from "@ui/components/Avatar";
 
-import { IconButton } from "@ui/components/IconButton";
-
 import IconImg from "@ui/components/IconImg";
 
 import Spinner from "@ui/components/Spinner";
@@ -31,6 +29,8 @@ import { EventCallbacks, Events } from "@utils/voiceChat/types";
 import { useContext, useEffect, useRef, useState } from "react";
 
 import styled, { css } from "styled-components";
+
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 
 import UserDropdown from "./UserDropdown";
 
@@ -239,8 +239,8 @@ export default function User({
             {(room.sessionId !== user.sessionId || isMod) && (
                 <div>
                     {isMod && voiceUser && room.sessionId !== user.sessionId && (
-                        <AudioWrapper style={{ marginRight: 16 }}>
-                            <div style={{ marginLeft: 16 }}>
+                        <AudioWrapper>
+                            <div>
                                 <div className="audio-icons">
                                     {isPlaying &&
                                         withLoadingState(
@@ -323,20 +323,18 @@ export default function User({
                     )}
 
                     <div style={{ position: "relative" }} ref={dropTargetRef}>
-                        <div
+                        <button
+                            type="button"
+                            className="person-more"
+                            aria-label={`Manage ${username || userId}`}
+                            aria-expanded={isDropdownShowing}
                             onClick={() =>
                                 setDropdownShowing((state) => !state)
                             }
                             ref={(el) => addTogglerRef("parent", el)}
                         >
-                            <IconButton
-                                size="xsmall"
-                                style={{ border: "1px solid #f5f5f54d" }}
-                                mode="light"
-                                outline
-                                name="more-horizontal"
-                            />
-                        </div>
+                            •••
+                        </button>
 
                         {isDropdownShowing ? (
                             <UserDropdown
@@ -354,60 +352,126 @@ export default function User({
     );
 }
 
+/** A quiet "•••", as in the lobby's People panel. */
+export const personMore = css`
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: ${base.color.muted};
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    cursor: pointer;
+    &:hover,
+    &[aria-expanded="true"] {
+        background: ${base.color.line.faint};
+        color: ${lobby.color.ink};
+    }
+    &:focus-visible {
+        outline: 2px solid var(--oc-accent, #2567ff);
+        outline-offset: 2px;
+    }
+`;
+
+/* One row of the lobby's People panel: a 26 px photo, a 13 px name and
+   quiet controls on the right. */
 const UserWrapper = styled.div`
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 10px;
+    min-height: 40px;
+    padding: 4px 2px;
+    box-sizing: border-box;
+
+    & + & {
+        border-top: 1px solid ${base.color.line.faint};
+    }
 
     & > div {
         display: flex;
         align-items: center;
+        gap: 6px;
+        min-width: 0;
     }
 
     .profile {
+        flex: 1;
+        gap: 10px;
         cursor: pointer;
     }
 
     .title {
-        font-size: 14px;
-        font-weight: 500;
-        margin-left: 8px;
-        text-overflow: ellipsis;
-        max-width: 8em;
+        min-width: 0;
+        margin: 0;
         overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 13px;
+        font-weight: 400;
+    }
+
+    .person-more {
+        ${personMore}
     }
 `;
 
 const AvatarWrapper = styled.div`
-    border: 2px solid white;
-    box-sizing: initial;
-    border-radius: 50%;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex: none;
+    border-radius: 50%;
+    outline: 2px solid transparent;
+    outline-offset: 1px;
+    background: ${base.color.line.faint};
 
+    .ds-avatar {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        min-height: 26px !important;
+    }
+
+    /* The lobby's live colour rings whoever is speaking. */
     &.speaking {
-        border: 2px solid #00e3bd;
+        outline-color: #2cf8d5;
     }
 `;
 
 const AudioWrapper = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
 
     & .audio-icons {
         display: flex;
         flex-direction: row;
         align-items: center;
-        gap: 8px;
+        gap: 2px;
 
         & > .audio-icon {
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
             cursor: pointer;
+            opacity: 0.8;
+        }
+
+        & > .audio-icon:hover {
+            background: ${base.color.line.faint};
+            opacity: 1;
         }
 
         & > .audio-icon.disabled {
             cursor: default;
+            opacity: 0.45;
+            background: none;
         }
     }
 `;

@@ -14,12 +14,13 @@ import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 
 import Avatar from "@ui/components/Avatar";
 
-import { IconButton } from "@ui/components/IconButton";
-
 import { useContext, useState } from "react";
 
 import styled from "styled-components";
 
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
+
+import { personMore } from "./User";
 import { DropdownItem, DropdownWrapper } from "./UserDropdown";
 
 export default function SpaceControl({ setCurrentTab }) {
@@ -53,7 +54,7 @@ export default function SpaceControl({ setCurrentTab }) {
     }
 
     return (
-        <Container style={{ marginTop: 16, marginBottom: 12 }}>
+        <Container>
             <LeftSection>
                 <Avatar
                     size="small"
@@ -85,18 +86,16 @@ export default function SpaceControl({ setCurrentTab }) {
                     />
                 </div> */}
 
-                <div
+                <button
+                    type="button"
+                    className="person-more"
+                    aria-label={t`SPACE_GLOBAL`}
+                    aria-expanded={isDropdownShowing}
                     onClick={() => setDropdownShowing((state) => !state)}
                     ref={(el) => addTogglerRef("parent", el)}
                 >
-                    <IconButton
-                        size="xsmall"
-                        style={{ border: "1px solid #f5f5f54d" }}
-                        mode="light"
-                        outline
-                        name="more-horizontal"
-                    />
-                </div>
+                    •••
+                </button>
 
                 {isDropdownShowing ? (
                     <DropdownWrapper
@@ -123,43 +122,57 @@ export default function SpaceControl({ setCurrentTab }) {
     );
 }
 
+/* The space's own row, in the same measure as the people below it. */
 const Container = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 8px;
+    padding: 4px 2px;
+    box-sizing: border-box;
+
+    .ds-avatar {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        min-height: 26px !important;
+        background: ${base.color.line.faint};
+    }
+
+    .person-more {
+        ${personMore}
+    }
 `;
 
 const TitleWrapper = styled.div`
-    margin-left: 8px;
+    min-width: 0;
 
     .title {
-        font-weight: 500;
-        font-size: 14px;
-        letter-spacing: -0.01em;
-        color: #ffffff;
         margin: 0;
-        white-space: nowrap;
-        margin-bottom: 4px;
-        max-width: 12em;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
+        color: ${lobby.color.ink};
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 18px;
     }
 
     .title-label {
-        font-weight: 500;
-        font-size: 12px;
-        line-height: 100%;
-
-        color: #ffffff;
         margin: 0;
-
-        opacity: 0.5;
+        color: ${lobby.color.secondary};
+        font-size: 11px;
+        line-height: 16px;
     }
 `;
 
 const LeftSection = styled.div`
     display: flex;
     align-items: center;
+    gap: 10px;
+    min-width: 0;
 `;
 
 const RightSection = styled.div`
