@@ -170,6 +170,8 @@ export interface Experience {
         | import("@features/content-host/runtime").EmbeddedRuntime;
     /** Sandboxed scripts on top of the space (docs/world-scripts.md). */
     worldScripts?: import("@features/world-scripts/protocol").WorldScriptRecord[];
+    /** The creative direction things made by scripts share. */
+    worldStyle?: import("@features/world-scripts/style").WorldStyle;
     version?: number;
     storageVersion?: numnber;
     pendingTransaction?: boolean;

@@ -85,4 +85,35 @@ describe("world scripts on the server", () => {
             "The model did not answer (402: Insufficient credits)."
         );
     });
+
+    it("asks for a style when the world has none, and passes on a failure", async () => {
+        const fetcher = reply('{"source":"x()"}');
+        await askForScript(
+            {
+                request: "coins",
+                world: { title: "Starry Night", sky: "#0b1d51" },
+                failure: { source: "bad(", reason: "SyntaxError: oops" },
+            },
+            fetcher,
+            { OPENROUTER_API_KEY: "k" }
+        );
+        const first = JSON.parse(fetcher.mock.calls[0][1].body).messages[1]
+            .content;
+        expect(first).toContain("This world has no style yet");
+        expect(first).toContain("Title: Starry Night");
+        expect(first).toContain("SyntaxError: oops");
+
+        await askForScript(
+            {
+                request: "coins",
+                style: { palette: ["#000000", "#ffffff"], look: "toon" },
+            },
+            fetcher,
+            { OPENROUTER_API_KEY: "k" }
+        );
+        const second = JSON.parse(fetcher.mock.calls[1][1].body).messages[1]
+            .content;
+        expect(second).toContain("This world's style (follow it)");
+        expect(second).toContain('"look":"toon"');
+    });
 });

@@ -6,6 +6,8 @@
  * bounded data.
  */
 
+import { cleanShader } from "./shaderGraph";
+
 export const WORLD_SCRIPT_LIMITS = {
     /** Objects one script can have in the world at once. */
     maxThings: 300,
@@ -37,9 +39,43 @@ export const THING_SHAPES = [
     "torus",
     "plane",
     "ring",
+    "capsule",
+    "star",
+    "lathe",
+    "extrude",
     "text",
 ] as const;
 export type ThingShape = (typeof THING_SHAPES)[number];
+
+/**
+ * How a thing's surface is drawn. "style" (the default) uses the world's own
+ * look (style.ts); the others pick one. All are made on the device from
+ * code, so a script never makes the page fetch a texture.
+ */
+export const THING_LOOKS = [
+    "style",
+    "painted",
+    "toon",
+    "glossy",
+    "matte",
+    "metal",
+    "glow",
+    "flat",
+] as const;
+export type ThingLook = (typeof THING_LOOKS)[number];
+
+export const THING_PATTERNS = [
+    "none",
+    "noise",
+    "stripes",
+    "swirl",
+    "dots",
+    "gradient",
+] as const;
+export type ThingPattern = (typeof THING_PATTERNS)[number];
+
+/** Points a lathe profile or an extrude outline may have. */
+export const MAX_SHAPE_POINTS = 64;
 
 export const SOUND_NAMES = [
     "coin",
@@ -69,6 +105,24 @@ export interface ThingProps {
     textColor?: string;
     background?: string;
     billboard?: boolean;
+    look?: ThingLook;
+    pattern?: ThingPattern;
+    /** Second colour for patterns and painted strokes. */
+    color2?: string;
+    /** 0–1: the surface sways a little, like something alive or painted. */
+    wobble?: number;
+    /** Another thing of the same script this one is a part of. */
+    parent?: string | null;
+    /** lathe: [radius, height] pairs, bottom to top. */
+    profile?: Array<[number, number]>;
+    /** extrude: [x, y] outline. */
+    outline?: Array<[number, number]>;
+    depth?: number;
+    bevel?: number;
+    /** star: number of points. */
+    points?: number;
+    /** A custom surface as a tree of building blocks (shaderGraph.ts). */
+    shader?: import("./shaderGraph").ShaderGraph | null;
 }
 
 /** What a script may change on one of the space's artworks (not saved). */
@@ -203,7 +257,47 @@ export function cleanThingProps(raw: unknown): ThingProps {
         if (typeof input[key] === "boolean") props[key] = input[key] as boolean;
     }
     if (input.text != null) props.text = cleanText(input.text);
+    if (THING_LOOKS.includes(input.look as ThingLook))
+        props.look = input.look as ThingLook;
+    if (THING_PATTERNS.includes(input.pattern as ThingPattern))
+        props.pattern = input.pattern as ThingPattern;
+    const color2 = cleanColor(input.color2);
+    if (color2) props.color2 = color2;
+    if (finite(input.wobble)) props.wobble = clamp(input.wobble, 0, 1);
+    if (input.parent === null) props.parent = null;
+    else if (input.parent != null) {
+        const parent = cleanId(input.parent);
+        if (parent) props.parent = parent;
+    }
+    const profile = cleanPoints(input.profile, 0, L.maxSize);
+    if (profile && profile.length >= 2) props.profile = profile;
+    const outline = cleanPoints(input.outline, -L.maxSize, L.maxSize);
+    if (outline && outline.length >= 3) props.outline = outline;
+    if (finite(input.depth)) props.depth = clamp(input.depth, 0.001, L.maxSize);
+    if (finite(input.bevel)) props.bevel = clamp(input.bevel, 0, 1);
+    if (finite(input.points))
+        props.points = Math.round(clamp(input.points, 3, 24));
+    if (input.shader === null) props.shader = null;
+    else if (input.shader != null) {
+        const shader = cleanShader(input.shader);
+        if (shader) props.shader = shader;
+    }
     return props;
+}
+
+function cleanPoints(
+    value: unknown,
+    min: number,
+    max: number
+): Array<[number, number]> | undefined {
+    if (!Array.isArray(value)) return undefined;
+    const points: Array<[number, number]> = [];
+    for (const point of value.slice(0, MAX_SHAPE_POINTS)) {
+        if (!Array.isArray(point) || !finite(point[0]) || !finite(point[1]))
+            return undefined;
+        points.push([clamp(point[0], min, max), clamp(point[1], -max, max)]);
+    }
+    return points;
 }
 
 export function cleanArtworkProps(raw: unknown): ArtworkProps {

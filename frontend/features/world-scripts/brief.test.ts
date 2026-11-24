@@ -34,4 +34,16 @@ describe("reading the model's answer", () => {
     it("returns nothing when there is no script", () => {
         expect(readWorldScriptAnswer("Sorry, I can't.", true)).toBeNull();
     });
+
+    it("reads a style when the model wrote one, and drops a bad one", () => {
+        expect(
+            readWorldScriptAnswer(
+                '{"source":"x()","style":{"summary":"Neon","palette":["#ff00aa","#00ffee"],"look":"glow"}}',
+                false
+            ).style
+        ).toMatchObject({ look: "glow", palette: ["#ff00aa", "#00ffee"] });
+        expect(
+            readWorldScriptAnswer('{"source":"x()","style":"neon"}', false)
+        ).not.toHaveProperty("style");
+    });
 });

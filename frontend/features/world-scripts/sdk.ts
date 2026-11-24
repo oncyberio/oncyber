@@ -6,6 +6,8 @@
  *
  * What a script sees (also what the AI brief documents, see brief.ts):
  *   world.add(spec) -> thing      shapes, text; thing.position.x += 1 just works
+ *   thing.add(spec) -> part       a part that moves with the thing
+ *   world.style                   the world's creative direction (palette, look)
  *   world.player / world.camera   position {x,y,z}, forward {x,y,z}
  *   world.artworks                the space's artworks: id, name, position, visible
  *   world.onUpdate(fn(dt, time))  every frame
@@ -92,7 +94,8 @@ export const WORLD_SCRIPT_SDK = String.raw`
         return JSON.stringify([
             arr(thing.position), arr(thing.rotation), arr(thing.scale),
             thing.color, thing.opacity, thing.visible, thing.text, thing.glow,
-            thing.textColor, thing.background,
+            thing.textColor, thing.background, thing.look, thing.pattern,
+            thing.color2, thing.wobble, thing.shader,
         ]);
     }
     function thingProps(thing) {
@@ -100,6 +103,8 @@ export const WORLD_SCRIPT_SDK = String.raw`
             position: arr(thing.position), rotation: arr(thing.rotation), scale: arr(thing.scale),
             color: thing.color, opacity: thing.opacity, visible: thing.visible, text: thing.text,
             glow: thing.glow, textColor: thing.textColor, background: thing.background,
+            look: thing.look, pattern: thing.pattern, color2: thing.color2,
+            wobble: thing.wobble, shader: thing.shader === undefined ? undefined : thing.shader,
         };
     }
 
@@ -114,7 +119,13 @@ export const WORLD_SCRIPT_SDK = String.raw`
             position: live ? fromAny(live.position) : fromAny(spec.position, v3(0, 0, 0)),
             rotation: live ? fromAny(live.rotation) : fromAny(spec.rotation, v3(0, 0, 0)),
             scale: live && !spec.scale ? fromAny(live.scale) : fromAny(spec.scale, v3(1, 1, 1)),
-            color: spec.color || "#ffffff",
+            color: spec.color || undefined,
+            look: spec.look || undefined,
+            pattern: spec.pattern || undefined,
+            color2: spec.color2 || undefined,
+            wobble: spec.wobble == null ? undefined : +spec.wobble,
+            shader: spec.shader || undefined,
+            parent: spec.parent ? String(spec.parent.id || spec.parent) : null,
             opacity: spec.opacity == null ? 1 : spec.opacity,
             visible: spec.visible !== false,
             text: spec.text == null ? "" : String(spec.text),
@@ -133,12 +144,25 @@ export const WORLD_SCRIPT_SDK = String.raw`
             remove: function () {
                 if (thing.removed) return;
                 thing.removed = true;
+                thing.parts.slice().forEach(function (part) { part.remove(); });
                 delete things[id];
                 delete sent[id];
                 ops.push({ op: "remove", id: id });
             },
             onClick: function (fn) { thing._click = fn; return thing; },
             distanceTo: function (other) { return distance(thing, other); },
+            // A part of this thing: it moves, turns and is removed with it.
+            add: function (partSpec) {
+                partSpec = partSpec || {};
+                var copy = {};
+                for (var key in partSpec) copy[key] = partSpec[key];
+                copy.parent = id;
+                if (copy.id == null) copy.id = id + "." + ++autoId;
+                var part = add(copy);
+                thing.parts.push(part);
+                return part;
+            },
+            parts: [],
             lookAt: function (target) {
                 var p = target.position || fromAny(target);
                 thing.rotation.y = Math.atan2(p.x - thing.position.x, p.z - thing.position.z);
@@ -149,6 +173,12 @@ export const WORLD_SCRIPT_SDK = String.raw`
         props.shape = thing.shape;
         props.size = spec.size;
         props.billboard = spec.billboard;
+        props.parent = thing.parent;
+        props.profile = spec.profile;
+        props.outline = spec.outline;
+        props.depth = spec.depth;
+        props.bevel = spec.bevel;
+        props.points = spec.points;
         things[id] = thing;
         sent[id] = thingState(thing);
         ops.push({ op: "add", id: id, props: props });
@@ -188,6 +218,8 @@ export const WORLD_SCRIPT_SDK = String.raw`
         onUpdate: function (fn) { updaters.push(fn); },
         onClick: function (fn) { clickers.push(fn); },
         restart: function () { post({ t: "restart" }); },
+        // The world's creative direction: summary, palette, look.
+        style: { summary: "", palette: ["#ffffff"], look: "matte" },
     };
 
     var input = {
@@ -292,6 +324,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
             carried = message.things || {};
             seed = (message.seed >>> 0) || 1;
             setView(message.view);
+            if (message.style) world.style = message.style;
             artworkList = (message.artworks || []).map(makeArtwork);
             artworkList.forEach(function (a) { artworkById[a.id] = a; });
             try {

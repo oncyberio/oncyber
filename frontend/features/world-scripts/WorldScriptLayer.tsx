@@ -1,10 +1,12 @@
 /**
  * Runs a space's world script once the native world is showing, draws what
- * the script shows on screen (HUD lines, toasts, a banner), and gives the
- * chat's `/ai` and the studio panel their actions. Renders nothing and runs
- * nothing unless NEXT_PUBLIC_WORLD_SCRIPTS is on.
+ * the script shows on screen (HUD lines, toasts, a banner), and runs the
+ * AI sidebar's requests: write, try out of sight, fix what fails, swap in
+ * live. Renders nothing and runs nothing unless NEXT_PUBLIC_WORLD_SCRIPTS
+ * is on.
  */
 import { useContext, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import styled from "styled-components";
 import { UserContext } from "@components/context/UserContext";
 import WorldScriptsApi from "@api/worldScripts/_api";
@@ -12,9 +14,11 @@ import { baseTokens, lobbyTokens } from "@styles/tokens";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import { WORLD_SCRIPT_LIMITS, byteLength } from "./protocol";
 import type { SwapMode } from "./host";
+import { cleanStyle, WorldStyle } from "./style";
 import {
-    addGameLine,
     addLog,
+    say,
+    updateEntry,
     getWorldScripts,
     resetWorldScripts,
     setWorldScripts,
@@ -23,8 +27,22 @@ import {
     WORLD_SCRIPTS_ENABLED,
 } from "./store";
 
+const AiSidebar = dynamic(() => import("./AiSidebar"), { ssr: false });
+
+/** How many times the model may fix a script that did not run. */
+const MAX_ATTEMPTS = 3;
 const READY_POLL_MS = 400;
 const READY_GIVE_UP_MS = 120_000;
+
+type LayerExperience = {
+    id: string;
+    worldScripts?: WorldScriptRecord[];
+    worldStyle?: WorldStyle;
+    info?: { headline?: string };
+    exhibitId?: string;
+};
+
+const firstLine = (text = "") => text.split("\n")[0].slice(0, 200);
 
 function newId() {
     return Math.random().toString(36).slice(2, 10);
@@ -33,17 +51,13 @@ function newId() {
 export default function WorldScriptLayer({
     experience,
 }: {
-    experience: { id: string; worldScripts?: WorldScriptRecord[] } | null;
+    experience: LayerExperience | null;
 }) {
     if (!WORLD_SCRIPTS_ENABLED || !experience?.id) return null;
     return <Layer key={experience.id} experience={experience} />;
 }
 
-function Layer({
-    experience,
-}: {
-    experience: { id: string; worldScripts?: WorldScriptRecord[] };
-}) {
+function Layer({ experience }: { experience: LayerExperience }) {
     const { user, isAnonymous } = useContext(UserContext);
     const state = useWorldScripts();
     const history = useRef<string[]>([]);
@@ -76,6 +90,7 @@ function Layer({
             experienceId: experience.id,
             script: experience.worldScripts?.[0] || null,
             source: "",
+            style: cleanStyle(experience.worldStyle),
         });
 
         let disposed = false;
@@ -158,12 +173,13 @@ function Layer({
                 );
             }
             if (disposed) return;
-            engine = createEngineSink(ui);
+            engine = createEngineSink(ui, getWorldScripts().style || undefined);
             const container = document.body;
             host = new WorldScriptHost(container, engine.sink, {
                 onStatus: (status) => setWorldScripts({ status }),
                 onLog: addLog,
             });
+            host.style = getWorldScripts().style;
             engine.bind({
                 frame: (dt) => host?.frame(dt),
                 key: (down, key, code) => host?.key(down, key, code),
@@ -173,9 +189,11 @@ function Layer({
                 setWorldScripts({ source: saved.source });
                 const result = await host.start(saved.source);
                 if (!result.ok)
-                    addGameLine(
-                        `The world's script didn't start: ${result.reason}`,
-                        "error"
+                    say(
+                        "error",
+                        `The world's script didn't start: ${firstLine(
+                            result.reason
+                        )}`
                     );
             }
         }
@@ -207,9 +225,9 @@ function Layer({
                 scripts: script.source ? [script] : [],
             }).catch((error) => ({ ok: false, error: error.message }));
             if (!result?.ok) {
-                addGameLine(
-                    `Couldn't save the script: ${result?.error || "try again"}`,
-                    "error"
+                say(
+                    "error",
+                    `Couldn't save the script: ${result?.error || "try again"}`
                 );
                 return false;
             }
@@ -217,99 +235,163 @@ function Layer({
             return true;
         }
 
+        /** Draws everything in the new style and keeps it with the space. */
+        async function setStyle(style: WorldStyle) {
+            setWorldScripts({ style });
+            if (host) host.style = style;
+            engine?.setStyle(style);
+            const result: any = await WorldScriptsApi.save({
+                experienceId: experience.id,
+                style: style as any,
+            }).catch((error) => ({ ok: false, error: error.message }));
+            if (!result?.ok)
+                say(
+                    "error",
+                    `Couldn't save the style: ${result?.error || "try again"}`
+                );
+        }
+
+        /**
+         * One request from the sidebar. The model writes; the new version
+         * runs out of sight; if it fails the model gets the error and tries
+         * again; what works is swapped into the running world and saved.
+         */
         async function ask(request: string) {
             const current = getWorldScripts();
-            if (!request) {
-                addGameLine(
-                    "Say what to make after /ai, for example: /ai a coin hunt with a 60 second timer"
-                );
-                return;
-            }
-            if (!current.canEdit) {
-                addGameLine(
-                    "Only this space's owner and editors can change its game."
-                );
-                return;
-            }
-            if (!current.canAsk) {
-                addGameLine(
-                    current.askReason || "AI scripts are invite-only for now."
-                );
-                return;
-            }
-            if (current.busy) {
-                addGameLine("Still working on the last request.");
-                return;
-            }
-            if (!host) {
-                addGameLine(
-                    "The world is still loading. Try again in a moment."
-                );
+            request = request.trim();
+            if (!request || current.busy) return;
+            say("you", request);
+            const refuse = !current.canEdit
+                ? "Only this space's owner and editors can change its scripts."
+                : !current.canAsk
+                ? current.askReason || "AI scripts are invite-only for now."
+                : !host
+                ? "The world is still loading. Try again in a moment."
+                : "";
+            if (refuse) {
+                say("error", refuse);
                 return;
             }
             setWorldScripts({ busy: true });
-            addGameLine("Working on it…");
+            const previous = current.source;
+            let failure: { source: string; reason: string } | undefined;
             try {
-                const answer: any = await WorldScriptsApi.opts({
-                    timeout: 70_000,
-                })
-                    .generate({
-                        experienceId: experience.id,
-                        request,
-                        currentSource: current.source || undefined,
-                        artworks: engine?.sink
-                            .artworks()
-                            .slice(0, 200)
-                            .map(({ id, name }) => ({
-                                id: id.slice(0, 200),
-                                name: name.slice(0, 120),
-                            })),
+                for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                    const writing = say(
+                        "step",
+                        attempt > 1
+                            ? `Fixing it (try ${attempt} of ${MAX_ATTEMPTS})`
+                            : previous
+                            ? "Writing the change"
+                            : "Writing the script",
+                        "running"
+                    );
+                    const colors = engine?.colors() || {};
+                    const answer: any = await WorldScriptsApi.opts({
+                        timeout: 70_000,
                     })
-                    .catch((error) => ({ ok: false, error: error.message }));
-                if (!answer?.ok) {
-                    addGameLine(
-                        answer?.error || "That didn't work. Try again.",
-                        "error"
+                        .generate({
+                            experienceId: experience.id,
+                            request,
+                            currentSource: previous || undefined,
+                            style:
+                                (getWorldScripts().style as any) || undefined,
+                            world: {
+                                title: experience.info?.headline?.slice(0, 200),
+                                place: experience.exhibitId?.slice(0, 200),
+                                ...colors,
+                            },
+                            failure,
+                            artworks: engine?.sink
+                                .artworks()
+                                .slice(0, 200)
+                                .map(({ id, name }) => ({
+                                    id: id.slice(0, 200),
+                                    name: name.slice(0, 120),
+                                })),
+                        })
+                        .catch((error) => ({
+                            ok: false,
+                            error: error.message,
+                        }));
+                    if (!answer?.ok) {
+                        updateEntry(writing, { state: "failed" });
+                        say(
+                            "error",
+                            answer?.error || "That didn't work. Try again."
+                        );
+                        return;
+                    }
+                    updateEntry(writing, {
+                        state: "done",
+                        text: `Wrote “${answer.name}” (${
+                            answer.source.split("\n").length
+                        } lines)`,
+                    });
+                    if (answer.remaining != null)
+                        setWorldScripts({ remaining: answer.remaining });
+                    const style = cleanStyle(answer.style);
+                    if (style) {
+                        say(
+                            "step",
+                            `${
+                                getWorldScripts().style
+                                    ? "Changed the world's style"
+                                    : "Gave this world a style"
+                            }: ${style.summary}`,
+                            "done"
+                        );
+                        await setStyle(style);
+                    }
+                    const mode: SwapMode =
+                        answer.change === "content" && previous
+                            ? "keep"
+                            : "fresh";
+                    const trying = say(
+                        "step",
+                        "Trying it out of sight",
+                        "running"
                     );
-                    return;
-                }
-                if (answer.remaining != null)
-                    setWorldScripts({ remaining: answer.remaining });
-                const mode: SwapMode =
-                    answer.change === "content" && current.source
-                        ? "keep"
-                        : "fresh";
-                const previous = current.source;
-                const result = host.running
-                    ? await host.swap(answer.source, mode)
-                    : await host.start(answer.source);
-                if (!result.ok) {
-                    addGameLine(
-                        `That change didn't run, so the game stayed as it was. (${result.reason
-                            .split("\n")[0]
-                            .slice(0, 160)})`,
-                        "error"
-                    );
-                    return;
-                }
-                if (previous)
-                    history.current = [...history.current, previous].slice(-10);
-                setWorldScripts({ source: answer.source });
-                addGameLine(
-                    `${answer.say} ${
-                        !previous
-                            ? ""
+                    const result = host.running
+                        ? await host.swap(answer.source, mode)
+                        : await host.start(answer.source);
+                    if (!result.ok) {
+                        updateEntry(trying, {
+                            state: "failed",
+                            text: `It didn't run: ${firstLine(result.reason)}`,
+                        });
+                        failure = {
+                            source: answer.source,
+                            reason: String(result.reason || "").slice(0, 4000),
+                        };
+                        continue;
+                    }
+                    updateEntry(trying, {
+                        state: "done",
+                        text: !previous
+                            ? "Started it in the world"
                             : mode === "keep"
-                            ? "(The game kept going.)"
-                            : "(Rewound to the start.)"
-                    }`.trim()
+                            ? "Swapped it in. The game kept going"
+                            : "Swapped it in and rewound to the start",
+                    });
+                    if (previous)
+                        history.current = [...history.current, previous].slice(
+                            -10
+                        );
+                    setWorldScripts({ source: answer.source });
+                    say("say", answer.say);
+                    await save({
+                        source: answer.source,
+                        name: answer.name,
+                        prompt: request,
+                        enabled: true,
+                    });
+                    return;
+                }
+                say(
+                    "error",
+                    `That didn't run after ${MAX_ATTEMPTS} tries, so the world stayed as it was. Try asking in a different way.`
                 );
-                await save({
-                    source: answer.source,
-                    name: answer.name,
-                    prompt: request,
-                    enabled: true,
-                });
             } finally {
                 setWorldScripts({ busy: false });
             }
@@ -318,13 +400,15 @@ function Layer({
         async function undo() {
             const previous = history.current.pop();
             if (!previous || !host) {
-                addGameLine("There's no earlier version to go back to.");
+                say("say", "There's no earlier version to go back to.");
                 return;
             }
             const ok = await run(previous, "fresh");
             if (ok) {
-                addGameLine(
-                    "Back to the previous version. (Rewound to the start.)"
+                say(
+                    "step",
+                    "Back to the previous version, from the start",
+                    "done"
                 );
                 await save({ source: previous });
             }
@@ -335,10 +419,17 @@ function Layer({
             run,
             save,
             undo,
-            restart: () => void host?.restart(),
+            setStyle,
+            restart: () => {
+                if (!host) return;
+                const { source } = getWorldScripts();
+                if (host.running) void host.restart();
+                else if (source) void host.start(source);
+            },
+            // Stops it for this visit; the saved script is untouched.
             stop: () => {
                 host?.stop();
-                setWorldScripts({ source: "" });
+                say("step", "Stopped the script", "done");
             },
         };
         setWorldScriptsController(controller);
@@ -359,29 +450,35 @@ function Layer({
 
     const corners: HudCorner[] = ["top", "top-left", "top-right", "bottom"];
     const hud = Object.entries(state.hud);
-    if (!hud.length && !state.toasts.length && !state.banner) return null;
+    const sidebar = state.panelOpen && state.canEdit ? <AiSidebar /> : null;
+    if (!hud.length && !state.toasts.length && !state.banner) return sidebar;
     return (
-        <Overlay aria-live="polite">
-            {corners.map((corner) => {
-                const lines = hud.filter(([, line]) => line.corner === corner);
-                if (!lines.length) return null;
-                return (
-                    <Corner key={corner} data-corner={corner}>
-                        {lines.map(([key, line]) => (
-                            <HudLine key={key}>{line.text}</HudLine>
+        <>
+            {sidebar}
+            <Overlay aria-live="polite">
+                {corners.map((corner) => {
+                    const lines = hud.filter(
+                        ([, line]) => line.corner === corner
+                    );
+                    if (!lines.length) return null;
+                    return (
+                        <Corner key={corner} data-corner={corner}>
+                            {lines.map(([key, line]) => (
+                                <HudLine key={key}>{line.text}</HudLine>
+                            ))}
+                        </Corner>
+                    );
+                })}
+                {state.banner && <Banner>{state.banner.text}</Banner>}
+                {state.toasts.length > 0 && (
+                    <Toasts>
+                        {state.toasts.map((toast) => (
+                            <Toast key={toast.id}>{toast.text}</Toast>
                         ))}
-                    </Corner>
-                );
-            })}
-            {state.banner && <Banner>{state.banner.text}</Banner>}
-            {state.toasts.length > 0 && (
-                <Toasts>
-                    {state.toasts.map((toast) => (
-                        <Toast key={toast.id}>{toast.text}</Toast>
-                    ))}
-                </Toasts>
-            )}
-        </Overlay>
+                    </Toasts>
+                )}
+            </Overlay>
+        </>
     );
 }
 

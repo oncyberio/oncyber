@@ -37,6 +37,11 @@ import NativeVisitorPanel, {
     nativePanelTitles,
     nativeUtilitySurface,
 } from "./NativeVisitorPanel";
+import {
+    setWorldScripts,
+    useWorldScripts,
+    WORLD_SCRIPTS_ENABLED,
+} from "@features/world-scripts/store";
 import ExperienceShell, {
     ExperienceIcon,
     ExperiencePanel,
@@ -105,6 +110,7 @@ export default function NativeExperienceChrome({
         setActiveProfileTab,
     } = usePanel();
     // One value says which panel is open, so opening one closes the others.
+    const worldScripts = useWorldScripts();
     const emotesOpen = spacePanel === "emotes";
     const moreOpen = spacePanel === "more";
     const searchOpen = spacePanel === "search";
@@ -458,6 +464,28 @@ export default function NativeExperienceChrome({
             buttonRef: searchButton,
             onClick: () => (searchOpen ? closeSearch() : openSearch()),
         },
+        // The owner's and editors' AI sidebar (docs/world-scripts.md).
+        ...(WORLD_SCRIPTS_ENABLED && worldScripts.canEdit
+            ? [
+                  {
+                      id: "ai",
+                      label: worldScripts.panelOpen
+                          ? "Close AI"
+                          : "Build with AI",
+                      icon: "multi-star",
+                      active: worldScripts.panelOpen,
+                      expanded: worldScripts.panelOpen,
+                      onClick: () => {
+                          closePhoneChat();
+                          document.exitPointerLock?.();
+                          dispatchSpacePanel({ type: "close" });
+                          setWorldScripts({
+                              panelOpen: !worldScripts.panelOpen,
+                          });
+                      },
+                  },
+              ]
+            : []),
         {
             id: "more",
             label: phoneControls && moreOpen ? "Close More" : "More",

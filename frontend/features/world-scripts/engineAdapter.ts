@@ -7,8 +7,13 @@
  * Loaded only when a space has scripts and the feature is on.
  */
 import {
+    BackSide,
     BoxGeometry,
     BufferGeometry,
+    CapsuleGeometry,
+    ExtrudeGeometry,
+    LatheGeometry,
+    Shape,
     CanvasTexture,
     Color,
     ConeGeometry,
@@ -18,7 +23,6 @@ import {
     Material,
     Mesh,
     MeshBasicMaterial,
-    MeshStandardMaterial,
     Object3D,
     PlaneGeometry,
     Raycaster,
@@ -42,6 +46,8 @@ import { RenderDemand } from "@3/three/utils/renderDemand";
 import type { ArtworkInfo, WorldScriptSink, WorldView } from "./host";
 import type { HudCorner, SoundName, ThingProps, Vec3 } from "./protocol";
 import { playSound } from "./sounds";
+import { createLookCache, createOutlineMaterial, resolveLook } from "./looks";
+import { NEUTRAL_STYLE, WorldStyle } from "./style";
 
 export interface InterfaceSink {
     hud(key: string, text: string | null, corner: HudCorner): void;
@@ -56,6 +62,9 @@ interface Thing {
     material: Material;
     texture?: CanvasTexture;
     geometry?: BufferGeometry;
+    /** Shared look material in use (not owned by the thing). */
+    lookKey?: string;
+    outline?: Mesh;
 }
 
 interface Glide {
@@ -100,9 +109,9 @@ export function engineReady() {
     }
 }
 
-function geometryFor(shape: ThingProps["shape"], size: Vec3): BufferGeometry {
-    const [x, y, z] = size;
-    switch (shape) {
+function geometryFor(props: ThingProps): BufferGeometry {
+    const [x, y, z] = props.size ?? [1, 1, 1];
+    switch (props.shape) {
         case "sphere":
             return new SphereGeometry(x / 2, 24, 16);
         case "cylinder":
@@ -115,10 +124,68 @@ function geometryFor(shape: ThingProps["shape"], size: Vec3): BufferGeometry {
             return new RingGeometry(x / 4, x / 2, 32);
         case "plane":
             return new PlaneGeometry(x, y);
+        case "capsule":
+            return new CapsuleGeometry(x / 2, Math.max(0, y - x), 6, 16);
+        case "lathe": {
+            const profile = props.profile ?? [
+                [0, -0.5],
+                [0.5, -0.5],
+                [0.5, 0.5],
+                [0, 0.5],
+            ];
+            const geometry = new LatheGeometry(
+                profile.map(([r, h]) => new Vector2(r, h)),
+                32
+            );
+            return geometry.scale(x, y, z);
+        }
+        case "star":
+        case "extrude": {
+            const shape = new Shape();
+            let outline = props.outline;
+            if (props.shape === "star" || !outline) {
+                const points = props.points ?? 5;
+                outline = [];
+                for (let i = 0; i < points * 2; i++) {
+                    const angle =
+                        (i / (points * 2)) * Math.PI * 2 + Math.PI / 2;
+                    const radius = i % 2 ? 0.22 : 0.5;
+                    outline.push([
+                        Math.cos(angle) * radius,
+                        Math.sin(angle) * radius,
+                    ]);
+                }
+            }
+            outline.forEach(([px, py], i) =>
+                i ? shape.lineTo(px, py) : shape.moveTo(px, py)
+            );
+            const depth = props.depth ?? 0.2;
+            const bevel = (props.bevel ?? 0.3) * Math.min(depth, 0.2) * 0.5;
+            const geometry = new ExtrudeGeometry(shape, {
+                depth,
+                bevelEnabled: bevel > 0,
+                bevelThickness: bevel,
+                bevelSize: bevel,
+                bevelSegments: 2,
+                curveSegments: 12,
+            });
+            geometry.translate(0, 0, -depth / 2);
+            return geometry.scale(x, y, z);
+        }
         default:
             return new BoxGeometry(x, y, z);
     }
 }
+
+const GEOMETRY_KEYS = [
+    "size",
+    "billboard",
+    "profile",
+    "outline",
+    "depth",
+    "bevel",
+    "points",
+] as const;
 
 function drawText(props: ThingProps, texture?: CanvasTexture) {
     const canvas =
@@ -152,7 +219,13 @@ function drawText(props: ThingProps, texture?: CanvasTexture) {
     return { texture: next, aspect: canvas.width / canvas.height };
 }
 
-export function createEngineSink(ui: InterfaceSink, api?: any) {
+export function createEngineSink(
+    ui: InterfaceSink,
+    initialStyle: WorldStyle = NEUTRAL_STYLE
+) {
+    let style = initialStyle;
+    const looks = createLookCache();
+    let outlineMaterial: ReturnType<typeof createOutlineMaterial> | null = null;
     const group = new Group();
     group.name = "world-scripts";
     Scene.add(group);
@@ -196,14 +269,29 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
                 base[2]
             );
         } else {
-            const material = thing.material as MeshStandardMaterial;
-            const color = new Color(props.color || "#ffffff");
-            material.color.copy(color);
-            material.emissive?.copy(props.glow ? color : new Color(0));
-            material.emissiveIntensity = props.glow ? 1 : 0;
-            const opacity = props.opacity ?? 1;
-            material.opacity = opacity;
-            material.transparent = opacity < 1;
+            const spec = resolveLook(
+                props,
+                style,
+                props.shape === "plane" || props.shape === "ring"
+            );
+            const taken = looks.take(spec);
+            if (thing.lookKey) looks.release(thing.lookKey);
+            thing.lookKey = taken.key;
+            thing.material = taken.material;
+            (thing.object as Mesh).material = taken.material;
+            const outlined =
+                style.outline && !["plane", "ring"].includes(props.shape);
+            if (outlined && !thing.outline && thing.geometry) {
+                outlineMaterial = outlineMaterial || createOutlineMaterial();
+                thing.outline = new Mesh(thing.geometry, outlineMaterial);
+                thing.outline.raycast = () => undefined;
+                thing.object.add(thing.outline);
+            } else if (!outlined && thing.outline) {
+                thing.outline.removeFromParent();
+                thing.outline = undefined;
+            }
+            if (thing.outline)
+                thing.outline.visible = (props.opacity ?? 1) >= 1;
         }
         thing.object.visible = props.visible !== false;
     }
@@ -228,17 +316,10 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
                 object = new Sprite(material as SpriteMaterial);
             }
         } else {
-            const size = props.size ?? [1, 1, 1];
-            geometry = geometryFor(props.shape, size);
-            material = new MeshStandardMaterial({
-                roughness: 0.55,
-                metalness: 0.05,
-                side:
-                    props.shape === "plane" || props.shape === "ring"
-                        ? DoubleSide
-                        : undefined,
-            });
-            object = new Mesh(geometry, material);
+            geometry = geometryFor(props);
+            // The look's shared material arrives in applyLook.
+            object = new Mesh(geometry);
+            material = (object as Mesh).material as Material;
         }
         object.name = `world-script:${id}`;
         return { object, props: { ...props }, material, geometry };
@@ -246,9 +327,28 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
 
     function dispose(thing: Thing) {
         thing.object.removeFromParent();
+        thing.outline?.removeFromParent();
         thing.geometry?.dispose();
         thing.texture?.dispose();
-        thing.material.dispose();
+        if (thing.lookKey) looks.release(thing.lookKey);
+        else thing.material?.dispose();
+        thing.lookKey = undefined;
+    }
+
+    /** Where a thing hangs: inside its parent thing, or in the scripts' group. */
+    function attach(thing: Thing, parentId: string | null | undefined) {
+        const parent = parentId ? things.get(parentId) : null;
+        const target =
+            parent && parent !== thing && !isInside(parent.object, thing.object)
+                ? parent.object
+                : group;
+        if (thing.object.parent !== target) target.add(thing.object);
+    }
+
+    function isInside(node: Object3D, ancestor: Object3D) {
+        for (let n: Object3D | null = node; n; n = n.parent)
+            if (n === ancestor) return true;
+        return false;
     }
 
     const sink: WorldScriptSink = {
@@ -319,29 +419,37 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
             applyLook(thing);
             things.set(id, thing);
             objectToThing.set(thing.object, id);
-            group.add(thing.object);
+            attach(thing, props.parent);
         },
         setThing(id, props, glide = 0) {
             const thing = things.get(id);
             if (!thing) return;
-            const shapeChanged =
-                (props.size &&
-                    JSON.stringify(props.size) !==
-                        JSON.stringify(thing.props.size)) ||
-                (props.billboard != null &&
-                    props.billboard !== thing.props.billboard);
+            const shapeChanged = GEOMETRY_KEYS.some(
+                (key) =>
+                    props[key] !== undefined &&
+                    JSON.stringify(props[key]) !==
+                        JSON.stringify(thing.props[key])
+            );
             thing.props = { ...thing.props, ...props };
             if (shapeChanged) {
                 const rebuilt = build(id, thing.props);
                 rebuilt.object.position.copy(thing.object.position);
                 rebuilt.object.rotation.copy(thing.object.rotation);
                 rebuilt.object.scale.copy(thing.object.scale);
+                const children = thing.object.children.filter(
+                    (child) => child !== thing.outline
+                );
+                const parent = thing.object.parent || group;
                 objectToThing.delete(thing.object);
                 dispose(thing);
+                thing.outline = undefined;
                 Object.assign(thing, rebuilt);
                 objectToThing.set(thing.object, id);
-                group.add(thing.object);
+                parent.add(thing.object);
+                children.forEach((child) => thing.object.add(child));
+                applyLook(thing);
             }
+            if (props.parent !== undefined) attach(thing, props.parent);
             if (
                 glide > 0 &&
                 (props.position || props.rotation || props.scale)
@@ -393,6 +501,11 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
                 props.visible != null ||
                 props.textColor != null ||
                 props.background != null ||
+                props.look != null ||
+                props.pattern != null ||
+                props.color2 != null ||
+                props.wobble != null ||
+                props.shader !== undefined ||
                 (thing.props.shape === "text" && props.scale)
             )
                 applyLook(thing);
@@ -403,6 +516,10 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
             things.delete(id);
             glides.delete(id);
             objectToThing.delete(thing.object);
+            // Parts go with what they belong to (the host removes them too).
+            thing.object.children
+                .filter((child) => objectToThing.has(child))
+                .forEach((child) => group.add(child));
             dispose(thing);
         },
         setArtwork(id, props) {
@@ -558,7 +675,18 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
 
     return {
         sink,
-        api,
+        /** The world's sky and fog colours, for writing its style. */
+        colors() {
+            const hex = (color: any) =>
+                color?.isColor ? `#${color.getHexString()}` : undefined;
+            const scene = Scene as any;
+            return { sky: hex(scene.background), fog: hex(scene.fog?.color) };
+        },
+        /** A new creative direction: every thing drawn in "style" follows it. */
+        setStyle(next: WorldStyle) {
+            style = next;
+            things.forEach((thing) => applyLook(thing));
+        },
         bind(handlers: {
             frame: (dt: number) => void;
             key: (down: boolean, key: string, code: string) => void;
@@ -581,6 +709,8 @@ export function createEngineSink(ui: InterfaceSink, api?: any) {
             canvas?.removeEventListener("pointerup", pointerup);
             things.forEach(dispose);
             things.clear();
+            looks.dispose();
+            outlineMaterial?.dispose();
             sink.resetArtworks();
             group.removeFromParent();
         },

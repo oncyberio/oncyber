@@ -1,21 +1,25 @@
 /**
  * What the page knows about the world scripts of the space on show, shared
- * by the layer that runs them, the chat (`/ai`) and the studio panel. A
- * tiny external store, so neither has to be inside the other's tree.
+ * by the layer that runs them, the dock's AI button and the AI sidebar. A
+ * tiny external store, so none of them has to be inside another's tree.
  */
 import { useSyncExternalStore } from "react";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import type { SwapMode, WorldScriptStatus } from "./host";
+import type { WorldStyle } from "./style";
 
 export const WORLD_SCRIPTS_ENABLED = ["1", "true", "on"].includes(
     String(process.env.NEXT_PUBLIC_WORLD_SCRIPTS || "").toLowerCase()
 );
 
-export interface GameLine {
-    id: string;
+/** One line of the sidebar's conversation. */
+export interface TranscriptEntry {
+    id: number;
+    kind: "you" | "step" | "say" | "error";
     text: string;
-    sentAt: number;
-    tone?: "error";
+    /** A step still under way shows a spinner. */
+    state?: "running" | "done" | "failed";
+    at: number;
 }
 
 export interface WorldScriptsState {
@@ -24,13 +28,16 @@ export interface WorldScriptsState {
     script: WorldScriptRecord | null;
     /** What runs now, which may be a live edit not saved yet. */
     source: string;
+    /** The world's creative direction, once it has one. */
+    style: WorldStyle | null;
     status: WorldScriptStatus;
     canEdit: boolean;
     canAsk: boolean;
     askReason: string;
     remaining: number | null;
     busy: boolean;
-    lines: GameLine[];
+    panelOpen: boolean;
+    transcript: TranscriptEntry[];
     logs: { level: "log" | "warn" | "error"; text: string; at: number }[];
     hud: Record<string, { text: string; corner: HudCorner }>;
     toasts: { id: number; text: string; until: number }[];
@@ -41,13 +48,15 @@ const initial: WorldScriptsState = {
     experienceId: null,
     script: null,
     source: "",
+    style: null,
     status: { state: "idle" },
     canEdit: false,
     canAsk: false,
     askReason: "",
     remaining: null,
     busy: false,
-    lines: [],
+    panelOpen: false,
+    transcript: [],
     logs: [],
     hud: {},
     toasts: [],
@@ -85,13 +94,32 @@ export function useWorldScripts() {
     return useSyncExternalStore(subscribe, getWorldScripts, () => initial);
 }
 
-let lineCount = 0;
-export function addGameLine(text: string, tone?: "error") {
+let entryCount = 0;
+
+/** Adds a line to the conversation and returns its id (to update a step). */
+export function say(
+    kind: TranscriptEntry["kind"],
+    text: string,
+    stepState?: TranscriptEntry["state"]
+) {
+    const id = ++entryCount;
     setWorldScripts((current) => ({
-        lines: [
-            ...current.lines,
-            { id: `game-${++lineCount}`, text, sentAt: Date.now(), tone },
-        ].slice(-30),
+        transcript: [
+            ...current.transcript,
+            { id, kind, text, state: stepState, at: Date.now() },
+        ].slice(-200),
+    }));
+    return id;
+}
+
+export function updateEntry(
+    id: number,
+    patch: Partial<Pick<TranscriptEntry, "text" | "state">>
+) {
+    setWorldScripts((current) => ({
+        transcript: current.transcript.map((entry) =>
+            entry.id === id ? { ...entry, ...patch } : entry
+        ),
     }));
 }
 
@@ -101,7 +129,7 @@ export function addLog(level: "log" | "warn" | "error", text: string) {
     }));
 }
 
-/** Set by the running layer: the actions chat and studio call. */
+/** Set by the running layer: the actions the sidebar calls. */
 export interface WorldScriptsController {
     ask(request: string): Promise<void>;
     run(source: string, mode?: SwapMode): Promise<boolean>;
@@ -109,6 +137,7 @@ export interface WorldScriptsController {
     stop(): void;
     undo(): Promise<void>;
     save(script: Partial<WorldScriptRecord>): Promise<boolean>;
+    setStyle(style: WorldStyle): Promise<void>;
 }
 
 let controller: WorldScriptsController | null = null;
@@ -117,52 +146,4 @@ export function setWorldScriptsController(next: WorldScriptsController | null) {
 }
 export function worldScriptsController() {
     return controller;
-}
-
-/** `/ai add more npcs` → "add more npcs"; anything else → null. */
-export function readAiCommand(text: string): string | null {
-    const match = /^\/ai(?:\s+([\s\S]*))?$/i.exec(text.trim());
-    if (!match) return null;
-    return (match[1] || "").trim();
-}
-
-/** Chat lines in their own order, with the game's lines fitted in by time. */
-export function mergeGameLines<T extends { sentAt: number }>(
-    chat: T[],
-    lines: GameLine[]
-): Array<
-    | T
-    | {
-          id: string;
-          sessionId: string;
-          recipientId: undefined;
-          name: string;
-          avatar: string;
-          text: string;
-          sentAt: number;
-      }
-> {
-    if (!lines.length) return chat;
-    const game = lines.map((line) => ({
-        id: line.id,
-        sessionId: "world-script",
-        recipientId: undefined,
-        name: "Game",
-        avatar: "",
-        text: line.text,
-        sentAt: line.sentAt,
-    }));
-    const out: Array<T | (typeof game)[number]> = [];
-    let g = 0;
-    for (const message of chat) {
-        while (
-            g < game.length &&
-            message.sentAt &&
-            game[g].sentAt < message.sentAt
-        )
-            out.push(game[g++]);
-        out.push(message);
-    }
-    while (g < game.length) out.push(game[g++]);
-    return out;
 }

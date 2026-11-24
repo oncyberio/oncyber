@@ -221,6 +221,8 @@ export class WorldScriptHost {
     private lastPlayerMove = 0;
     private seed = 1;
     private disposed = false;
+    /** The world's creative direction, handed to each version as world.style. */
+    style: unknown = null;
 
     constructor(
         private container: HTMLElement,
@@ -326,6 +328,7 @@ export class WorldScriptHost {
                 things: carried,
                 seed: this.seed,
                 view: this.sink.view(),
+                style: this.style,
                 artworks: this.sink.artworks(),
             }).catch((error) => finish(error.message));
         });

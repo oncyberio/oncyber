@@ -97,4 +97,43 @@ describe("world script requests", () => {
         expect(dropped).toBe(11);
         expect(cleanOps("not a list")).toEqual({ ops: [], dropped: 0 });
     });
+
+    it("keeps built shapes, looks and parts, and drops a bad shader", () => {
+        const op: any = cleanOp({
+            op: "add",
+            id: "coin-1",
+            props: {
+                shape: "lathe",
+                profile: [
+                    [0, 0],
+                    [0.5, 0],
+                    [0.5, 0.1],
+                ],
+                look: "painted",
+                pattern: "swirl",
+                color2: "#0b1d51",
+                wobble: 9,
+                parent: "npc-1",
+                shader: { color: "gl_FragColor = vec4(1.0)" },
+            },
+        });
+        expect(op.props).toMatchObject({
+            shape: "lathe",
+            look: "painted",
+            pattern: "swirl",
+            color2: "#0b1d51",
+            wobble: 1,
+            parent: "npc-1",
+        });
+        expect(op.props.profile).toEqual([
+            [0, 0],
+            [0.5, 0],
+            [0.5, 0.1],
+        ]);
+        expect(op.props.shader).toBeUndefined();
+        expect(
+            (cleanOp({ op: "add", id: "a", props: { look: "<b>" } }) as any)
+                .props.look
+        ).toBeUndefined();
+    });
 });

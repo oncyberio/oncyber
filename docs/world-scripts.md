@@ -9,12 +9,19 @@ It is off unless `NEXT_PUBLIC_WORLD_SCRIPTS=1`.
 
 ## Asking for a change
 
--   In a space's chat: `/ai a coin hunt around the room with a 60 second timer`,
-    then `/ai add three NPCs that chase me`. Owners and editors only. Lines from
-    "Game" say what is happening and what changed; `/ai` lines are never posted
-    to the room.
--   In the studio: the Scripts button (`</>`) opens the same request box, the
-    script itself (editable), and Run, Restart, Undo, Stop and Save.
+A space's owner and editors get an AI button in the space's dock (and in
+the studio toolbar). It opens a sidebar beside the world: say what to make
+("a coin hunt with a 60 second timer", then "add three characters who chase
+me") and watch each step as it happens:
+
+1. The model writes the whole script.
+2. The new version is tried out of sight, beside the running one.
+3. If it does not run, the model gets the error and fixes it, up to three
+   tries. The world keeps the old version meanwhile.
+4. What runs is swapped into the world and saved.
+
+The sidebar also has Restart, Stop, Undo, the script and its console
+(Code), and the world's style (Style).
 
 Every change that runs is saved to the space (`exhibits/{id}.worldScripts`),
 so visitors get it the next time they load the space. Visitors already in
@@ -35,6 +42,42 @@ the swap happen, between two frames. A version that fails to parse, throws
 while starting, or stops answering is refused and the old one keeps running.
 Undo goes back to the previous version (as a rewind).
 
+## The world's style
+
+Each world has one creative direction, so what scripts make looks like it
+belongs there: in a Starry Night world, "add coins" gives painted, swaying
+gold coins, not yellow rings. The style is a short description, a palette,
+a default surface ("painted", "toon", "glossy", "matte", "metal", "glow",
+"flat"), and how much brushwork, sway and outline things get
+(`features/world-scripts/style.ts`).
+
+The model writes it with the first script, from the world's title, sky and
+fog colours and artwork names. It is saved on the space
+(`exhibits/{id}.worldStyle`), sent with every later request, and given to
+the script as `world.style`. Asking "make the style more neon" changes it,
+and everything already in the world is redrawn.
+
+Nothing is downloaded. Objects are made from code:
+
+-   Shapes: box, sphere, cylinder, cone, torus, plane, ring, capsule, star,
+    `lathe` (a profile spun around an axis: a coin, a vase, a mushroom) and
+    `extrude` (an outline given depth: a heart, a key). `thing.add(part)`
+    builds a character or prop from several.
+-   Surfaces: TSL node materials (`features/world-scripts/looks.ts`), the
+    same on WebGPU and WebGL2, with patterns (noise, stripes, swirl, dots,
+    gradient). Objects with the same look share one material.
+-   Custom shaders: a script can describe its own surface (colour, glow,
+    opacity, movement along the normal) as a tree of building blocks:
+    `["mix", "palette0", "palette1", ["fbm", ["mul", "position", 3]]]`.
+    The host checks the tree against a fixed list of blocks and inputs and
+    builds the material itself (`features/world-scripts/shaderGraph.ts`).
+
+Scripts cannot send shader source. Code on the GPU cannot be stopped the way
+a stuck worker can: one heavy loop in a fragment shader freezes the tab or
+the whole machine, and shader compilers are a larger surface than the checked
+messages. A tree of at most 96 known blocks with no loops has a bounded
+cost, and still covers water, fire, flowing paint, holograms and dissolves.
+
 ## The sandbox
 
 Each version runs in a frame sandboxed with `allow-scripts` only, so its
@@ -46,7 +89,7 @@ The host talks to it over one transferred `MessagePort`.
 
 The script can only ask for things through checked messages
 (`features/world-scripts/protocol.ts`): add, move and restyle its own shapes
-and text, move or hide artworks while it runs (never saved), show HUD lines,
+and text (with a look or a shader graph), move or hide artworks while it runs (never saved), show HUD lines,
 toasts and a banner, play built-in sounds, and respawn the player (at most
 twice a second). Every value is clamped; ids, colours, sounds and corners
 come from fixed sets; at most 300 objects and 600 requests a frame. The host
@@ -74,8 +117,10 @@ credits come, `checkAiAccess` checks the balance before the call and
 -   Live updates for everyone in the room (the change reaches others on their
     next load).
 -   Shared state between visitors (multiplayer scores).
--   Models or images from outside: scripts use shapes, text and built-in
-    sounds, so they never make the page fetch anything.
+-   Models or images from outside: scripts use shapes, surfaces and text
+    made from code and built-in sounds, so they never make the page fetch
+    anything.
+-   Editing the style by hand (today you ask for the change).
 
 ## Checks
 

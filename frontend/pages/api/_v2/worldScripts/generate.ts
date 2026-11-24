@@ -45,6 +45,22 @@ export const generate = proc({
             )
             .max(200)
             .optional(),
+        // Checked by cleanStyle before it reaches the model.
+        style: z.record(z.string(), z.unknown()).optional(),
+        world: z
+            .object({
+                title: z.string().max(200).optional(),
+                place: z.string().max(200).optional(),
+                sky: z.string().max(40).optional(),
+                fog: z.string().max(40).optional(),
+            })
+            .optional(),
+        failure: z
+            .object({
+                source: z.string().max(WORLD_SCRIPT_LIMITS.maxSourceBytes),
+                reason: z.string().max(4000),
+            })
+            .optional(),
     }),
     async handler(input) {
         if (!worldScriptsEnabled())

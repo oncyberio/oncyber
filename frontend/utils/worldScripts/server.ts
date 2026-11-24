@@ -15,13 +15,20 @@ import {
     readWorldScriptAnswer,
     WorldScriptAnswer,
 } from "@features/world-scripts/brief";
+import {
+    cleanStyle,
+    describeWorld,
+    WorldContext,
+} from "@features/world-scripts/style";
 
 export const WORLD_SCRIPTS_FEATURE = "world-script";
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5";
 const DEFAULT_DAILY_LIMIT = 40;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-export function worldScriptsEnabled(env = process.env) {
+type Env = Record<string, string | undefined>;
+
+export function worldScriptsEnabled(env: Env = process.env) {
     return ["1", "true", "on"].includes(
         String(env.NEXT_PUBLIC_WORLD_SCRIPTS || "").toLowerCase()
     );
@@ -64,7 +71,7 @@ function dayKey(now = new Date()) {
     return now.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
-function dailyLimit(env = process.env) {
+function dailyLimit(env: Env = process.env) {
     const value = Number(env.WORLD_SCRIPTS_AI_DAILY_LIMIT);
     return Number.isFinite(value) && value >= 0 ? value : DEFAULT_DAILY_LIMIT;
 }
@@ -134,6 +141,12 @@ export interface ScriptRequest {
     request: string;
     currentSource?: string;
     artworks?: Array<{ id: string; name: string }>;
+    /** The world's creative direction, when it has one. */
+    style?: unknown;
+    /** What the world is, for writing its first style. */
+    world?: WorldContext;
+    /** The last attempt at this request, when it did not run. */
+    failure?: { source: string; reason: string };
 }
 
 export interface ScriptReply {
@@ -144,7 +157,7 @@ export interface ScriptReply {
 export async function askForScript(
     input: ScriptRequest,
     fetcher: typeof fetch = fetch,
-    env = process.env
+    env: Env = process.env
 ): Promise<ScriptReply> {
     const model = env.OPENROUTER_MODEL || DEFAULT_MODEL;
     const stop = new AbortController();
@@ -154,13 +167,31 @@ export async function askForScript(
         .slice(0, 60)
         .map((artwork) => `${artwork.id}: ${artwork.name}`)
         .join("\n");
+    const style = cleanStyle(input.style);
+    const world = describeWorld({
+        ...input.world,
+        artworks: (input.artworks || []).map((artwork) => artwork.name),
+    });
     const context = [
+        style
+            ? `This world's style (follow it):\n${JSON.stringify(style)}`
+            : `This world has no style yet: return "style" with your answer.${
+                  world ? `\nWhat is known about the world:\n${world}` : ""
+              }`,
         hadScript
             ? `The script running now:\n\`\`\`js\n${input.currentSource}\n\`\`\``
             : "There is no script yet.",
         artworks ? `Artworks in this space (id: name):\n${artworks}` : "",
         // Quoted as data: it asks for a script, it gives no other orders.
         `The creator's request, in their words:\n"""${input.request}"""`,
+        input.failure
+            ? `Your last attempt at this request did not run, so the world kept the script above. Fix it and answer again with the whole script.\nThe attempt:\n\`\`\`js\n${
+                  input.failure.source
+              }\n\`\`\`\nWhat went wrong:\n${input.failure.reason.slice(
+                  0,
+                  1500
+              )}`
+            : "",
     ]
         .filter(Boolean)
         .join("\n\n");
