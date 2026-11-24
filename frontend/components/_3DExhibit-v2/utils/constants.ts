@@ -23,6 +23,7 @@ export type WorldState =
 export type WorldErrorKind =
     | "destination-unavailable"
     | "connection"
+    | "blocked"
     | "world-model"
     | "avatar"
     | "graphics"
@@ -41,6 +42,11 @@ export const WORLD_ERROR_COPY: Record<
     connection: {
         title: "The connection dropped",
         message: "Check that you’re online, then try again.",
+    },
+    blocked: {
+        title: "Something is blocking this world",
+        message:
+            "An ad blocker or network filter stopped its files, so pause it for oncyber and try again.",
     },
     "world-model": {
         title: "This world’s 3D model didn’t load",

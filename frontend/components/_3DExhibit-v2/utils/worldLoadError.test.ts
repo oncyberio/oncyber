@@ -6,6 +6,8 @@ import {
     WorldLoadStage,
     WorldLoadStageError,
     worldErrorDetails,
+    describeWorldLoadErrorChecked,
+    worldFilesBlocked,
 } from "./worldLoadError";
 import { WORLD_ERROR_COPY } from "./constants";
 
@@ -306,5 +308,63 @@ describe("an engine error that wraps the original", () => {
         expect(details.message).toBe(
             "Failed to parse glft file of the room ← Failed to download the room (HTTP 404)"
         );
+    });
+});
+
+describe("a blocked world file host", () => {
+    const fetchFailed = new TypeError("Failed to fetch");
+    test("is said plainly when the host does not answer", async () => {
+        const failure = await describeWorldLoadErrorChecked(
+            fetchFailed,
+            { online: true },
+            async () => true
+        );
+        expect(failure.kind).toBe("blocked");
+        expect(failure.message).toContain("ad blocker");
+    });
+    test("keeps the original kind when the host answers", async () => {
+        const failure = await describeWorldLoadErrorChecked(
+            fetchFailed,
+            { online: true },
+            async () => false
+        );
+        expect(failure.kind).toBe("connection");
+    });
+    test("is not checked offline or for an avatar failure", async () => {
+        const blocked = jest.fn(async () => true);
+        expect(
+            (
+                await describeWorldLoadErrorChecked(
+                    fetchFailed,
+                    { online: false },
+                    blocked
+                )
+            ).kind
+        ).toBe("connection");
+        expect(
+            (
+                await describeWorldLoadErrorChecked(
+                    new Error("x"),
+                    { stage: "avatar" },
+                    blocked
+                )
+            ).kind
+        ).toBe("avatar");
+        expect(blocked).not.toHaveBeenCalled();
+    });
+    test("a refused request is a block; a slow one is not", async () => {
+        expect(
+            await worldFilesBlocked((async () => {
+                throw new TypeError("Failed to fetch");
+            }) as any)
+        ).toBe(true);
+        expect(await worldFilesBlocked((async () => ({})) as any)).toBe(false);
+        const slow = ((_url: string, init: RequestInit) =>
+            new Promise((_resolve, reject) =>
+                init.signal.addEventListener("abort", () =>
+                    reject(new DOMException("aborted", "AbortError"))
+                )
+            )) as any;
+        expect(await worldFilesBlocked(slow, 10)).toBe(false);
     });
 });

@@ -228,3 +228,58 @@ export function describeWorldLoadError(
         details: worldErrorDetails(thrown, context),
     };
 }
+
+/** Where world files (rooms, textures, artworks) are stored. */
+export const WORLD_FILE_HOST = "cyber.mypinata.cloud";
+/** Failures a blocked file host can look like. */
+const MAYBE_BLOCKED: WorldErrorKind[] = [
+    "connection",
+    "world-model",
+    "load-failed",
+    "destination-unavailable",
+];
+
+/**
+ * Whether the world file host is blocked in this browser (an ad blocker or a
+ * network filter). A blocked request fails at once, while a reachable host
+ * answers, even opaquely; a slow answer is not a block.
+ */
+export async function worldFilesBlocked(
+    fetcher: typeof fetch = fetch,
+    timeoutMs = 4000
+): Promise<boolean> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        await fetcher(`https://${WORLD_FILE_HOST}/`, {
+            mode: "no-cors",
+            cache: "no-store",
+            signal: controller.signal,
+        });
+        return false;
+    } catch {
+        return !controller.signal.aborted;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
+ * `describeWorldLoadError`, then, for a failure a blocked file host could
+ * explain, a check of that host: when it is blocked, the visitor reads that.
+ */
+export async function describeWorldLoadErrorChecked(
+    thrown: unknown,
+    context: Parameters<typeof worldErrorDetails>[1] = {},
+    blocked: () => Promise<boolean> = () => worldFilesBlocked()
+) {
+    const failure = describeWorldLoadError(thrown, context);
+    if (context.online === false || !MAYBE_BLOCKED.includes(failure.kind))
+        return failure;
+    if (!(await blocked().catch(() => false))) return failure;
+    return {
+        ...failure,
+        kind: "blocked" as const,
+        ...WORLD_ERROR_COPY.blocked,
+    };
+}

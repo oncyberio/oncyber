@@ -64,7 +64,7 @@ import {
 } from "@3/utils/constants";
 import {
     atStage,
-    describeWorldLoadError,
+    describeWorldLoadErrorChecked,
     WorldLoadStage,
     WorldLoadStageError,
 } from "@3/utils/worldLoadError";
@@ -296,7 +296,7 @@ export function Scene3D_Child({
         // The step that is running, so a failure can be explained in words.
         let stage: WorldLoadStage = "engine";
         const describeFailure = (error: unknown) =>
-            describeWorldLoadError(error, {
+            describeWorldLoadErrorChecked(error, {
                 stage,
                 online:
                     typeof navigator === "undefined"
@@ -773,7 +773,8 @@ export function Scene3D_Child({
 
                 // A plain title and sentence for the visitor; the technical
                 // text stays behind "Show details".
-                const failure = describeFailure(thrown);
+                const failure = await describeFailure(thrown);
+                if (!mounted || signal.aborted) return;
                 const { kind, details } = failure;
                 let { title, message } = failure;
                 // The engine's own explanations of a rejected model, as the
@@ -862,19 +863,20 @@ export function Scene3D_Child({
                 delete (window as any).$roomParamaters;
             }
         });
-        void session.done.catch((error) => {
+        void session.done.catch(async (error) => {
             load.cancel();
+            console.error("Scene session failed", error);
             if (mounted) {
                 // Only starting the engine fails here; the load catches its own.
                 const { kind, title, message, details } =
-                    describeFailure(error);
+                    await describeFailure(error);
+                if (!mounted) return;
                 finishSpaceEntrance();
                 finishWorldTravel();
                 failLobbyDestination(message);
                 setWorldState(ErrorState(message, { kind, title, details }));
                 if (!hasErrorScreen) showError(message, title);
             }
-            console.error("Scene session failed", error);
         });
         return () => {
             clearTimeout(resizeTimer);
