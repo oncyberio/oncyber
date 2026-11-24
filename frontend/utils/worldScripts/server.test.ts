@@ -6,6 +6,8 @@ jest.mock("@api/accounts/authenticate/utils/link", () => ({
     getAccountDoc: jest.fn(),
 }));
 
+jest.mock("@api/social/isMod", () => ({ ADMINS: [] }));
+
 import { askForScript, isAllowlisted, worldScriptsEnabled } from "./server";
 
 const reply = (content: string, extra: object = {}) =>

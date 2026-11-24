@@ -9,6 +9,7 @@
  * the call's cost (which OpenRouter reports) after it.
  */
 import { db, fire } from "@utils/firebaseAdmin";
+import { ADMINS } from "@api/social/isMod";
 import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
 import {
     WORLD_SCRIPT_BRIEF,
@@ -255,7 +256,10 @@ export async function askForScript(
     return { answer, usage };
 }
 
-/** The space, if this account may edit it. */
+/**
+ * The space, if this account is one of its admins: its owner, an editor,
+ * or a site admin (the same people `social.isMod` lets moderate it).
+ */
 export async function editableSpace(experienceId: string, userId: string) {
     const document = await db.collection("exhibits").doc(experienceId).get();
     if (!document.exists) return null;
@@ -264,6 +268,7 @@ export async function editableSpace(experienceId: string, userId: string) {
     const id = userId.toLowerCase();
     const editors = [experience.owner, ...(experience.editors || [])];
     if (
+        !ADMINS.includes(id) &&
         !editors.some(
             (editor) =>
                 typeof editor === "string" && editor.toLowerCase() === id

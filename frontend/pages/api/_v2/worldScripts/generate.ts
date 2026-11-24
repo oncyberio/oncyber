@@ -23,7 +23,7 @@ export const access = proc({
             return {
                 allowed: false,
                 canEdit: false,
-                reason: "Only this space's owner and editors can change its scripts.",
+                reason: "Only this space's admins can change its scripts.",
             };
         return { ...(await checkAiAccess(this.userId)), canEdit: true };
     },
@@ -69,7 +69,7 @@ export const generate = proc({
         if (!space)
             return {
                 ok: false as const,
-                error: "Only this space's owner and editors can change its scripts.",
+                error: "Only this space's admins can change its scripts.",
             };
         const accessNow = await checkAiAccess(this.userId);
         if (!accessNow.allowed)

@@ -1,5 +1,4 @@
 import React from "react";
-import styled from "styled-components";
 import {
     SUMMON_COMMAND,
     useMultiplayer,
@@ -20,13 +19,10 @@ import { spacePeople } from "./spacePeople";
 export default function SpacePeoplePanel({
     status,
     onClose,
-    onModerate,
     returnFocusRef,
 }: {
     status: string;
     onClose(): void;
-    /** Opens the space's moderation list. */
-    onModerate(): void;
     returnFocusRef?: { current: HTMLElement | null };
 }) {
     const { chat, room, MultiplayerService } = useMultiplayer();
@@ -73,37 +69,6 @@ export default function SpacePeoplePanel({
                       }
                     : undefined
             }
-        >
-            {room.isMod && (
-                <Moderate type="button" onClick={onModerate}>
-                    Moderate people
-                    <small>Voice, kick and report</small>
-                </Moderate>
-            )}
-        </LobbyPeoplePanel>
+        />
     );
 }
-
-const Moderate = styled.button`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ffffff18;
-    border-radius: 10px;
-    background: #ffffff08;
-    color: #f3f3f1;
-    font: inherit;
-    font-size: 12px;
-    text-align: left;
-    cursor: pointer;
-    small {
-        color: #a4adbb;
-        font-size: 11px;
-    }
-    &:hover {
-        background: #ffffff10;
-    }
-`;

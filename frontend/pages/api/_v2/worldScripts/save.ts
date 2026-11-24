@@ -2,6 +2,7 @@ import { z } from "zod";
 import { proc, NoApi } from "@utils/rpc/server";
 import { db } from "@utils/firebaseAdmin";
 import { cleanStyle } from "@features/world-scripts/style";
+import { ADMINS } from "@api/social/isMod";
 import { worldScriptsEnabled } from "@utils/worldScripts/server";
 import {
     byteLength,
@@ -55,13 +56,14 @@ export const save = proc({
             const experience = document.data();
             const editors = [experience.owner, ...(experience.editors || [])];
             if (
+                !ADMINS.includes(userId) &&
                 !editors.some(
                     (editor) =>
                         typeof editor === "string" &&
                         editor.toLowerCase() === userId
                 )
             )
-                return "Only this space's owner and editors can change its scripts.";
+                return "Only this space's admins can change its scripts.";
             transaction.update(ref, {
                 ...(records ? { worldScripts: records } : {}),
                 ...(style ? { worldStyle: style } : {}),

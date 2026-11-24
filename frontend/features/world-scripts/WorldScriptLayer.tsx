@@ -269,7 +269,7 @@ function Layer({ experience }: { experience: LayerExperience }) {
                 return controller.restart();
             if (word === "stop") return controller.stop();
             const refuse = !current.canEdit
-                ? "Only this space's owner and editors can change its scripts."
+                ? "Only this space's admins can change its scripts."
                 : !current.canAsk
                 ? current.askReason || "AI scripts are invite-only for now."
                 : !host

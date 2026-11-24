@@ -532,6 +532,10 @@ test("photo, chat, feedback and moderator requests preserve their native actions
     click("More");
     click("Requests to speak");
     expect(panel.currentTab).toBe("voiceRequests");
+    // Admin controls live in More, so a closed panel can be opened again.
+    click("More");
+    click("Moderate people");
+    expect(panel.currentTab).toBe("users");
     click("More");
     click("Send feedback");
     expect(panel.currentTab).toBe("feedback");

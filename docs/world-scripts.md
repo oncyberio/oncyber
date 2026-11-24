@@ -9,7 +9,7 @@ It is off unless `NEXT_PUBLIC_WORLD_SCRIPTS=1`.
 
 ## Asking for a change
 
-A space's owner and editors get an AI button in the space's dock (and in
+A space's admins (its owner, its editors and site admins) get an AI button in the space's dock (and in
 the studio toolbar). It opens a sidebar beside the world: say what to make
 ("a coin hunt with a 60 second timer", then "add three characters who chase
 me") and watch each step as it happens:
