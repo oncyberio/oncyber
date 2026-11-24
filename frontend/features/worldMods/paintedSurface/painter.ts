@@ -22,6 +22,8 @@ export type PaintStyle = {
     density?: number;
     /** How much a stroke's brightness varies, 0–1. */
     vary?: number;
+    /** Lit from within: keeps its own colours whatever the light does. */
+    glow?: boolean;
 };
 
 export type LineStyle = {
@@ -29,6 +31,8 @@ export type LineStyle = {
     width?: number;
     /** Longest single stroke; the line is split into strokes this long. */
     reach?: number;
+    /** Lit from within: keeps its own colour whatever the light does. */
+    glow?: boolean;
 };
 
 /** A multiplier per channel for the paint at a point facing `normal`. */
@@ -148,7 +152,20 @@ export function createPainter({
     seed = 1,
     light,
     density = 1,
-}: { seed?: number; light?: Light; density?: number } = {}) {
+    maxStrokes = Infinity,
+    maxWork = Infinity,
+}: {
+    seed?: number;
+    light?: Light;
+    density?: number;
+    /** Strokes past this many are left out (`painter.full` says so). */
+    maxStrokes?: number;
+    /**
+     * Stroke placements tried before painting stops, whether or not they
+     * landed on a surface: what bounds the time a painting can take.
+     */
+    maxWork?: number;
+} = {}) {
     const random = seeded(seed);
     const positions: number[] = [];
     const colours: number[] = [];
@@ -179,8 +196,14 @@ export function createPainter({
             if (p[i] > max[i]) max[i] = p[i];
         }
     };
-    const lit = (colour: Colour, at: Vec3, facing: Vec3, gain = 1): Vec3 => {
-        const shine = light ? light(at, facing) : ([1, 1, 1] as const);
+    const lit = (
+        colour: Colour,
+        at: Vec3,
+        facing: Vec3,
+        gain = 1,
+        glow = false
+    ): Vec3 => {
+        const shine = light && !glow ? light(at, facing) : ([1, 1, 1] as const);
         return [
             toLinear(colour[0]) * shine[0] * gain,
             toLinear(colour[1]) * shine[1] * gain,
@@ -204,6 +227,7 @@ export function createPainter({
         lift: number,
         bend: number
     ) {
+        if (centre.length / 4 >= maxStrokes) return;
         centre.push(at[0], at[1], at[2], length);
         axis.push(along[0], along[1], along[2], width);
         normal.push(facing[0], facing[1], facing[2], lift);
@@ -213,7 +237,15 @@ export function createPainter({
         grow([at[0] + reach, at[1] + reach, at[2] + reach]);
     }
 
+    let work = 0;
+    const full = () => centre.length / 4 >= maxStrokes || work >= maxWork;
+
     const painter = {
+        /** No more strokes fit: what is painted from here on is left out. */
+        get full() {
+            return full();
+        },
+
         /**
          * Everything painted inside `paint` is turned by `yaw` (radians
          * about the up axis) and moved to `at`. Placements nest.
@@ -257,7 +289,7 @@ export function createPainter({
             const first = positions.length / 3;
             for (const p of points) {
                 positions.push(p[0], p[1], p[2]);
-                colours.push(...lit(under as Colour, p, facing));
+                colours.push(...lit(under as Colour, p, facing, 1, s.glow));
                 grow(p);
             }
             for (let i = 1; i < points.length - 1; i++)
@@ -293,7 +325,7 @@ export function createPainter({
                 Math.round((span / (width * 0.74)) * cover)
             );
             const step = (s.length * 0.68) / cover;
-            for (let row = 0; row < rows; row++) {
+            for (let row = 0; row < rows && !full(); row++) {
                 const across =
                     rows === 1
                         ? (acrossMin + acrossMax) / 2
@@ -302,9 +334,10 @@ export function createPainter({
                           ((span - width * 0.8) * row) / (rows - 1);
                 for (
                     let along = alongMin - random() * step;
-                    along < alongMax;
+                    along < alongMax && !full();
                     along += step * (0.8 + random() * 0.4)
                 ) {
+                    work++;
                     const sway = (random() - 0.5) * width * 0.5;
                     const a = along * fx - (across + sway) * fy;
                     const b = along * fy + (across + sway) * fx;
@@ -337,7 +370,7 @@ export function createPainter({
                         facing,
                         kept,
                         width * (0.8 + random() * 0.4),
-                        lit(pick(s.palette), at, facing, gain),
+                        lit(pick(s.palette), at, facing, gain, s.glow),
                         0.004 + random() * 0.014,
                         (random() - 0.5) * 0.3
                     );
@@ -638,12 +671,39 @@ export function createPainter({
                     front,
                     each * 1.14,
                     width * (0.85 + random() * 0.3),
-                    lit(style.colour, at, front, 0.9 + random() * 0.2),
+                    lit(
+                        style.colour,
+                        at,
+                        front,
+                        0.9 + random() * 0.2,
+                        style.glow
+                    ),
                     0.02 + random() * 0.006,
                     (random() - 0.5) * 0.12
                 );
             }
             return painter;
+        },
+
+        /**
+         * The same line as a thin flat strip, for looks with no brush: from
+         * `a` to `b`, lying just off the surface that faces `facing`.
+         */
+        ribbon(a: Vec3, b: Vec3, facing: Vec3, style: LineStyle) {
+            const front = norm(facing);
+            const along = norm(sub(b, a));
+            const half = scale(cross(front, along), (style.width ?? 0.07) / 2);
+            const lift = scale(front, 0.012);
+            const corner = (end: Vec3, side: number) =>
+                add(add(end, scale(half, side)), lift);
+            return painter.poly(
+                [corner(a, -1), corner(b, -1), corner(b, 1), corner(a, 1)],
+                {
+                    palette: [style.colour],
+                    under: style.colour,
+                    glow: style.glow,
+                }
+            );
         },
 
         /** A single stroke at `at`, heading `along`, on a surface facing `facing`. */

@@ -21,6 +21,7 @@ import {
 import {
     abs,
     atan,
+    attribute,
     clamp,
     color as tslColor,
     cos,
@@ -68,6 +69,11 @@ export interface LookSpec {
     doubleSided: boolean;
     shader?: ShaderGraph | null;
     palette?: string[];
+    /**
+     * The colour comes from the geometry, one per corner: a model built
+     * from parts of different colours shares one surface.
+     */
+    perVertex?: boolean;
 }
 
 /** A thing's look, with "style" and missing values filled in from the world. */
@@ -121,6 +127,7 @@ export function lookKey(spec: LookSpec) {
         spec.strokes.toFixed(2),
         spec.opacity.toFixed(2),
         spec.doubleSided ? 2 : 1,
+        spec.perVertex ? "v" : "",
         spec.shader
             ? JSON.stringify(spec.shader) + (spec.palette || []).join()
             : "",
@@ -310,7 +317,9 @@ function buildExpr(expr: ShaderExpr, spec: LookSpec): Node {
 
 export function createLookMaterial(spec: LookSpec): NodeMaterial {
     const p = positionLocal;
-    let colour = patternColour(spec, p);
+    let colour = spec.perVertex
+        ? attribute("color", "vec3")
+        : patternColour(spec, p);
     const shader = spec.shader;
     if (shader?.color != null) colour = vec3(buildExpr(shader.color, spec));
     let material: NodeMaterial;

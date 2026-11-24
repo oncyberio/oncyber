@@ -48,6 +48,15 @@ import type { HudCorner, SoundName, ThingProps, Vec3 } from "./protocol";
 import { playSound } from "./sounds";
 import { createLookCache, createOutlineMaterial, resolveLook } from "./looks";
 import { NEUTRAL_STYLE, WorldStyle } from "./style";
+import { createModel } from "./engine/models";
+import {
+    createCollisionHoles,
+    createSolids,
+    solidPositions,
+} from "./engine/collision";
+import { createOpenings } from "./engine/openings";
+import { createDoors } from "./engine/doors";
+import { createAvatar } from "./engine/avatars";
 
 export interface InterfaceSink {
     hud(key: string, text: string | null, corner: HudCorner): void;
@@ -65,7 +74,25 @@ interface Thing {
     /** Shared look material in use (not owned by the thing). */
     lookKey?: string;
     outline?: Mesh;
+    /** A model, solid, opening or avatar: what keeps it up to date. */
+    special?: Special;
+    /** A plain shape with a collider of its own. */
+    solid?: boolean;
 }
+
+/** A thing that is more than one mesh with a look. */
+interface Special {
+    /** The thing's properties or the world's style changed. */
+    update(props: ThingProps): void;
+    /** The thing was moved, turned or resized. */
+    moved?(): void;
+    frame?(): void;
+    dispose(): void;
+}
+
+const SPECIAL_SHAPES = ["model", "solid", "opening", "avatar"];
+/** Shapes a script can make solid by saying so. */
+const SOLID_SHAPES = ["box", "cylinder", "sphere", "cone", "capsule", "plane"];
 
 interface Glide {
     object: Object3D;
@@ -97,6 +124,18 @@ function liveArtworks(): any[] {
         return (Root as any).getArtworks?.() || [];
     } catch {
         return [];
+    }
+}
+
+/** Runs `work`; a failure is logged once and answered with `fallback`. */
+let warned = false;
+function guarded<T>(work: () => T, fallback: T): T {
+    try {
+        return work();
+    } catch (error) {
+        if (!warned) console.warn("World scripts: engine bridge", error);
+        warned = true;
+        return fallback;
     }
 }
 
@@ -177,6 +216,19 @@ function geometryFor(props: ThingProps): BufferGeometry {
     }
 }
 
+/** What a model, solid, opening or avatar is made from. */
+const SPECIAL_KEYS = [
+    "parts",
+    "lamp",
+    "boxes",
+    "walls",
+    "size",
+    "avatar",
+    "name",
+    "say",
+    "motion",
+] as const;
+
 const GEOMETRY_KEYS = [
     "size",
     "billboard",
@@ -230,7 +282,86 @@ export function createEngineSink(
     group.name = "world-scripts";
     Scene.add(group);
     const things = new Map<string, Thing>();
+    const solids = createSolids();
+    const holes = createCollisionHoles();
+    const openings = createOpenings(holes);
+    const doors = createDoors();
     const glides = new Map<string, Glide>();
+
+    /** What stands behind a model, a solid, an opening or an avatar. */
+    function special(id: string, holder: Object3D, shape: string): Special {
+        switch (shape) {
+            case "model": {
+                const model = createModel(id, holder, looks);
+                return {
+                    update: (props) => model.update(props, style),
+                    dispose: model.dispose,
+                };
+            }
+            case "solid":
+                return {
+                    update: (props) =>
+                        solids.set(
+                            id,
+                            holder,
+                            solidPositions(props.boxes, props.walls)
+                        ),
+                    moved: () => solids.moved(id),
+                    dispose: () => solids.set(id, holder, null),
+                };
+            case "opening": {
+                let size = "";
+                const open = (props: ThingProps) => {
+                    size = JSON.stringify(props.size);
+                    openings.set(id, holder, props.size ?? [1, 1, 1]);
+                };
+                let last: ThingProps = {};
+                return {
+                    update: (props) => {
+                        last = props;
+                        if (JSON.stringify(props.size) !== size) open(props);
+                    },
+                    moved: () => open(last),
+                    dispose: () => openings.set(id, holder, null),
+                };
+            }
+            default: {
+                const avatar = createAvatar(id, holder);
+                return avatar;
+            }
+        }
+    }
+
+    /** A plain shape the script made solid: its box cannot be walked through. */
+    function applySolid(id: string, thing: Thing) {
+        const solid =
+            thing.props.solid === true &&
+            SOLID_SHAPES.includes(thing.props.shape) &&
+            thing.geometry;
+        if (!solid) {
+            if (thing.solid) solids.set(id, thing.object, null);
+            thing.solid = false;
+            return;
+        }
+        if (!thing.geometry.boundingBox) thing.geometry.computeBoundingBox();
+        const { min, max } = thing.geometry.boundingBox;
+        // a plane has no thickness: give it a little so both sides stop
+        const thin = (lo: number, hi: number) =>
+            hi - lo < 0.02 ? [lo - 0.05, hi + 0.05] : [lo, hi];
+        const [z0, z1] = thin(min.z, max.z);
+        const [y0, y1] = thin(min.y, max.y);
+        solids.set(
+            id,
+            thing.object,
+            solidPositions([
+                [
+                    [min.x, y0, z0],
+                    [max.x, y1, z1],
+                ],
+            ])
+        );
+        thing.solid = true;
+    }
     const originals = new Map<string, ArtworkOriginal>();
     const objectToThing = new Map<Object3D, string>();
 
@@ -251,6 +382,11 @@ export function createEngineSink(
 
     function applyLook(thing: Thing) {
         const { props } = thing;
+        if (thing.special) {
+            thing.special.update(props);
+            thing.object.visible = props.visible !== false;
+            return;
+        }
         if (props.shape === "text") {
             const { texture, aspect } = drawText(props, thing.texture);
             thing.texture = texture;
@@ -300,6 +436,16 @@ export function createEngineSink(
         let object: Object3D;
         let material: Material;
         let geometry: BufferGeometry;
+        if (SPECIAL_SHAPES.includes(props.shape)) {
+            object = new Group();
+            object.name = `world-script:${id}`;
+            return {
+                object,
+                props: { ...props },
+                material: undefined,
+                special: special(id, object, props.shape),
+            };
+        }
         if (props.shape === "text") {
             if (props.billboard === false) {
                 material = new MeshBasicMaterial({
@@ -325,7 +471,11 @@ export function createEngineSink(
         return { object, props: { ...props }, material, geometry };
     }
 
-    function dispose(thing: Thing) {
+    function dispose(thing: Thing, id?: string) {
+        thing.special?.dispose();
+        thing.special = undefined;
+        if (thing.solid && id) solids.set(id, thing.object, null);
+        thing.solid = false;
         thing.object.removeFromParent();
         thing.outline?.removeFromParent();
         thing.geometry?.dispose();
@@ -416,10 +566,13 @@ export function createEngineSink(
         addThing(id, props) {
             const thing = build(id, props);
             applyTransform(thing.object, props);
-            applyLook(thing);
             things.set(id, thing);
             objectToThing.set(thing.object, id);
+            // in place before it is built: a model, a solid and an opening
+            // are made where they stand
             attach(thing, props.parent);
+            applyLook(thing);
+            applySolid(id, thing);
         },
         setThing(id, props, glide = 0) {
             const thing = things.get(id);
@@ -431,7 +584,7 @@ export function createEngineSink(
                         JSON.stringify(thing.props[key])
             );
             thing.props = { ...thing.props, ...props };
-            if (shapeChanged) {
+            if (shapeChanged && !thing.special) {
                 const rebuilt = build(id, thing.props);
                 rebuilt.object.position.copy(thing.object.position);
                 rebuilt.object.rotation.copy(thing.object.rotation);
@@ -441,7 +594,7 @@ export function createEngineSink(
                 );
                 const parent = thing.object.parent || group;
                 objectToThing.delete(thing.object);
-                dispose(thing);
+                dispose(thing, id);
                 thing.outline = undefined;
                 Object.assign(thing, rebuilt);
                 objectToThing.set(thing.object, id);
@@ -506,9 +659,17 @@ export function createEngineSink(
                 props.color2 != null ||
                 props.wobble != null ||
                 props.shader !== undefined ||
-                (thing.props.shape === "text" && props.scale)
+                (thing.props.shape === "text" && props.scale) ||
+                (thing.special &&
+                    SPECIAL_KEYS.some((key) => props[key] !== undefined))
             )
                 applyLook(thing);
+            if (props.position || props.rotation || props.scale) {
+                thing.special?.moved?.();
+                if (thing.solid) solids.moved(id);
+            }
+            if (props.solid !== undefined || shapeChanged)
+                applySolid(id, thing);
         },
         removeThing(id) {
             const thing = things.get(id);
@@ -520,7 +681,7 @@ export function createEngineSink(
             thing.object.children
                 .filter((child) => objectToThing.has(child))
                 .forEach((child) => group.add(child));
-            dispose(thing);
+            dispose(thing, id);
         },
         setArtwork(id, props) {
             const artwork = findArtwork(id);
@@ -566,6 +727,10 @@ export function createEngineSink(
             });
             originals.clear();
         },
+        // Reading a world's doors must never keep a script from starting.
+        doors: () => guarded(() => doors.list(), []),
+        setDoor: (id, open) => guarded(() => doors.set(id, open), undefined),
+        resetDoors: () => guarded(() => doors.reset(), undefined),
         movePlayer(position) {
             try {
                 (Root as any).teleport?.({
@@ -607,6 +772,12 @@ export function createEngineSink(
             glide.object.scale.lerpVectors(glide.from.s, glide.to.s, e);
             if (t >= 1) glides.delete(id);
         });
+        // the collision world is built after the model and again on travel
+        guarded(() => {
+            solids.sync();
+            openings.sync();
+            things.forEach((thing) => thing.special?.frame?.());
+        }, undefined);
         onFrame?.(delta);
     };
     Emitter.on(Events.UPDATE, update);
@@ -709,6 +880,10 @@ export function createEngineSink(
             canvas?.removeEventListener("pointerup", pointerup);
             things.forEach(dispose);
             things.clear();
+            openings.dispose();
+            holes.dispose();
+            solids.dispose();
+            doors.reset();
             looks.dispose();
             outlineMaterial?.dispose();
             sink.resetArtworks();

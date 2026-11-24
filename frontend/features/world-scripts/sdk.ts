@@ -7,6 +7,12 @@
  * What a script sees (also what the AI brief documents, see brief.ts):
  *   world.add(spec) -> thing      shapes, text; thing.position.x += 1 just works
  *   thing.add(spec) -> part       a part that moves with the thing
+ *   world.build(spec) -> model    an object made of parts, drawn in the world's style:
+ *                                 model.poly / box / beam / prism / line / place
+ *   world.solid(spec)             boxes and walls a visitor cannot walk through
+ *   world.open(spec)              a box-shaped hole in the world's own model
+ *   world.avatar(spec) -> avatar  one of Oncyber's avatars: avatar.say(text), avatar.motion
+ *   world.doors / world.door(id)  the world's doors: door.open = 0..1, door.toWorld(p)
  *   world.style                   the world's creative direction (palette, look)
  *   world.player / world.camera   position {x,y,z}, forward {x,y,z}
  *   world.artworks                the space's artworks: id, name, position, visible
@@ -96,6 +102,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
             thing.color, thing.opacity, thing.visible, thing.text, thing.glow,
             thing.textColor, thing.background, thing.look, thing.pattern,
             thing.color2, thing.wobble, thing.shader,
+            thing.solid, thing.name, thing.say, thing.motion, thing.avatar, thing._rev,
         ]);
     }
     function thingProps(thing) {
@@ -105,7 +112,40 @@ export const WORLD_SCRIPT_SDK = String.raw`
             glow: thing.glow, textColor: thing.textColor, background: thing.background,
             look: thing.look, pattern: thing.pattern, color2: thing.color2,
             wobble: thing.wobble, shader: thing.shader === undefined ? undefined : thing.shader,
+            solid: thing.solid, name: thing.name, say: thing.say, motion: thing.motion, avatar: thing.avatar,
         };
+    }
+
+    // A point as a script may write it ([x, y, z] or {x, y, z}), as an array.
+    function pt(value) {
+        return arr(fromAny(value, v3(0, 0, 0)));
+    }
+
+    // What a model is made of. Each call adds a part; the host builds the
+    // object and draws it the way the world's style says (parts.ts).
+    function makeModel(thing) {
+        var target = thing.parts;
+        function push(command) { target.push(command); thing._rev++; return thing; }
+        // A flat shape: corners counter-clockwise as seen from the front.
+        thing.poly = function (corners, look) { return push(["poly", (corners || []).map(pt), look || {}]); };
+        thing.box = function (min, max, look) { return push(["box", pt(min), pt(max), look || {}]); };
+        // A bar from a to b; facing is the side that shows.
+        thing.beam = function (a, b, facing, width, depth, look) { return push(["beam", pt(a), pt(b), pt(facing), +width, +depth, look || {}]); };
+        // An upright column around [x, z], from y0 to y1.
+        thing.prism = function (at, radius, y0, y1, look) { return push(["prism", [+at[0], +at[1]], +radius, +y0, +y1, look || {}]); };
+        // A drawn line from a to b on the surface that faces facing.
+        thing.line = function (a, b, facing, look) { return push(["line", pt(a), pt(b), pt(facing), look || {}]); };
+        // Everything added inside fn is turned by yaw and moved to at.
+        thing.place = function (at, yaw, fn) {
+            var inner = [];
+            var outer = target;
+            push(["place", pt(at), +yaw || 0, inner]);
+            target = inner;
+            try { fn(thing); } finally { target = outer; }
+            return thing;
+        };
+        // Starts the model again from nothing.
+        thing.clear = function () { thing.parts.length = 0; target = thing.parts; thing._rev++; return thing; };
     }
 
     function add(spec) {
@@ -125,6 +165,15 @@ export const WORLD_SCRIPT_SDK = String.raw`
             color2: spec.color2 || undefined,
             wobble: spec.wobble == null ? undefined : +spec.wobble,
             shader: spec.shader || undefined,
+            solid: spec.solid == null ? undefined : !!spec.solid,
+            avatar: spec.avatar == null ? undefined : String(spec.avatar),
+            name: spec.name == null ? undefined : String(spec.name),
+            say: undefined,
+            motion: spec.motion || undefined,
+            parts: [],
+            lamp: spec.lamp || undefined,
+            _rev: 0,
+            _sentRev: 0,
             parent: spec.parent ? String(spec.parent.id || spec.parent) : null,
             opacity: spec.opacity == null ? 1 : spec.opacity,
             visible: spec.visible !== false,
@@ -169,9 +218,29 @@ export const WORLD_SCRIPT_SDK = String.raw`
                 return thing;
             },
         };
+        if (thing.shape === "model") {
+            if (Array.isArray(spec.parts)) { thing.parts = spec.parts.slice(); thing._rev++; }
+            makeModel(thing);
+        }
+        if (thing.shape === "avatar") {
+            // Says something over its head, for a few seconds.
+            thing.speak = function (text, seconds) {
+                thing.say = text == null ? "" : String(text);
+                var mine = ++thing._said;
+                if (thing.say) wait(seconds == null ? 4 : +seconds).then(function () {
+                    if (thing._said === mine) thing.say = "";
+                });
+                return thing;
+            };
+            thing._said = 0;
+        }
         var props = thingProps(thing);
         props.shape = thing.shape;
         props.size = spec.size;
+        props.boxes = spec.boxes;
+        props.walls = spec.walls;
+        // Parts given up front go with the thing; later ones follow in a flush.
+        if (thing._rev) { props.parts = thing.parts; props.lamp = thing.lamp; thing._sentRev = thing._rev; }
         props.billboard = spec.billboard;
         props.parent = thing.parent;
         props.profile = spec.profile;
@@ -183,6 +252,45 @@ export const WORLD_SCRIPT_SDK = String.raw`
         sent[id] = thingState(thing);
         ops.push({ op: "add", id: id, props: props });
         return thing;
+    }
+
+    var doorList = [];
+    var doorById = {};
+
+    function makeDoor(data) {
+        var cos = Math.cos(+data.yaw || 0), sin = Math.sin(+data.yaw || 0);
+        var door = {
+            id: String(data.id),
+            position: v3(data.position[0], data.position[1], data.position[2]),
+            yaw: +data.yaw || 0,
+            width: +data.width || 0,
+            height: +data.height || 0,
+            portal: !!data.portal,
+            building: data.building ? { position: fromAny(data.building.position), size: fromAny(data.building.size) } : null,
+            // 0 shut, 1 fully open. A door the space made a portal stays shut.
+            open: +data.open || 0,
+            // A point given from the doorway (x across, y up, z out through
+            // the door) as a point of the world.
+            toWorld: function (p) {
+                var q = fromAny(p, v3(0, 0, 0));
+                return v3(door.position.x + cos * q.x + sin * q.z, door.position.y + q.y, door.position.z - sin * q.x + cos * q.z);
+            },
+            // A point of the world, from the doorway.
+            toLocal: function (p) {
+                var q = p && p.position ? p.position : fromAny(p, v3(0, 0, 0));
+                var x = q.x - door.position.x, z = q.z - door.position.z;
+                return v3(cos * x - sin * z, q.y - door.position.y, sin * x + cos * z);
+            },
+            distanceTo: function (other) { return distance(door, other); },
+        };
+        sent["door:" + door.id] = door.open;
+        return door;
+    }
+
+    function copyOf(spec) {
+        var copy = {};
+        for (var key in spec || {}) copy[key] = spec[key];
+        return copy;
     }
 
     function distance(a, b) {
@@ -215,6 +323,16 @@ export const WORLD_SCRIPT_SDK = String.raw`
         },
         get things() { return Object.keys(things).map(function (k) { return things[k]; }); },
         get time() { return time; },
+        // An object made of parts, drawn in the world's style.
+        build: function (spec) { var s = copyOf(spec); s.shape = "model"; return add(s); },
+        // Boxes ([min, max]) and one-sided walls nobody can walk through.
+        solid: function (spec) { var s = copyOf(spec); s.shape = "solid"; return add(s); },
+        // A box-shaped hole in the world's own model: size [x, y, z].
+        open: function (spec) { var s = copyOf(spec); s.shape = "opening"; return add(s); },
+        // One of Oncyber's avatars standing in the world.
+        avatar: function (spec) { var s = copyOf(spec); s.shape = "avatar"; return add(s); },
+        get doors() { return doorList; },
+        door: function (id) { return doorById[id] || null; },
         onUpdate: function (fn) { updaters.push(fn); },
         onClick: function (fn) { clickers.push(fn); },
         restart: function () { post({ t: "restart" }); },
@@ -272,7 +390,22 @@ export const WORLD_SCRIPT_SDK = String.raw`
             var state = thingState(thing);
             if (state !== sent[id]) {
                 sent[id] = state;
-                ops.push({ op: "set", id: id, props: thingProps(thing) });
+                var props = thingProps(thing);
+                // A model's parts travel only when they have changed.
+                if (thing._rev !== thing._sentRev) {
+                    thing._sentRev = thing._rev;
+                    props.parts = thing.parts;
+                    props.lamp = thing.lamp === undefined ? null : thing.lamp;
+                }
+                ops.push({ op: "set", id: id, props: props });
+            }
+        }
+        for (var d = 0; d < doorList.length; d++) {
+            var door = doorList[d];
+            var open = Math.min(1, Math.max(0, +door.open || 0));
+            if (open !== sent["door:" + door.id]) {
+                sent["door:" + door.id] = open;
+                if (!door.portal) ops.push({ op: "door", id: door.id, open: open });
             }
         }
         for (var i = 0; i < artworkList.length; i++) {
@@ -327,6 +460,8 @@ export const WORLD_SCRIPT_SDK = String.raw`
             if (message.style) world.style = message.style;
             artworkList = (message.artworks || []).map(makeArtwork);
             artworkList.forEach(function (a) { artworkById[a.id] = a; });
+            doorList = (message.doors || []).map(makeDoor);
+            doorList.forEach(function (d) { doorById[d.id] = d; });
             try {
                 if (userMain) userMain(world, input, ui, sound, keep, wait, every, random, distance, con);
             } catch (error) {
