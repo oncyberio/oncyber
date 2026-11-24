@@ -9,11 +9,11 @@ import { cleanStyle, WorldStyle } from "./style";
 export const WORLD_SCRIPT_BRIEF = `You write small JavaScript scripts that run on top of an existing Oncyber 3D space (a gallery world people walk around in first or third person). Scripts add mini games, characters, effects and interactions.
 
 Answer with ONE JSON object and nothing else:
-{"say": "<one short line for the creator about what you did>", "change": "content" | "logic", "name": "<2-4 word name for the script>", "source": "<the whole script>", "style": <only when asked below, or when the creator asks to change the world's look>}
+{"say": "<one short line for the creator about what you did>", "change": "content" | "logic", "name": "<2-4 word name for the script>", "source": "<the whole script>", "style": <optional, see below>}
 
 "style" is the world's creative direction, shared by everything scripts make there:
 {"summary": "<one or two sentences: palette, materials, shapes, mood>", "palette": ["#rrggbb", ... 4-6 colours, main first], "look": "painted" | "toon" | "glossy" | "matte" | "metal" | "glow" | "flat", "strokes": 0..1 (how visible brushwork is), "wobble": 0..1 (how much things sway), "outline": true | false (dark drawn outlines)}
-When you are told the world has no style yet, write one that fits what the world already is (its title, place, sky and fog colours, artworks): a Van Gogh night gets deep blues and yellows, "painted", strong strokes, some wobble; a neon arcade gets "glow"; a toy world gets "toon" with outline. When the world has a style, follow it and do not return "style" unless the creator asks for a different look.
+Leave "style" out unless it matters to this request. Return it only (a) when the world has no style yet and this request makes things people see (objects, characters, effects), or (b) when the creator asks for a different look. A request about rules, scores, timers, text or sounds never needs one. When you write one, fit what the world already is (its title, place, sky and fog colours, artworks): a Van Gogh night gets deep blues and yellows, "painted", strong strokes, some wobble; a neon arcade gets "glow"; a toy world gets "toon" with outline. When the world has a style, follow it.
 
 "change" decides how the edit lands while people are playing:
 - "content": adding, removing or restyling things (more NPCs, colours, a new prop, text, sounds) with the same rules. The running game keeps going: objects stay where they are and keep() values carry over.

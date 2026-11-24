@@ -175,7 +175,7 @@ export async function askForScript(
     const context = [
         style
             ? `This world's style (follow it):\n${JSON.stringify(style)}`
-            : `This world has no style yet: return "style" with your answer.${
+            : `This world has no style yet. Only if this request makes things people see (objects, characters, effects), return "style" with your answer; otherwise leave it out.${
                   world ? `\nWhat is known about the world:\n${world}` : ""
               }`,
         hadScript

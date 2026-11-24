@@ -20,8 +20,8 @@ me") and watch each step as it happens:
    tries. The world keeps the old version meanwhile.
 4. What runs is swapped into the world and saved.
 
-The sidebar also has Restart, Stop, Undo, the script and its console
-(Code), and the world's style (Style).
+The sidebar is a conversation and a composer. Typing `undo`, `restart` or
+`stop` does that without a model call.
 
 Every change that runs is saved to the space (`exhibits/{id}.worldScripts`),
 so visitors get it the next time they load the space. Visitors already in
@@ -51,11 +51,12 @@ a default surface ("painted", "toon", "glossy", "matte", "metal", "glow",
 "flat"), and how much brushwork, sway and outline things get
 (`features/world-scripts/style.ts`).
 
-The model writes it with the first script, from the world's title, sky and
-fog colours and artwork names. It is saved on the space
-(`exhibits/{id}.worldStyle`), sent with every later request, and given to
-the script as `world.style`. Asking "make the style more neon" changes it,
-and everything already in the world is redrawn.
+A world has no style until one is needed. The model writes it the first
+time a request makes things people see (not for a change of rules, scores
+or text), from the world's title, sky and fog colours and artwork names. It
+is saved on the space (`exhibits/{id}.worldStyle`), sent with every later
+request, and given to the script as `world.style`. Asking "make the style
+more neon" changes it, and everything already in the world is redrawn.
 
 Nothing is downloaded. Objects are made from code:
 
@@ -120,7 +121,6 @@ credits come, `checkAiAccess` checks the balance before the call and
 -   Models or images from outside: scripts use shapes, surfaces and text
     made from code and built-in sounds, so they never make the page fetch
     anything.
--   Editing the style by hand (today you ask for the change).
 
 ## Checks
 

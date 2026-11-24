@@ -14,7 +14,7 @@ import { baseTokens, lobbyTokens } from "@styles/tokens";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import { WORLD_SCRIPT_LIMITS, byteLength } from "./protocol";
 import type { SwapMode } from "./host";
-import { cleanStyle, WorldStyle } from "./style";
+import { cleanStyle, NEUTRAL_STYLE, WorldStyle } from "./style";
 import {
     addLog,
     say,
@@ -179,7 +179,8 @@ function Layer({ experience }: { experience: LayerExperience }) {
                 onStatus: (status) => setWorldScripts({ status }),
                 onLog: addLog,
             });
-            host.style = getWorldScripts().style;
+            // A world with no style of its own still hands scripts a palette.
+            host.style = getWorldScripts().style || NEUTRAL_STYLE;
             engine.bind({
                 frame: (dt) => host?.frame(dt),
                 key: (down, key, code) => host?.key(down, key, code),
@@ -261,6 +262,12 @@ function Layer({ experience }: { experience: LayerExperience }) {
             request = request.trim();
             if (!request || current.busy) return;
             say("you", request);
+            // Said in a word, done without the model.
+            const word = request.toLowerCase().replace(/[.!\s]+$/, "");
+            if (word === "undo") return undo();
+            if (word === "restart" || word === "start")
+                return controller.restart();
+            if (word === "stop") return controller.stop();
             const refuse = !current.canEdit
                 ? "Only this space's owner and editors can change its scripts."
                 : !current.canAsk
@@ -334,11 +341,9 @@ function Layer({ experience }: { experience: LayerExperience }) {
                     if (style) {
                         say(
                             "step",
-                            `${
-                                getWorldScripts().style
-                                    ? "Changed the world's style"
-                                    : "Gave this world a style"
-                            }: ${style.summary}`,
+                            getWorldScripts().style
+                                ? "Changed the world's style"
+                                : "Picked a style from this world",
                             "done"
                         );
                         await setStyle(style);
@@ -421,10 +426,14 @@ function Layer({ experience }: { experience: LayerExperience }) {
             undo,
             setStyle,
             restart: () => {
-                if (!host) return;
                 const { source } = getWorldScripts();
+                if (!host || !source) {
+                    say("say", "There's no script to start yet.");
+                    return;
+                }
                 if (host.running) void host.restart();
-                else if (source) void host.start(source);
+                else void host.start(source);
+                say("step", "Started again from the beginning", "done");
             },
             // Stops it for this visit; the saved script is untouched.
             stop: () => {

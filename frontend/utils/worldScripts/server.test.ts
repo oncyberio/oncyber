@@ -86,7 +86,7 @@ describe("world scripts on the server", () => {
         );
     });
 
-    it("asks for a style when the world has none, and passes on a failure", async () => {
+    it("offers a style only for visible things, and passes on a failure", async () => {
         const fetcher = reply('{"source":"x()"}');
         await askForScript(
             {
@@ -99,7 +99,7 @@ describe("world scripts on the server", () => {
         );
         const first = JSON.parse(fetcher.mock.calls[0][1].body).messages[1]
             .content;
-        expect(first).toContain("This world has no style yet");
+        expect(first).toContain("Only if this request makes things people see");
         expect(first).toContain("Title: Starry Night");
         expect(first).toContain("SyntaxError: oops");
 

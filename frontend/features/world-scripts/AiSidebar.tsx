@@ -1,8 +1,10 @@
 /**
- * The AI sidebar of a space, for its owner and editors: say what to make,
- * watch each step (writing, trying it out of sight, fixing, swapping in),
- * and see the world change behind it without a reload. Opened from the AI
- * button in the space's dock and from the studio toolbar.
+ * The AI sidebar of a space, for its owner and editors: a conversation and
+ * a composer, nothing else. Say what to make; the steps of each request
+ * (writing, trying it out of sight, fixing, swapping in) tick off in one
+ * list while the world changes behind it. "undo", "restart" and "stop" are
+ * understood as typed. Opened from the AI button in the space's dock and
+ * from the studio toolbar.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -16,24 +18,23 @@ import {
     worldScriptsController,
 } from "./store";
 
-const IDEAS = [
-    "A coin hunt with a 60 second timer",
-    "Add three characters who wander around and wave when I get close",
-    "Hide a key somewhere; finding it opens a glowing portal",
-];
+/** Consecutive steps are shown as one list. */
+type Block = TranscriptEntry | { id: number; steps: TranscriptEntry[] };
 
-const Mark = ({ entry }: { entry: TranscriptEntry }) => {
-    if (entry.kind === "you") return <span className="mark">›</span>;
-    if (entry.kind === "error") return <span className="mark">!</span>;
-    if (entry.kind === "say") return <span className="mark dot">●</span>;
-    if (entry.state === "running") return <span className="mark spin" />;
-    return <span className="mark">{entry.state === "failed" ? "×" : "✓"}</span>;
-};
+function blocks(transcript: TranscriptEntry[]) {
+    const out: Block[] = [];
+    for (const entry of transcript) {
+        const last = out[out.length - 1];
+        if (entry.kind !== "step") out.push(entry);
+        else if (last && "steps" in last) last.steps.push(entry);
+        else out.push({ id: entry.id, steps: [entry] });
+    }
+    return out;
+}
 
 export default function AiSidebar() {
     const state = useWorldScripts();
     const [draft, setDraft] = useState("");
-    const [view, setView] = useState<"none" | "code" | "style">("none");
     const scroll = useRef<HTMLDivElement>(null);
     const input = useRef<HTMLTextAreaElement>(null);
     const close = () => setWorldScripts({ panelOpen: false });
@@ -47,20 +48,14 @@ export default function AiSidebar() {
     useLayoutEffect(() => {
         const element = scroll.current;
         if (element) element.scrollTop = element.scrollHeight;
-    }, [state.transcript, view]);
+    }, [state.transcript]);
 
-    const send = (text = draft) => {
-        const request = text.trim();
+    const send = () => {
+        const request = draft.trim();
         if (!request || state.busy) return;
         setDraft("");
-        setView("none");
         void worldScriptsController()?.ask(request);
     };
-
-    const running = state.status.state === "running";
-    const hasScript = !!state.source;
-    const toggle = (next: "code" | "style") =>
-        setView((current) => (current === next ? "none" : next));
 
     return createPortal(
         <Panel
@@ -70,218 +65,86 @@ export default function AiSidebar() {
                 if (event.key === "Escape") close();
             }}
         >
-            <header>
-                <h2>Build with AI</h2>
-                <span className="state" data-on={running || undefined}>
-                    {state.busy
-                        ? "Working"
-                        : running
-                        ? "Live"
-                        : hasScript
-                        ? "Stopped"
-                        : "No script yet"}
-                </span>
+            <button
+                type="button"
+                className="close"
+                aria-label="Close"
+                onClick={close}
+            >
+                <svg width="14" height="14" viewBox="0 0 16 16">
+                    <path
+                        d="m3.5 3.5 9 9m0-9-9 9"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                    />
+                </svg>
+            </button>
+            <div className="scroll" ref={scroll} aria-live="polite">
+                {state.transcript.length === 0 && (
+                    <p className="quiet">
+                        {state.canAsk
+                            ? "Say what this world should do. It changes while you stand in it."
+                            : state.askReason ||
+                              "AI scripts are invite-only for now."}
+                    </p>
+                )}
+                {blocks(state.transcript).map((block) =>
+                    "steps" in block ? (
+                        <ul key={`steps-${block.id}`}>
+                            {block.steps.map((step) => (
+                                <li key={step.id} data-state={step.state}>
+                                    <span className="mark" />
+                                    {step.text}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p key={block.id} data-kind={block.kind}>
+                            {block.text}
+                        </p>
+                    )
+                )}
+            </div>
+            <div className="composer">
+                <textarea
+                    ref={input}
+                    rows={2}
+                    maxLength={1200}
+                    value={draft}
+                    placeholder="Ask for a game, characters, a change…"
+                    aria-label="Ask for a change"
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (
+                            event.key === "Enter" &&
+                            !event.shiftKey &&
+                            !event.nativeEvent.isComposing
+                        ) {
+                            event.preventDefault();
+                            send();
+                        }
+                    }}
+                />
                 <button
                     type="button"
-                    className="icon"
-                    aria-label="Close"
-                    onClick={close}
+                    className="send"
+                    aria-label="Send"
+                    disabled={!draft.trim() || state.busy}
+                    onClick={send}
                 >
                     <svg width="16" height="16" viewBox="0 0 16 16">
                         <path
-                            d="m3.5 3.5 9 9m0-9-9 9"
+                            d="M13 3v4.5a2 2 0 0 1-2 2H3.5m0 0L6.5 6.5m-3 3 3 3"
                             stroke="currentColor"
                             strokeWidth="1.5"
+                            fill="none"
                             strokeLinecap="round"
+                            strokeLinejoin="round"
                         />
                     </svg>
                 </button>
-            </header>
-
-            <div className="scroll" ref={scroll}>
-                {state.transcript.length === 0 && (
-                    <div className="empty">
-                        <p>
-                            Say what this world should do. The script is written
-                            for you, tried out of sight, and swapped into the
-                            world while you stand in it.
-                        </p>
-                        {state.canAsk ? (
-                            <ul>
-                                {IDEAS.map((idea) => (
-                                    <li key={idea}>
-                                        <button
-                                            type="button"
-                                            onClick={() => send(idea)}
-                                        >
-                                            {idea}
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="muted">
-                                {state.askReason ||
-                                    "AI scripts are invite-only for now."}
-                            </p>
-                        )}
-                    </div>
-                )}
-                <ol aria-live="polite">
-                    {state.transcript.map((entry) => (
-                        <li
-                            key={entry.id}
-                            data-kind={entry.kind}
-                            data-state={entry.state}
-                        >
-                            <Mark entry={entry} />
-                            <span className="text">{entry.text}</span>
-                        </li>
-                    ))}
-                </ol>
-                {view === "code" && (
-                    <section className="detail">
-                        <h3>{state.script?.name || "Script"}</h3>
-                        <pre>{state.source || "Nothing yet."}</pre>
-                        {state.logs.length > 0 && (
-                            <>
-                                <h3>Console</h3>
-                                <pre>
-                                    {state.logs
-                                        .slice(-30)
-                                        .map((log) => log.text)
-                                        .join("\n")}
-                                </pre>
-                            </>
-                        )}
-                    </section>
-                )}
-                {view === "style" && (
-                    <section className="detail">
-                        <h3>World style</h3>
-                        {state.style ? (
-                            <>
-                                <div className="palette">
-                                    {state.style.palette.map((color, index) => (
-                                        <span
-                                            key={index}
-                                            title={color}
-                                            style={{ background: color }}
-                                        />
-                                    ))}
-                                </div>
-                                <p>{state.style.summary}</p>
-                                <p className="muted">
-                                    {[
-                                        state.style.look,
-                                        state.style.outline && "outlined",
-                                        state.style.wobble > 0.05 && "swaying",
-                                    ]
-                                        .filter(Boolean)
-                                        .join(" · ")}
-                                    . Everything scripts make here is drawn this
-                                    way. To change it, ask: “make the style more
-                                    neon”.
-                                </p>
-                            </>
-                        ) : (
-                            <p className="muted">
-                                This world gets its style with the first script,
-                                from its sky, colours and artworks.
-                            </p>
-                        )}
-                    </section>
-                )}
             </div>
-
-            <footer>
-                <div className="tools">
-                    <button
-                        type="button"
-                        disabled={!hasScript || state.busy}
-                        onClick={() => worldScriptsController()?.restart()}
-                    >
-                        {running ? "Restart" : "Start"}
-                    </button>
-                    <button
-                        type="button"
-                        disabled={!running || state.busy}
-                        onClick={() => worldScriptsController()?.stop()}
-                    >
-                        Stop
-                    </button>
-                    <button
-                        type="button"
-                        disabled={!hasScript || state.busy}
-                        onClick={() => void worldScriptsController()?.undo()}
-                    >
-                        Undo
-                    </button>
-                    <span className="gap" />
-                    <button
-                        type="button"
-                        aria-pressed={view === "style"}
-                        onClick={() => toggle("style")}
-                    >
-                        Style
-                    </button>
-                    <button
-                        type="button"
-                        aria-pressed={view === "code"}
-                        onClick={() => toggle("code")}
-                    >
-                        Code
-                    </button>
-                </div>
-                <div className="composer">
-                    <textarea
-                        ref={input}
-                        rows={2}
-                        maxLength={1200}
-                        value={draft}
-                        placeholder={
-                            hasScript
-                                ? "Change something: add more characters, make it harder…"
-                                : "What should happen in this world?"
-                        }
-                        aria-label="Ask for a change"
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (
-                                event.key === "Enter" &&
-                                !event.shiftKey &&
-                                !event.nativeEvent.isComposing
-                            ) {
-                                event.preventDefault();
-                                send();
-                            }
-                        }}
-                    />
-                    <button
-                        type="button"
-                        className="send"
-                        aria-label="Send"
-                        disabled={!draft.trim() || state.busy}
-                        onClick={() => send()}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 16 16">
-                            <path
-                                d="M8 13V3m0 0L3.5 7.5M8 3l4.5 4.5"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </button>
-                </div>
-                <p className="hint">
-                    Enter to send
-                    {state.remaining != null &&
-                        ` · ${state.remaining} left today`}
-                </p>
-            </footer>
         </Panel>,
         document.body
     );
@@ -301,10 +164,10 @@ const Panel = styled.aside`
     top: 16px;
     right: 16px;
     bottom: 16px;
-    width: 380px;
+    width: 360px;
     max-width: calc(100vw - 32px);
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     border: 1px solid var(--oc-line-strong);
     border-radius: ${baseTokens.radius.panel}px;
     background: var(--oc-panel);
@@ -317,50 +180,27 @@ const Panel = styled.aside`
         box-sizing: border-box;
     }
     button {
-        font: inherit;
         cursor: pointer;
     }
-    button:disabled {
-        cursor: default;
-        opacity: 0.4;
-    }
-    button:focus-visible,
-    textarea:focus-visible {
+    button:focus-visible {
         outline: 2px solid var(--oc-accent);
-        outline-offset: -2px;
+        outline-offset: 2px;
     }
-    header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 16px 16px 12px 20px;
-    }
-    h2 {
-        flex: 1;
-        margin: 0;
-        font-size: 16px;
-        font-weight: 500;
-    }
-    .state {
-        font: 400 10px/1.5 var(--oc-mono);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--oc-muted);
-    }
-    .state[data-on] {
-        color: var(--oc-ink);
-    }
-    .icon {
-        width: 32px;
-        height: 32px;
+    .close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1;
+        width: 28px;
+        height: 28px;
         display: grid;
         place-items: center;
-        border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control);
-        background: transparent;
-        color: var(--oc-secondary);
+        border: 0;
+        border-radius: var(--oc-radius-inset);
+        background: var(--oc-panel);
+        color: var(--oc-muted);
     }
-    .icon:hover {
+    .close:hover {
         background: var(--oc-hover);
         color: var(--oc-ink);
     }
@@ -368,199 +208,119 @@ const Panel = styled.aside`
         min-height: 0;
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 4px 20px 16px;
+        padding: 20px 20px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
         scrollbar-width: thin;
         scrollbar-color: var(--oc-line-strong) transparent;
     }
-    .empty p,
-    .detail p {
-        margin: 0 0 12px;
-        font-size: 13px;
-        line-height: 1.6;
+    p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+    p.quiet,
+    p[data-kind="error"] {
         color: var(--oc-secondary);
     }
-    .muted,
-    .detail p.muted {
-        color: var(--oc-muted);
+    p.quiet {
+        padding-right: 28px;
     }
-    .empty ul {
+    p[data-kind="you"] {
+        align-self: flex-end;
+        max-width: 85%;
+        margin-top: 6px;
+        padding: 8px 12px;
+        background: var(--oc-surface);
+        border-radius: var(--oc-radius-control);
+    }
+    p[data-kind="you"]:first-child {
+        margin-right: 28px;
+    }
+    ul {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 12px 14px;
         display: grid;
-        gap: 6px;
-    }
-    .empty li button {
-        width: 100%;
-        padding: 10px 12px;
-        text-align: left;
-        font-size: 13px;
-        line-height: 1.4;
-        color: var(--oc-ink);
-        background: var(--oc-surface);
+        gap: 8px;
         border: 1px solid var(--oc-line);
         border-radius: var(--oc-radius-control);
     }
-    .empty li button:hover {
-        background: var(--oc-hover);
-    }
-    ol {
-        list-style: none;
-        margin: 0;
-        padding: 0;
+    li {
         display: grid;
-        gap: 8px;
-    }
-    ol li {
-        display: grid;
-        grid-template-columns: 16px minmax(0, 1fr);
-        gap: 8px;
+        grid-template-columns: 14px minmax(0, 1fr);
+        gap: 10px;
         font-size: 13px;
-        line-height: 1.5;
+        line-height: 1.45;
+        color: var(--oc-secondary);
         overflow-wrap: anywhere;
     }
     .mark {
-        font: 400 12px/1.6 var(--oc-mono);
+        width: 12px;
+        height: 12px;
+        margin-top: 3px;
+        border-radius: 50%;
+    }
+    li[data-state="running"] {
+        color: var(--oc-ink);
+    }
+    li[data-state="running"] .mark {
+        border: 1.5px solid var(--oc-line-strong);
+        border-top-color: var(--oc-ink);
+        animation: ${turn} 0.8s linear infinite;
+    }
+    li[data-state="done"] .mark::before,
+    li[data-state="failed"] .mark::before {
+        content: "✓";
+        display: block;
+        font-size: 11px;
+        line-height: 12px;
         text-align: center;
         color: var(--oc-muted);
     }
-    .mark.dot {
-        font-size: 9px;
-        line-height: 2.2;
-        color: var(--oc-ink);
-    }
-    .mark.spin {
-        width: 10px;
-        height: 10px;
-        margin: 5px 3px;
-        border: 1.5px solid var(--oc-line-strong);
-        border-top-color: var(--oc-ink);
-        border-radius: 50%;
-        animation: ${turn} 0.8s linear infinite;
-    }
-    li[data-kind="you"] {
-        margin-top: 12px;
-        padding: 8px 10px 8px 6px;
-        background: var(--oc-surface);
-        border-radius: var(--oc-radius-control);
-    }
-    li[data-kind="you"]:first-child {
-        margin-top: 0;
-    }
-    li[data-kind="step"] {
-        font: 400 12px/1.6 var(--oc-mono);
-        color: var(--oc-secondary);
-    }
-    li[data-kind="step"][data-state="failed"] .mark,
-    li[data-kind="error"] .mark {
-        color: #ff6b5e;
-    }
-    li[data-kind="error"] {
-        color: var(--oc-secondary);
-    }
-    .detail {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid var(--oc-line);
-    }
-    h3 {
-        font: 400 10px/1.5 var(--oc-mono);
-        color: var(--oc-muted);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        margin: 0 0 10px;
-    }
-    pre {
-        margin: 0 0 16px;
-        padding: 12px;
-        max-height: 320px;
-        overflow: auto;
-        font: 400 11px/1.6 var(--oc-mono);
-        color: var(--oc-secondary);
-        background: var(--oc-surface);
-        border-radius: var(--oc-radius-inset);
-        white-space: pre;
-        scrollbar-width: thin;
-    }
-    .palette {
-        display: flex;
-        gap: 6px;
-        margin-bottom: 12px;
-    }
-    .palette span {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 1px solid var(--oc-line-strong);
-    }
-    footer {
-        padding: 12px 16px 12px;
-        border-top: 1px solid var(--oc-line);
-    }
-    .tools {
-        display: flex;
-        gap: 4px;
-        margin-bottom: 10px;
-    }
-    .tools .gap {
-        flex: 1;
-    }
-    .tools button {
-        padding: 4px 8px;
-        font: 400 11px/1.5 var(--oc-mono);
-        color: var(--oc-secondary);
-        background: transparent;
-        border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-inset);
-    }
-    .tools button:hover:not(:disabled),
-    .tools button[aria-pressed="true"] {
-        color: var(--oc-ink);
-        background: var(--oc-hover);
+    li[data-state="failed"] .mark::before {
+        content: "×";
     }
     .composer {
+        margin: 8px 12px 12px;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: end;
         gap: 8px;
-        padding: 8px 8px 8px 12px;
-        background: var(--oc-surface);
+        padding: 10px 10px 10px 14px;
         border: 1px solid var(--oc-line-strong);
-        border-radius: var(--oc-radius-control);
+        border-radius: 16px;
     }
     .composer:focus-within {
         border-color: var(--oc-secondary);
     }
     textarea {
-        min-height: 40px;
+        min-height: 42px;
         max-height: 160px;
-        padding: 2px 0;
+        padding: 0;
         resize: none;
         border: 0;
         outline: 0;
         background: transparent;
         color: var(--oc-ink);
-        font: 400 13px/1.5 var(--oc-font);
-    }
-    textarea:focus-visible {
-        outline: 0;
+        font: 400 14px/1.5 var(--oc-font);
     }
     textarea::placeholder {
         color: var(--oc-muted);
     }
     .send {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: grid;
         place-items: center;
         border: 0;
-        border-radius: var(--oc-radius-inset);
-        background: var(--oc-ink);
-        color: var(--oc-panel);
+        background: transparent;
+        color: var(--oc-ink);
     }
-    .hint {
-        margin: 6px 2px 0;
-        font: 400 10px/1.5 var(--oc-mono);
+    .send:disabled {
+        cursor: default;
         color: var(--oc-muted);
     }
     @media (max-width: ${baseTokens.breakpoint.phone}px) {
