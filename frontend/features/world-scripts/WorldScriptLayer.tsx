@@ -134,13 +134,24 @@ function Layer({
         };
 
         async function boot() {
+            const startedAt = Date.now();
+            // The engine's modules load the engine's own way first: importing
+            // them before the world exists evaluates them in another order.
+            while (!disposed && !(window as any).scene) {
+                if (Date.now() - startedAt > READY_GIVE_UP_MS) return;
+                await new Promise((resolve) =>
+                    setTimeout(resolve, READY_POLL_MS)
+                );
+            }
+            if (disposed) return;
             const [{ createEngineSink, engineReady }, { WorldScriptHost }] =
                 await Promise.all([
                     import("./engineAdapter"),
                     import("./host"),
                 ]);
-            const startedAt = Date.now();
             while (!disposed && !engineReady()) {
+                if (process.env.NODE_ENV === "development")
+                    (window as any).oncyberWorldScriptsWaiting = Date.now();
                 if (Date.now() - startedAt > READY_GIVE_UP_MS) return;
                 await new Promise((resolve) =>
                     setTimeout(resolve, READY_POLL_MS)
@@ -319,7 +330,7 @@ function Layer({
             }
         }
 
-        setWorldScriptsController({
+        const controller = {
             ask,
             run,
             save,
@@ -329,7 +340,11 @@ function Layer({
                 host?.stop();
                 setWorldScripts({ source: "" });
             },
-        });
+        };
+        setWorldScriptsController(controller);
+        // For trying scripts from the console while developing.
+        if (process.env.NODE_ENV === "development")
+            (window as any).oncyberWorldScripts = controller;
         void boot();
 
         return () => {

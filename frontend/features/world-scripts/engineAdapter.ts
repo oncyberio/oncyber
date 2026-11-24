@@ -91,15 +91,10 @@ function liveArtworks(): any[] {
     }
 }
 
-/** The world is showing: a player, a camera and the artworks are in place. */
+/** The world is showing: a player and a camera are in place. */
 export function engineReady() {
     try {
-        return (
-            !!(Players as any).main &&
-            !!Camera.current &&
-            !!CANVAS &&
-            !!(Root as any).currentArtworks
-        );
+        return !!(Players as any).main && !!Camera.current && !!CANVAS;
     } catch {
         return false;
     }
