@@ -1,7 +1,12 @@
 /** @jest-environment node */
 jest.mock("@utils/firebaseAdmin", () => ({ db: {} }));
 
-import { ownerSpaceLinks, profileSpaceLinks, spaceLinks } from "./ownerSpaces";
+import {
+    hasGallery,
+    ownerSpaceLinks,
+    profileSpaceLinks,
+    spaceLinks,
+} from "./ownerSpaces";
 
 const doc = (id: string, data: any) => ({ id, data });
 
@@ -89,6 +94,44 @@ describe("ownerSpaceLinks", () => {
         expect(db.query.limit).toHaveBeenCalledWith(13);
     });
 
+    it("leaves out a space whose gallery is gone: its page answers 404", async () => {
+        const db = store([
+            doc("a", {
+                info: { headline: "Museum", customLink: "museum", room: "ok" },
+            }),
+            doc("b", {
+                info: {
+                    headline: "tropix",
+                    customLink: "tropix",
+                    room: "gone",
+                },
+            }),
+            // A private space is never looked up.
+            doc("c", {
+                info: { headline: "Hidden", room: "gone", private: true },
+            }),
+        ]);
+        const exists = jest.fn(async (data) => data.info.room !== "gone");
+        expect(
+            await ownerSpaceLinks("0xowner", "self", db, { exists })
+        ).toEqual([{ id: "a", name: "Museum", path: "/museum" }]);
+        expect(exists).toHaveBeenCalledTimes(2);
+        expect(db.query.select).toHaveBeenCalledWith(
+            expect.stringContaining("info.headline"),
+            "info.customLink",
+            "info.room",
+            "runtime",
+            "number_of_visits",
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+            expect.anything(),
+            expect.anything()
+        );
+    });
+
     it("lists nothing without an owner or when the read fails", async () => {
         const error = jest.spyOn(console, "error").mockImplementation(() => {});
         expect(await ownerSpaceLinks("", "self", store([]))).toEqual([]);
@@ -158,5 +201,19 @@ describe("profileSpaceLinks", () => {
             { id: "a", name: "One", path: "/spaces/a" },
         ]);
         error.mockRestore();
+    });
+});
+
+describe("hasGallery", () => {
+    it("asks only for native spaces that name a gallery, and keeps a space when the lookup cannot be made", async () => {
+        // The mocked database cannot answer: nothing is hidden on a failure.
+        expect(await hasGallery({ info: { room: "white-cube_v2" } })).toBe(
+            true
+        );
+        // Another runtime has no gallery to look for.
+        expect(
+            await hasGallery({ runtime: { kind: "web" }, info: { room: "x" } })
+        ).toBe(true);
+        expect(await hasGallery({ info: {} })).toBe(true);
     });
 });

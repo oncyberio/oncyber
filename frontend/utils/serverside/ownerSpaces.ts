@@ -1,5 +1,6 @@
 import { db } from "@utils/firebaseAdmin";
 import { isReservedLink } from "@utils/reservedLinks";
+import { isNativeRuntime } from "@utils/runtimeKind";
 import { isPublicSpace, PUBLIC_SPACE_FIELDS } from "@utils/spaceVisibility";
 
 /** A creator's public space, as a link from another of their spaces. */
@@ -16,9 +17,36 @@ export const OWNER_SPACES_LISTED = 12;
 const FIELDS = [
     "info.headline",
     "info.customLink",
+    "info.room",
+    "runtime",
     "number_of_visits",
     ...PUBLIC_SPACE_FIELDS,
 ];
+
+/**
+ * Does the gallery a space is built in still exist? A space whose gallery
+ * is gone answers 404 (see fetchExhibitData), so a link to it from its
+ * creator's other spaces is a dead one: a crawl of 500 pages found 19.
+ * This asks the page's own lookup, which is cached per gallery; when it
+ * cannot be made the space stays listed.
+ */
+export async function hasGallery(data: any): Promise<boolean> {
+    if (!isNativeRuntime(data?.runtime)) return true;
+    const room = data?.info?.room;
+    if (typeof room !== "string" || !room) return true;
+    try {
+        // Loaded when asked: utils/ssr reaches back to this module through
+        // the space API.
+        const { getDestination } = await import("@utils/ssr");
+        const found = await getDestination(room);
+        if (found.success) return true;
+        return (found as { error?: string }).error !== "Not found";
+    } catch {
+        return true;
+    }
+}
+
+type GalleryCheck = (data: any) => Promise<boolean>;
 
 /** The links to list from a creator's spaces: public, named, most visited first. */
 export function spaceLinks(
@@ -60,7 +88,8 @@ async function readOwnerSpaceLinks(
     exceptId: string,
     store: typeof db,
     read: number,
-    listed: number
+    listed: number,
+    exists: GalleryCheck = hasGallery
 ): Promise<OwnerSpaceLink[]> {
     // The read is capped before the spaces are ranked: ordering by visits
     // in the query would leave out older spaces that have no visit count.
@@ -70,10 +99,13 @@ async function readOwnerSpaceLinks(
         .select(...FIELDS)
         .limit(read)
         .get();
+    const docs = snapshot.docs
+        .filter((doc) => doc.id !== exceptId)
+        .map((doc) => ({ id: doc.id, data: doc.data() }))
+        .filter(({ data }) => isPublicSpace(data));
+    const open = await Promise.all(docs.map(({ data }) => exists(data)));
     return spaceLinks(
-        snapshot.docs
-            .filter((doc) => doc.id !== exceptId)
-            .map((doc) => ({ id: doc.id, data: doc.data() })),
+        docs.filter((_doc, index) => open[index]),
         listed
     );
 }
@@ -89,7 +121,11 @@ export async function ownerSpaceLinks(
     ownerId: string,
     exceptId: string,
     store = db,
-    { read = OWNER_SPACES_READ, listed = OWNER_SPACES_LISTED } = {}
+    {
+        read = OWNER_SPACES_READ,
+        listed = OWNER_SPACES_LISTED,
+        exists = hasGallery as GalleryCheck,
+    } = {}
 ): Promise<OwnerSpaceLink[]> {
     if (!ownerId) return [];
     try {
@@ -98,7 +134,8 @@ export async function ownerSpaceLinks(
             exceptId,
             store,
             read,
-            listed
+            listed,
+            exists
         );
     } catch (error) {
         console.error("[owner spaces]", error?.message || error);
@@ -122,7 +159,8 @@ const profileCache = new Map<string, { at: number; links: OwnerSpaceLink[] }>();
 export async function profileSpaceLinks(
     ownerId: string,
     store = db,
-    now = Date.now()
+    now = Date.now(),
+    exists: GalleryCheck = hasGallery
 ): Promise<OwnerSpaceLink[]> {
     if (!ownerId) return [];
     const hit = profileCache.get(ownerId);
@@ -134,7 +172,8 @@ export async function profileSpaceLinks(
             "",
             store,
             PROFILE_SPACES_READ,
-            PROFILE_SPACES_LISTED
+            PROFILE_SPACES_LISTED,
+            exists
         );
     } catch (error) {
         console.error("[profile spaces]", error?.message || error);

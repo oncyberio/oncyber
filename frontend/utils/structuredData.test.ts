@@ -132,13 +132,20 @@ describe("docStructuredData", () => {
             title: "Avatars",
             description: "Everyone has a 3D avatar.",
         });
-        expect(data.url).toBe(searchUrl("/docs/avatars"));
+        const article = graph(data, "TechArticle");
+        expect(article.url).toBe(searchUrl("/docs/avatars"));
+        // An article has no `breadcrumb` property: the trail is its own node.
+        expect(article.breadcrumb).toBeUndefined();
         expect(
-            data.breadcrumb.itemListElement.map((item) => item.name)
+            graph(data, "BreadcrumbList").itemListElement.map(
+                (item) => item.name
+            )
         ).toEqual(["oncyber", "Docs", "Avatars"]);
         expect(
-            (docStructuredData({ slug: "", title: "Oncyber docs" }) as any)
-                .breadcrumb.itemListElement
+            graph(
+                docStructuredData({ slug: "", title: "Oncyber docs" }),
+                "BreadcrumbList"
+            ).itemListElement
         ).toHaveLength(2);
     });
 });
@@ -209,8 +216,8 @@ describe("a docs page written as questions", () => {
             title: "What is Oncyber?",
             faq: [{ question: "Is it free?", answer: "Yes." }],
         });
-        expect(data["@type"]).toBe("FAQPage");
-        expect(data.mainEntity).toEqual([
+        const page = graph(data, "FAQPage");
+        expect(page.mainEntity).toEqual([
             {
                 "@type": "Question",
                 name: "Is it free?",

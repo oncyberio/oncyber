@@ -268,29 +268,42 @@ export function docStructuredData(doc: {
     const url = searchUrl(path);
     return {
         "@context": CONTEXT,
-        "@type": doc.faq?.length ? "FAQPage" : "TechArticle",
-        "@id": url,
-        ...(doc.faq?.length
-            ? {
-                  mainEntity: doc.faq.map(({ question, answer }) => ({
-                      "@type": "Question",
-                      name: question,
-                      acceptedAnswer: { "@type": "Answer", text: answer },
-                  })),
-              }
-            : {}),
-        url,
-        headline: doc.title,
-        description: plainText(doc.description),
-        inLanguage: "en",
-        isPartOf: { "@id": siteId() },
-        publisher: { "@id": orgId() },
-        author: { "@id": orgId() },
-        breadcrumb: breadcrumbs([
-            { name: SITE_NAME, path: "/" },
-            { name: "Docs", path: "/docs" },
-            ...(doc.slug ? [{ name: doc.title, path }] : []),
-        ]),
+        "@graph": [
+            {
+                "@type": doc.faq?.length ? "FAQPage" : "TechArticle",
+                "@id": url,
+                ...(doc.faq?.length
+                    ? {
+                          mainEntity: doc.faq.map(({ question, answer }) => ({
+                              "@type": "Question",
+                              name: question,
+                              acceptedAnswer: {
+                                  "@type": "Answer",
+                                  text: answer,
+                              },
+                          })),
+                      }
+                    : {}),
+                url,
+                headline: doc.title,
+                description: plainText(doc.description),
+                inLanguage: "en",
+                isPartOf: { "@id": siteId() },
+                publisher: { "@id": orgId() },
+                author: { "@id": orgId() },
+            },
+            // Beside the article, not inside it: `breadcrumb` is a property
+            // of a web page, and an article that carries one is reported
+            // as a markup error (Semrush audit, November 2026).
+            {
+                ...(breadcrumbs([
+                    { name: SITE_NAME, path: "/" },
+                    { name: "Docs", path: "/docs" },
+                    ...(doc.slug ? [{ name: doc.title, path }] : []),
+                ]) as object),
+                "@id": `${url}#breadcrumb`,
+            },
+        ],
     };
 }
 

@@ -75,6 +75,23 @@ data, before the move to oncyber.com:
     searches this product answers. The About page now answers the first
     four in its questions.
 
+Semrush's own crawl of www.oncyber.com (500 pages) added three things, all
+fixed since:
+
+-   **Dead links in "More spaces by".** A space whose gallery no longer
+    exists answers 404, and creators' lists and profile pages still linked
+    to such spaces (19 links in the crawl). A space is now listed only when
+    its gallery can be found (`hasGallery` in `utils/serverside/ownerSpaces.ts`).
+-   **Usernames that begin with "@".** A profile such as `/@@lphacentaurikid`
+    answered 404, because the lookup read the name's own "@" as punctuation.
+-   **Docs structured data.** The breadcrumb trail was a property of the
+    article, which is only valid on a web page; it is now a node of its own.
+
+Left as they are: titles equal to the page heading and short titles on
+spaces (the space's own name, kept unchanged through the domain move),
+portal links that go through `/spaces/<id>` and redirect once to the
+space's link, and thin text on pages that are a 3D scene.
+
 ## Database reads
 
 Space pages add none: their text comes from the data the page already

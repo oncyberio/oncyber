@@ -36,14 +36,22 @@ export async function lookUpProfile(
     byWalletId: Lookup
 ): Promise<{ profile: VisitedProfile | null; failed: boolean }> {
     if (typeof handle !== "string") return { profile: null, failed: false };
-    const name = handle.replace(/^@/, "").trim();
+    const written = handle.trim();
+    const name = written.replace(/^@/, "").trim();
     if (!name) return { profile: null, failed: false };
     let failed = false;
     const fail = () => {
         failed = true;
         return null;
     };
+    // A few usernames begin with "@" themselves ("@lphacentaurikid"), and
+    // their profile link is /@@lphacentaurikid. The lookup drops one leading
+    // "@" as punctuation, so the name as written goes in with one to spare.
+    const literal = written.startsWith("@")
+        ? await byUsername(`@${written}`).catch(fail)
+        : null;
     const user =
+        literal ??
         (await byUsername(name).catch(fail)) ??
         (await byWalletId(name.toLowerCase()).catch(fail));
     const profile = publicProfile(user);
