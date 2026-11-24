@@ -97,10 +97,14 @@ default.
    the cover until the first frame, reports a world that fails to load and
    offers to reload it. The world hides the header the page now draws. The
    visitor is a guest inside the world. _(This change.)_
-2. **Identity.** The page hands the world a name, avatar and a short-lived
-   room identity (the lobby's identity token is the model:
-   `multiplayer/src/identity/lobby.ts`); the room accepts it in place of the
-   session token. The address bar follows the world (`location`), and Back
+2. **Identity.** The page answers the world's `hello` with who is
+   visiting: a name, a portrait and an avatar, the same public fields a
+   game gets (`features/worlds/worldVisitor.ts`). The world waits for that
+   answer before it starts, so it never starts as a guest and restarts.
+   No account id and no proof of one cross: until slice 3 the room knows a
+   framed visitor by name and avatar only, so they have no moderator
+   rights in it. Signing in or out on the page starts the world again as
+   that visitor. The address bar follows the world (`location`), and Back
    and travel go through the page.
 3. **The room, voice and chat in the page.** The engine's multiplayer gets a
    transport seam: poses up, peers down, as games do. Voice and chat move to

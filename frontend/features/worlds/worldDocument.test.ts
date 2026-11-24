@@ -120,6 +120,46 @@ describe("createWorldDocument", () => {
         expect(asked).toBeLessThan(100);
     });
 
+    test("learns from the page who is visiting", async () => {
+        const w = fakeWindow();
+        const world = createWorldDocument(w.win, frame);
+        const visitor = {
+            type: "oncyber:game:identity",
+            guest: false,
+            name: "ada",
+            pfp: "https://cdn.example/ada.png",
+            avatarUrl: "https://cdn.example/ada.vrm",
+            avatarId: "robot",
+            avatarName: "Robot",
+            avatarSize: 0.4,
+        };
+        // only the page's word counts, and only its first
+        w.fromPage(
+            { ...visitor, name: "mallory" },
+            "https://elsewhere.example"
+        );
+        w.fromPage(visitor);
+        w.fromPage({ ...visitor, name: "later" });
+        expect(await world.visitor()).toMatchObject({
+            guest: false,
+            name: "ada",
+            avatar: { id: "robot", url: "https://cdn.example/ada.vrm" },
+            avatarSize: 0.4,
+        });
+    });
+
+    test("a page that names no one, or never answers, leaves the world its own guest", async () => {
+        const named = fakeWindow();
+        const first = createWorldDocument(named.win, frame);
+        named.fromPage({ type: "oncyber:game:identity" });
+        expect(await first.visitor()).toBeNull();
+
+        const silent = fakeWindow();
+        const second = createWorldDocument(silent.win, frame);
+        silent.advance(120_000);
+        expect(await second.visitor()).toBeNull();
+    });
+
     test("reports progress, then that it has drawn, once", () => {
         const w = fakeWindow();
         const world = createWorldDocument(w.win, frame);

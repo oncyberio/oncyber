@@ -47,6 +47,7 @@ import {
     type WorldFrameRole,
 } from "@features/worlds/worldFrame";
 import { worldDocument } from "@features/worlds/worldDocument";
+import { useWorldVisitor } from "@features/worlds/useWorldVisitor";
 
 const FramedWorld = dynamic(() => import("@features/worlds/FramedWorld"));
 const EmbeddedExperience = dynamic(
@@ -64,8 +65,11 @@ export default function Exhibit(props: {
     worldFrameRole?: WorldFrameRole | null;
 }) {
     const { isAnonInitialized } = useContext(UserContext);
+    // In the site's frame, the world starts once the page has said who is
+    // visiting (features/worlds).
+    const visitorKnown = useWorldVisitor(props.worldFrameRole === "world");
     if (props.notFound) return <NotFoundPage {...(props as any)} />;
-    if (!isAnonInitialized) return null;
+    if (!isAnonInitialized || !visitorKnown) return null;
     if (props.experience && !isSupportedRuntime(props.experience.runtime)) {
         return <Error statusCode={404} />;
     }

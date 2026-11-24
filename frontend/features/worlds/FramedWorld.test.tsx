@@ -27,6 +27,22 @@ jest.mock("@features/content-host/ExperienceShell", () => ({
     ),
 }));
 
+// The account as the page holds it; a test signs in by changing it.
+let account: { isSignedIn: boolean; userData: any };
+jest.mock("@components/context/UserContext", () => {
+    const { createContext } = require("react");
+    return { UserContext: createContext({}) };
+});
+jest.mock("@features/lobby/avatarSelection", () => ({
+    DEFAULT_LOBBY_AVATAR_URL: "/avatars/square.vrm",
+    resolveLobbyAvatar: jest.fn(async (who?: { settings?: any }) =>
+        who?.settings?.vrm
+            ? { id: who.settings.vrm, name: "Robot", url: "/avatars/r.vrm" }
+            : { id: "square", name: "Square", url: "/avatars/square.vrm" }
+    ),
+}));
+
+import { UserContext } from "@components/context/UserContext";
 import FramedWorld, { WORLD_LOAD_TIMEOUT_MS } from "./FramedWorld";
 
 const frame = readWorldFrame(
@@ -61,16 +77,26 @@ const fromWorld = (
         );
     });
 
-beforeEach(() => {
+/** Renders the page for the account as it is now, and lets it be read. */
+const render = async () => {
+    await act(async () =>
+        root.render(
+            <UserContext.Provider value={account as any}>
+                <FramedWorld title="Starry Night" spaceId="abc" frame={frame} />
+            </UserContext.Provider>
+        )
+    );
+};
+const hello = () =>
+    fromWorld({ type: "oncyber:game:hello", contract: 2, world: true });
+
+beforeEach(async () => {
     jest.useFakeTimers();
+    account = { isSignedIn: false, userData: null };
     host = document.createElement("div");
     document.body.appendChild(host);
     root = createRoot(host);
-    act(() =>
-        root.render(
-            <FramedWorld title="Starry Night" spaceId="abc" frame={frame} />
-        )
-    );
+    await render();
     listen();
 });
 afterEach(() => {
@@ -91,14 +117,74 @@ test("frames the same address on the world host, with no way out of the frame", 
     expect(element().title).toBe("Starry Night");
 });
 
-test("answers the world's hello, to the world's origin and with nothing of the account", () => {
-    fromWorld({ type: "oncyber:game:hello", contract: 2, world: true });
+test("answers the world's hello with a guest, to the world's origin", () => {
+    hello();
     expect(sent).toEqual([
         {
-            message: { type: "oncyber:game:identity" },
+            message: {
+                type: "oncyber:game:identity",
+                guest: true,
+                name: "Guest",
+                pfp: expect.any(String),
+                avatarUrl: "/avatars/square.vrm",
+                avatarId: "square",
+                avatarName: "Square",
+                avatarSize: null,
+            },
             target: "https://worlds.example",
         },
     ]);
+});
+
+test("a signed-in visitor crosses as a name, a portrait and an avatar, and nothing else of the account", async () => {
+    account = {
+        isSignedIn: true,
+        userData: {
+            username: "ada",
+            avatar: "https://cdn.example/ada.png",
+            walletId: "0xabc",
+            email: "ada@example.com",
+            settings: { vrm: "robot", default_vrm_scale: 0.4 },
+        },
+    };
+    act(() => root.unmount());
+    root = createRoot(host);
+    await render();
+    listen();
+    hello();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].message).toEqual({
+        type: "oncyber:game:identity",
+        guest: false,
+        name: "ada",
+        pfp: "https://cdn.example/ada.png",
+        avatarUrl: "/avatars/r.vrm",
+        avatarId: "robot",
+        avatarName: "Robot",
+        avatarSize: 0.4,
+    });
+    expect(JSON.stringify(sent[0].message)).not.toMatch(/0xabc|example\.com"/);
+});
+
+test("signing in after the world started starts it again as that visitor", async () => {
+    const first = element();
+    hello();
+    account = {
+        isSignedIn: true,
+        userData: { username: "ada", avatar: "https://cdn.example/ada.png" },
+    };
+    await render();
+    expect(element()).not.toBe(first);
+    listen();
+    hello();
+    expect(sent[0].message).toMatchObject({ guest: false, name: "ada" });
+});
+
+test("a visitor who has not changed leaves the world running", async () => {
+    const first = element();
+    hello();
+    await render();
+    expect(element()).toBe(first);
 });
 
 test("ignores anything that is not the world in its frame", () => {

@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { baseTokens } from "@styles/tokens";
+import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
+import { presentAccount } from "@features/games/accountIdentity";
 import {
     GameLoadingCover,
     useGameLoading,
@@ -12,6 +14,7 @@ import {
     readGameMessage,
 } from "@features/games/gameContract";
 import { WORLD_GAME_ID } from "./worldDocument";
+import { worldVisitorMessage } from "./worldVisitor";
 import {
     WORLD_PERMISSIONS,
     WORLD_SANDBOX,
@@ -44,6 +47,11 @@ export default function FramedWorld({
     // Each attempt is a new frame with a new cover.
     const [attempt, setAttempt] = useState(0);
     const [failed, setFailed] = useState(false);
+    const visitor = usePageVisitor();
+    const reload = () => {
+        setFailed(false);
+        setAttempt((count) => count + 1);
+    };
     return (
         <main
             data-framed-world
@@ -58,7 +66,9 @@ export default function FramedWorld({
                 title={title}
                 src={worldFrameUrl(router.asPath, frame)}
                 frame={frame}
+                visitor={visitor}
                 onFailed={() => setFailed(true)}
+                onVisitorChanged={reload}
             />
             <ExperienceShell
                 title={title}
@@ -68,10 +78,7 @@ export default function FramedWorld({
                     failed
                         ? {
                               message: "This world didn't load.",
-                              onRetry: () => {
-                                  setFailed(false);
-                                  setAttempt((count) => count + 1);
-                              },
+                              onRetry: reload,
                           }
                         : undefined
                 }
@@ -80,37 +87,96 @@ export default function FramedWorld({
     );
 }
 
+/**
+ * The visitor as the page presents them to a world: null until the account
+ * and its avatar have been read. The same object until one of them changes.
+ */
+function usePageVisitor() {
+    const { userData, isSignedIn } = useContext(UserContext);
+    const [visitor, setVisitor] = useState<{
+        key: string;
+        message: object;
+    } | null>(null);
+    const account = isSignedIn ? userData : null;
+    useEffect(() => {
+        let cancelled = false;
+        void presentAccount(account).then((presentation) => {
+            if (cancelled) return;
+            const message = worldVisitorMessage(
+                !!account,
+                presentation,
+                account?.settings?.default_vrm_scale
+            );
+            const key = JSON.stringify(message);
+            setVisitor((current) =>
+                current?.key === key ? current : { key, message }
+            );
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        isSignedIn,
+        account?.username,
+        account?.avatar,
+        account?.settings?.vrm,
+        account?.settings?.default_vrm_scale,
+    ]);
+    return visitor;
+}
+
 function WorldFrameView({
     title,
     src,
     frame,
+    visitor,
     onFailed,
+    onVisitorChanged,
 }: {
     title: string;
     src: string;
     frame: WorldFrame;
+    visitor: { message: object } | null;
     onFailed(): void;
+    /** The world was told one visitor and the page now has another. */
+    onVisitorChanged(): void;
 }) {
     const element = useRef<HTMLIFrameElement>(null);
     const loading = useGameLoading(WORLD_GAME_ID, element, frame.world);
     const failed = useRef(onFailed);
     failed.current = onFailed;
 
-    // The world says hello until the page answers. Nothing about the
-    // account crosses yet: the visitor is a guest inside the world.
+    // The world says hello until the page answers with its visitor: public
+    // fields only (./worldVisitor). The world starts once it has them.
+    const present = useRef(visitor);
+    present.current = visitor;
+    const told = useRef<object | null>(null);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             if (!fromFrame(event, element.current, frame.world)) return;
             const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
-            if (kind === "hello")
-                element.current?.contentWindow?.postMessage(
-                    { type: `${GAME_MESSAGE_PREFIX}identity` },
-                    frameTarget(frame.world)
-                );
+            if (kind !== "hello" || !present.current) return;
+            told.current = present.current;
+            element.current?.contentWindow?.postMessage(
+                {
+                    ...present.current.message,
+                    type: `${GAME_MESSAGE_PREFIX}identity`,
+                },
+                frameTarget(frame.world)
+            );
         };
         window.addEventListener("message", receive);
         return () => window.removeEventListener("message", receive);
     }, [frame.world]);
+
+    // Signing in or out, or a new avatar, after the world started: the
+    // world starts again as that visitor.
+    const changed = useRef(onVisitorChanged);
+    changed.current = onVisitorChanged;
+    useEffect(() => {
+        if (told.current && visitor && told.current !== visitor)
+            changed.current();
+    }, [visitor]);
 
     useEffect(() => {
         if (loading.phase === "failed") return failed.current();

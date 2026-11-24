@@ -168,3 +168,15 @@ test("a picture the gateway cannot resize is shown as it was stored", async () =
         payload: original,
     });
 });
+
+test("a visitor with no account here keeps a managed picture and never has one saved", async () => {
+    // a framed world's visitor: a name and a portrait, no account
+    const avatar = `${managed}?filename=profile.png`;
+    await expect(formatAvatar({ avatar }, dispatch)).resolves.toBe(
+        `${managed}?img-width=256&filename=profile.png`
+    );
+    await expect(
+        formatAvatar({ avatar: "https://elsewhere.example/me.png" }, dispatch)
+    ).resolves.toBe("https://fallback.example/avatar.png");
+    expect(updateAvatar).not.toHaveBeenCalled();
+});
