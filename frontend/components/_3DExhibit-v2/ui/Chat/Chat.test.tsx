@@ -253,3 +253,21 @@ test("the native typing shortcut opens the collapsed phone composer", () => {
     render();
     expect(mockChat.setIsMobileChatOpen).toHaveBeenCalledWith(true);
 });
+
+test("the room chat steps aside while the lobby's party chat is open over the space", () => {
+    render();
+    const css = [...document.querySelectorAll("style")]
+        .map((style) => style.textContent)
+        .join("\n");
+    const chat = document.getElementById("native-room-chat");
+    const rule = css
+        .split("}")
+        .find((block) => block.includes("data-party-chat-open"));
+    // The attribute is on the document, so the selector must start there,
+    // not be glued to the chat's own class.
+    expect(rule).toMatch(/(^|\s|,)html\[data-party-chat-open\] \./);
+    expect(rule).toContain(
+        [...chat.classList].find((name) => name.startsWith("sc-"))
+    );
+    expect(rule).toContain("visibility:hidden");
+});

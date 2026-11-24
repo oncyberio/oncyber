@@ -180,8 +180,9 @@ const Container = styled.div<{ $hidden: boolean }>`
     ${nativeChatPlacement}
     color: #e8e9ec;
     pointer-events: auto;
-    /* The lobby's party chat is open in this spot. */
-    :root[data-party-chat-open] & {
+    /* The lobby's party chat is open in this spot. Not ":root": a nested
+       selector that starts with ":" is glued to this component's class. */
+    html[data-party-chat-open] & {
         visibility: hidden;
     }
     ${({ $hidden }) =>
