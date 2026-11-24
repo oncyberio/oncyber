@@ -334,6 +334,13 @@ const nextConfig = {
                 destination: "/",
                 permanent: true,
             },
+            // So is the old "Live worlds" list: it shared the home page's
+            // title, and its cards no longer loaded their covers or names.
+            {
+                source: "/discover",
+                destination: "/",
+                permanent: true,
+            },
             ...Object.entries(PAGE_REDIRECTS).map(([from, destination]) => ({
                 source: `/${from}`,
                 destination,

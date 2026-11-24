@@ -147,6 +147,18 @@ export function spaceCreator(space: SpaceForSearch): {
     return null;
 }
 
+/**
+ * What to call a space: its own name, or "<creator>'s space" for one that was
+ * never named. Without this an unnamed space had no heading, no structured
+ * data and an empty link-preview title.
+ */
+export function spaceName(space: SpaceForSearch): string {
+    const name = plainText(space?.info?.headline);
+    if (name) return name;
+    const creator = spaceCreator(space);
+    return creator ? `${creator.name}'s space` : "";
+}
+
 /** A space: the page, the 3D work it shows, its creator and its place in the site. */
 export function spaceStructuredData(
     space: SpaceForSearch,
@@ -166,7 +178,7 @@ export function spaceStructuredData(
         content?: SpaceContent;
     } = {}
 ): Json | null {
-    const name = plainText(space?.info?.headline);
+    const name = spaceName(space);
     if (!space?.id || !name) return null;
     const url = searchUrl(path || spacePath(space));
     const artists = content ? content.artists : featuredNames(featuring);

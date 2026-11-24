@@ -23,7 +23,6 @@ export const CANONICAL_ROUTES = new Map([
     // The landing under its working name is the home page.
     ["/landing-carousel", "/"],
     ["/about", "/about"],
-    ["/discover", "/discover"],
     ["/feed", "/feed"],
     ["/privacy", "/privacy"],
     ["/studio", "/studio"],
@@ -38,7 +37,7 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
         "/about": {
             title: "About oncyber: 3D spaces you make and visit in the browser",
             description:
-                "Oncyber is a place on the web where people make and visit 3D spaces: galleries for art, worlds built in the browser, and a shared lobby. What it is, how it works and where to find us.",
+                "Oncyber is a place on the web to make and visit 3D spaces: virtual art galleries, worlds built in the browser and a shared lobby. What it is and how it works.",
         },
         "/studio": {
             title: "Studio · oncyber",

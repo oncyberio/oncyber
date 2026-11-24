@@ -4,6 +4,7 @@ import { artworkLine, SpaceContent } from "@utils/spaceContent";
 import {
     featuredNames,
     plainText,
+    spaceName,
     spaceCreator,
     SpaceForSearch,
 } from "@utils/structuredData";
@@ -28,7 +29,7 @@ export default function SpaceSummary({
     /** The gallery or world the space is built in, when it has a name. */
     gallery?: string;
 }) {
-    const name = plainText(space?.info?.headline);
+    const name = spaceName(space);
     if (!name) return null;
     const creator = spaceCreator(space);
     const paragraphs = String(space.info?.description ?? "")
