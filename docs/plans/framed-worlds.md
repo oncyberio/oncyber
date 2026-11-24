@@ -40,6 +40,12 @@ behind the same kind of frame and the same contract, so that:
     (51 ms worst gap) through an 8 s freeze; in one process it froze for all
     8 s. Desktop Chrome isolates frames from another site. Safari and phones
     _(not tested)_.
+-   **Relaying a full room through the page costs almost nothing.** With
+    the frame in its own process, a message carrying 700 visitors'
+    positions, 20 times a second, took 0.3 ms to send and arrived in 2 to
+    3 ms, and neither side dropped a frame (still 16.7 ms apart). Sixty
+    times a second measured the same. Measured between two idle documents
+    in headless Chromium; with the engine drawing _(not measured)_.
 -   **The session is a 30-day token in a host-only cookie**, also copied
     into page props and passed to the engine (`Scene3D` →
     `setCurrentUser({ token })`). A document on another host has no cookie
