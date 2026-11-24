@@ -46,6 +46,9 @@ export const lobbyDockStyles = css`
             visibility: hidden;
         }
     }
+    /* While any panel is open above the dock, no button shows its label:
+       a label over the open panel reads as an overlap. */
+    .dock-bar:has([aria-expanded="true"]) .dock-item > span,
     .dock-item:has([aria-expanded="true"]) > span {
         animation: none;
         opacity: 0;

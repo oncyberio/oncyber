@@ -699,6 +699,13 @@ const Shell = styled.div`
     .experience-dock-item:has(:focus-visible) .experience-tooltip {
         animation: experience-tooltip-life 2.6s ease forwards;
     }
+    /* While any panel is open above the dock, no button shows its label:
+       a label over the open panel reads as an overlap. */
+    .experience-dock:has([aria-expanded="true"]) .experience-tooltip {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
+    }
     @keyframes experience-tooltip-life {
         0% {
             opacity: 0;
