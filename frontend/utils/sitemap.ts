@@ -82,7 +82,10 @@ function coverImage(data: any): string | null {
 
 /**
  * A space's sitemap entry, or null for one that shouldn't be listed: not
- * public, or never named (an empty draft has neither a title nor a link).
+ * public, or never named. A space with a link but no name shows search
+ * engines a page titled "0x2b4's Untitled x1": about one listed address in
+ * twelve was one of those. It can still be visited and linked to; it is
+ * just not put forward.
  */
 export function spaceSitemapEntry(
     id: string,
@@ -92,8 +95,7 @@ export function spaceSitemapEntry(
     if (!isPublicSpace(data)) return null;
     const link = data?.info?.customLink;
     const headline = data?.info?.headline;
-    if (!link && !(typeof headline === "string" && headline.trim()))
-        return null;
+    if (!(typeof headline === "string" && headline.trim())) return null;
     // A link the site's own pages answer never opens the space.
     const path =
         link && !isReservedLink(link)

@@ -1,6 +1,6 @@
 ---
 title: Run Oncyber locally
-description: Install, start and open the app on your machine.
+description: Install, start and open Oncyber on your machine: one command runs the app, a lobby server and sample data, with no accounts or keys.
 order: 1
 ---
 
