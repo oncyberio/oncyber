@@ -97,11 +97,13 @@ describe("the page's chat and voice", () => {
     });
 
     it("plays a voice where the game placed it, else by room pose", () => {
-        const { game } = connected({
+        const { game, room } = connected({
             ada: { positionX: 32, positionY: 0, positionZ: 0 },
         });
         const audio = { volume: 1 };
-        (game as any).audio.set("ada", audio);
+        // voice in this room, hearing Ada
+        (game as any).voice = (game as any).voiceIn(room);
+        (game as any).voice.audio.set("ada", audio);
         game.samplePeers();
         expect(audio.volume).toBeCloseTo(0.5);
         game.setVoiceGain((id) => (id === "ada" ? 0.25 : null));

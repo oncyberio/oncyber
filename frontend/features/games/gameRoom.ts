@@ -1,16 +1,12 @@
 import type { Room } from "colyseus.js";
-import { ARENA_HTTP_URL } from "@utils/arena/constants";
 import { requestSeat, takeSeat } from "@utils/arena/join";
-import { ColyseusSignaling } from "@utils/voiceChat/ColyseusSignaling";
-import type { WebRTCClient } from "@utils/voiceChat/WebRTCClient";
+import { RoomVoice, type VoiceState } from "./roomVoice";
 import {
     isPagePacket,
     voiceVolume,
     type GameSocial,
     type SocialRoom,
 } from "./gameSocial";
-import { VoiceLevels } from "./voiceLevels";
-import { TalkingMeter } from "./gameTalking";
 
 export type RoomIdentity = {
     userId: string;
@@ -42,7 +38,7 @@ export type GamePeer = GamePose & {
     talking: boolean;
 };
 
-export type VoiceState = "off" | "connecting" | "live" | "muted";
+export type { VoiceState };
 
 export type GameRoomState = {
     status: "connecting" | "connected" | "error";
@@ -79,8 +75,9 @@ const REPLACED = 4001;
 export class GameRoom implements SocialRoom {
     /** The page's chat and voice layer: chat on this room goes to it. */
     social: GameSocial | null = null;
-    private levels = new VoiceLevels();
     private voiceGain: ((id: string) => number | null) | null = null;
+    /** Voice in the room the page is in now (./roomVoice). */
+    private voice: RoomVoice | null = null;
     private room: Room | null = null;
     private relayHandler: GameRelayHandler | null = null;
     private relayAt = 0;
@@ -91,11 +88,6 @@ export class GameRoom implements SocialRoom {
     onRoom: ((room: Room | null) => void) | null = null;
     private pose: GamePose = { x: 0, y: 0, z: 0, h: 0, a: 0 };
     private last = new Map<string, string>();
-    private voice: WebRTCClient | null = null;
-    private talking = new TalkingMeter();
-    private signaling: ColyseusSignaling | null = null;
-    private microphone: MediaStream | null = null;
-    private audio = new Map<string, HTMLAudioElement>();
     private distances = new Map<string, number>();
     state: GameRoomState = {
         status: "connecting",
@@ -113,6 +105,17 @@ export class GameRoom implements SocialRoom {
     private update(next: Partial<GameRoomState>) {
         this.state = { ...this.state, ...next };
         if (!this.closed) this.onChange(this.state);
+    }
+
+    private voiceIn(room: Room) {
+        return new RoomVoice(room, {
+            // Where the game placed this player, else their room pose.
+            volume: (id) =>
+                this.voiceGain?.(id) ??
+                voiceVolume(this.distances.get(id) ?? Infinity),
+            onChange: (voiceState, voiceError) =>
+                this.update({ voiceState, voiceError }),
+        });
     }
 
     async connect() {
@@ -164,6 +167,7 @@ export class GameRoom implements SocialRoom {
             room.onLeave((code) => {
                 if (this.room === room) this.lost(code !== REPLACED);
             });
+            this.voice = this.voiceIn(room);
             this.attempts = 0;
             this.onRoom?.(room);
             this.sendPose();
@@ -184,14 +188,8 @@ export class GameRoom implements SocialRoom {
         if (this.closed) return;
         this.room = null;
         this.onRoom?.(null);
-        Array.from(this.audio.keys()).forEach((id) => this.removeAudio(id));
-        this.voice?.leave();
+        this.voice?.close();
         this.voice = null;
-        this.signaling?.dispose();
-        this.signaling = null;
-        this.listening = null;
-        this.microphone?.getTracks().forEach((track) => track.stop());
-        this.microphone = null;
         this.last.clear();
         if (!rejoin) {
             this.update({ status: "error", voiceState: "off" });
@@ -285,7 +283,7 @@ export class GameRoom implements SocialRoom {
                 pfp: typeof player.avatar === "string" ? player.avatar : "",
                 vrm: typeof player.VRM === "string" ? player.VRM : "",
                 fresh,
-                talking: this.talking.talking(id),
+                talking: this.voice?.talking.talking(id) ?? false,
             });
         });
         for (const id of Array.from(this.last.keys()))
@@ -295,17 +293,8 @@ export class GameRoom implements SocialRoom {
             }
         if (peers.length + 1 !== this.state.players)
             this.update({ players: peers.length + 1 });
-        this.updateVolumes();
+        this.voice?.updateVolumes();
         return peers;
-    }
-
-    private updateVolumes() {
-        this.audio.forEach((audio, id) => {
-            // Where the game placed this player, else their room pose.
-            audio.volume =
-                this.voiceGain?.(id) ??
-                voiceVolume(this.distances.get(id) ?? Infinity);
-        });
     }
 
     // What the page's chat and voice layer needs (SocialRoom).
@@ -327,131 +316,23 @@ export class GameRoom implements SocialRoom {
         if (this.state.voiceState !== "live") await this.toggleVoice();
     };
     voiceLevels() {
-        return this.levels.levels();
+        return this.voice?.levels.levels() ?? [];
     }
     setVoiceGain(gain: ((id: string) => number | null) | null) {
         this.voiceGain = gain;
-        this.updateVolumes();
-    }
-
-    private removeAudio(id: string) {
-        const audio = this.audio.get(id);
-        if (!audio) return;
-        audio.pause();
-        audio.srcObject = null;
-        this.audio.delete(id);
-        this.levels.set(id, null);
-        this.talking.unwatch(id);
+        this.voice?.updateVolumes();
     }
 
     /** Join the voice mesh without a microphone, so you hear people nearby. */
-    private listening: Promise<void> | null = null;
-    listen = () => {
-        if (!this.room) return Promise.resolve();
-        this.listening ||= this.startListening(this.room).catch((error) => {
-            this.listening = null;
-            throw error;
-        });
-        return this.listening;
-    };
-
-    private startListening = async (room: Room) => {
-        const { WebRTCClient } = await import("@utils/voiceChat/WebRTCClient");
-        if (this.closed || this.room !== room) return;
-        const voice = new WebRTCClient();
-        this.voice = voice;
-        voice.on("user-published", (user, stream, channel) => {
-            if (this.closed || channel !== "mic") return;
-            this.removeAudio(user.uid);
-            const audio = new Audio();
-            audio.autoplay = true;
-            audio.srcObject = stream;
-            this.audio.set(user.uid, audio);
-            this.levels.set(user.uid, stream);
-            this.talking.watch(user.uid, stream);
-            this.updateVolumes();
-            void audio.play().catch(() => {
-                this.update({
-                    voiceError: "Tap the microphone to enable audio playback.",
-                });
-            });
-        });
-        voice.on("user-unpublished", (user) => this.removeAudio(user.uid));
-        voice.on("user-left", (user) => this.removeAudio(user.uid));
-        this.signaling = new ColyseusSignaling(room);
-        await voice.init({
-            transport: this.signaling,
-            userId: room.sessionId,
-            turnBaseUrl: ARENA_HTTP_URL,
-        });
-        voice.setRole("host");
-    };
-
-    /** Same WebRTC mesh and Colyseus signaling as native spaces. */
-    toggleVoice = async () => {
-        const room = this.room;
-        if (!room) return;
-        if (this.state.voiceState === "live") {
-            this.microphone
-                ?.getTracks()
-                .forEach((track) => (track.enabled = false));
-            this.update({ voiceState: "muted" });
-            return;
-        }
-        this.update({ voiceState: "connecting", voiceError: "" });
-        try {
-            if (!navigator.mediaDevices?.getUserMedia)
-                throw new Error(
-                    "Voice needs a browser with microphone access."
-                );
-            await this.listen();
-            if (this.closed || !this.voice) return;
-            if (!this.microphone) {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        channelCount: 1,
-                    },
-                    video: false,
-                });
-                if (this.closed) {
-                    stream.getTracks().forEach((track) => track.stop());
-                    return;
-                }
-                this.microphone = stream;
-                this.levels.set(room.sessionId, stream);
-                this.voice.publish(stream, "mic");
-            }
-            this.microphone
-                .getTracks()
-                .forEach((track) => (track.enabled = true));
-            this.audio.forEach((audio) => void audio.play().catch(() => {}));
-            this.levels.resume();
-            this.update({ voiceState: "live", voiceError: "" });
-        } catch (error) {
-            if (this.closed) return;
-            this.update({
-                voiceState: this.voice ? "muted" : "off",
-                voiceError:
-                    error?.name === "NotAllowedError"
-                        ? "Microphone access was declined. You can still listen."
-                        : "Couldn’t start your microphone. Tap to try again.",
-            });
-        }
-    };
+    listen = () => this.voice?.listen() ?? Promise.resolve();
+    /** Microphone on, or muted when it is on. */
+    toggleVoice = async () => this.voice?.toggle();
 
     async close() {
         this.closed = true;
         if (this.retry) clearTimeout(this.retry);
-        this.microphone?.getTracks().forEach((track) => track.stop());
-        this.microphone = null;
-        Array.from(this.audio.keys()).forEach((id) => this.removeAudio(id));
-        this.levels.dispose();
-        this.voice?.leave();
+        this.voice?.close();
         this.voice = null;
-        this.signaling?.dispose();
-        this.signaling = null;
         const room = this.room;
         this.room = null;
         if (room)
