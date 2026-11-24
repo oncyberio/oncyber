@@ -5,8 +5,19 @@ import { APP_PATHS, PAGE_REDIRECTS, isReservedLink } from "./reservedLinks";
 
 describe("reserved custom links", () => {
     it("covers every top-level page, so no space link is shadowed by one", () => {
-        const pages = readdirSync(join(__dirname, "../pages"))
-            .map((name) => name.replace(/\.(tsx?|jsx?)$/, ""))
+        const root = join(__dirname, "../pages");
+        const pages = readdirSync(root, { withFileTypes: true })
+            // A nested route like /awe/[id] can coexist with a space at /awe.
+            .filter((entry) =>
+                entry.isDirectory()
+                    ? readdirSync(join(root, entry.name)).some((child) =>
+                          /^(?:index|\[\[\.\.\.[^/]+\]\])\.(tsx?|jsx?)$/.test(
+                              child
+                          )
+                      )
+                    : /\.(tsx?|jsx?)$/.test(entry.name)
+            )
+            .map(({ name }) => name.replace(/\.(tsx?|jsx?)$/, ""))
             .filter((name) => !name.startsWith("_") && !name.startsWith("["))
             .filter((name) => name !== "index");
         for (const page of pages)
@@ -24,6 +35,7 @@ describe("reserved custom links", () => {
     it("ignores case and surrounding spaces, and leaves other names free", () => {
         expect(isReservedLink(" Studio ")).toBe(true);
         expect(isReservedLink("starrynight")).toBe(false);
+        expect(isReservedLink("awe")).toBe(false);
         expect(isReservedLink("studio-gallery")).toBe(false);
         expect(isReservedLink(null as any)).toBe(false);
     });
