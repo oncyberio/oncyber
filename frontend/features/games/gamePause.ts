@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { fromFrame } from "./frameOrigin";
 import { readGameMessage } from "./gameContract";
 
 /**
@@ -62,11 +63,7 @@ export function useGamePause(
         // A game starts listening some time before its first frame, so a
         // hold taken while it loads is repeated once it can hear it.
         const receive = (event: MessageEvent) => {
-            if (
-                event.source !== frame.current?.contentWindow ||
-                event.origin !== "null"
-            )
-                return;
+            if (!fromFrame(event, frame.current)) return;
             const kind = readGameMessage(event.data?.type, game)?.kind;
             if ((kind === "first-frame" || kind === "ready") && gamePauseHeld())
                 send(true);

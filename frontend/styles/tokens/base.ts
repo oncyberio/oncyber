@@ -39,6 +39,8 @@ export const baseTokens = {
         /** Light surface and its ink: paper cards and solid white actions. */
         paper: "#fafaf8",
         paperInk: "#20201e",
+        /** Behind a framed game or world until it draws, and its cover. */
+        frame: "#0b0d12",
         accent: "#2567ff",
         accentStart: "#3975ff",
         accentEnd: "#1854e8",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { fromFrame } from "./frameOrigin";
 import { useRouter } from "next/router";
 import { requestLobbyDestinationBack } from "@utils/lobbyDestinationBridge";
 import { createGameDeparture, type DepartureReason } from "./gameDeparture";
@@ -51,11 +52,7 @@ export function useGameDeparture(options: {
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             const { frame, game } = latest.current;
-            if (
-                event.source !== frame.current?.contentWindow ||
-                event.origin !== "null"
-            )
-                return;
+            if (!fromFrame(event, frame.current)) return;
             const kind = readGameMessage(event.data?.type, game)?.kind;
             if (kind) departure.current.receive(kind, event.data);
         };

@@ -268,7 +268,7 @@
     "features/games/GameDeviceGate.tsx": 3,
     "features/games/GameFieldHealth.tsx": 6,
     "features/games/GameInputLayer.tsx": 3,
-    "features/games/GameLoadingCover.tsx": 4,
+    "features/games/GameLoadingCover.tsx": 3,
     "features/games/GamePage.tsx": 11,
     "features/games/GamePauseGate.tsx": 3,
     "features/games/GameSound.tsx": 2,

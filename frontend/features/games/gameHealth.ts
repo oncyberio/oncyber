@@ -18,6 +18,7 @@
  * no account data and no game content: see docs/games/field-health.md.
  */
 import { useEffect, type RefObject } from "react";
+import { fromFrame } from "./frameOrigin";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { fetchGameRelease } from "./gameDisabled";
 import { readGameMessage } from "./gameContract";
@@ -267,12 +268,7 @@ export function useGameHealth(
             LOAD_TIMEOUT_MS
         );
         const receive = (event: MessageEvent) => {
-            // Same test as the page bridge: this frame, and its opaque origin.
-            if (
-                event.source !== frame.current?.contentWindow ||
-                event.origin !== "null"
-            )
-                return;
+            if (!fromFrame(event, frame.current)) return;
             // `oncyber:game:<kind>`, or `<game>:<kind>` from an older build.
             const kind = readGameMessage(event.data?.type, game)?.kind;
             if (kind === "health") return health.report(event.data);

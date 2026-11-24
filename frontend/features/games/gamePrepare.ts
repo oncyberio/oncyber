@@ -1,4 +1,5 @@
 import { findSharedPageGame } from "./catalog";
+import { fromFrame } from "./frameOrigin";
 import { gameOnDevice } from "./gameDevices";
 import {
     fetchGameRelease,
@@ -159,12 +160,7 @@ export function prepareGameDestination(href: string): boolean {
             frame.contentWindow?.postMessage({ type, ...data }, "*");
     };
     const receive = (event: MessageEvent) => {
-        if (
-            !frame.contentWindow ||
-            event.source !== frame.contentWindow ||
-            event.origin !== "null"
-        )
-            return;
+        if (!fromFrame(event, frame)) return;
         const message = readGameMessage(event.data?.type, id);
         if (!message) return;
         // A guest with nothing saved: the real identity goes to the trip,

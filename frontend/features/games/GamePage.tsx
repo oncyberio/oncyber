@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
+import { fromFrame } from "./frameOrigin";
 import { UserContext } from "@components/context/UserContext";
 import {
     resolveLobbyAvatar,
@@ -175,9 +176,7 @@ export default function GamePage({
         lastTrip.current = tripKey(trip);
         postGame.current("party", { party: trip });
     });
-    const fromGame = (event: MessageEvent) =>
-        event.source === frame.current?.contentWindow &&
-        event.origin === "null";
+    const fromGame = (event: MessageEvent) => fromFrame(event, frame.current);
     // Progress and the first frame (gameLoading.ts): a cover until the game
     // has drawn. The page's menu pauses a solo game under it (gamePause.ts).
     const loading = useGameLoading(GAME, frame);

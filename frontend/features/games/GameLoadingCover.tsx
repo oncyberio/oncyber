@@ -1,4 +1,6 @@
 import { useEffect, useReducer, useState, type RefObject } from "react";
+import { baseTokens } from "@styles/tokens";
+import { fromFrame } from "./frameOrigin";
 import {
     isLobbyDestination,
     lobbyDestinationProgress,
@@ -12,22 +14,19 @@ import {
 
 /**
  * Follows a game's loading messages (`progress`, `first-frame`, `frame`)
- * from its sandboxed frame. On a trip from the lobby the progress also goes
+ * from its frame (frameOrigin.ts says which document counts). On a trip from the lobby the progress also goes
  * to the lobby, which shows it on the way.
  */
 export function useGameLoading(
     game: string,
-    frame: RefObject<HTMLIFrameElement>
+    frame: RefObject<HTMLIFrameElement>,
+    /** The origin expected in the frame: a game's opaque one unless given. */
+    origin?: string
 ): GameLoadingState {
     const [state, dispatch] = useReducer(gameLoadingTransition, GAME_LOADING);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
-            // The game's origin is opaque; only its own window counts.
-            if (
-                event.source !== frame.current?.contentWindow ||
-                event.origin !== "null"
-            )
-                return;
+            if (!fromFrame(event, frame.current, origin)) return;
             const message = readGameLoadingMessage(game, event.data);
             if (!message) return;
             if (message.type === "progress")
@@ -36,7 +35,7 @@ export function useGameLoading(
         };
         window.addEventListener("message", receive);
         return () => window.removeEventListener("message", receive);
-    }, [game, frame]);
+    }, [game, frame, origin]);
     return state;
 }
 
@@ -74,7 +73,7 @@ export function GameLoadingCover({
                 placeContent: "center",
                 justifyItems: "center",
                 gap: 14,
-                background: "#0b0d12",
+                background: baseTokens.color.frame,
                 color: "#fff",
                 font: "600 15px/1.3 Inter, system-ui, sans-serif",
                 opacity: waiting ? 1 : 0,
