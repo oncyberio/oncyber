@@ -471,9 +471,43 @@ export function lobbyDestinationPrepared() {
 
 initializeLobbyDestinationBridge();
 
+/** The lobby marks a hosted world's document while its visitor is in a party. */
+export const LOBBY_PARTY_ATTRIBUTE = "data-lobby-party";
+
 /** The back arrow returns only after this renderer has finished departing.
  * Keep the session entered: a departure must not restart preparation hooks. */
 export function requestLobbyDestinationBack(): boolean {
+    return leaveForLobby("back");
+}
+
+/**
+ * A visitor in a party chose another world from inside this one. The lobby
+ * that hosts this world takes the trip: it brings the visitor back and asks
+ * the party to come, exactly as for a world chosen in the lobby. False when
+ * no lobby hosts this world or the visitor has no party, and the world
+ * travels on its own as before.
+ */
+export function requestLobbyPartyTravel(destination: {
+    id: string;
+    title: string;
+    href: string;
+}): boolean {
+    if (
+        typeof document === "undefined" ||
+        !document.documentElement.hasAttribute(LOBBY_PARTY_ATTRIBUTE)
+    )
+        return false;
+    return leaveForLobby("travel", {
+        id: destination.id,
+        title: destination.title,
+        href: destination.href,
+    });
+}
+
+function leaveForLobby(
+    type: "back" | "travel",
+    values: Record<string, unknown> = {}
+): boolean {
     const session = bridge;
     if (!session?.entered || session.failed || typeof window === "undefined")
         return false;
@@ -496,7 +530,8 @@ export function requestLobbyDestinationBack(): boolean {
                 {
                     protocol: LOBBY_DESTINATION_PROTOCOL,
                     attempt: session.attempt,
-                    type: "back",
+                    type,
+                    ...values,
                     ...(travelView ? { travelView } : {}),
                 },
                 session.origin

@@ -1,5 +1,6 @@
 import assert from "assert";
 import { GROUP_RECONNECT_GRACE_MS, LobbyGroups } from "../src/world/groups";
+import { FORMATION_SPACING } from "../src/world/formation";
 import { WorldGateway } from "../src/world/gateway";
 import { createSharedWorld, SharedWorld, blankPose } from "../src/world/shared";
 import { encodeMovement } from "../protocol/lobby-v2";
@@ -154,7 +155,9 @@ describe("authoritative lobby groups", () => {
         travel = f.service.snapshot("1").groups[0].travel!;
         assert.equal(travel.status, "gathering"); assert.deepEqual(travel.acceptedIds, ["1", "2"]);
         assert.equal(travel.responses["3"], "declined");
-        assert(Math.abs(Math.hypot(travel.poses["2"].x - 10, travel.poses["2"].z - 4) - 1.8) < 1e-6);
+        // Beside the initiator, one step along the row, and facing the same way.
+        assert(Math.abs(Math.hypot(travel.poses["2"].x - 10, travel.poses["2"].z - 4) - FORMATION_SPACING) < 1e-6);
+        assert.equal(travel.poses["2"].rotation, travel.poses["1"].rotation);
         f.service.placed("4", travelId); f.service.placed("1", travelId);
         assert.equal(f.service.snapshot("1").groups[0].travel!.status, "gathering");
         f.service.placed("2", travelId);
@@ -328,7 +331,7 @@ describe("authoritative lobby groups", () => {
         assert.equal(travel.status, "gathering"); assert.deepEqual(travel.acceptedIds, ["2", "3"]);
         // The formation gathers around the new initiator, who is held where they stand.
         assert.deepEqual(travel.poses["2"], { x: 20, y: 0, z: 4, rotation: 0.2 });
-        assert(Math.abs(Math.hypot(travel.poses["3"].x - 20, travel.poses["3"].z - 4) - 1.8) < 1e-6);
+        assert(Math.abs(Math.hypot(travel.poses["3"].x - 20, travel.poses["3"].z - 4) - FORMATION_SPACING) < 1e-6);
         assert(t.places.some(place => place[0] === "2" && place[3].length === 0 && place[4] === true));
         t.service.placed("2", t.travelId); t.service.placed("3", t.travelId);
         assert.equal(t.travel("2").status, "travelling");

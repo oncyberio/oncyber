@@ -1,5 +1,6 @@
 import { passwordRefusalMessage } from "@components/_3DExhibit-v2/utils/gating";
 import { goToExperience } from "@utils/experienceNavigation";
+import { requestLobbyPartyTravel } from "@utils/lobbyDestinationBridge";
 import React, { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/router";
@@ -174,6 +175,8 @@ export default function NativeExperienceChrome({
     }, [searchOpen]);
     const selectDestination = (destination: LobbyDestination) => {
         setSearchOpen(false);
+        // In a party, the lobby takes the trip and asks the party along.
+        if (requestLobbyPartyTravel(destination)) return;
         goToExperience(destination.href, (href) => router.push(href));
     };
     useEffect(() => {
