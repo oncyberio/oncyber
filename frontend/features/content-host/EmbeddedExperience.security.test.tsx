@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { UserContext } from "@components/context/UserContext";
 import EmbeddedExperience from "./EmbeddedExperience";
+import { getServerSideProps as aweRoute } from "../../pages/awe/[id]";
 import { CONTENT_BRIDGE_TAG } from "./protocol";
 import { nodeEnv } from "@env";
 import type { EmbeddedRuntime } from "./runtime";
@@ -491,4 +492,32 @@ test("loads the preserved AWE world from the configured player inside the guest 
     } finally {
         nodeEnv.AWE_PLAYER_ORIGIN = previous;
     }
+});
+
+test("the AWE route uses the published provider world without claiming its root slug", async () => {
+    const context = {
+        params: { id: "Gallery_42" },
+        query: { draft: "true", url: "https://other.example", id: "other" },
+    };
+    const result = await aweRoute(context);
+    expect(result.props?.lobbyWorld).toBe(true);
+    await render(result.props.runtime);
+    loadFrame();
+    expect(frame.src).toBe("https://awe.box/play/Gallery_42?embed=oncyber");
+    expect(post.mock.calls[0][0].capabilities).toEqual([]);
+    request("ready");
+    expect(container.querySelector('[data-testid="status"]').textContent).toBe(
+        "External content"
+    );
+});
+
+test.each([
+    undefined,
+    ["one", "two"],
+    "",
+    "a/b",
+    "a?draft=true",
+    "a".repeat(129),
+])("the AWE route returns 404 for invalid path segment %j", async (id) => {
+    expect(await aweRoute({ params: { id } })).toEqual({ notFound: true });
 });

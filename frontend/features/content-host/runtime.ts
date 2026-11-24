@@ -15,6 +15,10 @@ export function isEmbeddedRuntime(value: unknown): value is EmbeddedRuntime {
     return runtime?.kind === "web" || runtime?.kind === "awe-app";
 }
 
+export function isAweWorldId(value: unknown): value is string {
+    return typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+}
+
 export function resolveEmbeddedRuntime(
     value: unknown,
     hostOrigin: string,
@@ -36,7 +40,7 @@ export function resolveEmbeddedRuntime(
             throw new Error(
                 "Use an awe.box play link for an AWE app experience."
             );
-        if (!/^\/play\/[a-zA-Z0-9_-]{1,128}\/?$/.test(url.pathname))
+        if (!isAweWorldId(/^\/play\/([^/]+)\/?$/.exec(url.pathname)?.[1]))
             throw new Error("Use an AWE app /play/ link.");
         const draft = url.searchParams.get("draft") === "true";
         url.search = "";

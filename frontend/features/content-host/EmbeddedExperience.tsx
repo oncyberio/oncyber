@@ -484,7 +484,7 @@ function ContentDocument({
                         ? "Could not load"
                         : !loaded
                         ? "Loading world…"
-                        : experience
+                        : experience || runtime?.kind === "awe-app"
                         ? "External content"
                         : "Unregistered preview"
                 }

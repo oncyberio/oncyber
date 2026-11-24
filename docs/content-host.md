@@ -8,11 +8,16 @@ Generic content exposes only capabilities it actually implements.
 
 ## Open or attach content
 
-This is early, experimental plumbing, not a publishing flow yet. There is no
-launcher page and no Studio screen for it. The only way in today is attaching a
-page to a space you own or edit with `POST /api/content/register`, described
-below, and the attached page doesn't get the visitor's identity, avatar or
-multiplayer room yet.
+Public, published AWE worlds open at `/awe/:id` using their original AWE ID
+or supported slug. The provider resolves IDs first, preserves case, and checks
+anonymous access on each visit. The page uses the shared content host and
+forwards only the path segment. It needs no Oncyber space registration.
+Top-level custom links still resolve to Oncyber spaces. Creators continue to
+edit and publish on awe.box.
+
+To attach a web page to a space you own or edit, use
+`POST /api/content/register`. The guest receives no Oncyber account, avatar
+or multiplayer room from either entry point.
 
 Attaching persists the descriptor on an
 existing experience, so `/spaces/:id` and its custom slug use the same player:
