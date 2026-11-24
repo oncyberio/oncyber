@@ -450,6 +450,38 @@ test("late rejection from an unmounted reveal cannot fail a replacement renderer
     expect(document.documentElement.inert).toBe(true);
 });
 
+test("a world chosen from inside this one goes to the lobby when the visitor is in a party", async () => {
+    const world = {
+        id: "starrynight",
+        title: "Starry Night",
+        href: "/starrynight",
+    };
+    module.registerLobbyDestinationEntry(async () => {}, jest.fn());
+    module.lobbyDestinationPrepared();
+    command();
+    await flush();
+    // No party: the world travels on its own, and tells the lobby nothing.
+    parent.postMessage.mockClear();
+    expect(module.requestLobbyPartyTravel(world)).toBe(false);
+    expect(parent.postMessage).not.toHaveBeenCalled();
+    // The lobby marks the document while there is a party to ask.
+    document.documentElement.setAttribute(module.LOBBY_PARTY_ATTRIBUTE, "");
+    try {
+        expect(module.requestLobbyPartyTravel(world)).toBe(true);
+        expect(parent.postMessage).toHaveBeenLastCalledWith(
+            {
+                protocol: LOBBY_DESTINATION_PROTOCOL,
+                attempt,
+                type: "travel",
+                ...world,
+            },
+            window.location.origin
+        );
+    } finally {
+        document.documentElement.removeAttribute(module.LOBBY_PARTY_ATTRIBUTE);
+    }
+});
+
 test("the shared back arrow can return only after a successful parent-owned entry", async () => {
     expect(module.requestLobbyDestinationBack()).toBe(false);
     module.registerLobbyDestinationEntry(async () => {}, jest.fn());

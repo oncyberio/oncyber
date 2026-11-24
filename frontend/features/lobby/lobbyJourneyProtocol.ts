@@ -179,6 +179,8 @@ export const LOBBY_DESTINATION_MESSAGE_TYPES = [
     "revealed",
     "location",
     "back",
+    /** Back to the lobby, to ask the visitor's party along to `href`. */
+    "travel",
     "error",
 ] as const;
 export interface LobbyDestinationMessage {
@@ -186,6 +188,9 @@ export interface LobbyDestinationMessage {
     attempt: string;
     type: (typeof LOBBY_DESTINATION_MESSAGE_TYPES)[number];
     href?: string;
+    /** With `travel`: the world the visitor chose, as its card names it. */
+    id?: string;
+    title?: string;
     reveal?: LobbyRevealMode;
     /** Final locked departure framing, used only by the return presentation. */
     travelView?: LobbyTravelView;

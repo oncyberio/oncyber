@@ -29,6 +29,7 @@ import type { LandingCard } from "../landing-carousel/types";
 import Icon from "../landing-carousel/components/Icon";
 import LobbyScene from "./LobbyRenderer";
 import type { LobbyDestination, LobbySceneProps } from "./sceneTypes";
+import { LOBBY_PARTY_ATTRIBUTE } from "@utils/lobbyDestinationBridge";
 import { readTransportStyle } from "./lobbyPreviewOptions";
 import AvatarCarousel from "./AvatarCarousel";
 import useLobbySocial, { lobbyDisplayName } from "./useLobbySocial";
@@ -107,7 +108,12 @@ export default function Lobby({
     const { user, userData, token, authenticated, isAnonymous } = account;
     // Falls back to the NFT's current image, then the guest portrait.
     const profilePhoto = useProfilePhoto(userData);
-    const journey = useLobbyJourney(initialReturn);
+    // A world this visitor chose from inside another world, for their party
+    // (see the effect below `selectDestination`).
+    const [partyTrip, setPartyTrip] = useState<LobbyDestination | null>(null);
+    const journey = useLobbyJourney(initialReturn, {
+        onPartyTravel: setPartyTrip,
+    });
     const [lobbyInfoOpen, setLobbyInfoOpen] = useState(!!profile);
     // A new profile link opens the panel again, on that person.
     const profileId = profile?.id;
@@ -653,6 +659,58 @@ export default function Lobby({
             journey.go(destination, options);
         }
     };
+    // The party a trip chosen inside a world is proposed to: the one in the
+    // chat, or the only one there is.
+    const travelParty =
+        social.groupsSupported &&
+        (selectedGroup || (groups.length === 1 ? groups[0] : null));
+    // The hosted world asks before it travels on its own (see
+    // requestLobbyPartyTravel): mark it while there is a party to ask.
+    useEffect(() => {
+        let root: HTMLElement | undefined;
+        try {
+            root = journey.frameRef.current?.contentDocument?.documentElement;
+        } catch {
+            // An outside experience on another origin travels by itself.
+        }
+        root?.toggleAttribute(LOBBY_PARTY_ATTRIBUTE, entered && !!travelParty);
+    }, [entered, travelParty, journey.frameUrl]);
+    // From inside a world, the visitor chose another one. The world has
+    // handed the trip over and the lobby has come back; once it has, the
+    // party is asked along, as for a world chosen here.
+    useEffect(() => {
+        if (!partyTrip || journey.phase !== "idle") return;
+        const destination = partyTrip;
+        setPartyTrip(null);
+        const group = travelParty;
+        if (!group) {
+            setGroupError(
+                "Your party is no longer here. Choose the world again to go on your own."
+            );
+            return;
+        }
+        setGroupError("");
+        setGroupRetry(null);
+        setSelectedGroupId(group.id);
+        setChatOpen(true);
+        const propose = async () => {
+            try {
+                // The server starts a trip only from the lobby.
+                await social.groupAction({
+                    action: "active-world",
+                    active: false,
+                });
+                await groupJourney.propose(group.id, destination);
+            } catch (error) {
+                failGroup(error, "Couldn’t invite the party.", () => {
+                    setGroupError("");
+                    setGroupRetry(null);
+                    void propose();
+                });
+            }
+        };
+        void propose();
+    }, [partyTrip, journey.phase]);
     const cancelJourney = useCallback(() => {
         if (participatingTravel) {
             setGroupError("");

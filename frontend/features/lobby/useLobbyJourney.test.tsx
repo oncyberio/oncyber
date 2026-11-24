@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { useLobbyJourney } from "./useLobbyJourney";
+import { partyDestination, useLobbyJourney } from "./useLobbyJourney";
 import {
     TRAVEL_DEPARTURE_MS,
     TRAVEL_ISOLATE_MS,
@@ -28,8 +28,9 @@ let root: Root;
 let container: HTMLDivElement;
 let journey: ReturnType<typeof useLobbyJourney>;
 let nonce = 0;
+const onPartyTravel = jest.fn();
 function Harness({ initialReturn }: { initialReturn?: LobbyReturnTransition }) {
-    journey = useLobbyJourney(initialReturn);
+    journey = useLobbyJourney(initialReturn, { onPartyTravel });
     return journey.frameUrl ? (
         <iframe
             key={journey.attempt}
@@ -534,6 +535,65 @@ test("reduced-motion staging reads the next rendered pose and cancellation drops
     act(() => jest.advanceTimersByTime(16));
     expect(abandoned).not.toHaveBeenCalled();
     expect(journey.phase).toBe("idle");
+});
+
+test("a world chosen for the party inside a world brings the lobby back and hands it the trip", () => {
+    onPartyTravel.mockClear();
+    const world = {
+        id: "starrynight",
+        title: " Starry Night ",
+        href: "/starrynight?coords=1",
+    };
+    act(() => journey.select(SPACE));
+    // Before entry there is nobody to bring back.
+    act(() => message("travel", world));
+    expect(journey.phase).toBe("loading");
+    expect(onPartyTravel).not.toHaveBeenCalled();
+    act(() => message("prepared"));
+    act(() => journey.enter());
+    sendEntry();
+    act(() => message("entered"));
+    stageEntry();
+    act(() => message("reveal-ready"));
+    act(() => journey.finishReveal());
+    act(() => message("revealed"));
+    expect(journey.phase).toBe("entered");
+    // From another frame or another attempt it is not this world asking.
+    act(() => message("travel", world, { origin: "https://other.example" }));
+    act(() => message("travel", { ...world, attempt: "stale-attempt" }));
+    expect(journey.phase).toBe("entered");
+    expect(onPartyTravel).not.toHaveBeenCalled();
+    act(() => message("travel", world));
+    // Back in the lobby as for the back arrow, with the trip to propose.
+    expect(journey.phase).toBe("returning");
+    expect(onPartyTravel).toHaveBeenCalledTimes(1);
+    expect(onPartyTravel).toHaveBeenCalledWith({
+        id: "starrynight",
+        title: "Starry Night",
+        href: "/starrynight",
+    });
+});
+
+test("a party trip is only proposed to a world this lobby could open", () => {
+    const good = { id: "abc", title: "A world", href: "/abc" };
+    expect(partyDestination(good)).toEqual(good);
+    expect(
+        partyDestination({ ...good, href: "/spaces/Em8Sj1LhKXg3mOIeIp6K" })
+    ).toEqual({
+        ...good,
+        href: "/spaces/Em8Sj1LhKXg3mOIeIp6K",
+    });
+    for (const bad of [
+        { ...good, href: "https://evil.example/abc" },
+        { ...good, href: "/studio/new" },
+        { ...good, href: "javascript:alert(1)" },
+        { ...good, id: "a b" },
+        { ...good, id: "" },
+        { ...good, title: "   " },
+        { ...good, title: 7 },
+        { id: "abc", title: "A world" },
+    ])
+        expect(partyDestination(bad as any)).toBeNull();
 });
 
 test("previous-space messages are ignored before entry and must match the active frame", () => {
