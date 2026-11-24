@@ -68,6 +68,11 @@ export const lobbyTokens = {
     panel: {
         width: 656,
         compactWidth: 368,
+        /** The worlds and avatars search bars share one width. */
+        searchWidth: 480,
+        /** The chat scrim's tones as a pool behind unboxed labels. */
+        labelWash:
+            "radial-gradient(closest-side, #00000047, #00000024 55%, transparent)",
         gap: 8,
         perspective: 1000,
         dockHeight: 40,

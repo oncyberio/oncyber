@@ -676,6 +676,15 @@ tab says why in one line. Pictures are requested at card size (288 px WebP
 from hosts that resize), the first two screens at once and the rest as they
 come near; the other tab's first screen is fetched in the background.
 
+A soft dark wash sits behind the two labels, in the chat scrim's tones and
+with no edge, so they read over a bright world. The bar under the cards is
+the worlds search bar again: close, the search mark, a "Search avatars…"
+field and its `/` hint, 480 px wide like the worlds one. Typing narrows the
+open tab by name; an empty result says how many matches the other tab holds.
+`/` moves to the field, Down steps into the results, and Escape empties the
+field before it closes the picker. A click outside the picker closes it; a
+drag in the world (turning the avatar or the camera) does not.
+
 Dragging, swiping, wheel input and page controls browse without changing the
 avatar. Arrow keys move focus through the visible grid; Home/End reach its
 first/last choice. Click, Enter or Space selects the focused card. Reveal the

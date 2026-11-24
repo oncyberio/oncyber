@@ -76,7 +76,7 @@ test("a mesh that replaces another starts its animation at full weight, never fa
             };
         return fake;
     };
-    const idle = { name: "IDLE" };
+    const idle = { name: "IDLE", loop: true };
     wrapper.isHighQuality = true;
     wrapper.vrm = { possibleActions: { IDLE: action(), WALK: action() } };
     // The new mesh takes over the animation the old one was playing.
