@@ -99,6 +99,12 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "",
         NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
+        NEXT_PUBLIC_AWE_PLAYER_ORIGIN:
+            process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN ||
+            (process.env.VERCEL_ENV === "preview" &&
+            process.env.VERCEL_GIT_COMMIT_REF === "feat/embedded-world-readiness"
+                ? "https://oo-git-feat-oncyber-guest-player-oncyber.vercel.app"
+                : ""),
     },
     experimental: {
         // The lobby imports shared TS from ../multiplayer (protocol, identity,
