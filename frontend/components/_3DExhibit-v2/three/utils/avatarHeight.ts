@@ -38,3 +38,35 @@ export function avatarSizeToHeight(size: number): number {
 }
 
 export const METER_AVATAR_SIZE = avatarHeightToSize(METER_AVATAR_HEIGHT);
+
+/** Where the eyes sit on an avatar, as a share of its height. */
+const EYE_LEVEL = 0.93;
+
+type SizedSpace = {
+    exhibit?: { params?: { avatarSize?: number } | null } | null;
+    roomParameters?: { avatarSize?: number; user_height?: number } | null;
+} | null;
+
+/**
+ * The avatar size a world gives every visitor, or null when it has nothing
+ * to go by and the visitor keeps their own.
+ *
+ * A space or destination that sets a size wins (every new upload does, in
+ * metres). An older destination sets none, but it was built around its own
+ * `user_height`, the height its camera looks from, so avatars stand with
+ * their eyes there. Without this a visitor's avatar kept its own size, and
+ * one modelled in metres stood knee-high to a world built at twice that.
+ * The first-person eye follows the same rule (`./eyeHeight`).
+ */
+export function worldAvatarSize(space: SizedSpace): number | null {
+    const set =
+        space?.exhibit?.params?.avatarSize || space?.roomParameters?.avatarSize;
+
+    if (typeof set === "number" && set > 0) return set;
+
+    const eye = space?.roomParameters?.user_height;
+
+    return typeof eye === "number" && eye > 0
+        ? avatarHeightToSize(eye / EYE_LEVEL)
+        : null;
+}
