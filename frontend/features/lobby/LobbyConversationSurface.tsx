@@ -65,6 +65,13 @@ const LobbyConversationSurface = styled.div`
         font-size: 12px;
         margin: 5px 0;
     }
+    /* Below this width the centred people list reaches over the chat's
+       lines (it is ${lobby.panel.compactWidth}px wide); the input stays. */
+    @media (max-width: 1000px) {
+        &[data-people] .chat-view-viewport {
+            display: none;
+        }
+    }
     @media (max-width: 850px) {
         /* No room beside the people list here: it takes the chat's place. */
         &[data-people] {

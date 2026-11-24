@@ -2,7 +2,7 @@
 import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import LobbyChat, { FEED_LENGTH } from "./LobbyChat";
+import LobbyChat, { FEED_LENGTH, othersHereLabel } from "./LobbyChat";
 import { LOBBY_GUEST_PORTRAIT } from "./lobbyIdentity";
 
 let container: HTMLDivElement;
@@ -1413,4 +1413,10 @@ test("saved direct conversations stay accessible after the live roster empties",
     expect(container.textContent).toContain("Saved conversation");
     openConversation("Global");
     expect(input().getAttribute("aria-label")).toBe("Message the lobby");
+});
+
+test("the chat list counts the others here, not you", () => {
+    expect(othersHereLabel(0)).toBe("Just you");
+    expect(othersHereLabel(1)).toBe("1 other here");
+    expect(othersHereLabel(3)).toBe("3 others here");
 });

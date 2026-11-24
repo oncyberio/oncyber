@@ -1676,6 +1676,7 @@ export default function Lobby({
                 data-hidden={
                     exploreOpen ||
                     avatarOpen ||
+                    emotesOpen ||
                     flashOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
@@ -1683,6 +1684,7 @@ export default function Lobby({
                 aria-hidden={
                     exploreOpen ||
                     avatarOpen ||
+                    emotesOpen ||
                     flashOpen ||
                     (away && !groups.length && !invitations.length) ||
                     undefined
@@ -1714,6 +1716,7 @@ export default function Lobby({
                     hidden={
                         exploreOpen ||
                         avatarOpen ||
+                        emotesOpen ||
                         flashOpen ||
                         (away && !destinationGroupsOpen)
                     }

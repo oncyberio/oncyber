@@ -1423,3 +1423,27 @@ test("a second profile link reopens the sidebar on the new person", async () => 
         name: "@sam",
     });
 });
+
+test("the emote grid takes the chat's place, keeping its draft", () => {
+    window.matchMedia = ((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener() {},
+        removeEventListener() {},
+    })) as unknown as typeof window.matchMedia;
+    render();
+    const input = container.querySelector<HTMLInputElement>(
+        'input[aria-label="Message the lobby"]'
+    );
+    act(() => {
+        input.value = "brb";
+        Simulate.change(input);
+    });
+    const surface = input.closest(".lobby-chat").parentElement;
+    click(button("Emotes"));
+    expect(surface.hasAttribute("data-hidden")).toBe(true);
+    expect(surface.getAttribute("aria-hidden")).toBe("true");
+    click(button("Emotes"));
+    expect(surface.hasAttribute("data-hidden")).toBe(false);
+    expect(input.value).toBe("brb");
+});

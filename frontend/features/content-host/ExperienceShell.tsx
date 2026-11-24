@@ -12,6 +12,7 @@ import ExperienceControlIcon, {
     experienceControlIconAsset,
 } from "@ui/components/ExperienceControlIcon";
 import { brandFoundation } from "@styles/brand";
+import { lobbyTokens } from "@styles/tokens";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
@@ -580,6 +581,8 @@ const Shell = styled.div`
     }
     .experience-title {
         min-width: 0;
+        /* Readable over bright worlds, like the chat's lines. */
+        text-shadow: ${lobbyTokens.chat.textShadow};
         font-size: 14px;
         font-weight: 400;
         /* Even line boxes stay on whole pixels beside the 40/44px controls. */
@@ -639,7 +642,7 @@ const Shell = styled.div`
     .experience-title small {
         display: block;
         margin-top: 4px;
-        color: #969aa3;
+        color: #b4b8c0;
         font-size: 11px;
         line-height: 16px;
     }

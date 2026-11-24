@@ -605,6 +605,8 @@ export default function NativeExperienceChrome({
                     <VoiceLevelDebug voiceService={voice?.voiceService} />
                 )}
                 {(searchOpen || avatarsOpen) && <HideSearchObstructions />}
+                {peopleOpen && <HideChatUnderPeople />}
+                {emotesOpen && <HideRoomChat />}
                 {searchMounted && (
                     <SearchPanelPosition
                         ref={searchPanel}
@@ -917,6 +919,25 @@ const HideSearchObstructions = createGlobalStyle`
     [data-world-tips],
     .mobile-joystick,
     .jump-btn {
+        visibility: hidden;
+        pointer-events: none;
+    }
+`;
+
+// Below this width the centred people list reaches over the chat's lines;
+// the chat's input stays, as in the lobby.
+const HideChatUnderPeople = createGlobalStyle`
+    @media (max-width: 1000px) {
+        #native-room-chat .chat-view-viewport {
+            visibility: hidden;
+        }
+    }
+`;
+
+// The emote grid spans the bottom of the screen, so the chat steps aside
+// while it is open, as in the lobby.
+const HideRoomChat = createGlobalStyle`
+    #native-room-chat {
         visibility: hidden;
         pointer-events: none;
     }

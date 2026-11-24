@@ -63,6 +63,12 @@ const conversationFor = (
 };
 
 // Globe icon for the global chat channel.
+/** The chat list counts the others here; you are not one of them. */
+export function othersHereLabel(count: number) {
+    if (count <= 0) return "Just you";
+    return `${count} ${count === 1 ? "other" : "others"} here`;
+}
+
 function GlobalIcon({ size }: { size: number }) {
     return (
         <svg
@@ -266,6 +272,11 @@ export default function LobbyChat({
         recipient,
         groupConversations?.groups,
     ]);
+    const othersHere = contacts.filter(
+        (person) =>
+            !person.groupId &&
+            social.players.some((player) => player.id === person.id)
+    ).length;
     // With groups, the list is always useful: it holds Global and "New party".
     const canChooseConversation = contacts.length > 0 || !!groupConversations;
     const lastMessages = useMemo(() => {
@@ -1157,19 +1168,7 @@ export default function LobbyChat({
                         <div className="chat-picker">
                             <div className="chat-picker-heading">
                                 <span>Chats</span>
-                                <span>
-                                    {
-                                        contacts.filter(
-                                            (person) =>
-                                                !person.groupId &&
-                                                social.players.some(
-                                                    (player) =>
-                                                        player.id === person.id
-                                                )
-                                        ).length
-                                    }{" "}
-                                    here
-                                </span>
+                                <span>{othersHereLabel(othersHere)}</span>
                             </div>
                             {contactStrip}
                             {search.trim() && !matches.length && (
@@ -1284,7 +1283,7 @@ export default function LobbyChat({
                         }
                         placeholder={
                             pickerOpen
-                                ? `Search people in this ${spaceLabel}…`
+                                ? "Search people…"
                                 : disabledReason
                                 ? disabledReason
                                 : unavailable
