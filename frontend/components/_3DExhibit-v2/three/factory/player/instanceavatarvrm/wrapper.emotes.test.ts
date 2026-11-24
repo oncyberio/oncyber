@@ -55,3 +55,43 @@ test("unrecognized indexes do not stop or renumber a playing animation", async (
     wrapper.stopEmote();
     await playing;
 });
+
+test("a mesh that replaces another starts its animation at full weight, never fading from the bind pose", () => {
+    const wrapper = avatar();
+    const calls: string[] = [];
+    const action = () => {
+        const fake: any = {};
+        for (const name of [
+            "reset",
+            "stopFading",
+            "setEffectiveTimeScale",
+            "setEffectiveWeight",
+            "fadeIn",
+            "fadeOut",
+            "play",
+        ])
+            fake[name] = (...args: unknown[]) => {
+                calls.push(`${name}(${args.join(",")})`);
+                return fake;
+            };
+        return fake;
+    };
+    const idle = { name: "IDLE" };
+    wrapper.isHighQuality = true;
+    wrapper.vrm = { possibleActions: { IDLE: action(), WALK: action() } };
+    // The new mesh takes over the animation the old one was playing.
+    wrapper.currentAction = idle;
+    wrapper.setCurrentAction(idle, true);
+    expect(calls).toEqual([
+        "reset()",
+        "stopFading()",
+        "setEffectiveTimeScale(1)",
+        "setEffectiveWeight(1)",
+        "play()",
+    ]);
+    // An ordinary change of animation still crossfades.
+    calls.length = 0;
+    wrapper.setCurrentAction({ name: "WALK" });
+    expect(calls).toContain("fadeOut(0.1)");
+    expect(calls).toContain("fadeIn(0.1)");
+});

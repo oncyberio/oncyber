@@ -608,6 +608,17 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         }
         const previous = current;
         current = action;
+        if (previous === action) {
+            // Locomotion was already showing this clip (standing still
+            // samples the idle). Fading it out and back in would leave
+            // nothing at full weight, and the mixer fills that gap with the
+            // model's bind pose: a T-pose flash. Keep it running as it is.
+            action.enabled = true;
+            action.paused = false;
+            action.stopFading().setEffectiveWeight(1);
+            if (!action.isScheduled()) action.play();
+            return;
+        }
         action.reset().setEffectiveWeight(1).play();
         if (previous) {
             previous.fadeOut(0.18);
