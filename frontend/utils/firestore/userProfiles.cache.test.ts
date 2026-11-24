@@ -79,6 +79,18 @@ test("a read told when the account was written skips every older copy", async ()
     expect(live).toHaveBeenCalledTimes(2);
 });
 
+test("a copy taken in the same millisecond as the write is not trusted", async () => {
+    live.mockResolvedValue([account("dickbutt")]);
+    await profiles.getUserProfileByWalletId("0xalice");
+    // The save lands within that millisecond, on another instance.
+    live.mockResolvedValue([account("sunshine")]);
+    const fresh = await profiles.getUserProfileByWalletId("0xalice", {
+        notBefore: now,
+    });
+    expect(fresh.settings.vrm).toBe("sunshine");
+    expect(live).toHaveBeenCalledTimes(2);
+});
+
 test("a mark older than the copy changes nothing", async () => {
     live.mockResolvedValue([account("sunshine")]);
     await profiles.getUserProfileByWalletId("0xalice");

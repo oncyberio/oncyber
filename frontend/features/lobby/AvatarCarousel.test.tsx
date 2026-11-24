@@ -255,7 +255,9 @@ test("page arrows scroll the catalog without choosing or loading any avatar", ()
     expect(scrollTo).toHaveBeenCalledWith(
         expect.objectContaining({ behavior: "smooth" })
     );
-    expect(strip().scrollLeft).toBeGreaterThan(0);
+    // A 400 px view holds two whole 140 px cards and their 8 px gaps: the
+    // next page starts on a card's edge.
+    expect(strip().scrollLeft).toBe(296);
     expect(onSelect).not.toHaveBeenCalled();
     expect(card("Roller Pepe").getAttribute("aria-selected")).toBe("true");
     const afterNext = strip().scrollLeft;
