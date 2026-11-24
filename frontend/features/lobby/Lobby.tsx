@@ -2,6 +2,7 @@ import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
 import { warmAvatarThumbs } from "./avatarThumb";
+import useClickAway from "./useClickAway";
 import { flashWallets } from "./useFlashNfts";
 import React, {
     useCallback,
@@ -709,6 +710,23 @@ export default function Lobby({
         restoreExploreFocus.current = true;
         setExploreOpen(false);
     }, []);
+    // A click away from an open dock panel closes it, as it does the avatar
+    // picker. The dock counts as part of the panel: its buttons switch
+    // panels themselves.
+    useClickAway(
+        emotesOpen || peopleOpen || exploreOpen,
+        () => [
+            document.getElementById("lobby-emotes"),
+            document.getElementById("lobby-people"),
+            document.getElementById("lobby-explore"),
+            dockBar.current,
+        ],
+        () => {
+            setEmotesOpen(false);
+            setPeopleOpen(false);
+            setExploreOpen(false);
+        }
+    );
     useEffect(() => {
         dockBar.current?.toggleAttribute(
             "inert",

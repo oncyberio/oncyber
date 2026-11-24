@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import Icon from "../landing-carousel/components/Icon";
 import { avatarThumb, warmAvatarThumbs } from "./avatarThumb";
+import useClickAway from "./useClickAway";
 import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 import {
     lobbyPanelTokens,
@@ -230,45 +231,11 @@ export default function AvatarCarousel({
         if (otherTabPictures) warmAvatarThumbs(otherTabPictures.split("\n"));
     }, [otherTabPictures]);
 
-    // A click anywhere outside the picker closes it. A drag in the world
-    // (turning the avatar or the camera) is not a click away, and neither is
-    // the click that opened the picker, which is still on its way up.
-    useEffect(() => {
-        const openedAt = performance.now();
-        let pressed: { x: number; y: number } | null = null;
-        const press = (event: PointerEvent) => {
-            pressed = { x: event.clientX, y: event.clientY };
-        };
-        const away = (event: MouseEvent) => {
-            const from = pressed;
-            pressed = null;
-            const box = picker.current;
-            if (!box || event.timeStamp <= openedAt) return;
-            if (
-                from &&
-                Math.hypot(event.clientX - from.x, event.clientY - from.y) > 8
-            )
-                return;
-            if (box.contains(event.target as Node)) return;
-            // The gaps between the cards belong to the picker too.
-            const area = box.getBoundingClientRect();
-            if (
-                area.width > 0 &&
-                event.clientX >= area.left &&
-                event.clientX <= area.right &&
-                event.clientY >= area.top &&
-                event.clientY <= area.bottom
-            )
-                return;
-            close.current();
-        };
-        document.addEventListener("pointerdown", press, true);
-        document.addEventListener("click", away);
-        return () => {
-            document.removeEventListener("pointerdown", press, true);
-            document.removeEventListener("click", away);
-        };
-    }, []);
+    useClickAway(
+        true,
+        () => [picker.current],
+        () => close.current()
+    );
 
     const chooseTab = (next: AvatarTab, focus = false) => {
         tabChosen.current = true;

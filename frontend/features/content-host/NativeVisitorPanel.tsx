@@ -9,6 +9,7 @@ import {
     lobbyPanelIconButton,
 } from "@features/lobby/lobbyPanelStyles";
 import Icon from "@features/landing-carousel/components/Icon";
+import useClickAway from "@features/lobby/useClickAway";
 
 export const nativePanelTitles: Record<string, string> = {
     settings: "Settings",
@@ -31,6 +32,7 @@ export default function NativeVisitorPanel({
     onBack,
     returnFocusRef,
     className,
+    closeOnClickAway = true,
 }: {
     title: string;
     children: React.ReactNode;
@@ -38,10 +40,18 @@ export default function NativeVisitorPanel({
     onBack?: () => void;
     returnFocusRef?: React.RefObject<HTMLButtonElement>;
     className?: string;
+    /** False for a panel holding something being written (a report). */
+    closeOnClickAway?: boolean;
 }) {
     const heading = useRef<HTMLHeadingElement>(null);
+    const frame = useRef<HTMLElement>(null);
     const close = useRef(onClose);
     close.current = onClose;
+    useClickAway(
+        closeOnClickAway,
+        () => [frame.current],
+        () => close.current()
+    );
     useEffect(() => {
         const opener = document.activeElement as HTMLElement;
         return () => {
@@ -55,6 +65,7 @@ export default function NativeVisitorPanel({
 
     return (
         <NativePanelFrame
+            ref={frame}
             data-native-utility-panel
             className={className}
             role="dialog"
