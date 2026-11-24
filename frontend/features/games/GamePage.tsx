@@ -2,11 +2,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { fromFrame } from "./frameOrigin";
 import { UserContext } from "@components/context/UserContext";
 import {
-    resolveLobbyAvatar,
-    DEFAULT_LOBBY_AVATAR_URL,
-} from "@features/lobby/avatarSelection";
-import { LOBBY_GUEST_PORTRAIT } from "@features/lobby/lobbyIdentity";
-import {
     failLobbyDestination,
     isLobbyDestination,
     lobbyDestinationPrepared,
@@ -18,6 +13,7 @@ import {
     readVisitorIdentity as readGameIdentity,
     type VisitorIdentity as GameIdentity,
 } from "./gameIdentity";
+import { accountIdentity } from "./accountIdentity";
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
 import GameCredits from "./GameCredits";
@@ -411,27 +407,9 @@ export default function GamePage({
         const fallback = setTimeout(
             async () => {
                 if (disposed || approved) return;
-                const { userData: account } = profile.current;
-                const avatar = await resolveLobbyAvatar(account).catch(() => ({
-                    url: DEFAULT_LOBBY_AVATAR_URL,
-                }));
+                const next = await accountIdentity(profile.current.userData);
                 if (disposed || approved) return;
-                approved = readGameIdentity({
-                    avatarUrl: avatar.url,
-                    name:
-                        typeof account?.username === "string" &&
-                        account.username.trim()
-                            ? account.username.slice(0, 120)
-                            : "Guest",
-                    pfp:
-                        typeof account?.avatar === "string" && account.avatar
-                            ? account.avatar
-                            : LOBBY_GUEST_PORTRAIT,
-                }) || {
-                    avatarUrl: DEFAULT_LOBBY_AVATAR_URL,
-                    name: "Guest",
-                    pfp: LOBBY_GUEST_PORTRAIT,
-                };
+                approved = next;
                 deliverIdentity();
             },
             inJourney ? 250 : 0
