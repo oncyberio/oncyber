@@ -46,6 +46,10 @@ export const lobbyDockStyles = css`
             visibility: hidden;
         }
     }
+    /* An open panel stands on the dock, right where the labels appear. While
+       one is open no label shows: not the open button's own, and not the
+       others', which would come up underneath the panel. */
+    .dock-bar:has([aria-expanded="true"]) .dock-item > span,
     .dock-item:has([aria-expanded="true"]) > span {
         animation: none;
         opacity: 0;

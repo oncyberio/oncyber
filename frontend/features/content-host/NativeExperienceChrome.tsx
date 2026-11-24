@@ -891,6 +891,13 @@ const NativeChromeFrame = styled.div`
             pointer-events: none;
         }
     }
+    /* A utility panel (settings, people in this space, ...) stands on the
+       dock too, though no dock button is marked as open for it. */
+    &:has([data-native-utility-panel]) .experience-tooltip {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
+    }
     /* The avatar picker owns the bottom of the screen, as in the lobby. */
     &[data-avatars-open] .experience-dock,
     &[data-avatars-open] .experience-notice {

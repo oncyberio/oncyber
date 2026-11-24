@@ -714,6 +714,13 @@ const Shell = styled.div`
             visibility: hidden;
         }
     }
+    /* An open panel stands on the dock, right where the labels appear, so
+       none shows underneath it (the lobby's dock does the same). */
+    .experience-dock:has([aria-expanded="true"]) .experience-tooltip {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
+    }
     /* The lobby's count: a live dot and the number, under the button's
        corner. */
     .experience-badge {
