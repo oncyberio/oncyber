@@ -593,6 +593,14 @@ export default class AnimatedWrapper {
 
 				else {
 
+					// Whatever this mesh was playing before must not keep its
+					// weight: an emote started this way would otherwise be
+					// blended half and half with the idle.
+					if( this.lastAction && this.lastAction.name != this.currentAction.name ) {
+
+						this.vrm.possibleActions[this.lastAction.name]?.stop()
+					}
+
 					this.vrm.possibleActions[this.currentAction.name]
 						.reset()
 						.stopFading()

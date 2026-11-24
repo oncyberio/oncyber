@@ -89,6 +89,16 @@ test("a mesh that replaces another starts its animation at full weight, never fa
         "setEffectiveWeight(1)",
         "play()",
     ]);
+    // Forced onto a mesh already idling (an emote on arrival): the idle is
+    // stopped, or the two would play blended.
+    calls.length = 0;
+    const stops: string[] = [];
+    wrapper.vrm.possibleActions.IDLE.stop = () => stops.push("IDLE");
+    wrapper.setCurrentAction({ name: "WALK", loop: true }, true);
+    expect(stops).toEqual(["IDLE"]);
+    expect(calls).not.toContain("fadeIn(0.1)");
+    expect(calls).toContain("setEffectiveWeight(1)");
+    wrapper.currentAction = idle;
     // An ordinary change of animation still crossfades.
     calls.length = 0;
     wrapper.setCurrentAction({ name: "WALK" });

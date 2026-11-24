@@ -339,6 +339,12 @@ export default function User({
                         {isDropdownShowing ? (
                             <UserDropdown
                                 dropTargetRef={dropTargetRef}
+                                onClose={() => {
+                                    setDropdownShowing(false);
+                                    dropTargetRef.current
+                                        ?.querySelector("button")
+                                        ?.focus();
+                                }}
                                 clickRef={clickRef}
                                 addModalTogglerRef={addModalTogglerRef}
                                 sceneContainer={sceneContainer}

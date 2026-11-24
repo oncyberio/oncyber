@@ -10,7 +10,7 @@ import {
     DEFAULT_SUMMON_RADIUS,
     TELEPORT_TO_USER,
 } from "@components/_3DExhibit-v2/three/factory/multiplayer/constants";
-import { useContext, useEffect, useState } from "react";
+import { KeyboardEvent, useContext, useEffect, useState } from "react";
 import styled, { css } from "styled-components";
 import { usePanel } from "../../context/PanelProvider";
 import ReactDOM from "react-dom";
@@ -24,6 +24,7 @@ export default function UserDropdown({
     addModalTogglerRef,
     sceneContainer,
     user,
+    onClose = undefined as (() => void) | undefined,
 }) {
     const {
         userId: currentUserId,
@@ -55,6 +56,11 @@ export default function UserDropdown({
         } else {
             setPosition([user.offset.x, user.offset.y]);
         }
+    }, []);
+
+    // Opened from its "•••", the menu takes the keyboard.
+    useEffect(() => {
+        if (onClose) focusFirstMenuItem(clickRef.current);
     }, []);
 
     const { isMod, currentExhibit, label, id: roomId } = room;
@@ -141,6 +147,8 @@ export default function UserDropdown({
                     addModalTogglerRef("menu-dropdown", el);
                 }}
                 position={position}
+                role="menu"
+                onKeyDown={menuKeyDown(onClose)}
             >
                 {isSelf ? (
                     isMod ? (
@@ -198,6 +206,45 @@ export default function UserDropdown({
     );
 }
 
+const menuItems = (menu: Element | null) =>
+    Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') || []);
+
+/** Put the keyboard on a menu's first row. */
+export function focusFirstMenuItem(menu: Element | null) {
+    menuItems(menu)[0]?.focus({ preventScroll: true });
+}
+
+/**
+ * A menu's keys (docs/brand: menus): Up and Down move through the rows and
+ * wrap, Home and End jump to the ends, Escape and Tab close it. `onClose`
+ * closes the menu and returns focus to what opened it.
+ */
+export function menuKeyDown(onClose?: () => void) {
+    return (event: KeyboardEvent<HTMLElement>) => {
+        if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+        if (event.key === "Escape" || event.key === "Tab") {
+            if (!onClose) return;
+            // Escape must not also close the panel the menu belongs to.
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+            return;
+        }
+        const items = menuItems(event.currentTarget);
+        const index = items.indexOf(document.activeElement as HTMLElement);
+        let next: number;
+        if (event.key === "ArrowDown") next = (index + 1) % items.length;
+        else if (event.key === "ArrowUp")
+            next = (index <= 0 ? items.length : index) - 1;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = items.length - 1;
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+        items[next]?.focus({ preventScroll: true });
+    };
+}
+
 export function DropdownItem({
     icon,
     label,
@@ -210,7 +257,18 @@ export function DropdownItem({
     danger?: boolean;
 }) {
     return (
-        <li className={danger ? "danger" : ""} onClick={onClick}>
+        <li
+            className={danger ? "danger" : ""}
+            role="menuitem"
+            tabIndex={-1}
+            onClick={onClick}
+            onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                onClick();
+            }}
+        >
             {icon ? (
                 <IconImg
                     size={15}
@@ -281,7 +339,13 @@ export const DropdownWrapper = styled.ul<{
             transition: opacity 0.12s ease;
         }
 
-        &:hover {
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: -2px;
+        }
+
+        &:hover,
+        &:focus-visible {
             background: #ffffff10;
 
             & .item-icon {

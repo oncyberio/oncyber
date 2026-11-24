@@ -68,6 +68,12 @@ test("a drag in the world is not a click away", () => {
     send("world", "pointerdown", 100, 100);
     send("world", "click", 240, 130);
     expect(onAway).not.toHaveBeenCalled();
+    // Out and back: the release is near the press, but it was a drag.
+    send("world", "pointerdown", 100, 100);
+    send("world", "pointermove", 240, 130);
+    send("world", "pointermove", 104, 101);
+    send("world", "click", 103, 101);
+    expect(onAway).not.toHaveBeenCalled();
     send("world", "pointerdown", 100, 100);
     send("world", "click", 103, 101);
     expect(onAway).toHaveBeenCalledTimes(1);
