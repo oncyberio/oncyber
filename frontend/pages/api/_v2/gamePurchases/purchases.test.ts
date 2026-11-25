@@ -64,6 +64,8 @@ import {
     type PaymentRail,
 } from "@utils/firestore/gamePurchases";
 import { gameProducts } from "@features/games/gamePurchases";
+import { walletPaymentConfig } from "@features/games/walletPayment";
+import { walletRail, type ChainReader } from "@utils/purchaseChain";
 
 const env = process.env as Record<string, string | undefined>;
 const previous = { ...env };
@@ -72,6 +74,7 @@ beforeEach(() => {
     env.GAMES_PREVIEW = "1";
     env.GAMES_PURCHASES = "test";
     delete env.GAMES_PURCHASE_FEE_PERCENT;
+    for (const name of Object.keys(chainEnv)) delete env[name];
 });
 afterAll(() => {
     for (const name of [
@@ -82,6 +85,14 @@ afterAll(() => {
         if (previous[name] === undefined) delete env[name];
         else env[name] = previous[name];
 });
+
+const chainEnv = {
+    GAMES_PURCHASE_CHAIN_ID: "8453",
+    GAMES_PURCHASE_CHAIN_NAME: "Base",
+    GAMES_PURCHASE_RPC_URL: "https://rpc.example/v1",
+    GAMES_PURCHASE_TOKEN: "0x" + "aa".repeat(20),
+    GAMES_PURCHASE_RECIPIENT: "0x" + "bb".repeat(20),
+};
 
 const call = (name: string, userId: string | undefined, input: unknown = {}) =>
     (Service as any)[name].call({ userId }, input);
@@ -344,4 +355,182 @@ test("a payment whose outcome is unknown is finished by the next ask, paid once"
     });
     expect(new Set(payments).size).toBe(1);
     expect(await testRail.balance("user-a")).toBe(901);
+});
+
+// Paying from the visitor's own wallet.
+const TRANSFER =
+    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const topic = (address: string) => "0x" + "0".repeat(24) + address.slice(2);
+/** A chain that holds the transfers put on it, by hash. */
+function fakeChain() {
+    const config = walletPaymentConfig(chainEnv)!;
+    const sent = new Map<string, { data: string; confirmations: number }>();
+    const payer = "0x" + "cc".repeat(20);
+    const reader: ChainReader = {
+        getTransaction: async (hash) =>
+            sent.has(hash)
+                ? { to: config.token, from: payer, data: sent.get(hash)!.data }
+                : null,
+        getTransactionReceipt: async (hash) => {
+            const tx = sent.get(hash);
+            if (!tx || tx.confirmations < 1) return null;
+            return {
+                status: 1,
+                confirmations: tx.confirmations,
+                logs: [
+                    {
+                        address: config.token,
+                        topics: [
+                            TRANSFER,
+                            topic(payer),
+                            topic(config.recipient),
+                        ],
+                        // The amount is the second word of the transfer's data.
+                        data: "0x" + tx.data.slice(74, 138),
+                    },
+                ],
+            };
+        },
+    };
+    return { rail: walletRail(config, reader), sent };
+}
+const hashOf = (n: number) => "0x" + String(n).padStart(64, "0");
+
+test("with the wallet rail a purchase asks for a transfer, then waits for it", async () => {
+    const { rail, sent } = fakeChain();
+    const product = gameProducts("ace")["gold-racket"];
+    const ask = (userId: string, key: string, proof?: string) =>
+        purchaseProduct({
+            userId,
+            game: "ace",
+            product,
+            key,
+            rail,
+            feePercent: 0,
+            proof,
+        });
+
+    const first: any = await ask("user-a", "key-0001");
+    expect(first).toMatchObject({
+        bought: false,
+        reason: "payment-required",
+        payment: { rail: "wallet", chainId: 8453, units: "2500000" },
+    });
+    // Asking again is the same payment, not a second one.
+    expect(await ask("user-a", "key-0001")).toEqual(first);
+    expect(await call("owned", "user-a", { game: "ace" })).toEqual({
+        game: "ace",
+        products: [],
+    });
+
+    // Sent, but not mined yet.
+    sent.set(hashOf(1), { data: first.payment.data, confirmations: 0 });
+    expect(await ask("user-a", "key-0001", hashOf(1))).toEqual({
+        bought: false,
+        reason: "payment-pending",
+    });
+    sent.get(hashOf(1))!.confirmations = 1;
+    expect(await ask("user-a", "key-0001", hashOf(1))).toEqual({
+        bought: true,
+        order: "ace_gold-racket",
+    });
+    // Shown again, it is the same purchase.
+    expect(await ask("user-a", "key-0001", hashOf(1))).toEqual({
+        bought: true,
+        order: "ace_gold-racket",
+    });
+    expect(await call("owned", "user-a", { game: "ace" })).toEqual({
+        game: "ace",
+        products: ["gold-racket"],
+    });
+    expect(
+        mockDocs.get("gameSales/ace/sales/user-a_ace_gold-racket")
+    ).toMatchObject({
+        rail: "wallet",
+        reference: hashOf(1),
+        cents: 250,
+    });
+});
+
+test("someone else's transfer, or one for another order, buys nothing", async () => {
+    const { rail, sent } = fakeChain();
+    const racket = gameProducts("ace")["gold-racket"];
+    const ask = (userId: string, key: string, proof?: string) =>
+        purchaseProduct({
+            userId,
+            game: "ace",
+            product: racket,
+            key,
+            rail,
+            feePercent: 0,
+            proof,
+        });
+    const a: any = await ask("user-a", "key-0001");
+    const b: any = await ask("user-b", "key-0001");
+    expect(b.payment.data).not.toBe(a.payment.data);
+    sent.set(hashOf(1), { data: a.payment.data, confirmations: 3 });
+    // user-b shows user-a's transfer: refused, and user-a can still use it.
+    expect(await ask("user-b", "key-0001", hashOf(1))).toEqual({
+        bought: false,
+        reason: "payment-failed",
+    });
+    expect(await call("owned", "user-b", { game: "ace" })).toEqual({
+        game: "ace",
+        products: [],
+    });
+    expect(await ask("user-a", "key-0001", hashOf(1))).toMatchObject({
+        bought: true,
+    });
+    // A wrong proof leaves user-b's order open for the right one.
+    sent.set(hashOf(2), { data: b.payment.data, confirmations: 3 });
+    expect(await ask("user-b", "key-0001", hashOf(2))).toMatchObject({
+        bought: true,
+    });
+});
+
+test("the wallet rail is on only with every chain setting, and gives no play money", async () => {
+    env.GAMES_PURCHASES = "wallet";
+    expect(await call("wallet", "user-a")).toEqual({ mode: "off", cents: 0 });
+    Object.assign(env, chainEnv);
+    expect(await call("wallet", "user-a")).toEqual({
+        mode: "wallet",
+        cents: 0,
+        network: "Base",
+        token: "USDC",
+    });
+    await expect(call("addTestFunds", "user-a")).rejects.toThrow(
+        "not available"
+    );
+    // The first step needs no chain: it only says what to send.
+    const asked = await call("buy", "user-a", {
+        game: "ace",
+        product: "coins-100",
+        key: "key-0001",
+    });
+    expect(asked).toMatchObject({
+        bought: false,
+        reason: "payment-required",
+        payment: {
+            chainName: "Base",
+            units: "990000",
+            recipient: chainEnv.GAMES_PURCHASE_RECIPIENT,
+        },
+    });
+    const schema = opts("buy").schema;
+    expect(
+        schema.safeParse({
+            game: "ace",
+            product: "coins-100",
+            key: "key-0001",
+            proof: hashOf(1),
+        }).success
+    ).toBe(true);
+    expect(
+        schema.safeParse({
+            game: "ace",
+            product: "coins-100",
+            key: "key-0001",
+            proof: "0x12",
+        }).success
+    ).toBe(false);
 });

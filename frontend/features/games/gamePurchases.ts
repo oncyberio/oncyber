@@ -10,6 +10,7 @@ import {
     type Products,
 } from "../../../games/runtime/src/purchases";
 import declaredByGame from "./products.declared.json";
+import { walletPaymentConfig } from "./walletPayment";
 
 export {
     formatPrice,
@@ -37,21 +38,25 @@ export function gameProducts(
 }
 
 /**
- * How purchases are paid for on this deployment.
+ * How purchases are paid for on this deployment (`GAMES_PURCHASES`).
  *
- *   off   nothing can be bought; a game's `buy()` answers "unavailable".
- *   test  a play-money balance kept by the site. No real money moves.
+ *   off     nothing can be bought; a game's `buy()` answers "unavailable".
+ *   test    a play-money balance kept by the site. No real money moves.
+ *   wallet  the visitor's own wallet sends a dollar token, and the server
+ *           reads the transfer from the chain (walletPayment.ts). Needs
+ *           every `GAMES_PURCHASE_*` chain setting; without them it is off.
  *
- * `GAMES_PURCHASES=test` turns the test rail on; the development server
- * uses it when the variable is blank. Anything else is off, including a
- * value this build does not know, so a typo never opens a rail.
+ * The development server uses `test` when the variable is blank. Anything
+ * else is off, including a value this build does not know, so a typo never
+ * opens a rail.
  */
-export type PurchasesMode = "off" | "test";
+export type PurchasesMode = "off" | "test" | "wallet";
 export function purchasesMode(
     env: Record<string, string | undefined> = process.env
 ): PurchasesMode {
     const value = (env.GAMES_PURCHASES ?? "").trim();
     if (value === "test") return "test";
+    if (value === "wallet") return walletPaymentConfig(env) ? "wallet" : "off";
     if (value === "" && env.NODE_ENV === "development") return "test";
     return "off";
 }

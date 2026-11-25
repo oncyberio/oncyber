@@ -7,8 +7,11 @@ import { findGame } from "@features/games/catalog";
 import { formatPrice, TEST_FUNDS } from "@features/games/gamePurchases";
 
 interface WalletState {
-    mode: "off" | "test";
+    mode: "off" | "test" | "wallet";
     cents: number;
+    /** With the visitor's own wallet: where, and in what, they pay. */
+    network?: string;
+    token?: string;
 }
 interface Purchase {
     order: string;
@@ -78,13 +81,27 @@ export default function Wallet() {
     const test = wallet.mode === "test";
     return (
         <Container>
-            <div>
-                <p className="wallet-label">
-                    {test ? "Test balance" : "Balance"}
-                </p>
-                <p className="wallet-balance">{formatPrice(wallet.cents)}</p>
-                {test && <p>No real money is used.</p>}
-            </div>
+            {test ? (
+                <div>
+                    <p className="wallet-label">Test balance</p>
+                    <p className="wallet-balance">
+                        {formatPrice(wallet.cents)}
+                    </p>
+                    <p>No real money is used.</p>
+                </div>
+            ) : (
+                // Their own wallet pays: there is no balance of the site's.
+                <div>
+                    <p className="wallet-label">Purchases are paid with</p>
+                    <p className="wallet-balance">
+                        {wallet.token} on {wallet.network}
+                    </p>
+                    <p>
+                        Each one is sent from a wallet you choose when you buy.
+                        There is no balance to top up here.
+                    </p>
+                </div>
+            )}
             {test && (
                 <ActionButton
                     $variant="white"

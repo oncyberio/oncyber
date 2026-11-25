@@ -5,6 +5,7 @@ import {
     type Product,
     type PurchaseRefusal,
 } from "@features/games/gamePurchases";
+import type { WalletPaymentRequest } from "@features/games/walletPayment";
 
 /**
  * Where purchases live. Everything a visitor bought is under their own
@@ -25,14 +26,14 @@ import {
  */
 export interface PaymentRail {
     id: string;
-    /** What the visitor can spend, in US cents. */
-    balance(userId: string): Promise<number>;
     /**
-     * Take `cents` from the visitor. `payment` names this purchase and no
-     * other: paying the same `payment` again charges nothing and gives the
-     * first answer's reference.
+     * A rail that holds the visitor's money (the test rail): what they can
+     * spend, in US cents, and taking `cents` of it. `payment` names this
+     * purchase and no other: paying the same `payment` again charges
+     * nothing and gives the first answer's reference.
      */
-    pay(input: {
+    balance?(userId: string): Promise<number>;
+    pay?(input: {
         payment: string;
         userId: string;
         cents: number;
@@ -42,6 +43,26 @@ export interface PaymentRail {
     }): Promise<
         | { ok: true; reference: string }
         | { ok: false; reason: "insufficient-funds" | "payment-failed" }
+    >;
+    /**
+     * A rail the visitor pays themselves (their own wallet): what they
+     * must send for `payment`, and whether `proof` shows they sent it.
+     * `payment-pending` means not yet; the page asks again with the same
+     * proof.
+     */
+    request?(input: {
+        payment: string;
+        userId: string;
+        cents: number;
+    }): WalletPaymentRequest;
+    verify?(input: {
+        payment: string;
+        userId: string;
+        cents: number;
+        proof: string;
+    }): Promise<
+        | { ok: true; reference: string }
+        | { ok: false; reason: "payment-pending" | "payment-failed" }
     >;
 }
 
@@ -68,7 +89,15 @@ export interface PurchaseOrder {
 
 export type PurchaseAnswer =
     | { bought: true; order: string }
-    | { bought: false; reason: PurchaseRefusal };
+    | { bought: false; reason: PurchaseRefusal }
+    // Steps of a purchase the visitor pays themselves. The page acts on
+    // them; a game never hears either.
+    | {
+          bought: false;
+          reason: "payment-required";
+          payment: WalletPaymentRequest;
+      }
+    | { bought: false; reason: "payment-pending" };
 
 const wallet = (userId: string) => db.collection("gameWallets").doc(userId);
 const orderRef = (userId: string, order: string) =>
@@ -93,6 +122,8 @@ export async function purchaseProduct(input: {
     key: string;
     rail: PaymentRail;
     feePercent: number;
+    /** On a rail the visitor pays themselves: what shows they paid. */
+    proof?: string;
     seller?: string | null;
     now?: number;
 }): Promise<PurchaseAnswer> {
@@ -150,28 +181,55 @@ export async function purchaseProduct(input: {
     const order = opened.order;
 
     // Step 2: the money. Outside any transaction; safe to repeat.
-    let paid: Awaited<ReturnType<PaymentRail["pay"]>>;
-    try {
-        paid = await rail.pay({
-            payment: `${id}_${order.key}`,
-            userId,
-            cents: order.cents,
-            game,
-            seller: order.seller,
-            feeCents: order.feeCents,
-        });
-    } catch {
-        // Unknown whether it went through: the order stays pending, and the
-        // next ask for it carries on with the same payment.
-        return { bought: false, reason: "payment-failed" };
-    }
-    if (paid.ok === false) {
-        await ref.set({ ...order, status: "failed", reason: paid.reason });
-        return { bought: false, reason: paid.reason };
+    const payment = `${id}_${order.key}`;
+    let reference: string;
+    if (rail.pay) {
+        let paid: Awaited<ReturnType<NonNullable<PaymentRail["pay"]>>>;
+        try {
+            paid = await rail.pay({
+                payment,
+                userId,
+                cents: order.cents,
+                game,
+                seller: order.seller,
+                feeCents: order.feeCents,
+            });
+        } catch {
+            // Unknown whether it went through: the order stays pending, and
+            // the next ask for it carries on with the same payment.
+            return { bought: false, reason: "payment-failed" };
+        }
+        if (paid.ok === false) {
+            await ref.set({ ...order, status: "failed", reason: paid.reason });
+            return { bought: false, reason: paid.reason };
+        }
+        reference = paid.reference;
+    } else if (rail.request && rail.verify) {
+        const asked = { payment, userId, cents: order.cents };
+        // The visitor pays this one themselves: say what to send, then
+        // wait for them to show it was sent. The order stays open for it.
+        if (!input.proof)
+            return {
+                bought: false,
+                reason: "payment-required",
+                payment: rail.request(asked),
+            };
+        let shown: Awaited<ReturnType<NonNullable<PaymentRail["verify"]>>>;
+        try {
+            shown = await rail.verify({ ...asked, proof: input.proof });
+        } catch {
+            // The chain could not be read: not a no, ask again.
+            return { bought: false, reason: "payment-pending" };
+        }
+        // A proof that does not pay for this order leaves the order open:
+        // the right one can still be shown.
+        if (shown.ok === false) return { bought: false, reason: shown.reason };
+        reference = shown.reference;
+    } else {
+        return { bought: false, reason: "unavailable" };
     }
 
     // Step 3: what was bought.
-    const reference = paid.reference;
     await db.runTransaction(async (tx) => {
         const current = await tx.get(ref);
         if ((current.data() as PurchaseOrder | undefined)?.status === "paid")
@@ -255,7 +313,7 @@ export async function readPurchaseHistory(
  */
 export const testRail: PaymentRail = {
     id: "test",
-    async balance(userId) {
+    async balance(userId: string) {
         const found = await wallet(userId).get();
         const cents = found.exists ? found.data()?.testCents : 0;
         return Number.isInteger(cents) && cents > 0 ? cents : 0;

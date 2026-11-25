@@ -18,11 +18,19 @@ import {
     type Product,
     type PurchaseRefusal,
 } from "./gamePurchases";
+import type { WalletPaymentOutcome } from "./payWithWallet";
+import {
+    readWalletPaymentRequest,
+    type WalletPaymentRequest,
+} from "./walletPayment";
 
-type Mode = "off" | "test";
+type Mode = "off" | "test" | "wallet";
 interface Wallet {
     mode: Mode;
     cents: number;
+    /** With the visitor's own wallet: where, and in what, they pay. */
+    network?: string;
+    token?: string;
 }
 /** The one purchase the visitor is being asked about. */
 interface Ask {
@@ -33,7 +41,18 @@ interface Ask {
     key: string;
     paying: boolean;
     note: string;
+    /** An error to act on, or a step being waited for. */
+    tone?: "error" | "info";
+    /**
+     * Paying from their own wallet: the transaction they sent for this
+     * order. Once there is one, the order is only ever finished, never
+     * paid for again.
+     */
+    proof?: string;
 }
+
+/** How long the page waits for a sent payment to show on the chain. */
+export const PURCHASE_POLL = { ms: 3000, tries: 40 };
 
 /**
  * What the sheet's one main button does, from what the page knows. Guests
@@ -47,6 +66,8 @@ export function purchaseAction(input: {
     if (!input.signedIn) return "sign-in";
     if (!input.wallet) return "wait";
     if (input.wallet.mode === "off") return "unavailable";
+    // Their own wallet holds the money; it says so itself if it is short.
+    if (input.wallet.mode === "wallet") return "buy";
     return input.wallet.cents < input.cents ? "add-funds" : "buy";
 }
 
@@ -55,6 +76,45 @@ const newKey = () => {
     globalThis.crypto.getRandomValues(bytes);
     return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
+
+/**
+ * A payment the visitor's wallet sent is remembered in this browser until
+ * the order it pays for is finished, so closing the tab between sending
+ * and the chain showing it never costs them the item: the next time the
+ * product is asked for, that same payment is finished instead of a new
+ * one being asked for. The server still decides; this only keeps the hash.
+ */
+const sentKey = (account: string, game: string, product: string) =>
+    `oncyber:purchase:${account}:${game}:${product}`;
+function readSent(account: string | null, game: string, product: string) {
+    if (!account) return null;
+    try {
+        const found = JSON.parse(
+            window.localStorage.getItem(sentKey(account, game, product)) ?? ""
+        );
+        return typeof found?.key === "string" &&
+            typeof found?.proof === "string"
+            ? { key: found.key as string, proof: found.proof as string }
+            : null;
+    } catch {
+        return null;
+    }
+}
+function writeSent(
+    account: string | null,
+    game: string,
+    product: string,
+    sent: { key: string; proof: string } | null
+) {
+    if (!account) return;
+    try {
+        const name = sentKey(account, game, product);
+        if (sent) window.localStorage.setItem(name, JSON.stringify(sent));
+        else window.localStorage.removeItem(name);
+    } catch {
+        /* Storage is blocked: the payment is finished while the page stays. */
+    }
+}
 
 const REFUSED: Partial<Record<PurchaseRefusal, string>> = {
     "insufficient-funds": "Your wallet doesn't hold enough for this.",
@@ -86,6 +146,14 @@ export function useGamePurchases(options: {
     account: () => string | null;
     /** Opens the site's sign-in; calls back once the visitor is signed in. */
     signIn?: (done: () => void) => void;
+    /**
+     * Sends a payment from the visitor's own wallet; `payWithWallet` when
+     * left out.
+     */
+    pay?: (
+        request: WalletPaymentRequest,
+        userId?: string
+    ) => Promise<WalletPaymentOutcome>;
     /**
      * Opens the wallet in the account dashboard; resolves when it closes,
      * so the balance shown here is read again.
@@ -181,13 +249,24 @@ export function useGamePurchases(options: {
             if (asking.current)
                 return answer(read.request, { bought: false, reason: "busy" });
             document.exitPointerLock?.();
-            const next = {
-                request: read.request,
-                product,
-                key: newKey(),
-                paying: false,
-                note: "",
-            };
+            // A payment already sent for this product is finished first.
+            const sent = readSent(live.current.account(), game, product.id);
+            const next: Ask = sent
+                ? {
+                      request: read.request,
+                      product,
+                      ...sent,
+                      paying: false,
+                      note: "You already sent a payment for this. Finish the purchase to get it.",
+                      tone: "info",
+                  }
+                : {
+                      request: read.request,
+                      product,
+                      key: newKey(),
+                      paying: false,
+                      note: "",
+                  };
             asking.current = next;
             setAsk(next);
             void refreshWallet();
@@ -228,50 +307,132 @@ export function useGamePurchases(options: {
     };
 
     const buy = async () => {
-        const open = asking.current;
+        let open = asking.current;
         if (!open || open.paying) return;
-        const paying = { ...open, paying: true, note: "" };
-        asking.current = paying;
-        setAsk(paying);
-        let outcome:
-            | { bought: true; order: string }
-            | { bought: false; reason: PurchaseRefusal };
-        // No answer at all: whether it was paid is unknown.
-        let unknown = false;
-        try {
-            outcome = await GamePurchasesService.buy({
-                game,
-                product: open.product.id,
-                key: open.key,
-            });
-        } catch {
-            unknown = true;
-            outcome = { bought: false, reason: "payment-failed" };
+        const request = open.request;
+        const stillOpen = () => asking.current?.request === request;
+        // The sidebar while a step is under way, and when it stops short.
+        const step = (note: string, more: Partial<Ask> = {}) => {
+            open = { ...open!, ...more, paying: true, note, tone: "info" };
+            asking.current = open;
+            setAsk(open);
+        };
+        const stop = (more: Partial<Ask>) => {
+            open = { ...open!, tone: "error", ...more, paying: false };
+            asking.current = open;
+            setAsk(open);
+        };
+        // Null is no answer at all: whether it was paid is unknown.
+        const send = async (proof?: string) => {
+            try {
+                return await GamePurchasesService.buy({
+                    game,
+                    product: open!.product.id,
+                    key: open!.key,
+                    ...(proof ? { proof } : {}),
+                });
+            } catch {
+                return null;
+            }
+        };
+        const account = live.current.account();
+        step("");
+        let proof = open.proof;
+        let outcome = await send(proof);
+        if (!stillOpen()) return;
+
+        // Their own wallet pays: send what the server asked for.
+        if (
+            outcome &&
+            outcome.bought === false &&
+            outcome.reason === "payment-required"
+        ) {
+            const asked = readWalletPaymentRequest(outcome.payment);
+            if (!asked) return stop({ note: REFUSED["payment-failed"] });
+            step("Confirm the payment in your wallet.");
+            const pay =
+                live.current.pay ??
+                (async (wanted, userId) =>
+                    (await import("./payWithWallet")).payWithWallet(wanted, {
+                        userId,
+                    }));
+            const paid = await pay(asked, account ?? undefined).catch(
+                (): WalletPaymentOutcome => ({
+                    paid: false,
+                    reason: "failed",
+                    message: "The payment wasn’t sent. Try again.",
+                })
+            );
+            if (!stillOpen()) return;
+            if (paid.paid === false)
+                return stop(
+                    paid.reason === "cancelled"
+                        ? { note: "", tone: undefined }
+                        : { note: paid.message }
+                );
+            proof = paid.proof;
+            writeSent(account, game, open.product.id, { key: open.key, proof });
+            step("Waiting for the payment to arrive…", { proof });
+            outcome = await send(proof);
+            if (!stillOpen()) return;
         }
-        if (asking.current?.request !== open.request) return;
+        // Sent and on its way: ask until the chain shows it.
+        for (
+            let tries = 0;
+            proof &&
+            outcome &&
+            outcome.bought === false &&
+            outcome.reason === "payment-pending" &&
+            tries < PURCHASE_POLL.tries;
+            tries++
+        ) {
+            if (tries === 0) step("Waiting for the payment to arrive…");
+            await new Promise((done) => setTimeout(done, PURCHASE_POLL.ms));
+            if (!stillOpen()) return;
+            outcome = await send(proof);
+            if (!stillOpen()) return;
+        }
         void refreshWallet();
+
+        if (
+            !outcome ||
+            (outcome.bought === false &&
+                (outcome.reason === "payment-pending" ||
+                    outcome.reason === "payment-required"))
+        )
+            // Nothing settled. The key (and a sent payment) are kept, so
+            // trying again finishes this same purchase and never pays twice.
+            return stop({
+                note: proof
+                    ? "The payment hasn’t arrived yet. Try again in a moment; you won’t pay twice."
+                    : REFUSED["payment-failed"],
+            });
         if (
             outcome.bought === false &&
             (outcome.reason === "payment-failed" ||
                 outcome.reason === "insufficient-funds")
         ) {
-            // The visitor can top up or try again without the game asking anew.
-            const retry = {
-                ...open,
-                // A refused payment is settled, so trying again is a new
-                // confirmation. An unknown one keeps its key: asking again
-                // finishes that same payment and never pays twice.
-                key: unknown ? open.key : newKey(),
-                paying: false,
+            // The visitor can top up or try again without the game asking
+            // anew. A payment the chain refused is forgotten, but its order
+            // stays: paying again is for that same order. A refusal with
+            // nothing sent is settled, so trying again is a new one.
+            if (proof) writeSent(account, game, open.product.id, null);
+            return stop({
+                key: proof ? open.key : newKey(),
+                proof: undefined,
                 note: REFUSED[outcome.reason] ?? "",
-            };
-            asking.current = retry;
-            setAsk(retry);
-            return;
+            });
         }
+        writeSent(account, game, open.product.id, null);
         asking.current = null;
         setAsk(null);
-        answer(open.request, outcome);
+        // Settled: bought, or a refusal the game is told.
+        answer(
+            request,
+            outcome as
+                | { bought: true; order: string }
+                | { bought: false; reason: PurchaseRefusal }
+        );
         live.current.onClose?.();
     };
 
@@ -319,10 +480,8 @@ export function useGamePurchases(options: {
     }, [covering]);
 
     const test = wallet?.mode === "test";
-    const held =
-        signedIn && wallet && wallet.mode !== "off"
-            ? formatPrice(wallet.cents)
-            : "";
+    const own = wallet?.mode === "wallet";
+    const held = signedIn && test ? formatPrice(wallet.cents) : "";
     const action = ask
         ? purchaseAction({ signedIn, wallet, cents: ask.product.cents })
         : null;
@@ -345,15 +504,25 @@ export function useGamePurchases(options: {
                     <dd>{formatPrice(ask.product.cents)}</dd>
                     {held && (
                         <>
-                            <dt>{test ? "Test balance" : "Your wallet"}</dt>
+                            <dt>Test balance</dt>
                             <dd>{held}</dd>
+                        </>
+                    )}
+                    {signedIn && own && (
+                        <>
+                            <dt>Paid with</dt>
+                            <dd>
+                                {wallet.token} on {wallet.network}
+                            </dd>
                         </>
                     )}
                 </dl>
                 <p
                     className="purchase-status"
                     role="status"
-                    data-tone={ask.note ? "error" : undefined}
+                    data-tone={
+                        ask.note && ask.tone !== "info" ? "error" : undefined
+                    }
                 >
                     {ask.note ||
                         (action === "sign-in"
@@ -366,6 +535,8 @@ export function useGamePurchases(options: {
                               }`
                             : test
                             ? "No real money is used."
+                            : own
+                            ? "You confirm the payment in your own wallet."
                             : "")}
                 </p>
                 {action === "sign-in" && (
@@ -402,6 +573,10 @@ export function useGamePurchases(options: {
                                 ? "Paying…"
                                 : action === "wait"
                                 ? "Loading wallet…"
+                                : ask.proof
+                                ? "Finish purchase"
+                                : own
+                                ? `Pay ${formatPrice(ask.product.cents)}`
                                 : `Buy for ${formatPrice(ask.product.cents)}`}
                         </UtilityButton>
                     )}
@@ -415,7 +590,11 @@ export function useGamePurchases(options: {
                         <Icon name="wallet" size={16} />
                         <span>
                             Wallet
-                            <small>Your balance and purchases</small>
+                            <small>
+                                {own
+                                    ? "What you bought"
+                                    : "Your balance and purchases"}
+                            </small>
                         </span>
                     </UtilityRow>
                 )}

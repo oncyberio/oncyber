@@ -3,7 +3,9 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 const mockService = {
-    wallet: jest.fn(async (_input: unknown) => ({ mode: "test", cents: 1000 })),
+    wallet: jest.fn(
+        async (_input: unknown): Promise<any> => ({ mode: "test", cents: 1000 })
+    ),
     buy: jest.fn(
         async (_input: unknown): Promise<any> => ({
             bought: true,
@@ -49,7 +51,11 @@ jest.mock("./products.declared.json", () => ({
     },
 }));
 
-import { purchaseAction, useGamePurchases } from "./useGamePurchases";
+import {
+    purchaseAction,
+    PURCHASE_POLL,
+    useGamePurchases,
+} from "./useGamePurchases";
 import { gamePauseHeld } from "./gamePause";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -68,7 +74,13 @@ afterEach(() => {
     jest.clearAllMocks();
 });
 
-function mount(more: { game?: string; account?: string | null } = {}) {
+function mount(
+    more: {
+        game?: string;
+        account?: string | null;
+        pay?: (request: any, userId?: string) => Promise<any>;
+    } = {}
+) {
     const sent: any[] = [];
     const state = {
         account: more.account === undefined ? "user-a" : more.account,
@@ -91,6 +103,7 @@ function mount(more: { game?: string; account?: string | null } = {}) {
                 redraw((n) => n + 1);
             },
             openWallet,
+            pay: more.pay,
         });
         return <main>{purchases.element}</main>;
     }
@@ -392,4 +405,168 @@ test("leaving with a question open answers no", async () => {
             reason: "cancelled",
         }),
     ]);
+});
+
+// Paying from the visitor's own wallet.
+const ownWallet = { mode: "wallet", cents: 0, network: "Base", token: "USDC" };
+const payment = {
+    rail: "wallet",
+    chainId: 8453,
+    chainName: "Base",
+    token: "0x" + "aa".repeat(20),
+    tokenSymbol: "USDC",
+    recipient: "0x" + "bb".repeat(20),
+    units: "990000",
+    data:
+        "0xa9059cbb" +
+        "0".repeat(24) +
+        "bb".repeat(20) +
+        "f1b30".padStart(64, "0") +
+        "12".repeat(32),
+};
+const proof = "0x" + "ab".repeat(32);
+const required = { bought: false, reason: "payment-required", payment };
+const pending = { bought: false, reason: "payment-pending" };
+const bought = { bought: true, order: "ace_coins-100_key" };
+const sentRecord = "oncyber:purchase:user-a:ace:coins-100";
+beforeEach(() => {
+    PURCHASE_POLL.ms = 0;
+    window.localStorage.clear();
+});
+
+test("with their own wallet the visitor pays the transfer asked for, and the page waits for it", async () => {
+    mockService.wallet.mockResolvedValue(ownWallet);
+    mockService.buy
+        .mockResolvedValueOnce(required)
+        .mockResolvedValueOnce(pending)
+        .mockResolvedValueOnce(pending)
+        .mockResolvedValueOnce(bought);
+    const pay = jest.fn(async () => ({ paid: true, proof }));
+    const { host, sent, fromGame, press } = mount({ pay });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    const text = host.querySelector('[role="dialog"]')?.textContent;
+    expect(text).toContain("Paid withUSDC on Base");
+    expect(text).toContain("You confirm the payment in your own wallet.");
+    // No balance of the site's, and nothing to top up.
+    expect(text).not.toContain("balance");
+    await press(/^Pay \$0\.99$/);
+    await act(async () => {
+        await new Promise((done) => setTimeout(done, 20));
+    });
+    expect(pay).toHaveBeenCalledTimes(1);
+    expect(pay).toHaveBeenCalledWith(payment, "user-a");
+    const calls = mockService.buy.mock.calls.map(([input]: any) => input);
+    expect(calls).toHaveLength(4);
+    // One order throughout; the payment is shown from the second ask on.
+    expect(new Set(calls.map((c: any) => c.key)).size).toBe(1);
+    expect(calls.map((c: any) => c.proof)).toEqual([
+        undefined,
+        proof,
+        proof,
+        proof,
+    ]);
+    expect(sent).toEqual([
+        { type: "ace:purchase-result", request: "req-0001", ...bought },
+    ]);
+    expect(window.localStorage.getItem(sentRecord)).toBeNull();
+    mockService.wallet.mockResolvedValue({ mode: "test", cents: 1000 });
+});
+
+test("refusing in the wallet leaves the question open, with nothing sent and no error", async () => {
+    mockService.wallet.mockResolvedValue(ownWallet);
+    mockService.buy.mockResolvedValue(required);
+    const pay = jest
+        .fn()
+        .mockResolvedValueOnce({ paid: false, reason: "cancelled" })
+        .mockResolvedValueOnce({
+            paid: false,
+            reason: "failed",
+            message:
+                "That wallet holds $0.20 in USDC on Base. This costs $0.99.",
+        });
+    const { host, sent, fromGame, press } = mount({ pay });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    await press(/^Pay/);
+    const status = () => host.querySelector(".purchase-status");
+    expect(status()?.getAttribute("data-tone")).toBeNull();
+    expect(sent).toEqual([]);
+    // A wallet that can't pay says why, as an error.
+    await press(/^Pay/);
+    expect(status()?.textContent).toContain("holds $0.20 in USDC on Base");
+    expect(status()?.getAttribute("data-tone")).toBe("error");
+    // The same order both times: a later payment is for it.
+    const keys = mockService.buy.mock.calls.map(([input]: any) => input.key);
+    expect(keys[1]).toBe(keys[0]);
+    expect(window.localStorage.getItem(sentRecord)).toBeNull();
+    mockService.buy.mockResolvedValue(bought);
+    mockService.wallet.mockResolvedValue({ mode: "test", cents: 1000 });
+});
+
+test("a payment that has not arrived yet is kept: trying again never pays twice", async () => {
+    PURCHASE_POLL.tries = 2;
+    mockService.wallet.mockResolvedValue(ownWallet);
+    mockService.buy.mockResolvedValueOnce(required).mockResolvedValue(pending);
+    const pay = jest.fn(async () => ({ paid: true, proof }));
+    const { host, sent, fromGame, press } = mount({ pay });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    await press(/^Pay/);
+    await act(async () => {
+        await new Promise((done) => setTimeout(done, 20));
+    });
+    expect(host.textContent).toContain("The payment hasn’t arrived yet.");
+    expect(sent).toEqual([]);
+    expect(JSON.parse(window.localStorage.getItem(sentRecord)!).proof).toBe(
+        proof
+    );
+    mockService.buy.mockResolvedValue(bought);
+    await press(/^Finish purchase$/);
+    expect(pay).toHaveBeenCalledTimes(1);
+    expect(sent).toEqual([expect.objectContaining({ bought: true })]);
+    PURCHASE_POLL.tries = 40;
+    mockService.wallet.mockResolvedValue({ mode: "test", cents: 1000 });
+});
+
+test("a payment sent before the tab was closed is finished, not asked for again", async () => {
+    window.localStorage.setItem(
+        sentRecord,
+        JSON.stringify({ key: "key-from-before", proof })
+    );
+    mockService.wallet.mockResolvedValue(ownWallet);
+    mockService.buy.mockResolvedValueOnce(bought);
+    const pay = jest.fn();
+    const { host, sent, fromGame, press } = mount({ pay });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    expect(host.textContent).toContain("You already sent a payment for this.");
+    expect(
+        host.querySelector(".purchase-status")?.getAttribute("data-tone")
+    ).toBeNull();
+    await press(/^Finish purchase$/);
+    expect(pay).not.toHaveBeenCalled();
+    expect(mockService.buy.mock.calls[0][0]).toMatchObject({
+        key: "key-from-before",
+        proof,
+    });
+    expect(sent).toEqual([expect.objectContaining({ bought: true })]);
+    expect(window.localStorage.getItem(sentRecord)).toBeNull();
+    mockService.wallet.mockResolvedValue({ mode: "test", cents: 1000 });
+});
+
+test("a payment the chain refused is forgotten, and paying again is for the same order", async () => {
+    mockService.wallet.mockResolvedValue(ownWallet);
+    mockService.buy
+        .mockResolvedValueOnce(required)
+        .mockResolvedValueOnce({ bought: false, reason: "payment-failed" })
+        .mockResolvedValueOnce(required)
+        .mockResolvedValueOnce(bought);
+    const pay = jest.fn(async () => ({ paid: true, proof }));
+    const { sent, fromGame, press } = mount({ pay });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    await press(/^Pay/);
+    expect(window.localStorage.getItem(sentRecord)).toBeNull();
+    await press(/^Pay/);
+    expect(pay).toHaveBeenCalledTimes(2);
+    const calls = mockService.buy.mock.calls.map(([input]: any) => input);
+    expect(new Set(calls.map((c: any) => c.key)).size).toBe(1);
+    expect(sent).toEqual([expect.objectContaining({ bought: true })]);
+    mockService.wallet.mockResolvedValue({ mode: "test", cents: 1000 });
 });

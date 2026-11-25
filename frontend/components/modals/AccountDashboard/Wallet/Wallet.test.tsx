@@ -96,3 +96,17 @@ test("a wallet that cannot be read offers another try", async () => {
     await press(/^Try again$/);
     expect(host.textContent).toContain("$6.51");
 });
+
+test("with their own wallet there is no balance, only where purchases are paid", async () => {
+    mockService.wallet.mockResolvedValueOnce({
+        mode: "wallet",
+        cents: 0,
+        network: "Base",
+        token: "USDC",
+    });
+    await show();
+    expect(host.textContent).toContain("Purchases are paid withUSDC on Base");
+    expect(host.textContent).toContain("There is no balance to top up here.");
+    expect(host.querySelector("button")).toBeNull();
+    expect(host.textContent).toContain("Gold racket");
+});

@@ -7,6 +7,7 @@ import {
     purchasesMode,
     PURCHASE_LIMITS,
 } from "@features/games/gamePurchases";
+import { TRANSACTION_HASH } from "@features/games/walletPayment";
 import { purchaseProduct } from "@utils/firestore/gamePurchases";
 import { railFor } from "./rail";
 
@@ -26,9 +27,12 @@ export const buy = proc({
         game: z.string().min(1).max(63),
         product: z.string().regex(PURCHASE_LIMITS.product),
         key: z.string().regex(PURCHASE_LIMITS.request),
+        // Where the visitor pays from their own wallet: the hash of the
+        // transaction they sent for this order.
+        proof: z.string().regex(TRANSACTION_HASH).optional(),
     }),
 
-    async handler({ game, product, key }) {
+    async handler({ game, product, key, proof }) {
         if (!this.userId) throw new Error("Unauthorized");
         // Games are hidden at launch, and so is what they sell.
         if (!gamesPreviewEnabled() || !findGame(game))
@@ -45,6 +49,7 @@ export const buy = proc({
             product: declared,
             key,
             rail,
+            proof,
             feePercent: purchaseFeePercent(),
         });
     },

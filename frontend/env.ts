@@ -113,9 +113,23 @@ export const nodeEnv = {
     GAMES_PUBLISHING: process.env.GAMES_PUBLISHING,
     // Server-only. How purchases in games are paid for
     // (docs/games/purchases.md): unset is off (the test rail on the
-    // development server); "test" is play money. Read through
+    // development server); "test" is play money; "wallet" is the visitor's
+    // own wallet, with the chain settings below. Read through
     // purchasesMode() in features/games/gamePurchases.ts.
     GAMES_PURCHASES: process.env.GAMES_PURCHASES,
+    // Server-only. The chain the "wallet" rail is paid on: its id and name,
+    // the node the server reads transfers from, the dollar token's contract
+    // and symbol (USDC when unset), the address paid, and how many blocks a
+    // transfer needs (1 when unset). Read through walletPaymentConfig() in
+    // features/games/walletPayment.ts; with any of them missing the rail
+    // is off.
+    GAMES_PURCHASE_CHAIN_ID: process.env.GAMES_PURCHASE_CHAIN_ID,
+    GAMES_PURCHASE_CHAIN_NAME: process.env.GAMES_PURCHASE_CHAIN_NAME,
+    GAMES_PURCHASE_RPC_URL: process.env.GAMES_PURCHASE_RPC_URL,
+    GAMES_PURCHASE_TOKEN: process.env.GAMES_PURCHASE_TOKEN,
+    GAMES_PURCHASE_TOKEN_SYMBOL: process.env.GAMES_PURCHASE_TOKEN_SYMBOL,
+    GAMES_PURCHASE_RECIPIENT: process.env.GAMES_PURCHASE_RECIPIENT,
+    GAMES_PURCHASE_CONFIRMATIONS: process.env.GAMES_PURCHASE_CONFIRMATIONS,
     // Server-only. Oncyber's share of a sale, in whole percent; unset is 0.
     GAMES_PURCHASE_FEE_PERCENT: process.env.GAMES_PURCHASE_FEE_PERCENT,
     // Server-only. Upload mode `storage` of that publishing: releases kept

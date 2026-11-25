@@ -3,9 +3,11 @@
 How a game sells something. Written for whoever is building the game, person
 or coding agent. Overview of games: [../games.md](../games.md).
 
-**Status: the flow is built and runs on play money only.** No real money
-moves yet: the one payment rail is the test rail below. The rail that pays
-from a visitor's wallet in USDC is added behind the same interface.
+**Status: built, and off by default.** Two payment rails exist: play money
+for development (`test`), and the visitor's own wallet sending a dollar
+token, which the server reads back from the chain (`wallet`). The wallet
+rail has been run against a stand-in node, not yet against a real chain
+with a real wallet.
 
 ## The rule
 
@@ -169,33 +171,81 @@ a game published from outside the repository
 ([publishing.md](publishing.md)) cannot sell yet: its products are not in
 the synced file.
 
-## The wallet rail: decided, not built
-
-Real money will come from a wallet of the visitor's own, holding USDC. The
-first time a visitor reaches a payment they set that wallet up, once:
-
-1. Sign in to the wallet with the same methods the site offers, or link it
-   to the account they are signed in with. Asking them to sign in again at
-   this point is accepted.
-2. Get an embedded wallet, tied on the server to their Oncyber account.
-3. Add funds, by card or by a transfer.
-4. Pay for what they asked for; the question they came from is still open.
-
-After that a purchase is the question and one press. This is one more step
-in the sheet before `buy` (`purchaseAction`) and one more rail in `railFor`.
-A game is not involved and does not change.
-
 ## Payment rails
 
-`PaymentRail` in `gamePurchases.ts` is the whole interface: `balance(userId)`
-and `pay({ payment, userId, cents, ... })`, where paying the same `payment`
-twice charges once. `railFor` in `pages/api/_v2/gamePurchases/rail.ts` picks
-the rail from `GAMES_PURCHASES`:
+`PaymentRail` in `frontend/utils/firestore/gamePurchases.ts` is the whole
+interface, and `railFor` in `pages/api/_v2/gamePurchases/rail.ts` picks the
+rail from `GAMES_PURCHASES`:
 
-| Value  | Meaning                                                                         |
-| ------ | ------------------------------------------------------------------------------- |
-| blank  | Off: `buy()` answers `unavailable`. On the development server, blank is `test`. |
-| `test` | Play money kept by the site, up to $100, added $10 at a time. Never redeemable. |
+| Value    | Meaning                                                                                |
+| -------- | -------------------------------------------------------------------------------------- |
+| blank    | Off: `buy()` answers `unavailable`. On the development server, blank is `test`.        |
+| `test`   | Play money kept by the site, up to $100, added $10 at a time. Never redeemable.        |
+| `wallet` | The visitor's own wallet pays. Needs every chain setting below; with one missing, off. |
 
 Any other value is off, so a typo never opens a rail. Purchases also need
 game pages to be on (`GAMES_PREVIEW=1` or the development server).
+
+A rail is one of two kinds. One holds the visitor's money and takes it
+(`balance`, `pay`): the test rail. The other the visitor pays themselves
+(`request`, `verify`): the wallet rail.
+
+### Paying from your own wallet
+
+No balance is kept and no wallet is created: the visitor pays each purchase
+from a wallet they already have, chosen for that payment only
+(`dApp/paymentWallet.tsx`; paying never changes who is signed in).
+
+1. The page asks to buy. The server opens the order and answers
+   `payment-required` with the one transfer that pays for it: the token
+   contract, the amount, and the transaction's exact data.
+2. The visitor's wallet sends it (`features/games/payWithWallet.ts`): it is
+   switched to the right network, checked for enough of the token (said in
+   dollars if not), and asked to send. Refusing in the wallet leaves the
+   question open with nothing sent.
+3. The page shows the transaction's hash to the server, which reads it from
+   the chain (`frontend/utils/purchaseChain.ts`). `payment-pending` means
+   not there or not confirmed yet, and the page asks again for up to two
+   minutes.
+4. Once the chain shows it, the order is paid and the game is told.
+
+The transaction is an ordinary token `transfer(recipient, amount)` with 32
+more bytes after its arguments: the order's reference, which only that
+account's order has. A token ignores the extra bytes. The server accepts a
+transaction only when it was sent to the token contract with exactly that
+data, succeeded with the confirmations asked for, and the token logged that
+transfer. So a transfer made by someone else, for another order or for a
+cheaper product can never be claimed, and the paying wallet does not have
+to be linked to the account.
+
+A sent payment is remembered in the browser until its order is finished
+(the hash only). Closing the tab between sending and the chain showing it
+does not cost the item: the next time the product is asked for, the sidebar
+says a payment was already sent and finishes that one.
+
+Settings (`frontend/.env.example`; read by `walletPaymentConfig` in
+`features/games/walletPayment.ts`):
+
+| Variable                       | Meaning                                                         |
+| ------------------------------ | --------------------------------------------------------------- |
+| `GAMES_PURCHASE_CHAIN_ID`      | The chain's id.                                                 |
+| `GAMES_PURCHASE_CHAIN_NAME`    | Its name as visitors read it.                                   |
+| `GAMES_PURCHASE_RPC_URL`       | An https node the server reads from. Never sent to a browser.   |
+| `GAMES_PURCHASE_TOKEN`         | The dollar token's contract (six decimals, as USDC has).        |
+| `GAMES_PURCHASE_TOKEN_SYMBOL`  | What visitors call it. Blank is USDC.                           |
+| `GAMES_PURCHASE_RECIPIENT`     | The address every purchase is paid to. An address, never a key. |
+| `GAMES_PURCHASE_CONFIRMATIONS` | Blocks on top of a transfer before it counts. Blank is 1.       |
+
+Known limits, on purpose for a first version:
+
+-   Any EVM chain, one at a time. A wallet that does not know the chain is
+    told to switch to it by name; it is not added for them.
+-   Wallets that send from their own address. A contract wallet that wraps
+    the call sends different data and is refused.
+-   Every purchase is paid to one address. Each sale records Oncyber's share
+    and the seller's (`feeCents`, `sellerCents`); nothing is paid on to a
+    creator yet.
+-   No refunds from the site: a refund is a transfer back, made by hand.
+
+A wallet made for the visitor inside the site, with card top-ups, is a
+later rail behind the same interface.
