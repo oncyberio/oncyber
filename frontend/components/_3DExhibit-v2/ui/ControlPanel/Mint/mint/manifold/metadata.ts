@@ -1,5 +1,3 @@
-import moment from "moment";
-
 /** Campaign details for a Manifold claim, shown when it is placed in a space. */
 export async function fetchManifoldMetadata(campaignSlug: string) {
     const response = await fetch(
@@ -41,8 +39,8 @@ export async function fetchManifoldMetadata(campaignSlug: string) {
         token: "",
         priceWei: 0,
         price: 0,
-        startDate: data?.startDate ? moment(data?.startDate) : null,
-        endDate: data?.endDate ? moment(data?.endDate) : null,
+        startDate: data?.startDate ? new Date(data?.startDate) : null,
+        endDate: data?.endDate ? new Date(data?.endDate) : null,
         creator: {
             ...data.creator,
             image: data.image,

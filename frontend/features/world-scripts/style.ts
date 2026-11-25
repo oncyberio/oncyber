@@ -12,7 +12,7 @@
  * handed to every later request, and given to the script as `world.style`.
  * Objects with `look: "style"` (the default) are drawn with it.
  */
-import { cleanColor, cleanText, THING_LOOKS, ThingLook } from "./protocol";
+import { cleanColor, cleanText, THING_LOOKS, ThingLook } from "./basics";
 
 export interface WorldStyle {
     /** One or two sentences of creative direction, in words. */

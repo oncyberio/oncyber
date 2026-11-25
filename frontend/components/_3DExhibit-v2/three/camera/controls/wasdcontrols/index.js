@@ -7,7 +7,7 @@ import Events from '@3events'
 
 import gsap from 'gsap'
 
-import DAT from 'dat.gui'
+import { debugPanel } from '../../../globals/debugPanel.js'
 
 import conf from "@3gl/utils/params"
 
@@ -204,6 +204,10 @@ export default class PlayerControls extends AbstractControls {
     }
 
     addDebug(){
+
+        const DAT = debugPanel()
+
+        if( !DAT ) return
 
         let GUI = DAT.GUI
 

@@ -3,9 +3,17 @@
  * the world's that imports Firebase; loaded on first use, and never in a
  * framed world.
  */
-import { database, db } from "@utils/firebase";
-import { collection, doc, onSnapshot } from "firebase/firestore";
+import { connectEmulator, firebaseApp } from "@utils/firebaseApp";
 import {
+    collection,
+    connectFirestoreEmulator,
+    doc,
+    getFirestore,
+    onSnapshot,
+} from "firebase/firestore";
+import {
+    connectDatabaseEmulator,
+    getDatabase,
     limitToLast,
     onChildAdded,
     orderByKey,
@@ -14,6 +22,18 @@ import {
     ref,
 } from "firebase/database";
 import type { LiveSpace } from "./index";
+
+// The same two services utils/firebase.js starts, without its sign-in
+// library: ./index.ts loads that first for a visitor who has a sign-in
+// saved, and nobody else needs it.
+const database = getDatabase(firebaseApp);
+connectEmulator("database", (host, port) =>
+    connectDatabaseEmulator(database, host, port)
+);
+const db = getFirestore(firebaseApp);
+connectEmulator("firestore", (host, port) =>
+    connectFirestoreEmulator(db, host, port)
+);
 
 const firebaseLiveSpace: LiveSpace = {
     watchSpace(id, onData) {

@@ -2,7 +2,6 @@ import { IS_MOBILE } from "@components/_3DExhibit-v2/three/constants";
 import Spinner from "@ui/components/Spinner";
 import styled from "styled-components";
 import { useMint } from "../../Mint/MintProvider";
-import moment from "moment";
 
 export default function MintArtworkInfoBulle({
     artwork,
@@ -10,8 +9,6 @@ export default function MintArtworkInfoBulle({
     moreDetails = () => {},
 }) {
     const { currentMint, mintProviders, toggleAuth } = useMint();
-
-    const now = moment.utc();
 
     // console.log("currentMintcurrentMintcurrentMint", currentMint);
 

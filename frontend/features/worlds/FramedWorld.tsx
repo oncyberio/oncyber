@@ -33,7 +33,7 @@ import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
 import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
 import { hostWorldLive } from "./worldLiveHost";
 import { LIVE_MESSAGE } from "./relayedLive";
-import { liveSpace } from "@utils/liveSpace";
+import { deferred, liveSpace } from "@utils/liveSpace";
 import { setFramedWorldLock } from "./worldPointer";
 import {
     readWorldFile,
@@ -623,6 +623,12 @@ function WorldFrameView({
     // The space's live channels (edits as they are saved, editor actions)
     // are the page's too: the world loads no Firebase (./relayedLive).
     const live = useRef<ReturnType<typeof hostWorldLive> | null>(null);
+    const drawn = useRef<{ promise: Promise<void>; resolve(): void }>();
+    if (!drawn.current) {
+        let resolve = () => {};
+        const promise = new Promise<void>((done) => (resolve = done));
+        drawn.current = { promise, resolve };
+    }
     const voice = useRef<ReturnType<typeof hostWorldVoice> | null>(null);
     useEffect(() => {
         const post = (kind: string, data: object) =>
@@ -672,8 +678,10 @@ function WorldFrameView({
         live.current = hostWorldLive({
             post,
             spaceId,
-            // Firebase itself loads when the world first asks.
-            live: liveSpace,
+            // Firebase loads once the world has drawn: its channels are for
+            // what changes during a visit, and a loading world should
+            // have the line to itself.
+            live: () => deferred(drawn.current.promise.then(liveSpace)),
         });
         return () => {
             host.dispose();
@@ -783,6 +791,7 @@ function WorldFrameView({
         return () => window.removeEventListener("message", receive);
     }, [frame.world]);
     useEffect(() => {
+        if (loading.phase !== "loading") drawn.current.resolve();
         if (loading.phase === "failed") return failed.current();
         // Drawn after all: a notice that it did not load no longer holds.
         if (loading.phase !== "loading") return recovered.current();

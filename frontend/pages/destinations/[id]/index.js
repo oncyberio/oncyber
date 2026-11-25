@@ -6,8 +6,11 @@ import { AuthServerSidePropsLite } from "@utils/authServerSideProps";
 import { getStylekitByRoom } from "pages/api/stylekit";
 import { getDefaultCyberkitDataFromRoom } from "@components/_3DExhibit-v2/three/factory/space/roomdatacompat";
 import DestinationSeo from "@components/seo/DestinationSeo";
+import { loadDebugPanel } from "../../../components/_3DExhibit-v2/three/globals/debugPanel.js";
 
-const Exhibit3DDisplay = dynamic(() => import("@3/displyUI/DisplayScene"), {
+const Exhibit3DDisplay = dynamic(
+    () => loadDebugPanel().then(() => import("@3/displyUI/DisplayScene")),
+    {
     ssr: false,
 });
 

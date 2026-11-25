@@ -14,6 +14,7 @@
  */
 import { worldDocument } from "@features/worlds/worldDocument";
 import { relayedLiveSpace } from "@features/worlds/relayedLive";
+import { hasFirebaseSession } from "./firebaseSession";
 
 export type LiveCollection = "portals" | "kitbash";
 
@@ -63,14 +64,22 @@ export function deferred(loading: Promise<LiveSpace>): LiveSpace {
     };
 }
 
+/**
+ * Firebase's channels, with its sign-in library first for a visitor who
+ * has a sign-in saved (so their reads and writes carry it, as they always
+ * did) and without it for everyone else (./firebaseSession.ts).
+ */
+async function loadFirebase(): Promise<LiveSpace> {
+    if (await hasFirebaseSession()) await import("@utils/firebase");
+    return (await import("./firebase")).default;
+}
+
 let live: LiveSpace | undefined;
 
 /** This document's live channels. */
 export function liveSpace(): LiveSpace {
     if (live) return live;
     const page = worldDocument();
-    live = page
-        ? relayedLiveSpace(page)
-        : deferred(import("./firebase").then((module) => module.default));
+    live = page ? relayedLiveSpace(page) : deferred(loadFirebase());
     return live;
 }
