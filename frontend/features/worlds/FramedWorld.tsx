@@ -5,8 +5,7 @@ import { baseTokens } from "@styles/tokens";
 import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
 import { presentAccount } from "@features/games/accountIdentity";
-import { voiceVolume } from "@features/games/gameSocial";
-import { RoomVoice, type VoiceState } from "@features/games/roomVoice";
+import { RoomVoice } from "@features/games/roomVoice";
 import {
     publicExperienceHref,
     replaceExperienceLocation,
@@ -22,9 +21,11 @@ import {
 } from "@features/games/gameContract";
 import { WORLD_GAME_ID } from "./worldDocument";
 import { readWorldLocation, worldSpaceId } from "./worldLocation";
-import { roomDistance, type RoomIdentity } from "./roomRelay";
+import type { RoomIdentity } from "./roomRelay";
 import { readDock, VOICE_ACTION, type DockAction } from "./worldDock";
-import { hostWorldRoom } from "./worldRoomHost";
+import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
+import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
+import { setFramedWorldLock } from "./worldPointer";
 import { worldVisitorMessage } from "./worldVisitor";
 import {
     WORLD_PERMISSIONS,
@@ -62,32 +63,39 @@ export default function FramedWorld({
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
     const [dock, setDock] = useState<DockAction[]>([]);
-    const [voice, setVoice] = useState<PageVoice | null>(null);
+    const [voice, setVoice] = useState<WorldVoiceView | null>(null);
     const world = useRef<WorldControls | null>(null);
     const reload = () => {
         setFailed(false);
         setDock([]);
         setAttempt((count) => count + 1);
     };
+    // The microphone is the page's. Once the world's rules let this visitor
+    // speak, the button is the page's own; until then it is the world's
+    // (asking a moderator, say), like any other button of its.
     const live = voice?.state === "live";
     const actions = dock.map((action) =>
-        action.id === VOICE_ACTION
+        action.id === VOICE_ACTION && voice?.allowed
             ? {
                   id: VOICE_ACTION,
-                  label: !voice
-                      ? "Voice is available in Multiplayer mode"
-                      : live
+                  label: live
                       ? "Mute microphone"
                       : voice.state === "connecting"
                       ? "Connecting voice…"
                       : "Enable microphone",
                   icon: live ? "mic" : "mic-off",
                   active: live,
-                  disabled: !voice || voice.state === "connecting",
+                  disabled: voice.state === "connecting",
                   concealed: action.concealed,
                   onClick: () => world.current?.toggleVoice(),
               }
-            : { ...action, onClick: () => world.current?.press(action.id) }
+            : {
+                  ...action,
+                  ...(action.id === VOICE_ACTION
+                      ? { icon: "mic-off", active: false }
+                      : {}),
+                  onClick: () => world.current?.press(action.id),
+              }
     );
     // The frame is loaded at the page's address once; from then on the
     // world says where it is and the address bar follows it.
@@ -142,6 +150,19 @@ export default function FramedWorld({
             username: userData?.username,
         };
     };
+    // Whether this visitor moderates the space, asked by the world: only
+    // for the space this page opened, as with the session.
+    const moderates = async (label: unknown) => {
+        if (!isSignedIn || typeof label !== "string" || label.length > 200)
+            return false;
+        if ((await worldSpaceId({ link: label })) !== spaceId) return false;
+        try {
+            const { default: SocialApi } = await import("@api/social/_api");
+            return (await SocialApi.isMod({ slug: label })) === true;
+        } catch {
+            return false;
+        }
+    };
     const travel = (href: unknown) => {
         const to = publicExperienceHref(href, window.location.origin);
         if (to) void router.push(to);
@@ -166,6 +187,7 @@ export default function FramedWorld({
                 onLocation={follow}
                 onTravel={travel}
                 identify={identify}
+                moderates={moderates}
                 onDock={setDock}
                 onVoice={setVoice}
                 controls={world}
@@ -190,11 +212,6 @@ export default function FramedWorld({
     );
 }
 
-/** The page's voice in the world's room, as its dock button shows it. */
-interface PageVoice {
-    state: VoiceState;
-    error: string;
-}
 /** What the page's dock does to the world in the frame. */
 interface WorldControls {
     press(id: string): void;
@@ -249,6 +266,7 @@ function WorldFrameView({
     onLocation,
     onTravel,
     identify,
+    moderates,
     onDock,
     onVoice,
     controls,
@@ -266,10 +284,12 @@ function WorldFrameView({
     onTravel(href: unknown): void;
     /** Who the page joins a room as, for the world's room. */
     identify(label: string): Promise<RoomIdentity>;
+    /** Whether the page's visitor moderates the space with this label. */
+    moderates(label: unknown): Promise<boolean>;
     /** The buttons the world has for the dock. */
     onDock(actions: DockAction[]): void;
     /** The page's voice in the world's room; null while it is in none. */
-    onVoice(voice: PageVoice | null): void;
+    onVoice(voice: WorldVoiceView | null): void;
     controls: { current: WorldControls | null };
 }) {
     const element = useRef<HTMLIFrameElement>(null);
@@ -285,37 +305,40 @@ function WorldFrameView({
         onLocation,
         onTravel,
         identify,
+        moderates,
         onDock,
         onVoice,
     });
-    handlers.current = { onLocation, onTravel, identify, onDock, onVoice };
+    handlers.current = {
+        onLocation,
+        onTravel,
+        identify,
+        moderates,
+        onDock,
+        onVoice,
+    };
     // The world's room: the page holds the connection and relays it
     // (./roomRelay), so the session that joins it never enters the frame.
     const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
+    const voice = useRef<ReturnType<typeof hostWorldVoice> | null>(null);
     useEffect(() => {
         const post = (kind: string, data: object) =>
             element.current?.contentWindow?.postMessage(
                 { ...data, type: GAME_MESSAGE_PREFIX + kind },
                 frameTarget(frame.world)
             );
-        // Voice is the page's, in the room it holds: heard as soon as the
-        // page is in, and a microphone only when the visitor presses the
-        // page's own button. The world is never asked.
-        let voice: RoomVoice | null = null;
-        const voiceIn = (held: Parameters<typeof roomDistance>[0] | null) => {
-            voice?.close();
-            voice = null;
+        // Voice is the page's, in the room it holds, doing what the world's
+        // voice rules say (./worldVoiceHost). A microphone goes on only
+        // from the page's own button.
+        const voiceIn = (held: HostedRoom | null) => {
+            voice.current?.dispose();
+            voice.current = null;
             if (!held) return handlers.current.onVoice(null);
-            const speaking = new RoomVoice(held, {
-                volume: (id) =>
-                    voiceVolume(roomDistance(held.state, held.sessionId, id)),
-                onChange: (state, error) =>
-                    handlers.current.onVoice({ state, error }),
+            voice.current = hostWorldVoice({
+                create: (options) => new RoomVoice(held as any, options),
+                post,
+                onChange: (view) => handlers.current.onVoice(view),
             });
-            voice = speaking;
-            held.onStateChange(() => speaking.updateVolumes());
-            handlers.current.onVoice({ state: "off", error: "" });
-            void speaking.listen().catch(() => {});
         };
         controls.current = {
             press(id) {
@@ -323,7 +346,9 @@ function WorldFrameView({
                 element.current?.focus();
             },
             toggleVoice() {
-                void voice?.toggle();
+                // Not the visitor's to turn on yet: the world answers.
+                if (!voice.current?.press())
+                    post("dock-press", { id: VOICE_ACTION });
                 element.current?.focus();
             },
         };
@@ -342,7 +367,8 @@ function WorldFrameView({
         room.current = host;
         return () => {
             host.dispose();
-            voice?.close();
+            voice.current?.dispose();
+            voice.current = null;
             controls.current = null;
         };
     }, [frame.world]);
@@ -353,6 +379,23 @@ function WorldFrameView({
             const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
             if (kind?.startsWith("room-"))
                 return room.current?.receive(kind, event.data);
+            if (kind?.startsWith("voice-"))
+                return voice.current?.receive(kind, event.data);
+            if (kind === "ask") {
+                // What only the page can know, because it holds the account.
+                const { n, name, label } = event.data;
+                const answer = (value: unknown) =>
+                    element.current?.contentWindow?.postMessage(
+                        { type: `${GAME_MESSAGE_PREFIX}answer`, n, value },
+                        frameTarget(frame.world)
+                    );
+                if (name === "moderator")
+                    void handlers.current.moderates(label).then(answer);
+                else answer(undefined);
+                return;
+            }
+            if (kind === "pointer-lock")
+                return setFramedWorldLock(event.data.locked === true);
             if (kind === "dock")
                 return handlers.current.onDock(readDock(event.data));
             if (kind === "location")
@@ -373,7 +416,10 @@ function WorldFrameView({
             );
         };
         window.addEventListener("message", receive);
-        return () => window.removeEventListener("message", receive);
+        return () => {
+            window.removeEventListener("message", receive);
+            setFramedWorldLock(false);
+        };
     }, [frame.world]);
 
     // Signing in or out, or a new avatar, after the world started: the

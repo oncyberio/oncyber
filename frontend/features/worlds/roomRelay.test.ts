@@ -258,7 +258,27 @@ describe("what a world may ask of the room", () => {
             name: "attr-voice",
             data: 1,
         });
-        expect(filterRoomSend("enable-voice", "bob", guest)).toBeUndefined();
+        expect(filterRoomSend("rtc-signal", {}, guest)).toBeUndefined();
+        expect(filterRoomSend("login", ["t"], guest)).toBeUndefined();
         expect(filterRoomSend(7, null, guest)).toBeUndefined();
+    });
+
+    test("asking to speak passes; what only a moderator may do carries the page's session", () => {
+        const mod = { userId: "0xada", token: "page-secret", username: "ada" };
+        expect(filterRoomSend("voice-request", undefined, mod)).toEqual({
+            name: "voice-request",
+            data: undefined,
+        });
+        expect(filterRoomSend("kick", ["made up", "bob"], mod)).toEqual({
+            name: "kick",
+            data: ["page-secret", "bob"],
+        });
+        // a guest's kick reaches the room with no session, and is refused there
+        expect(
+            filterRoomSend("kick", ["stolen", "bob"], {
+                userId: "A",
+                token: "",
+            })
+        ).toEqual({ name: "kick", data: ["", "bob"] });
     });
 });

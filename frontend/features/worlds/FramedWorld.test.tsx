@@ -73,16 +73,26 @@ jest.mock("@utils/arena/join", () => ({
 const mockVoices: any[] = [];
 jest.mock("@features/games/roomVoice", () => ({
     RoomVoice: class {
+        state = "off";
         toggle = jest.fn();
         listen = jest.fn(async () => {});
         close = jest.fn();
         updateVolumes = jest.fn();
+        published = () => [];
+        setGated = jest.fn();
+        levels = { levels: () => [] };
         options: any;
         constructor(_room: unknown, mockOptions: any) {
             this.options = mockOptions;
             mockVoices.push(this);
         }
     },
+}));
+
+const mockIsMod = jest.fn();
+jest.mock("@api/social/_api", () => ({
+    __esModule: true,
+    default: { isMod: (...args: unknown[]) => mockIsMod(...args) },
 }));
 
 import { UserContext } from "@components/context/UserContext";
@@ -489,15 +499,16 @@ describe("the one dock", () => {
         });
     });
 
-    test("the microphone is the page's: its button never asks the world", async () => {
-        worldDock();
-        // no room yet: nothing to talk in
-        expect(action("voice").disabled).toBe(true);
+    const allow = (allowed = true) =>
+        fromWorld({ type: "oncyber:game:voice-allow", allowed });
 
+    test("the microphone is the page's: once the world's rules allow it, its button never asks the world", async () => {
+        worldDock();
         await joinRoom();
         expect(mockVoices).toHaveLength(1);
         // heard at once, a microphone only on the visitor's own press
         expect(mockVoices[0].listen).toHaveBeenCalled();
+        allow();
         expect(mockVoices[0].toggle).not.toHaveBeenCalled();
         expect(action("voice").textContent).toBe("Enable microphone");
 
@@ -511,11 +522,30 @@ describe("the one dock", () => {
         expect(action("voice").getAttribute("aria-pressed")).toBe("true");
     });
 
+    test("until the world's rules allow it, the button is the world's to answer", async () => {
+        fromWorld({
+            type: "oncyber:game:dock",
+            actions: [{ id: "voice", label: "Request to speak", icon: "mic" }],
+        });
+        await joinRoom();
+        allow(false);
+        expect(action("voice").textContent).toBe("Request to speak");
+        sent.length = 0;
+        act(() => action("voice").click());
+        expect(mockVoices[0].toggle).not.toHaveBeenCalled();
+        expect(sent.map(({ message }) => message)).toEqual([
+            { type: "oncyber:game:dock-press", id: "voice" },
+        ]);
+    });
+
     test("a world cannot turn the microphone on", async () => {
         worldDock();
         await joinRoom();
+        allow();
         fromWorld({ type: "oncyber:game:dock-press", id: "voice" });
         fromWorld({ type: "oncyber:game:voice", on: true });
+        fromWorld({ type: "oncyber:game:voice-mute", muted: false });
+        fromWorld({ type: "oncyber:game:voice-state", live: true });
         fromWorld({
             type: "oncyber:game:room-send",
             seq: 1,
@@ -541,8 +571,88 @@ describe("the one dock", () => {
     test("leaving the room ends the page's voice in it", async () => {
         worldDock();
         await joinRoom();
+        allow();
         fromWorld({ type: "oncyber:game:room-leave", seq: 1 });
         expect(mockVoices[0].close).toHaveBeenCalled();
-        expect(action("voice").disabled).toBe(true);
+        // the button is the world's again, with what the world says of it
+        act(() => action("voice").click());
+        expect(mockVoices[0].toggle).not.toHaveBeenCalled();
+    });
+});
+
+describe("what the world asks the page", () => {
+    const ask = (label: string) =>
+        act(async () => {
+            window.dispatchEvent(
+                new MessageEvent("message", {
+                    data: {
+                        type: "oncyber:game:ask",
+                        n: 7,
+                        name: "moderator",
+                        label,
+                    },
+                    origin: frame.world,
+                    source: element().contentWindow,
+                })
+            );
+            for (let i = 0; i < 10; i++) await Promise.resolve();
+        });
+    const answer = () =>
+        sent.find(({ message }) => message.type === "oncyber:game:answer")
+            ?.message;
+    beforeEach(() => mockIsMod.mockReset());
+
+    test("a guest moderates nothing, and the account is not asked", async () => {
+        await ask("starry-night");
+        expect(answer()).toEqual({
+            type: "oncyber:game:answer",
+            n: 7,
+            value: false,
+        });
+        expect(mockIsMod).not.toHaveBeenCalled();
+    });
+
+    test("a signed-in visitor: the page asks with its own session, for this space only", async () => {
+        account = {
+            isSignedIn: true,
+            token: "page-session",
+            user: { id: "0xada" },
+            userData: { username: "ada" },
+        } as any;
+        await render();
+        listen();
+        mockIsMod.mockResolvedValue(true);
+
+        // another space's label (the lookup says "def"; this page is "abc")
+        await ask("someone-elses-space");
+        expect(answer().value).toBe(false);
+        expect(mockIsMod).not.toHaveBeenCalled();
+
+        sent.length = 0;
+        (fetch as jest.Mock).mockResolvedValue({
+            ok: true,
+            json: async () => ({ exists: true, id: "abc" }),
+        });
+        await ask("starry-night");
+        expect(mockIsMod).toHaveBeenCalledWith({ slug: "starry-night" });
+        expect(answer().value).toBe(true);
+        expect(JSON.stringify(sent)).not.toContain("page-session");
+    });
+
+    test("a question the page does not know is answered with nothing", async () => {
+        await act(async () => {
+            window.dispatchEvent(
+                new MessageEvent("message", {
+                    data: { type: "oncyber:game:ask", n: 9, name: "session" },
+                    origin: frame.world,
+                    source: element().contentWindow,
+                })
+            );
+        });
+        expect(answer()).toEqual({
+            type: "oncyber:game:answer",
+            n: 9,
+            value: undefined,
+        });
     });
 });

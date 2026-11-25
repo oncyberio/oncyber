@@ -68,6 +68,78 @@ export class StreamAudioPlayer {
 }
 
 
+/**
+ * A voice the engine cannot hold: in the site's frame the page plays every
+ * voice (features/worlds/relayedVoice), so the engine is given a handle in
+ * place of a stream and its volume for that voice goes to the page.
+ */
+export class RelayedAudioPlayer {
+
+    /**
+     *
+     * @param { { relayedVoice: true, setVolume(volume: number): void } } voice
+     */
+    constructor(voice) {
+
+        this.paused = true
+
+        this.volume = 0
+
+        this.stream = voice
+    }
+
+    setStream(voice) {
+
+        if (this.stream === voice) return
+
+        this.stream?.setVolume(0)
+
+        this.stream = voice
+
+        this.apply()
+    }
+
+    apply() {
+
+        this.stream?.setVolume(this.paused ? 0 : this.volume)
+    }
+
+    play() {
+
+        this.paused = false
+
+        this.apply()
+    }
+
+    pause() {
+
+        this.paused = true
+
+        this.apply()
+    }
+
+    get isPlaying() {
+
+        return !this.paused
+    }
+
+    setVolume(vol) {
+
+        this.volume = vol
+
+        this.apply()
+    }
+}
+
+/** The player for a voice: the stream itself, or the page's handle for it. */
+export function voiceAudioPlayer(stream) {
+
+    return stream?.relayedVoice
+        ? new RelayedAudioPlayer(stream)
+        : new StreamAudioPlayer(stream)
+}
+
+
 export class MediaElementAudioPlayer {
 
     /**

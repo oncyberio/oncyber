@@ -47,18 +47,6 @@ export function readRoomPlayers(state: any): RoomPlayer[] {
     return players;
 }
 
-/** How far a room member stands from the page's own visitor. */
-export function roomDistance(state: any, self: string, id: string): number {
-    const from = state?.players?.get?.(self);
-    const to = state?.players?.get?.(id);
-    const distance = Math.hypot(
-        Number(to?.positionX) - Number(from?.positionX),
-        Number(to?.positionY) - Number(from?.positionY),
-        Number(to?.positionZ) - Number(from?.positionZ)
-    );
-    return Number.isFinite(distance) ? distance : Infinity;
-}
-
 const text = (value: unknown, max: number) =>
     typeof value === "string" && value.length <= max ? value : undefined;
 const number = (value: unknown) =>
@@ -130,13 +118,19 @@ const OPEN = new Set([
     "scale",
     "chat-channel",
     "chat-peer",
+    // Asking to speak, and a moderator's answer: the room passes these on
+    // as any visitor's.
+    "voice-request",
+    "enable-voice",
+    "disable-voice",
+    "decline-voice",
 ]);
 
 /**
  * What the page passes on for a world's `room-send`, or `undefined` to drop
  * it. Identity stays the page's: an `init` carries the page's id and name,
- * a signed-in visitor cannot be renamed, and `login` (the session) and
- * voice signalling never come from a world.
+ * a signed-in visitor cannot be renamed, a moderator's acts carry the
+ * page's session, and `login` and voice signalling never come from a world.
  */
 export function filterRoomSend(
     name: unknown,
@@ -154,7 +148,11 @@ export function filterRoomSend(
         if (who.username !== undefined) init[8] = who.username;
         return { name, data: init };
     }
+    // What only a moderator may do, the room checks against the session,
+    // which is the page's to add.
     if (name === "voice-range" && Array.isArray(data))
         return { name, data: [data[0], who.token] };
+    if (name === "kick" && Array.isArray(data))
+        return { name, data: [who.token, data[1]] };
     return undefined;
 }

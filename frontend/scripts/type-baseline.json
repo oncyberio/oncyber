@@ -1,5 +1,5 @@
 {
-    "total": 404,
+    "total": 403,
     "errors": {
         "components/DesignSystem/menus/tabs.tsx TS2339": 6,
         "components/DesignSystem/menus/tabs.tsx TS2769": 1,
@@ -223,7 +223,6 @@
         "utils/rooms.ts TS2741": 2,
         "utils/saveToDb.ts TS2339": 4,
         "utils/ssr.ts TS2339": 1,
-        "utils/voiceChat/index.ts TS2741": 1,
         "utils/worldPassword/proof.ts TS2345": 2,
         "utils/worldPassword/server.ts TS2345": 3
     }

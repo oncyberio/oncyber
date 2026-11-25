@@ -191,6 +191,45 @@ describe("createWorldDocument", () => {
         ]);
     });
 
+    test("asks the page what only the page can know", async () => {
+        const w = fakeWindow();
+        const timers: (() => void)[] = [];
+        (w.win as any).setTimeout = (run: () => void) => timers.push(run);
+        (w.win as any).clearTimeout = () => {};
+        const world = createWorldDocument(w.win, frame);
+        w.posted.length = 0;
+        const first = world.ask("moderator", { label: "starry-night" });
+        const second = world.ask("moderator", { label: "elsewhere" });
+        expect(w.posted.map(({ message }) => message)).toEqual([
+            {
+                type: "oncyber:game:ask",
+                n: 1,
+                name: "moderator",
+                label: "starry-night",
+            },
+            {
+                type: "oncyber:game:ask",
+                n: 2,
+                name: "moderator",
+                label: "elsewhere",
+            },
+        ]);
+        // answers find their questions, whatever the order; only the page's count
+        w.fromPage(
+            { type: "oncyber:game:answer", n: 1, value: false },
+            "https://elsewhere.example"
+        );
+        w.fromPage({ type: "oncyber:game:answer", n: 2, value: false });
+        w.fromPage({ type: "oncyber:game:answer", n: 1, value: true });
+        expect(await first).toBe(true);
+        expect(await second).toBe(false);
+
+        // a page that never answers
+        const third = world.ask("moderator");
+        timers.at(-1)();
+        expect(await third).toBeUndefined();
+    });
+
     test("reports progress, then that it has drawn, once", () => {
         const w = fakeWindow();
         const world = createWorldDocument(w.win, frame);

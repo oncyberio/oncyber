@@ -23,6 +23,8 @@ export const WORLD_GAME_ID = "world";
 const HELLO_EVERY_MS = 250;
 /** The page answers at once when it is there; after this, stop asking. */
 const HELLO_FOR_MS = 20_000;
+/** How long the world waits for the page to answer a question. */
+const ASK_FOR_MS = 8_000;
 
 export interface WorldDocument {
     /**
@@ -40,6 +42,11 @@ export interface WorldDocument {
     /** Any other message to the page, and the page's to the world. */
     send(kind: string, data?: object): void;
     listen(handler: (kind: string, data: any) => void): () => void;
+    /**
+     * Asks the page something only it can know (it holds the account).
+     * Undefined when the page does not answer.
+     */
+    ask(name: string, data?: object): Promise<unknown>;
     /** 0–1, while the world loads. */
     progress(value: number, label?: string): void;
     /** The world has drawn: the page may show it. */
@@ -113,8 +120,29 @@ export function createWorldDocument(
     win.addEventListener("message", receive);
 
     let reported = "";
+    let asked = 0;
+    const answers = new Map<number, (value: unknown) => void>();
+    heard.add((kind, data) => {
+        if (kind !== "answer") return;
+        answers.get(data?.n)?.(data.value);
+        answers.delete(data?.n);
+    });
     return {
         visitor: () => visitor,
+        ask(name, data = {}) {
+            const n = ++asked;
+            return new Promise((resolve) => {
+                const timer = win.setTimeout(() => {
+                    answers.delete(n);
+                    resolve(undefined);
+                }, ASK_FOR_MS);
+                answers.set(n, (value) => {
+                    win.clearTimeout(timer);
+                    resolve(value);
+                });
+                post("ask", { ...data, n, name });
+            });
+        },
         send: post,
         listen(handler) {
             heard.add(handler);
@@ -149,6 +177,8 @@ export function createWorldDocument(
             win.clearInterval(asking);
             win.removeEventListener("message", receive);
             heard.clear();
+            answers.forEach((answer) => answer(undefined));
+            answers.clear();
         },
     };
 }

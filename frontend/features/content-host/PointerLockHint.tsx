@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from "react";
+import { worldDocument } from "@features/worlds/worldDocument";
+import { useFramedWorldLock } from "@features/worlds/worldPointer";
 import styled from "styled-components";
 import { promptGlass } from "@ui/components/PromptGlass";
 
 /** True while this document holds pointer lock. */
 export function usePointerLocked() {
     const [locked, setLocked] = useState(false);
+    // A world in this page's frame holds the pointer where the page cannot
+    // see it, so it says so; a framed world tells its page the same way.
+    const framed = useFramedWorldLock();
     useEffect(() => {
-        const update = () => setLocked(document.pointerLockElement != null);
+        const update = () => {
+            const held = document.pointerLockElement != null;
+            setLocked(held);
+            worldDocument()?.send("pointer-lock", { locked: held });
+        };
         document.addEventListener("pointerlockchange", update);
         update();
         return () => document.removeEventListener("pointerlockchange", update);
     }, []);
-    return locked;
+    return locked || framed;
 }
 
 function useFinePointer() {

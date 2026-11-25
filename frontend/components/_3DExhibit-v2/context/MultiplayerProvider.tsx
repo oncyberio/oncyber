@@ -1,4 +1,5 @@
 import { markNativeStartup } from "@utils/nativeStartupDiagnostics";
+import { worldDocument } from "@features/worlds/worldDocument";
 import { getProfanity } from "@utils/saveToDb";
 import {
     prepareMultiplayerResources,
@@ -527,6 +528,13 @@ export default function MultiplayerProvider({
         controller = abortController.current
     ) {
         try {
+            // In the site's frame the page holds the account, so the page
+            // says whether its visitor moderates this space.
+            const framed = worldDocument();
+            if (framed)
+                return (
+                    (await framed.ask("moderator", { label: _label })) === true
+                );
             if (!_token) return false;
 
             const isMod = await SocialApi.opts({

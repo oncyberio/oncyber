@@ -32,6 +32,8 @@ export class RoomVoice {
             /** How loud a room member is heard, 0 to 1. */
             volume(id: string): number;
             onChange(state: VoiceState, error: string): void;
+            /** A room member's microphone came on, or went off. */
+            onPublished?(id: string, published: boolean): void;
         }
     ) {}
 
@@ -56,6 +58,7 @@ export class RoomVoice {
         this.audio.delete(id);
         this.levels.set(id, null);
         this.talking.unwatch(id);
+        if (!this.closed) this.options.onPublished?.(id, false);
     }
 
     /** Join the voice mesh without a microphone, so you hear people nearby. */
@@ -82,6 +85,7 @@ export class RoomVoice {
             this.levels.set(user.uid, stream);
             this.talking.watch(user.uid, stream);
             this.updateVolumes();
+            this.options.onPublished?.(user.uid, true);
             void audio.play().catch(() => {
                 this.update({
                     error: "Tap the microphone to enable audio playback.",
@@ -151,6 +155,16 @@ export class RoomVoice {
             });
         }
     };
+
+    /** Whose microphones are on, the visitor's own aside. */
+    published() {
+        return Array.from(this.audio.keys());
+    }
+
+    /** Stops (or resumes) sending this visitor's voice to one room member. */
+    setGated(id: string, gated: boolean) {
+        this.voice?.setMicGated(id, gated);
+    }
 
     /** The room is gone, or the page is leaving it. */
     close() {

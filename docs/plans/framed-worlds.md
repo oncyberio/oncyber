@@ -133,26 +133,40 @@ default.
        room of the space the page opened; a room reached through a portal
        inside the frame is joined by name alone. One join function now
        serves worlds, games and this (`utils/arena/join.ts`).
-    2. **Voice, and one dock.** _(Done.)_ Voice is the page's, in the
-       room it holds: the same voice a game page has
-       (`features/games/roomVoice.ts`), heard as soon as the page is in the
-       room, with volume from the room's positions. A microphone goes on
+    2. **Voice, and one dock.** _(Done.)_ The microphone and every voice
+       heard are the page's, in the room it holds. The world's own voice
+       rules keep running, against a voice service that is only messages
+       (`features/worlds/relayedVoice.ts`), and the page does what they
+       say (`worldVoiceHost.ts`): whether this visitor may speak (a
+       moderator's leave included), how loud each voice is (the engine
+       works that out from distance and the space's voice range, as it
+       always has), whom this visitor's voice reaches, and who is shown
+       talking. One thing is not the world's to say: a microphone goes on
        only from the page's own button, because a click inside the frame
-       is not one the page can see. The world's code never reaches a
-       microphone or a peer connection.
+       is not one the page can see. A world can mute its visitor; it
+       cannot unmute them. The world's code never reaches a microphone or
+       a peer connection. The page's voice is the one a game page has
+       (`features/games/roomVoice.ts`).
 
-        There is one dock and the page draws it (`features/worlds/worldDock.ts`).
-        The world says which buttons it has and is told when one is
-        pressed; what a button opens is still drawn in the world. The page
-        puts its own microphone in the voice button's place. This is the
+        The world asks the page what only the page can know (`ask`): so
+        far, whether its visitor moderates the space, answered with the
+        page's session and only for the space the page opened. A
+        moderator's acts (kick, the voice range) reach the room with the
+        page's session added.
+
+        There is one dock and the page draws it
+        (`features/worlds/worldDock.ts`). The world says which buttons it
+        has and is told when one is pressed; what a button opens is still
+        drawn in the world. The voice button is the page's own once the
+        world's rules let the visitor speak, and the world's until then
+        (asking a moderator). The world says when it holds the pointer, so
+        the page's interface steps back as it does unframed. This is the
         shape for anything in a frame: the page's controls are the page's,
         and a frame adds buttons to the same dock.
 
-        Not yet: the world being told who is talking (the speaking
-        animation), spaces where a moderator lets visitors speak (a framed
-        visitor's microphone is not held back there), the voice range a
-        moderator sets, and screen share drawn in 3D, which needs its own
-        answer because a stream cannot cross into the frame.
+        Not yet: unmuting from the keyboard inside the world (M mutes, the
+        page's button unmutes), and screen share drawn in 3D, which needs
+        its own answer because a stream cannot cross into the frame.
 
     3. **Chat and people.** The chat, the people list and moderation move
        to the page's interface, so they outlive a world that stops. The
@@ -202,17 +216,21 @@ The studio stays unframed until editing has its own plan.
     signed-in visitor as the space's admin, with the session on the page
     only. Chat between them, moving, and leaving _(not tested)_ in a
     browser; the relay's two halves are tested against each other.
--   Slice 3, voice and the dock: two guests in one framed world, with
-    the room server local and a fake microphone. One pressed the page's
-    microphone button: that page asked for the microphone once and
-    connected, the other page began playing the incoming voice, and
-    neither world frame touched a microphone or a peer connection. A press
-    on a world's button in the page's dock reached the world and the
+-   Slice 3, voice and the dock: two visitors in one framed world, with
+    the room server local and a fake microphone, the space's owner and a
+    guest. The world asked the page and learned its visitor moderates the
+    space, so its rules let them speak; they pressed the page's
+    microphone button, and that page asked for the microphone once. The
+    guest's engine set that voice's volume and the guest's page played it;
+    both worlds were sent talking levels; the guest, whom the space's
+    rules do not let speak without asking, could not turn a microphone on;
+    and neither world frame touched a microphone or a peer connection. A
+    press on a world's button in the page's dock reached the world and the
     keyboard went back to it. The dock was sent from the world's window:
-    the world hides its dock while the pointer is locked, which is the
-    only state the headless browser reached, so the engine's own dock
-    crossing was not seen _(not tested)_. Whether two people hear each
-    other clearly _(not tested)_.
+    the headless browser never got the world to show its own dock, so the
+    engine's own dock crossing, asking a moderator to speak, and the
+    speaking animation were not seen _(not tested)_. Whether two people
+    hear each other clearly _(not tested)_.
 -   First measurement on a production build and a real device: cold and warm
     load against today's page _(not measured)_.
 
