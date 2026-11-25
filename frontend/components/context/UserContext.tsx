@@ -50,7 +50,6 @@ import AccountsApi from "@api/accounts/_api";
 
 import { getAnonExhibit } from "@utils/anon";
 import { getDefaultWallet, getLinkedWallets } from "@features/studio/utils";
-import { getDestination } from "@utils/saveToDb";
 
 // Firebase Auth (and, on phones and Safari, the iframe and Google script it
 // starts) loads only for sign-in, not on every page. The sign-in sheet's
@@ -686,8 +685,12 @@ export const UserProvider: React.FunctionComponent<UserProviderProps> = ({
                 if (cancelled) return;
                 nextExhibit = await getAnonExhibit(exhibit);
                 if (cancelled) return;
-                if (nextExhibit && destination?.slug !== nextExhibit.info.room)
+                if (nextExhibit && destination?.slug !== nextExhibit.info.room) {
+                    // Fetched when it is needed: the file it is in is
+                    // large and nothing else here uses it.
+                    const { getDestination } = await import("@utils/saveToDb");
                     nextDestination = await getDestination(nextExhibit.info.room);
+                }
             }
             if (cancelled) return;
             dispatch({ type: USER_LOGIN, payload: {
