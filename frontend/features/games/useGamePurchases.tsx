@@ -283,6 +283,19 @@ export function useGamePurchases(options: {
         if (!covering) return;
         const onKey = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
+            // Another sheet opened over this one (the sign-in): Escape is
+            // that sheet's, and this one stays as it is underneath.
+            const dialogs = document.querySelectorAll(
+                '[role="dialog"][aria-modal="true"]'
+            );
+            const top = dialogs[dialogs.length - 1];
+            if (
+                top &&
+                !top.closest(
+                    '[data-game-overlay="purchase"], [data-game-overlay="wallet-panel"]'
+                )
+            )
+                return;
             event.preventDefault();
             event.stopPropagation();
             if (asking.current) close();
@@ -376,7 +389,7 @@ export function useGamePurchases(options: {
                             ? REFUSED.unavailable
                             : action === "add-funds"
                             ? `${balance}. Add funds to buy this.`
-                            : balance)}
+                            : balance && `${balance}.`)}
                     {test && !ask.note ? " No real money is used." : ""}
                 </p>
                 <div

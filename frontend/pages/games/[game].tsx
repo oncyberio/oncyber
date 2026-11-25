@@ -45,11 +45,20 @@ export default function GameRoute({
     );
 }
 
-export const getServerSideProps: GetServerSideProps = async ({
-    params,
-    query,
-}) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const { params, query } = context;
     if (!gamesPreviewEnabled()) return { notFound: true };
+    // Who is signed in, as every other page learns it: the game page keeps
+    // results, saved data and purchases under that account. A guest, or a
+    // session that cannot be read, is `authenticated: false`.
+    const session = import("@utils/serverside/feedBasicServerSideProps")
+        .then(({ feedBasicServerSideProps }) =>
+            feedBasicServerSideProps(context)
+        )
+        .then(
+            (found) => found.props,
+            () => ({ authenticated: false })
+        );
     const game = findSharedPageGame(params?.game);
     if (!game) {
         // Not in the catalog at all: a game the registry holds, if it is
@@ -64,7 +73,14 @@ export const getServerSideProps: GetServerSideProps = async ({
             gamePause(registered.game.id),
             registered.frame.release
         );
-        return { props: { ...registered, pause, lobbyWorld: true } };
+        return {
+            props: {
+                ...(await session),
+                ...registered,
+                pause,
+                lobbyWorld: true,
+            },
+        };
     }
     // A hosted release when a person pointed the game at one, else the
     // committed build (docs/games/releases.md).
@@ -72,5 +88,7 @@ export const getServerSideProps: GetServerSideProps = async ({
     // The kill switch stops the release this visit would load: a hosted
     // one is decided here, by the pointer's id.
     const pause = pauseForRelease(gamePause(game.id), frame.release);
-    return { props: { game, pause, frame, lobbyWorld: true } };
+    return {
+        props: { ...(await session), game, pause, frame, lobbyWorld: true },
+    };
 };

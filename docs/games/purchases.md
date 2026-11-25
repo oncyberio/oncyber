@@ -127,6 +127,8 @@ The rules live in one file with no imports,
     `cancelled`.
 -   A guest is offered the site's own sign-in sheet; purchases belong to the
     signed-in account, whichever way it signed in. There is no second login.
+    The game page learns who is signed in from the route's server props
+    (`pages/games/[game].tsx`), as every other page does.
 -   A wallet smaller than the price is offered a top-up, and the question
     stays open.
 -   Shows a **Wallet** button beside Credits for a game that sells

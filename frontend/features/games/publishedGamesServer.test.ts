@@ -858,6 +858,8 @@ describe("the page and the releases route", () => {
         const { release } = await publish("user-a", "my-game");
         expect(await page("my-game")).toEqual({
             props: {
+                // Nobody is signed in here: the page starts as a guest's.
+                authenticated: false,
                 game: {
                     id: "my-game",
                     title: "My Game",

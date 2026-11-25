@@ -145,8 +145,9 @@ test("the page asks the visitor, pays, and tells the game it was bought", async 
     // The name and price are the declared ones, drawn by the page.
     expect(sheet?.getAttribute("aria-label")).toBe("Buy 100 coins");
     expect(sheet?.textContent).toContain("ACE! Tennis · $0.99");
-    expect(sheet?.textContent).toContain("Test balance: $10.00");
-    expect(sheet?.textContent).toContain("No real money is used.");
+    expect(sheet?.textContent).toContain(
+        "Test balance: $10.00. No real money is used."
+    );
     // The game is paused while the question is up, and has heard nothing yet.
     expect(gamePauseHeld()).toBe(true);
     expect(sent).toEqual([]);
@@ -190,6 +191,30 @@ test("cancel, Escape and a click outside are a no, and nothing is paid", async (
         ["req-0003", false, "cancelled"],
     ]);
     expect(mockService.buy).not.toHaveBeenCalled();
+});
+
+test("Escape belongs to a sheet opened over the question, such as the sign-in", async () => {
+    const { host, sent, fromGame } = mount();
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    const over = document.body.appendChild(document.createElement("div"));
+    over.setAttribute("role", "dialog");
+    over.setAttribute("aria-modal", "true");
+    await act(async () => {
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+        );
+    });
+    expect(sent).toEqual([]);
+    expect(host.querySelector('[data-game-overlay="purchase"]')).not.toBeNull();
+    over.remove();
+    await act(async () => {
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+        );
+    });
+    expect(sent).toEqual([
+        expect.objectContaining({ request: "req-0001", reason: "cancelled" }),
+    ]);
 });
 
 test("a game cannot stack questions, name its own price or sell what it did not declare", async () => {
