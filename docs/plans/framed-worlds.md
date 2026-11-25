@@ -212,7 +212,7 @@ default.
        need a popup, the list of avatars owned by linked wallets, and
        fullscreen.
 
-5. **The lobby.** _(Relay done; the journey not yet run end to end.)_ A
+5. **The lobby.** _(Relay done.)_ A
    world reached from the lobby is two frames below it. The page between
    them passes the journey's protocol both ways, unchanged
    (`utils/lobbyDestinationBridge.ts`), and what the lobby set or read
@@ -328,8 +328,13 @@ The studio stays unframed until editing has its own plan.
     The same, step for step, as unframed. Software rendering draws Starry
     Night at under a frame a second, so the world's own meshes were hidden
     during these runs to keep it usable.
--   The lobby journey into a framed world _(not tested)_ in a browser: the
-    relay's two sides are unit tested only.
+-   Slice 5, the lobby: a stand-in lobby (a page of the site framing the
+    world as the lobby does and speaking the journey's protocol) took
+    Sunshine Square through the whole journey with the world three frames
+    down: prepared, enter, entered, stage-reveal, reveal-ready, reveal,
+    revealed, ending in play with input released. The same steps as
+    unframed, in 37 s against 35 s. The real lobby, its portal preview and
+    its warm-up _(not tested)_.
 -   A real GPU, WebGPU, Safari, a phone, and load times on a real device
     _(not tested)_.
 
