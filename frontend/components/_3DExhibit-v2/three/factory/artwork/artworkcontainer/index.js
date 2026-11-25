@@ -27,6 +27,8 @@ import InstancedGeometry from '@3abstract/instancedgeometry'
 
 import BorderInstancedMaterial from "@3factory/border/borderinstancedmaterial"
 
+import { GalleryFrames } from "@3factory/border/galleryframes"
+
 
 import {
 
@@ -68,6 +70,11 @@ export class ArtworkContainer extends Group {
         super()
 
         this.instancedBorderGroup = {}
+
+        /** Every gallery frame in the space, in one instanced draw. */
+        this.galleryFrames = new GalleryFrames()
+
+        this.galleryFrames.attachTo(this)
 
         this.matrixAutoUpdate = false
 
@@ -257,11 +264,14 @@ export class ArtworkContainer extends Group {
 
             this.raycastMeshes[index] = artwork.raycastMesh
 
-            // we reattach the instanced border to the new artwork
-            if (previous?.instancedBorder?.visible) {
+            // we reattach the instanced border to the new artwork (a gallery
+            // frame hides it, so it is kept for that case too)
+            if (previous?.instancedBorder?.visible || (previous?.instancedBorder && previous.galleryFrame)) {
 
                 artwork.instancedBorder = previous.instancedBorder
             }
+
+            this.galleryFrames.remove(previous)
 
             this.remove(previous)
 
@@ -296,6 +306,13 @@ export class ArtworkContainer extends Group {
 
         }
 
+        if(artwork instanceof SpaceArtwork) {
+
+            artwork.galleryFrames = this.galleryFrames
+
+            artwork.syncFrame()
+        }
+
 
         if(!IS_VR && !artwork.isPlaceholder) {
 
@@ -323,6 +340,8 @@ export class ArtworkContainer extends Group {
             this.raycastMeshes.splice(index, 1)
 
             this.remove(artwork)
+
+            this.galleryFrames.remove(artwork)
 
             if(artwork.instancedBorder) {
 
@@ -761,6 +780,10 @@ export class ArtworkContainer extends Group {
         this.loadersGroup = null
 
         Object.values(this.instancedBorderGroup).forEach((shapeGroup) => shapeGroup.dispose());
+
+        this.galleryFrames.dispose()
+
+        this.galleryFrames = null
 
         this.instancedBorderGroup = null
 

@@ -123,6 +123,8 @@ export interface Asset extends FetchedAsset {
     curatorNotes?: string;
     hasBorder?: any;
     borderColor?: any;
+    /** Frame style; absent for the flat border (see factory/border/galleryFrame). */
+    frame?: import("@components/_3DExhibit-v2/three/factory/border/galleryFrame").ArtworkFrame;
     size?: any;
     scale?: number;
     dimensions?: [number, number];

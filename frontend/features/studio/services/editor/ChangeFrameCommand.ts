@@ -1,5 +1,6 @@
 import { EDITION_ACTIONS } from "@components/_3DExhibit-v2/three/constants";
 import type { SpaceItem } from "@components/_3DExhibit-v2/three/factory/abstract/spaceitem";
+import type { ArtworkFrame } from "@components/_3DExhibit-v2/three/factory/border/galleryFrame";
 import { AbstractCommand } from "./AbstractCommand";
 import { CommandState, ExhibitCommandContext } from "./types";
 
@@ -7,6 +8,13 @@ export interface ChangeFrameOpts {
     targetMeshIds: string[];
     color: string;
     colors?: string[];
+    /**
+     * The frame style for every target: null for the flat border, undefined
+     * to keep each artwork's current style.
+     */
+    frame?: ArtworkFrame | null;
+    /** One frame style per target (undo); wins over `frame`. */
+    frames?: (ArtworkFrame | null)[];
 }
 
 export class ChangeFrameCommand extends AbstractCommand {
@@ -18,7 +26,9 @@ export class ChangeFrameCommand extends AbstractCommand {
     }
 
     getLabel() {
-        return `border ${this.opts.color}`;
+        return this.opts.frame
+            ? `frame ${this.opts.frame.style} ${this.opts.color}`
+            : `border ${this.opts.color}`;
     }
 
     async runImpl() {
@@ -34,6 +44,10 @@ export class ChangeFrameCommand extends AbstractCommand {
                 //
                 return (mesh.userData as any).borderColor || "black-borderless";
             }),
+            frames: targetMeshes.map((mesh) => {
+                //
+                return (mesh.userData as any).frame ?? null;
+            }),
         };
 
         return this.runWithOpts(this.opts);
@@ -43,7 +57,7 @@ export class ChangeFrameCommand extends AbstractCommand {
         //
         let { world } = this.context;
 
-        let { color, colors, targetMeshIds } = opts;
+        let { color, colors, frame, frames, targetMeshIds } = opts;
 
         let result = await Promise.all(
             targetMeshIds.map((id, idx) => {
@@ -52,19 +66,30 @@ export class ChangeFrameCommand extends AbstractCommand {
                     type: EDITION_ACTIONS.EDITOR_CHANGE_BORDER,
                     artworkId: id,
                     color: colors ? colors[idx] : color,
+                    frame: frames ? frames[idx] : frame,
                 });
             })
         );
 
         this.updateExhibit((draft) => {
             //
-            this.opts.targetMeshIds.forEach((id, idx) => {
+            targetMeshIds.forEach((id, idx) => {
                 //
-                const { borderColor, hasBorder } = result[idx];
+                const { borderColor, hasBorder, frame } = result[idx];
 
-                draft.artworks[id].data.borderColor = borderColor;
+                const data = draft.artworks[id].data;
 
-                draft.artworks[id].data.hasBorder = hasBorder;
+                data.borderColor = borderColor;
+
+                data.hasBorder = hasBorder;
+
+                if (frame) {
+                    //
+                    data.frame = frame;
+                } else if (data.frame !== undefined) {
+                    //
+                    delete data.frame;
+                }
             });
         });
     }

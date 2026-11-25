@@ -40,6 +40,7 @@ import { useWalletContext } from "./WalletContext";
 import { Asset, FetchedAsset } from "@uitypes/Asset";
 import type { SpaceItem } from "@3factory/abstract/spaceitem";
 import type { SpaceArtwork } from "@3factory/artwork/abstract";
+import type { ArtworkFrame } from "@3factory/border/galleryFrame";
 import {
     uploadAssetMedia,
     uploadAssetMediaFile,
@@ -480,6 +481,8 @@ export interface WorldEditState extends Omit<WorldEditProps, "children"> {
         targetMeshes: SpaceArtwork[];
         color: string;
         colors?: string[];
+        /** Frame style: null for the flat border, omitted to keep it. */
+        frame?: ArtworkFrame | null;
         isRemove?: boolean;
     }) => Promise<boolean>;
 
@@ -2693,11 +2696,11 @@ export function WorldEditProvider({
 
     const handleChangeFrame = useEventCallback<This["handleChangeFrame"]>(
         //
-        async ({ targetMeshes = [selectedMesh], color, colors }) => {
+        async ({ targetMeshes = [selectedMesh], color, colors, frame }) => {
             //
             const event = {
                 ...baseAnalyticsEvent,
-                edited: ["border"],
+                edited: frame ? ["border", "frame"] : ["border"],
                 ...getAssetPayload(targetMeshes[0].userData),
             };
 
@@ -2708,6 +2711,7 @@ export function WorldEditProvider({
                     targetMeshIds: targetMeshes.map((mesh) => mesh.userData.id),
                     color,
                     colors,
+                    frame,
                 });
 
                 await cmd.run();
