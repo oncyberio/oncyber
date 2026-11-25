@@ -1802,7 +1802,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 avatar.group.position.z
                             );
                     }
-                    nameTags?.end(camera);
+                    nameTags?.end(camera, height);
                     crowdShadows.count = shadowCount;
                     crowdShadows.instanceMatrix.needsUpdate = shadowCount > 0;
                     drainLoads();
