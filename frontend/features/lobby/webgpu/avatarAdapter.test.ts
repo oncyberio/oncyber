@@ -627,8 +627,11 @@ test("opening the avatar picker holds the idle at full weight, with no bind pose
         expect(idle.getEffectiveWeight()).toBe(1);
         expect(idle.isRunning()).toBe(true);
     }
-    // It carries on from where it was instead of starting over.
-    expect(idle.time).toBeGreaterThanOrEqual(time);
+    // It carries on from where it was instead of starting over (the clip
+    // loops, so the time may have wrapped past its end).
+    const duration = idle.getClip().duration;
+    const advanced = (idle.time - time + duration) % duration;
+    expect(advanced).toBeLessThan(8 * 0.016 * 2);
     avatar.dispose();
 });
 
