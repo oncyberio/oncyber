@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import GamePurchasesService from "@api/gamePurchases/_api";
-import { ActionButton } from "@styles/brand";
 import Icon from "@features/landing-carousel/components/Icon";
-import {
-    UtilityActions,
-    UtilityButton,
-    UtilityRow,
-} from "@features/content-host/NativeVisitorPanel";
-import { PurchasePanel, PurchaseSummary } from "./gamePurchaseStyles";
+import PurchaseSidebar from "./PurchaseSidebar";
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
 import {
@@ -486,117 +480,136 @@ export function useGamePurchases(options: {
     const action = ask
         ? purchaseAction({ signedIn, wallet, cents: ask.product.cents })
         : null;
-    // The payment sidebar: the lobby's utility panel, docked right. The
-    // game is a frame, so a click on it never reaches this page; the
-    // sidebar closes by Cancel, its close button or Escape, each a no.
+    // The payment sidebar: the same solid sidebar as a profile and the
+    // account, on the right. Cancel, its close button, Escape and a click
+    // outside it are each a no.
+    const main = ask
+        ? ask.paying
+            ? "Paying…"
+            : action === "wait"
+            ? "Loading wallet…"
+            : ask.proof
+            ? "Finish purchase"
+            : own
+            ? `Pay ${formatPrice(ask.product.cents)}`
+            : `Buy for ${formatPrice(ask.product.cents)}`
+        : "";
     const sidebar = ask && (
-        <PurchasePanel
+        <PurchaseSidebar
             title={`Buy ${ask.product.name}`}
+            busy={ask.paying}
             onClose={() => close()}
-            closeOnClickAway={false}
         >
-            <PurchaseSummary data-game-overlay="purchase">
+            <div className="purchase-item">
+                <h3>{live.current.title}</h3>
                 <p>
-                    {live.current.title}
-                    {ask.product.kind === "permanent" ? " · yours to keep" : ""}
+                    {ask.product.kind === "permanent"
+                        ? "Yours to keep, on every device."
+                        : "Can be bought again."}
                 </p>
-                <dl>
-                    <dt>Price</dt>
-                    <dd>{formatPrice(ask.product.cents)}</dd>
-                    {held && (
-                        <>
-                            <dt>Test balance</dt>
-                            <dd>{held}</dd>
-                        </>
-                    )}
-                    {signedIn && own && (
-                        <>
-                            <dt>Paid with</dt>
-                            <dd>
-                                {wallet.token} on {wallet.network}
-                            </dd>
-                        </>
-                    )}
-                </dl>
-                <p
-                    className="purchase-status"
-                    role="status"
-                    data-tone={
-                        ask.note && ask.tone !== "info" ? "error" : undefined
-                    }
-                >
-                    {ask.note ||
-                        (action === "sign-in"
-                            ? "Sign in to buy this with your Oncyber wallet."
-                            : action === "unavailable"
-                            ? REFUSED.unavailable
-                            : action === "add-funds"
-                            ? `Add funds to buy this.${
-                                  test ? " No real money is used." : ""
-                              }`
-                            : test
-                            ? "No real money is used."
-                            : own
-                            ? "You confirm the payment in your own wallet."
-                            : "")}
-                </p>
-                {action === "sign-in" && (
-                    <ActionButton $variant="blue" onClick={openSignIn}>
-                        Sign in to buy
-                    </ActionButton>
+            </div>
+            <dl className="purchase-summary">
+                <dt>Price</dt>
+                <dd className="purchase-price">
+                    {formatPrice(ask.product.cents)}
+                </dd>
+                {held && (
+                    <>
+                        <dt>Test balance</dt>
+                        <dd>{held}</dd>
+                    </>
                 )}
-                <UtilityActions>
-                    <UtilityButton
+                {signedIn && own && (
+                    <>
+                        <dt>Paid with</dt>
+                        <dd>
+                            {wallet.token} on {wallet.network}
+                        </dd>
+                    </>
+                )}
+            </dl>
+            <p
+                className="purchase-status"
+                role="status"
+                data-tone={
+                    ask.note && ask.tone !== "info" ? "error" : undefined
+                }
+            >
+                {ask.note ||
+                    (action === "sign-in"
+                        ? "Sign in to buy this with your Oncyber wallet."
+                        : action === "unavailable"
+                        ? REFUSED.unavailable
+                        : action === "add-funds"
+                        ? `Add funds to buy this.${
+                              test ? " No real money is used." : ""
+                          }`
+                        : test
+                        ? "No real money is used."
+                        : own
+                        ? "You confirm the payment in your own wallet."
+                        : "")}
+            </p>
+            <div className="purchase-actions">
+                {action === "sign-in" && (
+                    <button
                         type="button"
-                        disabled={ask.paying}
-                        onClick={() => close()}
+                        className="sign-in"
+                        onClick={openSignIn}
                     >
-                        Cancel
-                    </UtilityButton>
-                    {action === "add-funds" && test && (
-                        <UtilityButton
-                            $primary
-                            type="button"
-                            disabled={funding}
-                            onClick={() => void addFunds()}
-                        >
-                            Add {formatPrice(TEST_FUNDS.stepCents)} test funds
-                        </UtilityButton>
-                    )}
-                    {(action === "buy" || action === "wait") && (
-                        <UtilityButton
-                            $primary
-                            type="button"
-                            disabled={ask.paying || action === "wait"}
-                            onClick={() => void buy()}
-                        >
-                            {ask.paying
-                                ? "Paying…"
-                                : action === "wait"
-                                ? "Loading wallet…"
-                                : ask.proof
-                                ? "Finish purchase"
-                                : own
-                                ? `Pay ${formatPrice(ask.product.cents)}`
-                                : `Buy for ${formatPrice(ask.product.cents)}`}
-                        </UtilityButton>
-                    )}
-                </UtilityActions>
-                {signedIn && live.current.openWallet && (
-                    <UtilityRow
+                        Sign in to buy
+                    </button>
+                )}
+                {action === "add-funds" && test && (
+                    <button
+                        type="button"
+                        className="primary"
+                        disabled={funding}
+                        onClick={() => void addFunds()}
+                    >
+                        Add {formatPrice(TEST_FUNDS.stepCents)} test funds
+                    </button>
+                )}
+                {(action === "buy" || action === "wait") && (
+                    <button
+                        type="button"
+                        className="primary"
+                        disabled={ask.paying || action === "wait"}
+                        onClick={() => void buy()}
+                    >
+                        {main}
+                    </button>
+                )}
+                <button
+                    type="button"
+                    disabled={ask.paying}
+                    onClick={() => close()}
+                >
+                    Cancel
+                </button>
+            </div>
+            {signedIn && live.current.openWallet && (
+                <section className="purchase-wallet">
+                    <h3>Your wallet</h3>
+                    <button
                         type="button"
                         disabled={ask.paying}
                         onClick={() => void openWallet()}
                     >
-                        <Icon name="wallet" size={16} />
+                        <Icon name="wallet" size={21} />
                         <span>
-                            Wallet
-                            <small>In your profile</small>
+                            <strong>Wallet</strong>
+                            <small>
+                                {own
+                                    ? "Balance and purchases, in your profile"
+                                    : "Balance, top-up and purchases, in your profile"}
+                            </small>
                         </span>
-                    </UtilityRow>
-                )}
-            </PurchaseSummary>
-        </PurchasePanel>
+                        <Icon name="forward" size={16} className="row-arrow" />
+                    </button>
+                </section>
+            )}
+        </PurchaseSidebar>
     );
 
     return { element: sidebar || null };

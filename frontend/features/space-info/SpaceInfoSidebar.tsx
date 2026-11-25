@@ -19,6 +19,13 @@ import type { SpaceInfo } from "./spaceInfo";
 import SpaceActions from "./SpaceActions";
 import ProfileView, { type ProfileSelf } from "./ProfileView";
 import ProfileWallet from "./ProfileWallet";
+import {
+    sidebarClose,
+    sidebarHeader,
+    sidebarPanel,
+    sidebarScroll,
+    sidebarTitle,
+} from "@ui/components/sidebarSurface";
 
 type View =
     | { kind: "guestbook" }
@@ -633,57 +640,28 @@ const Surface = styled.dialog`
     .info-sidebar:focus {
         outline: none;
     }
+    /* The solid sidebar, shared with the account and a purchase
+       (ui/components/sidebarSurface.ts). */
     .info-sidebar {
-        width: 380px;
-        max-width: 100%;
-        min-height: 0;
+        ${sidebarPanel("left")}
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
-        border: 1px solid var(--oc-line-strong);
-        border-radius: ${baseTokens.radius.panel}px;
-        background: var(--oc-panel);
-        box-shadow: 8px 12px 40px #0003;
-        overflow: hidden;
         animation: info-sidebar-in var(--oc-enter) var(--oc-ease) both;
     }
     .info-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 20px 20px 12px 24px;
+        ${sidebarHeader}
     }
     h2 {
+        ${sidebarTitle}
         flex: 1;
-        margin: 0;
         min-width: 0;
-        font-size: 18px;
-        font-weight: 500;
-        line-height: 1.4;
         overflow-wrap: anywhere;
     }
     .close-info {
-        width: 40px;
-        height: 40px;
-        display: grid;
-        place-items: center;
-        flex: 0 0 auto;
-        border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control);
-        background: transparent;
-        color: var(--oc-secondary);
-    }
-    .close-info:hover {
-        background: var(--oc-hover);
-        color: var(--oc-ink);
+        ${sidebarClose}
     }
     .info-scroll {
-        min-height: 0;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        padding: 4px 24px 24px;
-        scrollbar-width: thin;
-        scrollbar-color: var(--oc-line-strong) transparent;
+        ${sidebarScroll}
     }
     .info-cover {
         display: block;

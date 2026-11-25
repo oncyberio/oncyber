@@ -160,6 +160,7 @@ test("the page asks the visitor, pays, and tells the game it was bought", async 
     // The name and price are the declared ones, drawn by the page.
     expect(sheet?.getAttribute("aria-label")).toBe("Buy 100 coins");
     expect(sheet?.textContent).toContain("ACE! Tennis");
+    expect(sheet?.textContent).toContain("Can be bought again.");
     expect(sheet?.textContent).toContain("Price$0.99");
     expect(sheet?.textContent).toContain("Test balance$10.00");
     expect(sheet?.textContent).toContain("No real money is used.");
@@ -184,7 +185,7 @@ test("the page asks the visitor, pays, and tells the game it was bought", async 
     expect(gamePauseHeld()).toBe(false);
 });
 
-test("Cancel, Escape and the close button are a no, and nothing is paid", async () => {
+test("Cancel, Escape, the close button and a click outside are a no, and nothing is paid", async () => {
     const { host, sent, fromGame, press } = mount();
     await fromGame("purchase", { request: "req-0001", product: "coins-100" });
     await press(/^Cancel$/);
@@ -196,10 +197,19 @@ test("Cancel, Escape and the close button are a no, and nothing is paid", async 
     });
     await fromGame("purchase", { request: "req-0003", product: "coins-100" });
     await press(/^Close buy 100 coins$/);
+    await fromGame("purchase", { request: "req-0004", product: "coins-100" });
+    // Outside the sidebar is its backdrop, which covers the game's frame.
+    const backdrop = host.querySelector('[role="dialog"]')!.parentElement!;
+    await act(async () => {
+        backdrop.dispatchEvent(
+            new MouseEvent("pointerdown", { bubbles: true })
+        );
+    });
     expect(sent.map((m) => [m.request, m.bought, m.reason])).toEqual([
         ["req-0001", false, "cancelled"],
         ["req-0002", false, "cancelled"],
         ["req-0003", false, "cancelled"],
+        ["req-0004", false, "cancelled"],
     ]);
     expect(mockService.buy).not.toHaveBeenCalled();
 });

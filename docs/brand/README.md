@@ -948,10 +948,17 @@ large icon tiles. Panels scroll internally, remain below the top bar, and leave
 the bottom chat and toolbar visible, including at phone widths. Escape closes
 the panel and returns keyboard focus to its opener.
 
-A purchase in a game is the same panel docked to the right edge on a wide
-screen (the payment sidebar, `features/games/gamePurchaseStyles.tsx`), so the
-game stays in view; on a phone it is the usual bottom sheet. The wallet is
-not a panel over the game: it is part of the visitor's own profile, the
-sidebar that opens from the left, which is also where a profile is edited
-(Edit profile turns that sidebar into its edit mode; there is no separate
-edit dialog for the name, picture or NFTs shown).
+Sidebars that slide in from an edge of the screen are one solid material,
+not glass: a profile (left), the account (right) and a purchase in a game
+(right). They share one definition, `ui/components/sidebarSurface.ts`
+(panel, header, title, close button, scroll area, eyebrow, row and card;
+values in `baseTokens.sidebar`), so a new one starts from it rather than
+copying another's styles. A sidebar's buttons are the action buttons: white
+for its main action, outline otherwise, blue only to sign in.
+
+A purchase is the payment sidebar
+(`features/games/PurchaseSidebar.tsx`). The wallet is not a panel over the
+game: it is part of the visitor's own profile, the sidebar that opens from
+the left, which is also where a profile is edited (Edit profile turns that
+sidebar into its edit mode; there is no separate edit dialog for the name,
+picture or NFTs shown).

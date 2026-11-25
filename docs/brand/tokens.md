@@ -25,7 +25,11 @@ import { baseTokens, lobbyTokens } from "@styles/tokens";
     the accent blue and its gradient stops, Create red (`accentCreate`,
     `#ff3b3b`, shared with the red lens of the 3D glasses icon), the cyan-to-lime selection line,
     white hairline strengths (`line.faint` to `line.selected`), radii, motion
-    durations and easing, focus rings and breakpoints.
+    durations and easing, focus rings and breakpoints. It also holds the
+    error ink for dark surfaces (`color.danger`, `--oc-danger`) and the
+    measures of the solid sidebar (`sidebar`: width, inset, backdrop, shadow
+    and slide), read by `ui/components/sidebarSurface.ts`, which the profile,
+    account and payment sidebars are drawn from.
 -   **Action** (`actionTokens`) is the one button spec for the whole app: 40 px
     minimum height, 10/16 padding, a 1 px border, Aeonik 500 at 13 px/1.35, and
     a 12 px or fully round corner. It also holds the colours of the three

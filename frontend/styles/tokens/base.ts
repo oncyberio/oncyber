@@ -76,6 +76,25 @@ export const baseTokens = {
         },
     },
     radius: { inset: 8, control: 12, card: 16, panel: 24 },
+    /**
+     * A solid sidebar that slides in from an edge of the screen: a profile
+     * (left), the account (right), a purchase (right). One material for all
+     * of them; `ui/components/sidebarSurface.ts` is how it is drawn.
+     */
+    sidebar: {
+        width: 380,
+        /** The account's, with rows instead of cards. */
+        compactWidth: 368,
+        /** The gap between the sidebar and the screen's edges. */
+        inset: 16,
+        /** Dims what is behind it. */
+        backdrop: "#00000055",
+        /** Cast away from the edge it sits on. */
+        shadow: "12px 40px #00000033",
+        shadowReach: 8,
+        /** How far it travels as it arrives and leaves. */
+        slide: 32,
+    },
     motion: {
         fast: 120,
         standard: 180,

@@ -122,15 +122,16 @@ The rules live in one file with no imports,
 ## What the page does
 
 `useGamePurchases` (`frontend/features/games/useGamePurchases.tsx`) opens
-the **payment sidebar**: the lobby's glass utility panel, docked to the
-right edge on a wide screen so the game stays in view, and a bottom sheet
-on a phone (`gamePurchaseStyles.tsx`, built from the design system).
+the **payment sidebar** (`PurchaseSidebar.tsx`): the same solid sidebar as
+a profile and the account, on the right, drawn from the one shared
+definition (`ui/components/sidebarSurface.ts`). On a phone it is the whole
+screen, as they are.
 
 -   It reads the request, looks the product up in the synced file and
     shows the name, the game's title, the price and the visitor's balance.
-    Cancel, the close button and Escape all answer `cancelled`. The game is
-    a frame, so a click on it never reaches the page and does not close
-    the sidebar.
+    Cancel, the close button, Escape and a click outside it all answer
+    `cancelled` (its backdrop covers the game's frame, so the click is
+    seen).
 -   A guest is offered the site's own sign-in sheet; purchases belong to the
     signed-in account, whichever way it signed in. There is no second login.
     The game page learns who is signed in from the route's server props

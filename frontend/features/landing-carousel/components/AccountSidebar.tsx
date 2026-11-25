@@ -6,6 +6,12 @@ import Link from "@components/InAppLink";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
 import { brandFoundation } from "@styles/brand";
 import { baseTokens } from "@styles/tokens";
+import {
+    sidebarClose,
+    sidebarHeader,
+    sidebarPanel,
+    sidebarTitle,
+} from "@ui/components/sidebarSurface";
 import Icon from "./Icon";
 import { MY_SPACES_HREF } from "../yourSpaces";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
@@ -364,47 +370,24 @@ const Surface = styled.dialog`
         outline: 2px solid var(--oc-accent);
         outline-offset: -2px;
     }
+    /* The solid sidebar, shared with a profile and a purchase
+       (ui/components/sidebarSurface.ts). */
     .account-sidebar {
-        width: 368px;
-        max-width: 100%;
-        min-height: 0;
+        ${sidebarPanel("right")}
+        width: ${baseTokens.sidebar.compactWidth}px;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
-        border: 1px solid var(--oc-line-strong);
-        border-radius: ${baseTokens.radius.panel}px;
-        background: var(--oc-panel);
-        box-shadow: -8px 12px 40px #0003;
-        overflow: hidden;
         touch-action: pan-y;
         animation: account-sidebar-in var(--oc-enter) var(--oc-ease) both;
     }
     .sidebar-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 20px 20px 12px 24px;
+        ${sidebarHeader}
     }
     h2 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 500;
-        line-height: 1.4;
+        ${sidebarTitle}
     }
     .close-account {
-        width: 40px;
-        height: 40px;
-        display: grid;
-        place-items: center;
-        flex: 0 0 auto;
-        border: 1px solid var(--oc-line);
-        border-radius: var(--oc-radius-control);
-        background: transparent;
-        color: var(--oc-secondary);
-    }
-    .close-account:hover {
-        background: var(--oc-hover);
-        color: var(--oc-ink);
+        ${sidebarClose}
     }
     .sidebar-scroll {
         min-height: 0;

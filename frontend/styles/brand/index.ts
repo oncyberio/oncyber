@@ -252,6 +252,7 @@ export const brandVariables = css`
     --oc-paper: ${brand.color.paper};
     --oc-paper-ink: ${brand.color.paperInk};
     --oc-paper-muted: ${brand.color.paperMuted};
+    --oc-danger: ${base.color.danger};
     --oc-accent: ${brand.color.accent};
     --oc-accent-create: ${brand.color.createAccent};
     --oc-selection: linear-gradient(
