@@ -43,6 +43,8 @@ const NEVER = new Set([
     ".device.log",
     "dist",
     "package-lock.json",
+    // A game's build record is the repository's (scripts/games/build-record.mjs).
+    "build.json",
 ]);
 /** Copy a folder, leaving out installed and generated files and `skip`. */
 function copy(from, { skip = () => false } = {}) {

@@ -85,7 +85,7 @@ addEventListener("message", (event) => {
     if (type === "oncyber:inspect-result" && event.data.nonce === state.nonce) state.inspect = event.data.inspect;
     if (type.endsWith(":hello") && !state.prefix) {
         state.prefix = type.slice(0, -"hello".length);
-        post("identity", { name: "Check", pfp: "", avatarUrl: avatar, storage: {} });
+        post("identity", { name: "Check", pfp: "", avatarUrl: avatar });
         if (!contract()) post("party", { party });
     }
     if (!state.prefix || !type.startsWith(state.prefix)) return;

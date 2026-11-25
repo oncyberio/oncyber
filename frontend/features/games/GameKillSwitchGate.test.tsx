@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { failLobbyDestination } from "@utils/lobbyDestinationBridge";
-import GamePauseGate from "./GamePauseGate";
+import GameKillSwitchGate from "./GameKillSwitchGate";
 
 jest.mock("@utils/lobbyDestinationBridge", () => ({
     failLobbyDestination: jest.fn(),
@@ -20,16 +20,20 @@ async function mount(pause: any, release?: string) {
     const root = createRoot(container);
     await act(async () => {
         root.render(
-            <GamePauseGate game="ace" title="ACE! Tennis" pause={pause}>
+            <GameKillSwitchGate
+                game="ace"
+                title="ACE! Tennis"
+                killSwitch={pause}
+            >
                 <iframe src="/games/ace/index.html" />
-            </GamePauseGate>
+            </GameKillSwitchGate>
         );
     });
     await act(async () => {});
     return container;
 }
 
-describe("GamePauseGate", () => {
+describe("GameKillSwitchGate", () => {
     afterEach(() => {
         document.body.innerHTML = "";
         jest.clearAllMocks();

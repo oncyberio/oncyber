@@ -9,10 +9,19 @@
  * things that must each arrive (a hit, a point), and `pump()` sends what
  * the pace allows, once per frame.
  *
- * Mirror any change in multiplayer/src/rooms/cyber/match/limits.ts and
- * frontend/features/games/gameMatch.ts.
+ * The limits are the server's (multiplayer/src/rooms/cyber/match/limits.ts)
+ * and the page's (frontend/features/games/gameMatch.ts): the same three
+ * numbers in all three files, held together by games/runtime/test/parity.test.mjs.
  */
-export const MATCH_RATE = 30;
+/** Packets a second a member may send, averaged: the channel's limit. */
+export const MATCH_RATE = 32;
+/** How far ahead of the average a member may briefly get. */
+export const MATCH_BURST = 16;
+/**
+ * The pace this side sends at: two under the limit, so a timer that fires
+ * late and then catches up never crosses it.
+ */
+export const MATCH_SEND_RATE = 30;
 /** Characters of JSON one packet may be on the wire, envelope included. */
 export const MATCH_MAX_BYTES = 1200;
 /** Events waiting for a send slot; older ones are dropped past this. */
@@ -29,7 +38,7 @@ export interface MatchChannelOptions {
     /** Hands one packet to the page; `to` narrows it to one member. */
     post(packet: unknown, to?: string): void;
     now?: () => number;
-    /** Packets a second, at most MATCH_RATE. */
+    /** Packets a second, at most MATCH_SEND_RATE. */
     rate?: number;
 }
 export interface MatchStats {
@@ -55,7 +64,8 @@ export function packetBytes(packet: unknown): number {
 export function createMatchChannel(options: MatchChannelOptions) {
     const now = options.now ?? (() => performance.now());
     const interval =
-        1000 / Math.min(MATCH_RATE, Math.max(1, options.rate ?? MATCH_RATE));
+        1000 /
+        Math.min(MATCH_SEND_RATE, Math.max(1, options.rate ?? MATCH_SEND_RATE));
     const stats: MatchStats = {
         sent: 0,
         dropped: 0,

@@ -138,7 +138,7 @@ answer:
 -   **The kill switch** ([field-health.md](field-health.md)):
     `GAMES_DISABLED="<id>@<release>"` stops a hosted release by the id its
     pointer names, decided on the server before anything loads
-    (`pauseForRelease`); the committed build's id is still read from its
+    (`killSwitchForRelease`); the committed build's id is still read from its
     `release.json`. `GAMES_DISABLED="<id>"` stops the game wherever it
     loads from. Rolling the pointer back to a release that is not listed
     brings the game back.
@@ -210,6 +210,10 @@ server, so the rule is enforced, not only written down:
 A plain IPFS gateway sends neither a per-release policy nor, always, CORS.
 So for the `pinata` backend the site's own releases route is the host:
 `/api/games/releases/<game>/<release>/<path>`.
+
+The route answers only where games do: while games are hidden
+(`gamesPreviewEnabled`, [../games.md](../games.md)) it is 404 for every
+game, before anything is looked up or fetched.
 
 For a request the local folder does not answer (production has no local
 folder), the route:

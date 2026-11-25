@@ -11,8 +11,10 @@
  * From the game: `match` ({ data, to? }).
  */
 
-// Mirror any change in multiplayer/src/rooms/cyber/match/limits.ts and
-// games/runtime/src/match.ts.
+// The channel's limits, the same numbers as the server's
+// (multiplayer/src/rooms/cyber/match/limits.ts) and the runtime's
+// (games/runtime/src/match.ts, which sends at MATCH_SEND_RATE, two under the
+// rate). games/runtime/test/parity.test.mjs fails when one of them moves alone.
 export const MATCH_RATE = 32;
 export const MATCH_BURST = 16;
 export const MATCH_MAX_BYTES = 1200;

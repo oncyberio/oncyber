@@ -5,34 +5,39 @@ import {
 } from "@utils/lobbyDestinationBridge";
 import {
     fetchGameRelease,
-    resolveGamePause,
-    type GamePause,
+    resolveKillSwitch,
+    type GameKillSwitch,
 } from "./gameDisabled";
+import { gameChrome } from "./gameChrome";
 
 /**
  * Renders the game only when the kill switch allows it (gameDisabled.ts).
  * A paused game is never mounted, so none of its files are requested; the
  * visitor sees why and a way back to the lobby.
  */
-export default function GamePauseGate({
+export default function GameKillSwitchGate({
     game,
     title,
-    pause,
+    killSwitch,
     children,
 }: {
     game: string;
     title: string;
-    pause: GamePause | null | undefined;
+    killSwitch: GameKillSwitch | null | undefined;
     children: ReactNode;
 }) {
     // Decided on the server when it can be, so a paused game never flashes.
     const [state, setState] = useState<"checking" | "paused" | "play">(
-        pause?.paused ? "paused" : pause?.releases?.length ? "checking" : "play"
+        killSwitch?.paused
+            ? "paused"
+            : killSwitch?.releases?.length
+            ? "checking"
+            : "play"
     );
     useEffect(() => {
         if (state !== "checking") return;
         let current = true;
-        void resolveGamePause(pause, () => fetchGameRelease(game)).then(
+        void resolveKillSwitch(killSwitch, () => fetchGameRelease(game)).then(
             (next) => current && setState(next)
         );
         return () => {
@@ -64,9 +69,9 @@ export default function GamePauseGate({
                 gap: 14,
                 padding: 24,
                 textAlign: "center",
-                background: "#0b0d12",
-                color: "#fff",
-                fontFamily: "Inter, Arial, sans-serif",
+                background: gameChrome.color.frame,
+                color: gameChrome.color.ink,
+                fontFamily: gameChrome.family,
             }}
         >
             {state === "paused" && (
@@ -80,7 +85,7 @@ export default function GamePauseGate({
                     </p>
                     <a
                         href="/?lobby=1"
-                        style={{ color: "#ffd23f" }}
+                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();

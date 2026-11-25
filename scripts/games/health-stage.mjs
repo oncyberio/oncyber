@@ -51,13 +51,13 @@ export function pauseDecisions(id, release) {
         unset: "",
     };
     const code = `
-        import { gamePause, pauseForRelease, resolveGamePause } from ${JSON.stringify(
+        import { gameKillSwitch, killSwitchForRelease, resolveKillSwitch } from ${JSON.stringify(
             module
         )};
         const out = {};
         for (const [name, value] of Object.entries(${JSON.stringify(cases)})) {
             let read = false;
-            const decision = await resolveGamePause(gamePause(${JSON.stringify(
+            const decision = await resolveKillSwitch(gameKillSwitch(${JSON.stringify(
                 id
             )}, { GAMES_DISABLED: value }),
                 async () => { read = true; return ${JSON.stringify(
@@ -66,8 +66,8 @@ export function pauseDecisions(id, release) {
             // The same release loaded from a hosted address: its id comes
             // from the game's pointer, so nothing is left to read.
             let hostedRead = false;
-            const hosted = await resolveGamePause(
-                pauseForRelease(gamePause(${JSON.stringify(
+            const hosted = await resolveKillSwitch(
+                killSwitchForRelease(gameKillSwitch(${JSON.stringify(
                     id
                 )}, { GAMES_DISABLED: value }), ${JSON.stringify(release)}),
                 async () => { hostedRead = true; return null; });

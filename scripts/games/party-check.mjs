@@ -24,7 +24,8 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve, sep } from "node:path";
 
-// The channel's limits, as multiplayer/src/rooms/cyber/match/limits.ts.
+// The channel's limits, as multiplayer/src/rooms/cyber/match/limits.ts
+// (held to the runtime's and the page's by games/runtime/test/parity.test.mjs).
 const MATCH_RATE = 32;
 const MATCH_BURST = 16;
 const MATCH_MAX_BYTES = 1200;
@@ -135,7 +136,7 @@ addEventListener("message", (event) => {
     if (kind === "hello" && !seat.greeted) {
         seat.greeted = true;
         seat.prefix = prefix;
-        post(seat, "identity", { name: seat.name, pfp: "", avatarUrl: "", storage: {} });
+        post(seat, "identity", { name: seat.name, pfp: "", avatarUrl: "" });
         // A contract game gets its visit, the trip included, in enter.
         if (prefix === CONTRACT) post(seat, "enter", { arrival: { from: "direct", view: null }, trip: trip(id) });
         announce();

@@ -7,15 +7,16 @@ import {
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
 import { soundStore } from "./gameAudio";
+import { gameChrome } from "./gameChrome";
 
 const button = {
     border: 0,
-    borderRadius: 999,
+    borderRadius: gameChrome.radius.pill,
     padding: "12px 18px",
     font: "inherit",
     cursor: "pointer",
-    color: "#fff",
-    background: "rgba(255,255,255,0.12)",
+    color: gameChrome.color.ink,
+    background: gameChrome.color.control,
     textAlign: "left" as const,
 };
 
@@ -130,9 +131,9 @@ export default function GameInputLayer({
                 inset: 0,
                 display: "grid",
                 placeContent: "center",
-                background: "rgba(10, 12, 18, 0.72)",
+                background: gameChrome.color.bar,
                 backdropFilter: "blur(10px)",
-                font: "600 15px/1 Inter, system-ui, sans-serif",
+                font: gameChrome.font.title,
             }}
             onClick={(event) => {
                 if (event.target === event.currentTarget) setMenu(false);
@@ -162,7 +163,7 @@ export default function GameInputLayer({
                 <p
                     style={{
                         margin: "6px 0 0",
-                        font: "500 12px/1.4 Inter, system-ui, sans-serif",
+                        font: gameChrome.font.note,
                         opacity: 0.6,
                     }}
                 >

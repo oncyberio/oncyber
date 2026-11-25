@@ -79,10 +79,6 @@ pageRoom.link = link;
 const page = connectPage({
     arrival: manifest.arrival,
     party: manifest.party,
-    // Saved values go through the declared keys below, not the page's
-    // older string storage.
-    storageKeys: [],
-    storageNamespace: "ace",
     identityTimeoutMs: 1500,
 });
 // Safe-area insets from the page, and where the HUD is for the checks

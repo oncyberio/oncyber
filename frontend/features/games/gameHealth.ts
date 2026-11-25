@@ -24,12 +24,16 @@ import { fetchGameRelease } from "./gameDisabled";
 import { readGameMessage } from "./gameContract";
 import { readGameLoadingMessage } from "./gameLoading";
 
-export type GameDevice = "phone" | "tablet" | "headset" | "desktop";
+/**
+ * What the visitor is on, as the page works it out (`gameDevice`). Not the
+ * devices a game claims to support: that is `GameDevice` in catalog.ts.
+ */
+export type VisitorDevice = "phone" | "tablet" | "headset" | "desktop";
 
 export type GameHealthEvent = {
     game: string;
     release: string;
-    device: GameDevice;
+    device: VisitorDevice;
 } & (
     | { kind: "first-frame"; ms: number }
     | { kind: "frames"; medianMs: number; p95Ms: number; frames: number }
@@ -71,7 +75,7 @@ export function gameDevice(
     nav:
         | { userAgent?: string; maxTouchPoints?: number }
         | undefined = typeof navigator !== "undefined" ? navigator : undefined
-): GameDevice {
+): VisitorDevice {
     const agent = nav?.userAgent ?? "";
     if (/OculusBrowser|Quest|Pico|VisionOS|XR\b/i.test(agent)) return "headset";
     if (/iPad|Tablet|PlayBook|Silk/i.test(agent)) return "tablet";
@@ -97,7 +101,7 @@ export function createGameHealth({
     frameSampleRate = FRAME_SAMPLE_RATE,
 }: {
     game: string;
-    device?: GameDevice;
+    device?: VisitorDevice;
     send: (event: GameHealthEvent) => void;
     now?: () => number;
     random?: () => number;

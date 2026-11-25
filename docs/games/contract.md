@@ -97,10 +97,18 @@ All are `oncyber:game:<kind>`. The page answers a build that greets with
 `<id>:hello` in that old form, with `arrival` and `party` as before and no
 `enter`, so published builds keep working until they are rebuilt.
 
+This table is the handshake and the room. Every kind of every area (keys,
+loading, sound, saved data, results, leaving, voice, health) is in one list,
+`games/runtime/messages.json`: who sends it, the file under
+`games/runtime/src` that holds the game's side and the file under
+`frontend/features/games` that holds the page's. Add a kind there first;
+the tests on both sides fail on a kind that is used and not listed, and on a
+listed kind its file no longer handles.
+
 | From | Kind                       | Meaning                                                                                                 |
 | ---- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
 | game | `hello`                    | `{ contract, arrival, party }` from `game.json`. Repeated until `identity` arrives.                     |
-| page | `identity`                 | `{ name, pfp, avatarUrl, storage }`.                                                                    |
+| page | `identity`                 | `{ name, pfp, avatarUrl }`. The name is at most 24 characters.                                          |
 | game | `ready`                    | Prepared: the game can be entered.                                                                      |
 | page | `enter`                    | `{ arrival, trip }` for `enter()`. With `identity` on a direct visit; just before the reveal on a trip. |
 | game | `arrival-ready`            | The arrival frame is drawn.                                                                             |
@@ -109,16 +117,46 @@ All are `oncyber:game:<kind>`. The page answers a build that greets with
 | both | `match`                    | The party room's real-time channel: `{ data, to? }` from the game, `{ from, data }` to it.              |
 | page | `match-limit`              | `{ dropped }`: packets of this game's that broke the channel's limits.                                  |
 | page | `self`, `peers`, `net`     | The room: the visitor's room id, everyone else, relayed packets.                                        |
-| game | `pose`, `net`, `storage`   | The visitor's pose, a packet for the room, a value to save.                                             |
+| game | `pose`, `net`              | The visitor's pose, a packet for the room.                                                              |
 | both | `exit`, `error`, `dispose` | Back to the lobby, failed to load, the visit is over.                                                   |
+
+## Versions
+
+`hello` carries the contract a build was made for (`CONTRACT_VERSION`), and
+the page acts on it:
+
+| A build's contract                  | What the page does                                                                                                   |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| The page's own (3)                  | Runs it.                                                                                                             |
+| One it still speaks (2)             | Runs it, and says it is out of date: a console warning in development, `data-contract-support="older"` on the frame. |
+| Older than that, or none            | Does not load it: the visitor sees why, and the lobby's trip ends with `<id>-contract-too-old`.                      |
+| Newer than the page                 | Does not load it (`<id>-contract-too-new`): the site is behind the build.                                            |
+| The old `<id>:<kind>` form (Garden) | Answered in that form, as before; it has no version to read.                                                         |
+
+Raise the version when a message or the enter data changes shape or
+meaning, in both halves at once, and say what changed:
+
+-   **2** One prefix for every game; `enter` carries the visit.
+-   **3** Keys: M on its own is the game's, and the page's chords arrive as
+    `key` with `mod: true` ([keys-focus.md](keys-focus.md)). The `storage`
+    message and the values in `identity` are gone: saved data is
+    [saved-data.md](saved-data.md).
+
+`pnpm games:check` fails a build that greets with another version than the
+runtime's (`CONTRACT_VERSION`), and `pnpm games:test` fails when a committed
+build was not rebuilt after the runtime changed ([../games.md](../games.md),
+"Check and publish").
 
 ## Where it lives
 
-| File                                      | What                                                                       |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| `games/runtime/src/contract.ts`           | Enter data (`Arrival`, `Trip`), the prefix, bounded readers, `tripPlayers` |
-| `games/runtime/src/manifest.ts`           | `game.json` types and `validateGameJson`                                   |
-| `games/runtime/src/page.ts`               | `connectPage()`, the game's side of the bridge                             |
-| `frontend/features/games/gameContract.ts` | The page's side: prefix, `enter` message, the trip from the party's room   |
-| `scripts/games/contract-check.mjs`        | The check stage                                                            |
-| `games/ace/`                              | The reference: `src/host.js` (host), `src/game.js` (game), `scenario.json` |
+| File                                        | What                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
+| `games/runtime/src/contract.ts`             | Enter data (`Arrival`, `Trip`), the prefix, bounded readers, `tripPlayers` |
+| `games/runtime/src/manifest.ts`             | `game.json` types and `validateGameJson`                                   |
+| `games/runtime/src/page.ts`                 | `connectPage()`, the game's side of the bridge                             |
+| `frontend/features/games/gameContract.ts`   | The page's side: prefix, `enter` message, the trip from the party's room   |
+| `games/runtime/messages.json`               | Every message kind, who sends it, and the file on each side                |
+| `games/runtime/test/parity.test.mjs`        | Both halves loaded and compared: version, prefix, limits, and every reader |
+| `games/runtime/test/contract.fixtures.json` | The cases both halves must answer the same way                             |
+| `scripts/games/contract-check.mjs`          | The check stage                                                            |
+| `games/ace/`                                | The reference: `src/host.js` (host), `src/game.js` (game), `scenario.json` |

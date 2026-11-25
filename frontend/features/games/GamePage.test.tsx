@@ -2,6 +2,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import {
+    failLobbyDestination,
     isLobbyDestination,
     registerLobbyDestinationEntry,
     waitForLobbyDestinationEntry,
@@ -167,7 +168,7 @@ test("a contract game is answered in the one prefix and told how to enter", asyn
     await mount();
     await fromGame({
         type: "oncyber:game:hello",
-        contract: 2,
+        contract: 3,
         arrival: { walkable: true },
     });
     await wait();
@@ -186,6 +187,53 @@ test("a contract game is answered in the one prefix and told how to enter", asyn
     expect(types().at(-1)).toBe("oncyber:game:entered");
     expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
 });
+
+test("a build one contract behind still loads, and the page says it is out of date", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    await mount();
+    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await wait();
+    expect(types()).toContain("oncyber:game:identity");
+    expect(host.querySelector("iframe").dataset).toMatchObject({
+        contract: "2",
+        contractSupport: "older",
+    });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(
+        /ace speaks game contract 2; this page speaks 3/
+    );
+});
+
+test.each([
+    [1, "too-old"],
+    [undefined, "too-old"],
+    [99, "too-new"],
+])(
+    "a build that speaks contract %s is not loaded",
+    async (contract, support) => {
+        jest.spyOn(console, "warn").mockImplementation(() => {});
+        await mount();
+        await fromGame({ type: "oncyber:game:hello", contract });
+        await wait();
+        expect(sent).toEqual([]);
+        expect(host.querySelector("iframe").dataset.contractSupport).toBe(
+            support
+        );
+        expect(host.querySelector('[role="status"]').textContent).toMatch(
+            /built for another version of Oncyber/
+        );
+        expect(failLobbyDestination).toHaveBeenCalledWith(
+            expect.any(String),
+            `ace-contract-${support}`
+        );
+        // It is never told who is visiting, and is never entered.
+        await fromGame({ type: "oncyber:game:ready" });
+        await wait();
+        for (const kind of ["identity", "enter", "entered"])
+            expect(types()).not.toContain(`oncyber:game:${kind}`);
+    }
+);
 
 test("a build from before the contract is answered in its own prefix", async () => {
     await mount("garden");
@@ -227,7 +275,7 @@ test("a lobby trip enters with the lobby's view and the party, then hears who ar
     await mount();
     await fromGame({
         type: "oncyber:game:hello",
-        contract: 2,
+        contract: 3,
         arrival: { walkable: true },
     });
     await wait(300);
@@ -333,7 +381,7 @@ test("a game that isn't walkable is revealed without waiting", async () => {
     await mount();
     await fromGame({
         type: "oncyber:game:hello",
-        contract: 2,
+        contract: 3,
         arrival: { walkable: false },
     });
     await wait(300);
@@ -368,7 +416,7 @@ test("a result is read in the form the game speaks and answered through the page
     // The page logs each result it refuses.
     jest.spyOn(console, "warn").mockImplementation(() => undefined);
     await mount();
-    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await fromGame({ type: "oncyber:game:hello", contract: 3 });
     await wait();
     await fromGame({ type: "oncyber:game:ready" });
     await wait();
@@ -410,7 +458,7 @@ test("loading is read in the form the game speaks and a page menu's pause goes o
     const cover = () =>
         host.querySelector<HTMLElement>('[data-machine="game-loading"]');
     expect(cover()?.getAttribute("data-game-overlay")).toBe("loading");
-    await fromGame({ type: "oncyber:game:hello", contract: 2 });
+    await fromGame({ type: "oncyber:game:hello", contract: 3 });
     await wait();
     await fromGame({
         type: "oncyber:game:progress",

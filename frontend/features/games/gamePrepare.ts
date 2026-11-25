@@ -1,10 +1,10 @@
-import { findSharedPageGame } from "./catalog";
+import { findGame } from "./catalog";
 import { fromFrame } from "./frameOrigin";
 import { gameOnDevice } from "./gameDevices";
 import {
     fetchGameRelease,
-    resolveGamePause,
-    type GamePause,
+    resolveKillSwitch,
+    type GameKillSwitch,
 } from "./gameDisabled";
 import {
     committedFrame,
@@ -57,7 +57,7 @@ export function gameDestinationId(href: string, origin: string): string | null {
     }
     if (url.origin !== origin) return null;
     const id = GAME_HREF.exec(url.pathname)?.[1];
-    return id && findSharedPageGame(id) ? id : null;
+    return id && findGame(id) ? id : null;
 }
 
 /** The frame the site named, if it is one the game page would load too. */
@@ -72,6 +72,9 @@ function preparedFrame(id: string, frame: unknown): GameFrame {
             id,
             named.release,
             frameBase(id, named),
+            // Not the switch that hides games (gamesPreview.ts): whether a
+            // release may load from this machine's own folder, which only
+            // the development server serves (gameRelease.ts).
             process.env.NODE_ENV === "development"
         );
         if (base && named.src === `${base}index.html`)
@@ -93,12 +96,14 @@ async function gamePlayable(id: string): Promise<PrepareAnswer> {
         cache: "no-store",
     });
     if (!response.ok) return false;
-    const answer = (await response.json()) as GamePause & { frame?: unknown };
+    const answer = (await response.json()) as GameKillSwitch & {
+        frame?: unknown;
+    };
     const frame = preparedFrame(id, answer.frame);
     // A hosted release was decided by the site, by the pointer's id; the
     // committed build's id is in its release.json.
     const play =
-        (await resolveGamePause(answer, () =>
+        (await resolveKillSwitch(answer, () =>
             frame.release
                 ? Promise.resolve(frame.release)
                 : fetchGameRelease(id)
@@ -131,7 +136,7 @@ export function prepareGameDestination(href: string): boolean {
     const id = gameDestinationId(href, window.location.origin);
     if (!id) return false;
     // A game this device can't play is never loaded (gameDevices.ts).
-    if (!gameOnDevice(findSharedPageGame(id))) return false;
+    if (!gameOnDevice(findGame(id))) return false;
     if (current?.id === id) return true;
     const last = prepared.get(id);
     if (last != null && performance.now() - last < PREPARE_AGAIN_AFTER_MS)
@@ -171,7 +176,6 @@ export function prepareGameDestination(href: string): boolean {
                 name: "Guest",
                 pfp: "",
                 avatarUrl: "",
-                storage: {},
             });
         } else if (message.kind === "first-frame" || message.kind === "ready") {
             prepared.set(id, performance.now());

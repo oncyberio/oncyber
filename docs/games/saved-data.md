@@ -153,7 +153,12 @@ keys (`node scripts/games/saved-data.mjs check <id>` runs it alone). It is
 the last stage, after party, in a browser of its own. The game is opened
 with `?check=saved`: its host must not play the scenario on that visit
 (skip `runCheck`, as for `check=avatars`). In the same sandbox as the
-site, with the page's real rules, answered in the form the game greeted in:
+site, with the page's real rules, answered in the form the game greeted in.
+The check talks to the game's saved data through three messages of its own,
+which the runtime answers only with `?check` in the address: `saved-probe`
+(save or read this key), `saved-probe-result` (what came back) and
+`saved-outcome` (what each read the game made on its own turned out to be).
+The stage's four parts:
 
 1. **Round trip.** Each key's `sample` is saved through the game, the game
    is reloaded, and the sample must come back. A game that writes a key
@@ -197,3 +202,8 @@ On the server, values live in the `gameSaved` collection and per-account
 write counts in `gameSavedQuota`, both reached only through the Admin SDK.
 Party values carry `expiresAt`; add a Firestore TTL policy on that field to
 have them deleted (they are ignored once expired either way).
+
+Games are hidden at launch and so is what they save: where game pages do
+not answer (`gamesPreviewEnabled`, [../games.md](../games.md)), `savedRead`
+and `savedWrite` touch nothing and answer as for a game that declared no
+keys.

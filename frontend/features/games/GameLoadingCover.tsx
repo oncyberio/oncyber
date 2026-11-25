@@ -11,6 +11,7 @@ import {
     readGameLoadingMessage,
     type GameLoadingState,
 } from "./gameLoading";
+import { gameChrome } from "./gameChrome";
 
 /**
  * Follows a game's loading messages (`progress`, `first-frame`, `frame`)
@@ -74,12 +75,12 @@ export function GameLoadingCover({
                 justifyItems: "center",
                 gap: 14,
                 background: baseTokens.color.frameCover,
-                color: "#fff",
-                font: "600 15px/1.3 Inter, system-ui, sans-serif",
+                color: gameChrome.color.ink,
+                font: gameChrome.font.title,
                 opacity: waiting ? 1 : 0,
                 visibility: waiting ? "visible" : "hidden",
                 pointerEvents: waiting ? "auto" : "none",
-                transition: "opacity 160ms ease-out, visibility 0s 160ms",
+                transition: `opacity ${gameChrome.motion.fade}, visibility 0s ${gameChrome.motion.fadeMs}ms`,
             }}
         >
             <span>{title}</span>
@@ -92,18 +93,18 @@ export function GameLoadingCover({
                 style={{
                     width: 220,
                     height: 6,
-                    borderRadius: 999,
+                    borderRadius: gameChrome.radius.pill,
                     overflow: "hidden",
-                    background: "rgba(255, 255, 255, 0.14)",
+                    background: gameChrome.color.track,
                 }}
             >
                 <div
                     style={{
                         width: `${percent}%`,
                         height: "100%",
-                        borderRadius: 999,
-                        background: "#fff",
-                        transition: "width 120ms linear",
+                        borderRadius: gameChrome.radius.pill,
+                        background: gameChrome.color.ink,
+                        transition: `width ${gameChrome.motion.follow}`,
                     }}
                 />
             </div>

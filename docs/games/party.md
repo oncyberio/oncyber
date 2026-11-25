@@ -195,7 +195,9 @@ testing your own.
    other's match stops moving, or moves on still counting the dropped
    member as playing (they must be in `standIns` or out of `players`).
 
-The game answers the check through the link:
+The game answers the check through the link. The check asks with
+`party-probe` and the link answers with `party-report`; both are messages of
+the check's own, not the site's page:
 
 ```js
 link.report(() => ({

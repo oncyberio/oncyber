@@ -83,6 +83,8 @@ beforeEach(() => {
     // Production: no local folder.
     delete process.env.GAMES_RELEASES_DIR;
     (process.env as any).NODE_ENV = "production";
+    // Releases answer only where games do (gamesPreview.ts).
+    process.env.GAMES_PREVIEW = "1";
     forgetPinnedPolicies();
     gateway = {
         [`${GATEWAY}index.html`]: "<!doctype html>game",

@@ -45,7 +45,7 @@ import { getServerSideProps } from "../../pages/games/[game]";
 // The page's components are not under test; its server half is.
 jest.mock("./GamePage", () => () => null);
 jest.mock("./GameDeviceGate", () => () => null);
-jest.mock("./GamePauseGate", () => () => null);
+jest.mock("./GameKillSwitchGate", () => () => null);
 
 const NOW = new Date("2026-11-17T10:00:00.000Z");
 const SANDBOX = "sandbox allow-scripts allow-pointer-lock";

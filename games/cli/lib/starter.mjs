@@ -29,6 +29,9 @@ const SKIP = new Set([
     ".oncyber",
     ".device.log",
     "dist",
+    // What the template's committed build was made from: the repository's
+    // own record (scripts/games/build-record.mjs), not a game's file.
+    "build.json",
     "package-lock.json",
     "package.json",
     "vite.config.js",

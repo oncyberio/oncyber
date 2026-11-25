@@ -12,11 +12,12 @@ import {
 } from "./gamePartyLeave";
 import type { GameRoom } from "./gameRoom";
 import { readGameMessage } from "./gameContract";
+import { gameChrome } from "./gameChrome";
 
 const OFFER_MS = 30_000;
 const button = {
     border: 0,
-    borderRadius: 999,
+    borderRadius: gameChrome.radius.pill,
     padding: "8px 14px",
     font: "inherit",
     cursor: "pointer",
@@ -112,10 +113,10 @@ export function useGameDeparture(options: {
                     alignItems: "center",
                     gap: 8,
                     padding: "8px 8px 8px 18px",
-                    borderRadius: 999,
-                    background: "rgba(10, 12, 18, 0.82)",
+                    borderRadius: gameChrome.radius.pill,
+                    background: gameChrome.color.panel,
                     backdropFilter: "blur(10px)",
-                    font: "600 13px/1 Inter, system-ui, sans-serif",
+                    font: gameChrome.font.control,
                     whiteSpace: "nowrap",
                     maxWidth: "calc(100vw - 32px)",
                 }}
@@ -126,7 +127,11 @@ export function useGameDeparture(options: {
                 <button
                     type="button"
                     onClick={() => leave.current("party")}
-                    style={{ ...button, color: "#0b0d12", background: "#fff" }}
+                    style={{
+                        ...button,
+                        color: gameChrome.color.onInk,
+                        background: gameChrome.color.on,
+                    }}
                 >
                     Follow
                 </button>
@@ -138,8 +143,8 @@ export function useGameDeparture(options: {
                     }}
                     style={{
                         ...button,
-                        color: "#fff",
-                        background: "rgba(255,255,255,0.12)",
+                        color: gameChrome.color.ink,
+                        background: gameChrome.color.control,
                     }}
                 >
                     Stay

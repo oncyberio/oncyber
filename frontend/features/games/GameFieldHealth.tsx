@@ -1,6 +1,7 @@
 import type { FieldHealth } from "./gameHealthSummary";
+import { gameChrome } from "./gameChrome";
 
-const muted = { margin: "6px 0", color: "#a8acaf" };
+const muted = { margin: "6px 0", color: gameChrome.color.muted };
 
 /**
  * Field health on /dev/games: what real visits (or, without PostHog access,
@@ -26,11 +27,11 @@ export default function GameFieldHealth({
             style={{
                 marginTop: 14,
                 paddingTop: 12,
-                borderTop: "1px solid #ffffff18",
+                borderTop: `1px solid ${gameChrome.color.line}`,
             }}
         >
             {(pause?.paused || !!pause?.releases.length) && (
-                <p style={{ margin: "6px 0", color: "#ffd23f" }}>
+                <p style={{ margin: "6px 0", color: gameChrome.color.warning }}>
                     Paused by <code>GAMES_DISABLED</code>:{" "}
                     {pause.paused
                         ? "every release"
@@ -39,7 +40,7 @@ export default function GameFieldHealth({
             )}
             <p style={muted}>Field health ({from})</p>
             {health?.error && (
-                <p style={{ margin: "6px 0", color: "#ffa59d" }}>
+                <p style={{ margin: "6px 0", color: gameChrome.color.error }}>
                     Couldn’t read PostHog: {health.error}
                 </p>
             )}
@@ -57,7 +58,7 @@ export default function GameFieldHealth({
                                 .map(([device, count]) => `${count} ${device}`)
                                 .join(", ")})`}
                         {row.loadFailures > 0 && (
-                            <span style={{ color: "#ffa59d" }}>
+                            <span style={{ color: gameChrome.color.error }}>
                                 {" "}
                                 · {row.loadFailures} failed to load
                             </span>
@@ -73,7 +74,10 @@ export default function GameFieldHealth({
                     {row.failures.map((failure, i) => (
                         <p
                             key={i}
-                            style={{ margin: "4px 0", color: "#ffa59d" }}
+                            style={{
+                                margin: "4px 0",
+                                color: gameChrome.color.error,
+                            }}
                         >
                             {failure.count}× {failure.kind}:{" "}
                             <code>{failure.message}</code>

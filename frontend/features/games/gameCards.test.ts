@@ -84,7 +84,6 @@ describe("game cards", () => {
             relay: false,
             crowdLabel: "at the club",
         });
-        expect(findGame("padel").ownPage).toBeUndefined();
         expect(findGame("ace").room).toBeNull();
     });
 });

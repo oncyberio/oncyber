@@ -10,12 +10,17 @@
  * mounts the game's frame and shows "this game is paused" instead
  * (docs/games/field-health.md). The release id is the one the page is about
  * to load: the pointer's for a hosted release (docs/games/releases.md,
- * `pauseForRelease`), `release.json`'s for the committed build.
+ * `killSwitchForRelease`), `release.json`'s for the committed build.
  *
  * This file imports nothing, so `pnpm games:check` runs the same decision.
+ *
+ * Names: this is the kill switch (`GameKillSwitch`, `gameKillSwitch`,
+ * `GameKillSwitchGate`). The visitor is told the game "is paused", and the
+ * answer's field is `paused`, but the pause of a running game under a page
+ * menu is another thing with its own file: gamePause.ts.
  */
 
-export interface GamePause {
+export interface GameKillSwitch {
     /** Every release of the game is paused. */
     paused: boolean;
     /** Release ids of this game that are paused. */
@@ -42,10 +47,10 @@ export function parseDisabledGames(
 }
 
 /** What the server tells the game page about one game. */
-export function gamePause(
+export function gameKillSwitch(
     id: string,
     env: Record<string, string | undefined> = process.env
-): GamePause {
+): GameKillSwitch {
     const entries = parseDisabledGames(env.GAMES_DISABLED).filter(
         (entry) => entry.game === id
     );
@@ -61,10 +66,10 @@ export function gamePause(
  * any other leaves nothing for the page to look up. With no id (the
  * committed build) the answer is unchanged and the page reads `release.json`.
  */
-export function pauseForRelease(
-    pause: GamePause,
+export function killSwitchForRelease(
+    pause: GameKillSwitch,
     release: string | null | undefined
-): GamePause {
+): GameKillSwitch {
     if (pause.paused || !release) return pause;
     return {
         paused: pause.releases.includes(release.toLowerCase()),
@@ -78,8 +83,8 @@ export function pauseForRelease(
  * when some release of this game is paused. If the id can't be read the
  * game plays: to stop a game for certain, pause its id.
  */
-export async function resolveGamePause(
-    pause: GamePause | null | undefined,
+export async function resolveKillSwitch(
+    pause: GameKillSwitch | null | undefined,
     loadRelease: () => Promise<string | null>
 ): Promise<"paused" | "play"> {
     if (pause?.paused) return "paused";
@@ -110,3 +115,12 @@ export async function fetchGameRelease(
         return null;
     }
 }
+
+/**
+ * @deprecated The kill switch's names before they were told apart from the
+ * page menu's pause (gamePause.ts). pages/dev/games.tsx still imports these
+ * two; nothing else should.
+ */
+export type GamePause = GameKillSwitch;
+/** @deprecated Use `gameKillSwitch`. */
+export const gamePause = gameKillSwitch;

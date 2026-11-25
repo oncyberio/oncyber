@@ -1,5 +1,5 @@
 import type { GameEntry } from "./catalog";
-import { gameDevice, type GameDevice } from "./gameHealth";
+import { gameDevice, type VisitorDevice } from "./gameHealth";
 
 /**
  * Whether a game is offered on the visitor's device. A game lists the
@@ -12,7 +12,7 @@ import { gameDevice, type GameDevice } from "./gameHealth";
  */
 export function gameOnDevice(
     game: Pick<GameEntry, "devices">,
-    device: GameDevice = gameDevice()
+    device: VisitorDevice = gameDevice()
 ): boolean {
     if (device === "phone" || device === "tablet")
         return game.devices.includes("phone");
@@ -21,7 +21,7 @@ export function gameOnDevice(
 }
 
 /** "Padel isn't on phones yet." */
-export function deviceNotice(title: string, device: GameDevice): string {
+export function deviceNotice(title: string, device: VisitorDevice): string {
     const where =
         device === "phone"
             ? "phones"

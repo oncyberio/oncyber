@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { LandingCard } from "@features/landing-carousel/types";
 import { GAMES, type GameEntry } from "./catalog";
+import { gamesPreviewEnabled } from "./gamesPreview";
 import {
     joinableParty,
     playingLabel,
@@ -9,7 +10,7 @@ import {
 } from "./gamePresence";
 import { partyJoinHref, rememberedGameParties } from "./gamePartyJoin";
 import { gameOnDevice } from "./gameDevices";
-import { gameDevice, type GameDevice } from "./gameHealth";
+import { gameDevice, type VisitorDevice } from "./gameHealth";
 
 /** "1 player", "1 to 8 players". */
 export function playersLabel({ min, max }: GameEntry["players"]): string {
@@ -77,7 +78,7 @@ export function gameCards(
     presence: Record<string, GamePresence> | null = null,
     ownPartyIds: readonly string[] = [],
     games: GameEntry[] = Object.values(GAMES),
-    device: GameDevice | null = null
+    device: VisitorDevice | null = null
 ): LandingCard[] {
     return games
         .filter((game) => matches(game, query))
@@ -95,9 +96,9 @@ export function gameCards(
  * Game cards for the lobby's Explore panel, live: who is playing now, and
  * the way into a party of the visitor's that is already in a game.
  * `partyIds` are the trip ids of the visitor's lobby groups. Games are
- * hidden at launch, so this returns cards on the development server only;
- * in a production build the check is constant, the list is always empty and
- * the room list is never asked. Lists games while `show`, and asks the room
+ * hidden at launch (`gamesPreviewEnabled`, the one switch); in the browser
+ * that reads as on for the development server only, so in a production
+ * build the list is always empty and the room list is never asked. Lists games while `show`, and asks the room
  * list only while `watching` too (the panel is open).
  */
 export function useGameCards(
@@ -106,7 +107,7 @@ export function useGameCards(
     watching: boolean,
     partyIds: readonly string[] = []
 ): LandingCard[] {
-    const listed = process.env.NODE_ENV === "development" && show;
+    const listed = gamesPreviewEnabled() && show;
     const games = useMemo(() => Object.values(GAMES), []);
     const presence = useGamePresence(games, listed && watching);
     const own = partyIds.join(",");

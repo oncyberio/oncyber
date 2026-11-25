@@ -24,8 +24,24 @@ test("every path the guide names exists", () => {
         .map((match) => match[1].replace(/<id>/g, "lantern-tag"))
         .filter((path) => !path.includes("<"));
     assert.ok(paths.length > 20);
-    for (const path of new Set(paths))
+    // What a run of the check leaves in a game's folder is not in a
+    // checkout: there the guide is held to the game ignoring that folder,
+    // which is what makes the path the one the check writes to.
+    const ignored = read("games/lantern-tag/.gitignore").split(/\r?\n/);
+    const written = (path) => {
+        const [, folder] =
+            path.match(/^games\/lantern-tag\/(\.[a-z]+)\/?$/) ?? [];
+        return folder && ignored.includes(`${folder}/`);
+    };
+    let checked = 0;
+    for (const path of new Set(paths)) {
+        if (written(path)) continue;
+        checked++;
         assert.ok(existsSync(join(repo, path)), `${path} does not exist`);
+    }
+    assert.ok(checked > 20);
+    // The one such path the guide names today, so the rule above is used.
+    assert.ok(paths.some(written), "the guide no longer names .check/");
 });
 
 test("every import the guide shows resolves in the SDK", () => {

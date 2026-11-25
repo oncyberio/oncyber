@@ -155,7 +155,7 @@ addEventListener("message", (event) => {
     if (type.endsWith(":hello") && !prefix) window.__bot.prefix = prefix = type.slice(0, -"hello".length);
     if (!prefix || !type.startsWith(prefix)) return;
     const kind = type.slice(prefix.length);
-    if (kind === "hello") post("identity", { name: "Bot", pfp: "", avatarUrl: "", storage: {} });
+    if (kind === "hello") post("identity", { name: "Bot", pfp: "", avatarUrl: "" });
     if (kind === "ready") window.__bot.ready = true;
     if (kind === "error") window.__bot.error = String(event.data.message || "error");
     if (kind === "arrival-ready" && window.__bot.staged) window.__bot.staged(true);

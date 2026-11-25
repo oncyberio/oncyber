@@ -179,7 +179,6 @@ test("the game loads hidden, sandboxed, as a guest, and leaves after its first f
             name: "Guest",
             pfp: "",
             avatarUrl: "",
-            storage: {},
         },
     ]);
     // Choosing it again while it prepares does not start a second frame.

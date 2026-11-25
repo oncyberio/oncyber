@@ -5,7 +5,8 @@ import {
 } from "@utils/lobbyDestinationBridge";
 import type { GameEntry } from "./catalog";
 import { deviceNotice, gameOnDevice } from "./gameDevices";
-import { gameDevice, type GameDevice } from "./gameHealth";
+import { gameDevice, type VisitorDevice } from "./gameHealth";
+import { gameChrome } from "./gameChrome";
 
 /**
  * Renders the game only on a device it supports (gameDevices.ts). The
@@ -19,7 +20,7 @@ export default function GameDeviceGate({
     game: Pick<GameEntry, "id" | "title" | "devices">;
     children: ReactNode;
 }) {
-    const [device, setDevice] = useState<GameDevice | null>(null);
+    const [device, setDevice] = useState<VisitorDevice | null>(null);
     useEffect(() => setDevice(gameDevice()), []);
     const blocked = device !== null && !gameOnDevice(game, device);
     useEffect(() => {
@@ -45,9 +46,9 @@ export default function GameDeviceGate({
                 gap: 14,
                 padding: 24,
                 textAlign: "center",
-                background: "#0b0d12",
-                color: "#fff",
-                fontFamily: "Inter, Arial, sans-serif",
+                background: gameChrome.color.frame,
+                color: gameChrome.color.ink,
+                fontFamily: gameChrome.family,
             }}
         >
             {blocked && (
@@ -62,7 +63,7 @@ export default function GameDeviceGate({
                     </p>
                     <a
                         href="/?lobby=1"
-                        style={{ color: "#ffd23f" }}
+                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();

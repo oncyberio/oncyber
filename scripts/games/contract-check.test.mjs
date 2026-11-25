@@ -12,6 +12,7 @@ import {
     isListed,
     plannedVisit,
 } from "./contract-check.mjs";
+import { CONTRACT_VERSION } from "../../games/runtime/src/contract.ts";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const party = {
@@ -179,7 +180,7 @@ test("the staged visit follows the scenario, else game.json", () => {
 
 test("after the run, enter() must have received the staged visit", () => {
     const visit = { arrival: "lobby", party: 4 };
-    const greeted = { prefix: "oncyber:game:", version: 2 };
+    const greeted = { prefix: "oncyber:game:", version: CONTRACT_VERSION };
     const ok = enterFindings({
         id: "toy",
         contract: greeted,
@@ -196,6 +197,16 @@ test("after the run, enter() must have received the staged visit", () => {
     assert.deepEqual(
         lost.findings.map((f) => f.code),
         ["CONTRACT_ENTER_ARRIVAL", "CONTRACT_ENTER_PARTY"]
+    );
+    // A build made for the contract before this one: it has to be rebuilt.
+    assert.deepEqual(
+        enterFindings({
+            id: "toy",
+            contract: { ...greeted, version: CONTRACT_VERSION - 1 },
+            visit,
+            report: { inspect: { hostArrival: "lobby", hostParty: 4 } },
+        }).findings.map((f) => f.code),
+        ["CONTRACT_VERSION"]
     );
     const old = enterFindings({
         id: "toy",

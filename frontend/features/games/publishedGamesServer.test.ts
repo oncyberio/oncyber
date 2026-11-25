@@ -44,7 +44,7 @@ import { getServerSideProps } from "../../pages/games/[game]";
 // The page's components are not under test; its server half is.
 jest.mock("./GamePage", () => () => null);
 jest.mock("./GameDeviceGate", () => () => null);
-jest.mock("./GamePauseGate", () => () => null);
+jest.mock("./GameKillSwitchGate", () => () => null);
 
 const get = gatewayGet as jest.MockedFunction<typeof gatewayGet>;
 const CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
@@ -880,7 +880,7 @@ describe("the page and the releases route", () => {
                     release,
                     source: "hosted",
                 },
-                pause: { paused: false, releases: [] },
+                killSwitch: { paused: false, releases: [] },
                 lobbyWorld: true,
             },
         });
@@ -952,7 +952,7 @@ describe("the page and the releases route", () => {
     test("the kill switch stops a registered game: the page pauses and the route refuses", async () => {
         const { release } = await publish("user-a", "my-game");
         process.env.GAMES_DISABLED = "my-game";
-        expect((await page("my-game")).props.pause).toEqual({
+        expect((await page("my-game")).props.killSwitch).toEqual({
             paused: true,
             releases: [],
         });
@@ -961,12 +961,12 @@ describe("the page and the releases route", () => {
         ).toBe(404);
         // One release of it.
         process.env.GAMES_DISABLED = `ace, my-game@${release}`;
-        expect((await page("my-game")).props.pause.paused).toBe(true);
+        expect((await page("my-game")).props.killSwitch.paused).toBe(true);
         expect(
             (await fetchRelease(["my-game", release, "index.html"])).status
         ).toBe(404);
         process.env.GAMES_DISABLED = `my-game@${"0".repeat(16)}`;
-        expect((await page("my-game")).props.pause.paused).toBe(false);
+        expect((await page("my-game")).props.killSwitch.paused).toBe(false);
         expect(
             (await fetchRelease(["my-game", release, "index.html"])).status
         ).toBe(200);

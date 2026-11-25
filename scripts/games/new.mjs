@@ -1,21 +1,33 @@
 #!/usr/bin/env node
-// Create a game from Bloom Garden, with the brief, manifest and bot stub
+// Create a game from Lantern Tag, with the brief, manifest and bot stub
 // the checks expect.
 //
 //   node scripts/games/new.mjs <id> [--name "Display Name"]
 //
-// Writes games/<id>/ (a copy of games/garden, renamed), games/<id>/BRIEF.md
+// Lantern Tag (games/lantern-tag) is the small worked example of the current
+// contract: connectPage(), every kit, saved results and a party's match. It
+// is the same template `oncyber new` starts a game outside the repository
+// from (games/cli/lib/starter.mjs), so both ways in begin on the same code.
+//
+// Writes games/<id>/ (a copy of games/lantern-tag, renamed), games/<id>/BRIEF.md
 // (from games/BRIEF.md), bot.json and scenario.json stubs, a game.json whose
-// party statement is still to write, the game's saved keys in
-// frontend/features/games/savedData.declared.json, and a listing whose
+// party statement is still to write, any saved keys the template declares
+// in frontend/features/games/savedData.declared.json, and a listing whose
 // entry goes into the generated catalog
 // (frontend/features/games/catalog.generated.ts, docs/games/listing.md).
 // The new game passes the contract, keys and manifest checks as it is (it
-// is the garden, renamed) and fails `pnpm games:check <id>` on its brief,
+// is Lantern Tag, renamed) and fails `pnpm games:check <id>` on its brief,
 // its party statement and its bot until they are written: that is the
 // starting line, not a bug.
-import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import {
+    cpSync,
+    existsSync,
+    mkdirSync,
+    readdirSync,
+    readFileSync,
+    writeFileSync,
+} from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
     CATALOG_PATH,
@@ -25,28 +37,40 @@ import {
 } from "./listing.mjs";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+/** The template, and how it names itself in its own files. */
+const TEMPLATE_ID = "lantern-tag";
+const TEMPLATE_NAME = "Lantern Tag";
 const SKIP = new Set([
     "node_modules",
     ".check",
+    ".oncyber",
     ".device.log",
     "dist",
+    // What a build of the template was made from (build-record.mjs).
+    "build.json",
     "README.md",
     "BRIEF.md",
     "bot.json",
     "scenario.json",
 ]);
+const TEXT = /\.(js|mjs|ts|json|html|css|md)$/;
 
-const edit = (path, change) =>
-    writeFileSync(path, change(readFileSync(path, "utf8")));
-function swap(text, from, to, path, times) {
-    const found = text.split(from).length - 1;
-    if (!found || (times !== undefined && found !== times))
+function swap(text, from, to, path) {
+    if (!text.includes(from))
         throw new Error(
-            `${path}: expected to find ${JSON.stringify(from)}${
-                times === undefined ? "" : ` ${times} time(s), found ${found}`
-            }; the Garden template changed`
+            `${path}: expected to find ${JSON.stringify(from)}; it changed`
         );
     return text.split(from).join(to);
+}
+
+function walk(dir, base = dir) {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        if (SKIP.has(entry.name)) return [];
+        const path = join(dir, entry.name);
+        return entry.isDirectory()
+            ? walk(path, base)
+            : [relative(base, path).split("\\").join("/")];
+    });
 }
 
 export function createGame({ root = repo, id, name = id }) {
@@ -54,9 +78,9 @@ export function createGame({ root = repo, id, name = id }) {
         throw new Error(
             "the id is 2 to 32 lowercase letters, digits or dashes, starting with a letter"
         );
-    if (/["\\\n]/.test(name) || !name.trim())
+    if (/["\\<>&`$\n\r]/.test(name) || !name.trim())
         throw new Error("the name is plain text");
-    const template = join(root, "games/garden");
+    const template = join(root, "games", TEMPLATE_ID);
     const target = join(root, "games", id);
     const catalog = join(root, CATALOG_PATH);
     if (existsSync(target)) throw new Error(`games/${id} already exists`);
@@ -65,71 +89,31 @@ export function createGame({ root = repo, id, name = id }) {
         new RegExp(`\\bid"?: "${id}"`).test(readFileSync(catalog, "utf8"))
     )
         throw new Error(`${id} is already in the catalog`);
+    if (!existsSync(join(template, "game.json")))
+        throw new Error(`games/${TEMPLATE_ID} (the template) is missing`);
 
-    cpSync(template, target, {
-        recursive: true,
-        filter: (path) => path === template || !SKIP.has(basename(path)),
-    });
+    // Every file speaks as the new game: its id (the build folder, the
+    // package name, its social room) and its name (titles and labels).
+    const rename = (text) =>
+        text.split(TEMPLATE_ID).join(id).split(TEMPLATE_NAME).join(name);
     const at = (file) => join(target, file);
-    edit(at("package.json"), (t) =>
-        swap(t, "@oncyber-games/garden", `@oncyber-games/${id}`, "package.json")
-    );
-    edit(at("package-lock.json"), (t) =>
-        swap(
-            t,
-            "@oncyber-games/garden",
-            `@oncyber-games/${id}`,
-            "package-lock.json"
-        )
-    );
-    edit(at("vite.config.js"), (t) =>
-        swap(
-            t,
-            "frontend/public/games/garden",
-            `frontend/public/games/${id}`,
-            "vite.config.js"
-        )
-    );
-    edit(at("scripts/build-ui.mjs"), (t) =>
-        swap(
-            t,
-            "frontend/public/games/garden",
-            `frontend/public/games/${id}`,
-            "scripts/build-ui.mjs"
-        )
-    );
-    // The garden still speaks `garden:<kind>` to the page and names
-    // itself to the runtime's helpers; the copy speaks as itself.
-    edit(at("src/host/host.js"), (t) =>
-        swap(
-            t,
-            'const PREFIX = "garden:"',
-            `const PREFIX = "${id}:"`,
-            "src/host/host.js",
-            1
-        )
-    );
-    edit(at("src/host/browser.js"), (t) =>
-        swap(
-            swap(t, '"garden"', `"${id}"`, "src/host/browser.js", 6),
-            'prefix: "garden:"',
-            `prefix: "${id}:"`,
-            "src/host/browser.js",
-            1
-        )
-    );
-    edit(at("src/ui/main.js"), (t) =>
-        swap(t, 'game: "garden"', `game: "${id}"`, "src/ui/main.js", 1)
-    );
-    edit(at("src/game/result.js"), (t) =>
-        swap(t, "`garden-${", `\`${id}-\${`, "src/game/result.js", 1)
-    );
+    for (const path of walk(template)) {
+        mkdirSync(dirname(at(path)), { recursive: true });
+        if (TEXT.test(path))
+            writeFileSync(
+                at(path),
+                rename(readFileSync(join(template, path), "utf8"))
+            );
+        else cpSync(join(template, path), at(path));
+    }
 
     const manifest = JSON.parse(readFileSync(at("game.json"), "utf8"));
-    // The formats stay the garden's (one shared activity, valid under the
-    // contract) until the game has its own; what late, dropped and extra
-    // players get is for the author to say, and the check waits for it.
+    // The formats stay the template's (a solo round and a party's, valid
+    // under the contract) until the game has its own; what late, dropped
+    // and extra players get is for the author to say, and the check waits
+    // for it.
     const todo = (what) => `TODO: say what ${what} (docs/games/party.md).`;
+    const { socialRoom } = manifest.page ?? {};
     writeFileSync(
         at("game.json"),
         JSON.stringify(
@@ -140,11 +124,14 @@ export function createGame({ root = repo, id, name = id }) {
                 // check takes its thumbnail (docs/games/listing.md).
                 listing: {
                     tagline: "a new game",
-                    description: `${name}: a new game made from Bloom Garden. Say here what the player does.`,
-                    players: { min: 1, max: 1 },
+                    description: `${name}: a new game made from the starter. Say here what the player does.`,
+                    // As many as the template's formats seat, until the
+                    // game has formats of its own.
+                    players: manifest.listing?.players ?? { min: 1, max: 1 },
                     tags: ["new"],
                 },
-                page: {},
+                // Chat and voice still need a room of the game's own.
+                page: socialRoom ? { socialRoom } : {},
                 format: "match",
                 party: {
                     ...manifest.party,
@@ -154,19 +141,19 @@ export function createGame({ root = repo, id, name = id }) {
                 },
             },
             null,
-            2
+            4
         ) + "\n"
     );
     // The page and the server know a game's saved keys through this file
-    // (docs/games/saved-data.md): the copy declares what the garden does.
+    // (docs/games/saved-data.md): the copy declares what the template does.
     const declared = join(
         root,
         "frontend/features/games/savedData.declared.json"
     );
     if (existsSync(declared)) {
         const all = JSON.parse(readFileSync(declared, "utf8"));
-        if (all.garden) {
-            all[id] = all.garden;
+        if (all[TEMPLATE_ID]) {
+            all[id] = all[TEMPLATE_ID];
             writeFileSync(declared, JSON.stringify(all, null, 4) + "\n");
         }
     }
@@ -184,9 +171,9 @@ export function createGame({ root = repo, id, name = id }) {
     const bot = {
         version: 1,
         arrival: [
-            { hold: "forward", ms: 700 },
+            { hold: "up", ms: 700 },
             { press: "interact" },
-            { until: { screen: "match" }, timeoutMs: 10000 },
+            { until: { screen: "menu" }, timeoutMs: 10000 },
         ],
         play: [],
         leave: [],
@@ -205,7 +192,7 @@ export function createGame({ root = repo, id, name = id }) {
     );
     writeFileSync(
         at("README.md"),
-        `# ${name}\n\nCreated with \`pnpm games:new ${id}\` from Bloom Garden. Start with [BRIEF.md](BRIEF.md);\nthe rules are in [docs/games/good-game.md](../../docs/games/good-game.md).\n\n` +
+        `# ${name}\n\nCreated with \`pnpm games:new ${id}\` from ${TEMPLATE_NAME}, the starter game. Start with [BRIEF.md](BRIEF.md);\nthe rules are in [docs/games/good-game.md](../../docs/games/good-game.md) and the SDK's guide is [games/llms.txt](../llms.txt).\n\n` +
             "```sh\nnpm ci\nnpm run dev                 # standalone, with live reload\n" +
             `pnpm games:publish ${id}    # from the repository root: build, check, release\n\`\`\`\n`
     );
@@ -228,9 +215,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
         );
         process.exit(1);
     }
-    console.log(`games/${id} created from Bloom Garden. Next:
+    console.log(`games/${id} created from Lantern Tag, the starter game. Next:
   0. Read games/llms.txt: what is required, what is optional, and the helper
-     for each. The copy is a starting folder; replace its source.
+     for each. The copy speaks the current contract; change its world, its
+     rules and its party's match (src/world.js, src/round.js, src/match.js).
   1. Fill in games/${id}/BRIEF.md before writing code.
   2. Write the brief's formats into games/${id}/game.json "party" (formats, solo,
      play, late, dropped, extra); after changing "saved", run

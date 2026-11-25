@@ -106,7 +106,7 @@ Input:
     | `crowdLabel`  | at most 40 characters; optional                                    |
 
     Anything else in it (`id`, `thumbnail`, `room`, `socialRoom`, `relay`,
-    `controlsStyle`, `ownPage`) is dropped, not refused, so a whole catalog
+    `controlsStyle`) is dropped, not refused, so a whole catalog
     entry may be sent. The site sets the rooms itself: no room of the
     game's own, no relay outside a party, and `oncyber-<id>-social-v1` for
     chat and voice.

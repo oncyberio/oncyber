@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
     MATCH_MAX_BYTES,
-    MATCH_RATE,
+    MATCH_SEND_RATE,
     createMatchChannel,
     packetBytes,
 } from "../src/match.ts";
@@ -27,7 +27,8 @@ test("a 60 fps game sends about thirty packets a second, never a burst", () => {
         advance(1000 / 60);
     }
     assert.ok(
-        sent.length >= 2 * MATCH_RATE - 2 && sent.length <= 2 * MATCH_RATE + 2,
+        sent.length >= 2 * MATCH_SEND_RATE - 2 &&
+            sent.length <= 2 * MATCH_SEND_RATE + 2,
         `sent ${sent.length}`
     );
     // After a long stall the channel catches up by two slots, not thirty.

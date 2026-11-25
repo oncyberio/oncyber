@@ -1,6 +1,6 @@
 # ACE! Tennis
 
-A Nintendo-style singles tennis mini game for Oncyber: toy-like characters, a
+An arcade singles tennis mini game for Oncyber: toy-like characters, a
 packed stadium, charge-and-time shots and a CPU opponent at three levels. It is
 a fresh build, independent of the earlier Baseline tennis destination.
 

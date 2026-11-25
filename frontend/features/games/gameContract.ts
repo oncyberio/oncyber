@@ -2,13 +2,25 @@
  * The page's half of the one game contract (docs/games/contract.md): the
  * single message prefix every game speaks, and the data the page hands a
  * game for its `enter()`: how the visitor arrived and who came along. The
- * game's half is games/runtime/src/contract.ts; a test there checks the two
- * state the same prefix and version.
+ * game's half is games/runtime/src/contract.ts.
+ *
+ * The two halves are held together by games/runtime/test/parity.test.mjs:
+ * the same version, prefix and limits, and the same answer from both
+ * readers for every case in games/runtime/test/contract.fixtures.json.
+ * Every message kind, who sends it and the file on each side that handles
+ * it is one list: games/runtime/messages.json.
  */
 import type { GameParty, GamePartyMember } from "./gameParty";
 import type { PageRoster } from "./gameMatch";
 
-export const CONTRACT_VERSION = 2;
+/** What this page speaks. The history is in games/runtime/src/contract.ts. */
+export const CONTRACT_VERSION = 3;
+/**
+ * The oldest contract this page still runs. A build between this and
+ * `CONTRACT_VERSION` loads and is reported as out of date; one below it, or
+ * one newer than the page, is not loaded (`contractSupport`).
+ */
+export const CONTRACT_OLDEST = 2;
 /** Every game message is `oncyber:game:<kind>`, whatever the game's id. */
 export const GAME_MESSAGE_PREFIX = "oncyber:game:";
 
@@ -72,6 +84,41 @@ export function readGameDeclaration(hello: any): GameDeclaration {
     };
 }
 
+/** How the page treats the contract a game greeted with. */
+export type ContractSupport =
+    /** The page's own version. */
+    | "current"
+    /** Older, and still run: say so, the build needs rebuilding. */
+    | "older"
+    /** Older than the page can speak to: not loaded. */
+    | "too-old"
+    /** Newer than this page: not loaded, the site needs deploying. */
+    | "too-new";
+
+export function contractSupport(version: number): ContractSupport {
+    if (version === CONTRACT_VERSION) return "current";
+    if (version > CONTRACT_VERSION) return "too-new";
+    return version >= CONTRACT_OLDEST ? "older" : "too-old";
+}
+
+/** What to tell a developer about a game whose contract is not the page's. */
+export function contractNotice(game: string, version: number): string | null {
+    const support = contractSupport(version);
+    if (support === "current") return null;
+    const base = `${game} speaks game contract ${version}; this page speaks ${CONTRACT_VERSION}.`;
+    return support === "older"
+        ? `${base} It still loads. Rebuild it on the current runtime (pnpm games:publish ${game}).`
+        : support === "too-old"
+        ? `${base} The oldest this page runs is ${CONTRACT_OLDEST}: it was not loaded. Rebuild it on the current runtime.`
+        : `${base} It was built for a newer site and was not loaded.`;
+}
+
+/** Characters of a name a game is given; the runtime cuts at the same length. */
+export const GAME_NAME_MAX = 24;
+/** A name as a game gets it. */
+export const gameName = (name: unknown): string =>
+    typeof name === "string" ? name.trim().slice(0, GAME_NAME_MAX) : "";
+
 export interface GameArrivalView {
     cameraOffset: { x: number; y: number; z: number };
     cameraTargetOffset: { x: number; y: number; z: number };
@@ -84,10 +131,16 @@ export interface GameArrivalView {
 /**
  * The lobby's last camera as a game receives it: the framing only. The
  * lobby's peers travel as the trip's members, not inside the view.
+ *
+ * The bounds are the runtime's (`ARRIVAL_VIEW_LIMITS` and `readArrivalView`
+ * in games/runtime/src/contract.ts): a view the game would refuse is not
+ * sent, so the page and the game never disagree on whether there is one.
  */
 export function gameArrivalView(view: any): GameArrivalView | null {
+    const number = (n: unknown): n is number =>
+        typeof n === "number" && Number.isFinite(n);
     const offset = (v: any) =>
-        v && [v.x, v.y, v.z].every((n) => Number.isFinite(n))
+        v && [v.x, v.y, v.z].every((n) => number(n) && Math.abs(n) <= 1000)
             ? { x: v.x, y: v.y, z: v.z }
             : null;
     const cameraOffset = offset(view?.cameraOffset);
@@ -95,17 +148,23 @@ export function gameArrivalView(view: any): GameArrivalView | null {
     if (
         !cameraOffset ||
         !cameraTargetOffset ||
-        !Number.isFinite(view.avatarRotation) ||
-        !Number.isFinite(view.fov)
+        !number(view.avatarRotation) ||
+        Math.abs(view.avatarRotation) > 1e6 ||
+        !number(view.fov) ||
+        view.fov <= 5 ||
+        view.fov >= 150
     )
         return null;
     return {
         cameraOffset,
         cameraTargetOffset,
         avatarRotation: view.avatarRotation,
-        avatarHeight: Number.isFinite(view.avatarHeight)
-            ? view.avatarHeight
-            : 1.8,
+        avatarHeight:
+            number(view.avatarHeight) &&
+            view.avatarHeight >= 0.2 &&
+            view.avatarHeight <= 10
+                ? view.avatarHeight
+                : 1.8,
         fov: view.fov,
         cameraMode:
             view.cameraMode === "first-person"
@@ -147,7 +206,12 @@ export function gameTrip(
     if (!party) return null;
     const arrived = peers
         .slice(0, 7)
-        .map(({ id, name, pfp, vrm }) => ({ id, name, pfp, avatarUrl: vrm }))
+        .map(({ id, name, pfp, vrm }) => ({
+            id,
+            name: gameName(name) || "Player",
+            pfp,
+            avatarUrl: vrm,
+        }))
         .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     return { ...party, room, self, arrived, roster };
 }

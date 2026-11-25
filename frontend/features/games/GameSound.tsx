@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createGameAudioBridge, soundStore } from "./gameAudio";
 import { readGameMessage } from "./gameContract";
+import { gameChrome } from "./gameChrome";
 
 /**
  * Connects the game frame to the page's sound: the shared setting, the first
@@ -65,12 +66,12 @@ export function GameSoundButton({ onDone }: { onDone?: () => void }) {
             }}
             style={{
                 border: 0,
-                borderRadius: 999,
+                borderRadius: gameChrome.radius.pill,
                 padding: "8px 14px",
                 font: "inherit",
                 cursor: "pointer",
-                color: "#fff",
-                background: "rgba(255,255,255,0.12)",
+                color: gameChrome.color.ink,
+                background: gameChrome.color.control,
             }}
         >
             {muted ? "Sound off" : "Sound on"}

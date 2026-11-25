@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { RuntimeSession } from "../src/index.ts";
 import {
@@ -50,18 +49,6 @@ test("one prefix for every game; a game's old prefix is read only when asked", (
     assert.equal(gameMessageKind("oncyber:game:"), null);
     assert.equal(gameMessageKind("oncyber:check-report", "ace"), null);
     assert.equal(gameMessageKind({ type: "x" }), null);
-});
-
-test("the page's half states the same prefix and version", () => {
-    const page = readFileSync(
-        new URL(
-            "../../../frontend/features/games/gameContract.ts",
-            import.meta.url
-        ),
-        "utf8"
-    );
-    assert.ok(page.includes(`GAME_MESSAGE_PREFIX = "${GAME_MESSAGE_PREFIX}"`));
-    assert.ok(page.includes(`CONTRACT_VERSION = ${CONTRACT_VERSION};`));
 });
 
 test("arrival views are bounded copies; malformed ones read as null", () => {
@@ -290,13 +277,9 @@ function frame({ embedded = true } = {}) {
         );
     return { win, sent, deliver, kinds: () => sent.map((s) => s.message.type) };
 }
-const options = {
-    storageKeys: ["settings"],
-    storageNamespace: "test",
-    arrival: { walkable: true },
-};
+const options = { arrival: { walkable: true } };
 
-test("the page client greets with its declarations and reads identity, storage and enter", async () => {
+test("the page client greets with its declarations and reads identity and enter", async () => {
     const f = frame();
     const page = connectPage({ ...options, window: f.win });
     page.hello();
@@ -317,15 +300,12 @@ test("the page client greets with its declarations and reads identity, storage a
         name: " Ada ",
         pfp: "",
         avatarUrl: "/a.vrm",
-        storage: { settings: "{}", other: "x" },
     });
     assert.deepEqual(await again.identity(), {
         name: "Ada",
         pfp: "",
         avatarUrl: "/a.vrm",
     });
-    assert.equal(again.storage.get("settings"), "{}");
-    assert.equal(again.storage.get("other"), null);
     f.deliver({
         type: "oncyber:game:enter",
         arrival: { from: "lobby", view },
@@ -334,8 +314,8 @@ test("the page client greets with its declarations and reads identity, storage a
     const enter = await entering;
     assert.equal(enter.arrival.view.fov, 50);
     assert.equal(enter.trip.size, 3);
-    assert.equal(again.storage.set("settings", '{"a":1}'), true);
-    assert.equal(f.sent.at(-1).message.type, "oncyber:game:storage");
+    // Saved values are saved.ts: the client has no storage of its own.
+    assert.equal(again.storage, undefined);
     again.dispose();
 });
 
@@ -381,7 +361,7 @@ test("the room's self id and roster updates reach party listeners", () => {
     page.dispose();
 });
 
-test("standalone, the client answers with defaults and local storage", async () => {
+test("standalone, the client answers with defaults", async () => {
     const f = frame({ embedded: false });
     const page = connectPage({ ...options, window: f.win });
     page.hello();
@@ -393,6 +373,4 @@ test("standalone, the client answers with defaults and local storage", async () 
         trip: null,
     });
     assert.equal(page.revealed, true);
-    page.storage.set("settings", "1");
-    assert.equal(page.storage.get("settings"), "1");
 });

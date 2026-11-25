@@ -176,7 +176,7 @@ addEventListener("message", (event) => {
     if (host.receive(kind, data)) return;
     if (kind === "hello") {
         prefix = data.type.startsWith(CONTRACT) ? CONTRACT : LEGACY;
-        send({ type: game + ":identity", name: "Check", pfp: "", avatarUrl: "", storage: {} });
+        send({ type: game + ":identity", name: "Check", pfp: "", avatarUrl: "" });
         // A contract game waits for its visit: a direct one, alone.
         if (prefix === CONTRACT) send({ type: game + ":enter", arrival: { from: "direct", view: null }, trip: null });
     } else if (kind === "ready" && !keys.ready) {

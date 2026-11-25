@@ -146,7 +146,7 @@ addEventListener("message", (event) => {
     if (typeof type === "string" && type.includes(":")) (window.__game ||= {})[type.slice(type.lastIndexOf(":") + 1)] = { data: event.data, at: performance.now() };
     if (typeof type === "string" && type.endsWith(":hello")) {
         const prefix = type.slice(0, -"hello".length);
-        frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
+        frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "" }, "*");
     }
 ${resultsHarness}
 ${devicesHarness}

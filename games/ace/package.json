@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 14720",
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/games/build-record.mjs ace",
     "test": "node --experimental-strip-types --test test/*.test.js"
   },
   "dependencies": {

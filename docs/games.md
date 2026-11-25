@@ -6,8 +6,16 @@ gives them a small lifecycle, a page bridge for identity, rooms and saved
 data, and a browser check that must pass before a release is published. It
 ships no engine. Why: [plans/agent-built-worlds.md](plans/agent-built-worlds.md).
 
-Games are hidden at launch: `/games/<id>` answers only in development or
-where `GAMES_PREVIEW=1` is set.
+Games are hidden at launch. Nothing of a game answers outside development
+unless `GAMES_PREVIEW=1` is set: not its page (`/games/<id>`), not the files
+of its build (`/games/<id>/...`, `check.json` and `release.json` included,
+stopped in `frontend/middleware.ts`), not its hosted releases
+(`/api/games/releases/`), its saved data, its results or publishing. One
+function decides for all of them: `gamesPreviewEnabled` in
+`frontend/features/games/gamesPreview.ts`. The variable is the server's, so
+in a browser only the development server reads as on: a preview deployment
+serves a game to someone who has its address, and the lobby lists games on
+the development server alone.
 
 ## Where things are
 
@@ -27,6 +35,8 @@ where `GAMES_PREVIEW=1` is set.
 | `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
 | `docs/games/listing.md`           | What a game's listing must contain, and what the lobby shows from it.               |
 | `scripts/games/releases/`         | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
+| `games/runtime/messages.json`     | Every message kind, who sends it, and the file on each side that handles it.        |
+| `games/<id>/build.json`           | What the committed build was made from (`scripts/games/build-record.mjs`).          |
 
 ## The lifecycle
 
@@ -68,14 +78,16 @@ binds no key the page reserves. The rule and its check:
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `oncyber:game:<kind>`
 for every game; a build from before the contract says `<id>:<kind>` and is
-still answered in that form ([games/contract.md](games/contract.md)):
+still answered in that form ([games/contract.md](games/contract.md)). The
+table is the outline; the one full list, with who sends each kind and the
+file on each side that handles it, is `games/runtime/messages.json`, and
+both sides' tests hold the code to it:
 
 | From        | Kind                       | Meaning                                                                                                                                                                                                   |
 | ----------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | game        | `hello`                    | Repeat until `identity` arrives.                                                                                                                                                                          |
-| page        | `identity`                 | `{ name, pfp, avatarUrl, storage }`: public fields and the game's saved values.                                                                                                                           |
+| page        | `identity`                 | `{ name, pfp, avatarUrl }`: public fields only; the name is cut to 24 characters.                                                                                                                         |
 | game        | `ready` / `error` / `exit` | First frame drawn / failed to load / back to the lobby.                                                                                                                                                   |
-| game        | `storage`                  | `{ key, value }`: save one value (`save` or `settings`, strings up to 256 KiB).                                                                                                                           |
 | game        | `pose`                     | The player's pose for the shared room.                                                                                                                                                                    |
 | page        | `peers`                    | Everyone else in the room, ten times a second.                                                                                                                                                            |
 | page / game | `self`, `net`              | With `relay`: the room id, and game packets to and from the room.                                                                                                                                         |
@@ -109,9 +121,10 @@ sound through the SDK's output; never keep a private mute. See
 
 Saved data has its own messages (`saved`, `saved-result`) and rule:
 declare every key in `game.json`; saved values are plain JSON with a
-version. See [games/saved-data.md](games/saved-data.md). The fixed
-`storage` keys above remain for games that have not moved yet; Ace and
-Garden have.
+version. See [games/saved-data.md](games/saved-data.md). The page's older
+string storage (a `storage` message and values in `identity`) went with
+contract 3; what a visitor saved through it still reads as a key's first
+value.
 
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
@@ -230,14 +243,18 @@ still greets with `garden:hello`; it keeps working and the check warns.
 
 Read [games/good-game.md](games/good-game.md) first: the rules a game is
 held to, the brief to fill in before building, and the definition of done.
-`pnpm games:new <id>` does steps 1 to 3 below, adds the brief, a bot stub
-and a scenario stub, and declares the game's saved keys to the page;
+`pnpm games:new <id>` does steps 1 to 3 below from Lantern Tag
+(`games/lantern-tag`, the small worked example of the current contract and
+the same starter `oncyber new` uses), adds the brief, a bot stub and a
+scenario stub, and declares the game's saved keys to the page;
 `pnpm games:score` reports which checks each game passes.
 
-1. Copy `games/garden` as a template, or start a Vite project in
+1. Copy `games/lantern-tag` as a template, or start a Vite project in
    `games/<id>/` that builds into `frontend/public/games/<id>/` and aliases
-   `@oncyber/game-runtime` to `games/runtime/src` (see the garden's
-   `vite.config.js`).
+   `@oncyber/game-runtime` to `games/runtime/src` (see Lantern Tag's
+   `vite.config.js`). Its `npm run build` must end by writing the build's
+   record, as every game's does (`scripts/games/build-record.mjs`). Do not
+   start from Bloom Garden: it predates the contract.
 2. Write `game.json` (`format`, `arrival`, `party`, `devices`, `avatars`,
    `saved`, `runtime.capabilities`, `assets`, `input`, and `credits`: no
    file ships without a declared source and licence, see
@@ -339,7 +356,17 @@ Every shipped file must also be credited under an allowed licence
 ([games/credits.md](games/credits.md)).
 
 A release is the set of files whose hashes make up its `release` id. Commit
-`frontend/public/games/<id>` to ship it.
+`frontend/public/games/<id>` to ship it, with `games/<id>/build.json`.
+
+A committed build can fall behind what it was built from: the runtime
+changes, the build does not, and the site serves the old one. Every build
+therefore ends by writing `games/<id>/build.json`: the hash of each file it
+was made from (the game's folder, `games/runtime/src` and each kit the game
+names) and of each file it wrote. `pnpm games:test` fails when an input
+changed since, or when the committed files are not that build
+(`scripts/games/test/builds.test.mjs`); CI runs it on every pull request.
+The fix is always `pnpm games:publish <id>` again. `node
+scripts/games/build-record.mjs --check` says the same thing on its own.
 
 Publishing also stores the release outside the repository. The page keeps
 loading the committed build until a person points the game at a stored
@@ -377,7 +404,16 @@ Still owed:
 -   **Bloom Garden** still speaks `garden:<kind>` (it should move to
     `connectPage()` and read the visit from `enter()`), has no matched
     departure, does not claim the phone, and draws its avatars, arrival
-    pose and menus with its own code instead of the kits.
+    pose and menus with its own code instead of the kits. It is the one
+    build the page still answers in the old form; nothing new starts from
+    it (`pnpm games:new` copies Lantern Tag).
+-   **The page's own interface** (the bar of controls, chat, credits, the
+    results card, the gates) takes its colours, fonts and durations from
+    the design tokens through `features/games/gameChrome.ts`, but is still
+    written as inline styles: no hover or focus states, the chat field
+    removes its outline, and its buttons are not the shared `ActionButton`
+    or the lobby's `experienceControl`. Moving it onto those is a redesign,
+    not a rename. `/dev/games` still writes its own colours.
 -   **Ace** shows the draw for doubles and tournaments; playing them
     through is not built.
 -   The process stage's bot plays alone. A bot for a match between two

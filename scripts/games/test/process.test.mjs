@@ -13,6 +13,7 @@ import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { inAppPage, sameText, SOURCE, TARGET } from "../docs-sync.mjs";
+import { contractFindings } from "../contract-check.mjs";
 import { createGame } from "../new.mjs";
 import {
     CHECKS,
@@ -108,7 +109,7 @@ test("the template brief fails until it is filled in", async () => {
 
 function fakeRepo() {
     const root = mkdtempSync(join(tmpdir(), "oncyber-new-"));
-    cpSync(join(repo, "games/garden"), join(root, "games/garden"), {
+    cpSync(join(repo, "games/lantern-tag"), join(root, "games/lantern-tag"), {
         recursive: true,
         filter: (path) => !/node_modules|\.check/.test(path),
     });
@@ -142,26 +143,49 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
         "bot.json",
         "scenario.json",
         "README.md",
-        "src/game/game.js",
+        "src/game.js",
+        "src/host.js",
         "vite.config.js",
     ])
         assert.ok(existsSync(at(file)), file);
     assert.match(readFileSync(at("BRIEF.md"), "utf8"), /^# Brief: Sumo Ring/);
-    assert.match(
-        readFileSync(at("src/host/host.js"), "utf8"),
-        /const PREFIX = "brief-sumo:"/
+    // The copy speaks the current contract: the runtime's page client and
+    // the one prefix, never a prefix of its own (docs/games/contract.md).
+    const host = readFileSync(at("src/host.js"), "utf8");
+    assert.match(host, /connectPage\(/);
+    assert.doesNotMatch(host, /brief-sumo:|PREFIX = "/);
+    assert.deepEqual(
+        contractFindings({
+            root,
+            id: "brief-sumo",
+            manifest: JSON.parse(readFileSync(at("game.json"), "utf8")),
+            source: join(root, "games/brief-sumo"),
+            listed: true,
+        }).warnings.map((warning) => warning.code),
+        []
     );
-    // Nothing in the copy's host still speaks as the garden.
-    for (const file of ["src/host/host.js", "src/host/browser.js"])
-        assert.doesNotMatch(readFileSync(at(file), "utf8"), /"garden:?"/, file);
+    // Nothing in the copy still names the template, and what was built or
+    // checked for the template did not come along.
+    for (const file of [
+        "src/host.js",
+        "src/game.js",
+        "index.html",
+        "package.json",
+        "package-lock.json",
+        "vite.config.js",
+        "game.json",
+    ])
+        assert.doesNotMatch(
+            readFileSync(at(file), "utf8"),
+            /lantern-tag|Lantern Tag/,
+            file
+        );
+    assert.ok(!existsSync(at("build.json")));
     assert.match(
         readFileSync(at("vite.config.js"), "utf8"),
         /frontend\/public\/games\/brief-sumo"/
     );
-    assert.match(
-        readFileSync(at("scripts/build-ui.mjs"), "utf8"),
-        /games\/brief-sumo\/ui\.html/
-    );
+    assert.match(readFileSync(at("index.html"), "utf8"), /Sumo Ring/);
     assert.equal(
         JSON.parse(readFileSync(at("package.json"), "utf8")).name,
         "@oncyber-games/brief-sumo"
@@ -169,36 +193,24 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
     const manifest = JSON.parse(readFileSync(at("game.json"), "utf8"));
     assert.equal(manifest.name, "Sumo Ring");
     assert.equal(manifest.format, "match");
-    assert.ok(manifest.runtime.input.forward);
-    // What every later area added to a manifest came with the copy, and
-    // the page knows the copy's saved keys.
-    for (const field of [
-        "avatars",
-        "arrival",
-        "party",
-        "devices",
-        "saved",
-        "results",
-    ])
+    assert.ok(manifest.runtime.input.up);
+    assert.deepEqual(manifest.page, {
+        socialRoom: "oncyber-brief-sumo-social-v1",
+    });
+    // What every later area added to a manifest came with the copy.
+    for (const field of ["avatars", "arrival", "party", "devices", "results"])
         assert.ok(manifest[field], field);
     assert.ok(manifest.runtime.entries.scenario);
-    assert.deepEqual(
+    // The page knows a game's saved keys through one file: the copy
+    // declares what the template does, which today is nothing.
+    assert.equal(
         JSON.parse(
             readFileSync(
                 join(root, "frontend/features/games/savedData.declared.json"),
                 "utf8"
             )
         )["brief-sumo"],
-        Object.fromEntries(
-            Object.entries(manifest.saved).map(([key, d]) => [
-                key,
-                {
-                    scope: d.scope,
-                    stateVersion: d.stateVersion,
-                    maxBytes: d.maxBytes,
-                },
-            ])
-        )
+        manifest.saved
     );
     assert.match(
         readFileSync(
@@ -208,7 +220,7 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
         /"brief-sumo": \{\n        "id": "brief-sumo",\n        "title": "Sumo Ring",\n        "tagline": "a new game",/
     );
     // Not done until the agent does the work: the brief, the bot and what
-    // the party statement says. (The copy keeps the garden's formats, so
+    // the party statement says. (The copy keeps the template's formats, so
     // it is valid under the contract and has a solo path from the start.)
     assert.deepEqual(
         codes(

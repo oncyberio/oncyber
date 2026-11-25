@@ -1,0 +1,548 @@
+{
+    "about": "Cases both halves of the game contract must answer the same way: games/runtime/src/contract.ts (the game's side) and frontend/features/games/gameContract.ts (the page's). Read by games/runtime/test/parity.test.mjs and frontend/features/games/gameContract.test.ts.",
+    "arrivalViews": [
+        {
+            "name": "the framing only: extra fields are dropped",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarLift": 0,
+                "peers": [
+                    {
+                        "id": "a"
+                    }
+                ]
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "first person is kept",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "cameraMode": "first-person"
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "first-person"
+            }
+        },
+        {
+            "name": "any other camera mode is third person",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "cameraMode": "orbit"
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "an avatar height inside the bounds is kept",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.2
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.2,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "an avatar height below the bounds is 1.8",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 0.1
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "an avatar height above the bounds is 1.8",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 11
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "an avatar height that is not a number is 1.8",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": "tall"
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "a field of view at the lower bound is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 5
+            },
+            "expect": null
+        },
+        {
+            "name": "a field of view at the upper bound is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 150
+            },
+            "expect": null
+        },
+        {
+            "name": "a field of view just inside the bounds is kept",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 149.5
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 149.5,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "a field of view that is text is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": "50"
+            },
+            "expect": null
+        },
+        {
+            "name": "an offset beyond a kilometre is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 1001,
+                    "y": 0,
+                    "z": 0
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50
+            },
+            "expect": null
+        },
+        {
+            "name": "an offset at a kilometre is kept",
+            "view": {
+                "cameraOffset": {
+                    "x": -1000,
+                    "y": 0,
+                    "z": 0
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50
+            },
+            "expect": {
+                "cameraOffset": {
+                    "x": -1000,
+                    "y": 0,
+                    "z": 0
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50,
+                "avatarHeight": 1.8,
+                "cameraMode": "third-person"
+            }
+        },
+        {
+            "name": "an offset with text in it is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": "0",
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50
+            },
+            "expect": null
+        },
+        {
+            "name": "a missing offset is refused",
+            "view": {
+                "cameraOffset": null,
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 0.5,
+                "fov": 50
+            },
+            "expect": null
+        },
+        {
+            "name": "a rotation that is text is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": "0.5",
+                "fov": 50
+            },
+            "expect": null
+        },
+        {
+            "name": "a rotation beyond the bound is refused",
+            "view": {
+                "cameraOffset": {
+                    "x": 0,
+                    "y": 2,
+                    "z": 5
+                },
+                "cameraTargetOffset": {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                },
+                "avatarRotation": 2000000,
+                "fov": 50
+            },
+            "expect": null
+        },
+        {
+            "name": "nothing at all is refused",
+            "view": null,
+            "expect": null
+        }
+    ],
+    "messageTypes": [
+        {
+            "type": "oncyber:game:hello",
+            "game": "ace",
+            "kind": "hello",
+            "legacy": false
+        },
+        {
+            "type": "oncyber:game:arrival-ready",
+            "game": "ace",
+            "kind": "arrival-ready",
+            "legacy": false
+        },
+        {
+            "type": "ace:hello",
+            "game": "ace",
+            "kind": "hello",
+            "legacy": true
+        },
+        {
+            "type": "garden:hello",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:game:",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:game:Hello",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:game:has space",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:game:-leading",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:game:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "game": "ace",
+            "kind": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "legacy": false
+        },
+        {
+            "type": "oncyber:game:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "oncyber:check-report",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": "ace:Hello World",
+            "game": "ace",
+            "kind": null
+        },
+        {
+            "type": 42,
+            "game": "ace",
+            "kind": null
+        }
+    ],
+    "names": [
+        {
+            "name": " Ada ",
+            "expect": "Ada"
+        },
+        {
+            "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            "expect": "xxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+            "name": "",
+            "expect": ""
+        },
+        {
+            "name": 7,
+            "expect": ""
+        }
+    ]
+}

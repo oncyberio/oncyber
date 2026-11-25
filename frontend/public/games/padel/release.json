@@ -2,11 +2,11 @@
   "version": 1,
   "game": "padel",
   "name": "Glasshouse · Padel",
-  "release": "60abae41a504e58e",
-  "publishedAt": "2026-11-15T20:52:55.096Z",
+  "release": "8bca63b0560d9e39",
+  "publishedAt": "2026-11-25T23:27:53.423Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T20:52:10.208Z",
+    "checkedAt": "2026-11-25T23:26:44.354Z",
     "backend": "webgl2",
     "frames": {
       "count": 180,
@@ -52,14 +52,14 @@
       "sha256": "b60a863f42b40c729d417ae0a7d4e97f713c701f8adec55b22951eb7af6fb989"
     },
     {
-      "path": "assets/index-BS_rq12l.js",
-      "bytes": 1141676,
-      "sha256": "3bce5611e311aecd7861cd168196d5789fd95e8cce0219bc746527839e6eb7d8"
+      "path": "assets/index-Bbw_GWWw.js",
+      "bytes": 1141710,
+      "sha256": "91c65975c7a391d513fea15b883c5fde88beee08dec34517a0a80aeb46be7e4c"
     },
     {
-      "path": "assets/index-DDVEhsFk.css",
+      "path": "assets/index-Gd_jUF3t.css",
       "bytes": 21193,
-      "sha256": "fc3eaa30f769e7eab9bfaefe6241643866e871a9efdf9de95432a7e50de55125"
+      "sha256": "222a3e43cda53e9dc058f9af989999e3e1348ac66e2284f7f96f20f95a51d9de"
     },
     {
       "path": "assets/locomotion-DBQJaU7P.json",
@@ -78,8 +78,8 @@
     },
     {
       "path": "credits.json",
-      "bytes": 5448,
-      "sha256": "1b2b27f416fec7ffa5904b7ac224524606d2102dd5c5f887c2dd37b87444d8ae"
+      "bytes": 5453,
+      "sha256": "e121b7d8a67977ad4c3a16e84592bd056141ad09cbb7009c382eabf58c6e6f7d"
     },
     {
       "path": "fonts/Anton-OFL.txt",
@@ -94,7 +94,7 @@
     {
       "path": "index.html",
       "bytes": 10564,
-      "sha256": "ecd216208eb7f6aeac5012273dc842f1fce82c407fca3bb69122903cf042329d"
+      "sha256": "f6bd4d8cb93c7f996e0713045520487a237eadfc2e276b557d5ccd0de294781a"
     },
     {
       "path": "licenses/SpaceGrotesk-OFL-1.1.txt",

@@ -3,13 +3,15 @@
  * (`oncyber:game:`), one handshake, and the page's facts about the visit
  * shaped for the lifecycle's `enter()`. Embedded, the game runs in an
  * opaque-origin sandbox with no storage of its own: the page keeps identity,
- * the room, the party and saved values. Standalone (a dev server), the same
- * calls answer with defaults. See docs/games/contract.md.
+ * the room and the party. Standalone (a dev server), the same calls answer
+ * with defaults. Saved values are saved.ts. See docs/games/contract.md; every
+ * kind this file sends and hears is listed in games/runtime/messages.json.
  */
 import {
     CONTRACT_VERSION,
     DIRECT_ENTER,
     GAME_MESSAGE_PREFIX,
+    NAME_MAX,
     gameMessageKind,
     readEnterData,
     readTrip,
@@ -32,11 +34,6 @@ export interface PageOptions {
     /** From game.json, so the page knows how to reveal this game. */
     arrival?: ArrivalDeclaration;
     party?: PartyDeclaration;
-    /** Saved values this game keeps, by key (strings up to `storageMax`). */
-    storageKeys: string[];
-    storageMax?: number;
-    /** Standalone only: the localStorage namespace. */
-    storageNamespace: string;
     /** How long to wait for the page before playing with defaults. */
     identityTimeoutMs?: number;
     /** For tests: the window to talk through. */
@@ -56,12 +53,9 @@ type Events = {
 const text = (value: unknown, max: number) =>
     typeof value === "string" ? value.trim().slice(0, max) : "";
 
-export function connectPage(options: PageOptions) {
+export function connectPage(options: PageOptions = {}) {
     const win = options.window ?? window;
     const embedded = win.parent !== win;
-    const keys = new Set(options.storageKeys);
-    const max = options.storageMax ?? 256 * 1024;
-    const stored = new Map<string, string>();
     const listeners: {
         [K in keyof Events]?: Array<(value: Events[K]) => void>;
     } = {};
@@ -99,17 +93,10 @@ export function connectPage(options: PageOptions) {
         const data = event.data;
         if (kind === "identity") {
             identity = {
-                name: text(data.name, 24) || "You",
+                name: text(data.name, NAME_MAX) || "You",
                 pfp: text(data.pfp, 2048),
                 avatarUrl: text(data.avatarUrl, 2048),
             };
-            if (data.storage && typeof data.storage === "object")
-                for (const key of keys)
-                    if (
-                        typeof data.storage[key] === "string" &&
-                        data.storage[key].length <= max
-                    )
-                        stored.set(key, data.storage[key]);
             clearInterval(helloTimer);
             waiting.identity.splice(0).forEach((resolve) => resolve(identity!));
             // The page only accepts readiness after it has sent the identity.
@@ -135,7 +122,7 @@ export function connectPage(options: PageOptions) {
                     .map((p: any) => ({
                         ...p,
                         id: p.id.slice(0, 64),
-                        name: text(p.name, 24) || "Player",
+                        name: text(p.name, NAME_MAX) || "Player",
                     }))
             );
         } else if (kind === "net") {
@@ -158,7 +145,6 @@ export function connectPage(options: PageOptions) {
             arrival: options.arrival ?? null,
             party: options.party ?? null,
         });
-    const local = (key: string) => `${options.storageNamespace}:${key}`;
     return {
         embedded,
         get selfId() {
@@ -241,36 +227,6 @@ export function connectPage(options: PageOptions) {
         },
         net(data: unknown) {
             post("net", { data });
-        },
-        storage: {
-            get(key: string): string | null {
-                if (!keys.has(key)) return null;
-                if (embedded) return stored.get(key) ?? null;
-                try {
-                    return win.localStorage.getItem(local(key));
-                } catch {
-                    return null;
-                }
-            },
-            set(key: string, value: string): boolean {
-                if (
-                    !keys.has(key) ||
-                    typeof value !== "string" ||
-                    value.length > max
-                )
-                    return false;
-                if (embedded) {
-                    stored.set(key, value);
-                    post("storage", { key, value });
-                    return true;
-                }
-                try {
-                    win.localStorage.setItem(local(key), value);
-                    return true;
-                } catch {
-                    return false;
-                }
-            },
         },
         dispose() {
             clearInterval(helloTimer);

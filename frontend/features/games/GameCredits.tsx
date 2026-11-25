@@ -5,9 +5,10 @@ import {
     type GameCredits as Credits,
 } from "./gameCredits";
 import { holdGamePause } from "./gamePause";
+import { gameChrome } from "./gameChrome";
 
-const FONT = "Inter, system-ui, sans-serif";
-const linkStyle = { color: "#fff", textUnderlineOffset: 3 };
+const FONT = gameChrome.family;
+const linkStyle = { color: gameChrome.color.ink, textUnderlineOffset: 3 };
 
 /**
  * A small "Credits" button over a game and the panel it opens: every
@@ -92,11 +93,11 @@ export default function GameCredits({
                     right: 12,
                     bottom: 10,
                     border: 0,
-                    borderRadius: 999,
+                    borderRadius: gameChrome.radius.pill,
                     padding: "6px 10px",
                     font: `500 11px/1 ${FONT}`,
-                    color: "rgba(255,255,255,0.7)",
-                    background: "rgba(10, 12, 18, 0.45)",
+                    color: gameChrome.color.secondary,
+                    background: gameChrome.color.chip,
                     cursor: "pointer",
                 }}
             >
@@ -113,7 +114,7 @@ export default function GameCredits({
                         display: "grid",
                         placeItems: "center",
                         padding: 16,
-                        background: "rgba(5, 6, 10, 0.6)",
+                        background: gameChrome.color.scrim,
                     }}
                 >
                     <section
@@ -128,9 +129,9 @@ export default function GameCredits({
                             boxSizing: "border-box",
                             padding: 24,
                             borderRadius: 18,
-                            color: "#fff",
-                            background: "#15181f",
-                            border: "1px solid rgba(255,255,255,0.1)",
+                            color: gameChrome.color.ink,
+                            background: gameChrome.color.dialog,
+                            border: `1px solid ${gameChrome.color.line}`,
                             font: `400 13px/1.5 ${FONT}`,
                         }}
                     >
@@ -156,11 +157,11 @@ export default function GameCredits({
                                 onClick={close}
                                 style={{
                                     border: 0,
-                                    borderRadius: 999,
+                                    borderRadius: gameChrome.radius.pill,
                                     padding: "8px 14px",
                                     font: `600 13px/1 ${FONT}`,
-                                    color: "#fff",
-                                    background: "rgba(255,255,255,0.12)",
+                                    color: gameChrome.color.ink,
+                                    background: gameChrome.color.control,
                                     cursor: "pointer",
                                 }}
                             >

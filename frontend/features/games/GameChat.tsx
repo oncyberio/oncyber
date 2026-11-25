@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { GAME_CHAT_ATTRIBUTE } from "./gameInput";
 import type { GameSocialView } from "./useGameSocial";
+import { gameChrome } from "./gameChrome";
 
 const pill = {
     border: 0,
-    borderRadius: 999,
+    borderRadius: gameChrome.radius.pill,
     padding: "8px 14px",
     font: "inherit",
     cursor: "pointer",
-    color: "#fff",
-    background: "rgba(255,255,255,0.12)",
+    color: gameChrome.color.ink,
+    background: gameChrome.color.control,
 } as const;
 
 /**
@@ -67,8 +68,8 @@ export default function GameChat({
                 width: "min(340px, calc(100vw - 40px))",
                 display: "grid",
                 gap: 8,
-                font: "500 13px/1.35 Inter, system-ui, sans-serif",
-                color: "#fff",
+                font: gameChrome.font.text,
+                color: gameChrome.color.ink,
             }}
         >
             <style>{`html[data-party-chat-open] .game-chat { display: none; }`}</style>
@@ -76,7 +77,7 @@ export default function GameChat({
                 <div
                     style={{
                         borderRadius: 14,
-                        background: "rgba(10, 12, 18, 0.78)",
+                        background: gameChrome.color.panel,
                         backdropFilter: "blur(10px)",
                         overflow: "hidden",
                     }}
@@ -110,8 +111,7 @@ export default function GameChat({
                                     overflowWrap: "anywhere",
                                     ...(index === firstLive && index > 0
                                         ? {
-                                              borderTop:
-                                                  "1px solid rgba(255,255,255,0.16)",
+                                              borderTop: `1px solid ${gameChrome.color.lineStrong}`,
                                               paddingTop: 6,
                                           }
                                         : {}),
@@ -133,7 +133,7 @@ export default function GameChat({
                             display: "flex",
                             gap: 6,
                             padding: 8,
-                            borderTop: "1px solid rgba(255,255,255,0.1)",
+                            borderTop: `1px solid ${gameChrome.color.line}`,
                         }}
                     >
                         <input
@@ -154,11 +154,11 @@ export default function GameChat({
                                 flex: 1,
                                 minWidth: 0,
                                 border: 0,
-                                borderRadius: 999,
+                                borderRadius: gameChrome.radius.pill,
                                 padding: "8px 12px",
                                 font: "inherit",
-                                color: "#fff",
-                                background: "rgba(255,255,255,0.12)",
+                                color: gameChrome.color.ink,
+                                background: gameChrome.color.control,
                                 outline: "none",
                             }}
                         />
@@ -180,7 +180,7 @@ export default function GameChat({
                     style={{
                         ...pill,
                         fontWeight: 600,
-                        background: "rgba(10, 12, 18, 0.72)",
+                        background: gameChrome.color.bar,
                         backdropFilter: "blur(10px)",
                     }}
                 >

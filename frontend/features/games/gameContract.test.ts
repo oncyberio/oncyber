@@ -1,7 +1,16 @@
+import fixtures from "../../../games/runtime/test/contract.fixtures.json";
+import messages from "../../../games/runtime/messages.json";
 import {
+    CONTRACT_OLDEST,
+    CONTRACT_VERSION,
+    GAME_MESSAGE_PREFIX,
+    GAME_NAME_MAX,
+    contractNotice,
+    contractSupport,
     enterMessage,
     gameArrivalView,
     gameMessageTypes,
+    gameName,
     gameTrip,
     readGameDeclaration,
     readGameMessage,
@@ -55,8 +64,8 @@ test("the page answers in the game's form, and in both before it knows", () => {
 
 test("hello carries what the game declared about arriving", () => {
     expect(
-        readGameDeclaration({ contract: 2, arrival: { walkable: false } })
-    ).toEqual({ contract: 2, walkable: false });
+        readGameDeclaration({ contract: 3, arrival: { walkable: false } })
+    ).toEqual({ contract: 3, walkable: false });
     expect(readGameDeclaration({})).toEqual({ contract: 1, walkable: null });
 });
 
@@ -155,4 +164,48 @@ test("enter says how the visitor arrived", () => {
         from: "lobby",
         view: null,
     });
+});
+
+// The same cases the runtime answers in games/runtime/test/parity.test.mjs:
+// both halves of the contract must agree on each.
+describe("the cases both halves of the contract share", () => {
+    test.each(fixtures.arrivalViews)("arrival view: $name", (fixture) => {
+        expect(gameArrivalView(fixture.view)).toEqual(fixture.expect);
+    });
+    test.each(fixtures.messageTypes)("message type $type", (fixture) => {
+        const read = readGameMessage(fixture.type, fixture.game);
+        expect(read?.kind ?? null).toBe(fixture.kind);
+        if (read) expect(read.dialect === "legacy").toBe(fixture.legacy);
+    });
+    test.each(fixtures.names)("name $name", (fixture) => {
+        expect(gameName(fixture.name)).toBe(fixture.expect);
+    });
+    test("the list of kinds is for this contract", () => {
+        expect(messages.contract).toBe(CONTRACT_VERSION);
+        expect(messages.prefix).toBe(GAME_MESSAGE_PREFIX);
+    });
+});
+
+test("a build's contract decides whether the page runs it", () => {
+    expect(contractSupport(CONTRACT_VERSION)).toBe("current");
+    expect(contractSupport(CONTRACT_OLDEST)).toBe("older");
+    expect(contractSupport(CONTRACT_OLDEST - 1)).toBe("too-old");
+    expect(contractSupport(CONTRACT_VERSION + 1)).toBe("too-new");
+    expect(contractNotice("ace", CONTRACT_VERSION)).toBeNull();
+    expect(contractNotice("ace", CONTRACT_OLDEST)).toMatch(
+        /still loads\. Rebuild it/
+    );
+    expect(contractNotice("ace", 1)).toMatch(/was not loaded/);
+    expect(contractNotice("ace", 99)).toMatch(/newer site/);
+});
+
+test("a name reaches a game cut to the length the runtime keeps", () => {
+    const live = gameTrip(party, "r", "s1", [
+        { id: "s2", name: "x".repeat(GAME_NAME_MAX + 5), pfp: "", vrm: "" },
+        { id: "s3", name: "  ", pfp: "", vrm: "" },
+    ]);
+    expect(live.arrived.map((member) => member.name)).toEqual([
+        "x".repeat(GAME_NAME_MAX),
+        "Player",
+    ]);
 });

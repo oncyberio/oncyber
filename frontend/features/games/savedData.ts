@@ -304,7 +304,11 @@ function readEntry(text: string | null | undefined): SavedEntry | null {
     return null;
 }
 
-/** The three keys games had before declarations; see gameStorage.ts. */
+/**
+ * The three keys games had before declarations, when the page kept a few
+ * strings per game under `oncyber:game:<game>:<key>` (contract 2 and
+ * before). That path is gone; what a visitor saved through it still reads.
+ */
 const LEGACY_KEYS = ["save", "settings", "muted"];
 
 /**

@@ -2,17 +2,17 @@
   "version": 1,
   "game": "lantern-tag",
   "name": "Lantern Tag",
-  "release": "84f31a1d5b5e6f18",
-  "publishedAt": "2026-11-15T21:25:29.318Z",
+  "release": "c194750996061efd",
+  "publishedAt": "2026-11-25T22:45:23.448Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-15T21:24:57.798Z",
+    "checkedAt": "2026-11-25T22:44:51.890Z",
     "backend": "webgl2",
     "frames": {
       "count": 180,
       "medianMs": 50,
       "p95Ms": 66.7,
-      "worstMs": 66.8
+      "worstMs": 66.7
     }
   },
   "files": [
@@ -42,14 +42,14 @@
       "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
     },
     {
-      "path": "assets/index-DNCx_Nvp.js",
-      "bytes": 940507,
-      "sha256": "ca272ea7420b50466feb11a2272344c4d1bbd4633e28a47094fe2f6e19d73586"
+      "path": "assets/index-BFgPY9PX.css",
+      "bytes": 16691,
+      "sha256": "0d2929d67689184db533a8fdc1849c03fb10912ba93aee7315e9301bfecb8a6e"
     },
     {
-      "path": "assets/index-IVQo53_p.css",
-      "bytes": 16691,
-      "sha256": "7ba13423c68fb643f13c957cdd56c8f95a4b51e4bb5e825ff7112e516ebc01a4"
+      "path": "assets/index-By93zKCV.js",
+      "bytes": 940321,
+      "sha256": "5fec218a5cad37e7a0ee729e75c24e489fd40a1c34b222dd9847b41ab499abe1"
     },
     {
       "path": "credits.json",
@@ -59,7 +59,7 @@
     {
       "path": "index.html",
       "bytes": 4419,
-      "sha256": "492d5769a9587f5859e00a37d172b76000cbaefd5360b163af6e1fd3ac3ea14c"
+      "sha256": "41810b4057bca60cb7f90f6cf9feeb80feb213066ecf112b5040ee97db8233c0"
     },
     {
       "path": "licenses/SpaceGrotesk-OFL-1.1.txt",

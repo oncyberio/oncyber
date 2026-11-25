@@ -22,6 +22,7 @@ import {
     type PartyVerdict,
     type ResultReport,
 } from "./resultTrust";
+import { gameChrome } from "./gameChrome";
 
 const CARD_MS = 9000;
 /** How long a match between members waits for the others' reports. */
@@ -280,11 +281,11 @@ export function useGameResults(options: {
                 maxWidth: "min(92vw, 420px)",
                 padding: "14px 18px",
                 borderRadius: 18,
-                background: "rgba(10, 12, 18, 0.86)",
+                background: gameChrome.color.card,
                 backdropFilter: "blur(10px)",
-                color: "#fff",
-                font: "500 13px/1.4 Inter, system-ui, sans-serif",
-                boxShadow: "0 12px 40px rgba(0, 0, 0, 0.35)",
+                color: gameChrome.color.ink,
+                font: gameChrome.font.text,
+                boxShadow: gameChrome.shadow,
             }}
         >
             <div
@@ -310,7 +311,7 @@ export function useGameResults(options: {
                         listStyle: "none",
                         margin: "10px 0 0",
                         padding: "8px 0 0",
-                        borderTop: "1px solid rgba(255, 255, 255, 0.14)",
+                        borderTop: `1px solid ${gameChrome.color.line}`,
                     }}
                 >
                     {card.board.map((entry, index) => (
@@ -344,10 +345,10 @@ export function useGameResults(options: {
                     width: 24,
                     height: 24,
                     border: 0,
-                    borderRadius: 999,
+                    borderRadius: gameChrome.radius.pill,
                     cursor: "pointer",
-                    color: "#fff",
-                    background: "rgba(40, 44, 54, 0.95)",
+                    color: gameChrome.color.ink,
+                    background: gameChrome.color.controlRaised,
                     font: "inherit",
                     lineHeight: 1,
                 }}

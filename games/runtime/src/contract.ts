@@ -9,8 +9,20 @@
  */
 import { readRoster, type Roster } from "./roster.ts";
 
-/** Raised when the messages or the enter data change shape. */
-export const CONTRACT_VERSION = 2;
+/**
+ * Raised when the messages or the enter data change shape or meaning. The
+ * page reads it from `hello` and says so when a build is older than it
+ * speaks (frontend/features/games/gameContract.ts, `contractSupport`).
+ *
+ * 2  `oncyber:game:<kind>` for every game; `enter` carries the visit.
+ * 3  Keys: M on its own is the game's; the page's chords arrive as
+ *    `key` with `mod: true` (keys.ts). The `storage` message and the
+ *    values in `identity` are gone: saved data is saved.ts.
+ *
+ * Every kind, who sends it and where each side handles it:
+ * games/runtime/messages.json.
+ */
+export const CONTRACT_VERSION = 3;
 
 /** Every game message is `oncyber:game:<kind>`, whatever the game's id. */
 export const GAME_MESSAGE_PREFIX = "oncyber:game:";
@@ -104,13 +116,28 @@ export const DIRECT_ENTER: EnterData = Object.freeze({
 });
 
 const MAX_OTHERS = 7;
+/** Characters of a name a game is given: the visitor's and each member's. */
+export const NAME_MAX = 24;
+/** The bounds of an arrival view; the page sends nothing outside them. */
+export const ARRIVAL_VIEW_LIMITS = Object.freeze({
+    /** Metres, each axis of an offset. */
+    offset: 1000,
+    /** Radians. */
+    rotation: 1e6,
+    /** Degrees, exclusive. */
+    fov: Object.freeze([5, 150] as const),
+    /** Metres, inclusive; 1.8 outside them. */
+    avatarHeight: Object.freeze([0.2, 10] as const),
+});
 const text = (value: unknown, max: number) =>
     typeof value === "string" ? value.trim().slice(0, max) : "";
 const offset = (v: any): Offset | null =>
     v &&
     [v.x, v.y, v.z].every(
         (n: unknown) =>
-            typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1000
+            typeof n === "number" &&
+            Number.isFinite(n) &&
+            Math.abs(n) <= ARRIVAL_VIEW_LIMITS.offset
     )
         ? { x: v.x, y: v.y, z: v.z }
         : null;
@@ -123,19 +150,27 @@ export function readArrivalView(value: any): ArrivalView | null {
     if (
         typeof value.avatarRotation !== "number" ||
         !Number.isFinite(value.avatarRotation) ||
-        Math.abs(value.avatarRotation) > 1e6
+        Math.abs(value.avatarRotation) > ARRIVAL_VIEW_LIMITS.rotation
     )
         return null;
-    if (!(typeof value.fov === "number" && value.fov > 5 && value.fov < 150))
+    const [fovMin, fovMax] = ARRIVAL_VIEW_LIMITS.fov;
+    if (
+        !(
+            typeof value.fov === "number" &&
+            value.fov > fovMin &&
+            value.fov < fovMax
+        )
+    )
         return null;
+    const [heightMin, heightMax] = ARRIVAL_VIEW_LIMITS.avatarHeight;
     return {
         cameraOffset,
         cameraTargetOffset,
         avatarRotation: value.avatarRotation,
         avatarHeight:
             typeof value.avatarHeight === "number" &&
-            value.avatarHeight >= 0.2 &&
-            value.avatarHeight <= 10
+            value.avatarHeight >= heightMin &&
+            value.avatarHeight <= heightMax
                 ? value.avatarHeight
                 : 1.8,
         fov: value.fov,
@@ -156,7 +191,7 @@ function readMembers(value: unknown): TripMember[] {
         seen.add(id);
         members.push({
             id,
-            name: text(item?.name, 24) || "Player",
+            name: text(item?.name, NAME_MAX) || "Player",
             pfp: text(item?.pfp, 2048),
             avatarUrl: text(item?.avatarUrl, 2048),
         });

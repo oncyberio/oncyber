@@ -45,8 +45,8 @@ Page settings sit beside the listing in `page`, all optional: `room` (the
 shared room everyone playing joins), `socialRoom` (for a game with no `room`:
 the room its visitors share for chat and voice only,
 [voice-chat.md](voice-chat.md)), `relay` (pass `<id>:net` packets through
-the room), `crowdLabel` ("in the garden"), `controls` (where the social
-controls sit) and `ownPage` (the game has its own page in `pages/games/`).
+the room), `crowdLabel` ("in the garden") and `controls` (where the social
+controls sit). Every game runs on the shared page (`pages/games/[game].tsx`).
 
 ## What the check enforces
 

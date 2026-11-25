@@ -12,7 +12,8 @@ in `games/kits/`, and a check in `pnpm games:check`.
 
 ## Before you build
 
-1. `pnpm games:new <id>` creates `games/<id>/` from Bloom Garden with a
+1. `pnpm games:new <id>` creates `games/<id>/` from Lantern Tag (the
+   starter: a small game on the current contract and every kit) with a
    brief, a manifest, a bot stub and a scenario stub, declares its saved
    keys to the page and adds the game to the catalog. The copy passes the
    contract, keys and manifest checks as it is.

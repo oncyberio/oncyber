@@ -280,10 +280,13 @@ export function enterFindings({ id, contract, visit, report }) {
         });
         return { findings, warnings };
     }
+    // A build made for another contract was not built from this runtime:
+    // the page would run it as out of date, or not at all
+    // (frontend/features/games/gameContract.ts, `contractSupport`).
     if (contract.version !== CONTRACT_VERSION)
-        warnings.push({
+        findings.push({
             code: "CONTRACT_VERSION",
-            message: `the build speaks contract ${contract.version}; the page speaks ${CONTRACT_VERSION}`,
+            message: `the build speaks contract ${contract.version}; the page speaks ${CONTRACT_VERSION}: rebuild it on the current runtime`,
         });
     const inspect = report?.inspect;
     if (!inspect || typeof inspect !== "object" || report.bootOnly)

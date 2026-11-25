@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { db } from "@utils/firebaseAdmin";
 import { NoApi, proc } from "@utils/rpc/server";
+import { gamesPreviewEnabled } from "@features/games/gamesPreview";
 import {
     runSavedCall,
     type SavedDoc,
@@ -15,7 +16,12 @@ import {
  *
  * Collections: `gameSaved` (one document per value) and `gameSavedQuota`
  * (one per account). Only the Admin SDK touches them.
+ *
+ * Games are hidden at launch, and so is what they save: where game pages do
+ * not answer (`gamesPreviewEnabled`), neither procedure reads or writes, and
+ * each answers as it does for a game that declared nothing.
  */
+const HIDDEN = { ok: false, reason: "undeclared" } as const;
 const VALUES = "gameSaved";
 const QUOTAS = "gameSavedQuota";
 
@@ -57,6 +63,7 @@ export const savedRead = proc({
     auth: false,
     schema: call,
     async handler({ game, party, key }) {
+        if (!gamesPreviewEnabled()) return HIDDEN;
         return db.runTransaction(
             (tx) =>
                 runSavedCall(
@@ -80,6 +87,7 @@ export const savedWrite = proc({
         ifRevision: z.number().int().nonnegative().optional(),
     }),
     async handler({ game, party, ...request }) {
+        if (!gamesPreviewEnabled()) return HIDDEN;
         return db.runTransaction((tx) =>
             runSavedCall(transaction(tx), { game, party, request }, this.userId)
         );

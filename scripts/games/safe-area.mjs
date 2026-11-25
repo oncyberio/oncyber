@@ -74,7 +74,7 @@ addEventListener("message", (event) => {
         // The game is answered in the form it greeted in: oncyber:game:<kind>
         // from a contract game, <id>:<kind> from a build before it.
         const prefix = (window.__prefix = type.slice(0, -"hello".length));
-        frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} }, "*");
+        frame.contentWindow.postMessage({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "" }, "*");
         // A contract game waits for its visit: a direct one, alone.
         if (prefix === ${JSON.stringify(GAME_MESSAGE_PREFIX)})
             frame.contentWindow.postMessage({ type: prefix + "enter", arrival: { from: "direct", view: null }, trip: null }, "*");
@@ -159,13 +159,6 @@ export async function checkSafeArea({ browser, origin, id, shots }) {
         "../../frontend/features/games/catalog.generated.ts"
     );
     const entry = Object.hasOwn(GAMES, id) ? GAMES[id] : null;
-    if (entry?.ownPage)
-        return {
-            status: "skipped",
-            reason: "the game has its own page, not the shared one",
-            viewports: [],
-            findings: [],
-        };
     const html = safeAreaHarness(id, {
         ...CONTROLS_PLACEMENT,
         ...entry?.controlsStyle,

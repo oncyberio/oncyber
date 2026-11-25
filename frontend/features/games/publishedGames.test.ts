@@ -275,7 +275,7 @@ describe("what begin takes", () => {
             room: "oncyber-bloom-garden-v1",
             socialRoom: "oncyber-ace-social-v1",
             relay: true,
-            ownPage: true,
+            somethingElse: true,
             controlsStyle: { top: 0 },
         },
         files,
@@ -288,7 +288,7 @@ describe("what begin takes", () => {
     const parse = (patch: object) =>
         publishBeginSchema.safeParse({ ...input, ...patch });
 
-    test("the listing is kept; rooms, ownPage and controlsStyle are dropped", () => {
+    test("the listing is kept; rooms, controlsStyle and anything else are dropped", () => {
         const parsed = publishBeginSchema.parse(input);
         expect(parsed.entry).toEqual(entry);
         expect(Object.keys(parsed.entry).sort()).toEqual(
@@ -635,7 +635,7 @@ describe("what the site serves from a record", () => {
                 room: "oncyber-bloom-garden-v1",
                 socialRoom: "oncyber-ace-social-v1",
                 relay: true,
-                ownPage: true,
+                somethingElse: true,
                 controlsStyle: { top: 0 },
             } as any,
         });

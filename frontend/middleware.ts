@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { WORLD_FRAME, worldFrameRole } from "@features/worlds/worldFrame";
 import { answerOnWorldHost } from "@features/worlds/worldHost";
+import { hiddenGameFile, isGameFile } from "@features/games/gamesPreview";
 
 // ---------------------------------------------------------------------------
 // Bot blocking at the edge.
@@ -97,6 +98,18 @@ export function middleware(req: NextRequest) {
     const path = req.nextUrl.pathname;
     const isApi = path.startsWith("/api/");
 
+    // A game's static build (features/games/gamesPreview.ts): the only
+    // static files matched below, and only to ask this. Games are hidden at
+    // launch, their builds included; where they are on, the file is served
+    // as any other static file is, by none of the rules that follow.
+    if (isGameFile(path))
+        return hiddenGameFile(path)
+            ? new NextResponse(null, {
+                  status: 404,
+                  headers: { "cache-control": "no-store" },
+              })
+            : NextResponse.next();
+
     // 1. Catalog pages: block ALL bots (and empty UA).
     if (CATALOG.test(path) && (!ua || ANY_BOT.test(ua))) {
         return deny();
@@ -126,5 +139,8 @@ export const config = {
     // bots can't drive reads via API routes (e.g. /api/me) either.
     // `/` is listed explicitly — the negative-lookahead pattern below does not
     // match the bare root route on its own (known Next.js matcher quirk).
-    matcher: ["/", "/((?!_next/|ingest/|.*\\.).*)"],
+    // The last entry is a game's static build, the one set of files
+    // matched: `GAME_FILE_MATCHER` in features/games/gamesPreview.ts, written
+    // out here because Next reads this list without running the file.
+    matcher: ["/", "/((?!_next/|ingest/|.*\\.).*)", "/games/:game/:file+"],
 };

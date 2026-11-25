@@ -148,5 +148,5 @@ under `health`:
     listed. Wrong: `PAUSE_NOT_HONOURED`.
 
 The page's side has Jest tests beside it (`gameHealth.test.ts`,
-`gameDisabled.test.ts`, `GamePauseGate.test.tsx`); the frame's side has
+`gameDisabled.test.ts`, `GameKillSwitchGate.test.tsx`); the frame's side has
 `games/runtime/test/health.test.mjs` (`pnpm games:test`).

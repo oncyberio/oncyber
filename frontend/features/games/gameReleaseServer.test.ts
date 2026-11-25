@@ -29,6 +29,9 @@ beforeAll(() => {
     );
     process.env.GAMES_RELEASES_DIR = root;
 });
+beforeEach(() => {
+    process.env.GAMES_PREVIEW = "1";
+});
 afterAll(() => {
     process.env = env;
     rmSync(root, { recursive: true, force: true });
@@ -67,6 +70,14 @@ test("a release with no declaration reaches only its own files", async () => {
             []
         )}; sandbox allow-scripts allow-pointer-lock`
     );
+});
+
+test("where games are hidden, no release is served", async () => {
+    delete process.env.GAMES_PREVIEW;
+    const { status, headers } = await head(["ace", RELEASE, "index.html"]);
+    expect(status).toBe(404);
+    expect(headers["cache-control"]).toBe("no-store");
+    expect(headers["access-control-allow-origin"]).toBeUndefined();
 });
 
 test("nothing outside a release is served", async () => {

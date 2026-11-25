@@ -13,7 +13,8 @@ const clamp = THREE.MathUtils.clamp;
 const smooth = (a, b, t) => THREE.MathUtils.smoothstep(t, a, b);
 const lerp = THREE.MathUtils.lerp;
 
-const mixamoVRMRigMap = {
+// The capture names its bones as its rig did; these are those track names.
+const clipBoneToVRM = {
   mixamorigHips: "hips",
   mixamorigSpine: "spine",
   mixamorigSpine1: "chest",
@@ -85,7 +86,7 @@ function retarget(
   for (const track of source.tracks) {
     const [bone, property] = track.name.split(".");
     if (lowerBone(bone, property) !== lower) continue;
-    const node = vrm.humanoid.getNormalizedBoneNode(mixamoVRMRigMap[bone]);
+    const node = vrm.humanoid.getNormalizedBoneNode(clipBoneToVRM[bone]);
     if (!node) continue;
     const values = track.values.slice();
     if (property === "quaternion") {

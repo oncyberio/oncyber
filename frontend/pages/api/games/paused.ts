@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { findGame, gamesPreviewEnabled } from "@features/games/catalog";
-import { gamePause, pauseForRelease } from "@features/games/gameDisabled";
+import {
+    gameKillSwitch,
+    killSwitchForRelease,
+} from "@features/games/gameDisabled";
 import { loadGameFrame } from "@features/games/gameReleaseServer";
 
 /**
@@ -21,7 +24,8 @@ export default async function handler(
     if (!gamesPreviewEnabled() || !findGame(id)) return res.status(404).end();
     res.setHeader("Cache-Control", "no-store");
     const frame = await loadGameFrame(id);
-    return res
-        .status(200)
-        .json({ ...pauseForRelease(gamePause(id), frame.release), frame });
+    return res.status(200).json({
+        ...killSwitchForRelease(gameKillSwitch(id), frame.release),
+        frame,
+    });
 }

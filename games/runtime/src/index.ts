@@ -25,8 +25,11 @@ export interface GameManifest {
     input: Record<string, InputBinding>;
 }
 
-// Shared types by area. Add an area as its own file and re-export it here,
-// one line per file, so index.ts stays the single import for games.
+// The lifecycle's own types and the session that runs a game. Each other
+// area (the page client, keys, saved data, sound, ...) is a file of its own
+// that a game imports by name: `@oncyber/game-runtime/<area>`, listed in
+// package.json's `exports` and in games/llms.txt. Only the contract, the
+// manifest and the key rules are re-exported here.
 export * from "./contract.ts";
 export * from "./manifest.ts";
 import { readArrivalView, readTrip, type Arrival, type Trip } from "./contract.ts";
@@ -379,41 +382,6 @@ export async function runScenario(session: RuntimeSession, scenario: Scenario, f
     if (session.frames !== frames) throw new Error("LIFECYCLE_SUSPEND_FAILED");
     await session.restore(); session.tick(1 / 60); await frame();
     if (session.phase !== "entered" || session.frames !== frames + 1) throw new Error("LIFECYCLE_RESTORE_FAILED");
-}
-
-/**
- * Travel between two games: the next one prepares at once, the travel
- * animation (`clap`) only gates the commit, and a failure before the commit
- * puts the previous game back with its state.
- */
-export class Journey {
-    active: RuntimeSession;
-    constructor(active: RuntimeSession) { this.active = active; }
-    private moving = false;
-    async travel(next: RuntimeSession, continuity: Continuity, clap: Promise<void>,
-        eligible: () => Promise<boolean>): Promise<void> {
-        if (this.moving) throw new Error("TRAVEL_IN_PROGRESS");
-        this.moving = true;
-        const previous = this.active;
-        let committed = false;
-        try {
-            if (!await eligible()) throw new Error("PLATFORM_RELEASE_UNAVAILABLE");
-            await Promise.all([next.prepare(), clap]);
-            if (!await eligible()) throw new Error("PLATFORM_RELEASE_UNAVAILABLE");
-            await previous.suspend();
-            await next.enter(continuity);
-            this.active = next;
-            committed = true;
-            await previous.dispose();
-        } catch (error) {
-            // Disposal is cleanup after commit. Its failure must never destroy the live destination.
-            if (!committed) {
-                try { await next.dispose(); }
-                finally { if (previous.phase === "suspended") await previous.restore(); }
-            }
-            throw error;
-        } finally { this.moving = false; }
-    }
 }
 
 export * from "./keys.ts";

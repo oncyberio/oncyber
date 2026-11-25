@@ -275,7 +275,6 @@ export function catalogEntry(id, manifest) {
     };
     if (page.socialRoom) entry.socialRoom = text(page.socialRoom);
     if (record(page.controls)) entry.controlsStyle = page.controls;
-    if (page.ownPage === true) entry.ownPage = true;
     return entry;
 }
 

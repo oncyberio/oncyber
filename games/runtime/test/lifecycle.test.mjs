@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RuntimeSession, Journey, compactJSON, runScenario } from "../src/index.ts";
+import { RuntimeSession, compactJSON, runScenario } from "../src/index.ts";
 const continuity = { avatar: { id: "visitor", position: [1, 0, 3], rotation: [0, 0, 0, 1] },
     camera: { position: [1, 2, 7], target: [1, 1, 3], fov: 55, mode: "third-person" },
     party: [{ id: "friend", position: [2, 0, 3], rotation: [0, 0, 0, 1] }] };
@@ -85,40 +85,10 @@ test("compact UI messages cannot contain functions, buffers, accessors, cycles o
     const cyclic = {}; cyclic.self = cyclic; assert.throws(() => compactJSON(cyclic), /UI_MESSAGE/);
     assert.deepEqual(compactJSON({ score: [2, 3] }), { score: [2, 3] });
 });
-test("travel preloads during the animation and preserves avatar, camera and party transforms", async () => {
-    const from = make(), to = make(); await from.session.prepare(); await from.session.enter(continuity);
-    const journey = new Journey(from.session);
-    let clap; const barrier = new Promise(r => { clap = r; });
-    const move = journey.travel(to.session, continuity, barrier, async () => true);
-    await new Promise(r => setTimeout(r, 0));
-    assert.equal(to.session.phase, "ready"); assert.equal(from.session.phase, "entered");
-    clap(); await move;
-    assert.equal(journey.active, to.session); assert.deepEqual(to.arrival, continuity); assert.equal(from.session.phase, "disposed");
-    await to.session.dispose();
-});
-test("entry failure restores previous world; removal during preparation blocks the final entry", async () => {
-    for (const removed of [true, false]) {
-        const from = make(), to = make(removed ? {} : { enter() { throw new Error("ENTRY_FAILED"); } });
-        await from.session.prepare(); await from.session.enter(continuity);
-        const journey = new Journey(from.session); let checks = 0;
-        await assert.rejects(journey.travel(to.session, continuity, Promise.resolve(), async () => !removed || ++checks < 2),
-            removed ? /PLATFORM_RELEASE_UNAVAILABLE/ : /ENTRY_FAILED/);
-        assert.equal(journey.active, from.session); assert.equal(from.session.phase, "entered"); assert.equal(to.session.phase, "disposed");
-        await from.session.dispose();
-    }
-});
 test("a hung preparation becomes a timeout and cannot later enter", async () => {
     const f = make({ prepare: () => new Promise(() => {}) });
     await assert.rejects(f.session.prepare(), /RUNTIME_TIMEOUT/);
     assert.equal(f.session.phase, "failed"); await f.session.dispose();
-});
-test("cleanup failure after a travel commit does not dispose the live destination", async () => {
-    const from = make({ dispose() { throw new Error("CLEANUP_FAILED"); } }), to = make();
-    await from.session.prepare(); await from.session.enter(continuity);
-    const journey = new Journey(from.session);
-    await assert.rejects(journey.travel(to.session, continuity, Promise.resolve(), async () => true), /CLEANUP_FAILED/);
-    assert.equal(journey.active, to.session); assert.equal(to.session.phase, "entered");
-    to.session.tick(1 / 60); await to.session.dispose();
 });
 test("a hung disposer cannot indefinitely hold travel cleanup", async () => {
     const f = make({ dispose: () => new Promise(() => {}) });

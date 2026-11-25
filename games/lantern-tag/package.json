@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite --host 127.0.0.1 --port 14740",
-        "build": "vite build",
+        "build": "vite build && node ../../scripts/games/build-record.mjs lantern-tag",
         "test": "node --test test/*.test.js"
     },
     "dependencies": {

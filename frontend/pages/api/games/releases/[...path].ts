@@ -3,8 +3,11 @@ import { createReadStream } from "fs";
 import { readFile, stat } from "fs/promises";
 import { extname, resolve, sep } from "path";
 import { pipeline } from "stream/promises";
-import { findGame } from "@features/games/catalog";
-import { gamePause, pauseForRelease } from "@features/games/gameDisabled";
+import { findGame, gamesPreviewEnabled } from "@features/games/catalog";
+import {
+    gameKillSwitch,
+    killSwitchForRelease,
+} from "@features/games/gameDisabled";
 import type { HostedRelease } from "@features/games/gameRelease";
 import {
     committedPinnedRelease,
@@ -43,6 +46,10 @@ import {
  * A release in the bucket (upload mode `storage`) is read by this server
  * and passed on, like one behind a gateway: the bucket is private, and no
  * request is ever sent to it or given an address in it.
+ *
+ * Games are hidden at launch, and so are their releases: where game pages
+ * do not answer (`gamesPreviewEnabled`), this route answers 404 for every
+ * game, catalogued or registered, before it looks at anything.
  *
  * Either way it sends what every host of releases must (docs/games/releases.md):
  * `Access-Control-Allow-Origin: *`, and the game's own
@@ -295,7 +302,7 @@ async function serveStored(
  */
 async function registeredReleaseOf(game: string, release: string) {
     if (!publishingEnabled()) return null;
-    if (pauseForRelease(gamePause(game), release).paused) return null;
+    if (killSwitchForRelease(gameKillSwitch(game), release).paused) return null;
     const { registeredRelease } = await import(
         "@features/games/publishedGamesServer"
     );
@@ -306,6 +313,7 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
+    if (!gamesPreviewEnabled()) return refuse(res, 404);
     const root = localReleasesDir();
     const parts = ([] as string[]).concat(req.query.path ?? []);
     const [game, release, ...rest] = parts;

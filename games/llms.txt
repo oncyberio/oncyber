@@ -77,15 +77,23 @@ Know before you start:
 
 -   Alias the SDK and the kits in the game's `vite.config.js`, as
     `games/lantern-tag/vite.config.js` does.
--   `games:new` copies Bloom Garden, which predates the SDK's contract and
-    kits. Keep its `BRIEF.md`, `.gitignore` and licence files, and replace
-    its source. Use `games/lantern-tag/` as the small worked example of a
-    contract game (host, game, party match, sound) and `games/ace/` as the
-    full one.
+-   `games:new` copies Lantern Tag (`games/lantern-tag/`), renamed: the
+    same small contract game `oncyber new` starts from (host, game, party
+    match, sound, every kit). Rewrite its `BRIEF.md` first, then change the
+    world, the rules and the party's match (`src/world.js`, `src/round.js`,
+    `src/match.js`). `games/ace/` is the full worked example. Bloom Garden
+    (`games/garden/`) predates the contract and still speaks a prefix of its
+    own: do not copy from it.
 -   `npm run build` in a game clears its `check.json` and `release.json`;
     finish with `pnpm games:publish <id>`.
--   Commit `games/<id>/` and `frontend/public/games/<id>/`. Format with
-    Prettier (four spaces, 80 columns).
+-   A build is committed, so it can fall behind its source. Every build
+    writes `games/<id>/build.json` (what it was built from), and
+    `pnpm games:test` fails when the runtime, a kit the game uses or the
+    game's own files changed after it (`scripts/games/build-record.mjs`).
+    After changing any of them, run `pnpm games:publish <id>` again.
+-   Commit `games/<id>/` (with its `build.json`) and
+    `frontend/public/games/<id>/`. Format with Prettier (four spaces, 80
+    columns).
 
 In both places the checks run a real browser. On a machine with no GPU set
 `GAMES_CHECK_TIMEOUT_S=600`.
@@ -106,6 +114,10 @@ In both places the checks run a real browser. On a machine with no GPU set
 | A party statement    | `game.json` → `party` says what a party of 1 to 8 is offered and what late, dropped and extra players get. A solo option at every size. A solo-only game states that; it still needs the statement.                     | `docs/games/party.md`               |
 | A bot                | `scenario.json` and `bot.json` play the game with nobody at the keyboard, reading `inspect()`.                                                                                                                          | `docs/games/good-game.md` rule 5    |
 | Credits              | Every bundled file that is not yours has an author and a licence; original and procedural assets need nothing.                                                                                                          | `docs/games/credits.md`             |
+
+Every message kind, who sends it and the file on each side that handles it
+is one list: `games/runtime/messages.json`. A game never posts a kind that
+is not in it; the SDK's helpers send them for you.
 
 ### The host, in order
 

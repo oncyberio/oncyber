@@ -78,7 +78,7 @@ test("the starter is named as asked, and speaks as itself", () => {
     assert.equal(pkg.scripts.build, "vite build");
     assert.match(pkg.devDependencies.oncyber, /^file:/);
     assert.ok(pkg.dependencies.three);
-    assert.match(read("src/host.js"), /storageNamespace: "sky-run"/);
+    assert.match(read("src/host.js"), /game: "sky-run"/);
     assert.match(read("index.html"), /<title>Sky Run — Oncyber<\/title>/);
     assert.match(
         read("BRIEF.md"),

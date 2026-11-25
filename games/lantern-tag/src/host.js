@@ -59,8 +59,6 @@ const link = createPartyLink();
 const page = connectPage({
     arrival: manifest.arrival,
     party: manifest.party,
-    storageKeys: [],
-    storageNamespace: "lantern-tag",
     identityTimeoutMs: 1500,
 });
 // Safe areas, before hello: the page answers it with the insets. The HUD of

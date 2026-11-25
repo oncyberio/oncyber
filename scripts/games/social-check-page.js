@@ -174,7 +174,6 @@ const visitor = {
                     name,
                     pfp: "",
                     avatarUrl: "",
-                    storage: {},
                 });
                 toGame("party", { party: null });
                 // A contract game waits for its visit: a trip from the

@@ -22,7 +22,6 @@ import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
 import GameCredits from "./GameCredits";
 import { frameBase, type GameFrame } from "./gameRelease";
-import { readGameStorage, writeGameStorage } from "./gameStorage";
 import {
     developmentParty,
     gameParty,
@@ -31,8 +30,11 @@ import {
 } from "./gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
 import {
+    contractNotice,
+    contractSupport,
     enterMessage,
     gameMessageTypes,
+    gameName as nameForGame,
     gameTrip,
     readGameDeclaration,
     readGameMessage,
@@ -55,6 +57,7 @@ import { attachSavedData, signedInAccount } from "./savedDataBridge";
 import { createRemoteSavedStore } from "./savedDataRemote";
 import { joinedParty, rememberGameParty } from "./gamePartyJoin";
 import { useGameHealth } from "./gameHealth";
+import { gameChrome } from "./gameChrome";
 
 const PEER_INTERVAL = 100;
 
@@ -87,7 +90,8 @@ function readPose(value: any): GamePose | null {
  * A game from public/games/<id> in a sandboxed frame. The page owns identity,
  * the shared room, voice and the game's saved values; the game renders
  * everything, avatars included. Messages are `oncyber:game:<kind>` on both
- * sides (docs/games/contract.md); a build from before that still says
+ * sides (docs/games/contract.md; every kind is listed in
+ * games/runtime/messages.json); a build from before that still says
  * `<id>:<kind>` and is answered the same way.
  */
 export default function GamePage({
@@ -249,6 +253,7 @@ export default function GamePage({
         let walkable: boolean | null = null;
         let prepared = false;
         let failed = false;
+        let contractReported = false;
         let approved: GameIdentity | null = null;
         const inJourney = isLobbyDestination();
         let revealed = !inJourney;
@@ -280,9 +285,11 @@ export default function GamePage({
         const deliverIdentity = () => {
             if (!disposed && greeted && approved && !sentIdentity) {
                 sentIdentity = sentIdentityRef.current = true;
+                // The name as a game gets it (gameContract.ts): the same
+                // length the runtime keeps.
                 post("identity", {
                     ...approved,
-                    storage: readGameStorage(GAME),
+                    name: nameForGame(approved.name) || approved.name,
                 });
                 announceTrip.current(true);
                 if (!inJourney) sendEnter();
@@ -376,13 +383,32 @@ export default function GamePage({
             const type = message?.kind;
             if (type === "arrival-ready") {
                 arrivalStaged?.();
-            } else if (type === "storage") {
-                writeGameStorage(GAME, event.data.key, event.data.value);
             } else if (type === "hello") {
+                if (message.dialect === "contract") {
+                    // The contract the build was made for decides whether
+                    // it runs here (gameContract.ts, `contractSupport`).
+                    const declared = readGameDeclaration(event.data);
+                    const support = contractSupport(declared.contract);
+                    if (frame.current) {
+                        frame.current.dataset.contract = `${declared.contract}`;
+                        frame.current.dataset.contractSupport = support;
+                    }
+                    if (support !== "current" && !contractReported) {
+                        contractReported = true;
+                        console.warn(contractNotice(GAME, declared.contract));
+                    }
+                    if (support === "too-old" || support === "too-new") {
+                        if (!failed && !prepared)
+                            fail(
+                                `${gameName} was built for another version of Oncyber and can’t run here yet.`,
+                                `${GAME}-contract-${support}`
+                            );
+                        return;
+                    }
+                    walkable = declared.walkable;
+                }
                 greeted = true;
                 dialect.current = message.dialect;
-                if (message.dialect === "contract")
-                    walkable = readGameDeclaration(event.data).walkable;
                 deliverIdentity();
             } else if (type === "ready" && !prepared && !failed) {
                 prepared = true;
@@ -562,8 +588,8 @@ export default function GamePage({
             style={{
                 position: "fixed",
                 inset: 0,
-                background: "#0b0d12",
-                color: "#fff",
+                background: gameChrome.color.frame,
+                color: gameChrome.color.ink,
             }}
         >
             <iframe
@@ -600,10 +626,10 @@ export default function GamePage({
                         alignItems: "center",
                         gap: 8,
                         padding: 6,
-                        borderRadius: 999,
-                        background: "rgba(10, 12, 18, 0.72)",
+                        borderRadius: gameChrome.radius.pill,
+                        background: gameChrome.color.bar,
                         backdropFilter: "blur(10px)",
-                        font: "600 13px/1 Inter, system-ui, sans-serif",
+                        font: gameChrome.font.control,
                         whiteSpace: "nowrap",
                     }}
                 >
@@ -624,18 +650,18 @@ export default function GamePage({
                         }}
                         style={{
                             border: 0,
-                            borderRadius: 999,
+                            borderRadius: gameChrome.radius.pill,
                             padding: "8px 14px",
                             font: "inherit",
                             cursor: "pointer",
                             color:
                                 roomState?.voiceState === "live"
-                                    ? "#0b0d12"
-                                    : "#fff",
+                                    ? gameChrome.color.onInk
+                                    : gameChrome.color.ink,
                             background:
                                 roomState?.voiceState === "live"
-                                    ? "#ffd23f"
-                                    : "rgba(255,255,255,0.12)",
+                                    ? gameChrome.color.on
+                                    : gameChrome.color.control,
                         }}
                     >
                         {roomState?.voiceState === "live"
@@ -648,12 +674,12 @@ export default function GamePage({
                         onClick={() => leave.current()}
                         style={{
                             border: 0,
-                            borderRadius: 999,
+                            borderRadius: gameChrome.radius.pill,
                             padding: "8px 14px",
                             font: "inherit",
                             cursor: "pointer",
-                            color: "#fff",
-                            background: "rgba(255,255,255,0.12)",
+                            color: gameChrome.color.ink,
+                            background: gameChrome.color.control,
                         }}
                     >
                         Lobby
@@ -684,7 +710,7 @@ export default function GamePage({
                         top: 132,
                         left: 24,
                         margin: 0,
-                        font: "500 12px/1.4 Inter, system-ui, sans-serif",
+                        font: gameChrome.font.note,
                         opacity: 0.85,
                     }}
                 >
@@ -713,14 +739,14 @@ export default function GamePage({
                         placeContent: "center",
                         gap: 18,
                         textAlign: "center",
-                        background: "#0b0d12",
-                        fontFamily: "Inter, Arial, sans-serif",
+                        background: gameChrome.color.frame,
+                        fontFamily: gameChrome.family,
                     }}
                 >
                     <p>{error}</p>
                     <a
                         href="/?lobby=1"
-                        style={{ color: "#fff" }}
+                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();

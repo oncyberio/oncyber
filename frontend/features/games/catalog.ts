@@ -2,14 +2,17 @@ import type { CSSProperties } from "react";
 import { GAMES } from "./catalog.generated";
 
 export { GAMES };
+// The switch that hides games until launch has a file of its own, so the
+// middleware can ask it without loading the catalog.
+export { gamesPreviewEnabled } from "./gamesPreview";
 
 /**
  * Games served by this deployment. Each one is a static bundle under
  * `public/games/<id>/`, built from `games/<id>/` with `pnpm games:publish`.
  * The entries are generated from each game's `game.json` (`listing` and
  * `page`) by `pnpm games:catalog`; see docs/games/listing.md.
- * Games are hidden at launch: their pages exist only in development or
- * where `GAMES_PREVIEW=1` is set (see `gamesPreviewEnabled`).
+ * Games are hidden at launch: nothing of a game answers outside development
+ * unless `GAMES_PREVIEW=1` is set (`gamesPreviewEnabled`, gamesPreview.ts).
  */
 /** The devices a game claims in `devices` (docs/games/devices.md). */
 export type GameDevice = "desktop" | "phone" | "gamepad";
@@ -47,11 +50,6 @@ export interface GameEntry {
     /** Where the social controls sit over the game. */
     controlsStyle?: CSSProperties;
     /**
-     * The game has its own page in pages/games/ (its own social layer and a
-     * same-origin frame) instead of the shared, sandboxed GamePage.
-     */
-    ownPage?: boolean;
-    /**
      * Published from outside the repository and read from the registry, not
      * this catalog (docs/games/publishing.md). Its results are not recorded
      * and it has no saved data on the server yet.
@@ -63,17 +61,4 @@ export function findGame(id: unknown): GameEntry | null {
     return typeof id === "string" && Object.hasOwn(GAMES, id)
         ? GAMES[id]
         : null;
-}
-
-/** A game the shared /games/[game] page runs. */
-export function findSharedPageGame(id: unknown): GameEntry | null {
-    const game = findGame(id);
-    return game && !game.ownPage ? game : null;
-}
-
-/** Game pages stay out of production until launch. */
-export function gamesPreviewEnabled(
-    env: Record<string, string | undefined> = process.env
-): boolean {
-    return env.NODE_ENV === "development" || env.GAMES_PREVIEW === "1";
 }

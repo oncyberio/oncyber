@@ -216,7 +216,7 @@ addEventListener("message", async (event) => {
     const type = data.type.slice(spoke.length);
     if (type === "hello") {
         prefix = spoke;
-        send({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "", storage: {} });
+        send({ type: prefix + "identity", name: "Check", pfp: "", avatarUrl: "" });
         if (prefix === CONTRACT) send({ type: prefix + "enter", arrival: { from: "direct", view: null }, trip: null });
     }
     else if (type === "ready") { window.__ready = true; send({ type: spoke + "entered" }); }

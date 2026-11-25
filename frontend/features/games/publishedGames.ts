@@ -252,7 +252,7 @@ const plain = (min: number, max: number) =>
 /**
  * The listing the site keeps: the fields `pnpm games:catalog` builds from a
  * manifest, held to the listing rules (scripts/games/listing.mjs). Anything
- * else the command sends (rooms, the relay, `ownPage`, `controlsStyle`, a
+ * else the command sends (rooms, the relay, `controlsStyle`, a
  * thumbnail address) is dropped: the site sets those itself.
  */
 export const publishEntrySchema = z
