@@ -7,7 +7,10 @@ import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import { UserContext } from "@components/context/UserContext";
 import EmbeddedExperience from "./EmbeddedExperience";
+import { publicFetch } from "@utils/net/publicFetch";
+import { getServerSideProps as aweRoute } from "../../pages/awe/[id]";
 import { CONTENT_BRIDGE_TAG } from "./protocol";
+import { nodeEnv } from "@env";
 import type { EmbeddedRuntime } from "./runtime";
 import * as contentSecurity from "./security";
 import {
@@ -15,6 +18,7 @@ import {
     lobbyDestinationPrepared,
 } from "@utils/lobbyDestinationBridge";
 
+jest.mock("@utils/net/publicFetch", () => ({ publicFetch: jest.fn() }));
 jest.mock("@components/context/UserContext", () => ({
     UserContext: require("react").createContext({}),
 }));
@@ -448,4 +452,86 @@ test("an admitted registered space retains its explicit address capability and e
     } finally {
         globalThis.fetch = previousFetch;
     }
+});
+
+test("a player can require a fresh ready message on each document load", async () => {
+    await render({ ...descriptor, readyOn: "message" });
+    (lobbyDestinationPrepared as jest.Mock).mockClear();
+    loadFrame();
+    expect(lobbyDestinationPrepared).not.toHaveBeenCalled();
+    request("ready");
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(1);
+    const oldSession = session;
+    act(() => frame.dispatchEvent(new Event("load")));
+    session = post.mock.calls.at(-1)[0].session;
+    request("ready", makePort(), { session: oldSession });
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Loading world");
+    request("ready");
+    expect(lobbyDestinationPrepared).toHaveBeenCalledTimes(2);
+});
+
+test("loads the preserved AWE world from the configured player inside the guest sandbox", async () => {
+    const previous = nodeEnv.AWE_PLAYER_ORIGIN;
+    try {
+        nodeEnv.AWE_PLAYER_ORIGIN = "https://player.example";
+        await render({
+            kind: "awe-app",
+            url: "https://awe.box/play/one?draft=true&extra=discard",
+        });
+        loadFrame();
+        expect(frame.src).toBe(
+            "https://player.example/play/one?draft=true&embed=oncyber"
+        );
+        expect(frame.getAttribute("sandbox")).toBe(
+            contentSecurity.CONTENT_SANDBOX
+        );
+        expect(
+            post.mock.calls.find(([message]) => message.kind === "init")[0]
+                .capabilities
+        ).toEqual([]);
+    } finally {
+        nodeEnv.AWE_PLAYER_ORIGIN = previous;
+    }
+});
+
+test("the AWE route uses the published provider world without claiming its root slug", async () => {
+    const context = {
+        params: { id: "Gallery_42" },
+        query: { draft: "true", url: "https://other.example", id: "other" },
+    };
+    (publicFetch as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        body: Buffer.from(JSON.stringify({ title: "Gallery 42" })),
+    });
+    const result = await aweRoute(context);
+    expect(result.props?.lobbyWorld).toBe(true);
+    expect(result.props?.title).toBe("Gallery 42");
+    await render(result.props.runtime);
+    loadFrame();
+    expect(frame.src).toBe("https://awe.box/play/Gallery_42?embed=oncyber");
+    expect(post.mock.calls[0][0].capabilities).toEqual([]);
+    request("ready");
+    expect(container.querySelector('[data-testid="status"]').textContent).toBe(
+        "External content"
+    );
+});
+
+test.each([
+    undefined,
+    ["one", "two"],
+    "",
+    "a/b",
+    "a?draft=true",
+    "a".repeat(129),
+])("the AWE route returns 404 for invalid path segment %j", async (id) => {
+    expect(await aweRoute({ params: { id } })).toEqual({ notFound: true });
+});
+
+test("the AWE title lookup respects guest admission and falls back to the id on outages", async () => {
+    const context = { params: { id: "flappybome" } };
+    (publicFetch as jest.Mock).mockResolvedValueOnce({ status: 403 });
+    expect(await aweRoute(context)).toEqual({ notFound: true });
+    (publicFetch as jest.Mock).mockRejectedValueOnce(new Error("timeout"));
+    expect((await aweRoute(context)).props?.title).toBe("flappybome");
 });

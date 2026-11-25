@@ -5,6 +5,8 @@ export interface EmbeddedRuntime {
     url: string;
     /** Descriptive only. No engine code is imported into the host. */
     engine?: string;
+    /** Wait for the document to announce that its player is ready. */
+    readyOn?: "message";
     capabilities?: Array<"wallet.connect">;
 }
 
@@ -13,18 +15,23 @@ export function isEmbeddedRuntime(value: unknown): value is EmbeddedRuntime {
     return runtime?.kind === "web" || runtime?.kind === "awe-app";
 }
 
+export function isAweWorldId(value: unknown): value is string {
+    return typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+}
+
 export function resolveEmbeddedRuntime(
     value: unknown,
     hostOrigin: string,
-    allowLocalhost = false
+    allowLocalhost = false,
+    awePlayerOrigin?: string
 ): EmbeddedRuntime {
     if (!isEmbeddedRuntime(value)) throw new Error("Unsupported content type.");
-    const url = validateExternalContentUrl(value.url, hostOrigin, {
+    let url = validateExternalContentUrl(value.url, hostOrigin, {
         allowLocalhost,
     });
     if (value.kind === "awe-app") {
         if (
-            !["awe.box", "www.awe.box"].includes(url.hostname) &&
+            !["awe.box", "www.awe.box"].includes(url.host) &&
             !(
                 allowLocalhost &&
                 ["localhost", "127.0.0.1"].includes(url.hostname)
@@ -33,9 +40,28 @@ export function resolveEmbeddedRuntime(
             throw new Error(
                 "Use an awe.box play link for an AWE app experience."
             );
-        if (!/^\/play\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname))
+        if (!isAweWorldId(/^\/play\/([^/]+)\/?$/.exec(url.pathname)?.[1]))
             throw new Error("Use an AWE app /play/ link.");
+        const draft = url.searchParams.get("draft") === "true";
+        url.search = "";
+        url.hash = "";
+        if (draft) url.searchParams.set("draft", "true");
         url.searchParams.set("embed", "oncyber");
+        // Registration retains the original world ID and URL across player moves.
+        if (awePlayerOrigin) {
+            const player = validateExternalContentUrl(
+                awePlayerOrigin,
+                hostOrigin,
+                {
+                    allowLocalhost,
+                }
+            );
+            if (player.href !== player.origin + "/")
+                throw new Error(
+                    "Configure a player origin without a path or query."
+                );
+            url = new URL(url.pathname + url.search, player.origin);
+        }
     }
     if (
         value.capabilities != null &&
@@ -48,6 +74,9 @@ export function resolveEmbeddedRuntime(
     return {
         kind: value.kind,
         url: url.href,
+        ...(value.kind === "awe-app" || value.readyOn === "message"
+            ? { readyOn: "message" as const }
+            : {}),
         ...(typeof value.engine === "string"
             ? { engine: value.engine.slice(0, 40) }
             : {}),
