@@ -1,4 +1,7 @@
 /**
+ * tokens-ok-file: palettes for the 3D things a script makes, not interface
+ * colours.
+ *
  * A world's creative direction: the palette, look and feel every object a
  * script makes should share, so "add coins" in a Starry Night world gives
  * painted, swirling gold coins and not plain yellow rings.

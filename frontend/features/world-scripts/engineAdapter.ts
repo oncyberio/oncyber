@@ -259,6 +259,7 @@ function drawText(props: ThingProps, texture?: CanvasTexture) {
         context.fillStyle = props.background;
         context.fillRect(0, 0, canvas.width, canvas.height);
     }
+    // tokens-ok: text drawn into a 3D texture
     context.fillStyle = props.textColor || "#ffffff";
     context.textBaseline = "top";
     context.textAlign = "center";

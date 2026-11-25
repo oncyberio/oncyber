@@ -3,7 +3,7 @@
  * text: raw GLSL or WGSL would be compiled and run by the page on every
  * visitor's GPU, where one heavy loop freezes the tab and nothing can stop
  * it. Instead it describes a surface as a small tree of building blocks,
- *
+ * (tokens-ok: an example of a 3D surface)
  *     ["mix", "#102a6b", "#ffd60a", ["smoothstep", 0.4, 0.6, ["noise", ["mul", "position", 3]]]]
  *
  * and the host builds the real shader from it (looks.ts). The blocks have

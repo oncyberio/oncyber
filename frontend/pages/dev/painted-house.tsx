@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
+import { baseTokens } from "@styles/tokens";
 
 /**
  * Local check for the Starry Night house interior
@@ -129,12 +130,18 @@ export default function PaintedHouseCheck() {
     }, [router.isReady, router.query]);
 
     return (
-        <main style={{ background: "#000", minHeight: "100vh", margin: 0 }}>
+        <main
+            style={{
+                background: baseTokens.color.black,
+                minHeight: "100vh",
+                margin: 0,
+            }}
+        >
             <div ref={host} style={{ width: WIDTH, height: HEIGHT }} />
             <p
                 style={{
                     margin: "8px 12px",
-                    color: "#fff",
+                    color: baseTokens.color.white,
                     font: "12px monospace",
                     opacity: 0.7,
                 }}

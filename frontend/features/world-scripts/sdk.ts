@@ -1,4 +1,6 @@
 /**
+ * tokens-ok-file: default colours for the 3D things a script makes.
+ *
  * The world script SDK: the code that runs inside the sandbox's worker,
  * before the creator's script. It is kept as text because it never runs in
  * the Oncyber page: sandboxDocument.ts puts it in a Blob worker inside an

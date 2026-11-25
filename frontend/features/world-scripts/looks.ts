@@ -391,6 +391,7 @@ export function createLookMaterial(spec: LookSpec): NodeMaterial {
 /** Dark inverted hull drawn behind a shape: a drawn outline. */
 export function createOutlineMaterial(): NodeMaterial {
     const material = new MeshBasicNodeMaterial();
+    // tokens-ok: a 3D material
     material.colorNode = tslColor(new Color("#141418"));
     material.positionNode = positionLocal.add(normalLocal.mul(0.025));
     material.side = 1; // BackSide

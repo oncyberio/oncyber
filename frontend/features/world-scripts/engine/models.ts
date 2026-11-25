@@ -64,6 +64,7 @@ export function createModel(id: string, holder: Object3D, looks: Looks) {
             if (!props.parts?.length) return;
 
             const spec = resolveLook(
+                // tokens-ok: a 3D material's base colour
                 { ...props, color: "#ffffff" },
                 style,
                 true

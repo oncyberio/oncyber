@@ -119,7 +119,7 @@ function num(value: unknown, min: number, max: number): number | undefined {
 
 type ColourCheck = (value: unknown) => string | undefined;
 
-/** "#abc" or "#aabbcc" to "#aabbcc". */
+/** Three or six hex digits to six. tokens-ok: an example, not a colour */
 function sixDigits(colour: string) {
     return colour.length === 4
         ? "#" + [...colour.slice(1)].map((c) => c + c).join("")

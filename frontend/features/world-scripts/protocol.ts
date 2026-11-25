@@ -1,4 +1,7 @@
 /**
+ * tokens-ok-file: the colours here are what scripts draw 3D things with
+ * (named colours, defaults), not interface colours.
+ *
  * What a world script may ask the host to do, and the checks every request
  * passes before it touches the scene. The script runs in an opaque sandbox
  * (see sandboxDocument.ts); nothing it sends is trusted. Every value is

@@ -14,7 +14,9 @@
 //
 // A line that truly needs its own colour (a 3D material, a brand mark, a
 // test fixture drawn on screen) says so: put `tokens-ok: <why>` in a
-// comment on that line or the one above it.
+// comment on that line or the one above it. A file that is nothing but
+// such colours (paint for a 3D scene, the colour names a world script may
+// use) says so once, in the comment it opens with: `tokens-ok-file: <why>`.
 //
 // Usage (from frontend/):
 //   node scripts/ui-token-ratchet.mjs
@@ -37,10 +39,15 @@ const SKIPPED = /(\.test\.|\.generated\.|\.d\.ts$|(^|\/)node_modules\/)/;
 const COLOUR =
     /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![0-9a-zA-Z_-])|\b(?:rgb|hsl)a?\(/g;
 const ALLOWED = /tokens-ok:\s*\S/;
+const ALLOWED_FILE = /tokens-ok-file:\s*\S/;
+/** How far into a file its opening comment may reach. */
+const OPENING_LINES = 40;
 
 /** The colour literals in a file's text, as `{ line, text }` (1-based). */
 export function colourLiterals(source) {
     const lines = String(source).split(/\r?\n/);
+    if (lines.slice(0, OPENING_LINES).some((line) => ALLOWED_FILE.test(line)))
+        return [];
     const found = [];
     lines.forEach((text, index) => {
         const count = (text.match(COLOUR) || []).length;

@@ -193,7 +193,9 @@ file under `features/`, `components/`, `ui/` or `pages/` gains a colour
 written in place (a new file may have none). Older files are recorded in
 `scripts/ui-token-baseline.json`; lower it with `check:tokens:update` when
 you move one onto the tokens. A line that truly needs its own colour (a 3D
-material, a partner's mark) says why in a comment: `tokens-ok: <why>`.
+material, a partner's mark) says why in a comment: `tokens-ok: <why>`. A
+file that is nothing but such colours (paint for a 3D scene) says so once,
+where it opens: `tokens-ok-file: <why>`.
 
 ## Making a change
 

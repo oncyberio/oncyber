@@ -1,3 +1,5 @@
+// tokens-ok-file: paint for a 3D room, after a painting.
+//
 // Three-free: what is painted inside the house, in the house's own frame
 // (see layout.ts). The room is after Van Gogh's "Bedroom in Arles", kept in
 // this world's night: pale violet walls, a board floor, the yellow bed with

@@ -256,7 +256,6 @@
     "features/content-host/NativeExperienceChrome.tsx": 5,
     "features/content-host/NativeVisitorPanel.tsx": 1,
     "features/content-host/PointerLockHint.tsx": 1,
-    "features/content-host/SpacePeoplePanel.tsx": 5,
     "features/content-host/testing/ControlIconPreview.tsx": 2,
     "features/destinations/components/DestinationDetails.tsx": 5,
     "features/destinations/components/DestinationFilters.tsx": 4,
