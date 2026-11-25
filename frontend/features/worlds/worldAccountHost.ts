@@ -5,9 +5,11 @@
  */
 import {
     PAGE_SESSION,
+    askedSpace,
     relayedRoute,
     relayedRpc,
     relayedSettings,
+    relayedSpaceEdit,
 } from "./accountRelay";
 
 export interface WorldAccountHost {
@@ -16,6 +18,8 @@ export interface WorldAccountHost {
     /** The space this page opened: the only one a world may save edits to. */
     spaceId: string;
     origin: string;
+    /** Whether a name or id a world gives is the space this page opened. */
+    opened(label: string): Promise<boolean>;
     rpc(
         route: string,
         method: string,
@@ -47,12 +51,31 @@ export async function answerWorldAccount(
         )
             return { ok: false, error: "Not available to a world" };
         try {
+            // What the session alone earns is for the space this page
+            // opened. Asked about another one (a portal's destination),
+            // a world learns whether its visitor moderates nothing, and
+            // is let in without the pass their account would be given:
+            // a pass is a way into that space for whoever holds it.
+            const label = askedSpace(data.route, data.method, data.params);
+            const elsewhere =
+                label !== null &&
+                !(await host.opened(label).catch(() => false));
+            if (elsewhere && data.method === "isMod")
+                return { ok: true, value: false };
+            const value = await host.rpc(data.route, data.method, data.params, {
+                ...(data.encode === true ? { encode: true } : {}),
+                ...(data.checksum === true ? { checksum: true } : {}),
+            });
             return {
                 ok: true,
-                value: await host.rpc(data.route, data.method, data.params, {
-                    ...(data.encode === true ? { encode: true } : {}),
-                    ...(data.checksum === true ? { checksum: true } : {}),
-                }),
+                value:
+                    elsewhere &&
+                    !data.params[0]?.password &&
+                    value &&
+                    typeof value === "object" &&
+                    "proof" in value
+                        ? { ...value, proof: undefined }
+                        : value,
             };
         } catch (error) {
             return {
@@ -67,7 +90,11 @@ export async function answerWorldAccount(
         if (!route || typeof data.body !== "string") return refused;
         if (route.kind === "settings" && !relayedSettings(parse(data.body)))
             return refused;
-        if (route.kind === "space" && route.id !== host.spaceId) return refused;
+        if (
+            route.kind === "space" &&
+            (route.id !== host.spaceId || !relayedSpaceEdit(parse(data.body)))
+        )
+            return refused;
         // The world holds a stand-in where a session token would be. The
         // page's own session answers for the request, so the stand-in goes.
         const sent = parse(data.body);

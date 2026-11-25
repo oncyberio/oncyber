@@ -84,7 +84,7 @@ export default function NativeSpace({
         portalPreload.current = new AbortController();
         preloadExhibitPortalData(world, portalPreload.current.signal);
     }, []);
-    // In the site's frame, the page lifts its cover once the world has drawn.
+    // In the site's frame, the page is told once the world has drawn.
     const handleWorldDrawn = useCallback(() => {
         worldDocument()?.drawn();
         handleWorldRendered();

@@ -324,8 +324,12 @@ export default function ExperienceShell({
                                 aria-hidden="true"
                             >
                                 {action.label}
+                                {/* On a Mac the key shown is Control:
+                                    with Command, some letters are the
+                                    system's own (⌘M puts the window
+                                    away) and never reach the page. */}
                                 {action.shortcut &&
-                                    ` · ${mac ? "⌘" : "Ctrl+"}${shortcutKey(
+                                    ` · ${mac ? "⌃" : "Ctrl+"}${shortcutKey(
                                         action.shortcut
                                     )}`}
                             </span>

@@ -4,7 +4,7 @@ import { worldDocument } from "@features/worlds/worldDocument";
 import { createContext, useContext, useState } from "react";
 
 interface HomeContextState {
-    toggleAuth: () => void;
+    toggleAuth: (open?: boolean) => void;
     isAuthShowing: boolean;
     openedMenu: "" | "search" | "menu" | "filter";
     handleToggle: (type: any) => void;
@@ -38,10 +38,11 @@ export default function HomeProvider({
 
     const { toggle: toggleSignIn, isShowing: isAuthShowing } = useModal();
     // In the site's frame, signing in is the page's: the world asks for it.
-    const toggleAuth = () => {
+    // Callers may say which way (`toggleAuth(true)` opens, never closes).
+    const toggleAuth = (open?: boolean) => {
         const framed = worldDocument();
-        if (framed) framed.send("sign-in");
-        else toggleSignIn();
+        if (!framed) toggleSignIn(open);
+        else if (open !== false) framed.send("sign-in");
     };
 
     function handleToggle(type) {

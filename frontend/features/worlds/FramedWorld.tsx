@@ -4,70 +4,40 @@ import { useRouter } from "next/router";
 import { baseTokens } from "@styles/tokens";
 import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
-import { presentAccount } from "@features/games/accountIdentity";
-import { BEAT_EVERY_MS, createStallWatch } from "@features/games/frameStall";
-import { RoomVoice } from "@features/games/roomVoice";
 import {
-    publicExperienceHref,
+    publicPageHref,
     replaceExperienceLocation,
 } from "@utils/experienceLocation";
-import { useGameLoading } from "@features/games/GameLoadingCover";
-import { fromFrame, frameTarget } from "@features/games/frameOrigin";
-import {
-    GAME_MESSAGE_PREFIX,
-    readGameMessage,
-} from "@features/games/gameContract";
-import { WORLD_GAME_ID } from "./worldDocument";
-import { readWorldLocation, worldSpaceId } from "./worldLocation";
-import type { RoomIdentity } from "./roomRelay";
-import {
-    CONNECTION_ACTION,
-    readDock,
-    readDockConnection,
-    VOICE_ACTION,
-    type DockAction,
-    type DockConnection,
-} from "./worldDock";
-import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
-import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
-import { hostWorldLive } from "./worldLiveHost";
-import { LIVE_MESSAGE } from "./relayedLive";
-import { deferred, liveSpace } from "@utils/liveSpace";
-import { sayLoadStage } from "@utils/loadTimings";
-import { guestId } from "@utils/guestIdentity";
-import { setFramedWorldLock } from "./worldPointer";
-import {
-    readWorldFile,
-    readWorldLink,
-    type WorldFile,
-    type WorldLink,
-} from "./worldLinks";
-import { HomeContext } from "@components/context/HomeContext";
-import {
-    failLobbyDestination,
-    isLobbyDestination,
-    relayLobbyDestination,
-} from "@utils/lobbyDestinationBridge";
-import { readPreviewOption } from "@features/lobby/lobbyPreviewOptions";
-import { worldAccount, worldVisitorMessage } from "./worldVisitor";
+import { failLobbyDestination } from "@utils/lobbyDestinationBridge";
+import { SignInSheetContext } from "@ui/components/ConnectWallet/SignInSheetHost";
 import {
     offersAiSidebar,
     setWorldScripts,
     useWorldScripts,
     WORLD_SCRIPTS_ENABLED,
 } from "@features/world-scripts/store";
-import {
-    SCRIPT_MESSAGE,
-    type RemoteRuntime,
-} from "@features/world-scripts/runtimeRelay";
+import type { RemoteRuntime } from "@features/world-scripts/runtimeRelay";
 import type { PageScriptSpace } from "@features/world-scripts/PageWorldScripts";
-import { answerWorldAccount } from "./worldAccountHost";
+import { readWorldLocation, worldSpaceId } from "./worldLocation";
 import {
-    WORLD_PERMISSIONS,
-    WORLD_SANDBOX,
-    worldFrameUrl,
-    type WorldFrame,
-} from "./worldFrame";
+    CONNECTION_ACTION,
+    VOICE_ACTION,
+    type DockAction,
+    type DockConnection,
+} from "./worldDock";
+import type { WorldVoiceView } from "./worldVoiceHost";
+import type { WorldFrame } from "./worldFrame";
+import { worldSrc } from "./worldAddress";
+import {
+    createPageAuthority,
+    type PageAuthority,
+    type PageSession,
+} from "./pageAuthority";
+import { usePageVisitor } from "./usePageVisitor";
+import { useWorldOffers } from "./useWorldOffers";
+import WorldFrameView, { type WorldControls } from "./WorldFrameView";
+
+export { WORLD_LOAD_TIMEOUT_MS } from "./WorldFrameView";
 
 // The AI sidebar and its account calls, for a space that has world scripts
 // on (features/world-scripts): the page's, like everything with a session.
@@ -75,31 +45,6 @@ const PageWorldScripts = dynamic(
     () => import("@features/world-scripts/PageWorldScripts"),
     { ssr: false }
 );
-
-/**
- * The world's address for this page's. Inside the lobby, the travel options
- * the lobby was opened with go along: the world cannot read them from the
- * lobby's address as an unframed space does.
- */
-function worldSrc(path: string, frame: WorldFrame) {
-    const url = new URL(worldFrameUrl(path, frame));
-    if (isLobbyDestination())
-        for (const name of ["travel", "reveal", "departure"]) {
-            const value = readPreviewOption(name);
-            if (value && !url.searchParams.has(name))
-                url.searchParams.set(name, value);
-        }
-    return url.href;
-}
-
-/** How long the page offers a link the world asked to open. */
-const LINK_OFFER_MS = 15_000;
-/**
- * A world still loading that has said nothing for this long is taken as
- * failed. A big world on a slow line may load for longer than this; it
- * reports its progress as it goes, and each report starts the wait again.
- */
-export const WORLD_LOAD_TIMEOUT_MS = 120_000;
 
 /**
  * A native world in a frame (docs/plans/framed-worlds.md). The page keeps
@@ -126,44 +71,29 @@ export default function FramedWorld({
     scripts?: PageScriptSpace | null;
 }) {
     const router = useRouter();
-    // Each attempt is a new frame with a new cover.
+    // Each attempt is a new frame.
     const [attempt, setAttempt] = useState(0);
     const [failed, setFailed] = useState(false);
     // The world drew and has since gone silent: its thread hangs or died.
     // The page, the room and voice carry on; the visitor is told.
     const [stalled, setStalled] = useState(false);
-    // A link the world asks to open. The page says where it goes and opens
-    // it on the visitor's own click, never on the world's word.
-    const [link, setLink] = useState<WorldLink | null>(null);
-    useEffect(() => {
-        if (!link) return;
-        const timer = setTimeout(() => setLink(null), LINK_OFFER_MS);
-        return () => clearTimeout(timer);
-    }, [link]);
-    // A file the world made (a photo): a frame cannot save one, so the
-    // page offers to, the same way.
-    const [file, setFile] = useState<WorldFile | null>(null);
-    useEffect(() => {
-        if (!file) return;
-        const timer = setTimeout(() => setFile(null), LINK_OFFER_MS);
-        return () => clearTimeout(timer);
-    }, [file]);
-    const saveFile = () => {
-        if (!file) return;
-        const address = URL.createObjectURL(file.file);
-        const anchor = document.createElement("a");
-        anchor.href = address;
-        anchor.download = file.name;
-        anchor.click();
-        setTimeout(() => URL.revokeObjectURL(address), 10_000);
-        setFile(null);
-    };
+    // A link the world asks to open, a file it made: offered, and done on
+    // the visitor's own click (./useWorldOffers).
+    const offers = useWorldOffers();
     // Signing in is the page's: a world that wants it asks.
-    const dialogs = useContext(HomeContext);
+    // The app's one sign-in sheet (the space page has no dialogs of its own).
+    const sheet = useContext(SignInSheetContext);
+    const closeSignIn = useRef<(() => void) | null>(null);
     const signIn = () => {
-        if (!isSignedIn && dialogs && !dialogs.isAuthShowing)
-            dialogs.toggleAuth();
+        if (isSignedIn || closeSignIn.current || !sheet) return;
+        closeSignIn.current = sheet.open({
+            toggle: () => {
+                closeSignIn.current = null;
+            },
+        });
     };
+    useEffect(() => () => closeSignIn.current?.(), []);
+    const { token, user, userData, isSignedIn } = useContext(UserContext);
     const visitor = usePageVisitor(gate);
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
@@ -176,14 +106,25 @@ export default function FramedWorld({
     // World scripts: the script runs in the world, the sidebar is here.
     const scriptRuntime = useRef<RemoteRuntime | null>(null);
     const worldScripts = useWorldScripts();
-    const reload = () => {
+    const restart = () => {
         setFailed(false);
         setStalled(false);
-        setLink(null);
-        setFile(null);
+        offers.clear();
         setDock([]);
         setConnection(null);
         setAttempt((count) => count + 1);
+    };
+    const reload = () => {
+        // After a portal the world is in a space this page did not open,
+        // while the frame's address is still the first one. Opening the
+        // address the bar shows makes that space the page's own (its
+        // header, its session, its scripts); loading the frame again
+        // would put the world back in the first under the second's name.
+        if (elsewhere)
+            return void router.replace(
+                window.location.pathname + window.location.search
+            );
+        restart();
     };
     // The microphone is the page's. Once the world's rules let this visitor
     // speak, the button is the page's own; until then it is the world's
@@ -248,55 +189,33 @@ export default function FramedWorld({
             )
         );
     };
-    // Who the page joins a room as. The session is lent only to the room
-    // of the space this page opened: a room reached through a portal inside
-    // the frame is joined by name alone.
-    const { token, user, userData, isSignedIn } = useContext(UserContext);
-    const identify = async (label: string): Promise<RoomIdentity> => {
-        if (!isSignedIn || !user?.id)
-            return {
-                userId: guestId(),
-                token: "",
-            };
-        const here = (await worldSpaceId({ link: label })) === spaceId;
-        return {
-            userId: user.id,
-            token: here ? token : "",
-            username: userData?.username,
-        };
+    // What the page does for the world with its visitor's account, and
+    // for which space (./pageAuthority).
+    const session = useRef<PageSession>(null);
+    session.current = {
+        signedIn: !!isSignedIn,
+        userId: user?.id || "",
+        token: token || "",
+        username: userData?.username,
     };
-    // Whether this visitor moderates the space, asked by the world: only
-    // for the space this page opened, as with the session.
-    const moderates = async (label: unknown) => {
-        if (!isSignedIn || typeof label !== "string" || label.length > 200)
-            return false;
-        if ((await worldSpaceId({ link: label })) !== spaceId) return false;
-        try {
-            const { default: SocialApi } = await import("@api/social/_api");
-            return (await SocialApi.isMod({ slug: label })) === true;
-        } catch {
-            return false;
-        }
-    };
-    // What a world may do with the account, done by the page with its own
-    // session (./accountRelay).
-    const account = (name: unknown, data: unknown) =>
-        answerWorldAccount(name, data, {
-            signedIn: !!isSignedIn && !!user?.id,
-            spaceId,
-            origin: window.location.origin,
-            rpc: async (route, method, params, options) =>
-                (await import("@utils/rpc/client")).invokeRemoteRpcMethod(
-                    route,
-                    method,
-                    params,
-                    options
-                ),
-            request: (input, init) => fetch(input, init),
-        });
+    const authority = useRef<PageAuthority>(null);
+    authority.current ||= createPageAuthority(spaceId, () => session.current);
     const travel = (href: unknown) => {
-        const to = publicExperienceHref(href, window.location.origin);
-        if (to) void router.push(to);
+        // Only ever to a page: an address that acts when it is opened is
+        // not somewhere a world sends its visitor.
+        const to = publicPageHref(href, window.location.origin);
+        if (!to) return;
+        // Back to the space this page opened, from where a portal led:
+        // the route is already this one, so the frame is what goes back.
+        if (
+            elsewhere &&
+            new URL(to, window.location.origin).pathname === home.current
+        ) {
+            replaceExperienceLocation(to);
+            setElsewhere(null);
+            return restart();
+        }
+        void router.push(to);
     };
     // The AI sidebar's button is the page's own, beside the world's: for
     // an editor of this space in early access, while the world is in it.
@@ -346,34 +265,21 @@ export default function FramedWorld({
                 onVisitorChanged={reload}
                 onLocation={follow}
                 onTravel={travel}
-                identify={identify}
-                moderates={moderates}
-                account={account}
+                identify={(label) => authority.current.identify(label)}
+                moderates={(label) => authority.current.moderates(label)}
+                account={(name, data) => authority.current.account(name, data)}
                 onDock={(actions, line) => {
                     setDock(actions);
                     setConnection(line);
                 }}
                 onVoice={setVoice}
                 onStalled={setStalled}
-                onFile={(message) => {
-                    const next = readWorldFile(message);
-                    if (!next) return;
-                    // The newest ask is the one on offer.
-                    setLink(null);
-                    setFile(next);
-                }}
+                onFile={offers.offerFile}
                 onSignIn={signIn}
                 onScript={(kind, data) =>
                     scriptRuntime.current?.receive(kind, data)
                 }
-                onLink={(href) => {
-                    // What is not a web address is not offered, and does
-                    // not take an offer away.
-                    const next = readWorldLink(href, window.location.origin);
-                    if (!next) return;
-                    setFile(null);
-                    setLink(next);
-                }}
+                onLink={offers.offerLink}
                 controls={world}
             />
             {scripted && (
@@ -421,432 +327,13 @@ export default function FramedWorld({
                               message: "This world stopped responding.",
                               onRetry: reload,
                           }
-                        : link
-                        ? {
-                              message: `Open ${link.host} in a new tab?`,
-                              actionLabel: "Open link",
-                              onRetry: () => {
-                                  window.open(
-                                      link.href,
-                                      "_blank",
-                                      "noopener,noreferrer"
-                                  );
-                                  setLink(null);
-                              },
-                          }
-                        : file
-                        ? {
-                              message: `Save ${file.name}?`,
-                              actionLabel: "Save",
-                              onRetry: saveFile,
-                          }
+                        : offers.offer
+                        ? offers.offer
                         : voice?.error
                         ? { message: voice.error }
                         : undefined
                 }
             />
         </main>
-    );
-}
-
-/** What the page's dock does to the world in the frame. */
-interface WorldControls {
-    press(id: string): void;
-    toggleVoice(): void;
-    /** Any other message to the world. */
-    send(kind: string, data: object): void;
-}
-
-/**
- * The visitor as the page presents them to a world: null until the account
- * and its avatar have been read. The same object until one of them changes.
- */
-function usePageVisitor(gate?: { type: string }) {
-    const { userData, user, isSignedIn } = useContext(UserContext);
-    const [visitor, setVisitor] = useState<{
-        key: string;
-        message: object;
-    } | null>(null);
-    const account = isSignedIn ? userData : null;
-    useEffect(() => {
-        let cancelled = false;
-        void presentAccount(account).then((presentation) => {
-            if (cancelled) return;
-            const message = worldVisitorMessage(
-                !!account,
-                presentation,
-                account?.settings?.default_vrm_scale,
-                {
-                    account: worldAccount(user?.id, account),
-                    gate,
-                    guestId: guestId(),
-                }
-            );
-            const key = JSON.stringify(message);
-            setVisitor((current) =>
-                current?.key === key ? current : { key, message }
-            );
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [
-        isSignedIn,
-        account?.username,
-        account?.avatar,
-        account?.settings?.vrm,
-        account?.settings?.default_vrm_scale,
-        user?.id,
-        gate?.type,
-    ]);
-    return visitor;
-}
-
-function WorldFrameView({
-    title,
-    spaceId,
-    src,
-    frame,
-    visitor,
-    onFailed,
-    onLoaded,
-    onVisitorChanged,
-    onLocation,
-    onTravel,
-    identify,
-    moderates,
-    account,
-    onDock,
-    onVoice,
-    onStalled,
-    onLink,
-    onFile,
-    onSignIn,
-    onScript,
-    controls,
-}: {
-    title: string;
-    /** The space this page opened. */
-    spaceId: string;
-    src: string;
-    frame: WorldFrame;
-    visitor: { message: object } | null;
-    onFailed(): void;
-    /** The world has drawn. */
-    onLoaded(): void;
-    /** The world was told one visitor and the page now has another. */
-    onVisitorChanged(): void;
-    /** The world's address changed, and the title it gives the place. */
-    onLocation(href: unknown, title: unknown): void;
-    /** The world asks to go somewhere else on the site. */
-    onTravel(href: unknown): void;
-    /** Who the page joins a room as, for the world's room. */
-    identify(label: string): Promise<RoomIdentity>;
-    /** Whether the page's visitor moderates the space with this label. */
-    moderates(label: unknown): Promise<boolean>;
-    /** An account call the world asks the page to make. */
-    account(name: unknown, data: unknown): Promise<unknown>;
-    /** The buttons the world has for the dock. */
-    onDock(actions: DockAction[], connection: DockConnection | null): void;
-    /** The page's voice in the world's room; null while it is in none. */
-    onVoice(voice: WorldVoiceView | null): void;
-    /** The world made a file and asks for it to be saved. */
-    onFile(message: unknown): void;
-    /** The world asks for the sign-in dialog. */
-    onSignIn(): void;
-    /** What the world's script runtime says (features/world-scripts). */
-    onScript(kind: string, data: unknown): void;
-    /** The world asks for a link to be opened in a new tab. */
-    onLink(href: unknown): void;
-    /** The world went silent after it had drawn, or came back. */
-    onStalled(stalled: boolean): void;
-    controls: { current: WorldControls | null };
-}) {
-    const element = useRef<HTMLIFrameElement>(null);
-    const loading = useGameLoading(WORLD_GAME_ID, element, frame.world);
-    const failed = useRef(onFailed);
-    failed.current = onFailed;
-    const recovered = useRef(onLoaded);
-    recovered.current = onLoaded;
-
-    // The world says hello until the page answers with its visitor: public
-    // fields only (./worldVisitor). The world starts once it has them.
-    const present = useRef(visitor);
-    present.current = visitor;
-    const handlers = useRef({
-        onLocation,
-        onTravel,
-        identify,
-        moderates,
-        account,
-        onDock,
-        onVoice,
-        onStalled,
-        onLink,
-        onFile,
-        onSignIn,
-        onScript,
-    });
-    handlers.current = {
-        onLocation,
-        onTravel,
-        identify,
-        moderates,
-        account,
-        onDock,
-        onVoice,
-        onStalled,
-        onLink,
-        onFile,
-        onSignIn,
-        onScript,
-    };
-    // A world that has drawn says it is alive about once a second; silence
-    // while this page is in view means it has stopped.
-    const stall = useRef<ReturnType<typeof createStallWatch>>();
-    stall.current ||= createStallWatch();
-    useEffect(() => {
-        const watch = stall.current;
-        let said = false;
-        const hidden = () => watch.setHidden(document.hidden);
-        hidden();
-        document.addEventListener("visibilitychange", hidden);
-        const timer = setInterval(() => {
-            if (watch.stalled() === said) return;
-            said = !said;
-            handlers.current.onStalled(said);
-        }, BEAT_EVERY_MS);
-        return () => {
-            clearInterval(timer);
-            document.removeEventListener("visibilitychange", hidden);
-        };
-    }, []);
-    // The world's room: the page holds the connection and relays it
-    // (./roomRelay), so the session that joins it never enters the frame.
-    const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
-    // The space's live channels (edits as they are saved, editor actions)
-    // are the page's too: the world loads no Firebase (./relayedLive).
-    const live = useRef<ReturnType<typeof hostWorldLive> | null>(null);
-    const drawn = useRef<{ promise: Promise<void>; resolve(): void }>();
-    if (!drawn.current) {
-        let resolve = () => {};
-        const promise = new Promise<void>((done) => (resolve = done));
-        drawn.current = { promise, resolve };
-    }
-    const voice = useRef<ReturnType<typeof hostWorldVoice> | null>(null);
-    useEffect(() => {
-        const post = (kind: string, data: object) =>
-            element.current?.contentWindow?.postMessage(
-                { ...data, type: GAME_MESSAGE_PREFIX + kind },
-                frameTarget(frame.world)
-            );
-        // Voice is the page's, in the room it holds, doing what the world's
-        // voice rules say (./worldVoiceHost). A microphone goes on only
-        // from the page's own button.
-        const voiceIn = (held: HostedRoom | null) => {
-            voice.current?.dispose();
-            voice.current = null;
-            if (!held) return handlers.current.onVoice(null);
-            voice.current = hostWorldVoice({
-                create: (options) => new RoomVoice(held as any, options),
-                post,
-                onChange: (view) => handlers.current.onVoice(view),
-            });
-        };
-        controls.current = {
-            // Nothing is said to the frame before the world has spoken:
-            // until its document is in, the frame holds an empty one of
-            // this page's own origin, and a message addressed to the world
-            // is refused there. The world announces itself when it is up.
-            send: (kind, data) => {
-                if (told.current) post(kind, data);
-            },
-            press(id) {
-                post("dock-press", { id });
-                element.current?.focus();
-            },
-            toggleVoice() {
-                // Not the visitor's to turn on yet: the world answers.
-                if (!voice.current?.press())
-                    post("dock-press", { id: VOICE_ACTION });
-                element.current?.focus();
-            },
-        };
-        const host = hostWorldRoom({
-            post,
-            onRoom: voiceIn,
-            identify: (label) => handlers.current.identify(label),
-            join: async (body, signal) => {
-                const { requestSeat, takeSeat } = await import(
-                    "@utils/arena/join"
-                );
-                const { reservation } = await requestSeat(body, { signal });
-                return takeSeat(reservation);
-            },
-        });
-        room.current = host;
-        live.current = hostWorldLive({
-            post,
-            spaceId,
-            // Firebase loads once the world has drawn: its channels are for
-            // what changes during a visit, and a loading world should
-            // have the line to itself.
-            live: () => deferred(drawn.current.promise.then(liveSpace)),
-        });
-        return () => {
-            host.dispose();
-            live.current?.dispose();
-            live.current = null;
-            voice.current?.dispose();
-            voice.current = null;
-            controls.current = null;
-        };
-    }, [frame.world]);
-    const told = useRef<object | null>(null);
-    const asked = useRef(false);
-    useEffect(() => {
-        const receive = (event: MessageEvent) => {
-            if (!fromFrame(event, element.current, frame.world)) return;
-            const kind = readGameMessage(event.data?.type, WORLD_GAME_ID)?.kind;
-            if (kind?.startsWith("room-"))
-                return room.current?.receive(kind, event.data);
-            if (kind?.startsWith("voice-"))
-                return voice.current?.receive(kind, event.data);
-            if (kind?.startsWith(LIVE_MESSAGE))
-                return live.current?.receive(kind, event.data);
-            if (kind === "ask") {
-                // What only the page can know, because it holds the account.
-                const { n, name, label } = event.data;
-                const answer = (value: unknown) =>
-                    element.current?.contentWindow?.postMessage(
-                        { type: `${GAME_MESSAGE_PREFIX}answer`, n, value },
-                        frameTarget(frame.world)
-                    );
-                if (name === "moderator")
-                    void handlers.current.moderates(label).then(answer);
-                else if (name === "rpc" || name === "api")
-                    void handlers.current
-                        .account(name, event.data)
-                        .then(answer, () => answer(undefined));
-                else answer(undefined);
-                return;
-            }
-            if (kind === "alive") return stall.current.beat();
-            if (kind?.startsWith(SCRIPT_MESSAGE))
-                return handlers.current.onScript(kind, event.data);
-            if (kind === "download") return handlers.current.onFile(event.data);
-            if (kind === "sign-in") return handlers.current.onSignIn();
-            if (kind === "open-link")
-                return handlers.current.onLink(event.data.href);
-            if (kind === "pointer-lock")
-                return setFramedWorldLock(event.data.locked === true);
-            if (kind === "dock")
-                return handlers.current.onDock(
-                    readDock(event.data),
-                    readDockConnection(event.data)
-                );
-            if (kind === "location")
-                return handlers.current.onLocation(
-                    event.data.href,
-                    event.data.title
-                );
-            if (kind === "travel")
-                return handlers.current.onTravel(event.data.href);
-            if (kind !== "hello") return;
-            if (!present.current) {
-                // Still working out who is visiting: the world asks again.
-                if (!asked.current)
-                    sayLoadStage("page", "world-asked-before-visitor-known");
-                asked.current = true;
-                return;
-            }
-            if (!told.current) sayLoadStage("page", "told-world-its-visitor");
-            told.current = present.current;
-            element.current?.contentWindow?.postMessage(
-                {
-                    ...present.current.message,
-                    type: `${GAME_MESSAGE_PREFIX}identity`,
-                },
-                frameTarget(frame.world)
-            );
-        };
-        window.addEventListener("message", receive);
-        return () => {
-            window.removeEventListener("message", receive);
-            setFramedWorldLock(false);
-        };
-    }, [frame.world]);
-
-    // Signing in or out, or a new avatar, after the world started: the
-    // world starts again as that visitor.
-    const changed = useRef(onVisitorChanged);
-    changed.current = onVisitorChanged;
-    useEffect(() => {
-        if (told.current && visitor && told.current !== visitor)
-            changed.current();
-    }, [visitor]);
-
-    // Reached from the lobby, the journey is the world's: the lobby's
-    // commands go down to it and its answers go up (utils/lobbyDestinationBridge).
-    useEffect(
-        () =>
-            relayLobbyDestination(
-                () => element.current?.contentWindow,
-                frame.world
-            ),
-        [frame.world]
-    );
-
-    // Any word from the world while it loads: it is alive and working.
-    const heard = useRef(0);
-    const began = useRef(0);
-    const [quiet, setQuiet] = useState(0);
-    useEffect(() => {
-        const receive = (event: MessageEvent) => {
-            if (fromFrame(event, element.current, frame.world))
-                heard.current = Date.now();
-        };
-        window.addEventListener("message", receive);
-        return () => window.removeEventListener("message", receive);
-    }, [frame.world]);
-    useEffect(() => {
-        if (loading.phase !== "loading") {
-            drawn.current.resolve();
-            sayLoadStage("page", `world-${loading.phase}`);
-        }
-        if (loading.phase === "failed") return failed.current();
-        // Drawn after all: a notice that it did not load no longer holds.
-        if (loading.phase !== "loading") return recovered.current();
-        // From the last word heard, or from when loading began.
-        began.current ||= Date.now();
-        const from = Math.max(heard.current, began.current);
-        const timer = setTimeout(() => {
-            if (heard.current > from) setQuiet((count) => count + 1);
-            else failed.current();
-        }, Math.max(0, from + WORLD_LOAD_TIMEOUT_MS - Date.now()));
-        return () => clearTimeout(timer);
-    }, [loading.phase, quiet]);
-
-    return (
-        <>
-            <iframe
-                ref={element}
-                src={src}
-                title={title}
-                sandbox={WORLD_SANDBOX}
-                allow={WORLD_PERMISSIONS}
-                referrerPolicy="no-referrer"
-                data-machine="game-loading"
-                data-state={loading.phase}
-                style={{
-                    width: "100%",
-                    height: "100%",
-                    border: 0,
-                    display: "block",
-                }}
-            />
-            {/* No cover: a world draws its own loading animation, and the
-                visitor sees it as they always have. */}
-        </>
     );
 }

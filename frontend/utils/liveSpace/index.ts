@@ -80,6 +80,13 @@ let live: LiveSpace | undefined;
 export function liveSpace(): LiveSpace {
     if (live) return live;
     const page = worldDocument();
-    live = page ? relayedLiveSpace(page) : deferred(loadFirebase());
-    return live;
+    if (page) return (live = relayedLiveSpace(page));
+    const loading = loadFirebase();
+    const channels = (live = deferred(loading));
+    // A load that failed (a dropped connection while the code was fetched)
+    // is tried again by whoever asks next, not remembered for the page.
+    loading.catch(() => {
+        if (live === channels) live = undefined;
+    });
+    return channels;
 }

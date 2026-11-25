@@ -1,5 +1,11 @@
 /** @jest-environment node */
-import { relayedRoute, relayedRpc, relayedSettings } from "./accountRelay";
+import {
+    askedSpace,
+    relayedRoute,
+    relayedRpc,
+    relayedSettings,
+    relayedSpaceEdit,
+} from "./accountRelay";
 import { answerWorldAccount, type WorldAccountHost } from "./worldAccountHost";
 
 const origin = "https://www.oncyber.com";
@@ -70,11 +76,68 @@ describe("what a framed world may do with its visitor's account", () => {
     });
 });
 
+describe("the edits a world may save to the space the page opened", () => {
+    test("one piece at a time: an artwork, a portal, a kit part", () => {
+        for (const payload of [
+            { FIRESTORE_ADD_ASSET: true, assetId: "a", asset: {} },
+            { FIRESTORE_REPLACE_ASSET: true, assetId: "a", asset: {} },
+            { FIRESTORE_UPDATE_ASSET: true, assetId: "a", update: {} },
+            { FIRESTORE_DELETE_ASSET: true, assetId: "a" },
+            { FIRESTORE_UPDATE_PORTAL: true, portalId: "p", update: {} },
+            { FIRESTORE_DELETE_PORTAL: true, portalId: "p" },
+            { FIRESTORE_RESET_KITBASH: true, data: {} },
+            { FIRESTORE_UPDATE_KITBASH: true, id: "k", update: {} },
+            { FIRESTORE_DELETE_KITBASH: true, id: "k" },
+        ])
+            expect(relayedSpaceEdit({ payload })).toBe(true);
+    });
+
+    test("never who edits it, its gate, its address or its script", () => {
+        for (const payload of [
+            // the path update writes any field
+            { FIRESTORE_UPDATE_Field: true, update: { editors: ["0xbad"] } },
+            { FIRESTORE_UPDATE_Field: true, update: { gating: null } },
+            { FIRESTORE_UPDATE_Field: true, update: { worldScripts: {} } },
+            // one riding along with an edit that is allowed
+            {
+                FIRESTORE_UPDATE_ASSET: true,
+                FIRESTORE_UPDATE_Field: true,
+                assetId: "a",
+                update: { editors: ["0xbad"] },
+            },
+            // a field that edit does not carry
+            { FIRESTORE_DELETE_ASSET: true, assetId: "a", editors: [] },
+            { FIRESTORE_DELETE_ASSET: "yes", assetId: "a" },
+            { editors: ["0xbad"] },
+            {},
+            [],
+        ])
+            expect(relayedSpaceEdit({ payload })).toBe(false);
+        expect(relayedSpaceEdit(null)).toBe(false);
+        expect(relayedSpaceEdit({})).toBe(false);
+    });
+
+    test("which space a call asks about", () => {
+        const social = "/api/_v2/social";
+        expect(askedSpace(social, "checkGating", [{ spaceId: "abc" }])).toBe(
+            "abc"
+        );
+        expect(askedSpace(social, "isMod", [{ slug: "ada" }])).toBe("ada");
+        // one that names none is about no space the page knows
+        expect(askedSpace(social, "isMod", [{}])).toBe("");
+        expect(askedSpace(social, "checkGating", [])).toBe("");
+        // calls that are not about a space
+        expect(askedSpace(social, "storage", [{}])).toBeNull();
+        expect(askedSpace("/api/_v2/vrm", "getVrms", [{}])).toBeNull();
+    });
+});
+
 describe("the page's answers", () => {
     const host = (more: Partial<WorldAccountHost> = {}): WorldAccountHost => ({
         signedIn: true,
         spaceId: "abc",
         origin,
+        opened: jest.fn(async (label: string) => label === "abc"),
         rpc: jest.fn(async () => ({ list: [1] })),
         request: jest.fn(async () => ({
             status: 200,
@@ -103,6 +166,38 @@ describe("the page's answers", () => {
             [{ spaceId: "abc" }],
             { encode: true }
         );
+    });
+
+    test("what the session alone earns is for the space the page opened", async () => {
+        const pass = { type: "success", proof: "signed-pass" };
+        const page = host({ rpc: jest.fn(async () => pass) });
+        const ask = (method: string, params: unknown[]) =>
+            answerWorldAccount(
+                "rpc",
+                { route: "/api/_v2/social", method, params },
+                page
+            );
+        // The opened space: the answer as it came.
+        expect(await ask("checkGating", [{ spaceId: "abc" }])).toEqual({
+            ok: true,
+            value: pass,
+        });
+        // Another space: let in, without the pass the account earns there.
+        expect(await ask("checkGating", [{ spaceId: "other" }])).toEqual({
+            ok: true,
+            value: { type: "success", proof: undefined },
+        });
+        // With the password the visitor typed, the pass is theirs anyway.
+        expect(
+            await ask("checkGating", [{ spaceId: "other", password: "pw" }])
+        ).toEqual({ ok: true, value: pass });
+        // Moderating another space is not a world's to learn, or to ask.
+        (page.rpc as jest.Mock).mockClear();
+        expect(await ask("isMod", [{ slug: "other" }])).toEqual({
+            ok: true,
+            value: false,
+        });
+        expect(page.rpc).not.toHaveBeenCalled();
     });
 
     test("a call that is not allowed is never made", async () => {
@@ -176,13 +271,32 @@ describe("the page's answers", () => {
                 page
             )
         ).toEqual(refused);
+        // The opened space, but an edit to who may edit it.
+        expect(
+            await answerWorldAccount(
+                "api",
+                {
+                    url: "/api/exhibit?id=abc&type=UPDATE_EXHIBIT",
+                    method: "POST",
+                    body: JSON.stringify({
+                        payload: {
+                            FIRESTORE_UPDATE_Field: true,
+                            update: { editors: ["0xmallory"] },
+                        },
+                    }),
+                },
+                page
+            )
+        ).toEqual(refused);
         expect(page.request).not.toHaveBeenCalled();
         await answerWorldAccount(
             "api",
             {
                 url: "/api/exhibit?id=abc&type=UPDATE_EXHIBIT",
                 method: "POST",
-                body: "{}",
+                body: JSON.stringify({
+                    payload: { FIRESTORE_DELETE_ASSET: true, assetId: "a" },
+                }),
             },
             page
         );
@@ -197,7 +311,10 @@ describe("the page's answers", () => {
                 url: "/api/exhibit?id=abc&type=UPDATE_EXHIBIT",
                 method: "POST",
                 contentType: "text/plain;charset=UTF-8",
-                body: JSON.stringify({ token: "page", payload: { a: 1 } }),
+                body: JSON.stringify({
+                    token: "page",
+                    payload: { FIRESTORE_DELETE_ASSET: true, assetId: "a" },
+                }),
             },
             page
         );
@@ -207,7 +324,9 @@ describe("the page's answers", () => {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=UTF-8" },
                 credentials: "include",
-                body: JSON.stringify({ payload: { a: 1 } }),
+                body: JSON.stringify({
+                    payload: { FIRESTORE_DELETE_ASSET: true, assetId: "a" },
+                }),
             }
         );
     });

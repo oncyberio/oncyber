@@ -6,10 +6,12 @@ import { readWorldFrame } from "./worldFrame";
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock("next/router", () => ({
     useRouter: () => ({
         asPath: "/spaces/abc?coords=1x2x3x0",
         push: mockPush,
+        replace: mockReplace,
     }),
 }));
 // The page's chrome is its own component with its own tests; here it shows
@@ -106,6 +108,8 @@ jest.mock("@api/social/_api", () => ({
 
 import { UserContext } from "@components/context/UserContext";
 import FramedWorld, { WORLD_LOAD_TIMEOUT_MS } from "./FramedWorld";
+import { LATE_VISITOR_MS } from "./WorldFrameView";
+import { SignInSheetContext } from "@ui/components/ConnectWallet/SignInSheetHost";
 
 const frame = readWorldFrame(
     "https://worlds.example",
@@ -140,13 +144,27 @@ const fromWorld = (
         );
     });
 
+// The app's one sign-in sheet, as the page asks for it.
+const mockSheetOpen = jest.fn();
+const sheet = {
+    show: jest.fn(),
+    hide: jest.fn(),
+    open: (...args: unknown[]) => mockSheetOpen(...args),
+};
+
 /** Renders the page for the account as it is now, and lets it be read. */
 const render = async () => {
     await act(async () =>
         root.render(
-            <UserContext.Provider value={account as any}>
-                <FramedWorld title="Starry Night" spaceId="abc" frame={frame} />
-            </UserContext.Provider>
+            <SignInSheetContext.Provider value={sheet}>
+                <UserContext.Provider value={account as any}>
+                    <FramedWorld
+                        title="Starry Night"
+                        spaceId="abc"
+                        frame={frame}
+                    />
+                </UserContext.Provider>
+            </SignInSheetContext.Provider>
         )
     );
 };
@@ -159,6 +177,8 @@ const shown = () => host.querySelector("[data-title]")!.textContent;
 beforeEach(async () => {
     jest.useFakeTimers();
     mockPush.mockReset();
+    mockReplace.mockReset();
+    mockSheetOpen.mockReset().mockReturnValue(() => {});
     window.history.replaceState(null, "", "/spaces/abc?coords=1x2x3x0");
     (globalThis as any).fetch = jest.fn(async () => ({
         ok: true,
@@ -266,6 +286,57 @@ test("signing in after the world started starts it again as that visitor", async
     listen();
     hello();
     expect(sent[0].message).toMatchObject({ guest: false, name: "ada" });
+});
+
+describe("a world that asks before the page knows its visitor", () => {
+    const { resolveLobbyAvatar } = jest.requireMock(
+        "@features/lobby/avatarSelection"
+    );
+    let known: () => Promise<void>;
+    // A page whose avatar lookup has not answered yet.
+    beforeEach(async () => {
+        act(() => root.unmount());
+        root = createRoot(host);
+        let answer: (avatar: object) => void;
+        resolveLobbyAvatar.mockImplementationOnce(
+            () => new Promise((resolve) => (answer = resolve))
+        );
+        await render();
+        listen();
+        known = () =>
+            act(async () =>
+                answer({ id: "square", name: "Square", url: "/a.vrm" })
+            );
+    });
+
+    test("is told as soon as the page knows, while it is still asking", async () => {
+        const first = element();
+        hello();
+        expect(sent).toHaveLength(0);
+        await known();
+        hello();
+        expect(sent[0].message).toMatchObject({ guest: true });
+        act(() => void jest.advanceTimersByTime(LATE_VISITOR_MS * 2));
+        expect(element()).toBe(first);
+    });
+
+    test("starts again once the page knows, when it had given up and started without one", async () => {
+        const first = element();
+        hello();
+        await known();
+        // No more hellos: the world stopped asking.
+        act(() => void jest.advanceTimersByTime(LATE_VISITOR_MS - 1));
+        expect(element()).toBe(first);
+        act(() => void jest.advanceTimersByTime(2));
+        expect(element()).not.toBe(first);
+    });
+
+    test("a world that never asked is left alone", async () => {
+        const first = element();
+        await known();
+        act(() => void jest.advanceTimersByTime(LATE_VISITOR_MS * 2));
+        expect(element()).toBe(first);
+    });
 });
 
 test("a visitor who has not changed leaves the world running", async () => {
@@ -410,6 +481,89 @@ test("travel the world asks for is done by the page, on this site only", () => {
     });
     fromWorld({ type: "oncyber:game:travel", href: "//elsewhere.example" });
     expect(mockPush).toHaveBeenCalledTimes(1);
+});
+
+test("a world cannot send its visitor to an address that acts when opened", () => {
+    for (const href of [
+        "/api/exhibit?type=CREATE_EXHIBIT",
+        "/cli-auth?code=1",
+        "/_next/data/x.json",
+        "/games/ace/index.html",
+    ])
+        fromWorld({ type: "oncyber:game:travel", href });
+    expect(mockPush).not.toHaveBeenCalled();
+});
+
+test("travel back to the opened space, from where a portal led, takes the frame back", () => {
+    fromWorld({
+        type: "oncyber:game:location",
+        href: "/second-space",
+        title: "Second space",
+    });
+    expect(shown()).toBe("Second space");
+    const first = element();
+    fromWorld({ type: "oncyber:game:travel", href: "/spaces/abc" });
+    // The route is already this one: nothing for the router to do.
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(element()).not.toBe(first);
+    expect(element().src).toBe(
+        "https://worlds.example/spaces/abc?coords=1x2x3x0"
+    );
+    expect(window.location.pathname).toBe("/spaces/abc");
+    expect(shown()).toBe("Starry Night");
+});
+
+test("after a portal, loading again opens the place the address bar shows", () => {
+    fromWorld({ type: "oncyber:game:location", href: "/second-space?x=1" });
+    const first = element();
+    fromWorld({ type: "oncyber:game:error" });
+    act(() => retry()!.click());
+    // Not the first world again under the second's name.
+    expect(mockReplace).toHaveBeenCalledWith("/second-space?x=1");
+    expect(element()).toBe(first);
+});
+
+test("a world that asks for sign-in gets the app's one sheet, once", async () => {
+    fromWorld({ type: "oncyber:game:sign-in" });
+    fromWorld({ type: "oncyber:game:sign-in" });
+    expect(mockSheetOpen).toHaveBeenCalledTimes(1);
+    // Closed by the visitor: it can be asked for again.
+    act(() => mockSheetOpen.mock.calls[0][0].toggle());
+    fromWorld({ type: "oncyber:game:sign-in" });
+    expect(mockSheetOpen).toHaveBeenCalledTimes(2);
+    // Nothing to ask of a visitor who is signed in.
+    account = {
+        isSignedIn: true,
+        token: "page-session",
+        user: { id: "0xabc" },
+        userData: { username: "ada" },
+    };
+    await render();
+    act(() => mockSheetOpen.mock.calls[1][0].toggle());
+    fromWorld({ type: "oncyber:game:sign-in" });
+    expect(mockSheetOpen).toHaveBeenCalledTimes(2);
+});
+
+test("a world document that reloads inside the frame is told again, and the page starts its side afresh", async () => {
+    const helloFrom = (doc: string) =>
+        fromWorld({
+            type: "oncyber:game:hello",
+            contract: 2,
+            world: true,
+            doc,
+        });
+    const first = element();
+    helloFrom("one");
+    helloFrom("one");
+    expect(sent).toHaveLength(2);
+    // The same frame, another document: it counts its questions from 1
+    // again, and the page must not take them for the old document's.
+    helloFrom("two");
+    expect(element()).toBe(first);
+    expect(sent[2].message).toMatchObject({ type: "oncyber:game:identity" });
+    // The page may speak to it: it has been told who is visiting.
+    fromWorld({ type: "oncyber:game:first-frame" });
+    expect(retry()).toBeNull();
 });
 
 describe("the world's room", () => {

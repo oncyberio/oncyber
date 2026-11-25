@@ -124,4 +124,28 @@ describe("is a Firebase sign-in saved in this browser", () => {
             } as any)
         ).toBe(true);
     });
+
+    test("yes when storage never answers, after a short wait", async () => {
+        jest.useFakeTimers();
+        try {
+            const answer = hasFirebaseSession(
+                browser({
+                    indexedDB: {
+                        // A listing that never settles.
+                        databases: () => new Promise(() => {}),
+                    } as any,
+                }),
+                1500
+            );
+            let said: boolean | undefined;
+            void answer.then((value) => (said = value));
+            jest.advanceTimersByTime(1499);
+            await Promise.resolve();
+            expect(said).toBeUndefined();
+            jest.advanceTimersByTime(2);
+            expect(await answer).toBe(true);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
 });

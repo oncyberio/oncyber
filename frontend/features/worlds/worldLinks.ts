@@ -34,6 +34,16 @@ export interface WorldFile {
 }
 
 const MAX_FILE_BYTES = 60 * 1024 * 1024;
+/** The kinds of file a world may hand over, and the ending each is saved with. */
+const FILE_ENDINGS: Readonly<Record<string, string>> = Object.freeze({
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "application/json": "json",
+    "model/gltf-binary": "glb",
+});
 
 /** A file from a world's `download`, or null: a picture, a film or data. */
 export function readWorldFile(message: any): WorldFile | null {
@@ -43,18 +53,20 @@ export function readWorldFile(message: any): WorldFile | null {
         !(file instanceof Blob) ||
         !file.size ||
         file.size > MAX_FILE_BYTES ||
-        !/^(image\/(png|jpeg|webp)|video\/(mp4|webm)|application\/json|model\/gltf-binary)$/.test(
-            file.type
-        )
+        !Object.prototype.hasOwnProperty.call(FILE_ENDINGS, file.type)
     )
         return null;
-    // A plain file name: no folders, nothing the system reads as a path.
-    const name =
+    // A plain file name: no folders, nothing the system reads as a path,
+    // and the ending its kind of file has, whatever the world called it
+    // (a picture is not saved as a program).
+    const base =
         (typeof message.name === "string" ? message.name : "")
             .replace(/[^A-Za-z0-9 ._()-]/g, "")
             .replace(/^\.+/, "")
-            .slice(0, 80) || "oncyber";
-    return { name, file };
+            .replace(/(\.[A-Za-z0-9]{1,8})+$/, "")
+            .slice(0, 70)
+            .trim() || "oncyber";
+    return { name: `${base}.${FILE_ENDINGS[file.type]}`, file };
 }
 
 /**

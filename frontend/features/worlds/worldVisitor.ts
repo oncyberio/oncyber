@@ -1,8 +1,9 @@
 /**
  * Who is visiting, as the page tells a framed world in the contract's
- * `identity` message (docs/plans/framed-worlds.md, slice 2). Public
- * presentation only: a name, a portrait, an avatar. No account id and no
- * session ever cross; what needs the account stays in the page.
+ * `identity` message (docs/plans/framed-worlds.md, slices 2 and 4). A
+ * name, a portrait and an avatar; for a signed-in visitor, who they are
+ * and the settings the in-world interface shows or applies. No session
+ * ever crosses: what needs one is asked of the page (./accountRelay).
  */
 import {
     readVisitorIdentity,

@@ -146,7 +146,22 @@ describe("a file the world made", () => {
             readWorldFile({ name: "../../etc/passwd\u0000.png", file: png() })
                 .name
         ).toBe("etcpasswd.png");
-        expect(readWorldFile({ file: png() }).name).toBe("oncyber");
+        expect(readWorldFile({ file: png() }).name).toBe("oncyber.png");
+    });
+
+    test("a file is saved with the ending its kind has, whatever it was called", () => {
+        expect(readWorldFile({ name: "setup.exe", file: png() }).name).toBe(
+            "setup.png"
+        );
+        expect(readWorldFile({ name: "photo.png.scr", file: png() }).name).toBe(
+            "photo.png"
+        );
+        expect(
+            readWorldFile({
+                name: "scene",
+                file: new Blob(["{}"], { type: "application/json" }),
+            }).name
+        ).toBe("scene.json");
     });
 
     test("anything else is not offered", () => {

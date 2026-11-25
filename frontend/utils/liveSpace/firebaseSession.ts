@@ -16,8 +16,25 @@ function inStorage(storage: Storage | undefined) {
     return false;
 }
 
-export async function hasFirebaseSession(
-    win: Pick<Window, "localStorage" | "sessionStorage" | "indexedDB"> = window
+/** A browser's storage that never answers must not hold the channels up. */
+export const SESSION_PROBE_MS = 1500;
+
+export function hasFirebaseSession(
+    win: Pick<Window, "localStorage" | "sessionStorage" | "indexedDB"> = window,
+    waitMs = SESSION_PROBE_MS
+): Promise<boolean> {
+    // "It cannot be told" is yes, and so is "it did not say in time".
+    return new Promise<boolean>((resolve) => {
+        const timer = setTimeout(resolve, waitMs, true);
+        void lookForSession(win).then((answer) => {
+            clearTimeout(timer);
+            resolve(answer);
+        });
+    });
+}
+
+async function lookForSession(
+    win: Pick<Window, "localStorage" | "sessionStorage" | "indexedDB">
 ): Promise<boolean> {
     try {
         if (inStorage(win.localStorage) || inStorage(win.sessionStorage))

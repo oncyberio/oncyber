@@ -18,6 +18,32 @@ export function publicExperienceHref(value: unknown, origin: string) {
     }
 }
 
+/** Pages that act for the visitor as they open: never a place to be sent. */
+const ACTING_PAGES = /^\/(cli-auth|_trpc)(\/|$)/i;
+
+/**
+ * A page of this site, as somewhere a visitor may be sent without having
+ * asked (a world's `travel`): not an API route (those act on the account
+ * when they are opened), not a file, not Next's own paths.
+ */
+export function publicPageHref(value: unknown, origin: string) {
+    const href = publicExperienceHref(value, origin);
+    if (!href) return null;
+    try {
+        const path = decodeURIComponent(new URL(href, origin).pathname);
+        if (
+            /[%\\\x00-\x20]/.test(path) ||
+            /^\/(api|_next)(\/|$)/i.test(path) ||
+            ACTING_PAGES.test(path) ||
+            /\.[a-z0-9]{1,8}$/i.test(path)
+        )
+            return null;
+        return href;
+    } catch {
+        return null;
+    }
+}
+
 /** Updating position must not restart Next routing or release a travel lock. */
 export function replaceExperienceLocation(href: string) {
     if (

@@ -209,12 +209,26 @@ default.
        in, feedback, an edit to my own space) are on an explicit list
        (`features/worlds/accountRelay.ts`) and are made by the page with
        its own session; nothing else is. Signing in from the world opens
-       the page's dialog.
+       the page's sign-in sheet.
+
+        The session answers for the space the page opened and for no
+        other, and that rule is written once
+        (`features/worlds/pageAuthority.ts`). An edit to the space is one
+        of the in-world editor's own (an artwork, a portal, a kit part):
+        never who edits it, its gate, its address or its script. Asked
+        about another space, a world is told its visitor moderates
+        nothing, and is let in without the pass their account would earn
+        there. The page sends a visitor only to pages, never to an address
+        that acts when it is opened, and what is in the page's own address
+        for the page alone (a one-time sign-in code, an invitation) does
+        not go into the frame's (`features/worlds/worldAddress.ts`).
+
     3. **Gated worlds.** _(Done.)_ Framed like any other: the page, which
        holds the session, says whether its visitor is let in, and the
        gate is the world's own interface as it is unframed.
     4. **Files.** _(Done.)_ A photo the world takes is offered for saving
-       by the page, by name, on the visitor's click.
+       by the page, by name, on the visitor's click, with the ending its
+       kind of file has whatever the world called it.
     5. **Still to move.** Screen share drawn in 3D, wallet prompts that
        need a popup, the list of avatars owned by linked wallets, and
        fullscreen.
@@ -430,6 +444,26 @@ The studio stays unframed until editing has its own plan.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a
     headset to try it _(not tested)_.
 -   Who draws phone controls, the page or the world.
+-   Every kind of message the two sides exchange is listed in
+    `features/worlds/worldProtocol.ts`, and a test fails when the bridge
+    uses one that is not. The four relays (room, voice, live channels,
+    world scripts) still each write their own question-and-answer
+    plumbing; one shared link would replace four.
+-   Settings a world saves through the page (an avatar chosen in the
+    world) are saved to the account but not to the page's own copy of it,
+    so a frame loaded again in the same visit is handed the earlier ones.
+-   The page reads a space's live channels for the world with whatever
+    Firebase sign-in the visitor has, for any space the world names.
+    Whether that shows a world more than a signed-out visitor sees
+    depends on the Firestore rules, which are not in this repository.
+-   A world may go fullscreen (the in-world button). Fullscreen covers
+    the page's own prompts; a game's frame is not allowed it.
+-   The world host is only checked to be another host. It must be
+    another registrable domain: a sibling subdomain of the site is the
+    same site to a browser's cookie rules.
+-   The dock's shortcuts need Cmd or Ctrl. On a Mac the tooltip shows
+    Control, because Cmd with some letters is the system's (Cmd+M puts
+    the window away).
 -   A browser slows a frame from another origin to about two frames a
     second while something opaque covers it, or while it is unseen. The
     engine paces loading by frames, so a covered world loaded in 134 s

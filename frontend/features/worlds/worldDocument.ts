@@ -100,8 +100,11 @@ export function createWorldDocument(
     const visitor = new Promise<WorldVisitor | null>((resolve) => {
         name = resolve;
     });
+    // Which document is asking: the page starts its side again for a new
+    // one (a reload inside the frame leaves the frame itself in place).
+    const doc = Math.random().toString(36).slice(2, 12);
     const hello = () =>
-        post("hello", { contract: CONTRACT_VERSION, world: true });
+        post("hello", { contract: CONTRACT_VERSION, world: true, doc });
     const asking = win.setInterval(() => {
         if (greeted) return win.clearInterval(asking);
         if (win.performance.now() - started > HELLO_FOR_MS) {

@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { CONTRACT_VERSION } from "@features/games/gameContract";
 import { createWorldDocument, isWorldDocument } from "./worldDocument";
 import { readWorldFrame } from "./worldFrame";
 
@@ -89,7 +90,12 @@ describe("createWorldDocument", () => {
             "oncyber:game:hello",
             "oncyber:game:hello",
         ]);
-        expect(w.posted[0].message).toMatchObject({ contract: 2, world: true });
+        expect(w.posted[0].message).toMatchObject({
+            contract: CONTRACT_VERSION,
+            world: true,
+            // which document is asking, so the page knows a new one
+            doc: expect.stringMatching(/^[a-z0-9]+$/),
+        });
         for (const { target } of w.posted) expect(target).toBe(frame.site);
 
         w.fromPage({ type: "oncyber:game:identity" });

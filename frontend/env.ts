@@ -107,6 +107,22 @@ export const nodeEnv = {
     // second host of this app (docs/plans/framed-worlds.md). Unset: worlds
     // run in the page. Read through WORLD_FRAME in features/worlds.
     WORLD_ORIGIN: process.env.NEXT_PUBLIC_WORLD_ORIGIN,
+    // "1" turns world scripts on: AI-written scripts on top of a native
+    // space, in a sandboxed frame (docs/world-scripts.md). Read through
+    // WORLD_SCRIPTS_ENABLED in features/world-scripts/store.ts and
+    // worldScriptsEnabled() in utils/worldScripts/server.ts.
+    WORLD_SCRIPTS: process.env.NEXT_PUBLIC_WORLD_SCRIPTS,
+    // Server-only, for the AI sidebar of world scripts: the model's key,
+    // the accounts in early access (a comma list of ids), and how many
+    // requests one account may make in a day. Read in
+    // utils/worldScripts/server.ts.
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    WORLD_SCRIPTS_AI_ALLOWLIST: process.env.WORLD_SCRIPTS_AI_ALLOWLIST,
+    WORLD_SCRIPTS_AI_DAILY_LIMIT: process.env.WORLD_SCRIPTS_AI_DAILY_LIMIT,
+    // "1" says each load stage in the browser console as it happens; on by
+    // itself on a Vercel preview (next.config.js). Read in
+    // utils/loadTimings.ts.
+    LOAD_STAGES: process.env.NEXT_PUBLIC_LOAD_STAGES,
     // Server-only. Who may publish a game from outside the repository
     // (docs/games/publishing.md): unset is off (open on the development
     // server), "open", or a comma list of account ids. Read through
