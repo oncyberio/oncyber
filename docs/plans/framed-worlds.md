@@ -164,9 +164,9 @@ default.
         shape for anything in a frame: the page's controls are the page's,
         and a frame adds buttons to the same dock.
 
-        Not yet: unmuting from the keyboard inside the world (M mutes, the
-        page's button unmutes), and screen share drawn in 3D, which needs
-        its own answer because a stream cannot cross into the frame.
+        No key is the microphone's: the page's button turns it on and
+        off. Not yet: screen share drawn in 3D, which needs its own answer
+        because a stream cannot cross into the frame.
 
     3. **A world that stops.** _(Done.)_ A world that has drawn says it
        is alive about once a second; silence while the page is in view

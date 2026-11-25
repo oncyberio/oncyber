@@ -84,7 +84,7 @@ still answered in that form ([games/contract.md](games/contract.md)):
 | page        | `party`                    | `{ party }`: the trip, `{ id, room, size, members, self, arrived }`, or `null` when alone. Sent when the members are known and when someone arrives in the party's room or leaves. |
 | game        | `arrival-ready`            | The game has framed the visitor as the lobby left them (the page waits 1.5 s at most, and not at all for a game that declared `arrival.walkable: false`).                          |
 | page        | `arrival`                  | Old builds only: `{ view }`, the lobby's third-person camera. Contract games get it in `enter`.                                                                                    |
-| game / page | `key`, `input`, `muted`    | Keys and focus: the page owns Escape, Enter and M, and pauses the game's input while the visitor types or a page menu is open. See [games/keys-focus.md](games/keys-focus.md).     |
+| game / page | `key`, `input`, `muted`    | Keys and focus: the page owns Escape and no other key, and pauses the game's input while the visitor types or a page menu is open. See [games/keys-focus.md](games/keys-focus.md). |
 | page        | `safe-area`                | `{ insets, width, height }`: how far in the page's controls and chat reach, in CSS pixels, on `hello`, `ready` and every change ([games/safe-area.md](games/safe-area.md)).        |
 | game        | `result`                   | A match ended: `{ result }`, exactly one per finished match. The page answers `result-status`. See [games/results.md](games/results.md).                                           |
 

@@ -125,28 +125,6 @@ export default function MultiPanel() {
 
     useEffect(() => {
         //
-        function handleKeys(e) {
-            if (
-                e.target.nodeName === "INPUT" ||
-                e.target.nodeName === "TEXTAREA"
-            ) {
-                return;
-            }
-
-            if (e.key === "m" || e.key === "M") {
-                toggleMuted();
-            }
-        }
-
-        window.addEventListener("keydown", handleKeys);
-
-        return () => {
-            window.removeEventListener("keydown", handleKeys);
-        };
-    }, [toggleMuted]);
-
-    useEffect(() => {
-        //
         if (nbAvailable === 0 && currentTab === "select-media-placeholder") {
             //
             setCurrentTab("");

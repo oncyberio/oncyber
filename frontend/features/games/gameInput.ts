@@ -1,8 +1,9 @@
 /**
  * The page's half of keys and focus for games (docs/games/keys-focus.md).
- * The page owns Escape (world menu), Enter (chat) and M (sound). A game
- * hands those keys over when it has focus, and gets no input while the
- * visitor types in the page or a page menu is open.
+ * The page owns one key, Escape (the world menu): the browser takes it to
+ * free the pointer whatever a game does. A game hands it over when it has
+ * focus, and gets no input while the visitor types in the page or a page
+ * menu is open. Every other key is the game's.
  *
  * No imports and no framework: the games check loads this file as it is
  * (scripts/games/keysCheck.mjs), so the check exercises the code the site
@@ -10,18 +11,11 @@
  */
 
 /** Keys the page owns, by `KeyboardEvent.code`. Same table as games/runtime/src/keys.ts. */
-export const GAME_RESERVED_KEYS: Readonly<
-    Record<string, "menu" | "chat" | "mute">
-> = Object.freeze({
-    Escape: "menu",
-    Enter: "chat",
-    NumpadEnter: "chat",
-    KeyM: "mute",
-});
-export type GameKeyIntent = "menu" | "chat" | "mute";
-
-/** Marks the field Enter focuses. Any text field pauses game input. */
-export const GAME_CHAT_ATTRIBUTE = "data-game-chat";
+export const GAME_RESERVED_KEYS: Readonly<Record<string, "menu">> =
+    Object.freeze({
+        Escape: "menu",
+    });
+export type GameKeyIntent = "menu";
 
 /** True for an element the visitor types into. */
 export function isTypingTarget(target: unknown): boolean {
@@ -153,21 +147,12 @@ export function createGameInputHost(
                 const intent = GAME_RESERVED_KEYS[event.code];
                 if (!intent) return;
                 if (isTypingTarget(event.target)) {
-                    // Escape leaves the field; every other key is text.
-                    if (intent !== "menu") return;
+                    // Escape leaves the field.
                     event.preventDefault();
                     (event.target as HTMLElement).blur?.();
                     if (!holds.size) options.focusGame();
                     return;
                 }
-                // Enter on a focused button presses that button.
-                if (
-                    intent === "chat" &&
-                    /^(BUTTON|A|SUMMARY)$/.test(
-                        String((event.target as HTMLElement)?.tagName)
-                    )
-                )
-                    return;
                 event.preventDefault();
                 options.intent(intent);
             };
@@ -191,14 +176,4 @@ export function createGameInputHost(
         },
     };
     return host;
-}
-
-/** Focuses the page's chat field, if it has one. */
-export function focusGameChat(document: Document): boolean {
-    const field = document.querySelector<HTMLElement>(
-        `[${GAME_CHAT_ATTRIBUTE}]`
-    );
-    if (!field) return false;
-    field.focus();
-    return document.activeElement === field;
 }

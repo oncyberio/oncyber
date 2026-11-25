@@ -226,8 +226,8 @@ test(
             await page.waitForTimeout(300);
             if (!(await state()).locked)
                 return test.skip?.("this browser grants no pointer lock");
-            // Enter: chat takes focus, the game lets go of the cursor.
-            await page.keyboard.press("Enter");
+            // The page's chat takes focus: the game lets go of the cursor.
+            await page.focus("#chat");
             await page.waitForTimeout(300);
             let s = await state();
             assert.deepEqual(

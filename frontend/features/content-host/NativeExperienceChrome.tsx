@@ -319,31 +319,6 @@ export default function NativeExperienceChrome({
             document.removeEventListener("pointerdown", dismiss);
         };
     }, [emotesOpen, moreOpen]);
-    useEffect(() => {
-        if (!multiplayer) return;
-        const key = (event: KeyboardEvent) => {
-            const target = event.target as HTMLElement;
-            if (
-                event.defaultPrevented ||
-                event.repeat ||
-                event.isComposing ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.altKey ||
-                target?.closest?.(
-                    "input, textarea, select, button, [contenteditable='true']"
-                )
-            )
-                return;
-            if (
-                event.key.toLowerCase() === "m" &&
-                voice?.voiceState?.type === "enabled"
-            )
-                void voice.toggleMuted();
-        };
-        window.addEventListener("keydown", key);
-        return () => window.removeEventListener("keydown", key);
-    }, [multiplayer, voice]);
     const actions: ExperienceShellAction[] = [
         {
             id: "voice",

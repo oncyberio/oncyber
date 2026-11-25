@@ -76,21 +76,18 @@ test("the page and the runtime reserve the same keys", async () => {
 });
 
 test("reserved keys cannot be bound and never map to an action", () => {
-    assert.deepEqual(Object.keys(RESERVED_KEYS), [
-        "Escape",
-        "Enter",
-        "NumpadEnter",
-        "KeyM",
-    ]);
+    // Escape only: Enter and M are a game's to bind.
+    assert.deepEqual(Object.keys(RESERVED_KEYS), ["Escape"]);
     assert.deepEqual(checkBindings(input), []);
     const findings = checkBindings({
         pause: { keyboard: ["Escape", "KeyP"] },
         mute: { keyboard: ["KeyM"] },
+        confirm: { keyboard: ["Enter", "NumpadEnter"] },
         "bad name": { keyboard: ["w"] },
     });
     assert.deepEqual(
         findings.map((f) => f.code),
-        ["KEY_RESERVED", "KEY_RESERVED", "ACTION_INVALID", "KEY_INVALID"]
+        ["KEY_RESERVED", "ACTION_INVALID", "KEY_INVALID"]
     );
     assert.equal(checkBindings(undefined)[0].code, "ACTION_INVALID");
     assert.deepEqual(
@@ -150,14 +147,13 @@ test("declared keys become actions; reserved keys go to the page", () => {
         ["up", 1],
         ["up", 0],
     ]);
-    for (const code of ["Escape", "Enter", "KeyM"])
-        assert.equal(f.key("keydown", code).prevented, true);
+    assert.equal(f.key("keydown", "Escape").prevented, true);
+    // Keys the game did not bind are nobody's: not taken, not handed over.
+    for (const code of ["Enter", "KeyM"])
+        assert.equal(f.key("keydown", code).prevented, false);
     f.key("keydown", "Escape", { repeat: true });
     f.key("keyup", "Escape");
-    assert.deepEqual(
-        f.posted,
-        ["Escape", "Enter", "KeyM"].map((code) => ({ type: "ace:key", code }))
-    );
+    assert.deepEqual(f.posted, [{ type: "ace:key", code: "Escape" }]);
     assert.deepEqual(actions.length, 2);
     keys.dispose();
     f.key("keydown", "KeyW");

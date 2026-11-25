@@ -167,7 +167,7 @@ the arrival, chooses to start, plays one match to its result and leaves.
 Steps: `press` and `hold` (a declared action with a keyboard binding; add
 `"key": "KeyJ"` to press another of its bindings than the first), `wait`
 (ms), `expect` and `until` (keys of the facts below), `repeat ... until`. A
-bot never presses Escape, Enter, NumpadEnter or M: those are the page's
+bot never presses Escape: it is the page's
 ([keys-focus.md](keys-focus.md)).
 
 The bot reads the game through `exposeInspect(facts)`, which the game's
@@ -201,7 +201,7 @@ times longer.
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | Contract            | One lifecycle behind `connectPage()`; every message is `oncyber:game:<kind>`; the visit (arrival and trip) comes in `enter()`.              | [contract.md](contract.md)                       |
 | Chat and voice      | The page owns chat and voice; a game never builds its own, and reads who is talking from the SDK.                                           | [voice-chat.md](voice-chat.md)                   |
-| Keys                | Declare every action in `game.json` with its keyboard binding; no raw key listeners; Escape, Enter, NumpadEnter and M are the page's.       | [keys-focus.md](keys-focus.md)                   |
+| Keys                | Declare every action in `game.json` with its keyboard binding; no raw key listeners; Escape is the page's, every other key the game's.      | [keys-focus.md](keys-focus.md)                   |
 | Screen space        | Keep the HUD inside the page's safe areas (`--oncyber-safe-*`), on every screen size.                                                       | [safe-area.md](safe-area.md)                     |
 | Avatars             | Draw each visitor as the avatar they arrived with, through the avatar kit, at its real proportions.                                         | [avatar-kit.md](avatar-kit.md)                   |
 | Movement            | Walk, run and jump with the locomotion kit, so travelling doesn't change how a body feels.                                                  | [locomotion.md](locomotion.md)                   |

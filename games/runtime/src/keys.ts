@@ -15,17 +15,14 @@ export type KeyBindings = Record<string, KeyBinding>;
 
 /**
  * Keys the page owns, by `KeyboardEvent.code`. A game never binds these.
- * Pressed while the game has focus, they are handed to the page, which
- * opens the world menu, focuses chat or toggles sound.
+ * Only Escape: the browser itself takes it to free the pointer, so it can
+ * never be a game's, and the page opens the world menu on it. Every other
+ * key, Enter and M included, is the game's to bind.
  */
-export const RESERVED_KEYS: Readonly<Record<string, "menu" | "chat" | "mute">> =
-    Object.freeze({
-        Escape: "menu",
-        Enter: "chat",
-        NumpadEnter: "chat",
-        KeyM: "mute",
-    });
-export type PageKeyIntent = "menu" | "chat" | "mute";
+export const RESERVED_KEYS: Readonly<Record<string, "menu">> = Object.freeze({
+    Escape: "menu",
+});
+export type PageKeyIntent = "menu";
 
 /** Messages of this area, after the prefix (`oncyber:game:`, or `<game>:` in older builds). */
 export const KEY_MESSAGES = Object.freeze({

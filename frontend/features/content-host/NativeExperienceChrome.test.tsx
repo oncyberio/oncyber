@@ -219,6 +219,14 @@ test("microphone stays off until the visitor invokes the native voice action", (
     expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
 });
 
+test("no key is the microphone's: M, and Cmd+M, are left to the world and the system", () => {
+    render();
+    key("m");
+    key("M");
+    key("m", { metaKey: true });
+    expect(social.voice.toggleMuted).not.toHaveBeenCalled();
+});
+
 test("restricted native voice preserves moderator permission and lets a pending request be cancelled", () => {
     social.voice.voiceState = { type: "disabled" };
     social.chat.admins = [];
@@ -592,21 +600,6 @@ test("mobile keeps photo while omitting duplicate discovery and unavailable desk
     expect(button("Space controls")).toBeNull();
     expect(button("Share screen or audio")).toBeNull();
     expect(button("Requests to speak")).toBeNull();
-});
-
-test("the M shortcut only handles an unmodified non-editing native voice gesture", () => {
-    render();
-    key("m", { ctrlKey: true });
-    key("m", { metaKey: true });
-    key("m", { altKey: true });
-    key("m", { repeat: true });
-    key("m", { isComposing: true });
-    const input = document.createElement("input");
-    container.append(input);
-    key("m", {}, input);
-    expect(social.voice.toggleMuted).not.toHaveBeenCalled();
-    key("m");
-    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(1);
 });
 
 test("animation cards preserve native indexes and return focus after selection", () => {
