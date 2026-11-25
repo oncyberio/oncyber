@@ -50,6 +50,13 @@ Either way the new version starts beside the running one and runs a short
 trial (30 frames) without showing anything. Only if it started cleanly does
 the swap happen, between two frames. A version that fails to parse, throws
 while starting, or stops answering is refused and the old one keeps running.
+
+The trial is counted in the world's frames, not in seconds: a slow device
+draws them slowly and a tab in the background draws none, and neither is
+the script's fault. What ends a trial early is silence while an answer is
+owed, 4 seconds of it (`silence.ts`). A space's saved script starts the
+same way for every visitor, so this is also what decides whether a
+visitor on a slow phone gets the script at all.
 Undo goes back to the previous version (as a rewind).
 
 ## The world's style

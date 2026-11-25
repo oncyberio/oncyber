@@ -30,6 +30,7 @@ import {
     buildWorkerScript,
     WORLD_SCRIPT_SANDBOX,
 } from "./sandboxDocument";
+import { watchSilence, type SilenceWatch } from "./silence";
 
 export interface WorldView {
     player: { position: Vec3; forward: Vec3; yaw: number };
@@ -93,7 +94,15 @@ export interface SwapResult {
 
 /** Frames a new version must run cleanly before it replaces the old one. */
 export const TRIAL_TICKS = 30;
+/**
+ * How long a new version may say nothing while it owes an answer (its
+ * start, or a frame it was sent) before it is given up on. Not a limit on
+ * the trial as a whole: that is counted in the world's frames, and a slow
+ * device or a tab in the background draws few (./silence).
+ */
 const START_TIMEOUT_MS = 4000;
+/** The sandbox frame itself opening: the browser's work, on a busy page. */
+const FRAME_OPEN_TIMEOUT_MS = 15_000;
 const KEEP_TIMEOUT_MS = 600;
 const REWIND_GLIDE_S = 0.8;
 const PLAYER_MOVE_GAP_MS = 500;
@@ -133,7 +142,7 @@ class Version {
         this.ready = new Promise((resolve, reject) => {
             const timer = setTimeout(
                 () => reject(new Error("The script frame did not open.")),
-                START_TIMEOUT_MS
+                FRAME_OPEN_TIMEOUT_MS
             );
             frame.addEventListener(
                 "load",
@@ -288,12 +297,13 @@ export class WorldScriptHost {
         let started = false;
 
         const outcome = await new Promise<SwapResult>((resolve) => {
-            const timer = setTimeout(
-                () => finish("The new version did not start in time."),
-                START_TIMEOUT_MS
-            );
+            // From the moment it is asked to start: quiet for too long
+            // while it owes its start or the answer to a frame.
+            let watch: SilenceWatch | null = null;
+            let settled = false;
             const finish = (reason: string | null) => {
-                clearTimeout(timer);
+                settled = true;
+                watch?.stop();
                 off();
                 if (reason) {
                     next.close();
@@ -304,6 +314,7 @@ export class WorldScriptHost {
                 resolve({ ok: true, mode, version: 0 });
             };
             const off = next.on((message) => {
+                watch?.heard();
                 if (this.trial !== next)
                     return finish("Replaced by a newer version.");
                 switch (message?.t) {
@@ -338,7 +349,17 @@ export class WorldScriptHost {
                 style: this.style,
                 artworks: this.sink.artworks(),
                 doors: this.sink.doors(),
-            }).catch((error) => finish(error.message));
+            }).then(
+                () => {
+                    if (settled) return;
+                    watch = watchSilence(
+                        START_TIMEOUT_MS,
+                        () => finish("The new version did not start in time."),
+                        () => !started || next.awaitingTick
+                    );
+                },
+                (error) => finish(error.message)
+            );
         });
 
         if (!outcome.ok) return this.refuse(outcome.reason);
