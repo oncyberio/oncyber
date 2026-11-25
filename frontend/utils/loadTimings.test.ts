@@ -1,4 +1,4 @@
-import { startLoadTimeline } from "./loadTimings";
+import { sayLoadStage, startLoadTimeline } from "./loadTimings";
 
 jest.mock("@utils/analytics", () => ({
     amplitude_logAnalyticsEvent: jest.fn(async () => {}),
@@ -61,4 +61,35 @@ test("in development every timeline is logged and nothing is sent", () => {
     expect(send).not.toHaveBeenCalled();
     expect(info).toHaveBeenCalledTimes(1);
     info.mockRestore();
+});
+
+describe("a preview build", () => {
+    const before = env.NEXT_PUBLIC_VERCEL_ENV;
+    afterEach(() => {
+        if (before === undefined) delete env.NEXT_PUBLIC_VERCEL_ENV;
+        else env.NEXT_PUBLIC_VERCEL_ENV = before;
+        jest.restoreAllMocks();
+    });
+
+    test("says each stage as it happens; production says nothing", () => {
+        const said = jest.spyOn(console, "info").mockImplementation(() => {});
+        env.NODE_ENV = "production";
+        env.NEXT_PUBLIC_VERCEL_ENV = "production";
+        startLoadTimeline("world", { random: () => 0.99 }).mark("engine-ready");
+        sayLoadStage("page", "world-said-hello");
+        expect(said).not.toHaveBeenCalled();
+
+        env.NEXT_PUBLIC_VERCEL_ENV = "preview";
+        const load = startLoadTimeline("world", { random: () => 0.99 });
+        load.mark("engine-ready");
+        load.mark("engine-ready");
+        sayLoadStage("page", "world-said-hello");
+        expect(said).toHaveBeenCalledTimes(2);
+        expect(said.mock.calls[0][0]).toMatch(
+            /^\[load\] world engine-ready \+\d+ ms \(\d+ ms into this document\)$/
+        );
+        expect(said.mock.calls[1][0]).toMatch(
+            /^\[load\] page world-said-hello \(\d+ ms into this document\)$/
+        );
+    });
 });

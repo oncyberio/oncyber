@@ -29,6 +29,7 @@ import {
     type WorldFrameRole,
 } from "@features/worlds/worldFrame";
 import { useWorldVisitor } from "@features/worlds/useWorldVisitor";
+import { isWorldDocument } from "@features/worlds/worldDocument";
 
 const FramedWorld = dynamic(() => import("@features/worlds/FramedWorld"));
 // The engine's side of a space (features/worlds/NativeSpace.tsx). Where
@@ -41,6 +42,12 @@ const NativeExhibit: typeof import("@features/worlds/NativeSpace").default =
     process.env.NEXT_PUBLIC_WORLD_ORIGIN
         ? dynamic(() => import("@features/worlds/NativeSpace"))
         : require("@features/worlds/NativeSpace").default;
+
+// In the site's frame a world waits for the page to say who is visiting
+// before it draws (useWorldVisitor). Its engine downloads meanwhile: the
+// wait and the download overlap instead of following one another.
+if (process.env.NEXT_PUBLIC_WORLD_ORIGIN && isWorldDocument())
+    void import("@features/worlds/NativeSpace").catch(() => {});
 
 const EmbeddedExperience = dynamic(
     () => import("@features/content-host/EmbeddedExperience"),

@@ -409,7 +409,16 @@ The studio stays unframed until editing has its own plan.
     itself: Vercel serves each deployment at its own address as well as
     at the branch's, so the branch's address is the site and the
     deployment's own is the world host (`frontend/utils/siteOrigin.js`).
-    Production and every other branch are as before.
+    Production and every other branch are as before. The cost of that
+    arrangement: every push gives the world a brand-new origin, and a
+    browser keeps a frame's downloads, its saved graphics tier and its
+    compiled shaders per origin, so the first visit after each push starts
+    from nothing however often the world was visited before. A fixed world
+    host for the branch (a domain assigned to it in Vercel, set as
+    `NEXT_PUBLIC_WORLD_ORIGIN` for previews) removes that. To see where a
+    slow load spends its time on a real machine, a preview build says each
+    stage in the console as it happens (`[load] page …`, `[load] world …`,
+    `frontend/utils/loadTimings.ts`).
 -   Production Firestore rules are not in this repository; the world reads
     as a signed-out visitor does today.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a

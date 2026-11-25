@@ -34,6 +34,7 @@ import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
 import { hostWorldLive } from "./worldLiveHost";
 import { LIVE_MESSAGE } from "./relayedLive";
 import { deferred, liveSpace } from "@utils/liveSpace";
+import { sayLoadStage } from "@utils/loadTimings";
 import { setFramedWorldLock } from "./worldPointer";
 import {
     readWorldFile,
@@ -699,6 +700,7 @@ function WorldFrameView({
         };
     }, [frame.world]);
     const told = useRef<object | null>(null);
+    const asked = useRef(false);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             if (!fromFrame(event, element.current, frame.world)) return;
@@ -747,7 +749,15 @@ function WorldFrameView({
                 );
             if (kind === "travel")
                 return handlers.current.onTravel(event.data.href);
-            if (kind !== "hello" || !present.current) return;
+            if (kind !== "hello") return;
+            if (!present.current) {
+                // Still working out who is visiting: the world asks again.
+                if (!asked.current)
+                    sayLoadStage("page", "world-asked-before-visitor-known");
+                asked.current = true;
+                return;
+            }
+            if (!told.current) sayLoadStage("page", "told-world-its-visitor");
             told.current = present.current;
             element.current?.contentWindow?.postMessage(
                 {
@@ -797,7 +807,10 @@ function WorldFrameView({
         return () => window.removeEventListener("message", receive);
     }, [frame.world]);
     useEffect(() => {
-        if (loading.phase !== "loading") drawn.current.resolve();
+        if (loading.phase !== "loading") {
+            drawn.current.resolve();
+            sayLoadStage("page", `world-${loading.phase}`);
+        }
         if (loading.phase === "failed") return failed.current();
         // Drawn after all: a notice that it did not load no longer holds.
         if (loading.phase !== "loading") return recovered.current();

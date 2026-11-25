@@ -44,6 +44,23 @@ const now = () =>
 
 const isDevelopment = () => process.env.NODE_ENV === "development";
 
+/**
+ * A preview build says each stage in the console as it happens, with how
+ * far into its document that was, so a slow load on someone's own machine
+ * can be read off and reported: a framed world's page and the world below
+ * it each say their own. Never in production.
+ */
+const isPreview = () => process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+
+export function sayLoadStage(kind: string, stage: string, ms?: number) {
+    if (!isPreview()) return;
+    console.info(
+        `[load] ${kind} ${stage}${ms == null ? "" : ` +${ms} ms`} (${Math.round(
+            now()
+        )} ms into this document)`
+    );
+}
+
 export function startLoadTimeline(
     kind: LoadTimelineKind,
     {
@@ -66,6 +83,7 @@ export function startLoadTimeline(
         if (finished || !stage || stage in stages) return;
         if (Object.keys(stages).length >= MAX_STAGES) return;
         stages[stage] = Math.round(now() - started);
+        sayLoadStage(kind, stage, stages[stage]);
     };
 
     return {

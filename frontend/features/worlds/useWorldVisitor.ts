@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { USER_LOGIN, UserContext } from "@components/context/UserContext";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
+import { sayLoadStage } from "@utils/loadTimings";
 import { PAGE_SESSION } from "./accountRelay";
 import { relayWorldAccount } from "./worldAccount";
 import { worldDocument } from "./worldDocument";
@@ -33,8 +34,13 @@ export function useWorldVisitor(framed: boolean): {
         if (!framed) return;
         let cancelled = false;
         const said = worldDocument()?.visitor() ?? Promise.resolve(null);
+        sayLoadStage("world", "asked-the-page-who-is-visiting");
         void said.then((next) => {
             if (cancelled) return;
+            sayLoadStage(
+                "world",
+                next ? "page-said-who-is-visiting" : "page-did-not-answer"
+            );
             // The avatar a visitor arrives with, where the world looks for
             // one (utils/travelAvatar): a guest's lobby pick counts too.
             if (next) rememberTravelAvatar(visitorUserData(next), next.avatar);
