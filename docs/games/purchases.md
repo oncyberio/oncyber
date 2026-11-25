@@ -119,24 +119,29 @@ The rules live in one file with no imports,
 
 ## What the page does
 
-`useGamePurchases` (`frontend/features/games/useGamePurchases.tsx`): Its
-interface is the design system's (`gamePurchaseStyles.tsx`): the question
-is the shared dark dialog with action buttons (white confirms, outline
-cancels, blue only signs in), the wallet is the lobby's glass utility panel,
-docked to the right on a wide screen and a bottom sheet on a phone.
+`useGamePurchases` (`frontend/features/games/useGamePurchases.tsx`) opens
+the **payment sidebar**: the lobby's glass utility panel, docked to the
+right edge on a wide screen so the game stays in view, and a bottom sheet
+on a phone (`gamePurchaseStyles.tsx`, built from the design system).
 
--   Reads the request, looks the product up in the synced file and shows its
-    own sheet: "Buy Gold racket?", the game's title, the price, the
-    visitor's balance. Cancel, Escape and a click outside all answer
-    `cancelled`.
+-   It reads the request, looks the product up in the synced file and
+    shows the name, the game's title, the price and the visitor's balance.
+    Cancel, the close button and Escape all answer `cancelled`. The game is
+    a frame, so a click on it never reaches the page and does not close
+    the sidebar.
 -   A guest is offered the site's own sign-in sheet; purchases belong to the
     signed-in account, whichever way it signed in. There is no second login.
     The game page learns who is signed in from the route's server props
     (`pages/games/[game].tsx`), as every other page does.
 -   A wallet smaller than the price is offered a top-up, and the question
     stays open.
--   Shows a **Wallet** button beside Credits for a game that sells
-    something: the balance and what the visitor bought, in every game.
+
+**The wallet is part of the account, not of the game page.** The balance,
+adding funds and everything the visitor bought, in every game, are the
+Wallet step of the account dashboard
+(`components/modals/AccountDashboard/Wallet`), shown where purchases are
+on. The sidebar links to it and reads the balance again when it closes
+(`openWalletDashboard.tsx`). A game page draws no wallet button.
 
 ## What the server does
 

@@ -51,9 +51,7 @@ export default function EmailForm({
                                 handleSendEmailLink();
                             }}
                         >
-                            {sendingEmailLink
-                                ? "Sending…"
-                                : "Send magic link"}
+                            {sendingEmailLink ? "Sending…" : "Send magic link"}
                         </WalletProviderButton>
                     </ButtonsWrapper>
                 </div>

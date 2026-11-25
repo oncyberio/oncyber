@@ -49,6 +49,8 @@ export const baseTokens = {
          * (features/worlds/worldFrames.ts has the measurement).
          */
         frameCover: "#0b0d12fc",
+        /** Error text on a dark surface (7.9:1 on the dialog panel). */
+        danger: "#ff8f80",
         accent: "#2567ff",
         accentStart: "#3975ff",
         accentEnd: "#1854e8",

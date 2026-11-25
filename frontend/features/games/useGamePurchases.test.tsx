@@ -77,6 +77,7 @@ function mount(more: { game?: string; account?: string | null } = {}) {
         state.account = "user-a";
         done();
     });
+    const openWallet = jest.fn(async () => {});
     function Probe() {
         const [, redraw] = React.useState(0);
         const purchases = useGamePurchases({
@@ -89,6 +90,7 @@ function mount(more: { game?: string; account?: string | null } = {}) {
                 signIn(done);
                 redraw((n) => n + 1);
             },
+            openWallet,
         });
         return <main>{purchases.element}</main>;
     }
@@ -114,7 +116,7 @@ function mount(more: { game?: string; account?: string | null } = {}) {
         await act(async () => button.click());
         await act(async () => {});
     };
-    return { host, sent, fromGame, press, signIn };
+    return { host, sent, fromGame, press, signIn, openWallet };
 }
 
 test("the sheet's main button follows who is signed in and what they hold", () => {
@@ -169,7 +171,7 @@ test("the page asks the visitor, pays, and tells the game it was bought", async 
     expect(gamePauseHeld()).toBe(false);
 });
 
-test("cancel, Escape and a click outside are a no, and nothing is paid", async () => {
+test("Cancel, Escape and the close button are a no, and nothing is paid", async () => {
     const { host, sent, fromGame, press } = mount();
     await fromGame("purchase", { request: "req-0001", product: "coins-100" });
     await press(/^Cancel$/);
@@ -180,11 +182,7 @@ test("cancel, Escape and a click outside are a no, and nothing is paid", async (
         );
     });
     await fromGame("purchase", { request: "req-0003", product: "coins-100" });
-    await act(async () =>
-        (
-            host.querySelector('[data-game-overlay="purchase"]') as HTMLElement
-        ).click()
-    );
+    await press(/^Close buy 100 coins$/);
     expect(sent.map((m) => [m.request, m.bought, m.reason])).toEqual([
         ["req-0001", false, "cancelled"],
         ["req-0002", false, "cancelled"],
@@ -339,28 +337,33 @@ test("what the visitor owns is the server's list; a guest owns nothing", async (
     });
 });
 
-test("the wallet panel shows the balance and what was bought", async () => {
-    const { host, press } = mount();
-    await act(async () => {});
-    await press(/^Wallet · \$10\.00$/);
-    const panel = host.querySelector('[aria-label="Wallet"][role="dialog"]');
-    expect(panel?.textContent).toContain("$10.00");
-    expect(panel?.textContent).toContain(
-        "Test balance. No real money is used."
+test("the wallet is the account's: the sidebar links to it and reads the balance again", async () => {
+    const { host, press, fromGame, openWallet } = mount();
+    // No wallet of the page's own over the game.
+    expect(host.querySelector("button")).toBeNull();
+    expect(mockService.wallet).not.toHaveBeenCalled();
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    const before = mockService.wallet.mock.calls.length;
+    mockService.wallet.mockResolvedValueOnce({ mode: "test", cents: 2000 });
+    await press(/^Wallet/);
+    expect(openWallet).toHaveBeenCalledTimes(1);
+    expect(mockService.wallet.mock.calls.length).toBe(before + 1);
+    expect(host.querySelector('[role="dialog"]')?.textContent).toContain(
+        "Test balance$20.00"
     );
-    expect(panel?.textContent).toContain("Gold racket");
-    // The game by its title, not its id.
-    expect(panel?.textContent).toContain("ACE! Tennis");
-    expect(panel?.textContent).toContain("$2.50");
-    expect(gamePauseHeld()).toBe(true);
-    await press(/^Close wallet$/);
-    expect(
-        host.querySelector('[aria-label="Wallet"][role="dialog"]')
-    ).toBeNull();
-    expect(gamePauseHeld()).toBe(false);
+    // History is the dashboard's to show, not the sidebar's.
+    expect(mockService.history).not.toHaveBeenCalled();
 });
 
-test("a game that sells nothing gets no wallet button and no sheet", async () => {
+test("a guest has no wallet to open from the sidebar", async () => {
+    const { host, fromGame } = mount({ account: null });
+    await fromGame("purchase", { request: "req-0001", product: "coins-100" });
+    expect(
+        [...host.querySelectorAll("button")].map((b) => b.textContent)
+    ).toEqual(expect.not.arrayContaining([expect.stringMatching(/^Wallet/)]));
+});
+
+test("a game that sells nothing gets no sidebar", async () => {
     const { host, sent, fromGame } = mount({ game: "garden" });
     await act(async () => {});
     expect(host.querySelector("button")).toBeNull();

@@ -45,6 +45,7 @@ import { readPartyLeave } from "./gamePartyLeave";
 import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 import { useGameResults } from "./useGameResults";
 import { useGamePurchases } from "./useGamePurchases";
+import { openWalletDashboard } from "./openWalletDashboard";
 import { useSignInSheet } from "@ui/components/ConnectWallet/SignInSheetHost";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
 import { useGamePause } from "./gamePause";
@@ -207,6 +208,8 @@ export default function GamePage({
         send: (message) => send.current(message),
         account: () => signedInAccount(profile.current),
         signIn: (done) => signInSheet?.open({ callbackAfterAuth: done }),
+        // The wallet is part of the account: its dashboard, at the wallet.
+        openWallet: openWalletDashboard,
         onClose: () => frame.current?.focus(),
     });
     // What breaks and how fast it runs on real visits (gameHealth.ts): it

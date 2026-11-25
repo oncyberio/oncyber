@@ -89,7 +89,7 @@ const dark: ColorSchemeVars = {
     "--field-bg-color": landing.color.canvas,
     // 3.8:1 against the panel, so the field's edge can be seen.
     "--field-border-color": base.color.line.hover,
-    "--danger-color": "#ff8f80",
+    "--danger-color": base.color.danger,
     "--dialog-shadow": landing.shadow.card,
     // 24 px, 16 px on small screens.
     "--dialog-radius": "var(--oc-radius-card)",

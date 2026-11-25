@@ -3,16 +3,11 @@ import GamePurchasesService from "@api/gamePurchases/_api";
 import { ActionButton } from "@styles/brand";
 import Icon from "@features/landing-carousel/components/Icon";
 import {
+    UtilityActions,
     UtilityButton,
-    UtilityStack,
+    UtilityRow,
 } from "@features/content-host/NativeVisitorPanel";
-import {
-    PurchaseDialog,
-    PurchaseScrim,
-    WalletControl,
-    WalletPanel,
-} from "./gamePurchaseStyles";
-import { findGame } from "./catalog";
+import { PurchasePanel, PurchaseSummary } from "./gamePurchaseStyles";
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
 import {
@@ -28,14 +23,6 @@ type Mode = "off" | "test";
 interface Wallet {
     mode: Mode;
     cents: number;
-}
-interface Purchase {
-    order: string;
-    game: string;
-    product: string;
-    name: string;
-    cents: number;
-    at: number;
 }
 /** The one purchase the visitor is being asked about. */
 interface Ask {
@@ -79,14 +66,14 @@ const REFUSED: Partial<Record<PurchaseRefusal, string>> = {
 
 /**
  * The page's side of purchases (docs/games/purchases.md). A game asks with
- * `purchase`; the page shows its own sheet with the declared name and
- * price, takes the visitor's answer, pays through the signed-in account's
- * wallet and tells the game with `purchase-result`. The game never draws
- * this sheet and never learns the balance. `owned` is answered with the
- * permanent products the visitor holds.
+ * `purchase`; the page opens its payment sidebar on the right with the
+ * declared name and price, takes the visitor's answer, pays through the
+ * signed-in account's wallet and tells the game with `purchase-result`.
+ * The game never draws this and never learns the balance. `owned` is
+ * answered with the permanent products the visitor holds.
  *
- * The wallet button and its panel (balance and what was bought) are the
- * page's too, shown for a game that sells something.
+ * The wallet itself (balance, adding funds, what was bought) is part of
+ * the account, in the account dashboard; the sidebar links to it.
  */
 export function useGamePurchases(options: {
     game: string;
@@ -99,7 +86,12 @@ export function useGamePurchases(options: {
     account: () => string | null;
     /** Opens the site's sign-in; calls back once the visitor is signed in. */
     signIn?: (done: () => void) => void;
-    /** Called when a sheet or the panel closes, to give the game its focus. */
+    /**
+     * Opens the wallet in the account dashboard; resolves when it closes,
+     * so the balance shown here is read again.
+     */
+    openWallet?: () => Promise<unknown> | void;
+    /** Called when the sidebar closes, to give the game its focus. */
     onClose?: () => void;
 }) {
     const { game } = options;
@@ -111,8 +103,8 @@ export function useGamePurchases(options: {
     const asking = useRef<Ask | null>(null);
     asking.current = ask;
     const [wallet, setWallet] = useState<Wallet | null>(null);
-    const [panel, setPanel] = useState(false);
-    const [history, setHistory] = useState<Purchase[] | null>(null);
+    // The account dashboard is open over the sidebar.
+    const inWallet = useRef(false);
     const [funding, setFunding] = useState(false);
     const signedIn = !!options.account();
 
@@ -140,9 +132,9 @@ export function useGamePurchases(options: {
     // The wallet is the account's: read again whenever who is signed in changes.
     const account = options.account();
     useEffect(() => {
-        if (sells) void refreshWallet();
+        if (asking.current) void refreshWallet();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [account, sells]);
+    }, [account]);
 
     useEffect(() => {
         const receive = async (event: MessageEvent) => {
@@ -279,40 +271,43 @@ export function useGamePurchases(options: {
         }
         asking.current = null;
         setAsk(null);
-        setHistory(null);
         answer(open.request, outcome);
         live.current.onClose?.();
     };
 
     const openSignIn = () => live.current.signIn?.(() => void refreshWallet());
 
-    // A sheet or panel over the game holds the page's pause, and Escape
-    // closes it without also opening the world menu.
-    const covering = !!ask || panel;
+    const openWallet = async () => {
+        if (inWallet.current) return;
+        inWallet.current = true;
+        try {
+            await live.current.openWallet?.();
+        } catch {
+            /* The dashboard could not open; the sidebar is as it was. */
+        } finally {
+            inWallet.current = false;
+            // Funds may have been added there.
+            void refreshWallet();
+        }
+    };
+
+    // The sidebar holds the page's pause, and Escape closes it without also
+    // opening the world menu.
+    const covering = !!ask;
     useEffect(() => {
         if (!covering) return;
         const onKey = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-            // Another sheet opened over this one (the sign-in): Escape is
-            // that sheet's, and this one stays as it is underneath.
-            const dialogs = document.querySelectorAll(
-                '[role="dialog"][aria-modal="true"]'
-            );
-            const top = dialogs[dialogs.length - 1];
+            // Something opened over the sidebar (the sign-in sheet, the
+            // account dashboard): Escape is its, and the question stays.
             if (
-                top &&
-                !top.closest(
-                    '[data-game-overlay="purchase"], [data-game-overlay="wallet-panel"]'
-                )
+                inWallet.current ||
+                document.querySelector('[role="dialog"][aria-modal="true"]')
             )
                 return;
             event.preventDefault();
             event.stopPropagation();
-            if (asking.current) close();
-            else {
-                setPanel(false);
-                live.current.onClose?.();
-            }
+            close();
         };
         window.addEventListener("keydown", onKey, true);
         const resume = holdGamePause();
@@ -323,19 +318,6 @@ export function useGamePurchases(options: {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [covering]);
 
-    useEffect(() => {
-        if (!panel || !signedIn) return;
-        let stale = false;
-        void refreshWallet();
-        GamePurchasesService.history({})
-            .then(({ purchases }) => !stale && setHistory(purchases))
-            .catch(() => !stale && setHistory([]));
-        return () => {
-            stale = true;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [panel, signedIn]);
-
     const test = wallet?.mode === "test";
     const held =
         signedIn && wallet && wallet.mode !== "off"
@@ -344,17 +326,16 @@ export function useGamePurchases(options: {
     const action = ask
         ? purchaseAction({ signedIn, wallet, cents: ask.product.cents })
         : null;
-    // The question: the shared dark dialog, white to confirm, outline to
-    // cancel, blue only to sign in (docs/brand, Dialogs and Action buttons).
-    const sheet = ask && (
-        <PurchaseScrim data-game-overlay="purchase" onClick={() => close()}>
-            <PurchaseDialog
-                role="dialog"
-                aria-modal="true"
-                aria-label={`Buy ${ask.product.name}`}
-                onClick={(event) => event.stopPropagation()}
-            >
-                <h2>Buy {ask.product.name}?</h2>
+    // The payment sidebar: the lobby's utility panel, docked right. The
+    // game is a frame, so a click on it never reaches this page; the
+    // sidebar closes by Cancel, its close button or Escape, each a no.
+    const sidebar = ask && (
+        <PurchasePanel
+            title={`Buy ${ask.product.name}`}
+            onClose={() => close()}
+            closeOnClickAway={false}
+        >
+            <PurchaseSummary data-game-overlay="purchase">
                 <p>
                     {live.current.title}
                     {ask.product.kind === "permanent" ? " · yours to keep" : ""}
@@ -387,33 +368,33 @@ export function useGamePurchases(options: {
                             ? "No real money is used."
                             : "")}
                 </p>
-                <div className="purchase-actions">
-                    <ActionButton disabled={ask.paying} onClick={() => close()}>
-                        Cancel
+                {action === "sign-in" && (
+                    <ActionButton $variant="blue" onClick={openSignIn}>
+                        Sign in to buy
                     </ActionButton>
-                    {action === "sign-in" && (
-                        <ActionButton
-                            $variant="blue"
-                            autoFocus
-                            onClick={openSignIn}
-                        >
-                            Sign in to buy
-                        </ActionButton>
-                    )}
+                )}
+                <UtilityActions>
+                    <UtilityButton
+                        type="button"
+                        disabled={ask.paying}
+                        onClick={() => close()}
+                    >
+                        Cancel
+                    </UtilityButton>
                     {action === "add-funds" && test && (
-                        <ActionButton
-                            $variant="white"
-                            autoFocus
+                        <UtilityButton
+                            $primary
+                            type="button"
                             disabled={funding}
                             onClick={() => void addFunds()}
                         >
                             Add {formatPrice(TEST_FUNDS.stepCents)} test funds
-                        </ActionButton>
+                        </UtilityButton>
                     )}
                     {(action === "buy" || action === "wait") && (
-                        <ActionButton
-                            $variant="white"
-                            autoFocus
+                        <UtilityButton
+                            $primary
+                            type="button"
                             disabled={ask.paying || action === "wait"}
                             onClick={() => void buy()}
                         >
@@ -422,125 +403,25 @@ export function useGamePurchases(options: {
                                 : action === "wait"
                                 ? "Loading wallet…"
                                 : `Buy for ${formatPrice(ask.product.cents)}`}
-                        </ActionButton>
+                        </UtilityButton>
                     )}
-                </div>
-            </PurchaseDialog>
-        </PurchaseScrim>
-    );
-
-    const showWallet = sells && wallet?.mode !== "off";
-    const opener = useRef<HTMLButtonElement>(null);
-    const closePanel = () => {
-        setPanel(false);
-        live.current.onClose?.();
-    };
-    const walletButton = showWallet && (
-        <WalletControl
-            ref={opener}
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={panel}
-            aria-label={held ? `Wallet · ${held}` : "Wallet"}
-            // A page overlay (docs/games/safe-area.md), above Credits.
-            data-game-overlay="wallet"
-            data-game-overlay-edge="bottom"
-            onClick={() => {
-                if (panel) return closePanel();
-                document.exitPointerLock?.();
-                setPanel(true);
-            }}
-        >
-            <Icon name="wallet" size={16} />
-            <span>Wallet</span>
-            {held && <span className="wallet-balance">{held}</span>}
-        </WalletControl>
-    );
-    // The wallet: the lobby's utility panel. The game is a frame, so a click
-    // on it never reaches this page; the panel closes by its own button,
-    // Escape, or its opener.
-    const walletPanel = panel && !ask && (
-        <WalletPanel
-            title="Wallet"
-            onClose={closePanel}
-            returnFocusRef={opener}
-            closeOnClickAway={false}
-        >
-            <UtilityStack data-game-overlay="wallet-panel">
-                {!signedIn ? (
-                    <>
-                        <p>Sign in to see your wallet and what you bought.</p>
-                        <ActionButton $variant="blue" onClick={openSignIn}>
-                            Sign in
-                        </ActionButton>
-                    </>
-                ) : (
-                    <>
-                        <div>
-                            <p className="wallet-balance">
-                                {wallet ? formatPrice(wallet.cents) : "…"}
-                            </p>
-                            {test && (
-                                <p>Test balance. No real money is used.</p>
-                            )}
-                        </div>
-                        {test && (
-                            <UtilityButton
-                                $primary
-                                type="button"
-                                disabled={
-                                    funding ||
-                                    (wallet?.cents ?? 0) >= TEST_FUNDS.maxCents
-                                }
-                                onClick={() => void addFunds()}
-                            >
-                                Add {formatPrice(TEST_FUNDS.stepCents)} test
-                                funds
-                            </UtilityButton>
-                        )}
-                        <h3>Purchases</h3>
-                        {history === null ? (
-                            <p>Loading…</p>
-                        ) : history.length === 0 ? (
-                            <p>Nothing bought yet.</p>
-                        ) : (
-                            <ul
-                                className="wallet-list"
-                                aria-label="Purchases, newest first"
-                            >
-                                {history.map((item) => (
-                                    <li key={item.order}>
-                                        <span>
-                                            {item.name}
-                                            <small>
-                                                {findGame(item.game)?.title ??
-                                                    item.game}{" "}
-                                                ·{" "}
-                                                {new Date(
-                                                    item.at
-                                                ).toLocaleDateString()}
-                                            </small>
-                                        </span>
-                                        <span className="wallet-price">
-                                            {formatPrice(item.cents)}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </>
+                </UtilityActions>
+                {signedIn && live.current.openWallet && (
+                    <UtilityRow
+                        type="button"
+                        disabled={ask.paying}
+                        onClick={() => void openWallet()}
+                    >
+                        <Icon name="wallet" size={16} />
+                        <span>
+                            Wallet
+                            <small>Your balance and purchases</small>
+                        </span>
+                    </UtilityRow>
                 )}
-            </UtilityStack>
-        </WalletPanel>
+            </PurchaseSummary>
+        </PurchasePanel>
     );
 
-    return {
-        element: (
-            <>
-                {walletButton}
-                {walletPanel}
-                {sheet}
-            </>
-        ),
-    };
+    return { element: sidebar || null };
 }

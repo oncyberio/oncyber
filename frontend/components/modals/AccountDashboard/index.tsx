@@ -3,6 +3,8 @@ import {
     MultiformStep,
 } from "@features/studio/components/Multiform";
 import { NButton } from "@ui/components/NButton";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import Profile from "./Profile";
 import LinkAccount from "./LinkAccount";
@@ -30,13 +32,50 @@ const steps: [MultiformStep, ...MultiformStep[]] = [
     },
 ];
 
+// Loaded when shown: its server client is not needed by the other steps.
+const Wallet = dynamic(() => import("./Wallet"), { ssr: false });
+const walletStep: MultiformStep = {
+    value: "wallet",
+    title: "Wallet",
+    description: "Your balance and purchases",
+    icon: stepIcon("credit-card"),
+    form: <Wallet />,
+};
+
+/** Whether purchases are on here, so the wallet has something to show. */
+async function purchasesAvailable(): Promise<boolean> {
+    try {
+        const { default: service } = await import("@api/gamePurchases/_api");
+        return (await service.wallet({})).mode !== "off";
+    } catch {
+        return false;
+    }
+}
+
 export default function AccountDashboard({
     close,
     defaultStep,
 }: {
     close?: () => void;
-    defaultStep?: "account" | "connections";
+    defaultStep?: "account" | "connections" | "wallet";
 }) {
+    // The wallet is part of the account where purchases are on. Opened at
+    // the wallet (from a purchase), it is there from the first frame.
+    const [hasWallet, setHasWallet] = useState(defaultStep === "wallet");
+    useEffect(() => {
+        if (hasWallet) return;
+        let stale = false;
+        void purchasesAvailable().then(
+            (available) => !stale && available && setHasWallet(true)
+        );
+        return () => {
+            stale = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const shown: [MultiformStep, ...MultiformStep[]] = hasWallet
+        ? [...steps, walletStep]
+        : steps;
     const actions = (
         <Actions>
             <NButton
@@ -58,7 +97,7 @@ export default function AccountDashboard({
                 defaultStep={defaultStep}
                 className="account-dashboard"
                 title="Account dashboard"
-                steps={steps}
+                steps={shown}
                 actions={actions}
             />
         </Container>

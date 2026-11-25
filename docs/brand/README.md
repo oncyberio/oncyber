@@ -947,3 +947,8 @@ sharing, feedback and voice requests. Avoid nested legacy panel backgrounds or
 large icon tiles. Panels scroll internally, remain below the top bar, and leave
 the bottom chat and toolbar visible, including at phone widths. Escape closes
 the panel and returns keyboard focus to its opener.
+
+A purchase in a game is the same panel docked to the right edge on a wide
+screen (the payment sidebar, `features/games/gamePurchaseStyles.tsx`), so the
+game stays in view; on a phone it is the usual bottom sheet. The wallet is
+not a panel over the game: it is a step of the account dashboard.
