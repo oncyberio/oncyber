@@ -103,14 +103,7 @@ export function middleware(req: NextRequest) {
     // launch, their builds included; where they are on, the file is served
     // as any other static file is, by none of the rules that follow.
     if (isGameFile(path))
-        return hiddenGameFile(path, {
-            NODE_ENV: process.env.NODE_ENV,
-            // A host may not hand the edge a server variable as it runs
-            // (a preview had games on and their files hidden), so the
-            // value at build time is written in as well (next.config.js).
-            GAMES_PREVIEW:
-                process.env.GAMES_PREVIEW || process.env.GAMES_PREVIEW_AT_BUILD,
-        })
+        return hiddenGameFile(path)
             ? new NextResponse(null, {
                   status: 404,
                   headers: { "cache-control": "no-store" },
