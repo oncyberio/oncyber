@@ -73,7 +73,50 @@ const prefersReducedMotion = () =>
  * Every state change goes through `lobbyJourneyTransition`; this hook owns the
  * frame, the timers, the messages and the return cover around it.
  */
-export function useLobbyJourney(initialReturn?: LobbyReturnTransition | null) {
+/**
+ * The world a hosted world asked the party to travel to, or null when what
+ * it sent is not a world this lobby could prepare.
+ */
+export function partyDestination(message: {
+    id?: unknown;
+    title?: unknown;
+    href?: unknown;
+}): LobbyDestination | null {
+    const { id, title, href } = message;
+    if (
+        typeof id !== "string" ||
+        typeof title !== "string" ||
+        typeof href !== "string" ||
+        !/^[a-z0-9@_-]{1,128}$/i.test(id) ||
+        !title.trim() ||
+        href.length > 2048
+    )
+        return null;
+    try {
+        const url = new URL(href, window.location.origin);
+        // The same route grammar a destination frame accepts.
+        destinationFrameUrl(url.href, window.location.origin, "party-check");
+        return {
+            id,
+            title: title.trim().slice(0, 80),
+            href: url.pathname,
+        };
+    } catch {
+        return null;
+    }
+}
+
+export function useLobbyJourney(
+    initialReturn?: LobbyReturnTransition | null,
+    {
+        onPartyTravel,
+    }: {
+        /** The entered world's visitor chose another world for their party. */
+        onPartyTravel?: (destination: LobbyDestination) => void;
+    } = {}
+) {
+    const partyTravel = useRef(onPartyTravel);
+    partyTravel.current = onPartyTravel;
     const localReturn = useRef(initialReturn);
     const [snapshot, setSnapshot] = useState<LobbyJourneySnapshot>(() =>
         initialLobbyJourney(initialReturn)
@@ -347,6 +390,22 @@ export function useLobbyJourney(initialReturn?: LobbyReturnTransition | null) {
             )
                 return;
             const data = event.data;
+            // The visitor chose another world for their party. The world
+            // has already dissolved: come back as for the back arrow, then
+            // the lobby asks the party along.
+            if (data.type === "travel") {
+                if (active.phase !== "entered") return;
+                const destination = partyDestination(data);
+                send({
+                    type: "message",
+                    message: { ...data, type: "back" },
+                    requested: { entry: false, stage: false, reveal: false },
+                    now: performance.now(),
+                    reducedMotion: prefersReducedMotion(),
+                });
+                if (destination) partyTravel.current?.(destination);
+                return;
+            }
             // The entered world mirrors its address (space and coordinates).
             if (data.type === "location") {
                 if (active.phase === "entered")

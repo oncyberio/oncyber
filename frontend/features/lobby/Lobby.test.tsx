@@ -1423,3 +1423,87 @@ test("a second profile link reopens the sidebar on the new person", async () => 
         name: "@sam",
     });
 });
+
+/** The page inside the hosted world's frame (jsdom loads none). */
+function hostedWorldDocument() {
+    const hosted = document.implementation.createHTMLDocument("world");
+    const frame = jest
+        .spyOn(HTMLIFrameElement.prototype, "contentDocument", "get")
+        .mockReturnValue(hosted);
+    restoreFrame = () => frame.mockRestore();
+    return hosted;
+}
+let restoreFrame: (() => void) | undefined;
+afterEach(() => {
+    restoreFrame?.();
+    restoreFrame = undefined;
+});
+
+test("a world chosen from inside a world is proposed to the party once the lobby is back", async () => {
+    social.groupsSupported = true;
+    social.groups = [
+        {
+            id: "g1",
+            name: "Moon club",
+            ownerId: "self",
+            joinCode: "join-me",
+            messages: [],
+            members: [
+                { id: "self", name: "Guest", avatar: "", vrmUrl: "", scale: 1 },
+                { id: "peer", name: "Alice", avatar: "", vrmUrl: "", scale: 1 },
+            ],
+        },
+    ];
+    social.groupAction.mockResolvedValue({ requestId: "sent" });
+    journey = {
+        ...journey,
+        phase: "entered",
+        selected: cards[0],
+        frameUrl: "/first?__lobbyAttempt=test",
+        attempt: "test",
+    };
+    const hosted = hostedWorldDocument();
+    render(true);
+    // The hosted world is told there is a party to ask (the only one).
+    expect(hosted.documentElement.hasAttribute("data-lobby-party")).toBe(true);
+    const { onPartyTravel } = (useLobbyJourney as jest.Mock).mock.calls.at(
+        -1
+    )[1];
+    const world = {
+        id: "starrynight",
+        title: "Starry Night",
+        href: "/starrynight",
+    };
+    // The world hands the trip over while the lobby is still coming back.
+    journey = { ...journey, phase: "returning" };
+    await act(async () => onPartyTravel(world));
+    render(true);
+    expect(social.groupAction).not.toHaveBeenCalled();
+    journey = { ...journey, phase: "idle", selected: null, frameUrl: null };
+    await act(async () => {
+        render(true);
+    });
+    expect(social.groupAction.mock.calls.map(([command]) => command)).toEqual([
+        // The server starts a trip only from the lobby.
+        { action: "active-world", active: false },
+        { action: "travel-propose", groupId: "g1", destination: world },
+    ]);
+    // Asked once: another render does not propose again.
+    await act(async () => {
+        render(true);
+    });
+    expect(social.groupAction).toHaveBeenCalledTimes(2);
+});
+
+test("a visitor with no party leaves the hosted world to travel on its own", () => {
+    journey = {
+        ...journey,
+        phase: "entered",
+        selected: cards[0],
+        frameUrl: "/first?__lobbyAttempt=test",
+        attempt: "test",
+    };
+    const hosted = hostedWorldDocument();
+    render(true);
+    expect(hosted.documentElement.hasAttribute("data-lobby-party")).toBe(false);
+});

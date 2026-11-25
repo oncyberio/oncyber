@@ -37,6 +37,44 @@ the space.
 | `/llms-full.txt`  | Every docs page in one file                                                               | `features/docs/content.ts`               |
 | `/docs/<page>.md` | A docs page as Markdown                                                                   | `pages/api/docs/raw.ts`                  |
 
+The sitemap lists a space only when it is public and has a name. A space
+with a link but no name shows a title like "0x2b4's Untitled x1", and about
+one listed address in twelve was one of those (measured on a sample of 160
+in November 2026). Such a space still opens, and its page is headed by its
+creator's name ("@name's space"), but it is not put forward to crawlers.
+
+`/discover`, the old "Live worlds" list, redirects to the home page like
+`/explore`: it shared the home page's title and no longer loaded its cards.
+
+The home page's title in a browser tab and a search result is "oncyber: open
+metaverse for the creative ones" (`HOME_TITLE`). Its link-preview card keeps
+"oncyber: forever" (`SITE_TITLE`), the words on the card's picture.
+
+## What the November 2026 audit found
+
+A Semrush crawl of oncyber.io and of this site, and its link and keyword
+data, before the move to oncyber.com:
+
+-   **Links to keep.** 590 oncyber.io addresses with links pointing at them
+    or with search traffic were requested on www.oncyber.com. 573 answer,
+    and the 17 that do not are already gone on oncyber.io. Nothing with
+    links is lost by the move as long as every oncyber.io path keeps
+    redirecting to the same path here.
+-   **Subdomains are outside this app.** `docs.oncyber.io` (the game-making
+    reference, about 500 pages), `v2.oncyber.io` and `oo.oncyber.io` have
+    links of their own. Their paths do not exist under `/docs` here, so
+    they need their own hosting or redirects when the domain moves.
+-   **Many of the old domain's links are not earned.** oncyber.io has about
+    7,800 linking domains. The four most-linked spaces have 1,500 to 2,200
+    each, and the commonest anchor texts on the domain are adverts for paid
+    links ("premium seo backlinks…") naming those spaces' own domains. The
+    home page has about 1,000 linking domains; those are the ones to keep.
+-   **What people search for.** "virtual art gallery" (390 a month in the
+    US, easy), "virtual showroom" (390), "virtual exhibition platform"
+    (170), "online exhibition" (140) and "3d art gallery" (90) are the
+    searches this product answers. The About page now answers the first
+    four in its questions.
+
 ## Database reads
 
 Space pages add none: their text comes from the data the page already

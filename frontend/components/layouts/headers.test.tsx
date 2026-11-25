@@ -2,7 +2,12 @@
 import React from "react";
 import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
-import Headers, { fontPreloadsFor, showsOwnImage, SITE_TITLE } from "./headers";
+import Headers, {
+    fontPreloadsFor,
+    HOME_TITLE,
+    showsOwnImage,
+    SITE_TITLE,
+} from "./headers";
 import { siteOrigin } from "@utils/siteOrigin";
 
 let mockRouter: { pathname: string; query: Record<string, string> };
@@ -134,10 +139,11 @@ function renderedHead(pathname = "/") {
     return result;
 }
 
-test("the site title and link preview use the oncyber: forever card", () => {
+test("the tab and search title says what the site is; the link preview keeps the oncyber: forever card", () => {
     const head = renderedHead();
+    expect(HOME_TITLE).toBe("oncyber: open metaverse for the creative ones");
+    expect(head.title).toBe(HOME_TITLE);
     expect(SITE_TITLE).toBe("oncyber: forever");
-    expect(head.title).toBe(SITE_TITLE);
     expect(head.ogTitle).toBe(SITE_TITLE);
     expect(head.twitterTitle).toBe(SITE_TITLE);
     expect(head.twitterCard).toBe("summary_large_image");
@@ -193,7 +199,7 @@ function headOf(pathname: string) {
 
 test("the home page names its own address and describes the site once", () => {
     const head = headOf("/");
-    expect(head.title).toBe(SITE_TITLE);
+    expect(head.title).toBe(HOME_TITLE);
     expect(head.canonical).toMatch(/^https:\/\/[^/]+\/$/);
     expect(head.ogUrl).toBe(head.canonical);
     expect(head.siteName).toBe("oncyber");

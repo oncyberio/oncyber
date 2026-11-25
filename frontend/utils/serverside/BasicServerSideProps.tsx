@@ -3,6 +3,7 @@ import { measureSsrStage, withSsrTiming } from "./ssrTiming";
 
 import { auth } from "../middlewares/authMiddleware";
 import { fetchUserByWalletIdCached } from "@api/accounts/user/utils";
+import { profileWrittenAt } from "@utils/auth/profileWrites";
 
 /**
  * `prefetch` (optional) starts the page's reads that do not depend on who is
@@ -55,8 +56,12 @@ export const BasicServerSideProps = (
                 auth({ cookies })
             );
 
+            // Their own account, at least as fresh as their last change
+            // to it.
             let user = await measureSsrStage("ssr_user", () =>
-                fetchUserByWalletIdCached(walletId.toLowerCase())
+                fetchUserByWalletIdCached(walletId.toLowerCase(), false, {
+                    notBefore: profileWrittenAt(cookies),
+                })
             );
 
             if (!user) {

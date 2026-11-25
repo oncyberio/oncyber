@@ -47,9 +47,19 @@ Today: `lobby-journey` (the lobby surface), `space-connection`, `space-panel` (`
 | World voice                 | `frontend/components/_3DExhibit-v2/context/hooks/voiceMachine.ts`                                        | disabled (remembering a request that expired or was withdrawn), pending, enabled                      | `hooks/useVoice.tsx` beside it, which owns the provider and the request's two-minute timer                                      |
 | Game loading                | `frontend/features/games/gameLoading.ts`                                                                 | loading (progress rises), drawn (first frame on the canvas, redraws update its size), failed          | `GameLoadingCover.tsx` beside it, which owns the frame's messages and the cover                                                 |
 | Published game record       | `frontend/features/games/publishedGames.ts` (`planBegin`, `planPublish`, `planUnpublish`)                | none, unlisted, listed (set by a person at Oncyber, never by a publish), unpublished                  | `publishedGamesServer.ts` beside it, which owns Firestore and the releases folder; called by `pages/api/_v2/gamePublish/`       |
+| Starry Night house door     | `frontend/features/worldMods/worlds/thestarrynight_skydome/house/door.ts`                                | closed, opening, open, closing (with how far it has swung)                                            | `house/openHouse.ts` beside it, which owns the frames, measures the visitor's distance and turns the door                       |
 
 The group trip and the lobby connection have their vocabulary in one place but
 not yet a single transition function.
+
+A group trip always starts from the lobby: the server refuses a proposal from
+someone inside a world. A visitor in a party who picks another world from inside
+a hosted one is therefore brought back to the lobby first, where the trip is
+proposed to the party as usual (`requestLobbyPartyTravel` in
+`frontend/utils/lobbyDestinationBridge.ts`, received in `useLobbyJourney.ts`).
+Travellers gather side by side facing the same way, one row up to six and two
+rows beyond (`multiplayer/src/world/formation.ts`), so nobody stands behind
+another in the travel animation.
 
 What a visitor is told about a connection is one of three states everywhere:
 `ConnectionState` in `frontend/ui/components/ConnectionStatus.tsx` (connecting,

@@ -33,6 +33,31 @@ test("leaves tokens, ids and other hashes alone", () => {
     assert.deepEqual(colourLiterals(source), []);
 });
 
+test("a file of 3D colours says so once, where it opens", () => {
+    const paint = ['const wall = "#c9c1e8";', 'const bed = "#e8b93a";'];
+    assert.deepEqual(
+        colourLiterals(
+            ["// tokens-ok-file: paint for a 3D room", ...paint].join("\n")
+        ),
+        []
+    );
+    // Said without a reason, or far below the opening, it exempts nothing.
+    assert.equal(
+        colourLiterals(["// tokens-ok-file:", ...paint].join("\n")).length,
+        2
+    );
+    assert.equal(
+        colourLiterals(
+            [
+                ...paint,
+                ...Array(60).fill("const n = 1;"),
+                "// tokens-ok-file: too late",
+            ].join("\n")
+        ).length,
+        2
+    );
+});
+
 test("accepts a stated exception on the line or the one above", () => {
     assert.deepEqual(
         colourLiterals('emissive: "#ffd23f", // tokens-ok: a 3D material'),

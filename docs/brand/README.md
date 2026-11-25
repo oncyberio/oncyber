@@ -646,12 +646,14 @@ a glass border that brightens on hover/selection. Keep portraits transparent
 and captions legible over a subtle dark gradient; preserve the material's
 reduced-transparency and forced-colors fallbacks.
 Remove the catalog thumbnails' baked-in slate-blue backdrop with the shared
-image-only color key, preserving the artwork's colors. Show four columns and
-two rows in the shared 656 px rail, with 8 px gaps and clipped edge gutters. Use overflow clipping instead of a CSS mask so the glass can blur the
-world behind it. Cards are 146 px at full width and shrink to fit four columns
-on smaller screens. Leave 24 px of horizontal padding for the 3D projection.
+image-only color key, preserving the artwork's colors. Show two rows in the
+shared 656 px rail (six columns on a desktop, four on a phone), with 8 px gaps and clipped edge gutters. Use overflow clipping instead of a CSS mask so the glass can blur the
+world behind it. Cards are 89 px wide on a desktop and shrink to fit four columns
+on smaller screens. Touch screens drop the selection check from the caption:
+a tap puts the avatar on, the brighter border marks it, and closing the
+picker goes back. Leave 24 px of horizontal padding for the 3D projection.
 Short viewports reduce portrait height while keeping the shared panel width. Page
-controls advance four columns at a time. Keep free scrolling without CSS snap,
+controls advance one view of whole columns at a time (six on a desktop, four on a phone). Keep free scrolling without CSS snap,
 which would align projected bounds instead of the grid. Follow the animation picker's quiet
 heading and browse controls, without an enclosing panel. Arrange whole cards
 on the shared convex horizontal 3D arc under a 1000 px perspective. The middle
@@ -662,6 +664,26 @@ yaw, with no screen-plane roll or vertical lift. Portraits, glass borders and
 projected corners and focus outlines. Update the curve only while scrolling
 or resizing. Keep the small progress track, selected/loading label and Done
 control below.
+
+The picker's heading is a two-tab switch: Free (the catalog) and Owned (the
+visitor's uploads and wallet avatars). It is two plain text labels centred in
+the heading, with no box, fill or count: the current label is in ink over a
+short line, the other is muted. Left/Right, Home and End move between tabs
+and Down steps into the cards. It opens on the tab holding the
+avatar being worn. The panel keeps its two-row height on both tabs so the
+switch never moves; four or fewer avatars sit on one row, and an empty Owned
+tab says why in one line. Pictures are requested at card size (288 px WebP
+from hosts that resize), the first two screens at once and the rest as they
+come near; the other tab's first screen is fetched in the background.
+
+A soft dark wash sits behind the two labels, in the chat scrim's tones and
+with no edge, so they read over a bright world. The bar under the cards is
+the worlds search bar again: close, the search mark, a "Search avatars…"
+field and its `/` hint, 480 px wide like the worlds one. Typing narrows the
+open tab by name; an empty result says how many matches the other tab holds.
+`/` moves to the field, Down steps into the results, and Escape empties the
+field before it closes the picker. A click outside the picker closes it; a
+drag in the world (turning the avatar or the camera) does not.
 
 Dragging, swiping, wheel input and page controls browse without changing the
 avatar. Arrow keys move focus through the visible grid; Home/End reach its

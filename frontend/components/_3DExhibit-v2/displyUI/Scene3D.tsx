@@ -110,6 +110,7 @@ import {
 } from "@components/context/VrmContext";
 
 import { overrideInitialCoords } from "@3utils/spaceutils";
+import { worldAvatarSize } from "@3utils/avatarHeight";
 import { observeSceneSize } from "@utils/artworks/observeSceneSize";
 
 /** Load progress, to whichever page is showing this world's cover. */
@@ -543,10 +544,10 @@ export function Scene3D_Child({
                             roomParameters: inputs.destination,
                             exhibit: initExhibit,
                             vrmMetadata: vrm,
-                            initialScale:
-                                initExhibit?.params?.avatarSize ||
-                                inputs.destination?.avatarSize ||
-                                null,
+                            initialScale: worldAvatarSize({
+                                exhibit: initExhibit,
+                                roomParameters: inputs.destination,
+                            }),
                         });
                         if (process.env.NODE_ENV === "development") {
                             CANVAS?.setAttribute("data-native-avatar", vrm?.url || "");

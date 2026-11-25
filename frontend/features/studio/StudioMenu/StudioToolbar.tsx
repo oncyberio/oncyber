@@ -12,6 +12,7 @@ import { Play } from "./Play";
 import { SelectSpace } from "./SelectSpace";
 import { SpaceSettings } from "./SpaceSettings";
 import { SpaceStats } from "./SpaceStats";
+import { WorldScripts } from "./WorldScripts";
 import Portal from "@components/Snackbar/Portal";
 import dynamic from "next/dynamic";
 import { UserContext } from "@components/context/UserContext";
@@ -340,6 +341,8 @@ export function StudioToolbar() {
                         <SpaceStats />
 
                         <CinematicToggle />
+
+                        <WorldScripts />
 
                         {/* {ai?.isWhitelisted && (
                             <Tooltip text={tx("Magic Composer")} orientation="bottom">

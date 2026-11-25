@@ -1,10 +1,12 @@
 import { passwordRefusalMessage } from "@components/_3DExhibit-v2/utils/gating";
 import { goToExperience } from "@utils/experienceNavigation";
+import { requestLobbyPartyTravel } from "@utils/lobbyDestinationBridge";
 import React, { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import styled, { createGlobalStyle } from "styled-components";
+import { lobbyTokens } from "@styles/tokens";
 import { readVoiceDebug } from "@utils/voiceChat/levels";
 import { useMultiplayer } from "@components/_3DExhibit-v2/context/MultiplayerProvider";
 import {
@@ -37,6 +39,12 @@ import NativeVisitorPanel, {
     nativePanelTitles,
     nativeUtilitySurface,
 } from "./NativeVisitorPanel";
+import {
+    offersAiSidebar,
+    setWorldScripts,
+    useWorldScripts,
+    WORLD_SCRIPTS_ENABLED,
+} from "@features/world-scripts/store";
 import ExperienceShell, {
     ExperienceIcon,
     ExperiencePanel,
@@ -105,6 +113,7 @@ export default function NativeExperienceChrome({
         setActiveProfileTab,
     } = usePanel();
     // One value says which panel is open, so opening one closes the others.
+    const worldScripts = useWorldScripts();
     const emotesOpen = spacePanel === "emotes";
     const moreOpen = spacePanel === "more";
     const searchOpen = spacePanel === "search";
@@ -155,6 +164,13 @@ export default function NativeExperienceChrome({
         if (!phoneChatOpen) return;
         dispatchSpacePanel({ type: "close" });
     }, [phoneChatOpen]);
+    // The AI sidebar takes the side a panel would: opened here, from the
+    // studio, or by the page around a framed world.
+    useEffect(() => {
+        if (!worldScripts.panelOpen) return;
+        closePhoneChat();
+        dispatchSpacePanel({ type: "close" });
+    }, [worldScripts.panelOpen]);
     const openSearch = () => {
         closePhoneChat();
         document.exitPointerLock?.();
@@ -174,6 +190,8 @@ export default function NativeExperienceChrome({
     }, [searchOpen]);
     const selectDestination = (destination: LobbyDestination) => {
         setSearchOpen(false);
+        // In a party, the lobby takes the trip and asks the party along.
+        if (requestLobbyPartyTravel(destination)) return;
         goToExperience(destination.href, (href) => router.push(href));
     };
     useEffect(() => {
@@ -435,6 +453,26 @@ export default function NativeExperienceChrome({
             buttonRef: searchButton,
             onClick: () => (searchOpen ? closeSearch() : openSearch()),
         },
+        // The owner's and editors' AI sidebar (docs/world-scripts.md).
+        ...(WORLD_SCRIPTS_ENABLED && offersAiSidebar(worldScripts)
+            ? [
+                  {
+                      id: "ai",
+                      label: worldScripts.panelOpen
+                          ? "Close AI"
+                          : "Build with AI",
+                      icon: "multi-star",
+                      active: worldScripts.panelOpen,
+                      expanded: worldScripts.panelOpen,
+                      onClick: () => {
+                          document.exitPointerLock?.();
+                          setWorldScripts({
+                              panelOpen: !worldScripts.panelOpen,
+                          });
+                      },
+                  },
+              ]
+            : []),
         {
             id: "more",
             label: phoneControls && moreOpen ? "Close More" : "More",
@@ -516,6 +554,11 @@ export default function NativeExperienceChrome({
                                 nativePanelTitles[currentTab] || "Space options"
                             }
                             returnFocusRef={moreButton}
+                            // A report or feedback being written is not
+                            // thrown away by a stray click on the world.
+                            closeOnClickAway={
+                                !["feedback", "report"].includes(currentTab)
+                            }
                             onClose={() => setCurrentTab("")}
                             onBack={() => {
                                 setCurrentTab("");
@@ -575,7 +618,6 @@ export default function NativeExperienceChrome({
                             phoneControls ? moreButton : peopleButton
                         }
                         onClose={() => setPeopleOpen(false)}
-                        onModerate={() => toggleTab("users")}
                     />
                 )}
                 {voiceDebug && (
@@ -757,15 +799,32 @@ export default function NativeExperienceChrome({
                                                 }
                                             />
                                         )}
-                                    {room.isMod && (
-                                        <MoreAction
-                                            icon="mic"
-                                            label="Requests to speak"
-                                            onClick={() =>
-                                                toggleTab("voiceRequests")
-                                            }
-                                        />
-                                    )}
+                                </div>
+                            )}
+                            {/* Everything only the space's admins can do
+                                lives here, so the Back of each panel it
+                                opens returns to where it was opened. */}
+                            {multiplayer && room.isMod && (
+                                <div
+                                    className="more-actions"
+                                    role="group"
+                                    aria-labelledby="native-more-admin"
+                                >
+                                    <h3 id="native-more-admin">
+                                        Admin controls
+                                    </h3>
+                                    <MoreAction
+                                        icon="users"
+                                        label="Moderate people"
+                                        onClick={() => toggleTab("users")}
+                                    />
+                                    <MoreAction
+                                        icon="mic"
+                                        label="Requests to speak"
+                                        onClick={() =>
+                                            toggleTab("voiceRequests")
+                                        }
+                                    />
                                 </div>
                             )}
                             <div className="more-actions">
@@ -862,6 +921,13 @@ const NativeChromeFrame = styled.div`
             visibility: hidden;
             pointer-events: none;
         }
+    }
+    /* A utility panel (settings, people in this space, ...) stands on the
+       dock too, though no dock button is marked as open for it. */
+    &:has([data-native-utility-panel]) .experience-tooltip {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
     }
     /* The avatar picker owns the bottom of the screen, as in the lobby. */
     &[data-avatars-open] .experience-dock,
@@ -979,6 +1045,13 @@ const MorePanel = styled(ExperiencePanel)`
     .more-actions {
         display: grid;
         gap: 2px;
+    }
+    .more-actions > h3 {
+        margin: 6px 0 4px;
+        padding-left: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        color: ${lobbyTokens.color.meta};
     }
     .more-actions + .more-actions {
         margin-top: 6px;

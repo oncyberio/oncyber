@@ -59,3 +59,50 @@ test("utility panels isolate world shortcuts and return keyboard focus to their 
     host.remove();
     opener.remove();
 });
+
+test("a click on the world closes a utility panel, unless it holds something being written", () => {
+    (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement("div");
+    const world = document.createElement("canvas");
+    document.body.append(world, host);
+    const close = jest.fn();
+    const root = createRoot(host);
+    const click = (target: Element) =>
+        act(() =>
+            target.dispatchEvent(
+                new MouseEvent("click", {
+                    clientX: 40,
+                    clientY: 40,
+                    bubbles: true,
+                })
+            )
+        );
+    act(() =>
+        root.render(
+            <NativeVisitorPanel title="People in this space" onClose={close}>
+                <button>Mute</button>
+            </NativeVisitorPanel>
+        )
+    );
+    click(host.querySelector(".native-panel-body button"));
+    expect(close).not.toHaveBeenCalled();
+    click(world);
+    expect(close).toHaveBeenCalledTimes(1);
+
+    act(() =>
+        root.render(
+            <NativeVisitorPanel
+                title="Report this space"
+                onClose={close}
+                closeOnClickAway={false}
+            >
+                <textarea aria-label="What happened" />
+            </NativeVisitorPanel>
+        )
+    );
+    click(world);
+    expect(close).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+    host.remove();
+    world.remove();
+});

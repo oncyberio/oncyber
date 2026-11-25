@@ -195,19 +195,54 @@ default.
        goes to and opens it on the visitor's own click; a link to another
        page of this site travels there. One more click than unframed, and
        no world can send a visitor anywhere on its own word.
-    2. **Still to move.** The password prompt for a gated world (gated
-       worlds are not framed yet), the avatar picker and saved settings
-       (they still try to save to an account the world does not have),
-       screenshots, and fullscreen.
+    2. **The account.** _(Done.)_ A signed-in visitor's world knows who
+       they are and has their settings, and holds a stand-in where the
+       session token would be, never the token. The few account calls the
+       in-world interface makes (my avatars, saving my settings, am I let
+       in, feedback, an edit to my own space) are on an explicit list
+       (`features/worlds/accountRelay.ts`) and are made by the page with
+       its own session; nothing else is. Signing in from the world opens
+       the page's dialog.
+    3. **Gated worlds.** _(Done.)_ Framed like any other: the page, which
+       holds the session, says whether its visitor is let in, and the
+       gate is the world's own interface as it is unframed.
+    4. **Files.** _(Done.)_ A photo the world takes is offered for saving
+       by the page, by name, on the visitor's click.
+    5. **Still to move.** Screen share drawn in 3D, wallet prompts that
+       need a popup, the list of avatars owned by linked wallets, and
+       fullscreen.
 
-5. **The lobby.** The lobby frames the world host; its four direct reaches
-   become messages; the warm-up runs on the world host so the room model is
-   cached where the world reads it.
-6. **World scripts.** A script is a module loaded inside the world, with the
-   engine and three.js in reach and a small SDK as the documented way in.
-   The AI sidebar stays in the page; source kept in the repository builds to
-   the same kind of module, as games do. The Starry Night house
-   (`claude/awesome-dirac-5zs3eb`) is the first one.
+5. **The lobby.** _(Relay done.)_ A
+   world reached from the lobby is two frames below it. The page between
+   them passes the journey's protocol both ways, unchanged
+   (`utils/lobbyDestinationBridge.ts`), and what the lobby set or read
+   directly on the destination's document (the party chat flag, the Enter
+   key, the loading budget, travel options) is passed on too. Still
+   direct, and so missing for a framed world: the portal's live preview,
+   and the warm-up, which caches the room model on the site's origin
+   where the world cannot read it.
+6. **World scripts.** _(Done.)_ Two kinds, both in the world.
+
+    Code kept in this repository (`features/worldMods/`) is a module
+    loaded inside the world with the engine in reach, built with the app.
+    The Starry Night house is the first: it opens the first house down the
+    road and paints a room inside.
+
+    A script written by the AI (`features/world-scripts/`,
+    [../world-scripts.md](../world-scripts.md)) runs in an opaque sandbox
+    inside the world and changes the scene through checked messages. It
+    is split along the frame's own line: the sandbox, the engine it draws
+    through and what it shows on screen are the world's
+    (`runtime.ts`); who may edit, the AI sidebar and its button in the
+    dock, the calls to the model, the save and undo are the page's
+    (`controller.ts`, `PageWorldScripts.tsx`). The page drives the
+    world's runtime through messages (`runtimeRelay.ts`), each naming the
+    space it is for. The AI is in early access: the button is offered
+    only to editors on the list, and the server checks both.
+
+    A space embedded on another site keeps running in its own page: a
+    frame inside a frame inside someone else's page has no way to ask
+    its visitor anything.
 
 The studio stays unframed until editing has its own plan.
 
@@ -263,8 +298,45 @@ The studio stays unframed until editing has its own plan.
     pressing the offer opened the tab at that address; a `javascript:`
     address was ignored. The artwork panel's own links _(not tested)_ in
     a browser.
--   First measurement on a production build and a real device: cold and warm
-    load against today's page _(not measured)_.
+-   Framed against unframed, on production builds of the same commit
+    (headless Chromium, WebGL2, software rendering), for the three staff
+    picks after Starry Night (980 Madison, CyberKongz, Sunshine Square), as
+    a guest and as the signed-in owner: the same avatar and size, dock,
+    title and connection line, the same errors and failed requests, and
+    load times within a few seconds of each other. CyberKongz's 54
+    artworks arrive one by one, so a count taken mid-load differs from run
+    to run; both settle on the same 746 meshes.
+-   Slice 4, the account, on Starry Night as the owner: the avatar picker
+    listed the same 136 avatars, a pick was saved by the page with its
+    session, the emotes and people panels opened, and the frame held no
+    cookie and no token. A photo the world made was offered by name and
+    saved on the click. An account's own uploaded avatars, wallet-owned
+    avatars and saving an edit to a space _(not tested)_.
+-   Slice 4, gates, in the phone layout: a password world showed its lock,
+    then the prompt, kept it on a wrong password and closed it on the right
+    one; a no-guests world stayed locked. The same, step for step, as
+    unframed. The desktop entry control, which follows the pointer, and a
+    token gate _(not tested)_.
+-   Embedded on another site, a space ran in its own page, not in a second
+    frame.
+-   Slice 6, world scripts, on Starry Night with a real model call: the
+    house was there; the space's saved script started in the world's frame
+    for the owner and for a guest; the AI button and sidebar were the
+    page's and absent from the world; a request was written, tried and
+    swapped into the world, and undo went back; a guest had no button;
+    every call to the model and every save came from the page's origin.
+    The same, step for step, as unframed. Software rendering draws Starry
+    Night at under a frame a second, so the world's own meshes were hidden
+    during these runs to keep it usable.
+-   Slice 5, the lobby: a stand-in lobby (a page of the site framing the
+    world as the lobby does and speaking the journey's protocol) took
+    Sunshine Square through the whole journey with the world three frames
+    down: prepared, enter, entered, stage-reveal, reveal-ready, reveal,
+    revealed, ending in play with input released. The same steps as
+    unframed, in 37 s against 35 s. The real lobby, its portal preview and
+    its warm-up _(not tested)_.
+-   A real GPU, WebGPU, Safari, a phone, and load times on a real device
+    _(not tested)_.
 
 ## 6. Open
 
@@ -275,9 +347,16 @@ The studio stays unframed until editing has its own plan.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a
     headset to try it _(not tested)_.
 -   Who draws phone controls, the page or the world.
--   Inside a framed world the avatar picker and saved settings still try
-    to save to an account the world does not have. They move to the page
-    with slice 4.
+-   A browser slows a frame from another origin to about two frames a
+    second while something opaque covers it, or while it is unseen. The
+    engine paces loading by frames, so a covered world loaded in 134 s
+    against 51 s unframed. The cover is now a breath short of opaque and
+    a framed world keeps its own frames coming while the browser holds
+    them back (`features/worlds/worldFrames.ts`): 54 s. Anything new
+    drawn over a loading world must not be fully opaque.
+-   Games published before the page's keys changed (Escape and Enter are
+    the page's; Cmd or Ctrl with M mutes) carry the old key list until
+    they are built again.
 -   A script in a world can ask the page to `travel` without the visitor
     clicking anything. It can only reach this site's own pages.
 -   A frame-rate setting at the Oncyber level, by game and hardware. Not

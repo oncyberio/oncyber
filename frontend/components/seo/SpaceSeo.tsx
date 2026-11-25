@@ -63,7 +63,8 @@ export default function SpaceSeo({
                 <meta
                     key="ogTitle"
                     property="og:title"
-                    content={experience.info?.headline}
+                    // An unnamed space still needs a title in link previews.
+                    content={experience.info?.headline || seo.title}
                 />
                 <meta
                     key="ogDescription"

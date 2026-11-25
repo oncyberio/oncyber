@@ -1,4 +1,5 @@
 import { readTravelAvatar, rememberTravelAvatar } from "@utils/travelAvatar";
+import { adoptsOwnedAvatar } from "./ownedAvatarChoice";
 import { defaultAvatarId } from "@utils/defaultAvatar";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import VrmApi from "@api/vrm/_api";
@@ -29,6 +30,7 @@ import VRMS from "@3/three/factory/player/vrms.json";
 import { Experience } from "@uitypes/experience";
 import { RoomParameters } from "@uitypes/roomParameters";
 import { checkUrlResponse, cloudinary } from "@utils/urlUtils";
+import { worldAvatarSize } from "@3utils/avatarHeight";
 
 const maxFileSize = 8;
 
@@ -153,6 +155,16 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
 
     const lastVrmRef = useRef(null);
     const prevActiveVrm = useRef(null);
+    // The avatar the visitor is meant to be wearing (the one that travelled
+    // with them, the one they picked here, else the saved one), and the
+    // latest account data and avatar on show. The wallet's avatars finish
+    // loading long after this provider mounts, so that load reads these, not
+    // the values it started with.
+    const wantedVrmId = useRef<string | null>(null);
+    const latestUserData = useRef(userData);
+    latestUserData.current = userData;
+    const latestActiveVrm = useRef(activeVrm);
+    latestActiveVrm.current = activeVrm;
 
     useEffect(() => {
         if (!user?.id) return;
@@ -390,8 +402,12 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
                             results = [...results, vrm];
 
                             if (
-                                id === userData?.settings?.vrm &&
-                                id !== activeVrm?.id
+                                adoptsOwnedAvatar(
+                                    id,
+                                    wantedVrmId.current ??
+                                        latestUserData.current?.settings?.vrm,
+                                    latestActiveVrm.current?.id
+                                )
                             ) {
                                 setActiveVrm(vrm);
                             }
@@ -457,6 +473,10 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
                     }
                     break;
             }
+
+            // From here on, this is the avatar a late wallet load may put
+            // on; an older saved one is not.
+            wantedVrmId.current = vrmId || null;
 
             avatar =
                 travellingAvatar ||
@@ -528,9 +548,10 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
             if (_roomParams) setRoomParams(_roomParams);
 
             const default_vrm_scale =
-                _exhibit?.params?.avatarSize ||
-                _roomParams?.avatarSize ||
-                userData?.settings?.default_vrm_scale;
+                worldAvatarSize({
+                    exhibit: _exhibit,
+                    roomParameters: _roomParams,
+                }) ?? userData?.settings?.default_vrm_scale;
 
             //
             if (
@@ -560,14 +581,14 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
 
         let scale = null;
 
-        if (exhibit?.params?.avatarSize) {
-            if (typeof exhibit.params.avatarSize === "number") {
-                scale = exhibit.params.avatarSize;
-            }
-        } else if (roomParams?.avatarSize) {
-            if (typeof roomParams.avatarSize === "number") {
-                scale = roomParams.avatarSize;
-            }
+        // The world's size, when it has one, comes before the visitor's own.
+        const worldSize = worldAvatarSize({
+            exhibit,
+            roomParameters: roomParams,
+        });
+
+        if (worldSize != null) {
+            scale = worldSize;
         } else if (isCustomVrm) {
             if (typeof activeVrm?.scale === "number") {
                 scale = activeVrm.scale;
@@ -663,6 +684,7 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
     }, []);
 
     const onSubmitUpload = useEventCallback(async (payload: Vrm) => {
+        if (payload?.id) wantedVrmId.current = payload.id;
         setActiveVrm(payload);
 
         setUploadedVrms((prevState) => [...prevState, payload]);
@@ -728,6 +750,7 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
                     await _handleSaveSettings?.current("vrm", selectedVrm.id);
                 }
 
+                if (selectedVrm?.id) wantedVrmId.current = selectedVrm.id;
                 setActiveVrm(selectedVrm);
                 rememberTravelAvatar(userData, selectedVrm);
 

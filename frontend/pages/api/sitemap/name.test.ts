@@ -29,7 +29,9 @@ function fakeStore(docs: Record<string, any>, calls: any[]) {
     return { collection: () => query({}) } as any;
 }
 
-const named = (link: string) => ({ info: { customLink: link } });
+const named = (link: string) => ({
+    info: { customLink: link, headline: link },
+});
 
 test("a part lists only its own ids, page by page", async () => {
     const docs: Record<string, any> = {

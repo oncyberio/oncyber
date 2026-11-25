@@ -604,6 +604,34 @@ test("semantic locomotion samples shared gait times without resetting actions, a
     avatar.dispose();
 });
 
+test("opening the avatar picker holds the idle at full weight, with no bind pose in between", async () => {
+    const THREE = require("three/webgpu");
+    mockAvatarKind = "skinned";
+    const clipAction = jest.spyOn(THREE.AnimationMixer.prototype, "clipAction");
+    const avatar = await adapter.createAvatar("/picker.vrm");
+    const idle =
+        clipAction.mock.results[
+            clipAction.mock.calls.findIndex(
+                ([clip]: any) => clip.name === "IDLE"
+            )
+        ].value;
+    // Standing in the lobby: locomotion samples the idle clip itself.
+    const rest = { speed: 0, grounded: true, stopping: true };
+    for (let i = 0; i < 30; i++) avatar.update(0.016, undefined, rest);
+    expect(idle.getEffectiveWeight()).toBeCloseTo(1);
+    const time = idle.time;
+    // The picker asks for the idle by name. Nothing else is playing, so a
+    // fade would show the model's bind pose (a T-pose) while it ran.
+    for (let i = 0; i < 8; i++) {
+        avatar.update(0.016, "IDLE", rest);
+        expect(idle.getEffectiveWeight()).toBe(1);
+        expect(idle.isRunning()).toBe(true);
+    }
+    // It carries on from where it was instead of starting over.
+    expect(idle.time).toBeGreaterThanOrEqual(time);
+    avatar.dispose();
+});
+
 test("baking preserves semantic pose and a semantic request cancels an emote arriving during sampling", async () => {
     mockAvatarKind = "skinned";
     const avatar = await adapter.createAvatar("/semantic-bake.vrm");

@@ -1,7 +1,7 @@
 import { useCyberTranslation } from "@components/context/I18nContext";
 import { useMultiplayer } from "@components/_3DExhibit-v2/context/MultiplayerProvider";
-import Search from "@ui/components/Icons/Search";
-import Input from "@ui/components/Input";
+import Icon from "@features/landing-carousel/components/Icon";
+import { baseTokens as base, lobbyTokens as lobby } from "@styles/tokens";
 import { useState } from "react";
 import styled, { css } from "styled-components";
 import { usePanel } from "../context/PanelProvider";
@@ -26,24 +26,17 @@ export default function UsersList({
 
     return (
         <Container ref={!isMobile ? clickRef : null} isMobile={isMobile}>
-            <Input
-                icon
-                iconPosition="left"
-                placeholder={t`SEARCH_PARTICIPANTS`}
-                className="shadow"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                    borderWidth: 1,
-                }}
-            >
-                <Search
-                    width={16}
-                    height={16}
-                    className="participant-search-icon"
+            <label className="people-search">
+                <Icon name="search" size={14} />
+                <input
+                    type="search"
+                    placeholder={t`SEARCH_PARTICIPANTS`}
+                    aria-label={t`SEARCH_PARTICIPANTS`}
+                    autoComplete="off"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
-            </Input>
+            </label>
 
             <SpaceControl setCurrentTab={setCurrentTab} />
             {/* {/* <ModsWrapper>
@@ -105,14 +98,6 @@ function Users({
 
                         const user_username = username || walletId;
 
-                        console.log(
-                            "[User]",
-                            userId,
-                            user_username,
-                            userData.isAdmin,
-                            userData.walletId
-                        );
-
                         if (
                             search &&
                             user_username
@@ -148,8 +133,14 @@ function Users({
     );
 }
 
+/* The same rows, labels and search field as the lobby's People panel. */
 const Container = styled.div<{ isMobile: boolean }>`
     padding: 16px;
+    color: ${lobby.color.ink};
+    /* The space's panel frame already pads its body. */
+    [data-native-utility-panel] & {
+        padding: 0;
+    }
 
     ${(props) =>
         props.isMobile &&
@@ -158,21 +149,52 @@ const Container = styled.div<{ isMobile: boolean }>`
             padding: 0px;
         `}
 
+    .people-search {
+        position: relative;
+        display: flex;
+        align-items: center;
+        color: ${lobby.color.secondary};
+    }
+    .people-search svg {
+        position: absolute;
+        left: 10px;
+        pointer-events: none;
+    }
+    .people-search input {
+        width: 100%;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 0 10px 0 30px;
+        border: 1px solid ${lobby.panel.border};
+        border-radius: ${lobby.panel.iconRadius}px;
+        background: ${base.color.line.faint};
+        color: ${lobby.color.ink};
+        font: 12px var(--oc-font, sans-serif);
+        outline: none;
+    }
+    .people-search input::placeholder {
+        color: ${lobby.color.secondary};
+    }
+    .people-search input::-webkit-search-cancel-button {
+        display: none;
+    }
+    .people-search input:focus-visible {
+        border-color: ${lobby.panel.cardHover};
+    }
     .nousers {
-        font-size: 13px;
+        margin: 4px 0 8px;
+        color: ${lobby.color.secondary};
+        font-size: 12px;
     }
 `;
 
 const Title = styled.p`
-    font-size: 12px;
-    font-weight: 400;
-    margin: 0;
-    color: #ffffff82;
-    margin-bottom: 10px;
-    margin-top: 12px;
+    margin: 8px 0 0;
+    color: ${lobby.color.secondary};
+    font: 500 11px/20px var(--oc-font, sans-serif);
 `;
 
 const UsersWrapper = styled.div`
-    margin-top: 12px;
-    border-top: 1px solid #ffffff82;
+    margin-top: 8px;
+    border-top: 1px solid ${base.color.line.subtle};
 `;

@@ -147,6 +147,10 @@ them, and so does its Vercel preview; see
     speaks the games contract to it (`features/worlds/`). Unset, worlds run
     in the page. The plan and its slices:
     [docs/plans/framed-worlds.md](docs/plans/framed-worlds.md).
+-   **World scripts.** AI-written scripts on top of a native space run in an
+    opaque sandboxed frame and change the scene only through checked
+    messages (`features/world-scripts/`). Off unless
+    `NEXT_PUBLIC_WORLD_SCRIPTS=1`. See [docs/world-scripts.md](docs/world-scripts.md).
 -   **Wallets.** `dApp/connect.tsx` returns a connection per chain. An Ethereum
     connection carries an ethers provider (`getEthersProvider(connection)`);
     sign and send through it.
@@ -189,7 +193,9 @@ file under `features/`, `components/`, `ui/` or `pages/` gains a colour
 written in place (a new file may have none). Older files are recorded in
 `scripts/ui-token-baseline.json`; lower it with `check:tokens:update` when
 you move one onto the tokens. A line that truly needs its own colour (a 3D
-material, a partner's mark) says why in a comment: `tokens-ok: <why>`.
+material, a partner's mark) says why in a comment: `tokens-ok: <why>`. A
+file that is nothing but such colours (paint for a 3D scene) says so once,
+where it opens: `tokens-ok-file: <why>`.
 
 ## Making a change
 
