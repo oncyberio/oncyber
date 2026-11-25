@@ -22,6 +22,7 @@ import {
     type WarmResult,
 } from "./destinationWarmupSource";
 import { createDestinationWarmupWorker } from "./destinationWarmupWorkerFactory";
+import { warmOnWorldHost } from "@features/worlds/worldWarmup";
 import {
     offerRouteData,
     resetRouteDataSeeds,
@@ -76,6 +77,10 @@ export function warmDestination(href: string, entry: WarmEntry = LOBBY_ENTRY) {
     if (last != null && now - last < WARM_AGAIN_AFTER_MS) return true;
     warmed.set(key, now);
     if (!pageData) void prefetchRoute(href);
+    // A framed world reads its room model from the world host's caches, not
+    // this page's: it is warmed there, and downloading it here as well
+    // would only take the line from it (features/worlds/worldWarmup.ts).
+    if (warmOnWorldHost(href, entry.kind)) return true;
     if (worker === null) return true;
     const request: WarmRequest = {
         type: "warm",

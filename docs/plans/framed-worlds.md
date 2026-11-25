@@ -99,10 +99,11 @@ fields or as short-lived, single-purpose tokens.
 Each is behind the flag, tested, and leaves no half-moved feature as the
 default.
 
-1. **A visitor's world in a frame.** The page frames the world host, shows
-   the cover until the first frame, reports a world that fails to load and
-   offers to reload it. The world hides the header the page now draws. The
-   visitor is a guest inside the world. _(This change.)_
+1. **A visitor's world in a frame.** _(Done.)_ The page frames the world
+   host, reports a world that fails to load and offers to reload it. The
+   world hides the header the page now draws. The page draws nothing over
+   a loading world: the world's own loading animation is what the visitor
+   sees, as it always was.
 2. **Identity and navigation.** _(Done.)_ The page answers the world's
    `hello` with who is visiting: a name, a portrait and an avatar, the
    same public fields a game gets (`features/worlds/worldVisitor.ts`). The
@@ -212,15 +213,22 @@ default.
        need a popup, the list of avatars owned by linked wallets, and
        fullscreen.
 
-5. **The lobby.** _(Relay done.)_ A
-   world reached from the lobby is two frames below it. The page between
-   them passes the journey's protocol both ways, unchanged
-   (`utils/lobbyDestinationBridge.ts`), and what the lobby set or read
-   directly on the destination's document (the party chat flag, the Enter
-   key, the loading budget, travel options) is passed on too. Still
-   direct, and so missing for a framed world: the portal's live preview,
-   and the warm-up, which caches the room model on the site's origin
-   where the world cannot read it.
+5. **The lobby.** _(Done.)_ A world reached from the lobby is two
+   frames below it. The page between them passes the journey's protocol
+   both ways, unchanged (`utils/lobbyDestinationBridge.ts`), and what the
+   lobby set or read directly on the destination's document (the party
+   chat flag, the Enter key, the loading budget, travel options) is
+   passed on too.
+
+    The lobby and the landing page start a world's downloads before the
+    visitor goes there: the engine's scripts and the room model. A
+    browser keeps each host's caches apart, so what the site downloads a
+    framed world never finds. The warm-up therefore runs on the world
+    host: the site keeps one small hidden frame there (`/world-warmup`,
+    `features/worlds/worldWarmup.ts`), tells it which world to warm, and
+    downloads nothing of the world's itself. Still direct, and so missing
+    for a framed world: the portal's live preview.
+
 6. **World scripts.** _(Done.)_ Two kinds, both in the world.
 
     Code kept in this repository (`features/worldMods/`) is a module

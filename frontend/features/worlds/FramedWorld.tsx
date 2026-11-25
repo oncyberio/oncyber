@@ -12,10 +12,7 @@ import {
     publicExperienceHref,
     replaceExperienceLocation,
 } from "@utils/experienceLocation";
-import {
-    GameLoadingCover,
-    useGameLoading,
-} from "@features/games/GameLoadingCover";
+import { useGameLoading } from "@features/games/GameLoadingCover";
 import { fromFrame, frameTarget } from "@features/games/frameOrigin";
 import {
     GAME_MESSAGE_PREFIX,
@@ -105,9 +102,9 @@ export const WORLD_LOAD_TIMEOUT_MS = 120_000;
  * the account, the header and every prompt; the world is served from the
  * world host and cannot reach any of it.
  *
- * The world speaks the games contract, so what a framed game gets from the
- * page (the cover until its first frame, here) a world gets from the same
- * code.
+ * The world speaks the games contract, so the page follows its loading
+ * with the code a framed game's page uses. It draws no cover over it: a
+ * world has its own loading animation, and that is what the visitor sees.
  */
 export default function FramedWorld({
     title,
@@ -788,6 +785,8 @@ function WorldFrameView({
                 sandbox={WORLD_SANDBOX}
                 allow={WORLD_PERMISSIONS}
                 referrerPolicy="no-referrer"
+                data-machine="game-loading"
+                data-state={loading.phase}
                 style={{
                     width: "100%",
                     height: "100%",
@@ -795,9 +794,8 @@ function WorldFrameView({
                     display: "block",
                 }}
             />
-            {loading.phase !== "failed" && (
-                <GameLoadingCover state={loading} title={title} />
-            )}
+            {/* No cover: a world draws its own loading animation, and the
+                visitor sees it as they always have. */}
         </>
     );
 }

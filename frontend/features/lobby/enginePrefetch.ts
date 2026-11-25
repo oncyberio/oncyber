@@ -12,6 +12,7 @@
  * the lobby.
  */
 import { useEffect } from "react";
+import { openWorldWarmup } from "@features/worlds/worldWarmup";
 
 /** The id of the `<script type="application/json">` holding the list. */
 export const ENGINE_CHUNKS_ELEMENT_ID = "__ENGINE_CHUNKS__";
@@ -131,7 +132,10 @@ export function useEnginePrefetch(idle: boolean) {
                 });
                 return;
             }
-            prefetchEngineChunks(document, list);
+            // Where worlds are framed the engine runs on the world host,
+            // and is downloaded there (features/worlds/worldWarmup.ts).
+            if (openWorldWarmup()) status = "started";
+            else prefetchEngineChunks(document, list);
         };
         const timer = window.setTimeout(() => {
             if (typeof window.requestIdleCallback === "function")
