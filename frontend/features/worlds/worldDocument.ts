@@ -17,6 +17,7 @@ import {
 } from "@features/games/gameContract";
 import { BEAT_EVERY_MS } from "@features/games/frameStall";
 import { WORLD_FRAME, type WorldFrame } from "./worldFrame";
+import { captureWorldLinks } from "./worldLinks";
 import { readWorldVisitor, type WorldVisitor } from "./worldVisitor";
 
 /** The id a native world goes by in the games contract. */
@@ -120,6 +121,10 @@ export function createWorldDocument(
         name(readWorldVisitor(event.data));
     };
     win.addEventListener("message", receive);
+    // Every way out of this document is a request to the page (./worldLinks).
+    const releaseLinks = win.document
+        ? captureWorldLinks(win, frame, post)
+        : () => {};
 
     let reported = "";
     let asked = 0;
@@ -182,6 +187,7 @@ export function createWorldDocument(
             win.clearInterval(beating);
             win.clearInterval(asking);
             win.removeEventListener("message", receive);
+            releaseLinks();
             heard.clear();
             answers.forEach((answer) => answer(undefined));
             answers.clear();

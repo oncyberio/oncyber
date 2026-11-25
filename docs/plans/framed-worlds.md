@@ -181,10 +181,21 @@ default.
         them to the page would mean a second chat interface speaking the
         world's chat; not planned unless that cost turns out to matter.
 
-4. **What the world asks the page for.** Artwork info and its links, opening
-   a link, sharing, gating and password prompts, fullscreen, screenshots.
-   (The heartbeat that tells a hung world from a slow one is in, with
-   slice 3.)
+4. **What the world asks the page for.**
+
+    1. **Links.** _(Done.)_ A world cannot open a tab or leave its frame,
+       so everything in it that would (an artwork's marketplace link, a
+       link portal, a share button, a link in a panel, a script) is a
+       request to the page, made in one place for all of them
+       (`features/worlds/worldLinks.ts`). The page says which site a link
+       goes to and opens it on the visitor's own click; a link to another
+       page of this site travels there. One more click than unframed, and
+       no world can send a visitor anywhere on its own word.
+    2. **Still to move.** The password prompt for a gated world (gated
+       worlds are not framed yet), the avatar picker and saved settings
+       (they still try to save to an account the world does not have),
+       screenshots, and fullscreen.
+
 5. **The lobby.** The lobby frames the world host; its four direct reaches
    become messages; the warm-up runs on the world host so the room model is
    cached where the world reads it.
@@ -243,6 +254,11 @@ The studio stays unframed until editing has its own plan.
     25 s. The page kept running (145 ms worst gap), said the world had
     stopped responding with a way to load it again, and took the notice
     away when the world came back.
+-   Slice 4, links: a framed world called `window.open`, and a link to
+    a new tab was clicked in it. The page offered each by its host;
+    pressing the offer opened the tab at that address; a `javascript:`
+    address was ignored. The artwork panel's own links _(not tested)_ in
+    a browser.
 -   First measurement on a production build and a real device: cold and warm
     load against today's page _(not measured)_.
 

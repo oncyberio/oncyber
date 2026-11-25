@@ -45,6 +45,8 @@ export interface ExperienceShellAction {
 export interface ExperienceShellNotice {
     message: React.ReactNode;
     onRetry?(): void;
+    /** What the notice's button says when it is not a retry. */
+    actionLabel?: string;
 }
 
 export interface ExperienceShellChat {
@@ -257,6 +259,7 @@ export default function ExperienceShell({
                     <InlineError
                         message={notice.message}
                         onRetry={notice.onRetry}
+                        retryLabel={notice.actionLabel}
                     />
                 </div>
             )}

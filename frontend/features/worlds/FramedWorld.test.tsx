@@ -32,7 +32,11 @@ jest.mock("@features/content-host/ExperienceShell", () => ({
             {notice && !notice.onRetry && <p data-notice>{notice.message}</p>}
             <span data-title>{title}</span>
             {notice?.onRetry && (
-                <button data-retry onClick={notice.onRetry}>
+                <button
+                    data-retry
+                    data-label={notice.actionLabel ?? "Retry"}
+                    onClick={notice.onRetry}
+                >
                     {notice.message}
                 </button>
             )}
@@ -714,5 +718,45 @@ describe("a world that stops", () => {
         act(() => void document.dispatchEvent(new Event("visibilitychange")));
         pass(5000);
         expect(retry()).toBeNull();
+    });
+});
+
+describe("a link the world asks to open", () => {
+    let opened: jest.SpyInstance;
+    beforeEach(() => {
+        opened = jest.spyOn(window, "open").mockImplementation(() => null);
+    });
+    const ask = (href: unknown) =>
+        fromWorld({ type: "oncyber:game:open-link", href });
+
+    test("the page says where it goes and opens it on the visitor's click, never on the world's word", () => {
+        ask("https://opensea.io/assets/1");
+        expect(opened).not.toHaveBeenCalled();
+        expect(retry().textContent).toBe("Open opensea.io in a new tab?");
+        expect(retry().dataset.label).toBe("Open link");
+
+        act(() => retry().click());
+        expect(opened).toHaveBeenCalledWith(
+            "https://opensea.io/assets/1",
+            "_blank",
+            "noopener,noreferrer"
+        );
+        expect(retry()).toBeNull();
+    });
+
+    test("what is not a web address is not offered", () => {
+        ask("javascript:alert(1)");
+        ask({ href: "https://opensea.io" });
+        expect(retry()).toBeNull();
+        expect(opened).not.toHaveBeenCalled();
+    });
+
+    test("an offer nobody takes goes away, and a newer one replaces an older", () => {
+        ask("https://opensea.io/1");
+        ask("https://foundation.app/2");
+        expect(retry().textContent).toBe("Open foundation.app in a new tab?");
+        act(() => void jest.advanceTimersByTime(16_000));
+        expect(retry()).toBeNull();
+        expect(opened).not.toHaveBeenCalled();
     });
 });

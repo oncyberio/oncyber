@@ -27,6 +27,7 @@ import { readDock, VOICE_ACTION, type DockAction } from "./worldDock";
 import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
 import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
 import { setFramedWorldLock } from "./worldPointer";
+import { readWorldLink, type WorldLink } from "./worldLinks";
 import { worldVisitorMessage } from "./worldVisitor";
 import {
     WORLD_PERMISSIONS,
@@ -35,6 +36,8 @@ import {
     type WorldFrame,
 } from "./worldFrame";
 
+/** How long the page offers a link the world asked to open. */
+const LINK_OFFER_MS = 15_000;
 /** A world that has drawn nothing after this long is taken as failed. */
 export const WORLD_LOAD_TIMEOUT_MS = 120_000;
 
@@ -63,6 +66,14 @@ export default function FramedWorld({
     // The world drew and has since gone silent: its thread hangs or died.
     // The page, the room and voice carry on; the visitor is told.
     const [stalled, setStalled] = useState(false);
+    // A link the world asks to open. The page says where it goes and opens
+    // it on the visitor's own click, never on the world's word.
+    const [link, setLink] = useState<WorldLink | null>(null);
+    useEffect(() => {
+        if (!link) return;
+        const timer = setTimeout(() => setLink(null), LINK_OFFER_MS);
+        return () => clearTimeout(timer);
+    }, [link]);
     const visitor = usePageVisitor();
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
@@ -72,6 +83,7 @@ export default function FramedWorld({
     const reload = () => {
         setFailed(false);
         setStalled(false);
+        setLink(null);
         setDock([]);
         setAttempt((count) => count + 1);
     };
@@ -196,6 +208,12 @@ export default function FramedWorld({
                 onDock={setDock}
                 onVoice={setVoice}
                 onStalled={setStalled}
+                onLink={(href) => {
+                    // What is not a web address is not offered, and does
+                    // not take an offer away.
+                    const next = readWorldLink(href, window.location.origin);
+                    if (next) setLink(next);
+                }}
                 controls={world}
             />
             <ExperienceShell
@@ -213,6 +231,19 @@ export default function FramedWorld({
                         ? {
                               message: "This world stopped responding.",
                               onRetry: reload,
+                          }
+                        : link
+                        ? {
+                              message: `Open ${link.host} in a new tab?`,
+                              actionLabel: "Open link",
+                              onRetry: () => {
+                                  window.open(
+                                      link.href,
+                                      "_blank",
+                                      "noopener,noreferrer"
+                                  );
+                                  setLink(null);
+                              },
                           }
                         : voice?.error
                         ? { message: voice.error }
@@ -281,6 +312,7 @@ function WorldFrameView({
     onDock,
     onVoice,
     onStalled,
+    onLink,
     controls,
 }: {
     title: string;
@@ -302,6 +334,8 @@ function WorldFrameView({
     onDock(actions: DockAction[]): void;
     /** The page's voice in the world's room; null while it is in none. */
     onVoice(voice: WorldVoiceView | null): void;
+    /** The world asks for a link to be opened in a new tab. */
+    onLink(href: unknown): void;
     /** The world went silent after it had drawn, or came back. */
     onStalled(stalled: boolean): void;
     controls: { current: WorldControls | null };
@@ -323,6 +357,7 @@ function WorldFrameView({
         onDock,
         onVoice,
         onStalled,
+        onLink,
     });
     handlers.current = {
         onLocation,
@@ -332,6 +367,7 @@ function WorldFrameView({
         onDock,
         onVoice,
         onStalled,
+        onLink,
     };
     // A world that has drawn says it is alive about once a second; silence
     // while this page is in view means it has stopped.
@@ -431,6 +467,8 @@ function WorldFrameView({
                 return;
             }
             if (kind === "alive") return stall.current.beat();
+            if (kind === "open-link")
+                return handlers.current.onLink(event.data.href);
             if (kind === "pointer-lock")
                 return setFramedWorldLock(event.data.locked === true);
             if (kind === "dock")
