@@ -113,6 +113,11 @@ version. See [games/saved-data.md](games/saved-data.md). The fixed
 `storage` keys above remain for games that have not moved yet; Ace and
 Garden have.
 
+Purchases have their own messages (`purchase`, `purchase-result`, `owned`,
+`owned-result`) and rule: declare every product in `game.json`; the page
+asks the visitor and pays, and the game grants only what the page says was
+bought. Play money only for now. See [games/purchases.md](games/purchases.md).
+
 Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 

@@ -21,6 +21,7 @@
     "./match": "./src/match.ts",
     "./partyLink": "./src/partyLink.ts",
     "./results": "./src/results.ts",
+    "./purchases": "./src/purchases.ts",
     "./devices": "./src/devices.ts",
     "./device-controls": "./src/deviceControls.ts",
     "./device-check": "./src/deviceCheck.ts",

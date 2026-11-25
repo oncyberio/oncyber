@@ -286,6 +286,15 @@ scope, a `stateVersion` and a size limit, then use `connectSavedData`
 (`@oncyber/game-runtime/saved`). Never save sound settings or results.
 Page: `docs/games/saved-data.md`.
 
+### Purchases
+
+Declare each thing the game sells in `game.json` → `products` (name, price
+in dollars as text, `permanent` or `consumable`), then ask with
+`connectPurchases` (`@oncyber/game-runtime/purchases`): `await buy(id)`.
+The page shows the price and asks the visitor; draw no payment screen.
+Grant the item only when the answer says `bought: true`. Play money only
+for now. Page: `docs/games/purchases.md`.
+
 ### Menus that look like Oncyber
 
 The world keeps its own look; menus, settings and result screens use the UI

@@ -44,6 +44,8 @@ import { useGameDeparture } from "./useGameDeparture";
 import { readPartyLeave } from "./gamePartyLeave";
 import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 import { useGameResults } from "./useGameResults";
+import { useGamePurchases } from "./useGamePurchases";
+import { useSignInSheet } from "@ui/components/ConnectWallet/SignInSheetHost";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
 import { useGamePause } from "./gamePause";
 import { GameSoundButton, useGameAudio } from "./GameSound";
@@ -193,6 +195,19 @@ export default function GamePage({
         selfName: () => identity?.name,
         roster: () => roomFacts.current.roster,
         partyRoom: party && room ? room : null,
+    });
+    // Purchases: the page asks the visitor and pays; the game only hears
+    // whether it was bought (docs/games/purchases.md). A registered game
+    // declares no products the site knows, so it sells nothing yet.
+    const signInSheet = useSignInSheet();
+    const purchases = useGamePurchases({
+        game: GAME,
+        title: gameName,
+        fromGame,
+        send: (message) => send.current(message),
+        account: () => signedInAccount(profile.current),
+        signIn: (done) => signInSheet?.open({ callbackAfterAuth: done }),
+        onClose: () => frame.current?.focus(),
     });
     // What breaks and how fast it runs on real visits (gameHealth.ts): it
     // only listens, and times the first frame by the loading signal above.
@@ -696,6 +711,7 @@ export default function GamePage({
                 />
             )}
             {ready && !error && results.card}
+            {ready && !error && purchases.element}
             {error && (
                 <div
                     role="status"

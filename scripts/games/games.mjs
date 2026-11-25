@@ -39,6 +39,7 @@ import { locomotionStage } from "./locomotion-check.mjs";
 import { scanUiKit } from "./ui-kit-check.mjs";
 import { soundHarness, soundStage } from "./sound-check.mjs";
 import { runSavedDataStage, savedFreshVisitor, savedStaticFindings } from "./saved-data.mjs";
+import { productStaticFindings } from "./products.mjs";
 import { describeProcess, processStage } from "./process.mjs";
 import { listingStage } from "./listing.mjs";
 import { networkStage, REPORT_PATH } from "./networkCheck.mjs";
@@ -200,6 +201,7 @@ async function check() {
     const scan = staticScan(files);
     scan.findings.push(...contract.findings);
     scan.findings.push(...(await savedStaticFindings({ id, manifest })));
+    scan.findings.push(...productStaticFindings({ id, manifest }));
     scan.findings.push(...rights.findings);
     let chromium;
     try {

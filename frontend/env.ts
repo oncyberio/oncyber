@@ -111,6 +111,13 @@ export const nodeEnv = {
     // server), "open", or a comma list of account ids. Read through
     // publishingGate() in features/games/publishedGames.ts.
     GAMES_PUBLISHING: process.env.GAMES_PUBLISHING,
+    // Server-only. How purchases in games are paid for
+    // (docs/games/purchases.md): unset is off (the test rail on the
+    // development server); "test" is play money. Read through
+    // purchasesMode() in features/games/gamePurchases.ts.
+    GAMES_PURCHASES: process.env.GAMES_PURCHASES,
+    // Server-only. Oncyber's share of a sale, in whole percent; unset is 0.
+    GAMES_PURCHASE_FEE_PERCENT: process.env.GAMES_PURCHASE_FEE_PERCENT,
     // Server-only. Upload mode `storage` of that publishing: releases kept
     // in a private Firebase Storage bucket, for a host with no disk. Unset
     // uses the bucket where there is no local releases folder; "on" uses

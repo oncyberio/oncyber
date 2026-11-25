@@ -55,6 +55,18 @@ jest.mock("@api/gameSaved/_api", () => ({
     __esModule: true,
     default: { savedRead: jest.fn(), savedWrite: jest.fn() },
 }));
+// Purchases: the hook is real; its RPC client needs a bundler. No game in
+// the catalog declares a product yet, so nothing is asked of it.
+jest.mock("@api/gamePurchases/_api", () => ({
+    __esModule: true,
+    default: {
+        wallet: jest.fn(),
+        buy: jest.fn(),
+        owned: jest.fn(),
+        history: jest.fn(),
+        addTestFunds: jest.fn(),
+    },
+}));
 // The seat key needs the browser's crypto and storage; the bridge is real.
 jest.mock("./gameMatch", () => ({
     ...jest.requireActual("./gameMatch"),
