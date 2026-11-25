@@ -341,7 +341,12 @@ The studio stays unframed until editing has its own plan.
 ## 6. Open
 
 -   The world host's domain, and adding it to the room servers' allowed
-    origins and the Firebase project's allowed domains.
+    origins and the Firebase project's allowed domains. Until there is
+    one, a Vercel preview of the `games-dev` branch frames worlds by
+    itself: Vercel serves each deployment at its own address as well as
+    at the branch's, so the branch's address is the site and the
+    deployment's own is the world host (`frontend/utils/siteOrigin.js`).
+    Production and every other branch are as before.
 -   Production Firestore rules are not in this repository; the world reads
     as a signed-out visitor does today.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a
