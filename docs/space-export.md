@@ -26,6 +26,19 @@ and no account.
 | `room`       | The room (`RoomParameters`) the space is built on: model paths, skins, lighting, env map                                                                         |
 | `files`      | Every URL found in `space` and `room`, deduplicated. `pinned` entries carry an IPFS `cid`; `hosted` entries are plain URLs. Each lists where it was found (`at`) |
 
+Artwork frames travel in each artwork's `data`: `borderColor` is the frame
+colour (or `"black-borderless"` / `"transparent-borderless"`), and the
+optional `frame` object picks a frame style. Without `frame` the artwork has
+the flat border. `{ "style": "gallery", "width", "depth", "mat", "matWidth",
+"matColor", "label" }` is a moulding with a mat and an optional wall label;
+`width` and `matWidth` are percentages of the artwork's shorter side (at
+least a quarter of its longer side), `depth` is how far the moulding stands
+off the mat as a multiple of its width, and `label` shows a wall label when
+the artwork has a title. Readers that
+don't know a `style` should draw the flat border in `borderColor`
+(`normalizeFrame` in
+`frontend/components/_3DExhibit-v2/three/factory/border/galleryFrame.ts`).
+
 Left out on purpose: cached copies of other records (`ownerData`,
 `portalExhibits`, `portalsDestinations`, `portalsOwners`), live flags
 (`pendingTransaction`, `invited`, `mock`) and the world password. Only the
