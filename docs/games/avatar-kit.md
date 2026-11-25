@@ -42,13 +42,24 @@ bundles it like any other source; the lifecycle runtime never imports it
 so the game and the kit share one copy of each.
 
 ```js
-import { createAvatarKit, arrivalFraming } from "@oncyber/avatar-kit";
+import {
+    createAvatarKit,
+    arrivalFraming,
+    lobbyMotionSource,
+    walkerMotion,
+} from "@oncyber/avatar-kit";
 import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import lobbyCoreUrl from "@oncyber/avatar-kit/motion/lobby-core.lcp?url";
+import lobbyAirUrl from "@oncyber/avatar-kit/motion/lobby-air.lcp?url";
 import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
 
 const kit = createAvatarKit({
     services, // context.services: identity.avatar and avatar(ref, signal)
-    motion: () => fetch(locomotionUrl).then((r) => r.json()),
+    // The lobby's motion: its packs over the basic clips (which carry the wave).
+    motion: lobbyMotionSource({
+        basic: locomotionUrl,
+        packs: [lobbyCoreUrl, lobbyAirUrl],
+    }),
     emotes: () => fetch(emotesUrl).then((r) => r.json()), // fetched on first use
     height: 1.75,
 });
@@ -65,7 +76,9 @@ function enter(continuity) {
 page.on("revealed", () => kit.arrival.enter()); // the page's `entered`: stand up
 
 // Every frame, before rendering
-kit.self.motion = { speed }; // or { air: true }, { wave: true }
+// With the locomotion kit: the walker's pose and this frame's controls.
+kit.self.motion = walkerMotion(walker.advance(seconds, input), input);
+// Without it: { speed } in lobby metres a second, { air: true }, { wave: true }
 kit.update(seconds, camera);
 
 kit.emote("HIPHOP"); // a lobby emote; kit.emote("") ends it
@@ -80,9 +93,22 @@ What it does:
     the lifecycle host yet gets the same contract from `pageAvatarService()`
     (`@oncyber/avatar-kit/page`): vouch the identity's avatar and each
     announced player's, nothing else is fetched.
--   **Lobby motion.** Idle, walk, run, jump and wave from the lobby's own clip
-    files (`motion/`, copied by `npm run motion`; a test fails when they
-    drift). Emotes are four short lobby loops by default.
+-   **Lobby motion, the lobby's own code.** With the lobby's packs
+    (`motion/lobby-core.lcp`, `motion/lobby-air.lcp`) the body is driven by
+    the lobby's motion clock and finishing pass, imported from
+    `frontend/features/lobby` rather than copied (`src/lobby.ts`): walk to
+    run to sprint blends, starts and stops, moving turns, jumps, double
+    jumps, falls and landings, idle variations, a lean into starts and
+    turns, the torso leading a turn, planted feet and smooth clip handoffs.
+    A change to the lobby's motion reaches every game that bundles the kit.
+    `walkerMotion(state, input)` turns the locomotion kit's walker into the
+    signals the clock reads (travel, steering, jumps, release); without them
+    it reads speed, air and how the body turns. Other players get the same
+    clock from their poses. Until the clock has prepared a rig (a few
+    frames), and for a game that passes only `locomotion.json`, the kit
+    plays its basic idle, walk, run and jump blend. The wave and emotes play
+    from the kit's own clips. Files are copied by `npm run motion`; a test
+    fails when they drift. Emotes are four short lobby loops by default.
 -   **Name tag and talking indicator** over each other player. The page
     decides who is talking; no audio reaches the game. The kit reads
     `talking` on each entry of `peers`. Ace's host also sets it from the

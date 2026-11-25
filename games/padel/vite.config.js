@@ -81,7 +81,7 @@ export default defineConfig({
     ],
     dedupe: ["three", "@pixiv/three-vrm"],
   },
-  server: { fs: { allow: [".."] } },
+  server: { fs: { allow: ["..", "../../frontend/features/lobby"] } },
   build: {
     target: "es2022",
     outDir: "../../frontend/public/games/padel",

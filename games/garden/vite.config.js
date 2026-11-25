@@ -62,7 +62,7 @@ export default defineConfig({
         ],
     },
     // The UI page runs in an opaque-origin sandbox; dev modules need CORS.
-    server: { cors: { origin: "*" }, fs: { allow: [".."] } },
+    server: { cors: { origin: "*" }, fs: { allow: ["..", "../../frontend/features/lobby"] } },
     build: {
         outDir: "../../frontend/public/games/garden",
         emptyOutDir: true,

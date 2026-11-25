@@ -10,6 +10,7 @@
 //   sdk/games/llms.txt, BRIEF.md, licenses.json
 //   sdk/scripts/games/         the check tool
 //   sdk/frontend/features/games/   the page's rules the check tool loads
+//   sdk/frontend/features/lobby/   the lobby's motion code the avatar kit plays
 //   sdk/docs/games/, sdk/docs/games.md
 import {
     cpSync,
@@ -76,6 +77,21 @@ copy("games/kits", {
         // (games/licenses.json), so they are not redistributed.
         /^games\/kits\/avatar\/motion\/.+/.test(path),
 });
+// The avatar kit plays the lobby's own motion code, imported from the
+// frontend (games/kits/avatar/src/lobby.ts): copy it and what it imports.
+const lobbyMotion = new Set();
+const follow = (path) => {
+    if (lobbyMotion.has(path) || !existsSync(join(repo, path))) return;
+    lobbyMotion.add(path);
+    const text = readFileSync(join(repo, path), "utf8");
+    for (const [, spec] of text.matchAll(/from\s+"(\.{1,2}\/[^"]+)"/g)) {
+        const next = join(dirname(path), spec).split("\\").join("/");
+        follow(next.endsWith(".ts") ? next : `${next}.ts`);
+    }
+};
+follow("games/kits/avatar/src/lobby.ts");
+for (const path of lobbyMotion)
+    if (path.startsWith("frontend/features/lobby/")) copy(path);
 copy("games/lantern-tag");
 copy("scripts/games", {
     skip: (path) => isTest(path) || path.startsWith("scripts/games/fixtures"),

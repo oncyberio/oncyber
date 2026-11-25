@@ -38,6 +38,13 @@ export {
     type ClipData,
 } from "./rig.ts";
 export { createNameTag, type NameTag } from "./tag.ts";
+export {
+    decodeLobbyMotion,
+    isLobbyMotion,
+    lobbyMotionSource,
+    walkerMotion,
+    type LobbyMotion,
+} from "./lobby.ts";
 export { loadVRM } from "./vrm.ts";
 
 type Clips = Record<string, ClipData>;

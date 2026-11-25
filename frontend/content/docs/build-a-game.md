@@ -186,8 +186,12 @@ Page: `docs/games/avatar-kit.md`.
 
 ### Animations
 
--   The kit plays the lobby's idle, walk, run, jump and wave, and lobby
-    emotes with `kit.emote("<name>")`, from clip files under
+-   The kit plays the lobby's own motion: pass
+    `lobbyMotionSource({ basic, packs })` as `motion` and set
+    `kit.self.motion = walkerMotion(pose, input)` each frame, and the
+    lobby's motion clock and finishing pass drive the body (turns,
+    acceleration, jumps, landings, planted feet), as in Ace. Lobby emotes
+    play with `kit.emote("<name>")`. The clip files are under
     `games/kits/avatar/motion/`.
 -   **Those clip files have no recorded licence yet.** Bundling them needs
     an exception in `games/licenses.json`, which is a person's decision, not

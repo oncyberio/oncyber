@@ -57,7 +57,7 @@ export default defineConfig({
         ],
         dedupe: ["three", "@pixiv/three-vrm"],
     },
-    server: { fs: { allow: [".."] } },
+    server: { fs: { allow: ["..", "../../frontend/features/lobby"] } },
     build: {
         outDir: "../../frontend/public/games/lantern-tag",
         emptyOutDir: true,

@@ -306,3 +306,73 @@ test("kit: no avatar service or no avatar leaves a stand-in, not a crash", async
     assert.equal(facts.avatarOthersVrm, 0);
     kit.dispose();
 });
+
+test("with the lobby's packs, the lobby's own motion clock and finishing pass drive the avatar", async () => {
+    const { decodeLobbyMotion, walkerMotion } = await import("../src/index.ts");
+    const packs = ["lobby-core.lcp", "lobby-air.lcp"].map((name) =>
+        readFileSync(file(`../motion/${name}`))
+    );
+    const avatar = createAvatar({ height: 1.75 });
+    avatar.attach(await loadVRM(bytes()));
+    avatar.addClips({ ...locomotion, ...decodeLobbyMotion(packs) });
+    for (let i = 0; i < 200 && !avatar.lobbyMotion; i++)
+        await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.ok(avatar.lobbyMotion, "the lobby clock prepares this rig");
+    const state = {
+        vx: 0,
+        vz: 0,
+        vy: 0,
+        rotation: 0,
+        jumpCount: 0,
+        floor: true,
+    };
+    const seen = new Set();
+    for (let frame = 0; frame < 150; frame++) {
+        // Forward from rest, then a hard left turn while running.
+        const input = { strafe: frame > 90 ? -1 : 0, forward: -1, yaw: 0 };
+        state.vz = Math.max(-4.5, state.vz - 0.15);
+        if (frame > 90) state.vx = Math.max(-3, state.vx - 0.2);
+        state.rotation += frame > 90 ? 0.03 : 0;
+        avatar.root.rotation.y = state.rotation;
+        avatar.motion = walkerMotion(state, input);
+        avatar.drive(1 / 60);
+        seen.add(avatar.playing);
+        avatar.root.updateMatrixWorld(true);
+        assert.ok(
+            Number.isFinite(hipsY(avatar)) && Number.isFinite(footY(avatar))
+        );
+    }
+    assert.ok(seen.has("RUN") || seen.has("SPRINT"), [...seen].join(","));
+    assert.ok(
+        [...seen].some(
+            (name) => name !== "IDLE" && name !== "WALK" && name !== "RUN"
+        ),
+        `the clock adds lobby-only clips (starts, turns): ${[...seen].join(
+            ","
+        )}`
+    );
+    // An emote still plays from the kit's own clips.
+    avatar.addClips(emotes);
+    avatar.motion = { emote: "HIPHOP" };
+    for (let i = 0; i < 40; i++) avatar.drive(1 / 30);
+    assert.equal(avatar.playing, "HIPHOP");
+    avatar.dispose();
+});
+
+test("walkerMotion gives the lobby clock the walker's travel and steering", async () => {
+    const { walkerMotion } = await import("../src/index.ts");
+    const m = walkerMotion(
+        { vx: 0, vz: -3, vy: 0, rotation: 0, jumpCount: 0, floor: true },
+        { strafe: -1, forward: 0, yaw: 0 }
+    );
+    assert.equal(m.grounded, true);
+    assert.equal(m.stopping, false);
+    assert.ok(Math.abs(m.headingError) < 1e-9);
+    assert.ok(Math.abs(m.turnIntent - Math.PI / 2) < 1e-9);
+    const still = walkerMotion(
+        { vx: 0, vz: 0, vy: 0, rotation: 0, jumpCount: 0, floor: true },
+        { strafe: 0, forward: 0, yaw: 0 }
+    );
+    assert.equal(still.stopping, true);
+    assert.equal(still.turnIntent, 0);
+});

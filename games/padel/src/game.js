@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { describeArrival } from "@oncyber/game-runtime/arrival";
-import { createAvatarKit } from "@oncyber/avatar-kit";
+import {
+    createAvatarKit,
+    lobbyMotionSource,
+    walkerMotion,
+} from "@oncyber/avatar-kit";
 import {
     applyCameraPose,
     arrival,
@@ -12,6 +16,8 @@ import {
     updateCamera as easeFollowCamera,
 } from "@oncyber/kit-locomotion";
 import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import lobbyCoreUrl from "@oncyber/avatar-kit/motion/lobby-core.lcp?url";
+import lobbyAirUrl from "@oncyber/avatar-kit/motion/lobby-air.lcp?url";
 import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
 import manifest from "../game.json";
 import { build, createBall, createEffects } from "./world.js";
@@ -174,7 +180,12 @@ export default function createGame(context) {
                     ? visitorBytes()
                     : services.avatar(ref, abort),
         },
-        motion: json(locomotionUrl),
+        // The lobby's own motion clock and clips (docs/games/avatar-kit.md).
+        motion: lobbyMotionSource({
+            basic: locomotionUrl,
+            packs: [lobbyCoreUrl, lobbyAirUrl],
+            signal,
+        }),
         emotes: json(emotesUrl),
         load: (bytes) => loadClubAvatar(bytes, renderer),
         height: HEIGHT,
@@ -336,13 +347,14 @@ export default function createGame(context) {
         const moving = Math.abs(strafe) + Math.abs(forward) > 0.05;
         easeFollowCamera(club.camera, dt, moving);
         const from = { x: club.walker.state.x, z: club.walker.state.z };
-        const shown = club.walker.advance(dt, {
+        const controls = {
             strafe,
             forward,
             yaw: club.camera.yaw,
             running: !still && input.run > 0,
             jump: !still && club.jump.read(dt),
-        });
+        };
+        const shown = club.walker.advance(dt, controls);
         club.walked += Math.hypot(
             club.walker.state.x - from.x,
             club.walker.state.z - from.z
@@ -358,10 +370,13 @@ export default function createGame(context) {
         }
         // The lobby's motion: walk and run by speed (in the lobby's metres per
         // second), in the air during a jump; moving ends an emote.
-        const pace = club.walker.speed();
-        if (!shown.floor) kit.self.motion = { air: true, speed: pace };
-        else if (moving || !(kit.self.motion.emote || kit.self.motion.wave))
-            kit.self.motion = { speed: pace };
+        // walkerMotion adds the turn and jump signals the lobby's clock reads.
+        if (
+            !shown.floor ||
+            moving ||
+            !(kit.self.motion.emote || kit.self.motion.wave)
+        )
+            kit.self.motion = walkerMotion(shown, controls);
         placeClubCamera();
         // Tell the room where the visitor stands, ten times a second.
         const at = performance.now();

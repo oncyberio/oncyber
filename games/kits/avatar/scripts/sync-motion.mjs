@@ -14,7 +14,22 @@ const out = resolve(here, "../motion");
 // The lobby's full set is 2.3 MiB; a game that wants more can pass its own.
 export const KIT_EMOTES = ["HIPHOP", "MOONWALK", "PRAYING", "SITTING"];
 
+// The lobby's motion packs, byte for byte: the clips its motion clock plays
+// (frontend/public/lobby/locomotion/manifest.json names the current files).
+export const LOBBY_PACKS = { core: "lobby-core.lcp", air: "lobby-air.lcp" };
+
 export function build() {
+    const manifest = JSON.parse(
+        readFileSync(resolve(lobby, "locomotion/manifest.json"), "utf8")
+    );
+    const packs = Object.fromEntries(
+        manifest.packs
+            .filter((pack) => LOBBY_PACKS[pack.group])
+            .map((pack) => [
+                LOBBY_PACKS[pack.group],
+                readFileSync(resolve(lobby, "locomotion", pack.file)),
+            ])
+    );
     const locomotion = readFileSync(
         resolve(lobby, "native-avatar-motion.json"),
         "utf8"
@@ -25,7 +40,7 @@ export function build() {
     const emotes = JSON.stringify(
         Object.fromEntries(KIT_EMOTES.map((name) => [name, all[name]]))
     );
-    return { "locomotion.json": locomotion, "emotes.json": emotes };
+    return { "locomotion.json": locomotion, "emotes.json": emotes, ...packs };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
@@ -33,11 +48,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     let stale = 0;
     for (const [name, text] of Object.entries(build())) {
         const path = resolve(out, name);
-        let current = "";
+        let current = null;
         try {
-            current = readFileSync(path, "utf8");
+            current = readFileSync(path);
         } catch {}
-        if (current === text) continue;
+        if (current && Buffer.compare(current, Buffer.from(text)) === 0)
+            continue;
         stale++;
         if (check)
             console.error(

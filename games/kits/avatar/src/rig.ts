@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { crouchPose } from "./arrival.ts";
 import { clipRate, clipWeights, type Motion } from "./motion.ts";
 import { drawProbe } from "./probe.js";
+import { createLobbyDriver, isLobbyMotion, type LobbyDriver } from "./lobby.ts";
 
 /** What the kit needs from a loaded avatar; @pixiv/three-vrm's VRM fits, and so does a game's own reader. */
 export interface VrmLike {
@@ -151,6 +152,8 @@ interface Rig {
     mixer: THREE.AnimationMixer;
     clips: Map<string, Clip>;
     sourceHeight: number;
+    /** The lobby's own motion clock, once the lobby's clips are added. */
+    lobby: LobbyDriver | null;
 }
 
 export interface Avatar {
@@ -167,6 +170,8 @@ export interface Avatar {
     manual: boolean;
     /** The clip that carries the most weight right now. */
     readonly playing: string;
+    /** True once the lobby's own motion clock drives the body (lobby clips added and prepared). */
+    readonly lobbyMotion: boolean;
     /** Swap the stand-in for a loaded avatar. */
     attach(vrm: VrmLike): void;
     /** Add lobby clips (`{ IDLE: {...}, ... }`). Safe before `attach`. */
@@ -214,11 +219,36 @@ export function createAvatar(
     let emote = "",
         wasAir = false,
         bob = 0,
-        playing = "";
+        playing = "",
+        lobbyShare = 0;
 
     const addTo = (r: Rig, data: Record<string, ClipData>) => {
         if (data.IDLE && r.clips.size === 0)
             r.sourceHeight = sourceHipsHeight(data.IDLE);
+        // The lobby's set drives the body with the lobby's own clock. Its
+        // clips also join the basic blend below, which plays until the clock
+        // has prepared this rig.
+        const hips = r.bones.hips;
+        if (
+            !r.lobby &&
+            isLobbyMotion(data) &&
+            hips &&
+            r.vrm.scene.getObjectByName(hips.name) === hips
+        ) {
+            const driver = createLobbyDriver({
+                vrm: r.vrm,
+                root,
+                mixer: r.mixer,
+                clips: data,
+                hipsScale: r.ref.height / sourceHipsHeight(data.IDLE),
+            });
+            r.lobby = driver;
+            driver.prepare().catch((error) => {
+                console.warn("[avatar kit] lobby motion unavailable", error);
+                if (rig?.lobby === driver) rig.lobby = null;
+                driver.dispose();
+            });
+        }
         for (const [name, clip] of Object.entries(data)) {
             if (!clip?.tracks || r.clips.has(name)) continue;
             const action = r.mixer.clipAction(
@@ -288,6 +318,9 @@ export function createAvatar(
         get playing() {
             return playing;
         },
+        get lobbyMotion() {
+            return !!rig?.lobby?.ready;
+        },
         attach(vrm) {
             if (rig) throw new Error("AVATAR_ATTACHED");
             const holder = new THREE.Group();
@@ -336,6 +369,7 @@ export function createAvatar(
                 mixer: new THREE.AnimationMixer(vrm.proxyRoot ?? vrm.scene),
                 clips: new Map(),
                 sourceHeight: 1,
+                lobby: null,
             };
             for (const data of pending.splice(0)) addTo(rig, data);
             if (standIn) {
@@ -374,10 +408,16 @@ export function createAvatar(
             }
             if (avatar.manual) return;
             const r = rig;
-            const want = clipWeights(
-                motion,
-                Boolean(motion.emote && r.clips.has(motion.emote))
-            );
+            const hasEmote = Boolean(motion.emote && r.clips.has(motion.emote));
+            const lobby = r.lobby?.ready ? r.lobby : null;
+            // The lobby's clock owns walking, running, jumping and standing;
+            // an emote or a wave hands the body to the kit's own clips.
+            const clock = !!lobby && !hasEmote && !motion.wave;
+            lobbyShare = lobby
+                ? approach(lobbyShare, clock ? 1 : 0, 9, seconds)
+                : 0;
+            if (lobbyShare > 0.999) lobbyShare = 1;
+            const want = clock ? {} : clipWeights(motion, hasEmote);
             const speed = motion.speed ?? 0;
             let top = 0;
             for (const [name, clip] of r.clips) {
@@ -404,10 +444,29 @@ export function createAvatar(
             if (air && !wasAir && r.clips.has("JUMP"))
                 r.clips.get("JUMP")!.action.time = 0.35;
             wasAir = air;
+            r.lobby?.restore();
+            if (lobby) {
+                lobby.sample(
+                    seconds,
+                    {
+                        speed,
+                        grounded: !motion.air,
+                        verticalVelocity: motion.verticalVelocity,
+                        jumpCount: motion.jumpCount,
+                        stopping: motion.stopping,
+                        headingError: motion.headingError,
+                        turnIntent: motion.turnIntent,
+                    },
+                    lobbyShare
+                );
+                if (lobbyShare >= 0.5 && lobby.playing) playing = lobby.playing;
+            }
             if (r.clips.size) r.mixer.update(seconds);
             else
                 for (const bone of Object.values(r.bones))
                     bone?.quaternion.identity();
+            // The lobby's lean, torso lead and planted feet, over the clips.
+            lobby?.finish(seconds);
             if (!r.clips.size) r.bones.hips?.position.copy(r.hipsRest);
             if (crouch > 0) applyCrouch(r, crouch);
             r.vrm.update(seconds);
@@ -425,6 +484,7 @@ export function createAvatar(
             root.parent?.remove(root);
             if (standIn) disposeMeshes(standIn);
             if (rig) {
+                rig.lobby?.dispose();
                 rig.mixer.stopAllAction();
                 if (rig.vrm.dispose) rig.vrm.dispose();
                 else disposeMeshes(rig.vrm.scene);

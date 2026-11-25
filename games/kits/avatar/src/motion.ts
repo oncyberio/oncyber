@@ -35,6 +35,20 @@ export interface Motion {
     wave?: boolean;
     /** A lobby emote name; plays until it is cleared. */
     emote?: string;
+    /**
+     * Optional, for the lobby's motion clock (lobby metres and radians). A
+     * game on the locomotion kit gets all of them from `walkerMotion`.
+     * Without them the clock reads speed, air and the body's turning.
+     */
+    verticalVelocity?: number;
+    /** Jumps since the last landing (1, or 2 for a double jump). */
+    jumpCount?: number;
+    /** The controls are released: brake into a stop. */
+    stopping?: boolean;
+    /** Where the body travels, relative to where it faces. */
+    headingError?: number;
+    /** Where the controls steer, relative to where the body faces. */
+    turnIntent?: number;
 }
 
 const EMOTE_BASE = 8;

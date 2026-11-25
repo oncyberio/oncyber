@@ -54,7 +54,13 @@ import {
 import { rallyTarget } from "./shots.js";
 import { cheer, createWorld, updateWorld } from "./world.js";
 import { attachVRM, avatarTextures, driveVRM } from "./vrm.js";
-import { createAvatar, createAvatarKit, loadVRM } from "@oncyber/avatar-kit";
+import {
+    createAvatar,
+    createAvatarKit,
+    loadVRM,
+    lobbyMotionSource,
+    walkerMotion,
+} from "@oncyber/avatar-kit";
 import {
     applyCameraPose,
     arrival,
@@ -67,6 +73,8 @@ import {
     updateCamera as easeFollowCamera,
 } from "@oncyber/kit-locomotion";
 import locomotionUrl from "@oncyber/avatar-kit/motion/locomotion.json?url";
+import lobbyCoreUrl from "@oncyber/avatar-kit/motion/lobby-core.lcp?url";
+import lobbyAirUrl from "@oncyber/avatar-kit/motion/lobby-air.lcp?url";
 import emotesUrl from "@oncyber/avatar-kit/motion/emotes.json?url";
 
 // ACE! Tennis as a lifecycle game (docs/games.md): the host prepares it,
@@ -159,7 +167,12 @@ export default function createGame(context) {
     let avatarKtx = null;
     const kit = createAvatarKit({
         services,
-        motion: json(locomotionUrl),
+        // The lobby's own motion clock and clips (docs/games/avatar-kit.md).
+        motion: lobbyMotionSource({
+            basic: locomotionUrl,
+            packs: [lobbyCoreUrl, lobbyAirUrl],
+            signal,
+        }),
         emotes: json(emotesUrl),
         load: (bytes) =>
             loadVRM(bytes, { ktx2: (avatarKtx ??= avatarTextures(renderer)) }),
@@ -600,10 +613,13 @@ export default function createGame(context) {
         }
         // The lobby's motion: walk and run by speed (in the lobby's metres
         // per second), in the air during a jump; moving ends an emote.
-        const pace = arrive.walker.speed();
-        if (!shown.floor) kit.self.motion = { air: true, speed: pace };
-        else if (moving || !(kit.self.motion.emote || kit.self.motion.wave))
-            kit.self.motion = { speed: pace };
+        // walkerMotion adds the turn and jump signals the lobby's clock reads.
+        if (
+            !shown.floor ||
+            moving ||
+            !(kit.self.motion.emote || kit.self.motion.wave)
+        )
+            kit.self.motion = walkerMotion(shown, controls);
         // Tell the party's room where the visitor stands, ten times a second.
         const at = performance.now();
         if (at - arrive.poseAt > 100) {

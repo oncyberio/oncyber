@@ -10,10 +10,12 @@
         "./page": "./src/page.ts",
         "./probe": "./src/probe.js",
         "./motion/locomotion.json": "./motion/locomotion.json",
-        "./motion/emotes.json": "./motion/emotes.json"
+        "./motion/emotes.json": "./motion/emotes.json",
+        "./motion/lobby-core.lcp": "./motion/lobby-core.lcp",
+        "./motion/lobby-air.lcp": "./motion/lobby-air.lcp"
     },
     "scripts": {
-        "test": "node --experimental-strip-types --test test/*.test.mjs",
+        "test": "node --experimental-strip-types --import ./test/lobby-resolve.mjs --test test/*.test.mjs",
         "motion": "node scripts/sync-motion.mjs"
     },
     "peerDependencies": {
