@@ -12,10 +12,9 @@ import { createRemoteRuntime, type RemoteRuntime } from "./runtimeRelay";
 import type { WorldScriptRecord } from "./protocol";
 import type { WorldStyle } from "./style";
 import {
-    addLog,
     offersAiSidebar,
+    pageEvents,
     resetWorldScripts,
-    say,
     savedScript,
     setWorldScripts,
     setWorldScriptsController,
@@ -55,23 +54,13 @@ export default function PageWorldScripts({
             source: saved.source,
             style: saved.style,
         });
-        const runtime = createRemoteRuntime(space.id, send, {
-            onStatus: (status) => setWorldScripts({ status }),
-            onLog: addLog,
-            onReady(failed) {
-                if (failed)
-                    say(
-                        "error",
-                        `The world's script didn't start: ${failed
-                            .split("\n")[0]
-                            .slice(0, 200)}`
-                    );
-            },
-        });
+        const runtime = createRemoteRuntime(space.id, send, pageEvents());
         heard.current = runtime;
-        setWorldScriptsController(createController(space, runtime));
+        const controller = createController(space, runtime);
+        setWorldScriptsController(controller);
         return () => {
             heard.current = null;
+            controller.dispose();
             setWorldScriptsController(null);
             runtime.dispose();
             resetWorldScripts();

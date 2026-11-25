@@ -18,14 +18,14 @@ import { createLocalRuntime, type WorldScriptRuntime } from "./runtime";
 import { serveRuntime } from "./runtimeRelay";
 import type { WorldStyle } from "./style";
 import {
-    addLog,
     offersAiSidebar,
-    say,
+    pageEvents,
     savedScript,
     resetWorldScripts,
     setWorldScripts,
     setWorldScriptsController,
     useWorldScripts,
+    useWorldScriptScreen,
     WORLD_SCRIPTS_ENABLED,
 } from "./store";
 import { useScriptAccess } from "./useScriptAccess";
@@ -40,8 +40,6 @@ type LayerExperience = {
     exhibitId?: string;
 };
 
-const firstLine = (text = "") => text.split("\n")[0].slice(0, 200);
-
 export default function WorldScriptLayer({
     experience,
 }: {
@@ -53,6 +51,7 @@ export default function WorldScriptLayer({
 
 function Layer({ experience }: { experience: LayerExperience }) {
     const state = useWorldScripts();
+    const shown = useWorldScriptScreen();
     // In a frame, who may change the script is the page's to ask: the
     // session is there.
     useScriptAccess(worldDocument() ? "" : experience.id);
@@ -88,23 +87,14 @@ function Layer({ experience }: { experience: LayerExperience }) {
                 resetWorldScripts();
             };
         }
-        runtime = createLocalRuntime(saved, {
-            onStatus: (status) => setWorldScripts({ status }),
-            onLog: addLog,
-            onReady(failed) {
-                if (failed)
-                    say(
-                        "error",
-                        `The world's script didn't start: ${firstLine(failed)}`
-                    );
-            },
-        });
+        runtime = createLocalRuntime(saved, pageEvents());
         const controller = createController(experience, runtime);
         setWorldScriptsController(controller);
         // For trying scripts from the console while developing.
         if (process.env.NODE_ENV === "development")
             (window as any).oncyberWorldScripts = controller;
         return () => {
+            controller.dispose();
             setWorldScriptsController(null);
             runtime?.dispose();
             resetWorldScripts();
@@ -112,12 +102,12 @@ function Layer({ experience }: { experience: LayerExperience }) {
     }, [experience.id]);
 
     const corners: HudCorner[] = ["top", "top-left", "top-right", "bottom"];
-    const hud = Object.entries(state.hud);
+    const hud = Object.entries(shown.hud);
     const sidebar =
         state.panelOpen && offersAiSidebar(state) && !worldDocument() ? (
             <AiSidebar />
         ) : null;
-    if (!hud.length && !state.toasts.length && !state.banner) return sidebar;
+    if (!hud.length && !shown.toasts.length && !shown.banner) return sidebar;
     return (
         <>
             {sidebar}
@@ -135,10 +125,10 @@ function Layer({ experience }: { experience: LayerExperience }) {
                         </Corner>
                     );
                 })}
-                {state.banner && <Banner>{state.banner.text}</Banner>}
-                {state.toasts.length > 0 && (
+                {shown.banner && <Banner>{shown.banner.text}</Banner>}
+                {shown.toasts.length > 0 && (
                     <Toasts>
-                        {state.toasts.map((toast) => (
+                        {shown.toasts.map((toast) => (
                             <Toast key={toast.id}>{toast.text}</Toast>
                         ))}
                     </Toasts>

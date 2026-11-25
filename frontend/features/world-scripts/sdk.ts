@@ -33,7 +33,12 @@ export const WORLD_SCRIPT_SDK = String.raw`
     var post = self.postMessage.bind(self);
     var ops = [];
     var things = {};
+    // What the host was last told: of each thing (one entry per property),
+    // of each artwork and door, and of each HUD line.
     var sent = {};
+    var sentArt = {};
+    var sentDoor = {};
+    var sentHud = {};
     var updaters = [];
     var clickers = [];
     var keyDown = [];
@@ -91,21 +96,26 @@ export const WORLD_SCRIPT_SDK = String.raw`
                 art.visible = data.visible !== false;
             },
         };
-        sent["art:" + art.id] = artState(art);
+        sentArt[art.id] = artState(art);
         return art;
     }
     function artState(art) {
         return JSON.stringify([arr(art.position), arr(art.rotation), arr(art.scale), !!art.visible]);
     }
 
-    function thingState(thing) {
-        return JSON.stringify([
-            arr(thing.position), arr(thing.rotation), arr(thing.scale),
-            thing.color, thing.opacity, thing.visible, thing.text, thing.glow,
-            thing.textColor, thing.background, thing.look, thing.pattern,
-            thing.color2, thing.wobble, thing.shader,
-            thing.solid, thing.name, thing.say, thing.motion, thing.avatar, thing._rev,
-        ]);
+    // The properties of a thing that are not as the host was last told, or
+    // null when it knows them all: only what changed travels.
+    function changedProps(id, thing) {
+        var props = thingProps(thing);
+        var last = sent[id] || (sent[id] = {});
+        var changed = null;
+        for (var key in props) {
+            var value = JSON.stringify(props[key]);
+            if (value === last[key]) continue;
+            last[key] = value;
+            (changed = changed || {})[key] = props[key];
+        }
+        return changed;
     }
     function thingProps(thing) {
         return {
@@ -158,9 +168,9 @@ export const WORLD_SCRIPT_SDK = String.raw`
         var thing = {
             id: id,
             shape: spec.shape || (spec.text != null ? "text" : "box"),
-            position: live ? fromAny(live.position) : fromAny(spec.position, v3(0, 0, 0)),
-            rotation: live ? fromAny(live.rotation) : fromAny(spec.rotation, v3(0, 0, 0)),
-            scale: live && !spec.scale ? fromAny(live.scale) : fromAny(spec.scale, v3(1, 1, 1)),
+            position: fromAny(live && live.position, fromAny(spec.position, v3(0, 0, 0))),
+            rotation: fromAny(live && live.rotation, fromAny(spec.rotation, v3(0, 0, 0))),
+            scale: fromAny(spec.scale, fromAny(live && live.scale, v3(1, 1, 1))),
             color: spec.color || undefined,
             look: spec.look || undefined,
             pattern: spec.pattern || undefined,
@@ -172,7 +182,10 @@ export const WORLD_SCRIPT_SDK = String.raw`
             name: spec.name == null ? undefined : String(spec.name),
             say: undefined,
             motion: spec.motion || undefined,
+            // model: what it is made of (the things that are parts of this
+            // one are in _kids).
             parts: [],
+            _kids: [],
             lamp: spec.lamp || undefined,
             _rev: 0,
             _sentRev: 0,
@@ -195,7 +208,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
             remove: function () {
                 if (thing.removed) return;
                 thing.removed = true;
-                thing.parts.slice().forEach(function (part) { part.remove(); });
+                thing._kids.slice().forEach(function (part) { part.remove(); });
                 delete things[id];
                 delete sent[id];
                 ops.push({ op: "remove", id: id });
@@ -210,10 +223,9 @@ export const WORLD_SCRIPT_SDK = String.raw`
                 copy.parent = id;
                 if (copy.id == null) copy.id = id + "." + ++autoId;
                 var part = add(copy);
-                thing.parts.push(part);
+                thing._kids.push(part);
                 return part;
             },
-            parts: [],
             lookAt: function (target) {
                 var p = target.position || fromAny(target);
                 thing.rotation.y = Math.atan2(p.x - thing.position.x, p.z - thing.position.z);
@@ -251,7 +263,8 @@ export const WORLD_SCRIPT_SDK = String.raw`
         props.bevel = spec.bevel;
         props.points = spec.points;
         things[id] = thing;
-        sent[id] = thingState(thing);
+        delete sent[id];
+        changedProps(id, thing);
         ops.push({ op: "add", id: id, props: props });
         return thing;
     }
@@ -285,7 +298,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
             },
             distanceTo: function (other) { return distance(door, other); },
         };
-        sent["door:" + door.id] = door.open;
+        sentDoor[door.id] = door.open;
         return door;
     }
 
@@ -349,10 +362,19 @@ export const WORLD_SCRIPT_SDK = String.raw`
     };
 
     var ui = {
-        hud: function (key, text, corner) { ops.push({ op: "hud", key: String(key), text: text == null ? null : String(text), corner: corner }); },
+        // A line that already says this is not sent again: a script may
+        // call hud() every frame.
+        hud: function (key, text, corner) {
+            key = String(key);
+            text = text == null ? null : String(text);
+            var line = text == null ? null : text + "\n" + corner;
+            if (key in sentHud && sentHud[key] === line) return;
+            sentHud[key] = line;
+            ops.push({ op: "hud", key: key, text: text, corner: corner });
+        },
         toast: function (text, seconds) { ops.push({ op: "toast", text: String(text), seconds: seconds }); },
         banner: function (text, seconds) { ops.push({ op: "banner", text: text == null ? null : String(text), seconds: seconds }); },
-        clear: function () { ops.push({ op: "hud-clear" }); },
+        clear: function () { sentHud = {}; ops.push({ op: "hud-clear" }); },
     };
 
     var sound = { play: function (name, volume) { ops.push({ op: "sound", name: name, volume: volume }); } };
@@ -389,32 +411,29 @@ export const WORLD_SCRIPT_SDK = String.raw`
     function flush(seq) {
         for (var id in things) {
             var thing = things[id];
-            var state = thingState(thing);
-            if (state !== sent[id]) {
-                sent[id] = state;
-                var props = thingProps(thing);
-                // A model's parts travel only when they have changed.
-                if (thing._rev !== thing._sentRev) {
-                    thing._sentRev = thing._rev;
-                    props.parts = thing.parts;
-                    props.lamp = thing.lamp === undefined ? null : thing.lamp;
-                }
-                ops.push({ op: "set", id: id, props: props });
+            var props = changedProps(id, thing);
+            // A model's parts travel only when they have changed.
+            if (thing._rev !== thing._sentRev) {
+                thing._sentRev = thing._rev;
+                props = props || {};
+                props.parts = thing.parts;
+                props.lamp = thing.lamp === undefined ? null : thing.lamp;
             }
+            if (props) ops.push({ op: "set", id: id, props: props });
         }
         for (var d = 0; d < doorList.length; d++) {
             var door = doorList[d];
             var open = Math.min(1, Math.max(0, +door.open || 0));
-            if (open !== sent["door:" + door.id]) {
-                sent["door:" + door.id] = open;
+            if (open !== sentDoor[door.id]) {
+                sentDoor[door.id] = open;
                 if (!door.portal) ops.push({ op: "door", id: door.id, open: open });
             }
         }
         for (var i = 0; i < artworkList.length; i++) {
             var art = artworkList[i];
             var a = artState(art);
-            if (a !== sent["art:" + art.id]) {
-                sent["art:" + art.id] = a;
+            if (a !== sentArt[art.id]) {
+                sentArt[art.id] = a;
                 ops.push({ op: "artwork", id: art.id, props: { position: arr(art.position), rotation: arr(art.rotation), scale: arr(art.scale), visible: !!art.visible } });
             }
         }
@@ -497,9 +516,10 @@ export const WORLD_SCRIPT_SDK = String.raw`
         }
     };
 
-    // Nothing else reaches the network or other code from here.
-    ["fetch", "XMLHttpRequest", "WebSocket", "EventSource", "importScripts", "indexedDB", "caches", "WebTransport"].forEach(function (name) {
-        try { Object.defineProperty(self, name, { value: undefined, configurable: false }); } catch (error) { /* already gone */ }
+    // Nothing else reaches the network or other code from here, and no
+    // second worker can be started to keep this one answering while it works.
+    ["fetch", "XMLHttpRequest", "WebSocket", "WebSocketStream", "EventSource", "importScripts", "indexedDB", "caches", "WebTransport", "Worker", "SharedWorker", "BroadcastChannel"].forEach(function (name) {
+        try { Object.defineProperty(self, name, { value: undefined, writable: false, configurable: false }); } catch (error) { /* already gone */ }
     });
 })();
 `;

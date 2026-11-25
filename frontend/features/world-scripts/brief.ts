@@ -4,6 +4,7 @@
  * it writes simply fails there, so the brief is about writing good games,
  * not about safety.
  */
+import { WORLD_SCRIPT_LIMITS as L } from "./basics";
 import { cleanStyle, WorldStyle } from "./style";
 
 export const WORLD_SCRIPT_BRIEF = `You write small JavaScript scripts that run on top of an existing Oncyber 3D space (a gallery world people walk around in first or third person). Scripts add mini games, characters, effects and interactions.
@@ -46,7 +47,7 @@ sound.play(name, volume): "coin" | "click" | "jump" | "hit" | "win" | "lose" | "
 keep(name, initial): state that survives a "content" change, e.g. const game = keep("game", { score: 0, timeLeft: 60 }); then mutate game.score. Use it for scores, timers, progress. Plain data only.
 wait(seconds) -> Promise, every(seconds, fn) -> stop(), random() (seeded, use it instead of Math.random so rewinds repeat), distance(a, b), console.log.
 
-The world: y is up, ground is about y = 0, distances are metres, the player is about 1.8 m tall and walks about 4 m/s. Place things around world.player.position at start (within 2-15 m) unless artworks give a better anchor. Limits: 300 things, keep updates light. Text up to 160 characters.
+The world: y is up, ground is about y = 0, distances are metres, the player is about 1.8 m tall and walks about 4 m/s. Place things around world.player.position at start (within 2-15 m) unless artworks give a better anchor. Limits: ${L.maxThings} things, ${L.maxHudLines} HUD lines, ${L.maxOpsPerTick} changes a frame; what goes over is dropped. Keep updates light. Text up to ${L.maxTextLength} characters.
 
 Write clear, short code. Proximity (distance < 1.5) is the usual way to collect or touch things. Show the goal and score in the HUD. Make game pieces read at a glance, in the world's style: take colours from world.style.palette, build them from parts and lathe/extrude shapes, and give the important ones a shader or glow.
 

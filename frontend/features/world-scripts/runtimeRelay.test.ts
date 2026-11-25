@@ -1,5 +1,6 @@
 import {
     createRemoteRuntime,
+    RUN_ANSWER_MS,
     readContext,
     readLog,
     readRunResult,
@@ -17,14 +18,19 @@ function joined(space = "space-1", worldSpace = space) {
     let ready = true;
     const runtime: WorldScriptRuntime = {
         ready: () => ready,
-        run: jest.fn(async (source: string, mode) => {
-            calls.push(`run ${mode} ${source}`);
+        run: jest.fn(async (source: string, mode, style) => {
+            calls.push(
+                `run ${mode} ${source}${style ? ` in ${style.look}` : ""}`
+            );
             return source.includes("bad")
                 ? { ok: false, reason: "ReferenceError: nope" }
+                : source.includes("early")
+                ? { ok: false, reason: "Closed.", fault: "world" as const }
                 : { ok: true };
         }),
         restart: (source) => void calls.push(`restart ${source}`),
         stop: () => void calls.push("stop"),
+        cancel: () => void calls.push("cancel"),
         setStyle: (style) => void calls.push(`style ${style.look}`),
         context: async () => ({
             sky: "#102030",
@@ -83,6 +89,7 @@ describe("a world script's runtime across the frame", () => {
         expect(await page.run("tick()", "fresh")).toEqual({
             ok: false,
             reason: "The world is still loading.",
+            fault: "world",
         });
         expect(calls).toEqual([]);
         setReady(true);
@@ -104,8 +111,20 @@ describe("a world script's runtime across the frame", () => {
         expect(await page.run("bad()", "fresh")).toEqual({
             ok: false,
             reason: "ReferenceError: nope",
+            fault: "script",
         });
-        expect(calls).toEqual(["run keep good()", "run fresh bad()"]);
+        // Whose fault it was comes back too: the model is not asked to fix
+        // what the world did.
+        expect(await page.run("early()", "fresh")).toEqual({
+            ok: false,
+            reason: "Closed.",
+            fault: "world",
+        });
+        expect(calls).toEqual([
+            "run keep good()",
+            "run fresh bad()",
+            "run fresh early()",
+        ]);
     });
 
     test("restart, stop and the panel reach the world; a style that is not one is not drawn", async () => {
@@ -194,11 +213,75 @@ describe("a world script's runtime across the frame", () => {
             expect(await result).toEqual({
                 ok: false,
                 reason: "The world didn't answer.",
+                fault: "world",
             });
-            expect(sent).toEqual(["script-hello", "script-run"]);
+            // Given up on here, so called off there: it must not land late.
+            expect(sent).toEqual([
+                "script-hello",
+                "script-run",
+                "script-cancel",
+            ]);
         } finally {
             jest.useRealTimers();
         }
+    });
+
+    test("a run is waited for by silence: not while the page is in the background, nor while the world talks", async () => {
+        jest.useFakeTimers();
+        try {
+            let onShow = false;
+            let changed = () => {};
+            const sent: string[] = [];
+            const page = createRemoteRuntime(
+                "s",
+                (kind) => sent.push(kind),
+                {},
+                globalThis,
+                {
+                    onShow: () => onShow,
+                    watch(heard) {
+                        changed = heard;
+                        return () => {};
+                    },
+                }
+            );
+            page.receive("script-ready", { space: "s" });
+            let result: unknown;
+            void page.run("x()", "fresh").then((value) => (result = value));
+            // In the background the world draws no frames: ten minutes of
+            // nothing is not the world failing.
+            jest.advanceTimersByTime(600_000);
+            for (let i = 0; i < 5; i++) await Promise.resolve();
+            expect(result).toBeUndefined();
+            // Back on show, the wait starts again; and a world that keeps
+            // saying something is still at it.
+            onShow = true;
+            changed();
+            for (let i = 0; i < 4; i++) {
+                jest.advanceTimersByTime(RUN_ANSWER_MS - 1000);
+                page.receive("script-status", {
+                    space: "s",
+                    status: { state: "starting" },
+                });
+            }
+            for (let i = 0; i < 5; i++) await Promise.resolve();
+            expect(result).toBeUndefined();
+            page.receive("script-ran", { space: "s", n: 1, ok: true });
+            for (let i = 0; i < 5; i++) await Promise.resolve();
+            expect(result).toEqual({ ok: true });
+            expect(sent).not.toContain("script-cancel");
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test("a style travels with the run it belongs to, and a cancel reaches the world", async () => {
+        const { page, calls } = joined();
+        await settle();
+        await page.run("neon()", "fresh", { ...NEUTRAL_STYLE, look: "glow" });
+        page.cancel();
+        await settle();
+        expect(calls).toEqual(["run fresh neon() in glow", "cancel"]);
     });
 });
 
@@ -210,7 +293,14 @@ describe("what the page takes from a world's word", () => {
         expect(readRunResult({ ok: "yes" })).toEqual({
             ok: false,
             reason: "It didn't run.",
+            fault: "script",
         });
+        expect(readRunResult({ ok: false, fault: "world" }).fault).toBe(
+            "world"
+        );
+        expect(readRunResult({ ok: false, fault: "anything" }).fault).toBe(
+            "script"
+        );
         expect(readRunResult({ reason: "x".repeat(9000) }).reason).toHaveLength(
             4000
         );

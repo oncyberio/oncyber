@@ -44,7 +44,13 @@ import Events from "@3/three/events/events";
 import { CANVAS } from "@3/three/constants";
 import { RenderDemand } from "@3/three/utils/renderDemand";
 import type { ArtworkInfo, WorldScriptSink, WorldView } from "./host";
-import type { HudCorner, SoundName, ThingProps, Vec3 } from "./protocol";
+import {
+    BUILT_FROM_KEYS as GEOMETRY_KEYS,
+    type HudCorner,
+    type SoundName,
+    type ThingProps,
+    type Vec3,
+} from "./protocol";
 import { playSound } from "./sounds";
 import { createLookCache, createOutlineMaterial, resolveLook } from "./looks";
 import { NEUTRAL_STYLE, WorldStyle } from "./style";
@@ -227,16 +233,6 @@ const SPECIAL_KEYS = [
     "name",
     "say",
     "motion",
-] as const;
-
-const GEOMETRY_KEYS = [
-    "size",
-    "billboard",
-    "profile",
-    "outline",
-    "depth",
-    "bevel",
-    "points",
 ] as const;
 
 function drawText(props: ThingProps, texture?: CanvasTexture) {
@@ -535,9 +531,17 @@ export function createEngineSink(
             return liveArtworks()
                 .slice(0, 500)
                 .map((artwork) => {
+                    // As the space saved it: where a script has moved or
+                    // hidden an artwork, the script is told where it was,
+                    // so a restart begins from the same place every time.
                     const original = originals.get(artworkId(artwork));
                     const object: Object3D = artwork;
                     const position = object.getWorldPosition(new Vector3());
+                    if (original) {
+                        position.copy(original.position);
+                        object.parent?.localToWorld(position);
+                    }
+                    const scale = original ? original.scale : object.scale;
                     return {
                         id: artworkId(artwork),
                         name: String(artwork?.data?.name ?? "").slice(0, 120),
@@ -556,7 +560,7 @@ export function createEngineSink(
                                   object.rotation.y,
                                   object.rotation.z,
                               ],
-                        scale: [object.scale.x, object.scale.y, object.scale.z],
+                        scale: [scale.x, scale.y, scale.z],
                         visible: original
                             ? original.visible
                             : object.visible !== false,
@@ -678,7 +682,8 @@ export function createEngineSink(
             things.delete(id);
             glides.delete(id);
             objectToThing.delete(thing.object);
-            // Parts go with what they belong to (the host removes them too).
+            // A part that outlives what it belonged to hangs in the scripts'
+            // group (the script's own remove() takes its parts with it).
             thing.object.children
                 .filter((child) => objectToThing.has(child))
                 .forEach((child) => group.add(child));
@@ -782,7 +787,6 @@ export function createEngineSink(
         onFrame?.(delta);
     };
     Emitter.on(Events.UPDATE, update);
-    RenderDemand.setContinuous(RENDER_SOURCE, true);
 
     const typing = (target: EventTarget | null) => {
         const element = target as HTMLElement;
@@ -858,6 +862,13 @@ export function createEngineSink(
         setStyle(next: WorldStyle) {
             style = next;
             things.forEach((thing) => applyLook(thing));
+        },
+        /**
+         * A script is running: the picture changes every frame. Off, the
+         * world goes back to drawing only when something changed.
+         */
+        setActive(active: boolean) {
+            RenderDemand.setContinuous(RENDER_SOURCE, active);
         },
         bind(handlers: {
             frame: (dt: number) => void;

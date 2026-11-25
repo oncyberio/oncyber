@@ -4,9 +4,12 @@
  * that a credits system will later draw from.
  *
  * Today the AI is in early access: an allowlist (WORLD_SCRIPTS_AI_ALLOWLIST)
- * plus a daily cap, because every call is paid from one key. `checkAiAccess` and `recordAiUsage` are the two places a
- * credit balance will plug in: check the balance before the call, charge
- * the call's cost (which OpenRouter reports) after it.
+ * plus a daily cap, because every call is paid from one key. A request is
+ * counted before the model is called (`reserveAiRequest`, in a transaction,
+ * so requests made at once cannot all slip under the cap) and stays counted
+ * whether or not the call worked. `reserveAiRequest` and `recordAiUsage` are
+ * the two places a credit balance will plug in: hold the price before the
+ * call, charge the call's cost (which OpenRouter reports) after it.
  */
 import { db, fire } from "@utils/firebaseAdmin";
 import { ADMINS } from "@api/social/isMod";
@@ -21,6 +24,7 @@ import {
     describeWorld,
     WorldContext,
 } from "@features/world-scripts/style";
+import { flagOn } from "@features/world-scripts/basics";
 
 export const WORLD_SCRIPTS_FEATURE = "world-script";
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4.5";
@@ -37,7 +41,7 @@ type Env = Record<string, string | undefined>;
 export function worldScriptsEnabled(
     value: string | undefined = process.env.NEXT_PUBLIC_WORLD_SCRIPTS
 ) {
-    return ["1", "true", "on"].includes(String(value || "").toLowerCase());
+    return flagOn(value);
 }
 
 const list = (value = "") =>
@@ -88,13 +92,26 @@ function dailyLimit(env: Env = process.env) {
     return Number.isFinite(value) && value >= 0 ? value : DEFAULT_DAILY_LIMIT;
 }
 
-export async function checkAiAccess(userId: string): Promise<AiAccess> {
+/** On the early-access list, under any of the names the account goes by. */
+export async function hasEarlyAccess(userId: string) {
     const account = await getAccountDoc(userId).catch((): null => null);
-    const names = [
+    return isAllowlisted([
         userId.toLowerCase(),
         ...(account ? accountNames(account as any) : []),
-    ];
-    if (!isAllowlisted(names))
+    ]);
+}
+
+const TODAYS_LIMIT = "That's today's limit. Try again tomorrow.";
+
+const dailyUsage = (userId: string) =>
+    db.collection("aiUsageDaily").doc(`${userId}_${dayKey()}`);
+
+/**
+ * Whether this account may ask the model now, for showing it. The request
+ * itself is let through by `reserveAiRequest`, which counts it.
+ */
+export async function checkAiAccess(userId: string): Promise<AiAccess> {
+    if (!(await hasEarlyAccess(userId)))
         return {
             allowed: false,
             earlyAccess: false,
@@ -106,9 +123,7 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
             earlyAccess: true,
             reason: "No AI model is set up here.",
         };
-    const usage = await db
-        .collection("aiUsageDaily")
-        .doc(`${userId}_${dayKey()}`)
+    const usage = await dailyUsage(userId)
         .get()
         .catch(() => null);
     const used = usage?.exists ? Number(usage.data()?.requests) || 0 : 0;
@@ -117,10 +132,40 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
         return {
             allowed: false,
             earlyAccess: true,
-            reason: "That's today's limit. Try again tomorrow.",
+            reason: TODAYS_LIMIT,
             remaining: 0,
         };
     return { allowed: true, earlyAccess: true, remaining };
+}
+
+/**
+ * Counts one request against today's limit, before the model is called.
+ * Read and written in one transaction: of several requests made at once,
+ * only as many as are left get through. A request stays counted when the
+ * call fails or times out, since the provider may have charged for it.
+ */
+export async function reserveAiRequest(
+    userId: string,
+    limit: number = dailyLimit()
+): Promise<{ allowed: boolean; remaining: number; reason?: string }> {
+    const ref = dailyUsage(userId);
+    return db.runTransaction(async (transaction) => {
+        const usage = await transaction.get(ref);
+        const used = usage.exists ? Number(usage.data()?.requests) || 0 : 0;
+        if (used >= limit)
+            return { allowed: false, remaining: 0, reason: TODAYS_LIMIT };
+        transaction.set(
+            ref,
+            { userId, day: dayKey(), requests: used + 1 },
+            { merge: true }
+        );
+        return { allowed: true, remaining: limit - used - 1 };
+    });
+}
+
+/** The model a request is sent to. */
+export function aiModel(env: Env = process.env) {
+    return env.OPENROUTER_MODEL || DEFAULT_MODEL;
 }
 
 export interface AiUsage {
@@ -134,7 +179,10 @@ export interface AiUsage {
     ok: boolean;
 }
 
-/** One ledger row per model call, plus the per-day counter. */
+/**
+ * One ledger row per model call, and its cost on the day's total. The
+ * request itself was counted before the call (`reserveAiRequest`).
+ */
 export async function recordAiUsage(usage: AiUsage) {
     const batch = db.batch();
     batch.set(db.collection("aiUsage").doc(), {
@@ -143,11 +191,10 @@ export async function recordAiUsage(usage: AiUsage) {
         createdAt: Date.now(),
     });
     batch.set(
-        db.collection("aiUsageDaily").doc(`${usage.userId}_${dayKey()}`),
+        dailyUsage(usage.userId),
         {
             userId: usage.userId,
             day: dayKey(),
-            requests: fire.FieldValue.increment(1),
             costUsd: fire.FieldValue.increment(usage.costUsd || 0),
         },
         { merge: true }
@@ -177,7 +224,7 @@ export async function askForScript(
     fetcher: typeof fetch = fetch,
     env: Env = process.env
 ): Promise<ScriptReply> {
-    const model = env.OPENROUTER_MODEL || DEFAULT_MODEL;
+    const model = aiModel(env);
     const stop = new AbortController();
     const timer = setTimeout(() => stop.abort(), 55_000);
     const hadScript = !!input.currentSource?.trim();
@@ -282,15 +329,42 @@ export async function editableSpace(experienceId: string, userId: string) {
     if (!document.exists) return null;
     const experience = document.data();
     if (experience.deleted === true) return null;
+    if (!isSpaceAdmin(experience, userId)) return null;
+    return { ref: document.ref, experience };
+}
+
+/** Whether this account is the space's owner, an editor or a site admin. */
+export function isSpaceAdmin(
+    experience: { owner?: unknown; editors?: unknown },
+    userId: string
+) {
     const id = userId.toLowerCase();
-    const editors = [experience.owner, ...(experience.editors || [])];
-    if (
-        !ADMINS.includes(id) &&
-        !editors.some(
+    const editors = [
+        experience.owner,
+        ...(Array.isArray(experience.editors) ? experience.editors : []),
+    ];
+    return (
+        ADMINS.includes(id) ||
+        editors.some(
             (editor) =>
                 typeof editor === "string" && editor.toLowerCase() === id
         )
-    )
-        return null;
-    return { ref: document.ref, experience };
+    );
 }
+
+/**
+ * When a space's script was last saved (0 for none): what a save says it
+ * builds on, so one editor does not write over another's change unseen.
+ */
+export function scriptsSavedAt(experience: { worldScripts?: unknown }) {
+    const scripts = Array.isArray(experience.worldScripts)
+        ? experience.worldScripts
+        : [];
+    return Math.max(
+        0,
+        ...scripts.map((script) => Number(script?.updatedAt) || 0)
+    );
+}
+
+export const SCRIPT_CHANGED_ELSEWHERE =
+    "This space's script was changed somewhere else. Reload to carry on from that one.";

@@ -11,9 +11,12 @@
  * their start, the player returns to where the round began).
  *
  * The host knows nothing about three.js: the scene and the interface are
- * reached through WorldScriptSink, which engineAdapter.ts implements.
+ * reached through WorldScriptSink, which engineAdapter.ts implements. Nor
+ * about frames: a version is opened through ./version, and what its trial
+ * may do next is decided in ./trial.
  */
 import {
+    BUILT_FROM_KEYS,
     cleanOps,
     DoorInfo,
     SCARCE_SHAPES,
@@ -25,12 +28,20 @@ import {
     HudCorner,
     SoundName,
 } from "./protocol";
-import {
-    buildSandboxDocument,
-    buildWorkerScript,
-    WORLD_SCRIPT_SANDBOX,
-} from "./sandboxDocument";
 import { watchSilence, type SilenceWatch } from "./silence";
+import {
+    trialOwes,
+    trialSettled,
+    trialTransition,
+    TRIAL_FLOOD,
+    TRIAL_REPLACED,
+    type TrialEvent,
+    type TrialFault,
+    type TrialState,
+} from "./trial";
+import { FrameVersion, ScriptVersion } from "./version";
+
+export { TRIAL_TICKS } from "./trial";
 
 export interface WorldView {
     player: { position: Vec3; forward: Vec3; yaw: number };
@@ -78,8 +89,8 @@ export type WorldScriptStatus =
 export interface WorldScriptEvents {
     onStatus?(status: WorldScriptStatus): void;
     onLog?(level: "log" | "warn" | "error", text: string): void;
-    /** A live edit landed (or was refused, with the reason). */
-    onSwap?(result: SwapResult): void;
+    /** A version that came with a style of its own was swapped in. */
+    onStyle?(style: unknown): void;
 }
 
 export type SwapMode = "keep" | "fresh";
@@ -90,10 +101,16 @@ export interface SwapResult {
     mode?: SwapMode;
     version?: number;
     reason?: string;
+    /**
+     * Whose fault a refusal is. Only a "script" one is worth another try by
+     * whoever wrote it; a "world" one says nothing about the script.
+     */
+    fault?: TrialFault;
 }
 
-/** Frames a new version must run cleanly before it replaces the old one. */
-export const TRIAL_TICKS = 30;
+/** Opens a version of `source`; a test hands in one without a frame. */
+export type OpenVersion = (source: string) => ScriptVersion;
+
 /**
  * How long a new version may say nothing while it owes an answer (its
  * start, or a frame it was sent) before it is given up on. Not a limit on
@@ -101,165 +118,64 @@ export const TRIAL_TICKS = 30;
  * device or a tab in the background draws few (./silence).
  */
 const START_TIMEOUT_MS = 4000;
-/** The sandbox frame itself opening: the browser's work, on a busy page. */
-const FRAME_OPEN_TIMEOUT_MS = 15_000;
-const KEEP_TIMEOUT_MS = 600;
 const REWIND_GLIDE_S = 0.8;
 const PLAYER_MOVE_GAP_MS = 500;
-
-type Listener = (message: any) => void;
-
-/** One running source in one frame. */
-class Version {
-    readonly frame: HTMLIFrameElement;
-    private port: MessagePort | null = null;
-    private listeners = new Set<Listener>();
-    private ready: Promise<void>;
-    awaitingTick = false;
-    errors = 0;
-    closed = false;
-
-    constructor(container: HTMLElement, readonly source: string) {
-        const frame = document.createElement("iframe");
-        frame.setAttribute("sandbox", WORLD_SCRIPT_SANDBOX);
-        frame.setAttribute("referrerpolicy", "no-referrer");
-        frame.setAttribute("allow", "");
-        frame.setAttribute("aria-hidden", "true");
-        frame.tabIndex = -1;
-        frame.title = "World script";
-        Object.assign(frame.style, {
-            position: "fixed",
-            width: "0",
-            height: "0",
-            border: "0",
-            left: "-10px",
-            top: "-10px",
-            visibility: "hidden",
-            pointerEvents: "none",
-        });
-        frame.srcdoc = buildSandboxDocument();
-        this.frame = frame;
-        this.ready = new Promise((resolve, reject) => {
-            const timer = setTimeout(
-                () => reject(new Error("The script frame did not open.")),
-                FRAME_OPEN_TIMEOUT_MS
-            );
-            frame.addEventListener(
-                "load",
-                () => {
-                    if (this.closed) return;
-                    const channel = new MessageChannel();
-                    this.port = channel.port1;
-                    channel.port1.onmessage = (event) => {
-                        if (event.data?.t === "relay-ready") {
-                            clearTimeout(timer);
-                            resolve();
-                            return;
-                        }
-                        this.listeners.forEach((listener) =>
-                            listener(event.data)
-                        );
-                    };
-                    // The frame's origin is opaque ("null"), so "*" is the
-                    // only target that reaches it; the port is the channel.
-                    frame.contentWindow?.postMessage({ t: "port" }, "*", [
-                        channel.port2,
-                    ]);
-                },
-                { once: true }
-            );
-        });
-        container.appendChild(frame);
-    }
-
-    on(listener: Listener) {
-        this.listeners.add(listener);
-        return () => this.listeners.delete(listener);
-    }
-
-    send(message: unknown) {
-        if (!this.closed) this.port?.postMessage(message);
-    }
-
-    async boot(start: Record<string, unknown>) {
-        await this.ready;
-        this.send({
-            t: "boot",
-            wrapped: buildWorkerScript(this.source),
-            start,
-        });
-    }
-
-    /** The script's keep() values, or nothing if it doesn't answer quickly. */
-    kept(): Promise<Record<string, unknown>> {
-        return new Promise((resolve) => {
-            const timer = setTimeout(() => {
-                off();
-                resolve({});
-            }, KEEP_TIMEOUT_MS);
-            const off = this.on((message) => {
-                if (message?.t !== "kept") return;
-                clearTimeout(timer);
-                off();
-                resolve(
-                    message.kept && typeof message.kept === "object"
-                        ? message.kept
-                        : {}
-                );
-            });
-            this.send({ t: "keep" });
-        });
-    }
-
-    close() {
-        if (this.closed) return;
-        this.closed = true;
-        this.send({ t: "stop" });
-        this.port?.close();
-        this.frame.remove();
-        this.listeners.clear();
-    }
-}
+const CLOSED = "Closed.";
 
 function cloneProps(props: ThingProps): ThingProps {
     return JSON.parse(JSON.stringify(props));
 }
 
+/**
+ * Whether a thing made again under an id it already has must be built from
+ * nothing: it is another shape now, or is no longer built from something it
+ * was (a size, an outline). Otherwise it is the same thing with new values.
+ */
+function remade(existing: ThingProps, props: ThingProps) {
+    return (
+        existing.shape !== props.shape ||
+        BUILT_FROM_KEYS.some(
+            (key) => existing[key] !== undefined && props[key] === undefined
+        )
+    );
+}
+
 export class WorldScriptHost {
-    private current: Version | null = null;
-    private trial: Version | null = null;
+    private current: ScriptVersion | null = null;
+    private trial: ScriptVersion | null = null;
     private table = new Map<string, ThingProps>();
+    /** The HUD lines on show: a swap takes away what the new version drops. */
+    private hudKeys = new Set<string>();
     private versionCount = 0;
+    private swaps = 0;
     private seq = 0;
-    private pendingDt = 0;
-    private time = 0;
     private startPosition: Vec3 | null = null;
     private lastPlayerMove = 0;
     private seed = 1;
     private disposed = false;
+    private open: OpenVersion;
     /** The world's creative direction, handed to each version as world.style. */
     style: unknown = null;
 
     constructor(
-        private container: HTMLElement,
+        container: HTMLElement | null,
         private sink: WorldScriptSink,
-        private events: WorldScriptEvents = {}
-    ) {}
+        private events: WorldScriptEvents = {},
+        open?: OpenVersion
+    ) {
+        this.open = open || ((source) => new FrameVersion(container, source));
+    }
 
     get running() {
         return !!this.current;
     }
 
-    get thingCount() {
-        return this.table.size;
-    }
-
     /** Starts a script from nothing (a visitor arriving, or Run). */
-    async start(source: string): Promise<SwapResult> {
+    async start(source: string, style?: unknown): Promise<SwapResult> {
         this.stop();
         this.seed = (Math.random() * 2147483646 + 1) >>> 0;
         this.startPosition = this.sink.view().player.position;
-        return this.swap(source, "fresh");
+        return this.swap(source, "fresh", style);
     }
 
     /** Rewinds the running script to the start of its round. */
@@ -268,104 +184,66 @@ export class WorldScriptHost {
             return Promise.resolve<SwapResult>({
                 ok: false,
                 reason: "Nothing is running.",
+                fault: "world",
             });
         return this.swap(this.current.source, "fresh");
     }
 
     /**
      * Replaces the running version with `source`. The new version runs a
-     * trial first; if it fails, the old version keeps running.
+     * trial first; if it fails, the old version keeps running. A `style`
+     * given with it is the world's only once the version has landed.
      */
-    async swap(source: string, mode: SwapMode): Promise<SwapResult> {
-        if (this.disposed) return { ok: false, reason: "Closed." };
+    async swap(
+        source: string,
+        mode: SwapMode,
+        style?: unknown
+    ): Promise<SwapResult> {
+        if (this.disposed) return { ok: false, reason: CLOSED, fault: "world" };
         if (byteLength(source) > WORLD_SCRIPT_LIMITS.maxSourceBytes)
-            return this.refuse("The script is too long.");
-        this.trial?.close();
+            return this.refuse("The script is too long.", "script");
+        const asked = ++this.swaps;
+        this.closeTrial();
         if (!this.current) this.events.onStatus?.({ state: "starting" });
 
         const kept =
             mode === "keep" && this.current ? await this.current.kept() : {};
+        // While it answered, the world closed or a newer version was asked
+        // for: this one gives way.
+        if (this.disposed) return { ok: false, reason: CLOSED, fault: "world" };
+        if (asked !== this.swaps)
+            return this.refuse(TRIAL_REPLACED, "world", true);
         const carried: Record<string, ThingProps> = {};
         if (mode === "keep")
             this.table.forEach((props, id) => (carried[id] = props));
 
-        const next = new Version(this.container, source);
+        const next = this.open(source);
         this.trial = next;
         const buffered: WorldScriptOp[] = [];
-        let trialTicks = 0;
-        let failure: string | null = null;
-        let started = false;
-
-        const outcome = await new Promise<SwapResult>((resolve) => {
-            // From the moment it is asked to start: quiet for too long
-            // while it owes its start or the answer to a frame.
-            let watch: SilenceWatch | null = null;
-            let settled = false;
-            const finish = (reason: string | null) => {
-                settled = true;
-                watch?.stop();
-                off();
-                if (reason) {
-                    next.close();
-                    if (this.trial === next) this.trial = null;
-                    resolve({ ok: false, reason });
-                    return;
-                }
-                resolve({ ok: true, mode, version: 0 });
-            };
-            const off = next.on((message) => {
-                watch?.heard();
-                if (this.trial !== next)
-                    return finish("Replaced by a newer version.");
-                switch (message?.t) {
-                    case "error":
-                        failure = String(message.text || "Error");
-                        return finish(failure);
-                    case "stopped":
-                        return finish(String(message.reason || "Stopped."));
-                    case "started":
-                        started = true;
-                        return;
-                    case "ops": {
-                        buffered.push(...cleanOps(message.ops).ops);
-                        next.awaitingTick = false;
-                        if (
-                            started &&
-                            message.seq >= 0 &&
-                            ++trialTicks >= TRIAL_TICKS
-                        )
-                            finish(null);
-                        return;
-                    }
-                }
-            });
-            next.boot({
+        const outcome = await this.runTrial(
+            next,
+            {
                 t: "start",
                 mode,
                 kept,
                 things: carried,
                 seed: this.seed,
                 view: this.sink.view(),
-                style: this.style,
+                style: style === undefined ? this.style : style,
                 artworks: this.sink.artworks(),
                 doors: this.sink.doors(),
-            }).then(
-                () => {
-                    if (settled) return;
-                    watch = watchSilence(
-                        START_TIMEOUT_MS,
-                        () => finish("The new version did not start in time."),
-                        () => !started || next.awaitingTick
-                    );
-                },
-                (error) => finish(error.message)
-            );
-        });
+            },
+            buffered
+        );
 
-        if (!outcome.ok) return this.refuse(outcome.reason);
+        if (outcome.phase === "failed") {
+            next.close();
+            if (this.trial === next) this.trial = null;
+            return this.refuse(outcome.reason, outcome.fault, outcome.closed);
+        }
         if (this.disposed || this.trial !== next) {
             next.close();
-            return { ok: false, reason: "Closed." };
+            return { ok: false, reason: CLOSED, fault: "world" };
         }
 
         // The swap, between two frames.
@@ -374,11 +252,17 @@ export class WorldScriptHost {
         this.current = next;
         previous?.close();
         this.listen(next);
+        if (style !== undefined) {
+            this.style = style;
+            this.events.onStyle?.(style);
+        }
 
         const added = new Set<string>();
+        const shown = new Set<string>();
         if (mode === "fresh") {
             this.sink.resetArtworks();
             this.sink.resetDoors();
+            this.hudKeys.clear();
             this.sink.clearHud();
             this.sink.banner(null, 0);
             if (previous && this.startPosition)
@@ -387,42 +271,140 @@ export class WorldScriptHost {
         const glide = mode === "fresh" && previous ? REWIND_GLIDE_S : 0;
         for (const op of buffered) {
             if (op.op === "add") added.add(op.id);
+            else if (op.op === "hud-clear") shown.clear();
+            else if (op.op === "hud" && op.text == null) shown.delete(op.key);
+            else if (op.op === "hud") shown.add(op.key);
             this.apply(op, glide);
         }
-        // Objects the new version doesn't make are gone.
+        // Objects the new version doesn't make are gone, and so are the
+        // HUD lines it doesn't show.
         for (const id of [...this.table.keys()])
             if (!added.has(id)) {
                 this.table.delete(id);
                 this.sink.removeThing(id);
             }
+        for (const key of [...this.hudKeys])
+            if (!shown.has(key)) {
+                this.hudKeys.delete(key);
+                this.sink.hud(key, null, "top-left");
+            }
 
         const version = ++this.versionCount;
         this.events.onStatus?.({ state: "running", version });
-        const result: SwapResult = { ok: true, mode, version };
-        this.events.onSwap?.(result);
+        return { ok: true, mode, version };
+    }
+
+    /**
+     * Opens `next`, asks it to start and follows its trial (./trial) to the
+     * end. What it asks for meanwhile is kept in `buffered`, not shown.
+     */
+    private runTrial(
+        next: ScriptVersion,
+        start: Record<string, unknown>,
+        buffered: WorldScriptOp[]
+    ) {
+        return new Promise<TrialState>((resolve) => {
+            let state: TrialState = { phase: "opening" };
+            // From the moment it is asked to start: quiet for too long
+            // while it owes its start or the answer to a frame.
+            let watch: SilenceWatch | null = null;
+            const step = (event: TrialEvent) => {
+                const before = state;
+                state = trialTransition(state, event);
+                if (state === before || !trialSettled(state)) return;
+                watch?.stop();
+                off();
+                gone();
+                resolve(state);
+            };
+            const off = next.on((message) => {
+                watch?.heard();
+                if (this.flooding(next)) return step({ type: "flood" });
+                switch (message?.t) {
+                    case "error":
+                        return step({
+                            type: "error",
+                            text: String(message.text || "Error"),
+                        });
+                    case "stopped":
+                        return step({
+                            type: "stopped",
+                            reason: String(message.reason || "Stopped."),
+                        });
+                    case "started":
+                        return step({ type: "started" });
+                    case "ops":
+                        buffered.push(...this.take(next, message.ops).ops);
+                        next.awaitingTick = false;
+                        return step({ type: "ops", seq: Number(message.seq) });
+                }
+            });
+            // Closed from outside (a newer version, a stop, the end): it
+            // will never be heard again, so the trial ends here.
+            const gone = next.onClosed(() => step({ type: "closed" }));
+            next.boot(start).then(
+                () => {
+                    step({ type: "booted" });
+                    if (trialSettled(state)) return;
+                    watch = watchSilence(
+                        START_TIMEOUT_MS,
+                        () => step({ type: "silent" }),
+                        () => trialOwes(state, next.awaitingTick)
+                    );
+                },
+                (error) =>
+                    step({
+                        type: "unopened",
+                        reason: String(error?.message || error),
+                    })
+            );
+        });
+    }
+
+    /** Why not, for whoever asked. Said to the world only when it matters. */
+    private refuse(
+        reason: string,
+        fault: TrialFault,
+        quiet = false
+    ): SwapResult {
+        if (!quiet && !this.current)
+            this.events.onStatus?.({ state: "stopped", reason });
+        return { ok: false, reason, fault };
+    }
+
+    private closeTrial() {
+        const trial = this.trial;
+        this.trial = null;
+        trial?.close();
+    }
+
+    /** More messages since the last frame than any script needs to send. */
+    private flooding(version: ScriptVersion) {
+        return ++version.heard > WORLD_SCRIPT_LIMITS.maxMessagesPerFrame;
+    }
+
+    /** A batch, checked, out of what the version may still ask this frame. */
+    private take(version: ScriptVersion, raw: unknown) {
+        const result = cleanOps(raw, version.budget);
+        if (Array.isArray(raw))
+            version.budget -= Math.min(raw.length, version.budget);
         return result;
     }
 
-    private refuse(reason: string): SwapResult {
-        const result: SwapResult = { ok: false, reason };
-        this.events.onLog?.("error", reason);
-        this.events.onSwap?.(result);
-        if (!this.current) this.events.onStatus?.({ state: "stopped", reason });
-        return result;
-    }
-
-    private listen(version: Version) {
+    private listen(version: ScriptVersion) {
         version.on((message) => {
             if (version !== this.current) return;
+            if (this.flooding(version)) return this.halt(TRIAL_FLOOD);
             switch (message?.t) {
                 case "ops": {
                     version.awaitingTick = false;
-                    const { ops, dropped } = cleanOps(message.ops);
+                    const { ops, dropped } = this.take(version, message.ops);
                     for (const op of ops) this.apply(op, 0);
                     if (dropped)
                         this.events.onLog?.(
                             "warn",
-                            `${dropped} requests were refused this frame.`
+                            "Some requests were refused: a script can make " +
+                                `${WORLD_SCRIPT_LIMITS.maxOpsPerTick} a frame.`
                         );
                     return;
                 }
@@ -443,28 +425,49 @@ export class WorldScriptHost {
                 case "stopped":
                     return this.halt(String(message.reason || "Stopped."));
                 case "restart":
-                    void this.restart();
+                    // Asked again while a version is on its way (its own
+                    // rewind, or an edit that replaces it): once is enough.
+                    if (!this.trial) void this.restart();
                     return;
             }
         });
     }
 
+    /** The script is over, by its own doing: what it made goes with it. */
     private halt(reason: string) {
         this.current?.close();
         this.current = null;
+        this.clearWorld();
         this.events.onLog?.("error", reason);
         this.events.onStatus?.({ state: "stopped", reason });
+    }
+
+    /** Everything a script put in the world or on screen, taken back. */
+    private clearWorld() {
+        for (const id of this.table.keys()) this.sink.removeThing(id);
+        this.table.clear();
+        this.hudKeys.clear();
+        this.sink.resetArtworks();
+        this.sink.resetDoors();
+        this.sink.clearHud();
+        this.sink.banner(null, 0);
     }
 
     private apply(op: WorldScriptOp, glide: number) {
         const sink = this.sink;
         switch (op.op) {
             case "add": {
-                if (this.table.has(op.id)) {
-                    const merged = { ...this.table.get(op.id), ...op.props };
-                    this.table.set(op.id, merged);
+                const existing = this.table.get(op.id);
+                if (existing && !remade(existing, op.props)) {
+                    this.table.set(op.id, { ...existing, ...op.props });
                     sink.setThing(op.id, op.props, glide);
                     return;
+                }
+                // Another thing under an id in use: the old one goes first,
+                // and the new one is counted like any other.
+                if (existing) {
+                    this.table.delete(op.id);
+                    sink.removeThing(op.id);
                 }
                 if (this.table.size >= WORLD_SCRIPT_LIMITS.maxThings) {
                     this.events.onLog?.(
@@ -502,9 +505,12 @@ export class WorldScriptHost {
                 sink.setDoor(op.id, op.open);
                 return;
             case "hud":
+                if (op.text == null) this.hudKeys.delete(op.key);
+                else this.hudKeys.add(op.key);
                 sink.hud(op.key, op.text, op.corner);
                 return;
             case "hud-clear":
+                this.hudKeys.clear();
                 sink.clearHud();
                 return;
             case "toast":
@@ -540,22 +546,24 @@ export class WorldScriptHost {
     /** Called once per rendered frame with seconds since the last one. */
     frame(dt: number) {
         if (!this.current && !this.trial) return;
-        this.pendingDt += dt;
-        this.time += dt;
         const view = this.sink.view();
         for (const version of [this.current, this.trial]) {
+            if (!version) continue;
+            version.pendingDt += dt;
+            version.heard = 0;
+            version.budget = WORLD_SCRIPT_LIMITS.maxOpsPerTick;
             // A version still busy with the last frame skips this one; its
-            // next tick carries the time it missed.
-            if (!version || version.awaitingTick) continue;
+            // next tick carries the time it missed (as far as a tick may).
+            if (version.awaitingTick) continue;
             version.awaitingTick = true;
             version.send({
                 t: "tick",
                 seq: ++this.seq,
-                dt: Math.min(this.pendingDt, 0.1),
+                dt: Math.min(version.pendingDt, 0.1),
                 view,
             });
+            version.pendingDt = 0;
         }
-        this.pendingDt = 0;
     }
 
     key(down: boolean, key: string, code: string) {
@@ -573,17 +581,18 @@ export class WorldScriptHost {
         this.current?.send({ t: "click", ...hit });
     }
 
+    /** Gives up on a version still on trial; what runs keeps running. */
+    abandon() {
+        if (!this.trial) return;
+        this.closeTrial();
+        if (!this.current) this.events.onStatus?.({ state: "idle" });
+    }
+
     stop() {
-        this.trial?.close();
-        this.trial = null;
+        this.closeTrial();
         this.current?.close();
         this.current = null;
-        for (const id of this.table.keys()) this.sink.removeThing(id);
-        this.table.clear();
-        this.sink.resetArtworks();
-        this.sink.resetDoors();
-        this.sink.clearHud();
-        this.sink.banner(null, 0);
+        this.clearWorld();
         this.events.onStatus?.({ state: "idle" });
     }
 

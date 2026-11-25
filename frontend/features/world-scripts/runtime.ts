@@ -7,17 +7,33 @@
  * or in a frame below it (./runtimeRelay).
  */
 import type { HudCorner } from "./protocol";
-import { WORLD_SCRIPT_LIMITS } from "./protocol";
+import { WORLD_SCRIPT_LIMITS } from "./basics";
 import type { SwapMode, WorldScriptStatus } from "./host";
+import { TRIAL_REPLACED, type TrialFault } from "./trial";
 import { NEUTRAL_STYLE, WorldStyle } from "./style";
-import { getWorldScripts, setWorldScripts } from "./store";
+import { readContext } from "./runtimeRelay";
+import {
+    getWorldScriptScreen,
+    resetWorldScriptScreen,
+    setWorldScriptScreen,
+} from "./store";
 
 const READY_POLL_MS = 400;
 const READY_GIVE_UP_MS = 120_000;
+/** A later try at a world that was not up the first time waits this long. */
+const READY_RETRY_MS = 8_000;
+const WORLD_LOADING = "The world is still loading.";
+const WORLD_NOT_UP = "The world didn't come up.";
 
 export interface RunResult {
     ok: boolean;
     reason?: string;
+    /**
+     * Whose fault a refusal is: the "script" (it threw, it hung: worth
+     * showing whoever wrote it) or the "world" (not loaded, not answering,
+     * replaced: nothing about the script). No fault reads as the script's.
+     */
+    fault?: TrialFault;
 }
 
 /** What the model is told about the world a script is written for. */
@@ -32,13 +48,16 @@ export interface WorldScriptRuntime {
     ready(): boolean;
     /**
      * Runs a script: out of sight first, then in place of the one running
-     * ("keep" carries the game's state over, "fresh" starts it again).
+     * ("keep" carries the game's state over, "fresh" starts it again). A
+     * `style` given with it becomes the world's only if the script lands.
      */
-    run(source: string, mode: SwapMode): Promise<RunResult>;
+    run(source: string, mode: SwapMode, style?: WorldStyle): Promise<RunResult>;
     /** From the beginning: the running script, or this one when none is. */
     restart(source: string): void;
     /** For this visit; what is saved with the space is untouched. */
     stop(): void;
+    /** Gives up on a run still being tried; what runs keeps running. */
+    cancel(): void;
     /** Draws everything in a new style. */
     setStyle(style: WorldStyle): void;
     context(): Promise<WorldScriptContext>;
@@ -52,28 +71,37 @@ export interface RuntimeEvents {
     onLog?(level: "log" | "warn" | "error", text: string): void;
 }
 
-/** What a script shows on screen, kept in the store the layer draws from. */
+/**
+ * What a script shows on screen, kept in the store the layer draws from.
+ * Nothing is written when nothing changes: a script may ask every frame.
+ */
 function screen() {
     const timers = new Set<ReturnType<typeof setTimeout>>();
     return {
         hud(key: string, text: string | null, corner: HudCorner) {
-            setWorldScripts((current) => {
-                const hud = { ...current.hud };
-                if (text == null) delete hud[key];
-                else if (
-                    hud[key] ||
-                    Object.keys(hud).length < WORLD_SCRIPT_LIMITS.maxHudLines
-                )
-                    hud[key] = { text, corner };
-                return { hud };
-            });
+            const { hud } = getWorldScriptScreen();
+            const line = hud[key];
+            if (text == null) {
+                if (!line) return;
+                const next = { ...hud };
+                delete next[key];
+                return setWorldScriptScreen({ hud: next });
+            }
+            if (line?.text === text && line.corner === corner) return;
+            if (
+                !line &&
+                Object.keys(hud).length >= WORLD_SCRIPT_LIMITS.maxHudLines
+            )
+                return;
+            setWorldScriptScreen({ hud: { ...hud, [key]: { text, corner } } });
         },
         clearHud() {
-            setWorldScripts({ hud: {} });
+            if (Object.keys(getWorldScriptScreen().hud).length)
+                setWorldScriptScreen({ hud: {} });
         },
         toast(text: string, seconds: number) {
             const id = Date.now() + Math.random();
-            setWorldScripts((current) => ({
+            setWorldScriptScreen((current) => ({
                 toasts: [
                     ...current.toasts,
                     { id, text, until: Date.now() + seconds * 1000 },
@@ -81,28 +109,37 @@ function screen() {
             }));
             const timer = setTimeout(() => {
                 timers.delete(timer);
-                setWorldScripts((current) => ({
+                setWorldScriptScreen((current) => ({
                     toasts: current.toasts.filter((toast) => toast.id !== id),
                 }));
             }, seconds * 1000);
             timers.add(timer);
         },
         banner(text: string | null, seconds: number) {
-            if (text == null) return setWorldScripts({ banner: null });
+            if (text == null) {
+                if (getWorldScriptScreen().banner)
+                    setWorldScriptScreen({ banner: null });
+                return;
+            }
             const until = Date.now() + seconds * 1000;
-            setWorldScripts({ banner: { text, until } });
+            setWorldScriptScreen({ banner: { text, until } });
             const timer = setTimeout(() => {
                 timers.delete(timer);
-                if (getWorldScripts().banner?.until === until)
-                    setWorldScripts({ banner: null });
+                if (getWorldScriptScreen().banner?.until === until)
+                    setWorldScriptScreen({ banner: null });
             }, seconds * 1000);
             timers.add(timer);
         },
         dispose() {
             timers.forEach(clearTimeout);
+            timers.clear();
+            resetWorldScriptScreen();
         },
     };
 }
+
+const said = (error: unknown) =>
+    String((error as Error)?.message || error || "It didn't load.");
 
 /**
  * The runtime in this document, on the world that is loading in it.
@@ -122,8 +159,6 @@ export function createLocalRuntime(
         typeof import("./engineAdapter").createEngineSink
     > | null = null;
     let style = saved.style || null;
-    /** The world has a scene: a script could be run in it. */
-    let worldUp = false;
     let announced = false;
     const announce = (failed?: string) => {
         if (disposed || announced) return;
@@ -135,50 +170,82 @@ export function createLocalRuntime(
         new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
 
     const startedAt = Date.now();
-    const world = (async () => {
-        while (!disposed && !(window as any).scene) {
-            if (Date.now() - startedAt > READY_GIVE_UP_MS) return false;
+    /** A first wait is long (a world loads); a later one is a short retry. */
+    const patience = () =>
+        Math.max(startedAt + READY_GIVE_UP_MS, Date.now() + READY_RETRY_MS);
+    /** The world has a scene: a script could be run in it. */
+    const worldUp = () => !disposed && !!(window as any).scene;
+    async function until(up: () => boolean) {
+        const deadline = patience();
+        while (!disposed && !up()) {
+            if (Date.now() > deadline) return false;
             await wait();
         }
-        worldUp = !disposed;
-        return worldUp;
-    })();
+        return !disposed;
+    }
+    const world = until(worldUp);
 
     async function boot() {
         // The engine's modules load the engine's own way first: importing
         // them before the world exists evaluates them in another order.
-        if (!(await world)) return;
+        if (!(await world) && !(await until(worldUp))) {
+            if (disposed) return;
+            throw new Error(WORLD_NOT_UP);
+        }
         const [{ createEngineSink, engineReady }, { WorldScriptHost }] =
             await Promise.all([import("./engineAdapter"), import("./host")]);
-        while (!disposed && !engineReady()) {
-            if (process.env.NODE_ENV === "development")
-                (window as any).oncyberWorldScriptsWaiting = Date.now();
-            if (Date.now() - startedAt > READY_GIVE_UP_MS) return;
-            await wait();
+        if (!(await until(engineReady))) {
+            if (disposed) return;
+            throw new Error(WORLD_NOT_UP);
         }
-        if (disposed) return;
-        engine = createEngineSink(ui, style || undefined);
-        host = new WorldScriptHost(document.body, engine.sink, {
-            onStatus: events.onStatus,
+        const sink = createEngineSink(ui, style || undefined);
+        engine = sink;
+        host = new WorldScriptHost(document.body, sink.sink, {
+            onStatus(status) {
+                // Drawn every frame only while something runs.
+                sink.setActive(
+                    status.state === "starting" || status.state === "running"
+                );
+                events.onStatus?.(status);
+            },
             onLog: events.onLog,
+            // A version that came with a style has landed.
+            onStyle(next) {
+                style = next as WorldStyle;
+                sink.setStyle(style);
+            },
         });
         // A world with no style of its own still hands scripts a palette.
         host.style = style || NEUTRAL_STYLE;
-        engine.bind({
+        sink.bind({
             frame: (dt) => host?.frame(dt),
             key: (down, key, code) => host?.key(down, key, code),
             click: (hit) => host?.click(hit),
         });
     }
     let booting: Promise<void> | null = null;
-    const booted = () => (booting ||= boot());
+    // A boot that failed (the world never came up, its code did not load)
+    // is not kept: the next ask tries again.
+    const booted = () =>
+        (booting ||= boot().catch((error) => {
+            booting = null;
+            throw error;
+        }));
 
     if (saved.source) {
-        void booted().then(async () => {
-            if (!host) return;
-            const result = await host.start(saved.source);
-            announce(result.ok ? undefined : result.reason || "it stopped");
-        });
+        void booted().then(
+            async () => {
+                if (!host) return;
+                const result = await host.start(saved.source);
+                // Replaced by something newer is not a failure of its own.
+                announce(
+                    result.ok || result.reason === TRIAL_REPLACED
+                        ? undefined
+                        : result.reason || "it stopped"
+                );
+            },
+            (error) => announce(said(error))
+        );
     } else {
         // Nothing to run yet: ready as soon as there is a world.
         void world.then((up) => {
@@ -187,25 +254,38 @@ export function createLocalRuntime(
     }
 
     return {
-        ready: () => !!host || (worldUp && !saved.source),
-        async run(source, mode) {
-            await booted();
+        // With a saved script, not before it has had its start.
+        ready: () => !!host || (worldUp() && (!saved.source || announced)),
+        async run(source, mode, runStyle) {
+            try {
+                await booted();
+            } catch (error) {
+                return { ok: false, reason: said(error), fault: "world" };
+            }
             if (!host)
-                return { ok: false, reason: "The world is still loading." };
+                return { ok: false, reason: WORLD_LOADING, fault: "world" };
             const result = host.running
-                ? await host.swap(source, mode)
-                : await host.start(source);
-            return { ok: result.ok, reason: result.reason };
+                ? await host.swap(source, mode, runStyle)
+                : await host.start(source, runStyle);
+            return result.ok
+                ? { ok: true }
+                : { ok: false, reason: result.reason, fault: result.fault };
         },
         restart(source) {
-            void booted().then(() => {
-                if (!host) return;
-                if (host.running) void host.restart();
-                else if (source) void host.start(source);
-            });
+            void booted().then(
+                () => {
+                    if (!host) return;
+                    if (host.running) void host.restart();
+                    else if (source) void host.start(source);
+                },
+                () => undefined
+            );
         },
         stop() {
             host?.stop();
+        },
+        cancel() {
+            host?.abandon();
         },
         setStyle(next) {
             style = next;
@@ -213,16 +293,11 @@ export function createLocalRuntime(
             engine?.setStyle(next);
         },
         async context() {
-            await booted();
-            return {
+            await booted().catch(() => undefined);
+            return readContext({
                 ...(engine?.colors() || {}),
-                artworks: (engine?.sink.artworks() || [])
-                    .slice(0, 200)
-                    .map(({ id, name }) => ({
-                        id: id.slice(0, 200),
-                        name: name.slice(0, 120),
-                    })),
-            };
+                artworks: engine?.sink.artworks() || [],
+            });
         },
         dispose() {
             disposed = true;

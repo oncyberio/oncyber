@@ -12,8 +12,10 @@
 export const WORLD_SCRIPT_LIMITS = {
     /** Objects one script can have in the world at once. */
     maxThings: 300,
-    /** Requests applied per frame; the rest of a batch is dropped. */
+    /** Requests applied per frame; the rest are dropped. */
     maxOpsPerTick: 600,
+    /** Messages a script may send between two frames before it is stopped. */
+    maxMessagesPerFrame: 120,
     /** HUD lines shown at once. */
     maxHudLines: 8,
     maxTextLength: 160,
@@ -24,7 +26,7 @@ export const WORLD_SCRIPT_LIMITS = {
     maxScale: 200,
     maxSize: 100,
     maxSeconds: 30,
-    /** Source size the studio saves and the sandbox accepts. */
+    /** Source size the server saves and the sandbox accepts. */
     maxSourceBytes: 48_000,
     /** Scripts one space can keep. */
     maxScriptsPerSpace: 3,
@@ -102,3 +104,16 @@ export function cleanColor(value: unknown): string | undefined {
 export function byteLength(text: string) {
     return new TextEncoder().encode(text).length;
 }
+
+/** Whether a flag's value means on ("1", "true", "on"). */
+export function flagOn(value: unknown) {
+    return ["1", "true", "on"].includes(String(value || "").toLowerCase());
+}
+
+/** The first line of an error or a log, short enough to show. */
+export function firstLine(text = "") {
+    return text.split("\n")[0].slice(0, 200);
+}
+
+/** What every world script message between a page and its world starts with. */
+export const SCRIPT_MESSAGE = "script-";

@@ -7,8 +7,8 @@
  * turns each call into a message to the world and reads the answer.
  *
  * Down, page to world: `script-hello` (are you ready?), `script-run`,
- * `script-restart`, `script-stop`, `script-style`, `script-context`,
- * `script-panel`.
+ * `script-cancel`, `script-restart`, `script-stop`, `script-style`,
+ * `script-context`, `script-panel`.
  * Up, world to page: `script-ready`, `script-ran`, `script-context`,
  * `script-status`, `script-log`.
  *
@@ -22,12 +22,41 @@ import type {
     WorldScriptContext,
     WorldScriptRuntime,
 } from "./runtime";
+import { SCRIPT_MESSAGE } from "./basics";
+import { watchSilence, type Timers } from "./silence";
 import { cleanStyle } from "./style";
 
-export const SCRIPT_MESSAGE = "script-";
-/** A run is tried for some frames first; a world that says nothing failed. */
+export { SCRIPT_MESSAGE };
+/**
+ * A run is tried for some of the world's frames first, so its answer is
+ * waited for by silence, not by the clock (./silence): this long with
+ * nothing heard from the world while the page is on show. A page in the
+ * background has a world that draws no frames, and is waited out.
+ */
 export const RUN_ANSWER_MS = 45_000;
 export const CONTEXT_ANSWER_MS = 4_000;
+const NO_ANSWER = "The world didn't answer.";
+const WORLD_LOADING = "The world is still loading.";
+
+/**
+ * Whether the page is on show (its framed world draws frames only then),
+ * and a way to hear of it going out of sight or coming back.
+ */
+export interface PageSight {
+    onShow(): boolean;
+    watch(changed: () => void): () => void;
+}
+
+const pageSight: PageSight = {
+    onShow: () =>
+        typeof document === "undefined" ||
+        document.visibilityState !== "hidden",
+    watch(changed) {
+        if (typeof document === "undefined") return () => {};
+        document.addEventListener("visibilitychange", changed);
+        return () => document.removeEventListener("visibilitychange", changed);
+    },
+};
 
 const text = (value: unknown, max: number) =>
     typeof value === "string" ? value.slice(0, max) : undefined;
@@ -36,7 +65,11 @@ const text = (value: unknown, max: number) =>
 export function readRunResult(data: any): RunResult {
     return data?.ok === true
         ? { ok: true }
-        : { ok: false, reason: text(data?.reason, 4000) || "It didn't run." };
+        : {
+              ok: false,
+              reason: text(data?.reason, 4000) || "It didn't run.",
+              fault: data?.fault === "world" ? "world" : "script",
+          };
 }
 
 /** The world's colours and artworks, cut to what the model call accepts. */
@@ -106,52 +139,78 @@ export function createRemoteRuntime(
     space: string,
     post: (kind: string, data: object) => void,
     events: RemoteEvents = {},
-    timers: {
-        setTimeout(run: () => void, ms: number): unknown;
-        clearTimeout(timer: any): void;
-    } = globalThis
+    timers: Timers = globalThis,
+    sight: PageSight = pageSight
 ): RemoteRuntime {
     let ready = false;
     let disposed = false;
     let asked = 0;
     const waiting = new Map<number, (data: any) => void>();
+    /**
+     * Told whenever this space's world says anything at all, and when the
+     * page comes back on show: the wait for an answer starts again.
+     */
+    const hearing = new Set<() => void>();
+    const heardNow = () => [...hearing].forEach((heard) => heard());
+    const unwatch = sight.watch(heardNow);
     const send = (kind: string, data: object = {}) =>
         post(SCRIPT_MESSAGE + kind, { ...data, space });
-    const request = (kind: string, data: object, waitMs: number) =>
+    /**
+     * One question to the world. `patient` waits by silence, for as long as
+     * the world keeps talking or the page is not on show; otherwise the
+     * answer is due within `waitMs`.
+     */
+    const request = (
+        kind: string,
+        data: object,
+        waitMs: number,
+        patient = false
+    ) =>
         new Promise<any>((resolve) => {
             const n = ++asked;
-            const timer = timers.setTimeout(() => {
+            const watch = watchSilence(
+                waitMs,
+                () => done(null),
+                patient ? sight.onShow : undefined,
+                timers
+            );
+            const done = (answer: any) => {
+                watch.stop();
                 waiting.delete(n);
-                resolve(null);
-            }, waitMs);
-            waiting.set(n, (answer) => {
-                timers.clearTimeout(timer);
-                waiting.delete(n);
+                hearing.delete(watch.heard);
                 resolve(answer);
-            });
+            };
+            waiting.set(n, done);
+            if (patient) hearing.add(watch.heard);
             send(kind, { ...data, n });
         });
     // The world may have been ready before this page was listening.
     send("hello");
     return {
         ready: () => ready,
-        async run(source: string, mode: SwapMode) {
+        async run(source: string, mode: SwapMode, style) {
             if (!ready)
-                return { ok: false, reason: "The world is still loading." };
+                return { ok: false, reason: WORLD_LOADING, fault: "world" };
             const answer = await request(
                 "run",
-                { source, mode },
-                RUN_ANSWER_MS
+                { source, mode, ...(style ? { style } : {}) },
+                RUN_ANSWER_MS,
+                true
             );
-            return answer
-                ? readRunResult(answer)
-                : { ok: false, reason: "The world didn't answer." };
+            if (answer) return readRunResult(answer);
+            // Given up on here, so given up on there: a version that lands
+            // later would run in a world whose page thinks it did not.
+            if (!disposed) send("cancel");
+            return { ok: false, reason: NO_ANSWER, fault: "world" };
         },
         restart(source) {
             send("restart", { source });
         },
         stop() {
             send("stop");
+        },
+        cancel() {
+            send("cancel");
         },
         setStyle(style) {
             send("style", { style });
@@ -167,6 +226,7 @@ export function createRemoteRuntime(
                 if (kind === SCRIPT_MESSAGE + "ready") ready = false;
                 return;
             }
+            heardNow();
             switch (kind.slice(SCRIPT_MESSAGE.length)) {
                 case "ready":
                     ready = true;
@@ -189,6 +249,7 @@ export function createRemoteRuntime(
         dispose() {
             disposed = true;
             ready = false;
+            unwatch();
             [...waiting.values()].forEach((answer) => answer(null));
         },
     };
@@ -226,17 +287,21 @@ export function serveRuntime(
                 if (!target || typeof data.source !== "string")
                     return answer({
                         ok: false,
-                        reason: "The world is still loading.",
+                        reason: WORLD_LOADING,
+                        fault: "world",
                     });
                 return void target
-                    .run(data.source, mode)
+                    .run(data.source, mode, cleanStyle(data.style) || undefined)
                     .then(answer, (error) =>
                         answer({
                             ok: false,
                             reason: String(error?.message || error),
+                            fault: "world",
                         })
                     );
             }
+            case "cancel":
+                return target?.cancel();
             case "restart":
                 return target?.restart(
                     typeof data.source === "string" ? data.source : ""

@@ -13,6 +13,25 @@ test.each([
         true,
     ],
     ["a whole-document owner", { owner: "0xm", info: {} }, true],
+    [
+        "a path update to the world's scripts",
+        {
+            FIRESTORE_UPDATE_Field: true,
+            update: { worldScripts: [{ source: "for(;;){}" }] },
+        },
+        true,
+    ],
+    [
+        "a dotted path into one script",
+        { FIRESTORE_UPDATE_Field: true, update: { "worldScripts.0": {} } },
+        true,
+    ],
+    [
+        "a path update to the world's style",
+        { FIRESTORE_UPDATE_Field: true, update: { worldStyle: {} } },
+        true,
+    ],
+    ["whole-document scripts", { worldScripts: [], info: {} }, true],
     ["a dotted path into the owner", { "owner.id": "0xm" }, true],
     [
         "a path update to the space's info",

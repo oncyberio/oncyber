@@ -12,7 +12,7 @@ export interface SilenceWatch {
     stop(): void;
 }
 
-interface Timers {
+export interface Timers {
     setTimeout(run: () => void, ms: number): unknown;
     clearTimeout(timer: any): void;
 }

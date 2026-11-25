@@ -14,7 +14,7 @@ import {
     GAME_MESSAGE_PREFIX,
     readGameMessage,
 } from "@features/games/gameContract";
-import { SCRIPT_MESSAGE } from "@features/world-scripts/runtimeRelay";
+import { SCRIPT_MESSAGE } from "@features/world-scripts/basics";
 import { deferred, liveSpace } from "@utils/liveSpace";
 import { sayLoadStage } from "@utils/loadTimings";
 import { relayLobbyDestination } from "@utils/lobbyDestinationBridge";

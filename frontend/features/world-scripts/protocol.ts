@@ -90,6 +90,21 @@ export const THING_PATTERNS = [
 ] as const;
 export type ThingPattern = (typeof THING_PATTERNS)[number];
 
+/**
+ * What a plain shape's geometry is built from, besides its shape: a thing is
+ * built again when one of these changes (engineAdapter.ts), and replaced
+ * when a new version makes it without one it had (host.ts).
+ */
+export const BUILT_FROM_KEYS = [
+    "size",
+    "billboard",
+    "profile",
+    "outline",
+    "depth",
+    "bevel",
+    "points",
+] as const;
+
 /** Points a lathe profile or an extrude outline may have. */
 export const MAX_SHAPE_POINTS = 64;
 
@@ -463,15 +478,25 @@ export function cleanOp(raw: unknown): WorldScriptOp | null {
     }
 }
 
-/** A batch from the sandbox: at most maxOpsPerTick clean requests. */
-export function cleanOps(raw: unknown): {
+/**
+ * A batch from the sandbox: at most `limit` clean requests (what is left of
+ * the frame's maxOpsPerTick). The rest is counted and never looked at.
+ */
+export function cleanOps(
+    raw: unknown,
+    limit: number = WORLD_SCRIPT_LIMITS.maxOpsPerTick
+): {
     ops: WorldScriptOp[];
     dropped: number;
 } {
     if (!Array.isArray(raw)) return { ops: [], dropped: 0 };
+    const most = Math.max(
+        0,
+        Math.min(limit, WORLD_SCRIPT_LIMITS.maxOpsPerTick)
+    );
     const ops: WorldScriptOp[] = [];
-    let dropped = Math.max(0, raw.length - WORLD_SCRIPT_LIMITS.maxOpsPerTick);
-    for (const item of raw.slice(0, WORLD_SCRIPT_LIMITS.maxOpsPerTick)) {
+    let dropped = Math.max(0, raw.length - most);
+    for (const item of raw.slice(0, most)) {
         const op = cleanOp(item);
         if (op) ops.push(op);
         else dropped++;

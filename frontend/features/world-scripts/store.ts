@@ -2,14 +2,19 @@
  * What the page knows about the world scripts of the space on show, shared
  * by the layer that runs them, the dock's AI button and the AI sidebar. A
  * tiny external store, so none of them has to be inside another's tree.
+ *
+ * What a script shows on screen (HUD lines, toasts, a banner) is a second
+ * store beside it: it can change every frame, and only the layer that
+ * draws it should hear of that.
  */
 import { useSyncExternalStore } from "react";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import type { SwapMode, WorldScriptStatus } from "./host";
+import { firstLine, flagOn } from "./basics";
 import { cleanStyle, type WorldStyle } from "./style";
 
-export const WORLD_SCRIPTS_ENABLED = ["1", "true", "on"].includes(
-    String(process.env.NEXT_PUBLIC_WORLD_SCRIPTS || "").toLowerCase()
+export const WORLD_SCRIPTS_ENABLED = flagOn(
+    process.env.NEXT_PUBLIC_WORLD_SCRIPTS
 );
 
 /** One line of the sidebar's conversation. */
@@ -40,7 +45,10 @@ export interface WorldScriptsState {
     busy: boolean;
     panelOpen: boolean;
     transcript: TranscriptEntry[];
-    logs: { level: "log" | "warn" | "error"; text: string; at: number }[];
+}
+
+/** What the running script shows on screen. */
+export interface WorldScriptScreen {
     hud: Record<string, { text: string; corner: HudCorner }>;
     toasts: { id: number; text: string; until: number }[];
     banner: { text: string; until: number } | null;
@@ -60,23 +68,50 @@ const initial: WorldScriptsState = {
     busy: false,
     panelOpen: false,
     transcript: [],
-    logs: [],
-    hud: {},
-    toasts: [],
-    banner: null,
 };
+
+const blankScreen: WorldScriptScreen = { hud: {}, toasts: [], banner: null };
+
+/**
+ * What this page last saved for a space. The space it was given at load is
+ * older than that after an edit, and is what the layer is handed again when
+ * the visitor comes back from another space without a reload.
+ */
+const lastSaved = new Map<
+    string,
+    { scripts: WorldScriptRecord[]; style?: WorldStyle }
+>();
+
+const newest = (scripts: WorldScriptRecord[] = []) =>
+    Math.max(0, ...scripts.map((script) => Number(script.updatedAt) || 0));
+
+export function rememberSaved(
+    spaceId: string,
+    scripts: WorldScriptRecord[] | null | undefined,
+    style?: WorldStyle | null
+) {
+    const known = lastSaved.get(spaceId);
+    lastSaved.set(spaceId, {
+        scripts: scripts || known?.scripts || [],
+        style: style || known?.style,
+    });
+}
 
 /** The script a space starts with, and its style. */
 export function savedScript(space: {
+    id?: string;
     worldScripts?: WorldScriptRecord[];
     worldStyle?: unknown;
 }) {
+    const saved = space.id ? lastSaved.get(space.id) : undefined;
+    const given = space.worldScripts || [];
+    // Whichever is newer: a space fetched again after the save wins.
+    const scripts =
+        saved && newest(saved.scripts) >= newest(given) ? saved.scripts : given;
     return {
-        script: space.worldScripts?.[0] || null,
-        source:
-            (space.worldScripts || []).find((script) => script.enabled)
-                ?.source || "",
-        style: cleanStyle(space.worldStyle),
+        script: scripts[0] || null,
+        source: scripts.find((script) => script.enabled)?.source || "",
+        style: saved?.style || cleanStyle(space.worldStyle),
     };
 }
 
@@ -111,7 +146,9 @@ export function setWorldScripts(
 
 export function resetWorldScripts() {
     state = initial;
+    told.clear();
     listeners.forEach((listener) => listener());
+    resetWorldScriptScreen();
 }
 
 function subscribe(listener: () => void) {
@@ -121,6 +158,43 @@ function subscribe(listener: () => void) {
 
 export function useWorldScripts() {
     return useSyncExternalStore(subscribe, getWorldScripts, () => initial);
+}
+
+let screen = blankScreen;
+const screenListeners = new Set<() => void>();
+
+export function getWorldScriptScreen() {
+    return screen;
+}
+
+export function setWorldScriptScreen(
+    patch:
+        | Partial<WorldScriptScreen>
+        | ((current: WorldScriptScreen) => Partial<WorldScriptScreen>)
+) {
+    const next = typeof patch === "function" ? patch(screen) : patch;
+    screen = { ...screen, ...next };
+    screenListeners.forEach((listener) => listener());
+}
+
+export function resetWorldScriptScreen() {
+    if (screen === blankScreen) return;
+    screen = blankScreen;
+    screenListeners.forEach((listener) => listener());
+}
+
+function subscribeScreen(listener: () => void) {
+    screenListeners.add(listener);
+    return () => screenListeners.delete(listener);
+}
+
+/** For the layer that draws what the script shows, and nobody else. */
+export function useWorldScriptScreen() {
+    return useSyncExternalStore(
+        subscribeScreen,
+        getWorldScriptScreen,
+        () => blankScreen
+    );
 }
 
 let entryCount = 0;
@@ -152,10 +226,41 @@ export function updateEntry(
     }));
 }
 
+/** Warnings and errors already in the conversation, so each is said once. */
+const told = new Set<string>();
+const MAX_TOLD = 12;
+
+/**
+ * What the running script or its host has to say: a warning (a limit it
+ * ran into) or an error goes into the conversation, once each and only a
+ * few, so a script failing every frame does not fill it.
+ */
 export function addLog(level: "log" | "warn" | "error", text: string) {
-    setWorldScripts((current) => ({
-        logs: [...current.logs, { level, text, at: Date.now() }].slice(-80),
-    }));
+    const line = firstLine(text);
+    if (level === "log" || !line) return;
+    if (told.has(line) || told.size >= MAX_TOLD) return;
+    told.add(line);
+    say(level === "error" ? "error" : "say", line);
+}
+
+/** A new request: what was said about the last script may be said again. */
+export function forgetLogs() {
+    told.clear();
+}
+
+/** What a runtime tells the page that drives it. */
+export function pageEvents() {
+    return {
+        onStatus: (status: WorldScriptStatus) => setWorldScripts({ status }),
+        onLog: addLog,
+        onReady(failed?: string) {
+            if (failed)
+                say(
+                    "error",
+                    `The world's script didn't start: ${firstLine(failed)}`
+                );
+        },
+    };
 }
 
 /** Set by the running layer: the actions the sidebar calls. */
@@ -167,6 +272,8 @@ export interface WorldScriptsController {
     undo(): Promise<void>;
     save(script: Partial<WorldScriptRecord>): Promise<boolean>;
     setStyle(style: WorldStyle): Promise<void>;
+    /** The space is no longer on show: what is under way changes nothing. */
+    dispose(): void;
 }
 
 let controller: WorldScriptsController | null = null;

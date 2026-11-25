@@ -13,8 +13,10 @@ script runs for every visitor; writing one with the AI is in early access.
 The AI sidebar is offered only to accounts on the early-access list
 (`WORLD_SCRIPTS_AI_ALLOWLIST`: account ids or wallets; `*` opens it to every
 editor). An account that is not on it sees no AI button, in the dock or in
-the studio, and the server refuses its requests whatever the page shows.
-Being on the list does not make someone an editor: both are checked.
+the studio, and the server refuses its requests whatever the page shows:
+asking the model, and putting a script or a style on a space. An admin who
+is not on the list can still take a space's scripts away. Being on the list
+does not make someone an editor: both are checked.
 
 ## Asking for a change
 
@@ -27,7 +29,10 @@ me") and watch each step as it happens:
 1. The model writes the whole script.
 2. The new version is tried out of sight, beside the running one.
 3. If it does not run, the model gets the error and fixes it, up to three
-   tries. The world keeps the old version meanwhile.
+   tries. The world keeps the old version meanwhile. Only a failure of the
+   script's own goes back to the model: when the world could not try it
+   (still loading, not answering, replaced by something newer) the sidebar
+   says so and stops, without spending another request.
 4. What runs is swapped into the world and saved.
 
 The sidebar is a conversation and a composer. Typing `undo`, `restart` or
@@ -36,6 +41,11 @@ The sidebar is a conversation and a composer. Typing `undo`, `restart` or
 Every change that runs is saved to the space (`exhibits/{id}.worldScripts`),
 so visitors get it the next time they load the space. Visitors already in
 the room keep the version they loaded; live updates for everyone are next.
+
+A save says which saved version it builds on. If the space's script was
+changed somewhere else since (another editor, another tab), the request is
+refused before the model is asked, and a save is refused rather than
+written over the other change; the sidebar says to reload.
 
 ## How a change lands
 
@@ -50,6 +60,17 @@ Either way the new version starts beside the running one and runs a short
 trial (30 frames) without showing anything. Only if it started cleanly does
 the swap happen, between two frames. A version that fails to parse, throws
 while starting, or stops answering is refused and the old one keeps running.
+The trial's states and what ends it are in `trial.ts`
+([state machines](state-machines.md)). A trial that is replaced (a newer
+edit, a stop) ends at once; a script's own `world.restart()` waits for a
+version already on its way instead of replacing it.
+
+When a swap lands, objects the new version does not make are removed and
+HUD lines it does not show are hidden, whichever way it landed. An id made
+again as another shape is built anew (and counted against the limits like
+any new object). A script that stops for good (it kept failing, it hung)
+takes what it made with it: its objects, HUD lines, colliders and openings
+go, and artworks and doors return to where the space has them.
 
 The trial is counted in the world's frames, not in seconds: a slow device
 draws them slowly and a tab in the background draws none, and neither is
@@ -57,7 +78,8 @@ the script's fault. What ends a trial early is silence while an answer is
 owed, 4 seconds of it (`silence.ts`). A space's saved script starts the
 same way for every visitor, so this is also what decides whether a
 visitor on a slow phone gets the script at all.
-Undo goes back to the previous version (as a rewind).
+Undo goes back to the previous version (as a rewind) and the style it ran
+in; if that version does not run, it is still there to go back to.
 
 ## The world's style
 
@@ -73,7 +95,9 @@ time a request makes things people see (not for a change of rules, scores
 or text), from the world's title, sky and fog colours and artwork names. It
 is saved on the space (`exhibits/{id}.worldStyle`), sent with every later
 request, and given to the script as `world.style`. Asking "make the style
-more neon" changes it, and everything already in the world is redrawn.
+more neon" changes it, and everything already in the world is redrawn. A
+style the model writes comes with a script: the script is tried in it, and
+the world is redrawn and the style saved only if that script lands.
 
 Nothing is downloaded. Objects are made from code:
 
@@ -105,12 +129,23 @@ the script runs in a Blob worker, on its own thread, so a stuck loop never
 freezes the world; a worker that hasn't answered for 2.5 s is stopped.
 The host talks to it over one transferred `MessagePort`.
 
+The frame's relay passes on only what was asked for: one answer to the
+start, one to each frame sent, one to each request for `keep()` values. A
+worker that posts without being asked does not reach the page and does not
+count as answering; one that keeps at it is stopped at once. The script
+cannot start a worker of its own (`Worker` is taken away inside the
+sandbox, with `fetch` and the rest), so nothing can keep answering for it
+while it loops.
+
 The script can only ask for things through checked messages
 (`features/world-scripts/protocol.ts`): add, move and restyle its own shapes
 and text (with a look or a shader graph), move or hide artworks while it runs (never saved), show HUD lines,
 toasts and a banner, play built-in sounds, and respawn the player (at most
 twice a second). Every value is clamped; ids, colours, sounds and corners
-come from fixed sets; at most 300 objects and 600 requests a frame. The host
+come from fixed sets; at most 300 objects and 600 requests a frame, counted
+by the frame however many messages carry them, and a script that sends more
+than 120 messages between two frames is stopped. A limit a script runs
+into is said once in the sidebar. The host
 sends it the player and camera every frame, and keys and clicks.
 
 What the script can use is in `features/world-scripts/sdk.ts`; the model's
@@ -128,9 +163,14 @@ the account is the page's, what needs the world is the world's.
 | The world (`WorldScriptLayer`) | the sandbox, the engine it draws through, the HUD, and starting the space's saved script (`runtime.ts`) |
 
 The page's controller drives the world's runtime through messages
-(`runtimeRelay.ts`): run this source, restart, stop, draw in this style,
-what are your colours and artworks; the world answers whether a run worked
-and reports its status. The world never makes an account call and never
+(`runtimeRelay.ts`): run this source (in this style), give up on that run,
+restart, stop, draw in this style, what are your colours and artworks; the
+world answers whether a run worked, and whose fault it was if not, and
+reports its status. The page waits for a run's answer by silence, as the
+world waits for a script: 45 seconds of nothing while the page is on show.
+A page in the background has a world that draws no frames, and is waited
+out. A run the page gives up on is called off in the world, so it cannot
+land later unseen. The world never makes an account call and never
 sees the session. Each message names its space, so a world that has walked
 through a portal into another space is not driven by the page it left.
 
@@ -146,11 +186,18 @@ OpenRouter with `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` (default
 accounts in early access (`WORLD_SCRIPTS_AI_ALLOWLIST`) may ask, up to
 `WORLD_SCRIPTS_AI_DAILY_LIMIT` requests a day.
 
-Every model call writes a row to `aiUsage` (account, space, model, tokens,
-the cost OpenRouter reports) and bumps `aiUsageDaily/{account}_{day}`. When
-credits come, `checkAiAccess` checks the balance before the call and
+A request is counted in `aiUsageDaily/{account}_{day}` before the model is
+called, in a transaction, so requests made at once cannot all pass under
+the limit; it stays counted when the call fails or times out. Every model
+call then writes a row to `aiUsage` (account, space, model, tokens, the
+cost OpenRouter reports, whether it worked) and adds its cost to the day.
+When credits come, `reserveAiRequest` holds the price before the call and
 `recordAiUsage` charges the reported cost after it
 (`utils/worldScripts/server.ts`); nothing else changes.
+
+`save` is the only way a space's scripts and style are written: the
+space's other updates refuse those fields
+(`utils/firestore/exhibitWrites.ts`).
 
 ## Not yet
 
@@ -164,5 +211,10 @@ credits come, `checkAiAccess` checks the balance before the call and
 ## Checks
 
 ```sh
-pnpm -C frontend exec jest --watchman=false features/world-scripts utils/worldScripts
+pnpm -C frontend test features/world-scripts utils/worldScripts pages/api/_v2/worldScripts
 ```
+
+The host and the SDK are tested without a browser: `scriptSandbox.jest.ts`
+runs the real SDK and a script in a context of their own, and
+`sdk.test.ts` fails when the model's brief names something the SDK does
+not have.
