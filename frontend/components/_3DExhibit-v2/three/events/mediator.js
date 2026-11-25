@@ -32,7 +32,6 @@ import {
 
     IS_DESKTOP,
 
-    FPS,
 
     IS_VR,
 
@@ -57,6 +56,10 @@ import {
 import gsap from 'gsap'
 
 import { setRenderLoop } from '../xr/xrBackend'
+
+import { createFrameCap, maxFrameRate } from '@utils/frameCap'
+
+import conf from '@3gl/utils/params'
 
 // gsap.defaultEase = Linear.easeNone
 
@@ -107,6 +110,12 @@ class mediator {
 		this.mouseupRef     = this.mouseup.bind(this)
 
 		this.updateEvent    = this.update.bind(this)
+
+        // 60 frames a second at most (utils/frameCap.ts): `?fps=N` sets
+        // another cap, `?fps=0` draws on every refresh
+        this.frameCap       = createFrameCap( maxFrameRate( conf.fps ) )
+
+        this.tickEvent      = this.tick.bind(this)
 
 		this.mouseWheelRef  = this.mouseWheel.bind(this)
 
@@ -240,13 +249,7 @@ class mediator {
                setRenderLoop(this.renderer, () => gsap.ticker.tick())
             }
 
-            if( FPS != null ){
-
-                gsap.ticker.fps( FPS )
-
-            }
-
-            gsap.ticker.add(this.updateEvent);
+            gsap.ticker.add(this.tickEvent);
 
 
 			this._isPlaying = true
@@ -277,7 +280,7 @@ class mediator {
 
                 setRenderLoop(this.renderer, null)
             }
-            gsap.ticker.remove(this.updateEvent);
+            gsap.ticker.remove(this.tickEvent);
 
 			this._isPlaying = false
 
@@ -306,6 +309,17 @@ class mediator {
             }
         });
     }
+
+	// gsap ticker frame: XR and recordings run at their own rate
+	tick() {
+
+        if( !IS_VR && !IS_RECORDING && !this.frameCap.shouldDraw( performance.now() ) ) {
+
+            return
+        }
+
+        this.update()
+	}
 
 	update( force = false , deltaForce = null) {
 
