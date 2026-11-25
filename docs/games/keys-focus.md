@@ -6,25 +6,27 @@ The rule, for anyone (person or coding agent) writing a game:
 > never listens for keys itself, and never binds a key the page reserves.**
 
 The page around a game has a world menu, chat and a sound switch. If a game
-reads the keyboard itself, typing "wasd" in chat walks the player. So the
-page tells the game when the visitor's attention is elsewhere, and owns one
-key. It takes no more than that: every other key is the game's.
+reads the keyboard itself, typing "wasd" in chat walks the player and Enter
+starts a match. So the page owns two keys, and tells the game when the
+visitor's attention is elsewhere. It takes no more than that: every other
+key is the game's.
 
 ## Keys the page reserves
 
-| Key (`KeyboardEvent.code`) | The page does                   |
-| -------------------------- | ------------------------------- |
-| `Escape`                   | Opens and closes the world menu |
+| Key (`KeyboardEvent.code`) | The page does                     |
+| -------------------------- | --------------------------------- |
+| `Escape`                   | Opens and closes the world menu   |
+| `Enter`, `NumpadEnter`     | Focuses chat                      |
+| Cmd or Ctrl + `KeyM`       | Turns the game's sound off and on |
 
-Escape is the page's because it cannot be a game's: the browser takes it to
-free the pointer whatever the game does. Enter and M are the game's to bind,
-like any other key. The page opens chat and changes sound from its own
-buttons, and takes no key with Cmd, Ctrl or Alt held, so the system's and
-the browser's shortcuts (Cmd+M among them) work as they do anywhere.
+The last row is a chord: the page's control panel takes its shortcuts only
+with Cmd or Ctrl held, which a game never sees. `KeyM` on its own is the
+game's to bind, like any other key.
 
-The table lives in `games/runtime/src/keys.ts` (`RESERVED_KEYS`) and
-`frontend/features/games/gameInput.ts`; a test keeps them equal. A reserved
-key in `game.json` fails the check: use P for a pause of your own.
+The table lives in `games/runtime/src/keys.ts` (`RESERVED_KEYS`,
+`PAGE_CHORDS`) and `frontend/features/games/gameInput.ts`; a test keeps
+them equal. A reserved key in `game.json` fails the check. Use other keys:
+Space or J to confirm, Backspace to go back, P for a pause of your own.
 
 ## Do
 
@@ -85,9 +87,9 @@ key in `game.json` fails the check: use P for a pause of your own.
 -   `addEventListener("keydown" | "keyup" | "keypress", ...)`, `onkeydown`,
     or a helper that does the same, anywhere in the game's source.
 -   `element.requestPointerLock()` or `navigator.keyboard.lock()`.
--   A menu on Escape. A sound key or button of the game's own asks the
-    page through the game's sound output (`audio.requestMuted`,
-    [sound.md](sound.md)): sound stays the page's one setting.
+-   A sound key, a menu on Escape, or anything on Enter. Keep a sound
+    _button_ if you like: it asks the page through the game's sound output
+    (`audio.requestMuted`, [sound.md](sound.md)).
 -   A text field that needs a key listener. `change` fires when the visitor
     presses Enter in a field.
 
@@ -100,11 +102,12 @@ key in `game.json` fails the check: use P for a pause of your own.
     the lobby, any text field of the lobby), and while the world menu is
     open. Other page surfaces call `host.hold("reason")` and
     `host.release("reason")`.
--   Handles Escape the same way whether the game or the page has focus:
-    it opens and closes the world menu. In a text field it leaves the
-    field and gives the game its focus back; every other key there is
-    text.
--   Changes sound from the page's own button, the page's one sound setting
+-   Handles the reserved keys the same way whether the game or the page has
+    focus. Enter opens the page's chat (`GameChat`) and focuses its field,
+    the element marked `data-game-chat`. In a text
+    field the keys are text, except Escape, which leaves the field and
+    gives the game its focus back.
+-   Cmd or Ctrl with M changes the page's one sound setting
     (`gameAudio.ts`); the game hears it on the sound channel
     ([sound.md](sound.md)).
 
@@ -112,13 +115,13 @@ Messages, after the prefix (`oncyber:game:` for a game on the one contract,
 `<id>:` for an older build; the page answers in the form the game greeted
 in, see [contract.md](contract.md)):
 
-| From | Kind          | Meaning                                                        |
-| ---- | ------------- | -------------------------------------------------------------- |
-| game | `key`         | `{ code }`: Escape was pressed while the game had focus        |
-| page | `input`       | `{ paused, reason }`: stop or resume all input                 |
-| page | `muted`       | `{ muted }`: only for a build from before [sound.md](sound.md) |
-| page | `input-probe` | Checks only: asks for `input-state`                            |
-| game | `input-state` | `{ paused, reason, held, delivered, locked, probe }`           |
+| From | Kind          | Meaning                                                                                                          |
+| ---- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| game | `key`         | `{ code }`: a reserved key was pressed while the game had focus; `{ code, mod: true }`: one of the page's chords |
+| page | `input`       | `{ paused, reason }`: stop or resume all input                                                                   |
+| page | `muted`       | `{ muted }`: only for a build from before [sound.md](sound.md)                                                   |
+| page | `input-probe` | Checks only: asks for `input-state`                                                                              |
+| game | `input-state` | `{ paused, reason, held, delivered, locked, probe }`                                                             |
 
 ## The check
 
@@ -131,10 +134,9 @@ stages and writes the result under `keys` in `check.json`:
     reserved or malformed bindings (`KEY_RESERVED`, `KEY_INVALID`). Alone:
     `node scripts/games/keysCheck.mjs scan <id>`.
 -   **Browser.** Opens the build beside the page's real key handling and a
-    chat field. It plays, holds a movement key while chat takes the focus,
-    types every bound letter into chat, opens the menu with Escape while
-    the game keeps the keyboard focus, turns sound off from the page, and
-    resumes. The game must take no
+    chat field. It plays, holds a movement key while pressing Enter, types
+    every bound letter into chat, opens the menu with Escape while the game
+    keeps the keyboard focus, presses Ctrl+M, and resumes. The game must take no
     action and `probe().position` must not change while paused
     (`KEYS_LEAK`, `KEYS_MOVED_WHILE_TYPING`, `KEYS_MOVED_IN_MENU`), and must
     move again after.

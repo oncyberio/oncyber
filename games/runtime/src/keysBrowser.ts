@@ -3,6 +3,8 @@ import {
     InputGate,
     KEY_MESSAGES,
     RESERVED_KEYS,
+    PAGE_CHORDS,
+    isPageChord,
     type KeyBindings,
 } from "./keys.ts";
 
@@ -101,6 +103,17 @@ export function bindPageKeys(options: PageKeysOptions): PageKeys {
     const key = (event: KeyboardEvent) => {
         if (typing(event.target) || event.isComposing) return;
         const pressed = event.type === "keydown";
+        if (isPageChord(event)) {
+            // The page's control panel: Cmd or Ctrl with one of its keys.
+            event.preventDefault();
+            if (pressed && !event.repeat)
+                post({
+                    type: prefix + KEY_MESSAGES.key,
+                    code: event.code,
+                    mod: true,
+                });
+            return;
+        }
         if (Object.hasOwn(RESERVED_KEYS, event.code)) {
             // The page decides what its keys do, paused or not.
             event.preventDefault();
@@ -280,12 +293,13 @@ export function relayPageKeys(
         const type = event.data?.type;
         if (typeof type !== "string") return;
         if (event.source === frame.contentWindow) {
-            if (
-                type === prefix + KEY_MESSAGES.key &&
-                Object.hasOwn(RESERVED_KEYS, event.data.code) &&
-                win.parent !== win
-            )
-                win.parent.postMessage({ type, code: event.data.code }, "*");
+            if (type !== prefix + KEY_MESSAGES.key || win.parent === win)
+                return;
+            const { code, mod } = event.data;
+            if (mod === true && Object.hasOwn(PAGE_CHORDS, code))
+                win.parent.postMessage({ type, code, mod: true }, "*");
+            else if (mod !== true && Object.hasOwn(RESERVED_KEYS, code))
+                win.parent.postMessage({ type, code }, "*");
         } else if (
             event.source === win.parent &&
             win.parent !== win &&

@@ -333,6 +333,8 @@ export default function NativeExperienceChrome({
                 : "Enable microphone",
             icon: multiplayer && micOn ? "mic" : "mic-off",
             active: multiplayer && micOn,
+            // Cmd or Ctrl with M; M on its own is the world's.
+            shortcut: "KeyM",
             disabled: !multiplayer || !voice || voice.loading,
             onClick: () => {
                 if (!multiplayer || !voice) return;

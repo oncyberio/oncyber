@@ -135,7 +135,7 @@ const harness = (
 <iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/games/${id}/index.html"></iframe>
 <input id="chat" data-game-chat placeholder="chat" autocomplete="off">
 <script type="module">
-import { createGameInputHost } from "/__keys/gameInput.js";
+import { createGameInputHost, focusGameChat } from "/__keys/gameInput.js";
 const game = ${JSON.stringify(id)};
 const frame = document.getElementById("game");
 // The one contract (docs/games/contract.md): every game says
@@ -153,20 +153,21 @@ const host = (window.__host = createGameInputHost({
     game,
     send: (message) => { keys.sent.push(message); send(message); },
     focusGame: () => frame.focus(),
-    // Escape, the page's one key: the world menu.
     intent(intent) {
         keys.intents.push(intent);
-        keys.menu = !keys.menu;
-        if (keys.menu) host.hold("menu"); else host.release("menu");
+        if (intent === "menu") {
+            keys.menu = !keys.menu;
+            if (keys.menu) host.hold("menu"); else host.release("menu");
+        } else if (intent === "mute") {
+            // As the page does (GameInputLayer, GameSound): the sound
+            // channel carries the setting (docs/games/sound.md); the muted
+            // message is what a build from before it hears.
+            host.setMuted(!host.muted);
+            send({ type: game + ":audio", muted: host.muted });
+        }
+        else if (!keys.menu) focusGameChat(document);
     },
 }));
-// The page's sound button, as GameSound does it: the sound channel carries
-// the setting (docs/games/sound.md); the muted message is what a build from
-// before it hears.
-window.__toggleSound = () => {
-    host.setMuted(!host.muted);
-    send({ type: game + ":audio", muted: host.muted });
-};
 host.watch(document);
 addEventListener("message", (event) => {
     if (event.source !== frame.contentWindow) return;
@@ -367,17 +368,24 @@ export async function keysBrowserCheck({
         };
         state = await proveMove("play");
 
-        // 2. The visitor clicks into the page's chat: the game is paused.
+        // 2. Enter belongs to the page: it focuses chat and pauses the game.
         //    The move key is down as focus leaves, so its key-up never
         //    reaches the game: the pause must let go of it.
         await page.keyboard.down(moveKey);
         await page.waitForTimeout(120);
-        await page.focus("#chat");
+        await hold("Enter", 40);
         await page.keyboard.up(moveKey);
         let pageState = await until(async () => {
             const s = await read();
             return s.active === "chat" && s.paused ? s : null;
         }, 2000);
+        if (!pageState) {
+            bad(
+                "KEYS_ENTER_NOT_PAGE",
+                "Enter in the game did not reach the page's chat"
+            );
+            await page.focus("#chat");
+        }
         await page.waitForTimeout(150);
         const still = await probe();
         if (!still.paused)
@@ -529,18 +537,38 @@ export async function keysBrowserCheck({
                 );
         }
 
-        // 6. Sound is the page's: the game is told, it does not decide.
+        // 6. Cmd/Ctrl+M is the page's: the game is told, it does not decide.
+        //    (M on its own is the game's, like any other key.)
         const sound = await probe();
-        await page.evaluate(() => window.__toggleSound());
-        await page.waitForTimeout(250);
-        const muted = await probe();
-        if (sound.probe && "muted" in sound.probe && muted.probe.muted !== true)
+        await focusGame();
+        await page.keyboard.down("Control");
+        await hold("KeyM", 40);
+        await page.keyboard.up("Control");
+        pageState = await until(async () => {
+            const s = await read();
+            return s.muted ? s : null;
+        }, 2000);
+        if (!pageState)
             bad(
-                "KEYS_MUTE_IGNORED",
-                "the game did not turn sound off when the page said so"
+                "KEYS_MUTE_NOT_PAGE",
+                "Ctrl+M in the game did not reach the page"
             );
-        await page.evaluate(() => window.__toggleSound());
-        await page.waitForTimeout(150);
+        else {
+            const muted = await probe();
+            if (
+                sound.probe &&
+                "muted" in sound.probe &&
+                muted.probe.muted !== true
+            )
+                bad(
+                    "KEYS_MUTE_IGNORED",
+                    "the game did not turn sound off when the page said so"
+                );
+            await page.keyboard.down("Control");
+            await hold("KeyM", 40);
+            await page.keyboard.up("Control");
+            await page.waitForTimeout(150);
+        }
 
         // 7. And input works again.
         await focusGame();

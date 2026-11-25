@@ -219,12 +219,29 @@ test("microphone stays off until the visitor invokes the native voice action", (
     expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
 });
 
-test("no key is the microphone's: M, and Cmd+M, are left to the world and the system", () => {
+test("the microphone's shortcut is Cmd or Ctrl with M; M on its own is the world's", () => {
     render();
-    key("m");
-    key("M");
-    key("m", { metaKey: true });
+    const m = (options: KeyboardEventInit = {}, target?: EventTarget) =>
+        key("m", { code: "KeyM", ...options }, target);
+    m();
+    m({ shiftKey: true });
     expect(social.voice.toggleMuted).not.toHaveBeenCalled();
+
+    expect(m({ metaKey: true }).defaultPrevented).toBe(true);
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(1);
+    m({ ctrlKey: true });
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
+
+    // not a held key, not with Alt, and not while the visitor types
+    m({ ctrlKey: true, repeat: true });
+    m({ ctrlKey: true, altKey: true });
+    const input = document.createElement("input");
+    container.append(input);
+    m({ metaKey: true }, input);
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
+
+    const voice = button("Enable microphone");
+    expect(voice.getAttribute("aria-keyshortcuts")).toBe("Meta+M Control+M");
 });
 
 test("restricted native voice preserves moderator permission and lets a pending request be cancelled", () => {

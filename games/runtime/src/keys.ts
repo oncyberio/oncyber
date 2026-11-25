@@ -15,18 +15,41 @@ export type KeyBindings = Record<string, KeyBinding>;
 
 /**
  * Keys the page owns, by `KeyboardEvent.code`. A game never binds these.
- * Only Escape: the browser itself takes it to free the pointer, so it can
- * never be a game's, and the page opens the world menu on it. Every other
- * key, Enter and M included, is the game's to bind.
+ * Pressed while the game has focus, they are handed to the page, which
+ * opens the world menu or focuses chat. Every other key is the game's.
  */
-export const RESERVED_KEYS: Readonly<Record<string, "menu">> = Object.freeze({
-    Escape: "menu",
+export const RESERVED_KEYS: Readonly<Record<string, "menu" | "chat">> =
+    Object.freeze({
+        Escape: "menu",
+        Enter: "chat",
+        NumpadEnter: "chat",
+    });
+/**
+ * With Cmd or Ctrl held, these are the page's too: the shortcuts of its
+ * control panel (Cmd+M, sound). They take nothing from a game, which never
+ * sees a key pressed with a modifier; the key on its own stays the game's.
+ */
+export const PAGE_CHORDS: Readonly<Record<string, "mute">> = Object.freeze({
+    KeyM: "mute",
 });
-export type PageKeyIntent = "menu";
+/** True for a key event that is one of the page's chords. */
+export function isPageChord(event: {
+    code: string;
+    metaKey?: boolean;
+    ctrlKey?: boolean;
+    altKey?: boolean;
+}) {
+    return (
+        (event.metaKey === true || event.ctrlKey === true) &&
+        !event.altKey &&
+        Object.hasOwn(PAGE_CHORDS, event.code)
+    );
+}
+export type PageKeyIntent = "menu" | "chat" | "mute";
 
 /** Messages of this area, after the prefix (`oncyber:game:`, or `<game>:` in older builds). */
 export const KEY_MESSAGES = Object.freeze({
-    /** game -> page: `{ code }`, a reserved key was pressed in the game. */
+    /** game -> page: `{ code }`, a reserved key was pressed in the game; `{ code, mod: true }`, one of the page's chords. */
     key: "key",
     /** page -> game: `{ paused, reason }`. */
     input: "input",

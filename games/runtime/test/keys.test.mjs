@@ -3,6 +3,7 @@ import test from "node:test";
 import {
     RuntimeSession,
     RESERVED_KEYS,
+    PAGE_CHORDS,
     InputGate,
     HeldActions,
     checkBindings,
@@ -73,21 +74,27 @@ function fakeFrame() {
 test("the page and the runtime reserve the same keys", async () => {
     const page = await import("../../../frontend/features/games/gameInput.ts");
     assert.deepEqual({ ...page.GAME_RESERVED_KEYS }, { ...RESERVED_KEYS });
+    assert.deepEqual({ ...page.GAME_PAGE_CHORDS }, { ...PAGE_CHORDS });
 });
 
 test("reserved keys cannot be bound and never map to an action", () => {
-    // Escape only: Enter and M are a game's to bind.
-    assert.deepEqual(Object.keys(RESERVED_KEYS), ["Escape"]);
+    // M on its own is a game's to bind: the page takes it only as a chord.
+    assert.deepEqual(Object.keys(RESERVED_KEYS), [
+        "Escape",
+        "Enter",
+        "NumpadEnter",
+    ]);
+    assert.deepEqual(Object.keys(PAGE_CHORDS), ["KeyM"]);
     assert.deepEqual(checkBindings(input), []);
     const findings = checkBindings({
         pause: { keyboard: ["Escape", "KeyP"] },
-        mute: { keyboard: ["KeyM"] },
-        confirm: { keyboard: ["Enter", "NumpadEnter"] },
+        map: { keyboard: ["KeyM"] },
+        confirm: { keyboard: ["Enter"] },
         "bad name": { keyboard: ["w"] },
     });
     assert.deepEqual(
         findings.map((f) => f.code),
-        ["KEY_RESERVED", "ACTION_INVALID", "KEY_INVALID"]
+        ["KEY_RESERVED", "KEY_RESERVED", "ACTION_INVALID", "KEY_INVALID"]
     );
     assert.equal(checkBindings(undefined)[0].code, "ACTION_INVALID");
     assert.deepEqual(
@@ -147,13 +154,21 @@ test("declared keys become actions; reserved keys go to the page", () => {
         ["up", 1],
         ["up", 0],
     ]);
-    assert.equal(f.key("keydown", "Escape").prevented, true);
-    // Keys the game did not bind are nobody's: not taken, not handed over.
-    for (const code of ["Enter", "KeyM"])
-        assert.equal(f.key("keydown", code).prevented, false);
+    for (const code of ["Escape", "Enter"])
+        assert.equal(f.key("keydown", code).prevented, true);
+    // M on its own is nobody's here (this game did not bind it); with Cmd
+    // or Ctrl it is the page's control panel.
+    assert.equal(f.key("keydown", "KeyM").prevented, false);
+    assert.equal(f.key("keydown", "KeyM", { metaKey: true }).prevented, true);
+    f.key("keydown", "KeyM", { ctrlKey: true, repeat: true });
+    f.key("keydown", "KeyM", { ctrlKey: true, altKey: true });
     f.key("keydown", "Escape", { repeat: true });
     f.key("keyup", "Escape");
-    assert.deepEqual(f.posted, [{ type: "ace:key", code: "Escape" }]);
+    assert.deepEqual(f.posted, [
+        { type: "ace:key", code: "Escape" },
+        { type: "ace:key", code: "Enter" },
+        { type: "ace:key", code: "KeyM", mod: true },
+    ]);
     assert.deepEqual(actions.length, 2);
     keys.dispose();
     f.key("keydown", "KeyW");

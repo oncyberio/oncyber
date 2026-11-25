@@ -164,9 +164,13 @@ default.
         shape for anything in a frame: the page's controls are the page's,
         and a frame adds buttons to the same dock.
 
-        No key is the microphone's: the page's button turns it on and
-        off. Not yet: screen share drawn in 3D, which needs its own answer
-        because a stream cannot cross into the frame.
+        The microphone's shortcut is Cmd or Ctrl with M, a shortcut of the
+        dock's voice button; M on its own is the world's. Pressed inside
+        the frame it can only mute, like anything else the world asks: the
+        page's own button, or the shortcut while the page has the
+        keyboard, turns the microphone on. Not yet: screen share drawn in
+        3D, which needs its own answer because a stream cannot cross into
+        the frame.
 
     3. **A world that stops.** _(Done.)_ A world that has drawn says it
        is alive about once a second; silence while the page is in view

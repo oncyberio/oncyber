@@ -1,8 +1,10 @@
 /** @jest-environment jsdom */
 import {
     createGameInputHost,
+    focusGameChat,
     isTypingTarget,
     GAME_RESERVED_KEYS,
+    GAME_PAGE_CHORDS,
     type GameKeyIntent,
 } from "./gameInput";
 import { readGameMessage } from "./gameContract";
@@ -34,8 +36,13 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => (document.body.innerHTML = ""));
 
-test("the page reserves Escape and nothing else", () => {
-    expect(GAME_RESERVED_KEYS).toEqual({ Escape: "menu" });
+test("the page reserves Escape and Enter, and M only with Cmd or Ctrl", () => {
+    expect(GAME_RESERVED_KEYS).toEqual({
+        Escape: "menu",
+        Enter: "chat",
+        NumpadEnter: "chat",
+    });
+    expect(GAME_PAGE_CHORDS).toEqual({ KeyM: "mute" });
 });
 
 test("overlapping holds reach the game as one pause and one resume", () => {
@@ -65,16 +72,20 @@ test("only reserved keys from the game become intents", () => {
     const receive = (type: unknown, data: any = { type }) =>
         host.receive(readGameMessage(type, "ace")?.kind, data);
     expect(receive("oncyber:game:key", { code: "Escape" })).toBe(true);
-    // A build from when the page also took Enter and M still hands them
-    // over; they are the game's keys now and the page does nothing.
     expect(receive("ace:key", { code: "NumpadEnter" })).toBe(true);
+    // M on its own is the game's: a build from when it was the page's
+    // still hands it over, and the page does nothing.
     expect(receive("oncyber:game:key", { code: "KeyM" })).toBe(true);
+    expect(receive("oncyber:game:key", { code: "KeyM", mod: true })).toBe(true);
+    expect(receive("oncyber:game:key", { code: "Escape", mod: true })).toBe(
+        true
+    );
     expect(receive("ace:key", { code: "KeyW" })).toBe(true);
     expect(receive("oncyber:game:key", { code: "constructor" })).toBe(true);
     expect(receive("garden:key", { code: "Escape" })).toBe(false);
     expect(receive("oncyber:game:ready")).toBe(false);
     expect(host.receive(null, null)).toBe(false);
-    expect(intents).toEqual(["menu"]);
+    expect(intents).toEqual(["menu", "chat", "mute"]);
 });
 
 test("typing in any page text field pauses the game; leaving it resumes", async () => {
@@ -82,13 +93,12 @@ test("typing in any page text field pauses the game; leaving it resumes", async 
     document.body.innerHTML = `<input id="chat" data-game-chat><button id="b">x</button>`;
     const stop = host.watch(document);
     expect(host.paused).toBe(false);
-    // The visitor clicks into the page's chat.
-    document.getElementById("chat")!.focus();
+    expect(focusGameChat(document)).toBe(true);
     expect(sent).toEqual([
         { type: "ace:input", paused: true, reason: "typing" },
     ]);
     const chat = document.getElementById("chat")!;
-    // Letters and Enter are text while typing.
+    // Letters and Enter are text while typing, never page shortcuts.
     expect(press(chat, "KeyM").defaultPrevented).toBe(false);
     expect(press(chat, "Enter").defaultPrevented).toBe(false);
     expect(intents).toEqual([]);
@@ -109,17 +119,18 @@ test("page keys work when the page, not the game, has focus", () => {
     document.body.innerHTML = `<button id="b">x</button>`;
     host.watch(document);
     expect(press(document.body, "Escape").defaultPrevented).toBe(true);
-    // Every other key is left alone: Enter still presses a focused button,
-    // M and Cmd+M are the browser's and the system's.
-    for (const code of ["KeyM", "Enter", "NumpadEnter", "KeyW"])
-        expect(press(document.body, code).defaultPrevented).toBe(false);
+    // M on its own is left alone; with Cmd or Ctrl it is the page's.
+    expect(press(document.body, "KeyM").defaultPrevented).toBe(false);
     expect(
         press(document.body, "KeyM", { metaKey: true }).defaultPrevented
-    ).toBe(false);
-    expect(press(document.getElementById("b")!, "Enter").defaultPrevented).toBe(
-        false
-    );
-    expect(intents).toEqual(["menu"]);
+    ).toBe(true);
+    press(document.body, "Enter");
+    press(document.body, "KeyM", { ctrlKey: true, repeat: true });
+    press(document.body, "KeyM", { ctrlKey: true, altKey: true });
+    press(document.body, "KeyW");
+    // Enter on a button presses the button.
+    press(document.getElementById("b")!, "Enter");
+    expect(intents).toEqual(["menu", "mute", "chat"]);
 });
 
 test("sound state is sent on change and again on sync", () => {
@@ -147,4 +158,5 @@ test("what counts as typing", () => {
     expect(isTypingTarget(el("<input readonly>"))).toBe(false);
     expect(isTypingTarget(el("<button></button>"))).toBe(false);
     expect(isTypingTarget(null)).toBe(false);
+    expect(focusGameChat(document)).toBe(false);
 });

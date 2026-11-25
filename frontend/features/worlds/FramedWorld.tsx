@@ -104,6 +104,7 @@ export default function FramedWorld({
                   active: live,
                   disabled: voice.state === "connecting",
                   concealed: action.concealed,
+                  shortcut: action.shortcut,
                   onClick: () => world.current?.toggleVoice(),
               }
             : {

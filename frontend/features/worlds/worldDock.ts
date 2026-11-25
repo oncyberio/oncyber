@@ -16,6 +16,8 @@ export interface DockAction {
     disabled?: boolean;
     concealed?: boolean;
     badge?: number | string;
+    /** A key that presses it with Cmd or Ctrl held (`KeyM`). */
+    shortcut?: string;
 }
 
 /** The id of the button the page answers itself. */
@@ -55,6 +57,13 @@ function readAction(value: any): DockAction | null {
         ...(flag(value.disabled) ? { disabled: true } : {}),
         ...(flag(value.concealed) ? { concealed: true } : {}),
         ...(badge === undefined ? {} : { badge }),
+        // A letter or a digit: nothing the browser needs for itself is
+        // the world's to hand out, and the page only takes it with Cmd or
+        // Ctrl held.
+        ...(typeof value.shortcut === "string" &&
+        /^(Key[A-Z]|Digit[0-9])$/.test(value.shortcut)
+            ? { shortcut: value.shortcut }
+            : {}),
     };
 }
 
@@ -75,26 +84,16 @@ export function readDock(message: any): DockAction[] {
 /** The world's side: its buttons as a `dock` message. */
 export function dockMessage(actions: DockAction[]) {
     return {
-        actions: actions.map(
-            ({
-                id,
-                label,
-                icon,
-                active,
-                expanded,
-                disabled,
-                concealed,
-                badge,
-            }) => ({
-                id,
-                label,
-                icon,
-                active,
-                expanded,
-                disabled,
-                concealed,
-                badge,
-            })
-        ),
+        actions: actions.map((action) => ({
+            id: action.id,
+            label: action.label,
+            icon: action.icon,
+            active: action.active,
+            expanded: action.expanded,
+            disabled: action.disabled,
+            concealed: action.concealed,
+            badge: action.badge,
+            shortcut: action.shortcut,
+        })),
     };
 }

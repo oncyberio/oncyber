@@ -15,6 +15,7 @@ import { brandFoundation } from "@styles/brand";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
 import { useIsWorldDocument } from "@features/worlds/worldDocument";
 import { useWorldDock } from "@features/worlds/useWorldDock";
+import { isTypingTarget } from "@features/games/gameInput";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
@@ -34,9 +35,17 @@ export interface ExperienceShellAction {
     /** Keep the dock item mounted while it animates out of view. */
     concealed?: boolean;
     badge?: number | string;
+    /**
+     * A key (`KeyboardEvent.code`) that, with Cmd or Ctrl held, presses this
+     * action. Only ever with the modifier: a key on its own is the world's.
+     */
+    shortcut?: string;
     onClick(): void;
     buttonRef?: React.Ref<HTMLButtonElement>;
 }
+
+/** The key of a shortcut as people read it: `KeyM` is M. */
+const shortcutKey = (code: string) => code.replace(/^(Key|Digit)/, "");
 
 /**
  * Why the last dock action did not go through, said just above the dock
@@ -163,6 +172,33 @@ export default function ExperienceShell({
 }: ExperienceShellProps) {
     const locked = usePointerLocked();
     const [infoOpen, setInfoOpen] = useState(false);
+    // The dock's shortcuts: Cmd or Ctrl with an action's key. Never a key
+    // on its own, and never while the visitor types.
+    const shortcuts = useRef(actions);
+    shortcuts.current = actions;
+    const [mac, setMac] = useState(false);
+    useEffect(() => {
+        setMac(/Mac|iPhone|iPad/.test(navigator.platform));
+        const key = (event: KeyboardEvent) => {
+            if (
+                !(event.metaKey || event.ctrlKey) ||
+                event.altKey ||
+                event.repeat ||
+                event.isComposing ||
+                event.defaultPrevented ||
+                isTypingTarget(event.target)
+            )
+                return;
+            const action = shortcuts.current.find(
+                (candidate) => candidate.shortcut === event.code
+            );
+            if (!action || action.disabled || action.concealed) return;
+            event.preventDefault();
+            action.onClick();
+        };
+        window.addEventListener("keydown", key);
+        return () => window.removeEventListener("keydown", key);
+    }, []);
     // Inside the site's frame the page draws the header, the title and
     // Back; the world keeps only its own controls (features/worlds).
     const framedWorld = useIsWorldDocument();
@@ -283,11 +319,24 @@ export default function ExperienceShell({
                                 aria-hidden="true"
                             >
                                 {action.label}
+                                {action.shortcut &&
+                                    ` · ${mac ? "⌘" : "Ctrl+"}${shortcutKey(
+                                        action.shortcut
+                                    )}`}
                             </span>
                             <button
                                 type="button"
                                 ref={action.buttonRef}
                                 aria-label={action.label}
+                                aria-keyshortcuts={
+                                    action.shortcut
+                                        ? `Meta+${shortcutKey(
+                                              action.shortcut
+                                          )} Control+${shortcutKey(
+                                              action.shortcut
+                                          )}`
+                                        : undefined
+                                }
                                 aria-pressed={
                                     action.expanded == null
                                         ? action.active

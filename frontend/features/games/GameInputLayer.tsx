@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { createGameInputHost, type GameKeyIntent } from "./gameInput";
+import {
+    createGameInputHost,
+    focusGameChat,
+    type GameKeyIntent,
+} from "./gameInput";
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
 import { soundStore } from "./gameAudio";
@@ -28,6 +32,7 @@ export default function GameInputLayer({
     send,
     fromGame,
     onLeave,
+    onChat,
 }: {
     game: string;
     title: string;
@@ -35,6 +40,8 @@ export default function GameInputLayer({
     send: (message: object) => void;
     fromGame: (event: MessageEvent) => boolean;
     onLeave: () => void;
+    /** Enter: open the page's chat, when it is closed. */
+    onChat?: () => void;
 }) {
     const [menu, setMenu] = useState(false);
     const [muted, setMuted] = useState(false);
@@ -54,12 +61,18 @@ export default function GameInputLayer({
             }),
         [game]
     );
-    // Sound is the page's one setting (gameAudio.ts): the menu's button
-    // changes it, and the game hears it on the sound channel.
+    // Sound is the page's one setting (gameAudio.ts): Cmd+M and the menu's
+    // button change it, and the game hears it on the sound channel.
     const applyMuted = (next: boolean) =>
         void soundStore().set({ muted: next });
-    // Escape, the page's one key: the world menu.
-    intent.current = () => setMenu((open) => !open);
+    intent.current = (next) => {
+        if (next === "menu") setMenu((open) => !open);
+        else if (next === "mute") applyMuted(!soundStore().get().muted);
+        else if (!menu) {
+            onChat?.();
+            focusGameChat(document);
+        }
+    };
 
     useEffect(() => {
         // A build from before the sound channel still hears `muted`.

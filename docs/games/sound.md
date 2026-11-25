@@ -112,8 +112,8 @@ The facts (`audioState`, `audioRouted`, `audioBypass`, `audioMuted`,
 -   Page side: `frontend/features/games/gameAudio.ts` (the setting and the
     bridge) and `GameSound.tsx` (the hook `GamePage` uses and the page's
     sound button). The hook sends through `GamePage`'s `send`, so a game
-    hears `oncyber:game:audio`. The world menu's Sound button
-    (`GameInputLayer`) changes the same setting.
+    hears `oncyber:game:audio`. Cmd+M and the world menu's Sound button
+    (`GameInputLayer`) change the same setting.
 -   The game frame has `allow="autoplay"`. Without it the browser ignores a
     gesture made on the page, and sound would wait for one inside the game.
 -   Voice gives the page one thing: whether someone else in the room is

@@ -213,6 +213,8 @@ export default function GamePage({
         send: (message) => send.current(message),
         speaking: !!social.state?.talking?.some((id) => id !== room?.sessionId),
     });
+    // Enter is the page's key for chat (docs/games/keys-focus.md).
+    const [chatRequest, setChatRequest] = useState(0);
     // Every way out asks the game for its last frame first (gameDeparture.ts).
     const departure = useGameDeparture({
         game: GAME,
@@ -654,6 +656,7 @@ export default function GamePage({
             {ready && !error && roomLabel && (
                 <GameChat
                     social={social}
+                    openRequest={chatRequest}
                     onClose={() => frame.current?.focus()}
                 />
             )}
@@ -689,6 +692,7 @@ export default function GamePage({
                     send={send.current}
                     fromGame={fromGame}
                     onLeave={leave.current}
+                    onChat={() => setChatRequest((n) => n + 1)}
                 />
             )}
             {ready && !error && results.card}
