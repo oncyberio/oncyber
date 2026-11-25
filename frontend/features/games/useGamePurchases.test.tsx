@@ -144,10 +144,10 @@ test("the page asks the visitor, pays, and tells the game it was bought", async 
     const sheet = host.querySelector('[role="dialog"]');
     // The name and price are the declared ones, drawn by the page.
     expect(sheet?.getAttribute("aria-label")).toBe("Buy 100 coins");
-    expect(sheet?.textContent).toContain("ACE! Tennis · $0.99");
-    expect(sheet?.textContent).toContain(
-        "Test balance: $10.00. No real money is used."
-    );
+    expect(sheet?.textContent).toContain("ACE! Tennis");
+    expect(sheet?.textContent).toContain("Price$0.99");
+    expect(sheet?.textContent).toContain("Test balance$10.00");
+    expect(sheet?.textContent).toContain("No real money is used.");
     // The game is paused while the question is up, and has heard nothing yet.
     expect(gamePauseHeld()).toBe(true);
     expect(sent).toEqual([]);
@@ -343,7 +343,7 @@ test("the wallet panel shows the balance and what was bought", async () => {
     const { host, press } = mount();
     await act(async () => {});
     await press(/^Wallet · \$10\.00$/);
-    const panel = host.querySelector('[aria-label="Your wallet"]');
+    const panel = host.querySelector('[aria-label="Wallet"][role="dialog"]');
     expect(panel?.textContent).toContain("$10.00");
     expect(panel?.textContent).toContain(
         "Test balance. No real money is used."
@@ -354,7 +354,9 @@ test("the wallet panel shows the balance and what was bought", async () => {
     expect(panel?.textContent).toContain("$2.50");
     expect(gamePauseHeld()).toBe(true);
     await press(/^Close wallet$/);
-    expect(host.querySelector('[aria-label="Your wallet"]')).toBeNull();
+    expect(
+        host.querySelector('[aria-label="Wallet"][role="dialog"]')
+    ).toBeNull();
     expect(gamePauseHeld()).toBe(false);
 });
 

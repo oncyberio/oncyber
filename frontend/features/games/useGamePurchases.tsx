@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import GamePurchasesService from "@api/gamePurchases/_api";
+import { ActionButton } from "@styles/brand";
+import Icon from "@features/landing-carousel/components/Icon";
+import {
+    UtilityButton,
+    UtilityStack,
+} from "@features/content-host/NativeVisitorPanel";
+import {
+    PurchaseDialog,
+    PurchaseScrim,
+    WalletControl,
+    WalletPanel,
+} from "./gamePurchaseStyles";
 import { findGame } from "./catalog";
 import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
@@ -11,8 +23,6 @@ import {
     type Product,
     type PurchaseRefusal,
 } from "./gamePurchases";
-
-const FONT = "Inter, system-ui, sans-serif";
 
 type Mode = "off" | "test";
 interface Wallet {
@@ -327,60 +337,42 @@ export function useGamePurchases(options: {
     }, [panel, signedIn]);
 
     const test = wallet?.mode === "test";
-    const balance = wallet
-        ? `${test ? "Test balance" : "Wallet"}: ${formatPrice(wallet.cents)}`
-        : "";
-    const button = (primary: boolean) =>
-        ({
-            border: 0,
-            borderRadius: 999,
-            padding: "10px 16px",
-            font: `500 13px/1 ${FONT}`,
-            cursor: "pointer",
-            color: primary ? "#0b0d12" : "#fff",
-            background: primary ? "#f3f3f1" : "rgba(255,255,255,0.12)",
-        } as const);
-    const cover = {
-        position: "absolute",
-        inset: 0,
-        display: "grid",
-        placeItems: "center",
-        padding: 16,
-        background: "rgba(5, 6, 10, 0.6)",
-    } as const;
-    const card = {
-        width: "min(380px, 100%)",
-        boxSizing: "border-box",
-        padding: 24,
-        borderRadius: 18,
-        color: "#fff",
-        background: "#15181f",
-        border: "1px solid rgba(255,255,255,0.1)",
-        font: `400 13px/1.5 ${FONT}`,
-    } as const;
-
+    const held =
+        signedIn && wallet && wallet.mode !== "off"
+            ? formatPrice(wallet.cents)
+            : "";
     const action = ask
         ? purchaseAction({ signedIn, wallet, cents: ask.product.cents })
         : null;
+    // The question: the shared dark dialog, white to confirm, outline to
+    // cancel, blue only to sign in (docs/brand, Dialogs and Action buttons).
     const sheet = ask && (
-        <div data-game-overlay="purchase" onClick={() => close()} style={cover}>
-            <section
+        <PurchaseScrim data-game-overlay="purchase" onClick={() => close()}>
+            <PurchaseDialog
                 role="dialog"
                 aria-modal="true"
                 aria-label={`Buy ${ask.product.name}`}
                 onClick={(event) => event.stopPropagation()}
-                style={card}
             >
-                <h2 style={{ margin: 0, font: `500 16px/1.3 ${FONT}` }}>
-                    Buy {ask.product.name}?
-                </h2>
-                <p style={{ margin: "6px 0 0", opacity: 0.7 }}>
-                    {live.current.title} · {formatPrice(ask.product.cents)}
+                <h2>Buy {ask.product.name}?</h2>
+                <p>
+                    {live.current.title}
                     {ask.product.kind === "permanent" ? " · yours to keep" : ""}
                 </p>
+                <dl>
+                    <dt>Price</dt>
+                    <dd>{formatPrice(ask.product.cents)}</dd>
+                    {held && (
+                        <>
+                            <dt>{test ? "Test balance" : "Your wallet"}</dt>
+                            <dd>{held}</dd>
+                        </>
+                    )}
+                </dl>
                 <p
+                    className="purchase-status"
                     role="status"
-                    style={{ margin: "14px 0 0", minHeight: 20, opacity: 0.85 }}
+                    data-tone={ask.note ? "error" : undefined}
                 >
                     {ask.note ||
                         (action === "sign-in"
@@ -388,225 +380,139 @@ export function useGamePurchases(options: {
                             : action === "unavailable"
                             ? REFUSED.unavailable
                             : action === "add-funds"
-                            ? `${balance}. Add funds to buy this.`
-                            : balance && `${balance}.`)}
-                    {test && !ask.note ? " No real money is used." : ""}
+                            ? `Add funds to buy this.${
+                                  test ? " No real money is used." : ""
+                              }`
+                            : test
+                            ? "No real money is used."
+                            : "")}
                 </p>
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 8,
-                        marginTop: 18,
-                    }}
-                >
-                    <button
-                        type="button"
-                        disabled={ask.paying}
-                        onClick={() => close()}
-                        style={button(false)}
-                    >
+                <div className="purchase-actions">
+                    <ActionButton disabled={ask.paying} onClick={() => close()}>
                         Cancel
-                    </button>
+                    </ActionButton>
                     {action === "sign-in" && (
-                        <button
-                            type="button"
+                        <ActionButton
+                            $variant="blue"
                             autoFocus
                             onClick={openSignIn}
-                            style={button(true)}
                         >
                             Sign in to buy
-                        </button>
+                        </ActionButton>
                     )}
                     {action === "add-funds" && test && (
-                        <button
-                            type="button"
+                        <ActionButton
+                            $variant="white"
                             autoFocus
                             disabled={funding}
                             onClick={() => void addFunds()}
-                            style={button(true)}
                         >
                             Add {formatPrice(TEST_FUNDS.stepCents)} test funds
-                        </button>
+                        </ActionButton>
                     )}
                     {(action === "buy" || action === "wait") && (
-                        <button
-                            type="button"
+                        <ActionButton
+                            $variant="white"
                             autoFocus
                             disabled={ask.paying || action === "wait"}
                             onClick={() => void buy()}
-                            style={button(true)}
                         >
                             {ask.paying
                                 ? "Paying…"
+                                : action === "wait"
+                                ? "Loading wallet…"
                                 : `Buy for ${formatPrice(ask.product.cents)}`}
-                        </button>
+                        </ActionButton>
                     )}
                 </div>
-            </section>
-        </div>
+            </PurchaseDialog>
+        </PurchaseScrim>
     );
 
     const showWallet = sells && wallet?.mode !== "off";
-    const walletButton = showWallet && (
-        <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={panel}
-            // A page overlay (docs/games/safe-area.md), beside Credits.
-            data-game-overlay="wallet"
-            data-game-overlay-edge="bottom"
-            onClick={() => {
-                document.exitPointerLock?.();
-                setPanel(true);
-            }}
-            style={{
-                position: "absolute",
-                right: 84,
-                bottom: 10,
-                border: 0,
-                borderRadius: 999,
-                padding: "6px 10px",
-                font: `500 11px/1 ${FONT}`,
-                color: "rgba(255,255,255,0.7)",
-                background: "rgba(10, 12, 18, 0.45)",
-                cursor: "pointer",
-            }}
-        >
-            Wallet{wallet && signedIn ? ` · ${formatPrice(wallet.cents)}` : ""}
-        </button>
-    );
+    const opener = useRef<HTMLButtonElement>(null);
     const closePanel = () => {
         setPanel(false);
         live.current.onClose?.();
     };
-    const walletPanel = panel && !ask && (
-        <div
-            data-game-overlay="wallet-panel"
-            onClick={closePanel}
-            style={{ ...cover, placeItems: "stretch end", padding: 0 }}
+    const walletButton = showWallet && (
+        <WalletControl
+            ref={opener}
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={panel}
+            aria-label={held ? `Wallet · ${held}` : "Wallet"}
+            // A page overlay (docs/games/safe-area.md), above Credits.
+            data-game-overlay="wallet"
+            data-game-overlay-edge="bottom"
+            onClick={() => {
+                if (panel) return closePanel();
+                document.exitPointerLock?.();
+                setPanel(true);
+            }}
         >
-            <section
-                role="dialog"
-                aria-modal="true"
-                aria-label="Your wallet"
-                onClick={(event) => event.stopPropagation()}
-                style={{
-                    ...card,
-                    width: "min(360px, 100%)",
-                    height: "100%",
-                    overflowY: "auto",
-                    borderRadius: 0,
-                    borderWidth: "0 0 0 1px",
-                }}
-            >
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                    }}
-                >
-                    <h2 style={{ margin: 0, font: `500 16px/1.3 ${FONT}` }}>
-                        Wallet
-                    </h2>
-                    <button
-                        type="button"
-                        autoFocus
-                        aria-label="Close wallet"
-                        onClick={closePanel}
-                        style={{ ...button(false), padding: "6px 10px" }}
-                    >
-                        ×
-                    </button>
-                </div>
+            <Icon name="wallet" size={16} />
+            <span>Wallet</span>
+            {held && <span className="wallet-balance">{held}</span>}
+        </WalletControl>
+    );
+    // The wallet: the lobby's utility panel. The game is a frame, so a click
+    // on it never reaches this page; the panel closes by its own button,
+    // Escape, or its opener.
+    const walletPanel = panel && !ask && (
+        <WalletPanel
+            title="Wallet"
+            onClose={closePanel}
+            returnFocusRef={opener}
+            closeOnClickAway={false}
+        >
+            <UtilityStack data-game-overlay="wallet-panel">
                 {!signedIn ? (
                     <>
-                        <p style={{ opacity: 0.8 }}>
-                            Sign in to see your wallet and what you bought.
-                        </p>
-                        <button
-                            type="button"
-                            onClick={openSignIn}
-                            style={button(true)}
-                        >
+                        <p>Sign in to see your wallet and what you bought.</p>
+                        <ActionButton $variant="blue" onClick={openSignIn}>
                             Sign in
-                        </button>
+                        </ActionButton>
                     </>
                 ) : (
                     <>
-                        <p
-                            style={{
-                                margin: "14px 0 0",
-                                font: `500 24px/1.2 ${FONT}`,
-                            }}
-                        >
-                            {wallet ? formatPrice(wallet.cents) : "…"}
-                        </p>
+                        <div>
+                            <p className="wallet-balance">
+                                {wallet ? formatPrice(wallet.cents) : "…"}
+                            </p>
+                            {test && (
+                                <p>Test balance. No real money is used.</p>
+                            )}
+                        </div>
                         {test && (
-                            <>
-                                <p
-                                    style={{
-                                        margin: "4px 0 12px",
-                                        opacity: 0.7,
-                                    }}
-                                >
-                                    Test balance. No real money is used.
-                                </p>
-                                <button
-                                    type="button"
-                                    disabled={
-                                        funding ||
-                                        (wallet?.cents ?? 0) >=
-                                            TEST_FUNDS.maxCents
-                                    }
-                                    onClick={() => void addFunds()}
-                                    style={button(true)}
-                                >
-                                    Add {formatPrice(TEST_FUNDS.stepCents)} test
-                                    funds
-                                </button>
-                            </>
+                            <UtilityButton
+                                $primary
+                                type="button"
+                                disabled={
+                                    funding ||
+                                    (wallet?.cents ?? 0) >= TEST_FUNDS.maxCents
+                                }
+                                onClick={() => void addFunds()}
+                            >
+                                Add {formatPrice(TEST_FUNDS.stepCents)} test
+                                funds
+                            </UtilityButton>
                         )}
-                        <h3
-                            style={{
-                                margin: "22px 0 6px",
-                                font: `500 13px/1.3 ${FONT}`,
-                                opacity: 0.7,
-                            }}
-                        >
-                            Purchases
-                        </h3>
+                        <h3>Purchases</h3>
                         {history === null ? (
-                            <p style={{ opacity: 0.6 }}>Loading…</p>
+                            <p>Loading…</p>
                         ) : history.length === 0 ? (
-                            <p style={{ opacity: 0.6 }}>Nothing bought yet.</p>
+                            <p>Nothing bought yet.</p>
                         ) : (
                             <ul
+                                className="wallet-list"
                                 aria-label="Purchases, newest first"
-                                style={{
-                                    listStyle: "none",
-                                    margin: 0,
-                                    padding: 0,
-                                }}
                             >
                                 {history.map((item) => (
-                                    <li
-                                        key={item.order}
-                                        style={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            gap: 12,
-                                            padding: "8px 0",
-                                            borderTop:
-                                                "1px solid rgba(255,255,255,0.08)",
-                                        }}
-                                    >
+                                    <li key={item.order}>
                                         <span>
                                             {item.name}
-                                            <br />
-                                            <small style={{ opacity: 0.6 }}>
+                                            <small>
                                                 {findGame(item.game)?.title ??
                                                     item.game}{" "}
                                                 ·{" "}
@@ -615,15 +521,17 @@ export function useGamePurchases(options: {
                                                 ).toLocaleDateString()}
                                             </small>
                                         </span>
-                                        <span>{formatPrice(item.cents)}</span>
+                                        <span className="wallet-price">
+                                            {formatPrice(item.cents)}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
                         )}
                     </>
                 )}
-            </section>
-        </div>
+            </UtilityStack>
+        </WalletPanel>
     );
 
     return {

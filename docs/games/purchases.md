@@ -119,7 +119,11 @@ The rules live in one file with no imports,
 
 ## What the page does
 
-`useGamePurchases` (`frontend/features/games/useGamePurchases.tsx`):
+`useGamePurchases` (`frontend/features/games/useGamePurchases.tsx`): Its
+interface is the design system's (`gamePurchaseStyles.tsx`): the question
+is the shared dark dialog with action buttons (white confirms, outline
+cancels, blue only signs in), the wallet is the lobby's glass utility panel,
+docked to the right on a wide screen and a bottom sheet on a phone.
 
 -   Reads the request, looks the product up in the synced file and shows its
     own sheet: "Buy Gold racket?", the game's title, the price, the
@@ -159,6 +163,22 @@ Each sale records `feeCents` (Oncyber's share, `GAMES_PURCHASE_FEE_PERCENT`,
 a game published from outside the repository
 ([publishing.md](publishing.md)) cannot sell yet: its products are not in
 the synced file.
+
+## The wallet rail: decided, not built
+
+Real money will come from a wallet of the visitor's own, holding USDC. The
+first time a visitor reaches a payment they set that wallet up, once:
+
+1. Sign in to the wallet with the same methods the site offers, or link it
+   to the account they are signed in with. Asking them to sign in again at
+   this point is accepted.
+2. Get an embedded wallet, tied on the server to their Oncyber account.
+3. Add funds, by card or by a transfer.
+4. Pay for what they asked for; the question they came from is still open.
+
+After that a purchase is the question and one press. This is one more step
+in the sheet before `buy` (`purchaseAction`) and one more rail in `railFor`.
+A game is not involved and does not change.
 
 ## Payment rails
 

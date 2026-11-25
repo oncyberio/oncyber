@@ -25,6 +25,8 @@ export const lobbyTokens = {
         sheen: "linear-gradient(135deg, #ffffff0e, #ffffff02 38%, transparent 62%, #bddbff08)",
         blur: 8,
         panelBlur: 4,
+        /** Dims the scene behind a dialog that asks for a decision. */
+        scrim: "#03050880",
         shadow: "0 6px 18px #00000030",
         textShadow: "0 1px 2px #00000080",
     },
