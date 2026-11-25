@@ -32,7 +32,6 @@ import {
     amplitude_setUserId,
 } from "@utils/analytics";
 
-import { isAutographUser } from "@utils/autographAssets";
 
 import { useHotkey } from "@components/hooks/useHotkey";
 
@@ -850,6 +849,9 @@ export const UserProvider: React.FunctionComponent<UserProviderProps> = ({
         if (token) {
             // console.log(token);
             // _cca = cyber current account
+            // Fetched when a sign-in reaches this step: it brings wallet
+            // address code that no page needs until then.
+            const { isAutographUser } = await import("@utils/autographAssets");
             const isAutograph = await isAutographUser(walletId);
 
             document.cookie = cca_cookie(walletId);

@@ -105,8 +105,12 @@ function screen() {
 }
 
 /**
- * The runtime in this document, on the world that is loading in it. Starts
- * the space's saved script once the world is up.
+ * The runtime in this document, on the world that is loading in it.
+ *
+ * A space with a saved script starts it once the world is up. A space
+ * with none loads nothing until someone runs a script in it: the sandbox,
+ * the engine's bridge and the drawing code behind them are fetched then,
+ * so a visitor to a world without scripts never downloads them.
  */
 export function createLocalRuntime(
     saved: { source?: string; style?: WorldStyle | null },
@@ -118,19 +122,32 @@ export function createLocalRuntime(
         typeof import("./engineAdapter").createEngineSink
     > | null = null;
     let style = saved.style || null;
+    /** The world has a scene: a script could be run in it. */
+    let worldUp = false;
+    let announced = false;
+    const announce = (failed?: string) => {
+        if (disposed || announced) return;
+        announced = true;
+        events.onReady?.(failed);
+    };
     const ui = screen();
     const wait = () =>
         new Promise((resolve) => setTimeout(resolve, READY_POLL_MS));
 
-    async function boot() {
-        const startedAt = Date.now();
-        // The engine's modules load the engine's own way first: importing
-        // them before the world exists evaluates them in another order.
+    const startedAt = Date.now();
+    const world = (async () => {
         while (!disposed && !(window as any).scene) {
-            if (Date.now() - startedAt > READY_GIVE_UP_MS) return;
+            if (Date.now() - startedAt > READY_GIVE_UP_MS) return false;
             await wait();
         }
-        if (disposed) return;
+        worldUp = !disposed;
+        return worldUp;
+    })();
+
+    async function boot() {
+        // The engine's modules load the engine's own way first: importing
+        // them before the world exists evaluates them in another order.
+        if (!(await world)) return;
         const [{ createEngineSink, engineReady }, { WorldScriptHost }] =
             await Promise.all([import("./engineAdapter"), import("./host")]);
         while (!disposed && !engineReady()) {
@@ -152,18 +169,27 @@ export function createLocalRuntime(
             key: (down, key, code) => host?.key(down, key, code),
             click: (hit) => host?.click(hit),
         });
-        let failed: string | undefined;
-        if (saved.source) {
-            const result = await host.start(saved.source);
-            if (!result.ok) failed = result.reason || "it stopped";
-        }
-        if (!disposed) events.onReady?.(failed);
     }
-    void boot();
+    let booting: Promise<void> | null = null;
+    const booted = () => (booting ||= boot());
+
+    if (saved.source) {
+        void booted().then(async () => {
+            if (!host) return;
+            const result = await host.start(saved.source);
+            announce(result.ok ? undefined : result.reason || "it stopped");
+        });
+    } else {
+        // Nothing to run yet: ready as soon as there is a world.
+        void world.then((up) => {
+            if (up) announce();
+        });
+    }
 
     return {
-        ready: () => !!host,
+        ready: () => !!host || (worldUp && !saved.source),
         async run(source, mode) {
+            await booted();
             if (!host)
                 return { ok: false, reason: "The world is still loading." };
             const result = host.running
@@ -172,9 +198,11 @@ export function createLocalRuntime(
             return { ok: result.ok, reason: result.reason };
         },
         restart(source) {
-            if (!host) return;
-            if (host.running) void host.restart();
-            else if (source) void host.start(source);
+            void booted().then(() => {
+                if (!host) return;
+                if (host.running) void host.restart();
+                else if (source) void host.start(source);
+            });
         },
         stop() {
             host?.stop();
@@ -185,6 +213,7 @@ export function createLocalRuntime(
             engine?.setStyle(next);
         },
         async context() {
+            await booted();
             return {
                 ...(engine?.colors() || {}),
                 artworks: (engine?.sink.artworks() || [])

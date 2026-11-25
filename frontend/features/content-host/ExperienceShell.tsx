@@ -1,8 +1,7 @@
-import dynamic from "next/dynamic";
 import ImmersiveViewportStyle from "./ImmersiveViewportStyle";
 import React, { useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
-import Header from "@features/landing-carousel/components/Header";
+import dynamic from "next/dynamic";
 import Icon from "@features/landing-carousel/components/Icon";
 import ConnectionStatus, {
     type ConnectionStatusProps,
@@ -18,6 +17,12 @@ import { useWorldDock } from "@features/worlds/useWorldDock";
 import { isTypingTarget } from "@features/games/gameInput";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
+// The site's header, with its account menu. It is drawn by the page: in a
+// framed world it is never rendered, and so never fetched.
+const Header = dynamic(
+    () => import("@features/landing-carousel/components/Header")
+);
+
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
 const SpaceInfoSidebar = dynamic(
     () => import("@features/space-info/SpaceInfoSidebar"),
