@@ -111,6 +111,10 @@ const nextConfig = {
         NEXT_PUBLIC_WORLD_SCRIPTS:
             process.env.NEXT_PUBLIC_WORLD_SCRIPTS ||
             (trialPreview() ? "1" : ""),
+        // Whether games are on (GAMES_PREVIEW=1), as the middleware reads
+        // it at the edge, where a server variable may not be there to
+        // read: features/games/gamesPreview.ts, middleware.ts.
+        GAMES_PREVIEW_AT_BUILD: process.env.GAMES_PREVIEW === "1" ? "1" : "",
         // Every preview says its load stages in the console
         // (utils/loadTimings.ts); production never does unless asked.
         NEXT_PUBLIC_LOAD_STAGES:
