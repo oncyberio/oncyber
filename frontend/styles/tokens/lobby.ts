@@ -49,6 +49,26 @@ export const lobbyTokens = {
         ink: "#f4f5f8",
         photoShadow: "0 1px 4px #000000a6",
     },
+    /**
+     * Name tags over avatars, in the lobby and in spaces: browser text in a
+     * small glass chip with the visitor's picture, like the menu rows.
+     * Sizes are in ems of the tag's font size, which follows distance.
+     */
+    nameTag: {
+        ink: base.color.ink,
+        fill: "#14161bb8",
+        border: base.color.line.soft,
+        shadow: "0 1px 6px #00000052",
+        photoFill: "#2a2d35",
+        /** Text height in world metres, before the screen clamp below. */
+        fontMetres: 0.081,
+        minPx: 11,
+        maxPx: 17,
+        photoEm: 1.55,
+        gapEm: 0.42,
+        /** Longest name before it ends in an ellipsis. */
+        maxNameEm: 11,
+    },
     control: {
         size: 40,
         touchSize: 36,
