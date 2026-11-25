@@ -44,6 +44,22 @@ export function hiddenGameFile(
 }
 
 /**
+ * A game's own address, /games/<id>. The page there hides itself
+ * (pages/games/[game].tsx), but a host that answers a folder's address with
+ * the index file inside it serves `public/games/<id>/index.html` in the
+ * page's place: the build itself, where games are meant to be hidden. The
+ * middleware asks this first, so the address answers nothing then either.
+ */
+const GAME_PAGE = /^\/games\/[^/.]+\/?$/i;
+
+export function hiddenGamePage(
+    path: string,
+    env?: Record<string, string | undefined>
+): boolean {
+    return GAME_PAGE.test(path) && !gamesPreviewEnabled(env);
+}
+
+/**
  * What the middleware matches to ask this (Next's matcher syntax). Next
  * reads a middleware's matcher without running it, so middleware.ts writes
  * this same text out; gamesPreview.test.ts fails when the two differ.

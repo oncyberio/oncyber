@@ -4,6 +4,7 @@ import {
     GAME_FILE_MATCHER,
     gamesPreviewEnabled,
     hiddenGameFile,
+    hiddenGamePage,
     isGameFile,
 } from "./gamesPreview";
 import { findGame, gamesPreviewEnabled as fromCatalog } from "./catalog";
@@ -71,6 +72,27 @@ test("the game's page and the guide are not files of a build", () => {
         "/docs/games/ace/index.html",
     ])
         expect([path, hiddenGameFile(path, hidden)]).toEqual([path, false]);
+});
+
+test("a game's own address is hidden with it, and only that", () => {
+    for (const path of ["/games/ace", "/games/ace/", "/GAMES/lantern-tag"]) {
+        expect([path, hiddenGamePage(path, hidden)]).toEqual([path, true]);
+        expect([path, hiddenGamePage(path, preview)]).toEqual([path, false]);
+        expect([path, hiddenGamePage(path, development)]).toEqual([
+            path,
+            false,
+        ]);
+    }
+    // The guide is public; a build's files are asked about separately.
+    for (const path of [
+        "/games/llms.txt",
+        "/games",
+        "/games/",
+        "/games/ace/index.html",
+        "/api/games/paused",
+        "/",
+    ])
+        expect([path, hiddenGamePage(path, hidden)]).toEqual([path, false]);
 });
 
 test("the middleware matches a game's files, and asks before any other rule", () => {

@@ -119,6 +119,9 @@ export const nodeEnv = {
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     WORLD_SCRIPTS_AI_ALLOWLIST: process.env.WORLD_SCRIPTS_AI_ALLOWLIST,
     WORLD_SCRIPTS_AI_DAILY_LIMIT: process.env.WORLD_SCRIPTS_AI_DAILY_LIMIT,
+    // Server-only. "1" shows games before launch: their pages, static
+    // builds, saved data and releases (features/games/gamesPreview.ts).
+    GAMES_PREVIEW: process.env.GAMES_PREVIEW,
     // "1" says each load stage in the browser console as it happens; on by
     // itself on a Vercel preview (next.config.js). Read in
     // utils/loadTimings.ts.

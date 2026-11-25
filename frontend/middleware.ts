@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { WORLD_FRAME, worldFrameRole } from "@features/worlds/worldFrame";
 import { answerOnWorldHost } from "@features/worlds/worldHost";
-import { hiddenGameFile, isGameFile } from "@features/games/gamesPreview";
+import {
+    hiddenGameFile,
+    hiddenGamePage,
+    isGameFile,
+} from "@features/games/gamesPreview";
 
 // ---------------------------------------------------------------------------
 // Bot blocking at the edge.
@@ -102,6 +106,13 @@ export function middleware(req: NextRequest) {
     // static files matched below, and only to ask this. Games are hidden at
     // launch, their builds included; where they are on, the file is served
     // as any other static file is, by none of the rules that follow.
+    // The game's own address, hidden with the rest: some hosts answer it
+    // with the build's index file, ahead of the page that would refuse.
+    if (hiddenGamePage(path))
+        return new NextResponse(null, {
+            status: 404,
+            headers: { "cache-control": "no-store" },
+        });
     if (isGameFile(path))
         return hiddenGameFile(path)
             ? new NextResponse(null, {
