@@ -84,6 +84,12 @@ export const QUALITY_RESOLUTION_MULTIPLIER = {
  * - it steps back up only after `fastWindows` windows averaging under
  *   `recoverMs` (83 fps). On a 60 Hz display frames never get that short,
  *   so there it only ever steps down; a 120 Hz display can recover.
+ * - with a frame-rate cap (`capFps`, utils/frameCap.ts) frames are never
+ *   shorter than the cap's interval, so holding the cap counts as fast.
+ *   Without this, one slow stretch (arrival, a heavy room) kept the world
+ *   at a lower resolution for the rest of the visit.
+ * - a step up that is followed by a step down sets a ceiling: the governor
+ *   does not try that size again, so it cannot keep swinging between two.
  *
  * observe(frameMs) returns the new scale when it changes, otherwise null.
  */
@@ -91,12 +97,19 @@ export function createResolutionGovernor({
     quality = "high",
     budgetMs = 25,
     recoverMs = 12,
+    capFps = 0,
     windowMs = 2000,
     slowWindows = 2,
     fastWindows = 5,
     step = 0.1,
     maxGapMs = MAX_FRAME_GAP_MS,
 } = {}) {
+    // A capped frame lands on the cap's interval, give or take the jitter
+    // the cap itself tolerates (utils/frameCap.ts).
+    const fastMs =
+        capFps > 0 ? Math.max(recoverMs, 1000 / capFps + 2) : recoverMs;
+    // A cap slower than the budget (`?fps=30`) is not a slow device.
+    const slowMs = fastMs >= budgetMs ? fastMs * 1.5 : budgetMs;
     const qualityMultiplier = QUALITY_RESOLUTION_MULTIPLIER[quality] || 1;
     // Rounded up, so float error cannot dip below LOW (resizer clamps too).
     const minScale = Math.min(
@@ -109,6 +122,8 @@ export function createResolutionGovernor({
     let slow = 0;
     let fast = 0;
     let settling = false;
+    let ceiling = 1;
+    let steppedUp = false;
     const round = (value) => Math.round(value * 100) / 100;
     return {
         get scale() {
@@ -129,14 +144,16 @@ export function createResolutionGovernor({
                 settling = false;
                 return null;
             }
-            slow = average > budgetMs ? slow + 1 : 0;
-            fast = average < recoverMs ? fast + 1 : 0;
+            slow = average > slowMs ? slow + 1 : 0;
+            fast = average < fastMs ? fast + 1 : 0;
             let next = scale;
             if (slow >= slowWindows && scale > minScale)
                 next = Math.max(minScale, round(scale - step));
-            else if (fast >= fastWindows && scale < 1)
-                next = Math.min(1, round(scale + step));
+            else if (fast >= fastWindows && scale < ceiling)
+                next = Math.min(ceiling, round(scale + step));
             if (next === scale) return null;
+            if (next < scale && steppedUp) ceiling = next;
+            steppedUp = next > scale;
             scale = next;
             slow = 0;
             fast = 0;

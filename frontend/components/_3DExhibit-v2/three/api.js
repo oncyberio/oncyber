@@ -268,7 +268,13 @@ export default class Api extends EditorApi {
 
         if( this.qualityChosen || this._governorConsumer ) return false
 
-        const governor = createResolutionGovernor({ quality: QUALITY })
+        // Under the frame-rate cap (utils/frameCap.ts) holding the cap is fast.
+        const governor = createResolutionGovernor({
+
+            quality: QUALITY,
+
+            capFps: Mediator.frameCap?.maxFps ?? 0,
+        })
 
         this._governorConsumer = ( frameMs ) => {
 
