@@ -55,7 +55,9 @@ const isPreview = () => process.env.NEXT_PUBLIC_LOAD_STAGES === "1";
 
 export function sayLoadStage(kind: string, stage: string, ms?: number) {
     if (!isPreview()) return;
-    console.info(
+    // Through globalThis: a production build removes plain console calls
+    // (next.config.js, removeConsole), and this one is asked for.
+    globalThis.console.info(
         `[load] ${kind} ${stage}${ms == null ? "" : ` +${ms} ms`} (${Math.round(
             now()
         )} ms into this document)`
