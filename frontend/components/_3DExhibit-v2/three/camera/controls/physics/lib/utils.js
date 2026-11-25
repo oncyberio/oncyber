@@ -59,6 +59,10 @@ export function genTrianglesFromObject(group, tris = []) {
 
             const meshName = obj.name
 
+            // Invisible walls and floors keep visitors in, but the
+            // third-person camera looks through them (see topoctree).
+            const cameraIgnores = obj.userData?.cameraIgnores === true
+
 
             if (obj.geometry.index !== null) {
 
@@ -98,7 +102,7 @@ export function genTrianglesFromObject(group, tris = []) {
                         vs[off] = v
                     }
 
-                    const tri = new OctreeTriangle(vs[0], vs[1], vs[2], meshName)
+                    const tri = new OctreeTriangle(vs[0], vs[1], vs[2], meshName, cameraIgnores)
 
                     tri.applyMatrix4(obj.matrixWorld)
 
@@ -123,7 +127,7 @@ export function genTrianglesFromObject(group, tris = []) {
                         i + 2
                     );
 
-                    const tri = new OctreeTriangle(v1, v2, v3, meshName)
+                    const tri = new OctreeTriangle(v1, v2, v3, meshName, cameraIgnores)
 
                     tri.applyMatrix4(obj.matrixWorld)
 

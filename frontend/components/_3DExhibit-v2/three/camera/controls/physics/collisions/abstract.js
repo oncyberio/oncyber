@@ -61,6 +61,8 @@ export class AbstractCollisions {
     /** @param { Ray }  ray */
     rayIntersect(ray) {}
 
+    cameraRayIntersect(ray) { return this.rayIntersect(ray) }
+
     /**
      * @param {Vector3} position : ;
      */

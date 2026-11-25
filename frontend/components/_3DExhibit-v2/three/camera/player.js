@@ -144,6 +144,17 @@ const CAMERA_RELIEF_RATE = 3
 // smallest near plane fitNearToWalls may shrink to
 const MIN_FIT_NEAR = 0.02
 
+// Camera probes see through invisible walls and floors (they still stop the
+// player). Worlds without the camera variant fall back to every collider.
+function cameraRayIntersect(world, ray) {
+
+    if (world == null) return null
+
+    return world.cameraRayIntersect
+        ? world.cameraRayIntersect(ray)
+        : world.rayIntersect(ray)
+}
+
 class PlayerCamera extends AbstractCamera {
 
 	constructor(fov, aspect, near, far) {
@@ -433,7 +444,7 @@ class PlayerCamera extends AbstractCamera {
             this.updateProjectionMatrix();
             return;
         }
-        this.travelCameraResolver ??= createTravelCameraResolver(THREE, (ray) => Camera.currentControls?.world?.rayIntersect(ray));
+        this.travelCameraResolver ??= createTravelCameraResolver(THREE, (ray) => cameraRayIntersect(Camera.currentControls?.world, ray));
         const nativeHeight = this.cameraHeight;
         const origin = this.player.position.clone();
         origin.y += nativeHeight;
@@ -479,7 +490,7 @@ class PlayerCamera extends AbstractCamera {
             target.z += this.travelTargetOffset.z;
         }
         this.cameraDistance.copy(target).add(cartv3);
-        this.travelCameraResolver ??= createTravelCameraResolver(THREE, (ray) => Camera.currentControls?.world?.rayIntersect(ray));
+        this.travelCameraResolver ??= createTravelCameraResolver(THREE, (ray) => cameraRayIntersect(Camera.currentControls?.world, ray));
         let distance = this.travelCameraResolver.safeDistance(target, this.cameraDistance, {
             near: this.near, fov: this.getEffectiveFOV(), aspect: this.aspect,
         });
@@ -530,7 +541,7 @@ class PlayerCamera extends AbstractCamera {
 
             this.ray.set(origin, direction);
 
-            const result = world.rayIntersect(this.ray)
+            const result = cameraRayIntersect(world, this.ray)
 
             if ( result && result.distance < distance) {
 
@@ -896,7 +907,7 @@ class PlayerCamera extends AbstractCamera {
 
             nearRay.set(head, nearCorner.divideScalar(length))
 
-            const hit = world.rayIntersect(nearRay)
+            const hit = cameraRayIntersect(world, nearRay)
 
             if (hit && hit.distance < length) return false
         }

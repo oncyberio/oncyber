@@ -394,6 +394,27 @@ export class Physics {
      */
     rayIntersect(origin, direction) {
 
+        return this.collisions.rayIntersect(this.toRay(origin, direction))
+    }
+
+    /**
+     * The third-person camera's ray: it passes through invisible walls and
+     * floors, which still stop the player.
+     *
+     * @param { Vector3 | Ray } origin
+     * @param { Vector3 } [direction]
+     */
+    cameraRayIntersect(origin, direction) {
+
+        return this.collisions.cameraRayIntersect(this.toRay(origin, direction))
+    }
+
+    /**
+     * @param { Vector3 | Ray } origin
+     * @param { Vector3 } [direction]
+     */
+    toRay(origin, direction) {
+
         let ray = this.ray;
 
         // @ts-ignore
@@ -408,7 +429,7 @@ export class Physics {
             ray.direction.copy(direction)
         }
 
-        return this.collisions.rayIntersect(ray)
+        return ray
     }
 
     distanceToFloor(point) {
