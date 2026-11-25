@@ -205,7 +205,7 @@ export default function ExperienceShell({
     // ... and the dock: its buttons are drawn by the page, in this place,
     // and a press comes back here. The world's own stays laid out, unseen,
     // so what opens from a button still opens beside it.
-    useWorldDock(framedWorld ? actions : null);
+    useWorldDock(framedWorld ? actions : null, connection);
     return (
         <Shell
             data-experience-chrome

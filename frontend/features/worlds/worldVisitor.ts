@@ -17,6 +17,66 @@ export interface WorldVisitor extends VisitorIdentity {
     avatar: TravelAvatar;
     /** The size the visitor saved for their avatar (0 to 1), if any. */
     avatarSize: number | null;
+    /**
+     * A signed-in visitor's account, as the in-world interface reads it:
+     * who they are and their settings. No session: what needs one is asked
+     * of the page (./accountRelay).
+     */
+    account: WorldAccount | null;
+    /**
+     * Whether this visitor is let into the space, as the page worked it
+     * out with their account. Undefined when the page did not say.
+     */
+    gate?: { type: string };
+}
+
+export interface WorldAccount {
+    id: string;
+    username: string;
+    /** The rest of what the in-world interface shows or applies. */
+    profile: Record<string, unknown>;
+}
+
+// What of an account a world is given. Not here: linked wallets, email,
+// anything private, anything that is not shown or applied in a world.
+const PROFILE = [
+    "avatar",
+    "walletId",
+    "walletCustomName",
+    "avatarContractAddress",
+    "avatarTokenId",
+    "settings",
+] as const;
+
+/** A plain copy of what a world may know of an account, or null. */
+function readAccount(value: any): WorldAccount | null {
+    if (
+        typeof value?.id !== "string" ||
+        !value.id ||
+        value.id.length > 200 ||
+        typeof value.username !== "string"
+    )
+        return null;
+    let profile: Record<string, unknown> = {};
+    try {
+        const copy = JSON.stringify(value.profile ?? {});
+        if (copy.length > 20_000) return null;
+        const parsed = JSON.parse(copy);
+        for (const key of PROFILE)
+            if (parsed?.[key] !== undefined) profile[key] = parsed[key];
+    } catch {
+        profile = {};
+    }
+    return { id: value.id, username: value.username.slice(0, 120), profile };
+}
+
+/** The page's side: what of its visitor's account a world is given. */
+export function worldAccount(id: unknown, userData: any): WorldAccount | null {
+    return readAccount({
+        id,
+        username: userData?.username ?? "",
+        profile: userData,
+    });
 }
 
 const text = (value: unknown, max: number) =>
@@ -32,7 +92,8 @@ export function worldVisitorMessage(
         identity: VisitorIdentity;
         avatar: { id: string; name: string } | null;
     },
-    savedAvatarSize?: unknown
+    savedAvatarSize?: unknown,
+    more: { account?: WorldAccount | null; gate?: unknown } = {}
 ) {
     return {
         ...presentation.identity,
@@ -40,6 +101,8 @@ export function worldVisitorMessage(
         avatarId: presentation.avatar?.id ?? "",
         avatarName: presentation.avatar?.name ?? "",
         avatarSize: signedIn ? size(savedAvatarSize) : null,
+        account: signedIn ? more.account ?? null : null,
+        ...(more.gate ? { gate: more.gate } : {}),
     };
 }
 
@@ -56,21 +119,41 @@ export function readWorldVisitor(message: any): WorldVisitor | null {
             url: identity.avatarUrl,
         },
         avatarSize: size(message.avatarSize),
+        account: message.guest === false ? readAccount(message.account) : null,
+        ...(typeof message.gate?.type === "string" &&
+        message.gate.type.length <= 40
+            ? { gate: { type: message.gate.type } }
+            : {}),
     };
 }
 
 /**
  * What the world's own account state holds for this visitor: the fields the
- * engine reads for a name, a portrait and an avatar size. Null for a guest,
- * who is the world's own guest.
+ * engine and the in-world interface read. Null for a guest, who is the
+ * world's own guest.
  */
 export function visitorUserData(visitor: WorldVisitor | null) {
     if (!visitor || visitor.guest) return null;
-    return {
-        username: visitor.name,
-        avatar: visitor.pfp,
+    const profile = visitor.account?.profile ?? {};
+    const settings = {
+        ...((profile.settings as object) ?? {}),
         ...(visitor.avatarSize == null
             ? {}
-            : { settings: { default_vrm_scale: visitor.avatarSize } }),
+            : { default_vrm_scale: visitor.avatarSize }),
+    };
+    // The account's own picture, or none: a world gives a visitor without
+    // one its own default, as it does unframed. (Before accounts crossed,
+    // the picture the page presents was all there was.)
+    const picture = visitor.account ? profile.avatar : visitor.pfp;
+    return {
+        ...profile,
+        username: visitor.name,
+        avatar:
+            typeof picture === "string" &&
+            /^(https:\/\/|\/(?!\/))/.test(picture) &&
+            picture.length <= 2048
+                ? picture
+                : undefined,
+        ...(Object.keys(settings).length ? { settings } : {}),
     };
 }

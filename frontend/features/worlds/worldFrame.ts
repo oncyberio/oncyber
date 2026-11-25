@@ -84,3 +84,44 @@ export const WORLD_SANDBOX =
 /** What the browser lets a world do; anything unlisted is off. */
 export const WORLD_PERMISSIONS =
     "autoplay; fullscreen; gamepad; xr-spatial-tracking";
+
+/**
+ * A space embedded on someone else's site keeps running in its own page,
+ * as it always has. The world host lets itself be framed only where every
+ * page above it is the site's, so it could not load there; and such a page
+ * holds no session to keep from the world anyway (the browser lends none to
+ * a frame on another site).
+ */
+export function embeddedElsewhere(headers: {
+    [name: string]: string | string[] | undefined;
+}): boolean {
+    const site = headers["sec-fetch-site"];
+    return (
+        headers["sec-fetch-dest"] === "iframe" &&
+        (site === "cross-site" || site === "same-site")
+    );
+}
+
+/**
+ * Which side of the frame a space's page is for this request: as
+ * `worldFrameRole`, but a site page embedded on another site is neither.
+ */
+export function spaceFrameRole(headers: {
+    [name: string]: string | string[] | undefined;
+}): WorldFrameRole | null {
+    const role = worldFrameRole(
+        typeof headers.host === "string" ? headers.host : undefined
+    );
+    return role === "page" && embeddedElsewhere(headers) ? null : role;
+}
+
+/** The same, asked in the browser: is a page of another site above this one? */
+export function framedByAnotherSite(win: Window = window): boolean {
+    try {
+        return (
+            win.top !== win && win.top.location.origin !== win.location.origin
+        );
+    } catch {
+        return true;
+    }
+}

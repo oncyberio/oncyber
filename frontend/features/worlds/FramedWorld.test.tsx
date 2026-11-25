@@ -45,7 +45,12 @@ jest.mock("@features/content-host/ExperienceShell", () => ({
 }));
 
 // The account as the page holds it; a test signs in by changing it.
-let account: { isSignedIn: boolean; userData: any };
+let account: {
+    isSignedIn: boolean;
+    userData: any;
+    token?: string;
+    user?: { id: string };
+};
 jest.mock("@components/context/UserContext", () => {
     const { createContext } = require("react");
     return { UserContext: createContext({}) };
@@ -196,15 +201,18 @@ test("answers the world's hello with a guest, to the world's origin", () => {
                 avatarId: "square",
                 avatarName: "Square",
                 avatarSize: null,
+                account: null,
             },
             target: "https://worlds.example",
         },
     ]);
 });
 
-test("a signed-in visitor crosses as a name, a portrait and an avatar, and nothing else of the account", async () => {
+test("a signed-in visitor crosses as who they are, how they look and their settings; no session and nothing private", async () => {
     account = {
         isSignedIn: true,
+        token: "page-session",
+        user: { id: "0xabc" },
         userData: {
             username: "ada",
             avatar: "https://cdn.example/ada.png",
@@ -228,8 +236,19 @@ test("a signed-in visitor crosses as a name, a portrait and an avatar, and nothi
         avatarId: "robot",
         avatarName: "Robot",
         avatarSize: 0.4,
+        account: {
+            id: "0xabc",
+            username: "ada",
+            profile: {
+                avatar: "https://cdn.example/ada.png",
+                walletId: "0xabc",
+                settings: { vrm: "robot", default_vrm_scale: 0.4 },
+            },
+        },
     });
-    expect(JSON.stringify(sent[0].message)).not.toMatch(/0xabc|example\.com"/);
+    expect(JSON.stringify(sent[0].message)).not.toMatch(
+        /page-session|example\.com/
+    );
 });
 
 test("signing in after the world started starts it again as that visitor", async () => {
@@ -298,6 +317,28 @@ test("a world that says it failed can be loaded again", () => {
     // a new frame and a new cover, from the start
     expect(element()).not.toBe(first);
     expect(cover().dataset.state).toBe("loading");
+});
+
+test("a world that is slow but keeps reporting is not failed, and a late first frame takes the notice away", () => {
+    // two minutes of loading, a report every half minute
+    for (let i = 0; i < 6; i++) {
+        act(() => void jest.advanceTimersByTime(30_000));
+        fromWorld({ type: "oncyber:game:progress", value: 0.1 * i, label: "" });
+    }
+    expect(retry()).toBeNull();
+    // then silence: failed after the wait, counted from its last word
+    for (let i = 0; i < 5 && !retry(); i++)
+        act(() => void jest.advanceTimersByTime(30_000));
+    expect(retry().textContent).toBe("This world didn't load.");
+    // and it draws after all
+    fromWorld({
+        type: "oncyber:game:first-frame",
+        ms: 300000,
+        width: 1280,
+        height: 720,
+    });
+    expect(retry()).toBeNull();
+    expect(cover().dataset.state).toBe("drawn");
 });
 
 test("a world that never draws is taken as failed", () => {
@@ -758,5 +799,39 @@ describe("a link the world asks to open", () => {
         act(() => void jest.advanceTimersByTime(16_000));
         expect(retry()).toBeNull();
         expect(opened).not.toHaveBeenCalled();
+    });
+});
+
+describe("a file the world asks to save", () => {
+    test("the page offers it and saves it on the visitor's click", () => {
+        const made: string[] = [];
+        (URL as any).createObjectURL = () => "blob:page/1";
+        (URL as any).revokeObjectURL = () => {};
+        const click = jest
+            .spyOn(HTMLAnchorElement.prototype, "click")
+            .mockImplementation(function (this: HTMLAnchorElement) {
+                made.push(`${this.download} ${this.href}`);
+            });
+        fromWorld({
+            type: "oncyber:game:download",
+            name: "photo.png",
+            file: new Blob(["x"], { type: "image/png" }),
+        });
+        expect(retry().textContent).toBe("Save photo.png?");
+        expect(retry().dataset.label).toBe("Save");
+        expect(made).toEqual([]);
+        act(() => retry().click());
+        expect(made).toEqual(["photo.png blob:page/1"]);
+        expect(retry()).toBeNull();
+        click.mockRestore();
+    });
+
+    test("a page that is not a picture or a film is not offered", () => {
+        fromWorld({
+            type: "oncyber:game:download",
+            name: "a.html",
+            file: new Blob(["<p>"], { type: "text/html" }),
+        });
+        expect(retry()).toBeNull();
     });
 });

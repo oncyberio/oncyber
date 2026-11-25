@@ -73,7 +73,7 @@ export function GameLoadingCover({
                 placeContent: "center",
                 justifyItems: "center",
                 gap: 14,
-                background: baseTokens.color.frame,
+                background: baseTokens.color.frameCover,
                 color: "#fff",
                 font: "600 15px/1.3 Inter, system-ui, sans-serif",
                 opacity: waiting ? 1 : 0,

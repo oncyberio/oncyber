@@ -8,7 +8,7 @@ jest.mock("@components/context/UserContext", () => {
     const { createContext } = require("react");
     return {
         UserContext: createContext({}),
-        UPDATE_USER_DATA: "UPDATE_USER_DATA",
+        USER_LOGIN: "USER_LOGIN",
     };
 });
 const mockLink: { visitor: jest.Mock; framed: boolean } = {
@@ -36,26 +36,26 @@ const ada = readWorldVisitor({
 
 let root: Root;
 let host: HTMLDivElement;
-let seen: { ready: boolean; userData: any }[];
+let seen: { ready: boolean; userData: any; id?: string; token?: string }[];
 
 /** A world page: the account state, and what started below it. */
 function World({ framed }: { framed: boolean }) {
-    const [userData, dispatch] = useReducer(
-        (state: any, action: any) => ({ ...state, ...action.payload }),
-        null
+    const [state, dispatch] = useReducer(
+        (current: any, action: any) => ({ ...current, ...action.payload }),
+        { userData: null, user: { id: "" }, token: "" }
     );
     return (
         <UserContext.Provider
-            value={{ userData, dispatch, isAnonInitialized: true } as any}
+            value={{ ...state, dispatch, isAnonInitialized: true } as any}
         >
             <Scene framed={framed} />
         </UserContext.Provider>
     );
 }
 function Scene({ framed }: { framed: boolean }) {
-    const ready = useWorldVisitor(framed);
-    const { userData } = React.useContext(UserContext) as any;
-    seen.push({ ready, userData });
+    const { ready } = useWorldVisitor(framed);
+    const { userData, user, token } = React.useContext(UserContext) as any;
+    seen.push({ ready, userData, id: user?.id, token });
     return ready ? <div data-world>{userData?.username ?? "guest"}</div> : null;
 }
 const world = () => host.querySelector("[data-world]");
@@ -99,12 +99,41 @@ test("a framed world waits for its visitor, then starts as them", async () => {
                 avatar: "https://cdn.example/ada.png",
                 settings: { default_vrm_scale: 0.4 },
             },
+            id: "",
+            token: "",
         },
     ]);
     // and finds their avatar where it looks for the one a visitor arrives with
     expect(readTravelAvatar(seen.at(-1).userData)).toMatchObject({
         id: "robot",
         url: "https://cdn.example/ada.vrm",
+    });
+});
+
+test("a signed-in visitor's world knows who they are and holds a stand-in, never a session", async () => {
+    mockLink.visitor.mockResolvedValue({
+        ...ada,
+        account: {
+            id: "0xada",
+            username: "ada",
+            profile: {
+                avatar: "https://cdn.example/ada.png",
+                walletId: "0xada",
+                settings: { quality: "high" },
+            },
+        },
+    });
+    await render(true);
+    expect(seen.at(-1)).toEqual({
+        ready: true,
+        userData: {
+            walletId: "0xada",
+            username: "ada",
+            avatar: "https://cdn.example/ada.png",
+            settings: { quality: "high", default_vrm_scale: 0.4 },
+        },
+        id: "0xada",
+        token: "page",
     });
 });
 

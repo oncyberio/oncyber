@@ -43,7 +43,8 @@ import { notFoundLanding } from "@utils/serverside/notFoundLanding";
 
 import {
     WORLD_FRAME,
-    worldFrameRole,
+    framedByAnotherSite,
+    spaceFrameRole,
     type WorldFrameRole,
 } from "@features/worlds/worldFrame";
 import { worldDocument } from "@features/worlds/worldDocument";
@@ -67,9 +68,13 @@ export default function Exhibit(props: {
     const { isAnonInitialized } = useContext(UserContext);
     // In the site's frame, the world starts once the page has said who is
     // visiting (features/worlds).
-    const visitorKnown = useWorldVisitor(props.worldFrameRole === "world");
+    const visitor = useWorldVisitor(props.worldFrameRole === "world");
+    // A visit that moves on inside an embed on another site: the server
+    // only sees the first page, so the browser is asked for the rest.
+    const [embedded, setEmbedded] = useState(false);
+    useEffect(() => setEmbedded(framedByAnotherSite()), []);
     if (props.notFound) return <NotFoundPage {...(props as any)} />;
-    if (!isAnonInitialized || !visitorKnown) return null;
+    if (!isAnonInitialized || !visitor.ready) return null;
     if (props.experience && !isSupportedRuntime(props.experience.runtime)) {
         return <Error statusCode={404} />;
     }
@@ -93,14 +98,16 @@ export default function Exhibit(props: {
     }
     // Where worlds are framed, the site's page is the frame around the
     // world and the world host serves the world itself (features/worlds).
-    // A gated world stays in the page: the world host has no session to
-    // check a visitor against yet.
+    // A gated world is framed like any other: the page, which holds the
+    // session, says whether its visitor is let in, and the world takes its
+    // word (the gate is the world's own interface, as it is unframed).
     if (
         props.worldFrameRole === "page" &&
+        !embedded &&
         WORLD_FRAME &&
         props.experience &&
         props.dest &&
-        !props.gatingError
+        (props.gatingError as { type?: string } | null)?.type !== "other-error"
     ) {
         return (
             <>
@@ -108,18 +115,32 @@ export default function Exhibit(props: {
                     experience={props.experience}
                     destination={props.dest}
                     ownerName={props.experience.ownerName}
-                    gated={false}
+                    gated={!!props.gatingError}
                 />
                 <FramedWorld
                     key={props.experience.id}
                     title={props.experience.info?.headline || "Untitled world"}
                     spaceId={props.experience.id}
                     frame={WORLD_FRAME}
+                    gate={props.gatingError ?? { type: "success" }}
                 />
             </>
         );
     }
-    return <NativeExhibit key={props.experience?.id} {...props} />;
+    // In the site's frame the gate is the page's verdict, worked out with
+    // the visitor's account; this host would only ever see a guest.
+    const gatingError = visitor.gate
+        ? visitor.gate.type === "success"
+            ? null
+            : (visitor.gate as GatingCheckResult)
+        : props.gatingError;
+    return (
+        <NativeExhibit
+            key={props.experience?.id}
+            {...props}
+            gatingError={gatingError}
+        />
+    );
 }
 
 /** Worlds whose portal previews the page warms (the SSR did not, < 50). */
@@ -395,7 +416,7 @@ export const getServerSideProps = AuthServerSidePropsLite(
         return {
             ...data,
             gatingError,
-            worldFrameRole: worldFrameRole(req.headers.host),
+            worldFrameRole: spaceFrameRole(req.headers),
         };
     }
 );

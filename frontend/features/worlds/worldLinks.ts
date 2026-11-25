@@ -27,6 +27,36 @@ export function readWorldLink(value: unknown, site: string): WorldLink | null {
     }
 }
 
+/** A file a world asks the page to save, as the page will offer it. */
+export interface WorldFile {
+    name: string;
+    file: Blob;
+}
+
+const MAX_FILE_BYTES = 60 * 1024 * 1024;
+
+/** A file from a world's `download`, or null: a picture, a film or data. */
+export function readWorldFile(message: any): WorldFile | null {
+    const file = message?.file;
+    if (
+        typeof Blob === "undefined" ||
+        !(file instanceof Blob) ||
+        !file.size ||
+        file.size > MAX_FILE_BYTES ||
+        !/^(image\/(png|jpeg|webp)|video\/(mp4|webm)|application\/json|model\/gltf-binary)$/.test(
+            file.type
+        )
+    )
+        return null;
+    // A plain file name: no folders, nothing the system reads as a path.
+    const name =
+        (typeof message.name === "string" ? message.name : "")
+            .replace(/[^A-Za-z0-9 ._()-]/g, "")
+            .replace(/^\.+/, "")
+            .slice(0, 80) || "oncyber";
+    return { name, file };
+}
+
 /**
  * The world's side: turns every way out of the document into a request to
  * the page. Returns a function that undoes it.
@@ -83,8 +113,44 @@ export function captureWorldLinks(
     };
     win.document.addEventListener("click", click, true);
 
+    // A file the world made and wants saved (a photo of the scene): a
+    // frame cannot save one, so it is handed to the page, which offers it.
+    const made = (anchor: HTMLAnchorElement) =>
+        anchor.hasAttribute("download") && /^(data|blob):/.test(anchor.href);
+    const save = (anchor: HTMLAnchorElement) => {
+        const name = anchor.getAttribute("download") || "";
+        void win
+            .fetch(anchor.href)
+            .then((response) => response.blob())
+            .then((file) => post("download", { name, file }))
+            .catch(() => {});
+    };
+    const saveClick = (event: MouseEvent) => {
+        const anchor = (event.target as Element | null)?.closest?.(
+            "a[download]"
+        ) as HTMLAnchorElement | null;
+        if (!anchor || !made(anchor)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        save(anchor);
+    };
+    win.document.addEventListener("click", saveClick, true);
+    // Code presses a link it never put in the page; no click event passes
+    // the document then.
+    const Anchor = (win as any).HTMLAnchorElement as
+        | typeof HTMLAnchorElement
+        | undefined;
+    const press = Anchor?.prototype.click;
+    if (Anchor && press)
+        Anchor.prototype.click = function (this: HTMLAnchorElement) {
+            if (!this.isConnected && made(this)) save(this);
+            else press.call(this);
+        };
+
     return () => {
         win.open = open;
         win.document.removeEventListener("click", click, true);
+        win.document.removeEventListener("click", saveClick, true);
+        if (Anchor && press) Anchor.prototype.click = press;
     };
 }

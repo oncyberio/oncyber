@@ -193,6 +193,10 @@ export class RelayedVoiceProvider extends TypedEmitter {
         this.link.send("voice-gate", { uid, gated });
     }
 
+    /** The range itself goes to the room, as a moderator's act (./roomRelay). */
+    async updateVoiceRange() {
+        return { success: true as const, value: null };
+    }
     async setPlaying() {
         return false;
     }

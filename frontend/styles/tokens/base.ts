@@ -39,8 +39,16 @@ export const baseTokens = {
         /** Light surface and its ink: paper cards and solid white actions. */
         paper: "#fafaf8",
         paperInk: "#20201e",
-        /** Behind a framed game or world until it draws, and its cover. */
+        /** Behind a framed game or world until it draws. */
         frame: "#0b0d12",
+        /**
+         * The cover over a framed game or world while it loads: the same
+         * colour, a breath short of opaque. A browser slows a frame from
+         * another origin to a couple of frames a second while something
+         * opaque covers it all, and a game or world loads by frames
+         * (features/worlds/worldFrames.ts has the measurement).
+         */
+        frameCover: "#0b0d12fc",
         accent: "#2567ff",
         accentStart: "#3975ff",
         accentEnd: "#1854e8",

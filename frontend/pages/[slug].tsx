@@ -1,5 +1,5 @@
 import { getUserByUsername, getUserByWalletId } from "../utils/saveToDb";
-import { worldFrameRole } from "@features/worlds/worldFrame";
+import { spaceFrameRole } from "@features/worlds/worldFrame";
 
 import { AuthServerSideProps } from "../utils/authServerSideProps";
 import {
@@ -181,7 +181,7 @@ export const getServerSideProps = BasicServerSideProps(
         return {
             ...data,
             gatingError,
-            worldFrameRole: worldFrameRole(req.headers.host),
+            worldFrameRole: spaceFrameRole(req.headers),
         };
     },
     { prefetch: prefetchSlugPageData }

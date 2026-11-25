@@ -1,6 +1,7 @@
 import {
     readWorldVisitor,
     visitorUserData,
+    worldAccount,
     worldVisitorMessage,
 } from "./worldVisitor";
 
@@ -21,7 +22,58 @@ describe("the visitor a page hands a framed world", () => {
             guest: false,
             avatar: { id: "robot", name: "Robot", url: identity.avatarUrl },
             avatarSize: 0.4,
+            account: null,
         });
+    });
+
+    test("a signed-in visitor's account crosses as who they are and their settings, and no more", () => {
+        const account = worldAccount("0xada", {
+            username: "ada",
+            avatar: identity.pfp,
+            walletId: "0xada",
+            email: "ada@example.com",
+            linkedAccounts: ["0xother"],
+            token: "secret",
+            settings: { quality: "high", vrm: "robot" },
+        });
+        expect(account).toEqual({
+            id: "0xada",
+            username: "ada",
+            profile: {
+                avatar: identity.pfp,
+                walletId: "0xada",
+                settings: { quality: "high", vrm: "robot" },
+            },
+        });
+        const visitor = readWorldVisitor(
+            worldVisitorMessage(true, { identity, avatar }, 0.4, {
+                account,
+                gate: { type: "password-error", proof: "x" },
+            })
+        );
+        expect(visitor.account).toEqual(account);
+        expect(visitor.gate).toEqual({ type: "password-error" });
+        expect(visitorUserData(visitor)).toEqual({
+            walletId: "0xada",
+            username: "ada",
+            avatar: identity.pfp,
+            settings: { quality: "high", vrm: "robot", default_vrm_scale: 0.4 },
+        });
+        // with no picture of their own, the world's default stands
+        expect(
+            visitorUserData({
+                ...visitor,
+                account: { ...account, profile: { walletId: "0xada" } },
+            }).avatar
+        ).toBeUndefined();
+        // a guest is never given an account, whatever the message says
+        expect(
+            readWorldVisitor({
+                ...worldVisitorMessage(false, { identity, avatar }),
+                account,
+            }).account
+        ).toBeNull();
+        expect(worldAccount("", { username: "ada" })).toBeNull();
     });
 
     test("a guest carries an avatar but no saved size", () => {
@@ -69,6 +121,7 @@ describe("the visitor a page hands a framed world", () => {
                 url: identity.avatarUrl,
             },
             avatarSize: null,
+            account: null,
         });
     });
 });

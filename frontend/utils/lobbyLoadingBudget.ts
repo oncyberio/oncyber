@@ -73,14 +73,26 @@ export function readLobbyLoadingBudget(
         if (!target || !Number.isFinite(now)) return unrestricted();
         const origin = target.location.origin;
         for (let depth = 0; depth < 4; depth++) {
+            // A world in the site's frame (features/worlds) cannot see the
+            // lobby's frame element: the page around it copies the budget
+            // onto this document's root (utils/lobbyDestinationBridge).
+            type Marked = Pick<Element, "getAttribute" | "hasAttribute">;
+            const root: Marked | null =
+                depth === 0
+                    ? (target as any).document?.documentElement ?? null
+                    : null;
             const parent = target.parent;
-            if (
-                !parent ||
-                parent === target ||
-                parent.location.origin !== origin
-            )
-                return unrestricted();
-            const frame = target.frameElement;
+            let frame: Pick<Element, "getAttribute"> | null = null;
+            if (root?.hasAttribute("data-lobby-loading-attempt")) frame = root;
+            else {
+                if (
+                    !parent ||
+                    parent === target ||
+                    parent.location.origin !== origin
+                )
+                    return unrestricted();
+                frame = target.frameElement;
+            }
             if (!frame) return unrestricted();
             const attempt = frame.getAttribute("data-lobby-loading-attempt");
             if (attempt !== null) {

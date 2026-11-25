@@ -17,6 +17,7 @@ import {
 } from "@features/games/gameContract";
 import { BEAT_EVERY_MS } from "@features/games/frameStall";
 import { WORLD_FRAME, type WorldFrame } from "./worldFrame";
+import { keepFramesComing } from "./worldFrames";
 import { captureWorldLinks } from "./worldLinks";
 import { readWorldVisitor, type WorldVisitor } from "./worldVisitor";
 
@@ -48,7 +49,7 @@ export interface WorldDocument {
      * Asks the page something only it can know (it holds the account).
      * Undefined when the page does not answer.
      */
-    ask(name: string, data?: object): Promise<unknown>;
+    ask(name: string, data?: object, waitMs?: number): Promise<unknown>;
     /** 0–1, while the world loads. */
     progress(value: number, label?: string): void;
     /** The world has drawn: the page may show it. */
@@ -121,6 +122,9 @@ export function createWorldDocument(
         name(readWorldVisitor(event.data));
     };
     win.addEventListener("message", receive);
+    // A frame from another origin is slowed while it is covered or unseen,
+    // which is how a world loads (./worldFrames).
+    const releaseFrames = keepFramesComing(win);
     // Every way out of this document is a request to the page (./worldLinks).
     const releaseLinks = win.document
         ? captureWorldLinks(win, frame, post)
@@ -136,13 +140,13 @@ export function createWorldDocument(
     });
     return {
         visitor: () => visitor,
-        ask(name, data = {}) {
+        ask(name, data = {}, waitMs = ASK_FOR_MS) {
             const n = ++asked;
             return new Promise((resolve) => {
                 const timer = win.setTimeout(() => {
                     answers.delete(n);
                     resolve(undefined);
-                }, ASK_FOR_MS);
+                }, waitMs);
                 answers.set(n, (value) => {
                     win.clearTimeout(timer);
                     resolve(value);
@@ -188,6 +192,7 @@ export function createWorldDocument(
             win.clearInterval(asking);
             win.removeEventListener("message", receive);
             releaseLinks();
+            releaseFrames();
             heard.clear();
             answers.forEach((answer) => answer(undefined));
             answers.clear();

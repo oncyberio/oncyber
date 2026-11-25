@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { captureWorldLinks, readWorldLink } from "./worldLinks";
+import { captureWorldLinks, readWorldFile, readWorldLink } from "./worldLinks";
 import { readWorldFrame } from "./worldFrame";
 
 // jsdom's own address stands in for the world host.
@@ -129,5 +129,61 @@ describe("a framed world's ways out", () => {
         ).toBe(false);
         expect(asked).toEqual([]);
         release = () => {};
+    });
+});
+
+describe("a file the world made", () => {
+    const png = () => new Blob(["x"], { type: "image/png" });
+
+    test("the page offers a picture under a plain name", () => {
+        expect(
+            readWorldFile({ name: "starry night.png", file: png() })
+        ).toEqual({
+            name: "starry night.png",
+            file: expect.any(Blob),
+        });
+        expect(
+            readWorldFile({ name: "../../etc/passwd\u0000.png", file: png() })
+                .name
+        ).toBe("etcpasswd.png");
+        expect(readWorldFile({ file: png() }).name).toBe("oncyber");
+    });
+
+    test("anything else is not offered", () => {
+        for (const message of [
+            { name: "a.html", file: new Blob(["<p>"], { type: "text/html" }) },
+            {
+                name: "a.exe",
+                file: new Blob(["MZ"], { type: "application/x-msdownload" }),
+            },
+            { name: "a.png", file: new Blob([], { type: "image/png" }) },
+            { name: "a.png", file: "data:image/png;base64,AAAA" },
+            null,
+        ])
+            expect(readWorldFile(message)).toBeNull();
+    });
+
+    test("pressing a download link the world never put in the page hands the file to the page", async () => {
+        const asked: { kind: string; data: any }[] = [];
+        const file = png();
+        const fetched: string[] = [];
+        (window as any).fetch = async (address: string) => {
+            fetched.push(address);
+            return { blob: async () => file };
+        };
+        const release = captureWorldLinks(window, frame, (kind, data) =>
+            asked.push({ kind, data })
+        );
+        const anchor = document.createElement("a");
+        anchor.href = "data:image/png;base64,AAAA";
+        anchor.download = "photo.png";
+        anchor.click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(fetched).toEqual(["data:image/png;base64,AAAA"]);
+        expect(asked).toEqual([
+            { kind: "download", data: { name: "photo.png", file } },
+        ]);
+        release();
+        delete (window as any).fetch;
     });
 });

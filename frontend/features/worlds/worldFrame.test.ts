@@ -5,6 +5,8 @@ import {
     readWorldFrame,
     worldFrameRole,
     worldFrameUrl,
+    embeddedElsewhere,
+    framedByAnotherSite,
 } from "./worldFrame";
 import { answerOnWorldHost } from "./worldHost";
 
@@ -127,5 +129,57 @@ describe("the world host", () => {
             expect(answerOnWorldHost(request, frame)).toMatchObject({
                 serve: true,
             });
+    });
+});
+
+describe("a space embedded on another site", () => {
+    const frame = readWorldFrame(
+        "https://worlds.example",
+        "https://www.oncyber.com"
+    );
+    // spaceFrameRole reads the frame the app was built with; these check
+    // the two questions it is made of.
+    test("is told from the request the browser makes for a frame on another site", () => {
+        expect(
+            embeddedElsewhere({
+                "sec-fetch-dest": "iframe",
+                "sec-fetch-site": "cross-site",
+            })
+        ).toBe(true);
+        expect(
+            embeddedElsewhere({
+                "sec-fetch-dest": "iframe",
+                "sec-fetch-site": "same-site",
+            })
+        ).toBe(true);
+        // the lobby's own frame, a visit, a data request
+        for (const headers of [
+            { "sec-fetch-dest": "iframe", "sec-fetch-site": "same-origin" },
+            { "sec-fetch-dest": "document", "sec-fetch-site": "cross-site" },
+            { "sec-fetch-dest": "empty", "sec-fetch-site": "same-origin" },
+            {},
+        ])
+            expect(embeddedElsewhere(headers)).toBe(false);
+        expect(worldFrameRole("www.oncyber.com", frame)).toBe("page");
+    });
+
+    test("is told in the browser from the page at the top", () => {
+        const own: any = { location: { origin: "https://www.oncyber.com" } };
+        own.top = own;
+        expect(framedByAnotherSite(own)).toBe(false);
+        const inLobby: any = {
+            location: { origin: "https://www.oncyber.com" },
+            top: { location: { origin: "https://www.oncyber.com" } },
+        };
+        expect(framedByAnotherSite(inLobby)).toBe(false);
+        const embedded: any = {
+            location: { origin: "https://www.oncyber.com" },
+            top: {
+                get location(): never {
+                    throw new Error("cross-origin");
+                },
+            },
+        };
+        expect(framedByAnotherSite(embedded)).toBe(true);
     });
 });

@@ -81,9 +81,25 @@ export function readDock(message: any): DockAction[] {
     return actions;
 }
 
-/** The world's side: its buttons as a `dock` message. */
-export function dockMessage(actions: DockAction[]) {
+/** The world's side: its buttons, and its connection line, as a `dock` message. */
+export function dockMessage(
+    actions: DockAction[],
+    connection?: {
+        state?: string;
+        count?: number;
+        reason?: string;
+        action?: { label?: string };
+    } | null
+) {
     return {
+        connection: connection?.state
+            ? {
+                  state: connection.state,
+                  count: connection.count,
+                  reason: connection.reason,
+                  action: connection.action?.label,
+              }
+            : undefined,
         actions: actions.map((action) => ({
             id: action.id,
             label: action.label,
@@ -95,5 +111,39 @@ export function dockMessage(actions: DockAction[]) {
             badge: action.badge,
             shortcut: action.shortcut,
         })),
+    };
+}
+
+/**
+ * The line beside the title that says whether the visitor is connected and
+ * how many are here. The world knows; the page, which draws the title,
+ * shows it. Its one action (try again) is pressed like a dock button.
+ */
+export interface DockConnection {
+    state: "connected" | "connecting" | "offline";
+    count?: number;
+    reason?: string;
+    /** What the way back says, when there is one. */
+    action?: string;
+}
+
+/** The id a press on the connection line's action goes by. */
+export const CONNECTION_ACTION = "connection-action";
+
+export function readDockConnection(message: any): DockConnection | null {
+    const value = message?.connection;
+    if (!["connected", "connecting", "offline"].includes(value?.state))
+        return null;
+    const words = (text: unknown) =>
+        typeof text === "string" && text && text.length <= 160
+            ? text
+            : undefined;
+    return {
+        state: value.state,
+        ...(Number.isSafeInteger(value.count) && value.count >= 0
+            ? { count: value.count }
+            : {}),
+        ...(words(value.reason) ? { reason: value.reason } : {}),
+        ...(words(value.action) ? { action: value.action } : {}),
     };
 }

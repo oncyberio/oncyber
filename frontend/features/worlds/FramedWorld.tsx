@@ -23,12 +23,32 @@ import {
 import { WORLD_GAME_ID } from "./worldDocument";
 import { readWorldLocation, worldSpaceId } from "./worldLocation";
 import type { RoomIdentity } from "./roomRelay";
-import { readDock, VOICE_ACTION, type DockAction } from "./worldDock";
+import {
+    CONNECTION_ACTION,
+    readDock,
+    readDockConnection,
+    VOICE_ACTION,
+    type DockAction,
+    type DockConnection,
+} from "./worldDock";
 import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
 import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
 import { setFramedWorldLock } from "./worldPointer";
-import { readWorldLink, type WorldLink } from "./worldLinks";
-import { worldVisitorMessage } from "./worldVisitor";
+import {
+    readWorldFile,
+    readWorldLink,
+    type WorldFile,
+    type WorldLink,
+} from "./worldLinks";
+import { HomeContext } from "@components/context/HomeContext";
+import {
+    failLobbyDestination,
+    isLobbyDestination,
+    relayLobbyDestination,
+} from "@utils/lobbyDestinationBridge";
+import { readPreviewOption } from "@features/lobby/lobbyPreviewOptions";
+import { worldAccount, worldVisitorMessage } from "./worldVisitor";
+import { answerWorldAccount } from "./worldAccountHost";
 import {
     WORLD_PERMISSIONS,
     WORLD_SANDBOX,
@@ -36,9 +56,29 @@ import {
     type WorldFrame,
 } from "./worldFrame";
 
+/**
+ * The world's address for this page's. Inside the lobby, the travel options
+ * the lobby was opened with go along: the world cannot read them from the
+ * lobby's address as an unframed space does.
+ */
+function worldSrc(path: string, frame: WorldFrame) {
+    const url = new URL(worldFrameUrl(path, frame));
+    if (isLobbyDestination())
+        for (const name of ["travel", "reveal", "departure"]) {
+            const value = readPreviewOption(name);
+            if (value && !url.searchParams.has(name))
+                url.searchParams.set(name, value);
+        }
+    return url.href;
+}
+
 /** How long the page offers a link the world asked to open. */
 const LINK_OFFER_MS = 15_000;
-/** A world that has drawn nothing after this long is taken as failed. */
+/**
+ * A world still loading that has said nothing for this long is taken as
+ * failed. A big world on a slow line may load for longer than this; it
+ * reports its progress as it goes, and each report starts the wait again.
+ */
 export const WORLD_LOAD_TIMEOUT_MS = 120_000;
 
 /**
@@ -54,10 +94,13 @@ export default function FramedWorld({
     title,
     spaceId,
     frame,
+    gate,
 }: {
     title: string;
     spaceId: string;
     frame: WorldFrame;
+    /** Whether the page's visitor is let into this space. */
+    gate?: { type: string };
 }) {
     const router = useRouter();
     // Each attempt is a new frame with a new cover.
@@ -74,17 +117,46 @@ export default function FramedWorld({
         const timer = setTimeout(() => setLink(null), LINK_OFFER_MS);
         return () => clearTimeout(timer);
     }, [link]);
-    const visitor = usePageVisitor();
+    // A file the world made (a photo): a frame cannot save one, so the
+    // page offers to, the same way.
+    const [file, setFile] = useState<WorldFile | null>(null);
+    useEffect(() => {
+        if (!file) return;
+        const timer = setTimeout(() => setFile(null), LINK_OFFER_MS);
+        return () => clearTimeout(timer);
+    }, [file]);
+    const saveFile = () => {
+        if (!file) return;
+        const address = URL.createObjectURL(file.file);
+        const anchor = document.createElement("a");
+        anchor.href = address;
+        anchor.download = file.name;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(address), 10_000);
+        setFile(null);
+    };
+    // Signing in is the page's: a world that wants it asks.
+    const dialogs = useContext(HomeContext);
+    const signIn = () => {
+        if (!isSignedIn && dialogs && !dialogs.isAuthShowing)
+            dialogs.toggleAuth();
+    };
+    const visitor = usePageVisitor(gate);
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
     const [dock, setDock] = useState<DockAction[]>([]);
+    // Whether the visitor is connected and how many are here: the world
+    // knows, the page shows it beside the title it draws.
+    const [connection, setConnection] = useState<DockConnection | null>(null);
     const [voice, setVoice] = useState<WorldVoiceView | null>(null);
     const world = useRef<WorldControls | null>(null);
     const reload = () => {
         setFailed(false);
         setStalled(false);
         setLink(null);
+        setFile(null);
         setDock([]);
+        setConnection(null);
         setAttempt((count) => count + 1);
     };
     // The microphone is the page's. Once the world's rules let this visitor
@@ -117,7 +189,7 @@ export default function FramedWorld({
     );
     // The frame is loaded at the page's address once; from then on the
     // world says where it is and the address bar follows it.
-    const [src] = useState(() => worldFrameUrl(router.asPath, frame));
+    const [src] = useState(() => worldSrc(router.asPath, frame));
     // A portal taken inside the frame: another space, named by the world,
     // whose id the page has looked up itself.
     const [elsewhere, setElsewhere] = useState<{
@@ -181,6 +253,22 @@ export default function FramedWorld({
             return false;
         }
     };
+    // What a world may do with the account, done by the page with its own
+    // session (./accountRelay).
+    const account = (name: unknown, data: unknown) =>
+        answerWorldAccount(name, data, {
+            signedIn: !!isSignedIn && !!user?.id,
+            spaceId,
+            origin: window.location.origin,
+            rpc: async (route, method, params, options) =>
+                (await import("@utils/rpc/client")).invokeRemoteRpcMethod(
+                    route,
+                    method,
+                    params,
+                    options
+                ),
+            request: (input, init) => fetch(input, init),
+        });
     const travel = (href: unknown) => {
         const to = publicExperienceHref(href, window.location.origin);
         if (to) void router.push(to);
@@ -200,15 +288,32 @@ export default function FramedWorld({
                 src={src}
                 frame={frame}
                 visitor={visitor}
-                onFailed={() => setFailed(true)}
+                onFailed={() => {
+                    setFailed(true);
+                    // On a trip from the lobby, the lobby says so.
+                    failLobbyDestination(
+                        "This world didn't load.",
+                        "world-load-failed"
+                    );
+                }}
+                onLoaded={() => setFailed(false)}
                 onVisitorChanged={reload}
                 onLocation={follow}
                 onTravel={travel}
                 identify={identify}
                 moderates={moderates}
-                onDock={setDock}
+                account={account}
+                onDock={(actions, line) => {
+                    setDock(actions);
+                    setConnection(line);
+                }}
                 onVoice={setVoice}
                 onStalled={setStalled}
+                onFile={(message) => {
+                    const next = readWorldFile(message);
+                    if (next) setFile(next);
+                }}
+                onSignIn={signIn}
                 onLink={(href) => {
                     // What is not a web address is not offered, and does
                     // not take an offer away.
@@ -222,6 +327,27 @@ export default function FramedWorld({
                 spaceId={elsewhere ? elsewhere.spaceId : spaceId}
                 onExit={() => void router.push("/")}
                 actions={actions}
+                connection={
+                    connection && !elsewhere
+                        ? {
+                              state: connection.state,
+                              count: connection.count,
+                              reason: connection.reason,
+                              action: connection.action
+                                  ? {
+                                        label: connection.action,
+                                        onClick: () =>
+                                            world.current?.press(
+                                                CONNECTION_ACTION
+                                            ),
+                                    }
+                                  : undefined,
+                          }
+                        : connection
+                        ? { state: connection.state, count: connection.count }
+                        : undefined
+                }
+                connectionState={connection?.state}
                 notice={
                     failed
                         ? {
@@ -246,6 +372,12 @@ export default function FramedWorld({
                                   setLink(null);
                               },
                           }
+                        : file
+                        ? {
+                              message: `Save ${file.name}?`,
+                              actionLabel: "Save",
+                              onRetry: saveFile,
+                          }
                         : voice?.error
                         ? { message: voice.error }
                         : undefined
@@ -265,8 +397,8 @@ interface WorldControls {
  * The visitor as the page presents them to a world: null until the account
  * and its avatar have been read. The same object until one of them changes.
  */
-function usePageVisitor() {
-    const { userData, isSignedIn } = useContext(UserContext);
+function usePageVisitor(gate?: { type: string }) {
+    const { userData, user, isSignedIn } = useContext(UserContext);
     const [visitor, setVisitor] = useState<{
         key: string;
         message: object;
@@ -279,7 +411,8 @@ function usePageVisitor() {
             const message = worldVisitorMessage(
                 !!account,
                 presentation,
-                account?.settings?.default_vrm_scale
+                account?.settings?.default_vrm_scale,
+                { account: worldAccount(user?.id, account), gate }
             );
             const key = JSON.stringify(message);
             setVisitor((current) =>
@@ -295,6 +428,8 @@ function usePageVisitor() {
         account?.avatar,
         account?.settings?.vrm,
         account?.settings?.default_vrm_scale,
+        user?.id,
+        gate?.type,
     ]);
     return visitor;
 }
@@ -305,15 +440,19 @@ function WorldFrameView({
     frame,
     visitor,
     onFailed,
+    onLoaded,
     onVisitorChanged,
     onLocation,
     onTravel,
     identify,
     moderates,
+    account,
     onDock,
     onVoice,
     onStalled,
     onLink,
+    onFile,
+    onSignIn,
     controls,
 }: {
     title: string;
@@ -321,6 +460,8 @@ function WorldFrameView({
     frame: WorldFrame;
     visitor: { message: object } | null;
     onFailed(): void;
+    /** The world has drawn. */
+    onLoaded(): void;
     /** The world was told one visitor and the page now has another. */
     onVisitorChanged(): void;
     /** The world's address changed, and the title it gives the place. */
@@ -331,10 +472,16 @@ function WorldFrameView({
     identify(label: string): Promise<RoomIdentity>;
     /** Whether the page's visitor moderates the space with this label. */
     moderates(label: unknown): Promise<boolean>;
+    /** An account call the world asks the page to make. */
+    account(name: unknown, data: unknown): Promise<unknown>;
     /** The buttons the world has for the dock. */
-    onDock(actions: DockAction[]): void;
+    onDock(actions: DockAction[], connection: DockConnection | null): void;
     /** The page's voice in the world's room; null while it is in none. */
     onVoice(voice: WorldVoiceView | null): void;
+    /** The world made a file and asks for it to be saved. */
+    onFile(message: unknown): void;
+    /** The world asks for the sign-in dialog. */
+    onSignIn(): void;
     /** The world asks for a link to be opened in a new tab. */
     onLink(href: unknown): void;
     /** The world went silent after it had drawn, or came back. */
@@ -345,6 +492,8 @@ function WorldFrameView({
     const loading = useGameLoading(WORLD_GAME_ID, element, frame.world);
     const failed = useRef(onFailed);
     failed.current = onFailed;
+    const recovered = useRef(onLoaded);
+    recovered.current = onLoaded;
 
     // The world says hello until the page answers with its visitor: public
     // fields only (./worldVisitor). The world starts once it has them.
@@ -355,20 +504,26 @@ function WorldFrameView({
         onTravel,
         identify,
         moderates,
+        account,
         onDock,
         onVoice,
         onStalled,
         onLink,
+        onFile,
+        onSignIn,
     });
     handlers.current = {
         onLocation,
         onTravel,
         identify,
         moderates,
+        account,
         onDock,
         onVoice,
         onStalled,
         onLink,
+        onFile,
+        onSignIn,
     };
     // A world that has drawn says it is alive about once a second; silence
     // while this page is in view means it has stopped.
@@ -464,16 +619,25 @@ function WorldFrameView({
                     );
                 if (name === "moderator")
                     void handlers.current.moderates(label).then(answer);
+                else if (name === "rpc" || name === "api")
+                    void handlers.current
+                        .account(name, event.data)
+                        .then(answer, () => answer(undefined));
                 else answer(undefined);
                 return;
             }
             if (kind === "alive") return stall.current.beat();
+            if (kind === "download") return handlers.current.onFile(event.data);
+            if (kind === "sign-in") return handlers.current.onSignIn();
             if (kind === "open-link")
                 return handlers.current.onLink(event.data.href);
             if (kind === "pointer-lock")
                 return setFramedWorldLock(event.data.locked === true);
             if (kind === "dock")
-                return handlers.current.onDock(readDock(event.data));
+                return handlers.current.onDock(
+                    readDock(event.data),
+                    readDockConnection(event.data)
+                );
             if (kind === "location")
                 return handlers.current.onLocation(
                     event.data.href,
@@ -507,12 +671,42 @@ function WorldFrameView({
             changed.current();
     }, [visitor]);
 
+    // Reached from the lobby, the journey is the world's: the lobby's
+    // commands go down to it and its answers go up (utils/lobbyDestinationBridge).
+    useEffect(
+        () =>
+            relayLobbyDestination(
+                () => element.current?.contentWindow,
+                frame.world
+            ),
+        [frame.world]
+    );
+
+    // Any word from the world while it loads: it is alive and working.
+    const heard = useRef(0);
+    const began = useRef(0);
+    const [quiet, setQuiet] = useState(0);
+    useEffect(() => {
+        const receive = (event: MessageEvent) => {
+            if (fromFrame(event, element.current, frame.world))
+                heard.current = Date.now();
+        };
+        window.addEventListener("message", receive);
+        return () => window.removeEventListener("message", receive);
+    }, [frame.world]);
     useEffect(() => {
         if (loading.phase === "failed") return failed.current();
-        if (loading.phase !== "loading") return;
-        const timer = setTimeout(() => failed.current(), WORLD_LOAD_TIMEOUT_MS);
+        // Drawn after all: a notice that it did not load no longer holds.
+        if (loading.phase !== "loading") return recovered.current();
+        // From the last word heard, or from when loading began.
+        began.current ||= Date.now();
+        const from = Math.max(heard.current, began.current);
+        const timer = setTimeout(() => {
+            if (heard.current > from) setQuiet((count) => count + 1);
+            else failed.current();
+        }, Math.max(0, from + WORLD_LOAD_TIMEOUT_MS - Date.now()));
         return () => clearTimeout(timer);
-    }, [loading.phase]);
+    }, [loading.phase, quiet]);
 
     return (
         <>
