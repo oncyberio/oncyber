@@ -444,3 +444,14 @@ test("loading is read in the form the game speaks and a page menu's pause goes o
     });
     expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
 });
+
+test("the game uses the shared content sandbox and keeps gamepad input", async () => {
+    await mount();
+    const frame = host.querySelector("iframe");
+    expect(frame.getAttribute("sandbox")).toBe(
+        "allow-scripts allow-pointer-lock"
+    );
+    expect(frame.hasAttribute("credentialless")).toBe(true);
+    expect(frame.getAttribute("allow")).toContain("microphone 'none'");
+    expect(frame.getAttribute("allow")).toContain("gamepad *");
+});

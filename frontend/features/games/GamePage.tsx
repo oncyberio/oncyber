@@ -1,5 +1,9 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { fromFrame } from "./frameOrigin";
+import {
+    CONTENT_PERMISSIONS,
+    CONTENT_SANDBOX,
+} from "@features/content-host/security";
 import { UserContext } from "@components/context/UserContext";
 import {
     failLobbyDestination,
@@ -79,10 +83,6 @@ function readPose(value: any): GamePose | null {
     return { ...pose, a: Math.max(0, Math.min(31, Math.round(pose.a))) };
 }
 
-// Sandboxed like any outside content (docs/content-host.md): an opaque origin,
-// so the game reaches no cookies, storage or account of this page.
-const GAME_SANDBOX = "allow-scripts allow-pointer-lock";
-
 /**
  * A game from public/games/<id> in a sandboxed frame. The page owns identity,
  * the shared room, voice and the game's saved values; the game renders
@@ -111,6 +111,8 @@ export default function GamePage({
     const profile = useRef({ userData, user, authenticated, isAnonymous });
     profile.current = { userData, user, authenticated, isAnonymous };
     const frame = useRef<HTMLIFrameElement>(null);
+    const documentGeneration = useRef(0);
+    const accountId = signedInAccount(profile.current);
     const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
     const [identity, setIdentity] = useState<GameIdentity | null>(null);
@@ -437,6 +439,7 @@ export default function GamePage({
             attachSavedData({
                 game: GAME,
                 remote: createRemoteSavedStore(),
+                documentId: () => documentGeneration.current,
                 fromGame,
                 send: (message) => send.current(message),
                 account: () => signedInAccount(profile.current),
@@ -444,7 +447,7 @@ export default function GamePage({
                 // id the game reads from the trip in `enter` and `party`.
                 party: () => tripNow()?.id ?? null,
             }),
-        []
+        [GAME, accountId, gameFrame?.src]
     );
 
     // One shared room per visit, joined with the identity the game shows.
@@ -568,9 +571,13 @@ export default function GamePage({
                 src={gameFrame?.src ?? `/games/${GAME}/index.html`}
                 data-release={gameFrame?.release ?? undefined}
                 title={title}
-                sandbox={GAME_SANDBOX}
+                sandbox={CONTENT_SANDBOX}
+                onLoad={() => {
+                    documentGeneration.current++;
+                }}
                 referrerPolicy="no-referrer"
-                allow="gamepad; autoplay"
+                allow={`${CONTENT_PERMISSIONS}; gamepad *`}
+                {...({ credentialless: "" } as any)}
                 style={{
                     width: "100%",
                     height: "100%",
