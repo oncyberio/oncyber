@@ -574,7 +574,31 @@ export class CameraMotionBlur {
 
 		this.updateAnchor( camera, time )
 
+		// Did the camera move since last frame? A still frame is drawn
+		// straight to the output: no blur to compute, nothing to pay.
+		const moved = !cut && !s.viewProjection.equals( this.previousViewProjection )
+
 		const oldTarget = renderer.getRenderTarget()
+
+		if ( !moved ) {
+
+			try {
+
+				renderer.setRenderTarget( output )
+
+				if ( output ) renderer.clear( true, true, true )
+
+				renderer.render( scene, camera )
+			}
+			finally {
+
+				renderer.setRenderTarget( oldTarget )
+			}
+
+			this.remember( s, time, false )
+
+			return true
+		}
 
 		const oldAutoClear = renderer.autoClear
 
@@ -615,10 +639,15 @@ export class CameraMotionBlur {
 			renderer.autoClear = oldAutoClear
 		}
 
-		// Did this frame move? The next still frame then needs a sharp redraw.
-		const moved = !cut && !s.viewProjection.equals( this.previousViewProjection )
+		this.remember( s, time, true )
 
-		this.settling = moved
+		return true
+	}
+
+	/** Keep this frame's camera for the next; a blurred frame needs a sharp one after. */
+	remember( s, time, blurred ) {
+
+		this.settling = blurred
 
 		this.previousViewProjection.copy( s.viewProjection )
 
@@ -627,8 +656,6 @@ export class CameraMotionBlur {
 		this.previous.quaternion.copy( s.quaternion )
 
 		this.previous.time = time
-
-		return true
 	}
 
 	/**
