@@ -356,7 +356,10 @@ export default function FramedWorld({
                 onStalled={setStalled}
                 onFile={(message) => {
                     const next = readWorldFile(message);
-                    if (next) setFile(next);
+                    if (!next) return;
+                    // The newest ask is the one on offer.
+                    setLink(null);
+                    setFile(next);
                 }}
                 onSignIn={signIn}
                 onScript={(kind, data) =>
@@ -366,7 +369,9 @@ export default function FramedWorld({
                     // What is not a web address is not offered, and does
                     // not take an offer away.
                     const next = readWorldLink(href, window.location.origin);
-                    if (next) setLink(next);
+                    if (!next) return;
+                    setFile(null);
+                    setLink(next);
                 }}
                 controls={world}
             />

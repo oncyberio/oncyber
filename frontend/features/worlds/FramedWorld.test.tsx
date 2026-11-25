@@ -826,6 +826,25 @@ describe("a file the world asks to save", () => {
         click.mockRestore();
     });
 
+    test("the newest ask is the one on offer, a link or a file", () => {
+        const photo = {
+            type: "oncyber:game:download",
+            name: "photo.png",
+            file: new Blob(["x"], { type: "image/png" }),
+        };
+        fromWorld({
+            type: "oncyber:game:open-link",
+            href: "https://a.example",
+        });
+        fromWorld(photo);
+        expect(retry().textContent).toBe("Save photo.png?");
+        fromWorld({
+            type: "oncyber:game:open-link",
+            href: "https://b.example",
+        });
+        expect(retry().textContent).toBe("Open b.example in a new tab?");
+    });
+
     test("a page that is not a picture or a film is not offered", () => {
         fromWorld({
             type: "oncyber:game:download",
