@@ -37,7 +37,10 @@ off the mat as a multiple of its width, and `label` shows a wall label when
 the artwork has a title. `frame.credit` is an optional gallery credit the
 artist types in for that label (`artist`, `location`, `title`, `x` as a
 handle without "@", `website` without "https://"); empty fields are left
-out, and a credit title replaces the artwork's own. Readers that
+out, and a credit title replaces the artwork's own. `fit` is `"image"` (the
+art's own proportions, the default) or `"square"` (a 1:1 frame with the art
+cropped to fill it; panoramas always use `"image"`), and `labelRounded`
+rounds the label's corners (default `true`). Readers that
 don't know a `style` should draw the flat border in `borderColor`
 (`normalizeFrame` in
 `frontend/components/_3DExhibit-v2/three/factory/border/galleryFrame.ts`).

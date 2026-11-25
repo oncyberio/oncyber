@@ -22,6 +22,7 @@ import { LoadingMaterial } from "./materials/loadingmaterial"
 import { queueMediaUpgrade } from "@utils/media/upgrades"
 
 import { getMediaDimensions } from "@utils/metadata/reformatAsset"
+import { coverCrop, normalizeFrame, squareSide } from "../../border/galleryFrame"
 
 
 
@@ -104,6 +105,13 @@ export class LODMesh extends ArtworkMesh {
         this.shape = opts.item.data?.shape;
 
         this.forceHI = false
+
+        /** The media's own size, kept so the frame's fit can change later. */
+        this.mediaDimensions = null
+
+        /** "square": a 1:1 surface with the art cropped to fill it. */
+        this.fit = this.lod?.hi?.type === "PANORAMA_MEDIA" ? "image"
+            : normalizeFrame(opts.item.data?.frame)?.fit || "image"
 
         // this.forceLOD = 
     }
@@ -194,7 +202,21 @@ export class LODMesh extends ArtworkMesh {
         this.setMaterial(this.loMaterial)
     }
 
+    /**
+     * Switches between the art's own proportions and a 1:1 surface cropped
+     * to fill it (a gallery frame's `fit`). Panoramas keep their shape.
+     *
+     * @param { "image" | "square" } fit
+     */
+    setFit(fit) {
+        const next = fit === "square" && this.lod?.hi?.type !== "PANORAMA_MEDIA" ? "square" : "image"
+        if (next === this.fit) return
+        this.fit = next
+        if (this.mediaDimensions) this.updateMediaDimensions(this.mediaDimensions)
+    }
+
     updateMediaDimensions(dimensions) {
+        if (dimensions) this.mediaDimensions = dimensions
         const { depth, ...size } = getMediaDimensions({
             ...dimensions,
             artworkData: this.item.data,
@@ -203,13 +225,28 @@ export class LODMesh extends ArtworkMesh {
         let { width, height } = size
         if(this.shape === "circle") width = height
         if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return
+        const square = this.fit === "square" && this.shape !== "circle"
+        const crop = square ? coverCrop(width, height) : null
+        if (square) width = height = squareSide(width, height)
         const currentGeometry = /** @type {PlaneGeometry} */ (this.geometry)
         if (this.geometryReady && currentGeometry.parameters.width === width &&
-            currentGeometry.parameters.height === height) return
+            currentGeometry.parameters.height === height &&
+            currentGeometry.userData?.fit === this.fit) return
         if (this.geometryReady) this.geometry.dispose()
         const geometry = this.shape === "circle" ?
             new CircleGeometry(width / 2, 32) : new PlaneGeometry(width, height)
         Object.assign(geometry.parameters, { width, height })
+        geometry.userData.fit = this.fit
+        if (crop) {
+            // object-fit: cover — show the centre of the art
+            const uv = geometry.attributes.uv
+            for (let i = 0; i < uv.count; i++) {
+                uv.setXY(i,
+                    crop.u0 + uv.getX(i) * (crop.u1 - crop.u0),
+                    crop.v0 + uv.getY(i) * (crop.v1 - crop.v0))
+            }
+            uv.needsUpdate = true
+        }
         this.geometry = /** @type {PlaneGeometry} */ (geometry)
         this.geometryReady = true
         this.position.z = depth * 0.50

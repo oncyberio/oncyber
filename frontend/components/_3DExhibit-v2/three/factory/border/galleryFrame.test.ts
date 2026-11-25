@@ -2,8 +2,10 @@ import {
     GALLERY_FRAME_DEFAULTS,
     galleryFrameLayout,
     galleryLabelText,
+    coverCrop,
     galleryMouldingColor,
     normalizeCredit,
+    squareSide,
     normalizeFrame,
     referenceSide,
     type FrameBox,
@@ -127,7 +129,9 @@ describe("galleryFrameLayout", () => {
         expect(b.z[0]).toBeCloseTo(-depth / 2);
 
         const matFront = Math.max(
-            ...boxes.filter((it) => it.part === "mat").map((it) => it.z + it.d / 2)
+            ...boxes
+                .filter((it) => it.part === "mat")
+                .map((it) => it.z + it.d / 2)
         );
         const frameFront = Math.max(
             ...boxes
@@ -261,7 +265,9 @@ describe("gallery credit", () => {
             website: "jarlanperez.com",
         });
         expect(normalizeCredit({ x: "@jarlan_p" })).toEqual({ x: "jarlan_p" });
-        expect(normalizeCredit({ artist: "a".repeat(200) }).artist).toHaveLength(48);
+        expect(
+            normalizeCredit({ artist: "a".repeat(200) }).artist
+        ).toHaveLength(48);
     });
 
     it("shows the artist's fields, falling back to the artwork's title", () => {
@@ -281,7 +287,8 @@ describe("gallery credit", () => {
 
     it("lets a credit title replace the artwork's, and label untitled art", () => {
         expect(
-            galleryLabelText({ name: "IMG_2231.jpg" }, { title: "Outlast" }).title
+            galleryLabelText({ name: "IMG_2231.jpg" }, { title: "Outlast" })
+                .title
         ).toBe("Outlast");
         expect(
             galleryLabelText({}, { artist: "Jarlan Perez" }).credit.artist
@@ -307,5 +314,47 @@ describe("gallery credit", () => {
         }).label;
         expect(credit.w).toBeGreaterThan(plain.w);
         expect(credit.h / credit.w).toBeGreaterThan(plain.h / plain.w);
+    });
+});
+
+describe("frame shape and rounded labels", () => {
+    it("defaults to the image's ratio and rounded labels", () => {
+        expect(gallery().fit).toBe("image");
+        expect(gallery({ fit: "square" }).fit).toBe("square");
+        expect(gallery({ fit: "circle" }).fit).toBe("image");
+        expect(gallery().labelRounded).toBe(true);
+        expect(gallery({ labelRounded: false }).labelRounded).toBe(false);
+    });
+
+    it("crops the centre of the art to fill a square", () => {
+        expect(coverCrop(16, 9)).toEqual({
+            u0: 0.5 - 0.5 * (9 / 16),
+            u1: 0.5 + 0.5 * (9 / 16),
+            v0: 0,
+            v1: 1,
+        });
+        const tall = coverCrop(2, 3);
+        expect(tall.u0).toBe(0);
+        expect(tall.v1 - tall.v0).toBeCloseTo(2 / 3);
+        expect(coverCrop(5, 5)).toEqual({ u0: 0, u1: 1, v0: 0, v1: 1 });
+        expect(coverCrop(0, 5)).toEqual({ u0: 0, u1: 1, v0: 0, v1: 1 });
+    });
+
+    it("keeps the art's area when it goes square", () => {
+        expect(squareSide(16, 9)).toBeCloseTo(12);
+        expect(squareSide(4, 4)).toBe(4);
+    });
+
+    it("draws no plate box for a rounded label, but still places it", () => {
+        const opts = { width: 2, height: 3, depth: 0.1, frame: gallery() };
+        const square = galleryFrameLayout({ ...opts, withLabel: true });
+        const round = galleryFrameLayout({
+            ...opts,
+            withLabel: true,
+            roundedLabel: true,
+        });
+        expect(round.boxes.filter((b) => b.part === "label")).toHaveLength(0);
+        expect(round.boxes).toHaveLength(square.boxes.length - 1);
+        expect(round.label).toEqual(square.label);
     });
 });

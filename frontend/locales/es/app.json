@@ -739,5 +739,9 @@
     "Location": "Ubicación",
     "Artwork title": "Título de la obra",
     "X handle": "Usuario de X",
-    "Website": "Sitio web"
+    "Website": "Sitio web",
+    "Frame shape": "Forma del marco",
+    "Image ratio": "Proporción de la imagen",
+    "Square fill": "Cuadrado relleno",
+    "Rounded corners": "Esquinas redondeadas"
 }

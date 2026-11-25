@@ -34,6 +34,8 @@ export interface ArtworkFramePickerProps {
     allowGallery?: boolean;
     /** The artwork has a title a wall label can show. */
     hasLabelText?: boolean;
+    /** The art can be cropped into a square frame (not panoramas). */
+    allowSquare?: boolean;
     onChange: (color: string) => void;
     /** Save a new frame style (null: back to the flat border). */
     onFrameChange?: (frame: ArtworkFrame | null, color: string) => void;
@@ -47,6 +49,7 @@ export function ArtworkFramePicker({
     disabled = false,
     allowGallery = false,
     hasLabelText = false,
+    allowSquare = false,
     onChange,
     onFrameChange,
     onFramePreview,
@@ -291,6 +294,44 @@ export function ArtworkFramePicker({
                         </>
                     ) : null}
 
+                    {allowSquare ? (
+                        <>
+                            <Label
+                                className="component-label"
+                                id="frame-fit-label"
+                            >
+                                {tx("Frame shape")}
+                            </Label>
+                            <Segmented
+                                role="group"
+                                aria-labelledby="frame-fit-label"
+                            >
+                                {(
+                                    [
+                                        ["image", tx("Image ratio")],
+                                        ["square", tx("Square fill")],
+                                    ] as const
+                                ).map(([fit, title]) => {
+                                    const selected = gallery.fit === fit;
+                                    return (
+                                        <SegmentButton
+                                            key={fit}
+                                            type="button"
+                                            aria-pressed={selected}
+                                            disabled={disabled}
+                                            $selected={selected}
+                                            onClick={() =>
+                                                !selected && update({ fit })
+                                            }
+                                        >
+                                            {title}
+                                        </SegmentButton>
+                                    );
+                                })}
+                            </Segmented>
+                        </>
+                    ) : null}
+
                     <Row>
                         <Label className="component-label">
                             {tx("Wall label")}
@@ -304,6 +345,19 @@ export function ArtworkFramePicker({
                     </Row>
                     {gallery.label ? (
                         <>
+                            <Row>
+                                <Label className="component-label">
+                                    {tx("Rounded corners")}
+                                </Label>
+                                <Toggle
+                                    label={tx("Rounded corners")}
+                                    value={gallery.labelRounded}
+                                    disabled={disabled}
+                                    onChange={(labelRounded) =>
+                                        update({ labelRounded })
+                                    }
+                                />
+                            </Row>
                             <Row>
                                 <Label className="component-label">
                                     {tx("Artist details")}
@@ -441,7 +495,9 @@ export const DEFAULT_GALLERY_FRAME: ArtworkFrame = {
     mat: GALLERY_FRAME_DEFAULTS.mat,
     matWidth: GALLERY_FRAME_DEFAULTS.matWidth,
     matColor: GALLERY_FRAME_DEFAULTS.matColor,
+    fit: GALLERY_FRAME_DEFAULTS.fit,
     label: GALLERY_FRAME_DEFAULTS.label,
+    labelRounded: GALLERY_FRAME_DEFAULTS.labelRounded,
 };
 
 const Segmented = styled.div`

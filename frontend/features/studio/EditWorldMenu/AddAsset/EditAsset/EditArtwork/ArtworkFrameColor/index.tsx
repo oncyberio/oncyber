@@ -23,6 +23,7 @@ export function ArtworkFrameColor() {
             disabled={!mesh}
             allowGallery={allowGallery}
             hasLabelText={galleryLabelText(data) != null}
+            allowSquare={mesh?.mediaType !== TYPES.PANORAMA}
             onChange={(color) =>
                 handleChangeFrame({
                     color,

@@ -24,6 +24,7 @@ import GalleryFrameMaterial from "./galleryframematerial"
 
 import {
 
+    LABEL_CORNER,
     galleryFrameLayout,
     galleryLabelText,
     galleryMouldingColor,
@@ -130,6 +131,7 @@ export class GalleryFrames {
             frame,
             withLabel: labelText != null,
             creditLabel: labelText?.credit != null,
+            roundedLabel: frame.labelRounded,
         })
 
         const mesh = this.getMesh()
@@ -188,14 +190,14 @@ export class GalleryFrames {
             wrapper.setBorder(box.part === "frame" ? 1 : 0)
         }
 
-        this.setLabel(artwork, entry, layout.label, labelText)
+        this.setLabel(artwork, entry, layout.label, labelText, frame.labelRounded)
     }
 
     /**
      * The label's words, as a textured plane on the plate. A child of the
      * artwork, so it follows the artwork's transform.
      */
-    setLabel(artwork, entry, rect, text) {
+    setLabel(artwork, entry, rect, text, rounded = false) {
 
         if(rect == null || text == null) {
 
@@ -204,7 +206,7 @@ export class GalleryFrames {
             return
         }
 
-        const key = JSON.stringify(text)
+        const key = JSON.stringify(text) + (rounded ? "|r" : "")
 
         if(entry.label == null || entry.labelKey !== key) {
 
@@ -212,7 +214,9 @@ export class GalleryFrames {
 
             if(text.credit) loadLabelFont()
 
-            const texture = new CanvasTexture(text.credit ? drawCreditLabel(text.credit) : drawLabel(text))
+            const draw = () => text.credit ? drawCreditLabel(text.credit, rounded) : drawLabel(text, rounded)
+
+            const texture = new CanvasTexture(draw())
 
             texture.anisotropy = 4
 
@@ -222,7 +226,8 @@ export class GalleryFrames {
 
                 new PlaneGeometry(1, 1),
 
-                new MeshBasicMaterial({ map: texture, transparent: !text.credit, toneMapped: false, fog: false }),
+                // A rounded plate is the label itself, its corners cut out of the texture.
+                new MeshBasicMaterial({ map: texture, transparent: rounded || !text.credit, toneMapped: false, fog: false }),
 
                 { visibleOnOcclusion: false }
             )
@@ -242,7 +247,7 @@ export class GalleryFrames {
 
                     if(!ok || entry.label !== label) return
 
-                    texture.image = drawCreditLabel(text.credit)
+                    texture.image = draw()
 
                     texture.needsUpdate = true
                 })
@@ -321,8 +326,9 @@ export class GalleryFrames {
  * Title (and artist) on a transparent canvas, dark ink for a light plate.
  *
  * @param { { title: string, artist: string } } text
+ * @param { boolean } rounded draw the plate too, with rounded corners
  */
-function drawLabel({ title, artist }) {
+function drawLabel({ title, artist }, rounded = false) {
 
     const canvas = document.createElement("canvas")
 
@@ -331,6 +337,9 @@ function drawLabel({ title, artist }) {
     canvas.height = 232
 
     const ctx = canvas.getContext("2d")
+
+    // square plates are boxes drawn behind this transparent text
+    if(rounded) fillPlate(ctx, canvas, PLATE_COLOR, true)
 
     const pad = 34
 
@@ -408,8 +417,9 @@ function loadLabelFont() {
  * reads as a printed card. Empty fields are left out and the rest close up.
  *
  * @param { { artist: string, location: string, title: string, x: string, website: string } } credit
+ * @param { boolean } rounded draw the card with rounded corners
  */
-function drawCreditLabel(credit) {
+function drawCreditLabel(credit, rounded = false) {
 
     const canvas = document.createElement("canvas")
 
@@ -420,9 +430,7 @@ function drawCreditLabel(credit) {
 
     const ctx = canvas.getContext("2d")
 
-    ctx.fillStyle = "#ffffff"
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    fillPlate(ctx, canvas, "#ffffff", rounded)
 
     const pad = 46
 
@@ -555,6 +563,30 @@ function drawGlobeIcon(ctx, x, y, size) {
     ctx.stroke()
 
     ctx.restore()
+}
+
+/**
+ * The plate's face: the whole canvas, or a rounded card whose corners stay
+ * transparent.
+ */
+function fillPlate(ctx, canvas, color, rounded) {
+
+    ctx.fillStyle = color
+
+    if(!rounded) {
+
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        return
+    }
+
+    const r = canvas.height * LABEL_CORNER
+
+    ctx.beginPath()
+
+    ctx.roundRect(0, 0, canvas.width, canvas.height, r)
+
+    ctx.fill()
 }
 
 function fit(ctx, text, maxWidth) {

@@ -23,8 +23,16 @@ export interface ArtworkFrame {
     matWidth?: number;
     /** Mat colour, "#rrggbb". */
     matColor?: string;
+    /**
+     * Frame shape: "image" follows the artwork's own proportions; "square"
+     * hangs it in a 1:1 frame with the art cropped to fill it (images and
+     * videos only).
+     */
+    fit?: GalleryFit;
     /** Show a wall label with the title and artist, when the art has a title. */
     label?: boolean;
+    /** Round the wall label's corners. */
+    labelRounded?: boolean;
     /**
      * Optional gallery credit typed by the artist, mostly for uploaded art
      * that has no on-chain metadata. Any field left empty falls back to the
@@ -32,6 +40,8 @@ export interface ArtworkFrame {
      */
     credit?: GalleryCredit | null;
 }
+
+export type GalleryFit = "image" | "square";
 
 export interface GalleryCredit {
     /** Artist name, the label's headline. */
@@ -74,7 +84,9 @@ export const GALLERY_FRAME_DEFAULTS: GalleryFrame = {
     mat: true,
     matWidth: 12,
     matColor: "#ece8e1",
+    fit: "image",
     label: false,
+    labelRounded: true,
     credit: null,
 };
 
@@ -85,7 +97,12 @@ export const GALLERY_FRAME_LIMITS = {
 } as const;
 
 /** Moulding colours offered in Studio; the first is the default. */
-export const GALLERY_FRAME_COLORS = ["#141414", "#5d4e43", "#cba781", "#f2f0eb"];
+export const GALLERY_FRAME_COLORS = [
+    "#141414",
+    "#5d4e43",
+    "#cba781",
+    "#f2f0eb",
+];
 
 /** The moulding colour: the artwork's frame colour, or near-black. */
 export function galleryMouldingColor(borderColor: unknown) {
@@ -135,7 +152,12 @@ export function normalizeFrame(frame: unknown): GalleryFrame | null {
         mat: typeof it.mat === "boolean" ? it.mat : d.mat,
         matWidth: clamp(num(it.matWidth, d.matWidth), limits.matWidth),
         matColor: hex(it.matColor, d.matColor),
+        fit: it.fit === "square" ? "square" : "image",
         label: it.label === true,
+        labelRounded:
+            typeof it.labelRounded === "boolean"
+                ? it.labelRounded
+                : d.labelRounded,
         credit: normalizeCredit(it.credit),
     };
 }
@@ -178,6 +200,29 @@ export function normalizeCredit(credit: unknown): GalleryCredit | null {
     }
     return Object.keys(out).length ? out : null;
 }
+
+/**
+ * The part of the art that fills a square frame, as a UV window: the
+ * centre square of a landscape or portrait image (CSS `object-fit: cover`).
+ */
+export function coverCrop(width: number, height: number) {
+    if (!(width > 0) || !(height > 0)) return { u0: 0, u1: 1, v0: 0, v1: 1 };
+    const aspect = width / height;
+    if (aspect >= 1) {
+        const half = 0.5 / aspect;
+        return { u0: 0.5 - half, u1: 0.5 + half, v0: 0, v1: 1 };
+    }
+    const half = 0.5 * aspect;
+    return { u0: 0, u1: 1, v0: 0.5 - half, v1: 0.5 + half };
+}
+
+/** Side of the square frame's art: the same area as the image's own. */
+export function squareSide(width: number, height: number) {
+    return Math.sqrt(width * height);
+}
+
+/** Corner radius of a rounded label plate, a share of its height. */
+export const LABEL_CORNER = 0.07;
 
 /**
  * The length frame and mat widths are a share of: the shorter side, but at
@@ -224,6 +269,11 @@ export interface GalleryFrameLayoutOptions {
     withLabel?: boolean;
     /** A gallery-credit label: larger, and taller for its extra lines. */
     creditLabel?: boolean;
+    /**
+     * A rounded label: the plate is drawn as its own rounded mesh, so no box
+     * is added for it (the label rect is still returned).
+     */
+    roundedLabel?: boolean;
 }
 
 /** Four boxes around a `w` × `h` opening, `t` wide, from z0 to z1. */
@@ -262,6 +312,7 @@ export function galleryFrameLayout({
     frame,
     withLabel = false,
     creditLabel = false,
+    roundedLabel = false,
 }: GalleryFrameLayoutOptions): GalleryFrameLayout {
     const W = width * scale.x;
     const H = height * scale.y;
@@ -321,15 +372,16 @@ export function galleryFrameLayout({
         const thick = h * 0.08;
         const x = outer.w / 2 + ref * 0.08 + w / 2;
         const y = -outer.h / 2 + h / 2;
-        boxes.push({
-            part: "label",
-            x,
-            y,
-            z: zBack + thick / 2,
-            w,
-            h,
-            d: thick,
-        });
+        if (!roundedLabel)
+            boxes.push({
+                part: "label",
+                x,
+                y,
+                z: zBack + thick / 2,
+                w,
+                h,
+                d: thick,
+            });
         label = { x, y, z: zBack + thick, w, h };
     }
 
@@ -340,7 +392,8 @@ export function galleryFrameLayout({
 export const GALLERY_CREDIT_ASPECT = 0.58;
 
 const FILE_NAME = /\.[a-z0-9]{2,5}$/i;
-const ACCOUNT_ID = /^(0x[0-9a-f]{6,}|tz[123][A-Za-z0-9]{20,}|[A-Za-z0-9]{24,})$/i;
+const ACCOUNT_ID =
+    /^(0x[0-9a-f]{6,}|tz[123][A-Za-z0-9]{20,}|[A-Za-z0-9]{24,})$/i;
 const PLACEHOLDER =
     /^(untitled|null|undefined|no description provided\.?|nulladdress)$/i;
 

@@ -232,6 +232,13 @@ export class SpaceArtwork extends SpaceItem {
 
         const gallery = this.galleryFrame
 
+        // A square gallery frame crops the art to fill it; anything else
+        // shows the art at its own proportions.
+        /** @type { any } only LOD meshes (images, videos) can change fit */
+        const mesh = this.mesh
+
+        mesh?.setFit?.(gallery?.fit === "square" ? "square" : "image")
+
         if(this.instancedBorder) {
 
             this.instancedBorder.visible = gallery == null && this.instancedBorderOpts?._visible !== false
