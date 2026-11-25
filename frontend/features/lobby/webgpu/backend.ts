@@ -19,9 +19,14 @@ import { LOBBY_ENVIRONMENT } from "../lobbyEnvironment";
 import { createNameTags } from "./nameTags";
 import { LOBBY_FLOOR_DISSOLVE } from "../lobbyFloorDissolve";
 import type { LobbySceneBackend } from "../createLobbyScene";
+import { CameraMotionBlur } from "@3gl/renderer/motionblur/cameraMotionBlur";
+import { pageMotionBlurOptions } from "@3gl/renderer/motionblur/settings";
 
 /** Pure rendering graph: webpack isolates all transitive Three imports here. */
 export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
+    // Camera motion blur (?motionblur=1), shared with spaces.
+    const blurOptions = pageMotionBlurOptions();
+    let blur: CameraMotionBlur | undefined;
     const backend = {
         three: THREE,
         createAvatar,
@@ -190,9 +195,18 @@ export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
         render(
             renderer: THREE.WebGPURenderer,
             scene: THREE.Scene,
-            camera: THREE.PerspectiveCamera
+            camera: THREE.PerspectiveCamera,
+            anchor?: THREE.Object3D | null,
+            anchorHeight?: number
         ) {
             renderer.info.reset();
+            // Only the animation loop passes an anchor (or null): a one-off
+            // redraw has no previous frame to blur from.
+            if (blurOptions.enabled && anchor !== undefined) {
+                blur ??= new CameraMotionBlur(blurOptions);
+                blur.setAnchor(anchor, anchorHeight);
+                if (blur.render(renderer, scene, camera, null)) return;
+            } else blur?.reset();
             renderer.render(scene, camera);
         },
         stats: (renderer: THREE.WebGPURenderer) => ({

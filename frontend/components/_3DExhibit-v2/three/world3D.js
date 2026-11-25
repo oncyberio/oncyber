@@ -84,6 +84,10 @@ import { SpacePlaceholder } from "./factory/artwork/placeholders/spaceplaceholde
 
 import PostProcessing from "./renderer/postprocessing"
 
+import { motionBlurSettling } from "./renderer/motionblur"
+
+import Players from "@3factory/player"
+
 
 import FPSCalc from '@3utils/fps.js'
 
@@ -1235,6 +1239,7 @@ export default class World3D {
             && !STATS
             && !CINEMATIC
             && !Dynamicportal.active
+            && !motionBlurSettling()
             && SKIPPABLE_STATES.has(CURRENT_STATE)
     }
 
@@ -1291,7 +1296,7 @@ export default class World3D {
 
         if(draw) {
 
-            PostProcessing.render( Scene, Camera.current, CURRENT_SPACE?.roomParameters || {} )
+            PostProcessing.renderMain( Scene, Camera.current, CURRENT_SPACE?.roomParameters || {}, IS_FIRST_PERSON ? null : Players.main )
 
             // render cinematic thumbnail if needed
             CinematicThumbRenderer.render(  Scene, Camera.current, CURRENT_SPACE?.roomParameters || {} )

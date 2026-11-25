@@ -91,6 +91,50 @@ class PostProcessing {
 
 
 	/**
+	 * The space's own view, drawn to the canvas: the one frame that gets
+	 * camera motion blur when the page turns it on. `anchor` is what moves
+	 * with the camera (the visitor's avatar in third person), or null.
+	 */
+	renderMain(scene, camera, roomParameters, anchor = null) {
+
+		this.mainFrame = true
+
+		this.anchor = anchor
+
+		try {
+
+			this.render(scene, camera, roomParameters)
+		}
+		finally {
+
+			this.mainFrame = false
+
+			this.anchor = null
+		}
+	}
+
+	/** The motion blur for this frame, or null. Headsets never get one. */
+	motionBlurFor(target) {
+
+		if( !this.mainFrame || target != null ) return null
+
+		const blur = spaceMotionBlur()
+
+		if( !blur ) return null
+
+		if( Renderer.xr?.isPresenting === true ) {
+
+			blur.reset()
+
+			return null
+		}
+
+		blur.setAnchor( this.anchor )
+
+		return blur
+	}
+
+	/**
 	 * A throw inside the renderer stops the frame before it puts its output
 	 * target back, and every later frame then draws into that offscreen
 	 * target: the view stays black for good. Put the renderer back so the
@@ -171,6 +215,8 @@ class PostProcessing {
 
 		Emitter.emit(Events.PRE_RENDER, scene, camera )
 
+		const blur = this.motionBlurFor( target )
+
 		if ( roomParameters?.usePostProcessing?.enabled == true ) {
 
 
@@ -189,11 +235,16 @@ class PostProcessing {
 
 			// diffuse
 
-			Renderer.setRenderTarget(this.target)
+			if( !blur?.render( Renderer, scene, camera, this.target ) ) {
 
-			Renderer.clear(true,true,false)
+				Renderer.setRenderTarget(this.target)
 
-			Renderer.render(scene, camera)
+				Renderer.clear(true,true,false)
+
+				Renderer.render(scene, camera)
+			}
+
+			Renderer.autoClear = false
 
 			if( type == POST_TYPES.BLOOM || type == POST_TYPES.CYBERCITY ) {
 
@@ -215,7 +266,7 @@ class PostProcessing {
 
 		}
 
-		else {
+		else if( !blur?.render( Renderer, scene, camera, null ) ) {
 
 			if( target != null ) {
 

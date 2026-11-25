@@ -26,6 +26,8 @@ test("the editor, uploader, XR, recordings and transitions never skip", () => {
         "!STATS",
         "!CINEMATIC",
         "!Dynamicportal.active",
+        // a blurred frame is followed by a sharp one
+        "!motionBlurSettling()",
         "SKIPPABLE_STATES.has(CURRENT_STATE)",
     ])
         expect(skip).toContain(condition);
@@ -45,7 +47,7 @@ test("a frame decides, updates matrices, looks, draws, then reports", () => {
     const matrices = at("Scene.updateMatrixWorld()");
     const confirm = at("this.renderGate.confirm(Scene, Camera.current)");
     const css = at("CSS3DRenderer.update()");
-    const draw = at("if(draw) {\n\n            PostProcessing.render(");
+    const draw = at("if(draw) {\n\n            PostProcessing.renderMain(");
     const end = at("this.renderGate?.end()");
     expect(begin).toBeLessThan(matrices);
     expect(matrices).toBeLessThan(confirm);

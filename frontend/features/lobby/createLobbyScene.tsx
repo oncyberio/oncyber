@@ -94,10 +94,16 @@ export interface LobbySceneBackend {
     lightScale: number;
     shadowCapacity?: number;
     name: (renderer: THREE.WebGLRenderer) => string;
+    /**
+     * `anchor`: what moves with the camera (the visitor's avatar), passed
+     * only by the animation loop. With it, ?motionblur=1 blurs the frame.
+     */
     render: (
         renderer: THREE.WebGLRenderer,
         scene: THREE.Scene,
-        camera: THREE.PerspectiveCamera
+        camera: THREE.PerspectiveCamera,
+        anchor?: THREE.Object3D | null,
+        anchorHeight?: number
     ) => void;
     compile: (
         renderer: THREE.WebGLRenderer,
@@ -3185,7 +3191,13 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             projectSpeech
                         );
                         try {
-                            backend.render(renderer, scene, camera);
+                            backend.render(
+                                renderer,
+                                scene,
+                                camera,
+                                self.model ? self.group : null,
+                                self.model?.height
+                            );
                         } catch {
                             onContextLost(new Event("lobbycontextlost"));
                             return;
