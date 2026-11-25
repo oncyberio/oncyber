@@ -475,9 +475,12 @@ class InstanceAvatar3D {
 
 							highQualityMeshes.mixer.update( delta )
 
-							highQualityMeshes.vrm.update( delta )
-
 							highQualityMeshes.position.copy(wrapper.position)
+
+							// The lobby's posture, planted feet and clip handoffs.
+							wrapper.lobbyMotion?.afterMixer?.( delta )
+
+							highQualityMeshes.vrm.update( delta )
 
 							// highQualityMeshes.parent.updateWorldMatrix(true, true)
 
@@ -644,6 +647,9 @@ class InstanceAvatar3D {
 	}
 
 	setAnimations( wrapper, delta ){
+
+        // Undo last frame's procedural detail before anything samples bones.
+        wrapper.lobbyMotion?.restore?.()
 
         // Back owns the ready idle until the native renderer is released. Keep
         // the same action object so repeated holds never restart its clock.

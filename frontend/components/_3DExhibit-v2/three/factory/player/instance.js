@@ -1431,10 +1431,9 @@ export default class InstancePlayer extends Group {
         motion.stopping = playerState.originalDirection.lengthSq() === 0 &&
             playerState.joystickState.pan.lengthSq() === 0;
         motion.flying = flyMode || playerState.quidditch || playerState.opts.editMode;
-        motion.headingError = Math.atan2(
-            Math.sin(playerState.tempRotation - playerState.rotation.y),
-            Math.cos(playerState.tempRotation - playerState.rotation.y)
-        );
+        // The lobby's turn signals: travel and input, each against the body.
+        motion.headingError = playerState.headingError;
+        motion.turnIntent = playerState.turnIntent;
 
 
 	    // console.log( this.isPlayerOnFloor )
