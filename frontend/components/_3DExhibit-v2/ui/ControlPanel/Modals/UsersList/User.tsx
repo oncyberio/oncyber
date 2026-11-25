@@ -1,3 +1,4 @@
+import { shownName } from "@utils/guestIdentity";
 import { useCyberTranslation } from "@components/context/I18nContext";
 import { UserContext } from "@components/context/UserContext";
 
@@ -233,7 +234,7 @@ export default function User({
                     />
                 </AvatarWrapper>
 
-                <p className="title">{username || userId}</p>
+                <p className="title">{shownName(username || userId)}</p>
             </div>
 
             {(room.sessionId !== user.sessionId || isMod) && (
@@ -326,7 +327,7 @@ export default function User({
                         <button
                             type="button"
                             className="person-more"
-                            aria-label={`Manage ${username || userId}`}
+                            aria-label={`Manage ${shownName(username || userId)}`}
                             aria-expanded={isDropdownShowing}
                             onClick={() =>
                                 setDropdownShowing((state) => !state)

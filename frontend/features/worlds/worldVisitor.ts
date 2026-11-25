@@ -9,10 +9,16 @@ import {
     type VisitorIdentity,
 } from "@features/games/gameIdentity";
 import type { TravelAvatar } from "@utils/travelAvatar";
+import { isGuestId } from "@utils/guestIdentity";
 
 export interface WorldVisitor extends VisitorIdentity {
-    /** Not signed in: the world keeps its own guest name and portrait. */
+    /** Not signed in: the world keeps its own guest portrait. */
     guest: boolean;
+    /**
+     * A guest's id on the page (utils/guestIdentity): the world takes it,
+     * so a guest has one name in the lobby, here and in the room.
+     */
+    guestId?: string;
     /** The avatar choice the visitor arrives with. */
     avatar: TravelAvatar;
     /** The size the visitor saved for their avatar (0 to 1), if any. */
@@ -93,7 +99,11 @@ export function worldVisitorMessage(
         avatar: { id: string; name: string } | null;
     },
     savedAvatarSize?: unknown,
-    more: { account?: WorldAccount | null; gate?: unknown } = {}
+    more: {
+        account?: WorldAccount | null;
+        gate?: unknown;
+        guestId?: string;
+    } = {}
 ) {
     return {
         ...presentation.identity,
@@ -102,6 +112,7 @@ export function worldVisitorMessage(
         avatarName: presentation.avatar?.name ?? "",
         avatarSize: signedIn ? size(savedAvatarSize) : null,
         account: signedIn ? more.account ?? null : null,
+        ...(!signedIn && more.guestId ? { guestId: more.guestId } : {}),
         ...(more.gate ? { gate: more.gate } : {}),
     };
 }
@@ -120,6 +131,9 @@ export function readWorldVisitor(message: any): WorldVisitor | null {
         },
         avatarSize: size(message.avatarSize),
         account: message.guest === false ? readAccount(message.account) : null,
+        ...(message.guest !== false && isGuestId(message.guestId)
+            ? { guestId: text(message.guestId, 80) }
+            : {}),
         ...(typeof message.gate?.type === "string" &&
         message.gate.type.length <= 40
             ? { gate: { type: message.gate.type } }

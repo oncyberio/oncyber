@@ -1,3 +1,4 @@
+import { visitorName } from "@utils/guestIdentity";
 import { tripMark } from "@utils/tripTimingMarks";
 import { markWorldTravelReady, finishWorldTravel } from "@utils/nativeWorldTravel";
 import { yieldLobbyLoadingWork } from "@utils/lobbyLoadingBudget";
@@ -533,7 +534,7 @@ export function Scene3D_Child({
                             userData: {
                                 ...userData,
                                 ...options,
-                                username: userData?.username || userId || "",
+                                username: visitorName(userData?.username, userId),
 
                                 avatar: avatarImg,
 
@@ -628,7 +629,7 @@ export function Scene3D_Child({
                 userData: {
                     ...userData,
 
-                    username: userData?.username || userId || "",
+                    username: visitorName(userData?.username, userId),
 
                     avatar: avatarImg,
 

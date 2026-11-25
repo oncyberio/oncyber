@@ -1,3 +1,4 @@
+import { guestId, visitorName } from "@utils/guestIdentity";
 import { markNativeStartup } from "@utils/nativeStartupDiagnostics";
 import { worldDocument } from "@features/worlds/worldDocument";
 import { getProfanity } from "@utils/saveToDb";
@@ -77,8 +78,6 @@ import {
     rememberWorldAccess,
     renewWorldAccess,
 } from "@utils/worldPassword/accessProofs";
-
-export const ANON_USER_ID = "Anon-" + shortid.generate();
 
 export interface MultiplayerService {
     roomService: any;
@@ -203,7 +202,9 @@ export default function MultiplayerProvider({
 
     const _onConnect = useRef(null);
 
-    const userId = user.id || ANON_USER_ID;
+    // Signed out: the page's one guest (utils/guestIdentity), the same in
+    // the lobby, in every space and in a framed world's room.
+    const userId = user.id || guestId();
 
     const emitter = useRef(new EventEmitter());
 
@@ -730,7 +731,7 @@ export default function MultiplayerProvider({
                 mode: "multiplayer",
                 roomParameters: _destination,
                 userData: {
-                    username: userData?.username || userId || "",
+                    username: visitorName(userData?.username, userId),
 
                     avatar: avatarImg,
 

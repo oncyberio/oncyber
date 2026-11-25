@@ -90,6 +90,27 @@ describe("the visitor a page hands a framed world", () => {
         });
     });
 
+    test("a guest carries the page's guest id; a signed-in visitor never does", () => {
+        const guestId = "Anon-0b1c2d3e-89ab";
+        expect(
+            readWorldVisitor(
+                worldVisitorMessage(false, { identity, avatar }, null, {
+                    guestId,
+                })
+            )?.guestId
+        ).toBe(guestId);
+        expect(
+            worldVisitorMessage(true, { identity, avatar }, null, { guestId })
+        ).not.toHaveProperty("guestId");
+        // Not an id a page makes: the world keeps its own.
+        expect(
+            readWorldVisitor({
+                ...worldVisitorMessage(false, { identity, avatar }),
+                guestId: "ada",
+            })
+        ).not.toHaveProperty("guestId");
+    });
+
     test("a message with no usable identity names no one", () => {
         expect(readWorldVisitor({})).toBeNull();
         expect(readWorldVisitor(null)).toBeNull();

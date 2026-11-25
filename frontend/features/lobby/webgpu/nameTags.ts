@@ -1,4 +1,5 @@
 import { LOBBY_GUEST_PORTRAIT } from "../lobbyIdentity";
+import { shownName } from "@utils/guestIdentity";
 import * as THREE from "three/webgpu";
 import {
     Discard,
@@ -82,7 +83,7 @@ function drawUsername(
     username: string,
     avatar: CanvasImageSource | null
 ) {
-    if (username.startsWith("Anon-")) username = "Anon";
+    username = shownName(username);
     const textOnly = !avatar;
     const name =
         !textOnly && username.length > 18

@@ -1,4 +1,5 @@
 import { lobbyTokens } from "@styles/tokens/lobby";
+import { shownName } from "@utils/guestIdentity";
 
 /** How long a line stays over its speaker, including the transitions. */
 export const SPEECH_SHOW_MS = 6000;
@@ -78,7 +79,7 @@ const MIN_FONT_PX = 14;
 /** How far the outgoing line travels, in ems. */
 const SLIDE_EM = 1.25;
 const tagName = (name: string, photo: boolean) => {
-    if (name.startsWith("Anon-")) name = "Anon";
+    name = shownName(name);
     return photo && name.length > 18 ? `${name.slice(0, 18)}...` : name;
 };
 

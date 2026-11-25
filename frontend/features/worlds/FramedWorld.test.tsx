@@ -203,6 +203,8 @@ test("answers the world's hello with a guest, to the world's origin", () => {
                 avatarName: "Square",
                 avatarSize: null,
                 account: null,
+                // The page's own guest: the world and its room use it too.
+                guestId: expect.stringMatching(/^Anon-/),
             },
             target: "https://worlds.example",
         },

@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { USER_LOGIN, UserContext } from "@components/context/UserContext";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import { sayLoadStage } from "@utils/loadTimings";
+import { adoptGuestId } from "@utils/guestIdentity";
 import { PAGE_SESSION } from "./accountRelay";
 import { relayWorldAccount } from "./worldAccount";
 import { worldDocument } from "./worldDocument";
@@ -44,6 +45,8 @@ export function useWorldVisitor(framed: boolean): {
             // The avatar a visitor arrives with, where the world looks for
             // one (utils/travelAvatar): a guest's lobby pick counts too.
             if (next) rememberTravelAvatar(visitorUserData(next), next.avatar);
+            // A guest is the page's guest, under the page's guest name.
+            if (next?.guestId) adoptGuestId(next.guestId);
             relayWorldAccount(!!next?.account);
             setVisitor(next);
         });

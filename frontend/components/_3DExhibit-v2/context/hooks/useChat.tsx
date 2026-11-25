@@ -1,3 +1,4 @@
+import { visitorName } from "@utils/guestIdentity";
 import type { MultiplayerStartupResources } from "../multiplayerStartup";
 import {
     dispatchNativeChat,
@@ -692,7 +693,7 @@ export default function useChat({ MultiplayerService, userId }): ChatReturn {
 
         if (type === CHAT_TYPES.IS_CHATTING.label) {
             _payload = {
-                username: userData?.username || userId,
+                username: visitorName(userData?.username, userId),
 
                 isChatting: payload,
 
@@ -702,7 +703,7 @@ export default function useChat({ MultiplayerService, userId }): ChatReturn {
             };
         } else if (type === CHAT_TYPES.CUSTOM.label) {
             _payload = {
-                username: userData?.username || userId,
+                username: visitorName(userData?.username, userId),
 
                 payload,
 
@@ -766,7 +767,7 @@ export default function useChat({ MultiplayerService, userId }): ChatReturn {
 
                 date: `${date.getHours()}:${date.getMinutes()}`,
 
-                username: userData?.username || userId,
+                username: visitorName(userData?.username, userId),
 
                 avatar: userData?.avatar || "",
 

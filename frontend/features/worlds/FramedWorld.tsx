@@ -1,7 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import shortid from "shortid";
 import { baseTokens } from "@styles/tokens";
 import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
@@ -35,6 +34,7 @@ import { hostWorldLive } from "./worldLiveHost";
 import { LIVE_MESSAGE } from "./relayedLive";
 import { deferred, liveSpace } from "@utils/liveSpace";
 import { sayLoadStage } from "@utils/loadTimings";
+import { guestId } from "@utils/guestIdentity";
 import { setFramedWorldLock } from "./worldPointer";
 import {
     readWorldFile,
@@ -252,11 +252,10 @@ export default function FramedWorld({
     // of the space this page opened: a room reached through a portal inside
     // the frame is joined by name alone.
     const { token, user, userData, isSignedIn } = useContext(UserContext);
-    const guestId = useRef("");
     const identify = async (label: string): Promise<RoomIdentity> => {
         if (!isSignedIn || !user?.id)
             return {
-                userId: (guestId.current ||= `Anon-${shortid.generate()}`),
+                userId: guestId(),
                 token: "",
             };
         const here = (await worldSpaceId({ link: label })) === spaceId;
@@ -477,7 +476,11 @@ function usePageVisitor(gate?: { type: string }) {
                 !!account,
                 presentation,
                 account?.settings?.default_vrm_scale,
-                { account: worldAccount(user?.id, account), gate }
+                {
+                    account: worldAccount(user?.id, account),
+                    gate,
+                    guestId: guestId(),
+                }
             );
             const key = JSON.stringify(message);
             setVisitor((current) =>
