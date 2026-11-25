@@ -537,6 +537,8 @@ export class CameraMotionBlur {
 
 		if ( !camera?.isPerspectiveCamera ) return false
 
+		this.last = { renderer, scene, camera }
+
 		const size = renderer.getDrawingBufferSize( this.scratch.drawing ??= new Vector2() )
 
 		this.setSize( size.x, size.y )
@@ -627,6 +629,105 @@ export class CameraMotionBlur {
 		this.previous.time = time
 
 		return true
+	}
+
+	/**
+	 * GPU cost in milliseconds per frame, for measuring on a real device:
+	 * the scene draw into the target, and the three blur passes while the
+	 * camera turns at `degreesPerFrame` (2 degrees a frame is 120 degrees
+	 * a second at 60 fps, a fast mouse turn). Waits for the GPU after each
+	 * batch by reading one pixel back.
+	 */
+	async benchmark( frames = 60, degreesPerFrame = 2 ) {
+
+		const { renderer, scene, camera } = this.last ?? {}
+
+		if ( !renderer ) return null
+
+		const finish = () => renderer.readRenderTargetPixelsAsync( this.tiles, 0, 0, 1, 1 )
+
+		const time = async ( draw ) => {
+
+			await finish()
+
+			const start = performance.now()
+
+			for ( let i = 0; i < frames; i ++ ) draw()
+
+			await finish()
+
+			return ( performance.now() - start ) / frames
+		}
+
+		const old = renderer.getRenderTarget()
+
+		const turned = camera.clone()
+
+		turned.rotateY( degreesPerFrame * Math.PI / 180 )
+
+		turned.updateMatrixWorld()
+
+		const before = new Matrix4().multiplyMatrices( turned.projectionMatrix, turned.matrixWorldInverse )
+
+		const saved = this.u.reprojection.value.clone()
+
+		this.u.reprojection.value.copy( before ).multiply( camera.matrixWorld )
+
+		this.u.anchorRadius.value = 0
+
+		const quad = this.quad
+
+		const passes = ( output ) => () => {
+
+			renderer.setRenderTarget( this.tiles )
+			quad.material = this.materials.tileMax
+			quad.render( renderer )
+
+			renderer.setRenderTarget( this.neighbours )
+			quad.material = this.materials.neighbourMax
+			quad.render( renderer )
+
+			renderer.setRenderTarget( output )
+			quad.material = this.materials.gather
+			quad.render( renderer )
+		}
+
+		this.benchOutput ??= new RenderTarget( 1, 1, { type: HalfFloatType, depthBuffer: false } )
+
+		this.benchOutput.setSize( this.width, this.height )
+
+		try {
+
+			const sceneMs = await time( () => {
+
+				renderer.setRenderTarget( this.target )
+				renderer.clear( true, true, true )
+				renderer.render( scene, camera )
+			} )
+
+			const blurMs = await time( passes( this.benchOutput ) )
+
+			// The same passes with a still camera: the cost when not moving.
+			this.u.reprojection.value.copy( this.previousViewProjection ).multiply( camera.matrixWorld )
+
+			const stillMs = await time( passes( this.benchOutput ) )
+
+			return {
+				width: this.width,
+				height: this.height,
+				samples: this.samples,
+				msaa: this.msaa,
+				sceneMs: +sceneMs.toFixed( 2 ),
+				blurTurningMs: +blurMs.toFixed( 2 ),
+				blurStillMs: +stillMs.toFixed( 2 ),
+			}
+		}
+		finally {
+
+			this.u.reprojection.value.copy( saved )
+
+			renderer.setRenderTarget( old )
+		}
 	}
 
 	/** Forget last frame's camera: the next frame is drawn sharp. */

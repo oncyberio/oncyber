@@ -13,7 +13,15 @@ export function spaceMotionBlur() {
 
 	if ( !options.enabled ) return null
 
-	return instance ??= new CameraMotionBlur( options )
+	if ( !instance ) {
+
+		instance = new CameraMotionBlur( options )
+
+		// For measuring: `await __motionBlur.benchmark()` in the console.
+		if ( typeof window !== "undefined" ) window.__motionBlur = instance
+	}
+
+	return instance
 }
 
 /** True while the last drawn frame was blurred: draw one more, sharp. */

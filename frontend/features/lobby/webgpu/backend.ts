@@ -203,7 +203,11 @@ export function createWebGPUBackend(forceWebGL = false): LobbySceneBackend {
             // Only the animation loop passes an anchor (or null): a one-off
             // redraw has no previous frame to blur from.
             if (blurOptions.enabled && anchor !== undefined) {
-                blur ??= new CameraMotionBlur(blurOptions);
+                if (!blur) {
+                    blur = new CameraMotionBlur(blurOptions);
+                    // For measuring: `await __motionBlur.benchmark()`.
+                    (window as { __motionBlur?: unknown }).__motionBlur = blur;
+                }
                 blur.setAnchor(anchor, anchorHeight);
                 if (blur.render(renderer, scene, camera, null)) return;
             } else blur?.reset();
