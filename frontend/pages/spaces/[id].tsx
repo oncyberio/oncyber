@@ -130,6 +130,7 @@ export default function Exhibit(props: {
                     spaceId={props.experience.id}
                     frame={WORLD_FRAME}
                     gate={props.gatingError ?? { type: "success" }}
+                    scripts={props.gatingError ? null : props.experience}
                 />
             </>
         );

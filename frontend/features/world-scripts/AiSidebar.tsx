@@ -86,7 +86,7 @@ export default function AiSidebar() {
                         {state.canAsk
                             ? "Say what this world should do. It changes while you stand in it."
                             : state.askReason ||
-                              "AI scripts are invite-only for now."}
+                              "AI scripts are in early access for now."}
                     </p>
                 )}
                 {blocks(state.transcript).map((block) =>
@@ -172,7 +172,7 @@ const Panel = styled.aside`
     border-radius: ${baseTokens.radius.panel}px;
     background: var(--oc-panel);
     color: var(--oc-ink);
-    box-shadow: -8px 12px 40px #0003;
+    box-shadow: var(--oc-shadow);
     overflow: hidden;
     animation: ${slideIn} var(--oc-enter) var(--oc-ease) both;
     &,

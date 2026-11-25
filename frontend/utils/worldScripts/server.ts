@@ -3,8 +3,8 @@
  * itself (OpenRouter, with the deployment's own key), and the usage ledger
  * that a credits system will later draw from.
  *
- * Today access is an allowlist plus a daily cap, because every call is paid
- * from one key. `checkAiAccess` and `recordAiUsage` are the two places a
+ * Today the AI is in early access: an allowlist (WORLD_SCRIPTS_AI_ALLOWLIST)
+ * plus a daily cap, because every call is paid from one key. `checkAiAccess` and `recordAiUsage` are the two places a
  * credit balance will plug in: check the balance before the call, charge
  * the call's cost (which OpenRouter reports) after it.
  */
@@ -63,6 +63,12 @@ export function isAllowlisted(
 
 export interface AiAccess {
     allowed: boolean;
+    /**
+     * On the early-access list. The AI sidebar is offered to these accounts
+     * only; `allowed` can still be false for one of them (today's limit,
+     * no model set up).
+     */
+    earlyAccess: boolean;
     reason?: string;
     /** Requests left today; credits will replace this. */
     remaining?: number;
@@ -78,8 +84,6 @@ function dailyLimit(env: Env = process.env) {
 }
 
 export async function checkAiAccess(userId: string): Promise<AiAccess> {
-    if (!process.env.OPENROUTER_API_KEY)
-        return { allowed: false, reason: "No AI model is set up here." };
     const account = await getAccountDoc(userId).catch((): null => null);
     const names = [
         userId.toLowerCase(),
@@ -88,7 +92,14 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
     if (!isAllowlisted(names))
         return {
             allowed: false,
-            reason: "AI scripts are invite-only for now.",
+            earlyAccess: false,
+            reason: "AI scripts are in early access for now.",
+        };
+    if (!process.env.OPENROUTER_API_KEY)
+        return {
+            allowed: false,
+            earlyAccess: true,
+            reason: "No AI model is set up here.",
         };
     const usage = await db
         .collection("aiUsageDaily")
@@ -100,10 +111,11 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
     if (remaining <= 0)
         return {
             allowed: false,
+            earlyAccess: true,
             reason: "That's today's limit. Try again tomorrow.",
             remaining: 0,
         };
-    return { allowed: true, remaining };
+    return { allowed: true, earlyAccess: true, remaining };
 }
 
 export interface AiUsage {

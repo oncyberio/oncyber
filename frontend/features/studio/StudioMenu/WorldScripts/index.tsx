@@ -5,6 +5,7 @@ import Tooltip from "@ui/components/Tooltip";
 import { LabelledIcon } from "../components/LabeledIcon";
 import { useStudioMenu } from "../context/StudioContext";
 import {
+    offersAiSidebar,
     setWorldScripts,
     useWorldScripts,
     WORLD_SCRIPTS_ENABLED,
@@ -21,23 +22,31 @@ const WorldScriptLayer = dynamic(
 export function WorldScripts() {
     const { isAnonymous } = useContext(UserContext);
     const { exhibit } = useStudioMenu();
-    const { panelOpen } = useWorldScripts();
+    const state = useWorldScripts();
+    const { panelOpen } = state;
     if (!WORLD_SCRIPTS_ENABLED || isAnonymous || !exhibit) return null;
     return (
         <>
             <WorldScriptLayer experience={exhibit} />
-            <Tooltip
-                text="Build with AI"
-                isToggled={panelOpen}
-                orientation="bottom"
-            >
-                <LabelledIcon
-                    toggled={panelOpen}
-                    name="code"
-                    label={null}
-                    onClick={() => setWorldScripts({ panelOpen: !panelOpen })}
-                />
-            </Tooltip>
+            {/* The space's script runs for everyone; the AI is early access. */}
+            {offersAiSidebar(state) && <AiButton panelOpen={panelOpen} />}
         </>
+    );
+}
+
+function AiButton({ panelOpen }: { panelOpen: boolean }) {
+    return (
+        <Tooltip
+            text="Build with AI"
+            isToggled={panelOpen}
+            orientation="bottom"
+        >
+            <LabelledIcon
+                toggled={panelOpen}
+                name="code"
+                label={null}
+                onClick={() => setWorldScripts({ panelOpen: !panelOpen })}
+            />
+        </Tooltip>
     );
 }

@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import shortid from "shortid";
 import { baseTokens } from "@styles/tokens";
@@ -48,6 +49,17 @@ import {
 } from "@utils/lobbyDestinationBridge";
 import { readPreviewOption } from "@features/lobby/lobbyPreviewOptions";
 import { worldAccount, worldVisitorMessage } from "./worldVisitor";
+import {
+    offersAiSidebar,
+    setWorldScripts,
+    useWorldScripts,
+    WORLD_SCRIPTS_ENABLED,
+} from "@features/world-scripts/store";
+import {
+    SCRIPT_MESSAGE,
+    type RemoteRuntime,
+} from "@features/world-scripts/runtimeRelay";
+import type { PageScriptSpace } from "@features/world-scripts/PageWorldScripts";
 import { answerWorldAccount } from "./worldAccountHost";
 import {
     WORLD_PERMISSIONS,
@@ -55,6 +67,13 @@ import {
     worldFrameUrl,
     type WorldFrame,
 } from "./worldFrame";
+
+// The AI sidebar and its account calls, for a space that has world scripts
+// on (features/world-scripts): the page's, like everything with a session.
+const PageWorldScripts = dynamic(
+    () => import("@features/world-scripts/PageWorldScripts"),
+    { ssr: false }
+);
 
 /**
  * The world's address for this page's. Inside the lobby, the travel options
@@ -95,12 +114,15 @@ export default function FramedWorld({
     spaceId,
     frame,
     gate,
+    scripts,
 }: {
     title: string;
     spaceId: string;
     frame: WorldFrame;
     /** Whether the page's visitor is let into this space. */
     gate?: { type: string };
+    /** The space, where world scripts may run on it. */
+    scripts?: PageScriptSpace | null;
 }) {
     const router = useRouter();
     // Each attempt is a new frame with a new cover.
@@ -150,6 +172,9 @@ export default function FramedWorld({
     const [connection, setConnection] = useState<DockConnection | null>(null);
     const [voice, setVoice] = useState<WorldVoiceView | null>(null);
     const world = useRef<WorldControls | null>(null);
+    // World scripts: the script runs in the world, the sidebar is here.
+    const scriptRuntime = useRef<RemoteRuntime | null>(null);
+    const worldScripts = useWorldScripts();
     const reload = () => {
         setFailed(false);
         setStalled(false);
@@ -273,6 +298,26 @@ export default function FramedWorld({
         const to = publicExperienceHref(href, window.location.origin);
         if (to) void router.push(to);
     };
+    // The AI sidebar's button is the page's own, beside the world's: for
+    // an editor of this space in early access, while the world is in it.
+    const scripted = WORLD_SCRIPTS_ENABLED && !!scripts && !elsewhere;
+    const aiOpen = worldScripts.panelOpen;
+    const more = actions.findIndex((action) => action.id === "more");
+    const docked =
+        scripted && offersAiSidebar(worldScripts) && actions.length
+            ? [
+                  ...actions.slice(0, more < 0 ? actions.length : more),
+                  {
+                      id: "ai",
+                      label: aiOpen ? "Close AI" : "Build with AI",
+                      icon: "multi-star",
+                      active: aiOpen,
+                      expanded: aiOpen,
+                      onClick: () => setWorldScripts({ panelOpen: !aiOpen }),
+                  },
+                  ...(more < 0 ? [] : actions.slice(more)),
+              ]
+            : actions;
     return (
         <main
             data-framed-world
@@ -314,6 +359,9 @@ export default function FramedWorld({
                     if (next) setFile(next);
                 }}
                 onSignIn={signIn}
+                onScript={(kind, data) =>
+                    scriptRuntime.current?.receive(kind, data)
+                }
                 onLink={(href) => {
                     // What is not a web address is not offered, and does
                     // not take an offer away.
@@ -322,11 +370,19 @@ export default function FramedWorld({
                 }}
                 controls={world}
             />
+            {scripted && (
+                <PageWorldScripts
+                    key={attempt}
+                    space={scripts}
+                    send={(kind, data) => world.current?.send(kind, data)}
+                    heard={scriptRuntime}
+                />
+            )}
             <ExperienceShell
                 title={elsewhere ? elsewhere.title : title}
                 spaceId={elsewhere ? elsewhere.spaceId : spaceId}
                 onExit={() => void router.push("/")}
-                actions={actions}
+                actions={docked}
                 connection={
                     connection && !elsewhere
                         ? {
@@ -391,6 +447,8 @@ export default function FramedWorld({
 interface WorldControls {
     press(id: string): void;
     toggleVoice(): void;
+    /** Any other message to the world. */
+    send(kind: string, data: object): void;
 }
 
 /**
@@ -453,6 +511,7 @@ function WorldFrameView({
     onLink,
     onFile,
     onSignIn,
+    onScript,
     controls,
 }: {
     title: string;
@@ -482,6 +541,8 @@ function WorldFrameView({
     onFile(message: unknown): void;
     /** The world asks for the sign-in dialog. */
     onSignIn(): void;
+    /** What the world's script runtime says (features/world-scripts). */
+    onScript(kind: string, data: unknown): void;
     /** The world asks for a link to be opened in a new tab. */
     onLink(href: unknown): void;
     /** The world went silent after it had drawn, or came back. */
@@ -511,6 +572,7 @@ function WorldFrameView({
         onLink,
         onFile,
         onSignIn,
+        onScript,
     });
     handlers.current = {
         onLocation,
@@ -524,6 +586,7 @@ function WorldFrameView({
         onLink,
         onFile,
         onSignIn,
+        onScript,
     };
     // A world that has drawn says it is alive about once a second; silence
     // while this page is in view means it has stopped.
@@ -569,6 +632,7 @@ function WorldFrameView({
             });
         };
         controls.current = {
+            send: post,
             press(id) {
                 post("dock-press", { id });
                 element.current?.focus();
@@ -627,6 +691,8 @@ function WorldFrameView({
                 return;
             }
             if (kind === "alive") return stall.current.beat();
+            if (kind?.startsWith(SCRIPT_MESSAGE))
+                return handlers.current.onScript(kind, event.data);
             if (kind === "download") return handlers.current.onFile(event.data);
             if (kind === "sign-in") return handlers.current.onSignIn();
             if (kind === "open-link")

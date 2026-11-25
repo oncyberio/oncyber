@@ -17,11 +17,17 @@ export const access = proc({
     schema: z.object({ experienceId }),
     async handler({ experienceId }) {
         if (!worldScriptsEnabled())
-            return { allowed: false, canEdit: false, reason: "Off." };
+            return {
+                allowed: false,
+                earlyAccess: false,
+                canEdit: false,
+                reason: "Off.",
+            };
         const space = await editableSpace(experienceId, this.userId);
         if (!space)
             return {
                 allowed: false,
+                earlyAccess: false,
                 canEdit: false,
                 reason: "Only this space's admins can change its scripts.",
             };

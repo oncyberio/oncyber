@@ -6,7 +6,7 @@
 import { useSyncExternalStore } from "react";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import type { SwapMode, WorldScriptStatus } from "./host";
-import type { WorldStyle } from "./style";
+import { cleanStyle, type WorldStyle } from "./style";
 
 export const WORLD_SCRIPTS_ENABLED = ["1", "true", "on"].includes(
     String(process.env.NEXT_PUBLIC_WORLD_SCRIPTS || "").toLowerCase()
@@ -33,6 +33,8 @@ export interface WorldScriptsState {
     status: WorldScriptStatus;
     canEdit: boolean;
     canAsk: boolean;
+    /** On the early-access list: the AI sidebar is offered to these only. */
+    earlyAccess: boolean;
     askReason: string;
     remaining: number | null;
     busy: boolean;
@@ -52,6 +54,7 @@ const initial: WorldScriptsState = {
     status: { state: "idle" },
     canEdit: false,
     canAsk: false,
+    earlyAccess: false,
     askReason: "",
     remaining: null,
     busy: false,
@@ -62,6 +65,32 @@ const initial: WorldScriptsState = {
     toasts: [],
     banner: null,
 };
+
+/** The script a space starts with, and its style. */
+export function savedScript(space: {
+    worldScripts?: WorldScriptRecord[];
+    worldStyle?: unknown;
+}) {
+    return {
+        script: space.worldScripts?.[0] || null,
+        source:
+            (space.worldScripts || []).find((script) => script.enabled)
+                ?.source || "",
+        style: cleanStyle(space.worldStyle),
+    };
+}
+
+/**
+ * Whether this visitor is offered the AI sidebar: an editor of the space
+ * who is on the early-access list. The server checks both again on every
+ * request.
+ */
+export function offersAiSidebar(state: {
+    canEdit: boolean;
+    earlyAccess: boolean;
+}) {
+    return state.canEdit && state.earlyAccess;
+}
 
 let state = initial;
 const listeners = new Set<() => void>();

@@ -195,19 +195,54 @@ default.
        goes to and opens it on the visitor's own click; a link to another
        page of this site travels there. One more click than unframed, and
        no world can send a visitor anywhere on its own word.
-    2. **Still to move.** The password prompt for a gated world (gated
-       worlds are not framed yet), the avatar picker and saved settings
-       (they still try to save to an account the world does not have),
-       screenshots, and fullscreen.
+    2. **The account.** _(Done.)_ A signed-in visitor's world knows who
+       they are and has their settings, and holds a stand-in where the
+       session token would be, never the token. The few account calls the
+       in-world interface makes (my avatars, saving my settings, am I let
+       in, feedback, an edit to my own space) are on an explicit list
+       (`features/worlds/accountRelay.ts`) and are made by the page with
+       its own session; nothing else is. Signing in from the world opens
+       the page's dialog.
+    3. **Gated worlds.** _(Done.)_ Framed like any other: the page, which
+       holds the session, says whether its visitor is let in, and the
+       gate is the world's own interface as it is unframed.
+    4. **Files.** _(Done.)_ A photo the world takes is offered for saving
+       by the page, by name, on the visitor's click.
+    5. **Still to move.** Screen share drawn in 3D, wallet prompts that
+       need a popup, the list of avatars owned by linked wallets, and
+       fullscreen.
 
-5. **The lobby.** The lobby frames the world host; its four direct reaches
-   become messages; the warm-up runs on the world host so the room model is
-   cached where the world reads it.
-6. **World scripts.** A script is a module loaded inside the world, with the
-   engine and three.js in reach and a small SDK as the documented way in.
-   The AI sidebar stays in the page; source kept in the repository builds to
-   the same kind of module, as games do. The Starry Night house
-   (`claude/awesome-dirac-5zs3eb`) is the first one.
+5. **The lobby.** _(Relay done; the journey not yet run end to end.)_ A
+   world reached from the lobby is two frames below it. The page between
+   them passes the journey's protocol both ways, unchanged
+   (`utils/lobbyDestinationBridge.ts`), and what the lobby set or read
+   directly on the destination's document (the party chat flag, the Enter
+   key, the loading budget, travel options) is passed on too. Still
+   direct, and so missing for a framed world: the portal's live preview,
+   and the warm-up, which caches the room model on the site's origin
+   where the world cannot read it.
+6. **World scripts.** _(Done.)_ Two kinds, both in the world.
+
+    Code kept in this repository (`features/worldMods/`) is a module
+    loaded inside the world with the engine in reach, built with the app.
+    The Starry Night house is the first: it opens the first house down the
+    road and paints a room inside.
+
+    A script written by the AI (`features/world-scripts/`,
+    [../world-scripts.md](../world-scripts.md)) runs in an opaque sandbox
+    inside the world and changes the scene through checked messages. It
+    is split along the frame's own line: the sandbox, the engine it draws
+    through and what it shows on screen are the world's
+    (`runtime.ts`); who may edit, the AI sidebar and its button in the
+    dock, the calls to the model, the save and undo are the page's
+    (`controller.ts`, `PageWorldScripts.tsx`). The page drives the
+    world's runtime through messages (`runtimeRelay.ts`), each naming the
+    space it is for. The AI is in early access: the button is offered
+    only to editors on the list, and the server checks both.
+
+    A space embedded on another site keeps running in its own page: a
+    frame inside a frame inside someone else's page has no way to ask
+    its visitor anything.
 
 The studio stays unframed until editing has its own plan.
 
@@ -275,9 +310,16 @@ The studio stays unframed until editing has its own plan.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a
     headset to try it _(not tested)_.
 -   Who draws phone controls, the page or the world.
--   Inside a framed world the avatar picker and saved settings still try
-    to save to an account the world does not have. They move to the page
-    with slice 4.
+-   A browser slows a frame from another origin to about two frames a
+    second while something opaque covers it, or while it is unseen. The
+    engine paces loading by frames, so a covered world loaded in 134 s
+    against 51 s unframed. The cover is now a breath short of opaque and
+    a framed world keeps its own frames coming while the browser holds
+    them back (`features/worlds/worldFrames.ts`): 54 s. Anything new
+    drawn over a loading world must not be fully opaque.
+-   Games published before the page's keys changed (Escape and Enter are
+    the page's; Cmd or Ctrl with M mutes) carry the old key list until
+    they are built again.
 -   A script in a world can ask the page to `travel` without the visitor
     clicking anything. It can only reach this site's own pages.
 -   A frame-rate setting at the Oncyber level, by game and hardware. Not

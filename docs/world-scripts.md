@@ -5,11 +5,21 @@ space: a mini game, characters, effects, a quiz at each artwork. Creators
 describe what they want and an AI model writes it; they change it the same
 way while they're in the world, and the change lands without a reload.
 
-It is off unless `NEXT_PUBLIC_WORLD_SCRIPTS=1`.
+It is off unless `NEXT_PUBLIC_WORLD_SCRIPTS=1`. With it on, a space's saved
+script runs for every visitor; writing one with the AI is in early access.
+
+## Early access
+
+The AI sidebar is offered only to accounts on the early-access list
+(`WORLD_SCRIPTS_AI_ALLOWLIST`: account ids or wallets; `*` opens it to every
+editor). An account that is not on it sees no AI button, in the dock or in
+the studio, and the server refuses its requests whatever the page shows.
+Being on the list does not make someone an editor: both are checked.
 
 ## Asking for a change
 
-A space's admins (its owner, its editors and site admins) get an AI button in the space's dock (and in
+A space's admins (its owner, its editors and site admins) who are in early
+access get an AI button in the space's dock (and in
 the studio toolbar). It opens a sidebar beside the world: say what to make
 ("a coin hunt with a 60 second timer", then "add three characters who chase
 me") and watch each step as it happens:
@@ -99,12 +109,34 @@ sends it the player and camera every frame, and keys and clicks.
 What the script can use is in `features/world-scripts/sdk.ts`; the model's
 brief, with an example game, is `features/world-scripts/brief.ts`.
 
+## In a framed world
+
+Where worlds are framed ([plans/framed-worlds.md](plans/framed-worlds.md)),
+world scripts are split along the same line as everything else: what needs
+the account is the page's, what needs the world is the world's.
+
+| Where                          | What                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| The page (`PageWorldScripts`)  | who may edit, the AI button and sidebar, the calls to the model, the save, undo (`controller.ts`)       |
+| The world (`WorldScriptLayer`) | the sandbox, the engine it draws through, the HUD, and starting the space's saved script (`runtime.ts`) |
+
+The page's controller drives the world's runtime through messages
+(`runtimeRelay.ts`): run this source, restart, stop, draw in this style,
+what are your colours and artworks; the world answers whether a run worked
+and reports its status. The world never makes an account call and never
+sees the session. Each message names its space, so a world that has walked
+through a portal into another space is not driven by the page it left.
+
+The page takes the world's word only for what a world can know: whether a
+script ran and why not (shown in the sidebar, sent to the model to fix),
+and its colours and artwork names, cut to the sizes the model call accepts.
+
 ## The model and its cost
 
 `pages/api/_v2/worldScripts` (`access`, `generate`, `save`). The server calls
 OpenRouter with `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` (default
 `anthropic/claude-sonnet-4.5`). Because one key pays for everything, only
-accounts in `WORLD_SCRIPTS_AI_ALLOWLIST` may ask, up to
+accounts in early access (`WORLD_SCRIPTS_AI_ALLOWLIST`) may ask, up to
 `WORLD_SCRIPTS_AI_DAILY_LIMIT` requests a day.
 
 Every model call writes a row to `aiUsage` (account, space, model, tokens,
