@@ -252,15 +252,19 @@ default.
     frame inside a frame inside someone else's page has no way to ask
     its visitor anything.
 
-7. **Each frame loads what it runs.** _(Done; a list of what is left
-   below.)_ Measured from the build's own module map and from what each
-   frame fetched on a guest's visit to Sunshine Square, in source size
-   before minifying:
+7. **Each frame loads what it runs.** _(Done; what is left is listed.)_
+   Measured on a guest's visit to Sunshine Square, from the files each
+   frame fetched and their source maps, so every byte is counted against
+   the source file it came from. Scripts only, gzipped:
 
-    | Frame | Before  | After  | What went                                                                                                 |
-    | ----- | ------- | ------ | --------------------------------------------------------------------------------------------------------- |
-    | Page  | 8.9 MB  | 2.9 MB | The whole engine, 8.5 MB, which the page downloaded ahead and never ran                                   |
-    | World | 10.1 MB | 7.3 MB | Firebase (2.4 MB), the rooms client, the studio's date picker and charts, a second download of the engine |
+    | Frame | First measured | Now      |
+    | ----- | -------------- | -------- |
+    | Page  | 603 KB         | 550 KB   |
+    | World | 2,045 KB       | 1,890 KB |
+
+    The first measurement was taken after the two largest cuts, which an
+    earlier, coarser count had already found: the page no longer downloads
+    the engine it never ran, and the world no longer loads Firebase.
 
     - **The page no longer downloads the engine.** The space's route
       imported the engine's side of the page, and importing it starts the
@@ -274,23 +278,28 @@ default.
       on the space's document and a feed of editor actions. They are the
       page's now (`utils/liveSpace/`, `features/worlds/relayedLive.ts`):
       the page reads for whichever space the world is in and writes only
-      to the feed of the space it opened. Unframed, Firebase is loaded on
-      first use, as a file of its own.
-    - **The world loads no rooms client.** The room is the page's; the
-      client library is fetched by whoever takes a seat
-      (`utils/arena/join.ts`).
-    - **Sign-in code loads when someone signs in.** Two panels imported it
-      up front, and one icon helper dragged every form of the space's
-      settings (a date picker, charts) into the account dashboard.
+      to the feed of the space it opened. The page loads Firebase once
+      the world has drawn, and without its sign-in library for a visitor
+      who has no Firebase sign-in saved.
+    - **The world loads no rooms client**, no Ethereum library (it was
+      imported up front to sign a purchase), no date library (one call,
+      now a small function checked against it), no debug panel unless
+      `?debug=true`, and no script runtime until a script is run.
+    - **The world's side has a lighter app shell.** The server says which
+      side of the frame a document is, so from the first render the
+      world leaves out the studio's AI assistant, the sign-in sheet, the
+      sign-in link handler and the site's header, and their code.
+    - **Sign-in and wallet-address code load when used**, on both sides.
 
-    Left in the world, each a feature of the world's own interface
-    and so not a matter of frames: `moment` (176 KB, dates in the artwork
-    panel), `dat.gui` (87 KB, the engine's debug panel, loaded but never
-    opened), the search client (52 KB) and the search panel's code. Left
-    on the page: Firebase, for the live channels above, which load when
-    the world first asks and not before; the rooms client, which it uses;
-    the avatar catalogue (69 KB), to present the visitor; and 28 KB of
-    painting code that the world-scripts limits import and do not use.
+    What the world still loads is, by weight, the engine: three.js
+    (624 KB), the engine's own code (about 550 KB), the avatar library
+    (72 KB) and React. Not the engine, and left for now: the interface's
+    animation library (34 KB, used by the engine's own panels), every
+    language's translations (33 KB, in both frames), the artwork and
+    account panels (33 KB), the search panel (20 KB) and the live
+    document store shared with the studio (22 KB). On the page: Firebase
+    (about 170 KB, for the live channels, after the world has drawn), the
+    rooms client it uses, and the same translations.
 
 The studio stays unframed until editing has its own plan.
 
