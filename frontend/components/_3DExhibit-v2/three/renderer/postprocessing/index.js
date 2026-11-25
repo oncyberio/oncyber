@@ -97,11 +97,13 @@ class PostProcessing {
 	 * camera motion blur when the page turns it on. `anchor` is what moves
 	 * with the camera (the visitor's avatar in third person), or null.
 	 */
-	renderMain(scene, camera, roomParameters, anchor = null) {
+	renderMain(scene, camera, roomParameters, anchor = null, anchorHeight = null) {
 
 		this.mainFrame = true
 
 		this.anchor = anchor
+
+		this.anchorHeight = anchorHeight
 
 		try {
 
@@ -131,7 +133,7 @@ class PostProcessing {
 			return null
 		}
 
-		blur.setAnchor( this.anchor )
+		blur.setAnchor( this.anchor, this.anchorHeight )
 
 		return blur
 	}

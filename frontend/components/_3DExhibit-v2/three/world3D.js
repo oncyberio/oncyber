@@ -88,6 +88,16 @@ import { motionBlurSettling } from "./renderer/motionblur"
 
 import Players from "@3factory/player"
 
+// The visitor's avatar is drawn instanced, outside its group: its height
+// (and the name tag above it, see instance.js getTextPosition) comes from
+// the head, not from the group's bounds.
+const motionAnchorHeight = ( player ) => {
+
+    const head = player?.avatar3D?.headPosition?.y
+
+    return Number.isFinite( head ) && head > 0 ? head + 0.65 : null
+}
+
 
 import FPSCalc from '@3utils/fps.js'
 
@@ -1296,7 +1306,7 @@ export default class World3D {
 
         if(draw) {
 
-            PostProcessing.renderMain( Scene, Camera.current, CURRENT_SPACE?.roomParameters || {}, IS_FIRST_PERSON ? null : Players.main )
+            PostProcessing.renderMain( Scene, Camera.current, CURRENT_SPACE?.roomParameters || {}, IS_FIRST_PERSON ? null : Players.main, motionAnchorHeight( Players.main ) )
 
             // render cinematic thumbnail if needed
             CinematicThumbRenderer.render(  Scene, Camera.current, CURRENT_SPACE?.roomParameters || {} )

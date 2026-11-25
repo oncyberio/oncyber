@@ -460,7 +460,9 @@ export class CameraMotionBlur {
 
 		const anchor = this.anchor
 
-		if ( !anchor || anchor.visible === false || !anchor.parent ) {
+		// The visitor's group is not in the scene (its avatar draws instanced),
+		// so only its own transform counts.
+		if ( !anchor || anchor.visible === false ) {
 
 			u.anchorRadius.value = 0
 
@@ -496,7 +498,8 @@ export class CameraMotionBlur {
 		s.top.copy( s.base )
 
 		// Leave the ground under its feet out: it belongs to the world.
-		const radius = this.anchorHeight * 0.24
+		// Wide enough for the name tag over the head as well as the body.
+		const radius = Math.max( this.anchorHeight * 0.22, 0.6 )
 
 		s.base.y += radius + 0.05
 
@@ -570,7 +573,13 @@ export class CameraMotionBlur {
 
 		u.reprojection.value.copy( this.previousViewProjection ).multiply( camera.matrixWorld )
 
-		u.scale.value = 0.5 * this.shutter
+		// The shutter stays open for `shutter` of a 30 fps frame whatever
+		// the frame rate (0.5: 1/60 s, the usual game setting), so the
+		// blur is as long at 60 or 120 fps as at 30. Never more than the
+		// whole step between two frames.
+		const gap = Math.max( time - this.previous.time, 1e-3 )
+
+		u.scale.value = 0.5 * Math.min( 1, this.shutter / 30 / gap )
 
 		this.updateAnchor( camera, time )
 

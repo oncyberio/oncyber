@@ -3196,7 +3196,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                                 scene,
                                 camera,
                                 self.model ? self.group : null,
-                                self.model?.height
+                                // Up to the top of the name tag (headOf).
+                                (self.model?.height || 1.8) + 0.35
                             );
                         } catch {
                             onContextLost(new Event("lobbycontextlost"));
