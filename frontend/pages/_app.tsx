@@ -42,6 +42,7 @@ import dynamic from "next/dynamic";
 
 import Iframe from "@components/layouts/iframe";
 import { isSupportedRuntime } from "@utils/runtimeKind";
+import { FramedWorldContext } from "@features/worlds/worldDocument";
 import { watchChunkErrors, withChunkReload } from "@utils/browser/chunkReload";
 
 // Licensed faces only where the build has their files (docs/fonts.md). The
@@ -172,6 +173,10 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
 
     if ((lobbyRequest && !lobbyFrameChecked) || lobbyUnsupported) return null;
 
+    // Where worlds are framed, the server says which side of the frame a
+    // space's document is (features/worlds).
+    const worldSide = pageProps?.worldFrameRole === "world";
+
     if (isGL)
         return (
             <>
@@ -187,18 +192,32 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
                     <Headers notFound={!!pageProps?.notFound} />
                     <UserProvider {...pageProps}>
                         <OnboardingProvider>
-                            <AIProvider>
-                                <DialogProvider>
-                                    {/* The one sign-in sheet: every page's
-                                        sign-in prompt opens this copy. */}
-                                    <SignInSheetHost>
+                            {worldSide ? (
+                                // The world's side of a frame holds no
+                                // account: signing in, the studio's AI and
+                                // sign-in links are the page's, and their
+                                // code is not loaded here.
+                                <FramedWorldContext.Provider value={true}>
+                                    <DialogProvider>
                                         <Iframe />
-                                        <EmailAuthHandler />
-                                        {/* <ProgressBar /> */}
                                         <Component {...pageProps} />
-                                    </SignInSheetHost>
-                                </DialogProvider>
-                            </AIProvider>
+                                    </DialogProvider>
+                                </FramedWorldContext.Provider>
+                            ) : (
+                                <AIProvider>
+                                    <DialogProvider>
+                                        {/* The one sign-in sheet: every
+                                            page's sign-in prompt opens
+                                            this copy. */}
+                                        <SignInSheetHost>
+                                            <Iframe />
+                                            <EmailAuthHandler />
+                                            {/* <ProgressBar /> */}
+                                            <Component {...pageProps} />
+                                        </SignInSheetHost>
+                                    </DialogProvider>
+                                </AIProvider>
+                            )}
                         </OnboardingProvider>
                     </UserProvider>
                 </SnackbarProvider>

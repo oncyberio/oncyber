@@ -29,10 +29,15 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 type Env = Record<string, string | undefined>;
 
-export function worldScriptsEnabled(env: Env = process.env) {
-    return ["1", "true", "on"].includes(
-        String(env.NEXT_PUBLIC_WORLD_SCRIPTS || "").toLowerCase()
-    );
+/**
+ * Read by its full name, as the browser's copy is (features/world-scripts/
+ * store.ts): a value given at build time (next.config.js) is written into
+ * the code where the name stands, and is not in the server's environment.
+ */
+export function worldScriptsEnabled(
+    value: string | undefined = process.env.NEXT_PUBLIC_WORLD_SCRIPTS
+) {
+    return ["1", "true", "on"].includes(String(value || "").toLowerCase());
 }
 
 const list = (value = "") =>

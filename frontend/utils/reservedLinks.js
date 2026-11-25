@@ -37,6 +37,7 @@ const APP_PATHS = [
     "templates",
     "upload",
     "uploader",
+    "world-warmup",
 ];
 
 /**

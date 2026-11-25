@@ -30,5 +30,8 @@ module.exports = {
             "<rootDir>/features/lobby/destinationWarmupWorkerFactory.jest.ts",
     },
     transformIgnorePatterns: ["/node_modules/(?!three/|@pixiv/)"],
-    testPathIgnorePatterns: ["/node_modules/", "/.next/", "/dist/"],
+    // Build output is never a test, whatever folder a build was sent to
+    // (NEXT_DIST_DIR=.next-anything, see .gitignore).
+    testPathIgnorePatterns: ["/node_modules/", "/\\.next[^/]*/", "/dist/"],
+    modulePathIgnorePatterns: ["<rootDir>/\\.next[^/]*/"],
 };

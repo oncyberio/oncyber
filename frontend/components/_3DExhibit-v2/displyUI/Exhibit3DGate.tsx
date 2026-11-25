@@ -1,4 +1,5 @@
 import { yieldLobbyLoadingWork } from "@utils/lobbyLoadingBudget";
+import { loadDebugPanel } from "../three/globals/debugPanel.js";
 import { markNativeStartup } from "@utils/nativeStartupDiagnostics";
 import { failLobbyDestination } from "@utils/lobbyDestinationBridge";
 import { finishSpaceEntrance } from "@utils/spaceEntrance";
@@ -23,6 +24,9 @@ const DisplayScene = dynamic(
         // lobby's jump animation; iframe navigation already started normally.
         // The chunks are prefetched meanwhile, so only evaluation waits.
         await yieldLobbyLoadingWork({ force: true });
+        // The debug panel, for `?debug=true` only, has to be there before
+        // the engine's modules run; everyone else never fetches it.
+        await loadDebugPanel();
         markNativeStartup("display-import-start");
         // webpackPrefetch: the browser downloads this chunk while the page
         // starts (low priority) but runs nothing; this import, after the

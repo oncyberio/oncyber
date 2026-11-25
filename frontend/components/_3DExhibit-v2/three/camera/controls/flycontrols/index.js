@@ -6,7 +6,7 @@ import Emitter from '@3emitter'
 import Events from '@3events'
 
 
-import DAT from 'dat.gui'
+import { debugPanel } from '../../../globals/debugPanel.js'
 
 import conf from "@3gl/utils/params"
 
@@ -109,6 +109,10 @@ export default class FlyControls extends AbstractControls {
     }
 
     addDebug(){
+
+        const DAT = debugPanel()
+
+        if( !DAT ) return
 
         let GUI = DAT.GUI
 

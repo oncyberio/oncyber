@@ -12,4 +12,37 @@ function siteOrigin(env = process.env) {
     return host ? `https://${host}` : "http://localhost:13000";
 }
 
-module.exports = { siteOrigin };
+/**
+ * The branch whose previews try what is off everywhere else: worlds in a
+ * frame and world scripts. Once it has merged, nothing is named by this and
+ * every deployment goes by its own settings again.
+ */
+const TRIAL_BRANCH = "games-dev";
+
+/** @param {Record<string, string | undefined>} [env] */
+function trialPreview(env = process.env) {
+    return (
+        env.VERCEL_ENV === "preview" &&
+        env.VERCEL_GIT_COMMIT_REF === TRIAL_BRANCH
+    );
+}
+
+/**
+ * The world host for a preview of the trial branch
+ * (docs/plans/framed-worlds.md). Worlds in a frame need a second host of
+ * the same app, and a preview has one already: Vercel serves each
+ * deployment at its own address as well as at its branch's. The branch's
+ * address is the site (siteOrigin above) and the deployment's own is the
+ * world host. Empty anywhere else: worlds are framed only where
+ * NEXT_PUBLIC_WORLD_ORIGIN says so.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ */
+function previewWorldOrigin(env = process.env) {
+    if (!trialPreview(env)) return "";
+    const site = env.VERCEL_BRANCH_URL;
+    const own = env.VERCEL_URL;
+    return site && own && site !== own ? `https://${own}` : "";
+}
+
+module.exports = { siteOrigin, previewWorldOrigin, trialPreview };

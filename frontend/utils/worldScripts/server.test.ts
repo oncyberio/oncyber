@@ -24,10 +24,10 @@ const reply = (content: string, extra: object = {}) =>
 
 describe("world scripts on the server", () => {
     it("is off unless the flag is on", () => {
-        expect(worldScriptsEnabled({})).toBe(false);
-        expect(worldScriptsEnabled({ NEXT_PUBLIC_WORLD_SCRIPTS: "1" })).toBe(
-            true
-        );
+        expect(worldScriptsEnabled()).toBe(false);
+        expect(worldScriptsEnabled("")).toBe(false);
+        expect(worldScriptsEnabled("1")).toBe(true);
+        expect(worldScriptsEnabled("On")).toBe(true);
     });
 
     it("lets in only listed accounts, by id or wallet", () => {

@@ -9,7 +9,7 @@
  * `travel` to leave for somewhere else on the site.
  * Messages go to the site's origin and are heard from it alone.
  */
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
     CONTRACT_VERSION,
     GAME_MESSAGE_PREFIX,
@@ -209,12 +209,22 @@ export function worldDocument(): WorldDocument | null {
 }
 
 /**
+ * Set by the app shell from what the server said of the request: this
+ * document is the world's side of a frame. Known on the server and on the
+ * first render alike, so the world never renders, or fetches the code for,
+ * what the page around it draws.
+ */
+export const FramedWorldContext = createContext(false);
+
+/**
  * Whether this document is a framed world, for what it should not draw
- * because the page around it does (the header, the title, Back). False on
- * the server and on the first render, so the two agree.
+ * because the page around it does (the header, the title, Back). On the
+ * server it is what the shell was told; in the browser it is then checked
+ * against the document itself.
  */
 export function useIsWorldDocument(): boolean {
-    const [framed, setFramed] = useState(false);
-    useEffect(() => setFramed(isWorldDocument()), []);
+    const told = useContext(FramedWorldContext);
+    const [framed, setFramed] = useState(told);
+    useEffect(() => setFramed(told || isWorldDocument()), [told]);
     return framed;
 }

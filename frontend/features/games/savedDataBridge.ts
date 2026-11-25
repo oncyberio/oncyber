@@ -130,6 +130,7 @@ export function attachSavedData(options: {
     send(message: object): void;
     account(): string | null;
     party(): string | null;
+    documentId(): number;
     target?: Pick<Window, "addEventListener" | "removeEventListener">;
 }) {
     const { game, target = window } = options;
@@ -142,17 +143,43 @@ export function attachSavedData(options: {
         party: options.party,
         localShared: process.env.NODE_ENV === "development",
     });
+    let active = true;
     const receive = (event: MessageEvent) => {
         if (!options.fromGame(event)) return;
         // Either form a game speaks: `oncyber:game:saved` or `<id>:saved`.
         if (readGameMessage(event.data?.type, game)?.kind !== "saved") return;
         const request = event.data.request;
         if (typeof request !== "number" && typeof request !== "string") return;
-        void handle(event.data).then((result) =>
-            options.send({ type: `${game}:saved-result`, request, ...result })
-        );
+        const document = options.documentId();
+        const account = options.account();
+        const party = options.party();
+        const port = event.ports?.[0];
+        const replyType = event.data.type + "-result";
+        void handle(event.data).then((result) => {
+            try {
+                if (
+                    !active ||
+                    document !== options.documentId() ||
+                    account !== options.account() ||
+                    party !== options.party()
+                )
+                    return;
+                if (port)
+                    port.postMessage({ type: replyType, request, ...result });
+                else
+                    options.send({
+                        type: `${game}:saved-result`,
+                        request,
+                        ...result,
+                    });
+            } finally {
+                port?.close();
+            }
+        });
     };
     target.addEventListener("message", receive as EventListener);
-    return () =>
+    return () => {
+        active = false;
         target.removeEventListener("message", receive as EventListener);
+    };
 }

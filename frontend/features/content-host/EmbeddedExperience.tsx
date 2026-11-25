@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import styled from "styled-components";
 import { useRouter } from "next/router";
+import { nodeEnv } from "@env";
 import { UserContext } from "@components/context/UserContext";
 import type { Experience } from "@uitypes/experience";
 import { finishSpaceEntrance } from "@utils/spaceEntrance";
@@ -81,7 +82,6 @@ function ContentDocument({
     const [runtime, setRuntime] = useState<EmbeddedRuntime>(null);
     const [attempt, setAttempt] = useState(0);
     const [loaded, setLoaded] = useState(false);
-    const [ready, setReady] = useState(false);
     const [error, setError] = useState("");
     const [gateError, setGateError] = useState("");
     const [password, setPassword] = useState("");
@@ -139,7 +139,6 @@ function ContentDocument({
         revokeDocument();
         setRuntime(null);
         setLoaded(false);
-        setReady(false);
         setError(message);
         document.exitPointerLock?.();
         finishSpaceEntrance();
@@ -153,7 +152,6 @@ function ContentDocument({
         setPending(null);
         setRuntime(null);
         setLoaded(false);
-        setReady(false);
         setError("");
         setGateError("");
         const resolve = async () => {
@@ -188,7 +186,8 @@ function ContentDocument({
                 const next = resolveEmbeddedRuntime(
                     descriptor,
                     window.location.origin,
-                    process.env.NODE_ENV === "development"
+                    process.env.NODE_ENV === "development",
+                    nodeEnv.AWE_PLAYER_ORIGIN
                 );
                 // Only a server-admitted space may request an address in production.
                 // A supplied descriptor or URL query is not proof of admission.
@@ -307,7 +306,6 @@ function ContentDocument({
             }
             if (request.method === CONTENT_PROTOCOL.methods.ready) {
                 event.ports?.forEach((port) => port.close());
-                setReady(true);
                 setLoaded(true);
                 setError("");
                 finishSpaceEntrance();
@@ -383,14 +381,15 @@ function ContentDocument({
         pendingRef.current = null;
         setPending(null);
         setMenuOpen(false);
-        setReady(false);
         session.current = createContentSession();
         gate.current = new ContentMessageGate(session.current);
-        setLoaded(true);
+        const waitForMessage = runtime?.readyOn === "message";
+        setLoaded(!waitForMessage);
         frame.current?.contentWindow?.postMessage(
             createContentInit(session.current, runtime?.capabilities),
             "*"
         );
+        if (waitForMessage) return;
         finishSpaceEntrance();
         // Generic sites need no SDK. 'Loaded' describes only the browser load
         // event, not a guarantee that a cross-origin game has rendered.
@@ -424,7 +423,7 @@ function ContentDocument({
                 "This site is taking too long to load. It may not allow embedding.",
                 "timeout"
             );
-        }, 30000);
+        }, runtime.readyOn === "message" ? 60000 : 30000);
         return () => window.clearTimeout(timer);
     }, [runtime, loaded, failDocument]);
     useEffect(() => {
@@ -485,7 +484,7 @@ function ContentDocument({
                         ? "Could not load"
                         : !loaded
                         ? "Loading world…"
-                        : experience
+                        : experience || runtime?.kind === "awe-app"
                         ? "External content"
                         : "Unregistered preview"
                 }

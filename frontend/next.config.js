@@ -3,7 +3,11 @@
 
 const fs = require("fs");
 const path = require("path");
-const { siteOrigin } = require("./utils/siteOrigin");
+const {
+    siteOrigin,
+    previewWorldOrigin,
+    trialPreview,
+} = require("./utils/siteOrigin");
 const { gameNetworkHeaders } = require("./features/games/networkPolicy");
 const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
@@ -100,6 +104,20 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "",
         NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
+        // Set in the environment, these are as set. A preview of the trial
+        // branch turns both on by itself (utils/siteOrigin.js).
+        NEXT_PUBLIC_WORLD_ORIGIN:
+            process.env.NEXT_PUBLIC_WORLD_ORIGIN || previewWorldOrigin(),
+        NEXT_PUBLIC_WORLD_SCRIPTS:
+            process.env.NEXT_PUBLIC_WORLD_SCRIPTS ||
+            (trialPreview() ? "1" : ""),
+        NEXT_PUBLIC_AWE_PLAYER_ORIGIN:
+            process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN ||
+            (process.env.VERCEL_ENV === "preview" &&
+            process.env.VERCEL_GIT_COMMIT_REF ===
+                "feat/embedded-world-readiness"
+                ? "https://oo-git-feat-oncyber-guest-player-oncyber.vercel.app"
+                : ""),
     },
     experimental: {
         // The lobby imports shared TS from ../multiplayer (protocol, identity,

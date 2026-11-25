@@ -116,8 +116,9 @@ let root: Root;
 let host: HTMLDivElement;
 let sent: { message: any; target: string }[];
 const element = () => host.querySelector("iframe")!;
+/** How far the page takes the world's loading to be: on the frame itself. */
 const cover = () =>
-    host.querySelector<HTMLElement>('[data-machine="game-loading"]');
+    host.querySelector<HTMLElement>('iframe[data-machine="game-loading"]');
 const retry = () => host.querySelector<HTMLButtonElement>("[data-retry]");
 /** Messages posted to the frame now on the page. */
 const listen = () => {
@@ -285,14 +286,12 @@ test("ignores anything that is not the world in its frame", () => {
     expect(cover().dataset.state).toBe("loading");
 });
 
-test("covers the world until it has drawn, showing how far it has loaded", () => {
+test("draws nothing over a loading world: its own animation is what the visitor sees", () => {
     expect(cover().dataset.state).toBe("loading");
     fromWorld({ type: "oncyber:game:progress", value: 0.3, label: "" });
-    expect(
-        cover()
-            .querySelector('[role="progressbar"]')
-            .getAttribute("aria-valuenow")
-    ).toBe("30");
+    expect(host.querySelector('[role="progressbar"]')).toBeNull();
+    expect(host.querySelector('[data-game-overlay="loading"]')).toBeNull();
+    expect(cover().dataset.state).toBe("loading");
     fromWorld({
         type: "oncyber:game:first-frame",
         ms: 900,
@@ -310,11 +309,11 @@ test("a world that says it failed can be loaded again", () => {
     const first = element();
     fromWorld({ type: "oncyber:game:error" });
     expect(retry().textContent).toBe("This world didn't load.");
-    expect(cover()).toBeNull();
+    expect(cover().dataset.state).toBe("failed");
 
     act(() => retry().click());
     expect(retry()).toBeNull();
-    // a new frame and a new cover, from the start
+    // a new frame, loading from the start
     expect(element()).not.toBe(first);
     expect(cover().dataset.state).toBe("loading");
 });

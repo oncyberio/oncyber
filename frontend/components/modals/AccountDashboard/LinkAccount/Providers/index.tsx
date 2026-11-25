@@ -39,7 +39,6 @@ import EmailForm from "./EmailForm";
 import WalletsForm from "./WalletsForm";
 import { LinkedAccount } from "@uitypes/user";
 import Checkbox from "@ui/components/Checkbox";
-import { authServices } from "@features/auth/providers";
 
 const Providers: FunctionComponent<
     Partial<ProviderButtonsReturnProps> & {
@@ -171,6 +170,9 @@ const Providers: FunctionComponent<
 
         // for old accounts that dont have userData.socials.twitter
         if (!userData.socials?.twitter) {
+            // Sign-in code is fetched when it is used: it brings Firebase's
+            // sign-in library, which nothing else on this panel needs.
+            const { authServices } = await import("@features/auth/providers");
             const credentials: any = await authServices["twitter"].signIn();
 
             payload["twitterHandle"] =

@@ -420,5 +420,16 @@ export function useAI(opts: {
         throw new Error("useAIContext must be used within FeedProvider");
     }
 
-    return context;
+    // The world's side of a frame has no assistant (it holds no account,
+    // see pages/_app.tsx): there it is closed, and stays closed.
+    return context ?? NO_ASSISTANT;
 }
+
+const NO_ASSISTANT: React.ContextType<typeof AIContext> = {
+    state: initialState,
+    dispatch: () => {},
+    isFocused: false,
+    isShowing: false,
+    isWhitelisted: false,
+    toggle: () => {},
+};

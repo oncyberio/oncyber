@@ -12,10 +12,7 @@ import {
     publicExperienceHref,
     replaceExperienceLocation,
 } from "@utils/experienceLocation";
-import {
-    GameLoadingCover,
-    useGameLoading,
-} from "@features/games/GameLoadingCover";
+import { useGameLoading } from "@features/games/GameLoadingCover";
 import { fromFrame, frameTarget } from "@features/games/frameOrigin";
 import {
     GAME_MESSAGE_PREFIX,
@@ -34,6 +31,9 @@ import {
 } from "./worldDock";
 import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
 import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
+import { hostWorldLive } from "./worldLiveHost";
+import { LIVE_MESSAGE } from "./relayedLive";
+import { deferred, liveSpace } from "@utils/liveSpace";
 import { setFramedWorldLock } from "./worldPointer";
 import {
     readWorldFile,
@@ -105,9 +105,9 @@ export const WORLD_LOAD_TIMEOUT_MS = 120_000;
  * the account, the header and every prompt; the world is served from the
  * world host and cannot reach any of it.
  *
- * The world speaks the games contract, so what a framed game gets from the
- * page (the cover until its first frame, here) a world gets from the same
- * code.
+ * The world speaks the games contract, so the page follows its loading
+ * with the code a framed game's page uses. It draws no cover over it: a
+ * world has its own loading animation, and that is what the visitor sees.
  */
 export default function FramedWorld({
     title,
@@ -330,6 +330,7 @@ export default function FramedWorld({
             <WorldFrameView
                 key={attempt}
                 title={title}
+                spaceId={spaceId}
                 src={src}
                 frame={frame}
                 visitor={visitor}
@@ -499,6 +500,7 @@ function usePageVisitor(gate?: { type: string }) {
 
 function WorldFrameView({
     title,
+    spaceId,
     src,
     frame,
     visitor,
@@ -520,6 +522,8 @@ function WorldFrameView({
     controls,
 }: {
     title: string;
+    /** The space this page opened. */
+    spaceId: string;
     src: string;
     frame: WorldFrame;
     visitor: { message: object } | null;
@@ -616,6 +620,15 @@ function WorldFrameView({
     // The world's room: the page holds the connection and relays it
     // (./roomRelay), so the session that joins it never enters the frame.
     const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
+    // The space's live channels (edits as they are saved, editor actions)
+    // are the page's too: the world loads no Firebase (./relayedLive).
+    const live = useRef<ReturnType<typeof hostWorldLive> | null>(null);
+    const drawn = useRef<{ promise: Promise<void>; resolve(): void }>();
+    if (!drawn.current) {
+        let resolve = () => {};
+        const promise = new Promise<void>((done) => (resolve = done));
+        drawn.current = { promise, resolve };
+    }
     const voice = useRef<ReturnType<typeof hostWorldVoice> | null>(null);
     useEffect(() => {
         const post = (kind: string, data: object) =>
@@ -637,7 +650,13 @@ function WorldFrameView({
             });
         };
         controls.current = {
-            send: post,
+            // Nothing is said to the frame before the world has spoken:
+            // until its document is in, the frame holds an empty one of
+            // this page's own origin, and a message addressed to the world
+            // is refused there. The world announces itself when it is up.
+            send: (kind, data) => {
+                if (told.current) post(kind, data);
+            },
             press(id) {
                 post("dock-press", { id });
                 element.current?.focus();
@@ -662,8 +681,18 @@ function WorldFrameView({
             },
         });
         room.current = host;
+        live.current = hostWorldLive({
+            post,
+            spaceId,
+            // Firebase loads once the world has drawn: its channels are for
+            // what changes during a visit, and a loading world should
+            // have the line to itself.
+            live: () => deferred(drawn.current.promise.then(liveSpace)),
+        });
         return () => {
             host.dispose();
+            live.current?.dispose();
+            live.current = null;
             voice.current?.dispose();
             voice.current = null;
             controls.current = null;
@@ -678,6 +707,8 @@ function WorldFrameView({
                 return room.current?.receive(kind, event.data);
             if (kind?.startsWith("voice-"))
                 return voice.current?.receive(kind, event.data);
+            if (kind?.startsWith(LIVE_MESSAGE))
+                return live.current?.receive(kind, event.data);
             if (kind === "ask") {
                 // What only the page can know, because it holds the account.
                 const { n, name, label } = event.data;
@@ -766,6 +797,7 @@ function WorldFrameView({
         return () => window.removeEventListener("message", receive);
     }, [frame.world]);
     useEffect(() => {
+        if (loading.phase !== "loading") drawn.current.resolve();
         if (loading.phase === "failed") return failed.current();
         // Drawn after all: a notice that it did not load no longer holds.
         if (loading.phase !== "loading") return recovered.current();
@@ -788,6 +820,8 @@ function WorldFrameView({
                 sandbox={WORLD_SANDBOX}
                 allow={WORLD_PERMISSIONS}
                 referrerPolicy="no-referrer"
+                data-machine="game-loading"
+                data-state={loading.phase}
                 style={{
                     width: "100%",
                     height: "100%",
@@ -795,9 +829,8 @@ function WorldFrameView({
                     display: "block",
                 }}
             />
-            {loading.phase !== "failed" && (
-                <GameLoadingCover state={loading} title={title} />
-            )}
+            {/* No cover: a world draws its own loading animation, and the
+                visitor sees it as they always have. */}
         </>
     );
 }

@@ -60,9 +60,15 @@ jest.mock("next/dynamic", () => {
     const loaders: Array<() => Promise<any>> = [];
     const dynamic = (loader: () => Promise<any>) => {
         loaders.push(loader);
-        return ({ voiceService }: any) => (
-            <div data-voice-debug="" data-service={voiceService?.name} />
-        );
+        // Other lazy parts (the site's header) are given no voice service
+        // and draw nothing here.
+        return (props: any) =>
+            "voiceService" in props ? (
+                <div
+                    data-voice-debug=""
+                    data-service={props.voiceService?.name}
+                />
+            ) : null;
     };
     return Object.assign(dynamic, { loaders });
 });
@@ -964,8 +970,9 @@ describe("the voice level readout", () => {
         }
         // Declared once, at module level: the chunk is only fetched when
         // the stand-in above would render. (The others are the avatar
-        // picker, the people panel and the shell's world info sidebar.)
-        expect(mockLoaders).toHaveLength(4);
+        // picker, the people panel, and the shell's world info sidebar and
+        // site header.)
+        expect(mockLoaders).toHaveLength(5);
     });
 
     test.each(["?voiceDebug", "?voiceDebug=0.42", "?x=1&voiceDebug=-58"])(

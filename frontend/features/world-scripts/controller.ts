@@ -11,7 +11,7 @@
  */
 import WorldScriptsApi from "@api/worldScripts/_api";
 import type { WorldScriptRecord } from "./protocol";
-import { WORLD_SCRIPT_LIMITS, byteLength } from "./protocol";
+import { WORLD_SCRIPT_LIMITS, byteLength } from "./basics";
 import type { SwapMode } from "./host";
 import type { WorldScriptRuntime } from "./runtime";
 import { cleanStyle, WorldStyle } from "./style";

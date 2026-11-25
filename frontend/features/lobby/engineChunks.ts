@@ -30,7 +30,7 @@ export const ENGINE_IMPORTS = [
 export const WORLD_ROUTES = ["/[slug]", "/spaces/[id]", "/mints/[slug]"];
 
 /** The pages that host the lobby, where `_document` writes the list. */
-export const LOBBY_PAGES = ["/", "/landing-carousel"];
+export const LOBBY_PAGES = ["/", "/landing-carousel", "/world-warmup"];
 
 type LoadableManifest = Record<string, { files?: unknown }>;
 type BuildManifest = {

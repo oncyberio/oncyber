@@ -99,10 +99,11 @@ fields or as short-lived, single-purpose tokens.
 Each is behind the flag, tested, and leaves no half-moved feature as the
 default.
 
-1. **A visitor's world in a frame.** The page frames the world host, shows
-   the cover until the first frame, reports a world that fails to load and
-   offers to reload it. The world hides the header the page now draws. The
-   visitor is a guest inside the world. _(This change.)_
+1. **A visitor's world in a frame.** _(Done.)_ The page frames the world
+   host, reports a world that fails to load and offers to reload it. The
+   world hides the header the page now draws. The page draws nothing over
+   a loading world: the world's own loading animation is what the visitor
+   sees, as it always was.
 2. **Identity and navigation.** _(Done.)_ The page answers the world's
    `hello` with who is visiting: a name, a portrait and an avatar, the
    same public fields a game gets (`features/worlds/worldVisitor.ts`). The
@@ -212,15 +213,22 @@ default.
        need a popup, the list of avatars owned by linked wallets, and
        fullscreen.
 
-5. **The lobby.** _(Relay done.)_ A
-   world reached from the lobby is two frames below it. The page between
-   them passes the journey's protocol both ways, unchanged
-   (`utils/lobbyDestinationBridge.ts`), and what the lobby set or read
-   directly on the destination's document (the party chat flag, the Enter
-   key, the loading budget, travel options) is passed on too. Still
-   direct, and so missing for a framed world: the portal's live preview,
-   and the warm-up, which caches the room model on the site's origin
-   where the world cannot read it.
+5. **The lobby.** _(Done.)_ A world reached from the lobby is two
+   frames below it. The page between them passes the journey's protocol
+   both ways, unchanged (`utils/lobbyDestinationBridge.ts`), and what the
+   lobby set or read directly on the destination's document (the party
+   chat flag, the Enter key, the loading budget, travel options) is
+   passed on too.
+
+    The lobby and the landing page start a world's downloads before the
+    visitor goes there: the engine's scripts and the room model. A
+    browser keeps each host's caches apart, so what the site downloads a
+    framed world never finds. The warm-up therefore runs on the world
+    host: the site keeps one small hidden frame there (`/world-warmup`,
+    `features/worlds/worldWarmup.ts`), tells it which world to warm, and
+    downloads nothing of the world's itself. Still direct, and so missing
+    for a framed world: the portal's live preview.
+
 6. **World scripts.** _(Done.)_ Two kinds, both in the world.
 
     Code kept in this repository (`features/worldMods/`) is a module
@@ -243,6 +251,55 @@ default.
     A space embedded on another site keeps running in its own page: a
     frame inside a frame inside someone else's page has no way to ask
     its visitor anything.
+
+7. **Each frame loads what it runs.** _(Done; what is left is listed.)_
+   Measured on a guest's visit to Sunshine Square, from the files each
+   frame fetched and their source maps, so every byte is counted against
+   the source file it came from. Scripts only, gzipped:
+
+    | Frame | First measured | Now      |
+    | ----- | -------------- | -------- |
+    | Page  | 603 KB         | 550 KB   |
+    | World | 2,045 KB       | 1,890 KB |
+
+    The first measurement was taken after the two largest cuts, which an
+    earlier, coarser count had already found: the page no longer downloads
+    the engine it never ran, and the world no longer loads Firebase.
+
+    - **The page no longer downloads the engine.** The space's route
+      imported the engine's side of the page, and importing it starts the
+      engine's downloads. That side is now a file of its own
+      (`features/worlds/NativeSpace.tsx`) which only a document that
+      draws a world loads. Where worlds are not framed it stays part of
+      the page: the choice is made on the value written at build time, so
+      that build is as it was.
+    - **The world loads no Firebase.** For every visitor a world kept two
+      live channels open so that edits show as they are saved: a listener
+      on the space's document and a feed of editor actions. They are the
+      page's now (`utils/liveSpace/`, `features/worlds/relayedLive.ts`):
+      the page reads for whichever space the world is in and writes only
+      to the feed of the space it opened. The page loads Firebase once
+      the world has drawn, and without its sign-in library for a visitor
+      who has no Firebase sign-in saved.
+    - **The world loads no rooms client**, no Ethereum library (it was
+      imported up front to sign a purchase), no date library (one call,
+      now a small function checked against it), no debug panel unless
+      `?debug=true`, and no script runtime until a script is run.
+    - **The world's side has a lighter app shell.** The server says which
+      side of the frame a document is, so from the first render the
+      world leaves out the studio's AI assistant, the sign-in sheet, the
+      sign-in link handler and the site's header, and their code.
+    - **Sign-in and wallet-address code load when used**, on both sides.
+
+    What the world still loads is, by weight, the engine: three.js
+    (624 KB), the engine's own code (about 550 KB), the avatar library
+    (72 KB) and React. Not the engine, and left for now: the interface's
+    animation library (34 KB, used by the engine's own panels), every
+    language's translations (33 KB, in both frames), the artwork and
+    account panels (33 KB), the search panel (20 KB) and the live
+    document store shared with the studio (22 KB). On the page: Firebase
+    (about 170 KB, for the live channels, after the world has drawn), the
+    rooms client it uses, and the same translations.
 
 The studio stays unframed until editing has its own plan.
 
@@ -340,8 +397,19 @@ The studio stays unframed until editing has its own plan.
 
 ## 6. Open
 
+-   With the engine drawing, a message relayed by the page (700 positions,
+    20 times a second) was handled in the world no later than a message
+    the world sent itself: both wait for the frame being drawn. Measured
+    in software rendering at 70 ms and 122 ms a frame; on a real GPU
+    _(not measured)_. If it ever shows there, the world can hold its own
+    socket with a ticket for one room from the page.
 -   The world host's domain, and adding it to the room servers' allowed
-    origins and the Firebase project's allowed domains.
+    origins and the Firebase project's allowed domains. Until there is
+    one, a Vercel preview of the `games-dev` branch frames worlds by
+    itself: Vercel serves each deployment at its own address as well as
+    at the branch's, so the branch's address is the site and the
+    deployment's own is the world host (`frontend/utils/siteOrigin.js`).
+    Production and every other branch are as before.
 -   Production Firestore rules are not in this repository; the world reads
     as a signed-out visitor does today.
 -   VR from inside a frame needs `xr-spatial-tracking` on the frame and a

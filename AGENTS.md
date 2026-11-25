@@ -109,6 +109,30 @@ pnpm games:cli:test                             # the oncyber command (games/cli
 pnpm format:all                                 # Prettier
 ```
 
+### The fast loop
+
+For each change, before you push (about half a minute):
+
+```sh
+pnpm check:fast     # design tokens, the tests related to what changed, types
+```
+
+`check:types` keeps what it learned between runs, so a repeat takes about
+ten seconds instead of a minute (`TYPECHECK_FRESH=1` starts from nothing).
+`pnpm -C frontend test:changed` runs only the tests a change can affect;
+the whole suite is under a minute and CI runs it on every pull request.
+
+To try a change to worlds in a browser, don't build here: push, let the
+preview build, and run the two-minute check against it.
+
+```sh
+pnpm worlds:smoke --base https://<the preview's address>
+```
+
+Keep the slow things for when they are needed: a production build on your
+machine, or a full framed-against-unframed comparison, only for a change to
+how the engine or the frame itself loads, and before a merge.
+
 The Next.js build ignores type errors, so run `check:types` separately. The
 frontend has a few hundred known type errors; `frontend/scripts/type-baseline.json`
 records them and the check fails only when a change adds one. Lower the

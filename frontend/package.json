@@ -17,6 +17,7 @@
         "start": "next start",
         "analyze": "cross-env ANALYSE=true npm run build",
         "test": "jest",
+        "test:changed": "jest --changedSince=origin/main",
         "test:lobby-swc": "node scripts/check-lobby-swc.cjs",
         "test:lobby-feel": "jest --runInBand features/lobby/testing/feelSimulation.test.ts features/lobby/LobbyInputPrediction.test.ts features/lobby/LobbyNetwork.test.ts features/lobby/testing/feelPage.test.tsx",
         "dev:https": "node scripts/fetch-licensed-fonts.mjs && next dev --port 13000 --experimental-https",
