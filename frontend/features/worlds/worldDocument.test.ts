@@ -230,6 +230,22 @@ describe("createWorldDocument", () => {
         expect(await third).toBeUndefined();
     });
 
+    test("once it has drawn, says it is alive about once a second", () => {
+        const w = fakeWindow();
+        const world = createWorldDocument(w.win, frame);
+        w.fromPage({ type: "oncyber:game:identity" });
+        w.advance(5000);
+        const alive = () =>
+            w.kinds().filter((kind) => kind === "oncyber:game:alive").length;
+        expect(alive()).toBe(0);
+        world.drawn();
+        w.advance(5000);
+        expect(alive()).toBe(5);
+        world.dispose();
+        w.advance(5000);
+        expect(alive()).toBe(5);
+    });
+
     test("reports progress, then that it has drawn, once", () => {
         const w = fakeWindow();
         const world = createWorldDocument(w.win, frame);

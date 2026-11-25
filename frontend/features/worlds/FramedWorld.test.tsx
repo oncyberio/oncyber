@@ -656,3 +656,63 @@ describe("what the world asks the page", () => {
         });
     });
 });
+
+describe("a world that stops", () => {
+    const alive = () => fromWorld({ type: "oncyber:game:alive" });
+    const drawn = () =>
+        fromWorld({
+            type: "oncyber:game:first-frame",
+            ms: 900,
+            width: 1280,
+            height: 720,
+        });
+    const pass = (ms: number) => act(() => void jest.advanceTimersByTime(ms));
+
+    test("silence after it has drawn is said on the page, with a way to load it again", () => {
+        drawn();
+        for (let i = 0; i < 5; i++) {
+            alive();
+            pass(1000);
+        }
+        expect(retry()).toBeNull();
+
+        const first = element();
+        pass(9000);
+        expect(retry().textContent).toBe("This world stopped responding.");
+        // the page's own things are still there
+        expect(shown()).toBe("Starry Night");
+
+        act(() => retry().click());
+        expect(element()).not.toBe(first);
+        expect(retry()).toBeNull();
+    });
+
+    test("a world that comes back is no longer called stopped", () => {
+        drawn();
+        alive();
+        pass(9000);
+        expect(retry()).not.toBeNull();
+        alive();
+        pass(1000);
+        expect(retry()).toBeNull();
+    });
+
+    test("a tab out of view is not a stopped world", () => {
+        drawn();
+        alive();
+        Object.defineProperty(document, "hidden", {
+            configurable: true,
+            get: () => true,
+        });
+        act(() => void document.dispatchEvent(new Event("visibilitychange")));
+        pass(60_000);
+        expect(retry()).toBeNull();
+        Object.defineProperty(document, "hidden", {
+            configurable: true,
+            get: () => false,
+        });
+        act(() => void document.dispatchEvent(new Event("visibilitychange")));
+        pass(5000);
+        expect(retry()).toBeNull();
+    });
+});

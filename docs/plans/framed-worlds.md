@@ -168,15 +168,23 @@ default.
         page's button unmutes), and screen share drawn in 3D, which needs
         its own answer because a stream cannot cross into the frame.
 
-    3. **Chat and people.** The chat, the people list and moderation move
-       to the page's interface, so they outlive a world that stops. The
-       engine's copies go in the same step. Until then they are drawn
-       inside the world, and a moderator's own controls are hidden there
-       (the room does know them as one).
+    3. **A world that stops.** _(Done.)_ A world that has drawn says it
+       is alive about once a second; silence while the page is in view
+       means its thread hangs or died (`features/games/frameStall.ts`).
+       The page says so, with a way to load the world again, and what is
+       the page's carries on: the room, voice, the header and the dock.
+
+        Chat and the people list stay drawn by the world. They run on the
+        relayed room with the code they have unframed, so a framed visitor
+        and an unframed one in the same room see the same chat. The cost:
+        they stop with a world that stops, until it is loaded again. Moving
+        them to the page would mean a second chat interface speaking the
+        world's chat; not planned unless that cost turns out to matter.
 
 4. **What the world asks the page for.** Artwork info and its links, opening
    a link, sharing, gating and password prompts, fullscreen, screenshots.
-   A heartbeat, so the page can tell a hung world from a slow one.
+   (The heartbeat that tells a hung world from a slow one is in, with
+   slice 3.)
 5. **The lobby.** The lobby frames the world host; its four direct reaches
    become messages; the warm-up runs on the world host so the room model is
    cached where the world reads it.
@@ -231,6 +239,10 @@ The studio stays unframed until editing has its own plan.
     engine's own dock crossing, asking a moderator to speak, and the
     speaking animation were not seen _(not tested)_. Whether two people
     hear each other clearly _(not tested)_.
+-   Slice 3, a world that stops: a framed world's thread was hung for
+    25 s. The page kept running (145 ms worst gap), said the world had
+    stopped responding with a way to load it again, and took the notice
+    away when the world came back.
 -   First measurement on a production build and a real device: cold and warm
     load against today's page _(not measured)_.
 

@@ -15,6 +15,7 @@ import {
     GAME_MESSAGE_PREFIX,
     readGameMessage,
 } from "@features/games/gameContract";
+import { BEAT_EVERY_MS } from "@features/games/frameStall";
 import { WORLD_FRAME, type WorldFrame } from "./worldFrame";
 import { readWorldVisitor, type WorldVisitor } from "./worldVisitor";
 
@@ -91,6 +92,7 @@ export function createWorldDocument(
 
     let greeted = false;
     let drawn = false;
+    let beating: ReturnType<Window["setInterval"]> | undefined;
     const heard = new Set<(kind: string, data: any) => void>();
     let name: (visitor: WorldVisitor | null) => void = () => {};
     const visitor = new Promise<WorldVisitor | null>((resolve) => {
@@ -168,12 +170,16 @@ export function createWorldDocument(
                 height: win.innerHeight,
             });
             post("ready");
+            // From here the page expects to hear this thread is running
+            // (features/games/frameStall).
+            beating = win.setInterval(() => post("alive"), BEAT_EVERY_MS);
         },
         failed() {
             post("error");
         },
         dispose() {
             name(null);
+            win.clearInterval(beating);
             win.clearInterval(asking);
             win.removeEventListener("message", receive);
             heard.clear();

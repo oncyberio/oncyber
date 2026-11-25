@@ -5,6 +5,7 @@ import { baseTokens } from "@styles/tokens";
 import { UserContext } from "@components/context/UserContext";
 import ExperienceShell from "@features/content-host/ExperienceShell";
 import { presentAccount } from "@features/games/accountIdentity";
+import { BEAT_EVERY_MS, createStallWatch } from "@features/games/frameStall";
 import { RoomVoice } from "@features/games/roomVoice";
 import {
     publicExperienceHref,
@@ -59,6 +60,9 @@ export default function FramedWorld({
     // Each attempt is a new frame with a new cover.
     const [attempt, setAttempt] = useState(0);
     const [failed, setFailed] = useState(false);
+    // The world drew and has since gone silent: its thread hangs or died.
+    // The page, the room and voice carry on; the visitor is told.
+    const [stalled, setStalled] = useState(false);
     const visitor = usePageVisitor();
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
@@ -67,6 +71,7 @@ export default function FramedWorld({
     const world = useRef<WorldControls | null>(null);
     const reload = () => {
         setFailed(false);
+        setStalled(false);
         setDock([]);
         setAttempt((count) => count + 1);
     };
@@ -190,6 +195,7 @@ export default function FramedWorld({
                 moderates={moderates}
                 onDock={setDock}
                 onVoice={setVoice}
+                onStalled={setStalled}
                 controls={world}
             />
             <ExperienceShell
@@ -201,6 +207,11 @@ export default function FramedWorld({
                     failed
                         ? {
                               message: "This world didn't load.",
+                              onRetry: reload,
+                          }
+                        : stalled
+                        ? {
+                              message: "This world stopped responding.",
                               onRetry: reload,
                           }
                         : voice?.error
@@ -269,6 +280,7 @@ function WorldFrameView({
     moderates,
     onDock,
     onVoice,
+    onStalled,
     controls,
 }: {
     title: string;
@@ -290,6 +302,8 @@ function WorldFrameView({
     onDock(actions: DockAction[]): void;
     /** The page's voice in the world's room; null while it is in none. */
     onVoice(voice: WorldVoiceView | null): void;
+    /** The world went silent after it had drawn, or came back. */
+    onStalled(stalled: boolean): void;
     controls: { current: WorldControls | null };
 }) {
     const element = useRef<HTMLIFrameElement>(null);
@@ -308,6 +322,7 @@ function WorldFrameView({
         moderates,
         onDock,
         onVoice,
+        onStalled,
     });
     handlers.current = {
         onLocation,
@@ -316,7 +331,28 @@ function WorldFrameView({
         moderates,
         onDock,
         onVoice,
+        onStalled,
     };
+    // A world that has drawn says it is alive about once a second; silence
+    // while this page is in view means it has stopped.
+    const stall = useRef<ReturnType<typeof createStallWatch>>();
+    stall.current ||= createStallWatch();
+    useEffect(() => {
+        const watch = stall.current;
+        let said = false;
+        const hidden = () => watch.setHidden(document.hidden);
+        hidden();
+        document.addEventListener("visibilitychange", hidden);
+        const timer = setInterval(() => {
+            if (watch.stalled() === said) return;
+            said = !said;
+            handlers.current.onStalled(said);
+        }, BEAT_EVERY_MS);
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", hidden);
+        };
+    }, []);
     // The world's room: the page holds the connection and relays it
     // (./roomRelay), so the session that joins it never enters the frame.
     const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
@@ -394,6 +430,7 @@ function WorldFrameView({
                 else answer(undefined);
                 return;
             }
+            if (kind === "alive") return stall.current.beat();
             if (kind === "pointer-lock")
                 return setFramedWorldLock(event.data.locked === true);
             if (kind === "dock")
