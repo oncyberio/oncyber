@@ -20,7 +20,7 @@
 // No dependencies beyond Node and the workspace's own `typescript`.
 
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -139,6 +139,27 @@ export function report({ added, removed }, current) {
     return { ok: added.length === 0, text: lines.join("\n") };
 }
 
+/**
+ * tsc keeps what it learned in a file and checks only what changed since:
+ * about a minute the first time, about ten seconds after that, with the
+ * same result. The file is local and ignored by git, so CI always starts
+ * from nothing. TYPECHECK_FRESH=1 starts from nothing here too.
+ */
+export function incrementalArgs(cwd = FRONTEND, env = process.env) {
+    if (env.TYPECHECK_FRESH) return [];
+    const dir = path.join(cwd, "node_modules", ".cache");
+    try {
+        mkdirSync(dir, { recursive: true });
+    } catch {
+        return [];
+    }
+    return [
+        "--incremental",
+        "--tsBuildInfoFile",
+        path.join(dir, "type-ratchet.tsbuildinfo"),
+    ];
+}
+
 /** Runs `tsc --noEmit` for the frontend and resolves with its output. */
 export function runTsc({ heapMb = DEFAULT_HEAP_MB, cwd = FRONTEND } = {}) {
     const require = createRequire(path.join(cwd, "package.json"));
@@ -151,6 +172,7 @@ export function runTsc({ heapMb = DEFAULT_HEAP_MB, cwd = FRONTEND } = {}) {
         "false",
         "-p",
         path.join(cwd, "tsconfig.json"),
+        ...incrementalArgs(cwd),
     ];
     return new Promise((resolve, reject) => {
         const child = spawn(process.execPath, args, { cwd });
