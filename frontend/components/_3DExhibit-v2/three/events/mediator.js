@@ -32,7 +32,6 @@ import {
 
     IS_DESKTOP,
 
-    FPS,
 
     IS_VR,
 
@@ -59,6 +58,8 @@ import gsap from 'gsap'
 import { setRenderLoop } from '../xr/xrBackend'
 
 import { createFrameCap, maxFrameRate } from '@utils/frameCap'
+
+import conf from '@3gl/utils/params'
 
 // gsap.defaultEase = Linear.easeNone
 
@@ -112,7 +113,7 @@ class mediator {
 
         // 60 frames a second at most (utils/frameCap.ts): `?fps=N` sets
         // another cap, `?fps=0` draws on every refresh
-        this.frameCap       = createFrameCap( maxFrameRate( FPS ) )
+        this.frameCap       = createFrameCap( maxFrameRate( conf.fps ) )
 
         this.tickEvent      = this.tick.bind(this)
 

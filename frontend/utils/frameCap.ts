@@ -2,7 +2,7 @@
  * Frame-rate cap for spaces.
  *
  * Spaces used to draw on every display refresh: 120 times a second on a
- * ProMotion MacBook, which keeps the GPU busy and spins the fans for no
+ * 120 Hz display, which keeps the GPU busy and spins the fans for no
  * visible gain. The cap draws at most 60 frames a second.
  *
  * Devices that can't hold 60 are left to the resolution governor
