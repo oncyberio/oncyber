@@ -298,8 +298,40 @@ The studio stays unframed until editing has its own plan.
     pressing the offer opened the tab at that address; a `javascript:`
     address was ignored. The artwork panel's own links _(not tested)_ in
     a browser.
--   First measurement on a production build and a real device: cold and warm
-    load against today's page _(not measured)_.
+-   Framed against unframed, on production builds of the same commit
+    (headless Chromium, WebGL2, software rendering), for the three staff
+    picks after Starry Night (980 Madison, CyberKongz, Sunshine Square), as
+    a guest and as the signed-in owner: the same avatar and size, dock,
+    title and connection line, the same errors and failed requests, and
+    load times within a few seconds of each other. CyberKongz's 54
+    artworks arrive one by one, so a count taken mid-load differs from run
+    to run; both settle on the same 746 meshes.
+-   Slice 4, the account, on Starry Night as the owner: the avatar picker
+    listed the same 136 avatars, a pick was saved by the page with its
+    session, the emotes and people panels opened, and the frame held no
+    cookie and no token. A photo the world made was offered by name and
+    saved on the click. An account's own uploaded avatars, wallet-owned
+    avatars and saving an edit to a space _(not tested)_.
+-   Slice 4, gates, in the phone layout: a password world showed its lock,
+    then the prompt, kept it on a wrong password and closed it on the right
+    one; a no-guests world stayed locked. The same, step for step, as
+    unframed. The desktop entry control, which follows the pointer, and a
+    token gate _(not tested)_.
+-   Embedded on another site, a space ran in its own page, not in a second
+    frame.
+-   Slice 6, world scripts, on Starry Night with a real model call: the
+    house was there; the space's saved script started in the world's frame
+    for the owner and for a guest; the AI button and sidebar were the
+    page's and absent from the world; a request was written, tried and
+    swapped into the world, and undo went back; a guest had no button;
+    every call to the model and every save came from the page's origin.
+    The same, step for step, as unframed. Software rendering draws Starry
+    Night at under a frame a second, so the world's own meshes were hidden
+    during these runs to keep it usable.
+-   The lobby journey into a framed world _(not tested)_ in a browser: the
+    relay's two sides are unit tested only.
+-   A real GPU, WebGPU, Safari, a phone, and load times on a real device
+    _(not tested)_.
 
 ## 6. Open
 
