@@ -10,7 +10,7 @@ import {
     DEFAULT_SUMMON_RADIUS,
     TELEPORT_TO_USER,
 } from "@components/_3DExhibit-v2/three/factory/multiplayer/constants";
-import { useContext, useEffect, useState } from "react";
+import { KeyboardEvent, useContext, useEffect, useState } from "react";
 import styled, { css } from "styled-components";
 import { usePanel } from "../../context/PanelProvider";
 import ReactDOM from "react-dom";
@@ -24,6 +24,7 @@ export default function UserDropdown({
     addModalTogglerRef,
     sceneContainer,
     user,
+    onClose = undefined as (() => void) | undefined,
 }) {
     const {
         userId: currentUserId,
@@ -55,6 +56,11 @@ export default function UserDropdown({
         } else {
             setPosition([user.offset.x, user.offset.y]);
         }
+    }, []);
+
+    // Opened from its "•••", the menu takes the keyboard.
+    useEffect(() => {
+        if (onClose) focusFirstMenuItem(clickRef.current);
     }, []);
 
     const { isMod, currentExhibit, label, id: roomId } = room;
@@ -141,6 +147,8 @@ export default function UserDropdown({
                     addModalTogglerRef("menu-dropdown", el);
                 }}
                 position={position}
+                role="menu"
+                onKeyDown={menuKeyDown(onClose)}
             >
                 {isSelf ? (
                     isMod ? (
@@ -198,6 +206,45 @@ export default function UserDropdown({
     );
 }
 
+const menuItems = (menu: Element | null) =>
+    Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') || []);
+
+/** Put the keyboard on a menu's first row. */
+export function focusFirstMenuItem(menu: Element | null) {
+    menuItems(menu)[0]?.focus({ preventScroll: true });
+}
+
+/**
+ * A menu's keys (docs/brand: menus): Up and Down move through the rows and
+ * wrap, Home and End jump to the ends, Escape and Tab close it. `onClose`
+ * closes the menu and returns focus to what opened it.
+ */
+export function menuKeyDown(onClose?: () => void) {
+    return (event: KeyboardEvent<HTMLElement>) => {
+        if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+        if (event.key === "Escape" || event.key === "Tab") {
+            if (!onClose) return;
+            // Escape must not also close the panel the menu belongs to.
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+            return;
+        }
+        const items = menuItems(event.currentTarget);
+        const index = items.indexOf(document.activeElement as HTMLElement);
+        let next: number;
+        if (event.key === "ArrowDown") next = (index + 1) % items.length;
+        else if (event.key === "ArrowUp")
+            next = (index <= 0 ? items.length : index) - 1;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = items.length - 1;
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+        items[next]?.focus({ preventScroll: true });
+    };
+}
+
 export function DropdownItem({
     icon,
     label,
@@ -210,7 +257,18 @@ export function DropdownItem({
     danger?: boolean;
 }) {
     return (
-        <li className={danger ? "danger" : ""} onClick={onClick}>
+        <li
+            className={danger ? "danger" : ""}
+            role="menuitem"
+            tabIndex={-1}
+            onClick={onClick}
+            onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                onClick();
+            }}
+        >
             {icon ? (
                 <IconImg
                     size={15}
@@ -232,18 +290,17 @@ export const DropdownWrapper = styled.ul<{
     top: 12px;
     z-index: 10000000000;
 
-    min-width: 184px;
+    /* The lobby People panel's row menu. */
+    min-width: 168px;
     margin: 0;
-    padding: 6px;
+    padding: 4px;
     list-style: none;
 
-    background: rgba(18, 18, 20, 0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.35);
-    color: #fff;
+    background: #15181ef5;
+    border: 1px solid #ffffff1a;
+    border-radius: 10px;
+    box-shadow: 0 10px 28px #00000080;
+    color: #f3f3f1;
 
     ${(props) => {
         if (props.position) {
@@ -258,13 +315,15 @@ export const DropdownWrapper = styled.ul<{
     & > li {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
 
-        padding: 8px 10px;
-        border-radius: 8px;
+        min-height: 30px;
+        padding: 0 10px;
+        box-sizing: border-box;
+        border-radius: 6px;
 
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 400;
         line-height: 1;
         cursor: pointer;
         white-space: nowrap;
@@ -280,8 +339,14 @@ export const DropdownWrapper = styled.ul<{
             transition: opacity 0.12s ease;
         }
 
-        &:hover {
-            background: rgba(255, 255, 255, 0.09);
+        &:focus-visible {
+            outline: 2px solid var(--oc-accent, #2567ff);
+            outline-offset: -2px;
+        }
+
+        &:hover,
+        &:focus-visible {
+            background: #ffffff10;
 
             & .item-icon {
                 opacity: 1;
@@ -289,11 +354,7 @@ export const DropdownWrapper = styled.ul<{
         }
 
         &.danger {
-            color: #ff6b6b;
-
-            &:hover {
-                background: rgba(255, 90, 90, 0.14);
-            }
+            color: #ff8a80;
         }
     }
 `;

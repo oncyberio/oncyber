@@ -79,20 +79,37 @@ describe("spaceSitemapEntry", () => {
 
     it("uses /spaces/<id> when the link is one of the site's own pages", () => {
         expect(
-            spaceSitemapEntry("abc", { info: { customLink: "studio" } }, ORIGIN)
-                ?.loc
+            spaceSitemapEntry(
+                "abc",
+                { info: { customLink: "studio", headline: "My studio" } },
+                ORIGIN
+            )?.loc
         ).toBe(`${ORIGIN}/spaces/abc`);
     });
 
     it.each([
         ["an empty draft", { info: {} }],
-        ["a private space", { info: { customLink: "x", private: true } }],
+        ["a space with a link but no name", { info: { customLink: "x" } }],
+        [
+            "a space whose name is only spaces",
+            { info: { customLink: "x", headline: "  " } },
+        ],
+        [
+            "a private space",
+            { info: { customLink: "x", headline: "X", private: true } },
+        ],
         [
             "an unlisted space",
-            { visibility: "unlisted", info: { customLink: "x" } },
+            {
+                visibility: "unlisted",
+                info: { customLink: "x", headline: "X" },
+            },
         ],
-        ["a deleted space", { deleted: true, info: { customLink: "x" } }],
-        ["a mock", { mock: true, info: { customLink: "x" } }],
+        [
+            "a deleted space",
+            { deleted: true, info: { customLink: "x", headline: "X" } },
+        ],
+        ["a mock", { mock: true, info: { customLink: "x", headline: "X" } }],
     ])("skips %s", (_name, data) => {
         expect(spaceSitemapEntry("abc", data, ORIGIN)).toBeNull();
     });
@@ -113,6 +130,7 @@ describe("xml", () => {
             {
                 info: {
                     customLink: "frahm-gallery",
+                    headline: "Frahm Gallery",
                     heroImg: "https://example.com/hero.png?a=1&b=2",
                 },
             },
@@ -132,7 +150,7 @@ describe("xml", () => {
         const image = (info: object) =>
             spaceSitemapEntry(
                 "abc",
-                { info: { customLink: "x", ...info } },
+                { info: { customLink: "x", headline: "X", ...info } },
                 ORIGIN
             ).image;
         expect(

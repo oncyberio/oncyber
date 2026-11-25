@@ -14,7 +14,7 @@ import {
 } from "@utils/sitemap";
 
 /** Site pages worth a search engine's visit (everything else is a space). */
-const SITE_PAGES = ["/", "/discover", "/about"];
+const SITE_PAGES = ["/", "/about"];
 
 function pageEntries(origin: string): SitemapEntry[] {
     const docs = allDocs().map((doc) =>

@@ -12,6 +12,7 @@ jest.mock("@utils/middlewares/corsMiddleware", () => ({
 }));
 jest.mock("@utils/firestore/userProfiles", () => ({
     invalidateUserProfile: jest.fn(),
+    POSITIVE_PROFILE_TTL_MS: 2 * 60 * 60 * 1000,
 }));
 jest.mock("@utils/firebaseAdmin", () => ({
     db: {
@@ -31,7 +32,9 @@ jest.mock("@utils/firebaseAdmin", () => ({
 }));
 
 function response() {
-    const res: any = { statusCode: 200, body: undefined };
+    const res: any = { statusCode: 200, body: undefined, headers: {} };
+    res.getHeader = (name) => res.headers[name];
+    res.setHeader = (name, value) => (res.headers[name] = value);
     res.status = (code) => ((res.statusCode = code), res);
     res.json = (body) => ((res.body = body), res);
     return res;
@@ -63,4 +66,19 @@ test("an ordinary profile update is still written", async () => {
     expect(res.statusCode).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith({ description: "hello" });
     expect(db.collection).toHaveBeenCalledWith("users");
+});
+
+test("a saved change leaves a mark, so the person's next page reads it fresh", async () => {
+    const res = response();
+    await handler(request({ settings: { vrm: "sunshine" } }), res);
+    expect(res.body).toEqual({ success: true, userId: "0xalice" });
+    expect(mockUpdate).toHaveBeenCalledWith({ settings: { vrm: "sunshine" } });
+    expect(res.headers["Set-Cookie"]).toMatch(/^_pw=\d+; Max-Age=7200; /);
+});
+
+test("a refused change leaves none", async () => {
+    const res = response();
+    await handler(request({ linkedAccounts: ["0xwhale"] }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.headers["Set-Cookie"]).toBeUndefined();
 });

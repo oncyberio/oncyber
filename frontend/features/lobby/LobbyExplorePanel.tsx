@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { lobbyTokens as lobby } from "@styles/tokens";
 import { useRouter } from "next/router";
 import CommandMenu from "../landing-carousel/components/CommandMenu";
 import {
@@ -1155,7 +1156,7 @@ const Panel = styled.section`
     }
     @media (min-width: 960px) {
         .explore-toolbar {
-            width: 640px;
+            width: ${lobby.panel.searchWidth}px;
         }
     }
     @media (max-width: 680px) {

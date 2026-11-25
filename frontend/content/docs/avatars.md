@@ -1,6 +1,6 @@
 ---
 title: Avatars
-description: The 3D character you take everywhere in Oncyber.
+description: The 3D character you take everywhere in Oncyber: built-in avatars, your own VRM upload or a VRM you own as an NFT, and how the picker loads them.
 order: 5
 ---
 

@@ -7,6 +7,7 @@ import {
     plainText,
     siteStructuredData,
     spaceCreator,
+    spaceName,
     spaceStructuredData,
 } from "./structuredData";
 import { searchUrl } from "./siteUrl";
@@ -216,5 +217,29 @@ describe("a docs page written as questions", () => {
                 acceptedAnswer: { "@type": "Answer", text: "Yes." },
             },
         ]);
+    });
+});
+
+describe("an unnamed space", () => {
+    it("is called after its creator, in the heading and the structured data", () => {
+        const space = {
+            id: "abc",
+            owner: "0x2b4f00000000000000000000000000000000beef",
+            info: {},
+        };
+        expect(spaceName(space)).toBe("0x2b4f…beef's space");
+        expect(spaceName({ ...space, ownerName: "cosmicmeta" })).toBe(
+            "@cosmicmeta's space"
+        );
+        expect(spaceName({ id: "abc", info: { headline: " Frahm " } })).toBe(
+            "Frahm"
+        );
+        expect(spaceName({ id: "abc", info: {} })).toBe("");
+        const data: any = spaceStructuredData({
+            ...space,
+            ownerName: "cosmicmeta",
+        });
+        expect(JSON.stringify(data)).toContain("@cosmicmeta's space");
+        expect(spaceStructuredData({ id: "abc", info: {} })).toBeNull();
     });
 });

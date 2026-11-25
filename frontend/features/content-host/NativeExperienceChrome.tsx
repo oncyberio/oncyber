@@ -1,5 +1,6 @@
 import { passwordRefusalMessage } from "@components/_3DExhibit-v2/utils/gating";
 import { goToExperience } from "@utils/experienceNavigation";
+import { requestLobbyPartyTravel } from "@utils/lobbyDestinationBridge";
 import React, { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/router";
@@ -189,6 +190,8 @@ export default function NativeExperienceChrome({
     }, [searchOpen]);
     const selectDestination = (destination: LobbyDestination) => {
         setSearchOpen(false);
+        // In a party, the lobby takes the trip and asks the party along.
+        if (requestLobbyPartyTravel(destination)) return;
         goToExperience(destination.href, (href) => router.push(href));
     };
     useEffect(() => {
@@ -551,6 +554,11 @@ export default function NativeExperienceChrome({
                                 nativePanelTitles[currentTab] || "Space options"
                             }
                             returnFocusRef={moreButton}
+                            // A report or feedback being written is not
+                            // thrown away by a stray click on the world.
+                            closeOnClickAway={
+                                !["feedback", "report"].includes(currentTab)
+                            }
                             onClose={() => setCurrentTab("")}
                             onBack={() => {
                                 setCurrentTab("");
@@ -913,6 +921,13 @@ const NativeChromeFrame = styled.div`
             visibility: hidden;
             pointer-events: none;
         }
+    }
+    /* A utility panel (settings, people in this space, ...) stands on the
+       dock too, though no dock button is marked as open for it. */
+    &:has([data-native-utility-panel]) .experience-tooltip {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
     }
     /* The avatar picker owns the bottom of the screen, as in the lobby. */
     &[data-avatars-open] .experience-dock,

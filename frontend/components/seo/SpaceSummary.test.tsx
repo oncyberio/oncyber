@@ -78,3 +78,17 @@ test("it carries what is inside: wall texts, works, artists, portals and visits"
         '<a href="/frahm-flow" tabindex="-1">Frahm Flow</a>'
     );
 });
+
+test("a space that was never named is headed by its creator's name", () => {
+    const html = renderToStaticMarkup(
+        <SpaceSummary
+            space={{ id: "a", ownerName: "cosmicmeta", info: {} }}
+            featuring={["Ruu"]}
+        />
+    );
+    expect(html).toContain("<h1>@cosmicmeta&#x27;s space</h1>");
+    // With nobody to name it after, there is nothing to say.
+    expect(
+        renderToStaticMarkup(<SpaceSummary space={{ id: "a", info: {} }} />)
+    ).toBe("");
+});

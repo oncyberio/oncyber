@@ -573,7 +573,11 @@ export default class AnimatedWrapper {
 
 				this.currentAction = action
 
-				if( this.lastAction ) {
+				// A forced start is a mesh that has just replaced another
+				// (see updateVRM): nothing is playing on it yet. Fading the
+				// action in would blend it with the mesh's bind pose, a
+				// T-pose flash, so it starts at full weight instead.
+				if( this.lastAction && force != true ) {
 
 					const duration = 0.1
 
@@ -587,11 +591,22 @@ export default class AnimatedWrapper {
 						.play();
 				}
 
-				else { 
+				else {
 
-					this.vrm.possibleActions[this.currentAction.name].play()
+					// Whatever this mesh was playing before must not keep its
+					// weight: an emote started this way would otherwise be
+					// blended half and half with the idle.
+					if( this.lastAction && this.lastAction.name != this.currentAction.name ) {
 
-					this.vrm.possibleActions[this.currentAction.name].setEffectiveWeight(1)
+						this.vrm.possibleActions[this.lastAction.name]?.stop()
+					}
+
+					this.vrm.possibleActions[this.currentAction.name]
+						.reset()
+						.stopFading()
+						.setEffectiveTimeScale( 1 )
+						.setEffectiveWeight( 1 )
+						.play()
 				}
 			}
 		}

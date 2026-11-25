@@ -1,6 +1,6 @@
 ---
 title: About Oncyber
-description: Oncyber is a place on the web where people make and visit 3D spaces: galleries for art, worlds built in the browser, and a shared lobby. What it is, how it works and where to find us.
+description: Oncyber is a place on the web to make and visit 3D spaces: virtual art galleries, worlds built in the browser and a shared lobby. What it is and how it works.
 ---
 
 # What is Oncyber?
@@ -21,6 +21,14 @@ Walk around it, look at the works on show and read about each one, meet the othe
 ## What can I show in a space?
 
 Images, videos, 3D models, text and embedded pages. Works you own in a connected wallet (NFTs) can be placed as well, with their artist and collection shown beside them.
+
+## Can I use Oncyber as a virtual art gallery?
+
+Yes. Most spaces are exactly that: a 3D gallery people walk through in the browser. Pick a gallery in the [Studio](/studio), hang your images, videos and 3D works, add a text beside each one, and share the link. Visitors need no account and nothing to install.
+
+## Can I hold an online exhibition or an opening?
+
+Yes. Everyone who has the space open at the same time is in it together: they see each other's avatars, chat and talk by voice. Share one link for the show, and connect it to your other spaces with portals.
 
 ## Do I need to install anything?
 

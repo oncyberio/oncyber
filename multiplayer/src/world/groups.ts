@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { readGroupLocation } from "../../protocol/group-location";
+import { formationPoses } from "./formation";
 import { isLobbyTravelLive } from "../../protocol/lobby-groups";
 import type { LobbyGroupLocation } from "../../protocol/lobby-groups";
 import type { LobbyGroup, LobbyGroupAction, LobbyGroupDestination, LobbyGroupInvitation, LobbyGroupMember, LobbyGroupPose, LobbyGroupResult, LobbyGroupTravel, LobbyGroupsSnapshot } from "../../protocol/lobby-groups";
@@ -278,11 +279,9 @@ export class LobbyGroups {
         if (travel.status === "preparing" && everyone(id => travel.readyIds.includes(id))) {
             travel.status = "gathering"; travel.expiresAt = this.now() + 10000; group.placementAcks.clear();
             const anchor = travel.poses[travel.initiatorId], others = travel.acceptedIds.filter(id => id !== travel.initiatorId);
-            const radius = others.length > 5 ? 2.3 : 1.8;
-            for (const [index, id] of others.entries()) {
-                const angle = anchor.rotation + 2 * Math.PI * index / Math.max(others.length, 1);
-                travel.poses[id] = { x: anchor.x + Math.sin(angle) * radius, y: 0, z: anchor.z + Math.cos(angle) * radius, rotation: anchor.rotation };
-            }
+            // Side by side, so the travel camera sees everyone (see ./formation).
+            const places = formationPoses(anchor, others.length + 1);
+            for (const [index, id] of others.entries()) travel.poses[id] = places[index + 1];
             for (const id of travel.acceptedIds) this.options.place(id, travel.id, travel.poses[id], travel.acceptedIds.filter(peer => peer !== id), true);
         } else if (travel.status === "gathering" && everyone(id => group.placementAcks.has(id))) {
             travel.status = "travelling"; travel.startAt = this.now() + 700; travel.expiresAt = this.now() + 120000;

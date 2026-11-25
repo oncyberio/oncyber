@@ -4,6 +4,7 @@ import { db } from "../../../utils/firebaseAdmin";
 import { validateUsername } from "@utils/rules/user";
 import { invalidateUserProfile } from "@utils/firestore/userProfiles";
 import { writesAccountIdentity } from "@utils/auth/accountOwnership";
+import { markProfileWritten } from "@utils/auth/profileWrites";
 
 export async function isValidAndUniqueUsername(_username) {
     const username = _username
@@ -124,6 +125,9 @@ export default async (req, res) => {
         // Drop the cached walletId->profile snapshot so display lookups pick
         // up the edit immediately instead of after the cache TTL.
         invalidateUserProfile(userId);
+        // Other warm instances still hold their own copy: the mark makes
+        // this person's next page skip it.
+        markProfileWritten(res);
 
         res.status(200).json({
             success: true,

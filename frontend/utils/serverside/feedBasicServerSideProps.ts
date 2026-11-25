@@ -4,6 +4,7 @@ import nookies from "nookies";
 
 import { auth } from "../middlewares/authMiddleware";
 import { fetchUserByWalletIdCached } from "@api/accounts/user/utils";
+import { profileWrittenAt } from "@utils/auth/profileWrites";
 
 export const feedBasicServerSideProps = async (context) => {
     try {
@@ -13,7 +14,12 @@ export const feedBasicServerSideProps = async (context) => {
 
         const walletId = await auth({ cookies });
 
-        let user = await fetchUserByWalletIdCached(walletId.toLowerCase());
+        // Their own account, at least as fresh as their last change to it.
+        let user = await fetchUserByWalletIdCached(
+            walletId.toLowerCase(),
+            false,
+            { notBefore: profileWrittenAt(cookies) }
+        );
 
         if (!user) {
             return {

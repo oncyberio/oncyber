@@ -1,6 +1,6 @@
 ---
 title: Multiplayer
-description: Seeing, chatting and talking with other people in Oncyber.
+description: Seeing, chatting and talking with other people in Oncyber: how the shared lobby works, and how to run and test your own lobby server.
 order: 4
 ---
 

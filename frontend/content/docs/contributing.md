@@ -1,6 +1,6 @@
 ---
 title: Contribute
-description: How to send a small, clear, tested change.
+description: How to send a small, clear, tested change to Oncyber: branch off main, change one thing with its tests, try it and open a pull request.
 order: 2
 ---
 

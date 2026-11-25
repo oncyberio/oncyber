@@ -3,7 +3,15 @@
 /** The site's name as search results and link previews show it. */
 export const SITE_NAME = "oncyber";
 
+/** The title on the link-preview card, whose picture carries the same words. */
 export const SITE_TITLE = "oncyber: forever";
+
+/**
+ * The home page's title in a browser tab and a search result, where it has
+ * to say what the site is: "oncyber: forever" alone gave a search engine no
+ * words to match (Semrush audit, November 2026).
+ */
+export const HOME_TITLE = "oncyber: open metaverse for the creative ones";
 
 export const SITE_DESCRIPTION =
     "A multiverse for creators, oncyber is the easiest way for artists and collectors to show their digital assets (NFTs) in fully immersive experiences (3D/VR), for free.";
@@ -23,7 +31,6 @@ export const CANONICAL_ROUTES = new Map([
     // The landing under its working name is the home page.
     ["/landing-carousel", "/"],
     ["/about", "/about"],
-    ["/discover", "/discover"],
     ["/feed", "/feed"],
     ["/privacy", "/privacy"],
     ["/studio", "/studio"],
@@ -38,7 +45,7 @@ export const PAGE_META: Record<string, { title: string; description: string }> =
         "/about": {
             title: "About oncyber: 3D spaces you make and visit in the browser",
             description:
-                "Oncyber is a place on the web where people make and visit 3D spaces: galleries for art, worlds built in the browser, and a shared lobby. What it is, how it works and where to find us.",
+                "Oncyber is a place on the web to make and visit 3D spaces: virtual art galleries, worlds built in the browser and a shared lobby. What it is and how it works.",
         },
         "/studio": {
             title: "Studio · oncyber",
