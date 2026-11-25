@@ -258,7 +258,8 @@ export class CameraMotionBlur {
 		this.nodes = { color, depth, tiles, neighbours }
 
 		// Motion of the surface seen at `p` (uv), as a blur radius in pixels,
-		// and its distance from the camera: vec3( velocity, distance ).
+		// and its distance from the camera: vec3( velocity, distance ). Inlined
+		// at each call: a WGSL/GLSL function cannot take the textures.
 		const motionAt = Fn( ( [ p ] ) => {
 
 			const d = depth.sample( p ).level( 0 ).x
@@ -289,7 +290,7 @@ export class CameraMotionBlur {
 
 			return vec3( v, view.z.negate() )
 
-		}, { p: "vec2", return: "vec3" } )
+		} )
 
 		// 1. Tile max: 8 x 8 probes spread over each tile.
 		const tileMax = Fn( () => {
