@@ -66,6 +66,10 @@ import { access, generate } from "./generate";
 import { save } from "./save";
 
 const env = process.env as Record<string, string | undefined>;
+// Named in two pieces: a build writes a NEXT_PUBLIC_ variable's value in
+// place of its name wherever it is read, and every file under pages/ is
+// built, tests too. An assignment to it would not compile.
+const FLAG = ["NEXT_PUBLIC", "WORLD_SCRIPTS"].join("_");
 const before = { ...env };
 const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 const usage = (userId: string) => mockDocs.get(`aiUsageDaily/${userId}_${day}`);
@@ -115,7 +119,7 @@ beforeEach(() => {
         editors: ["editor"],
         info: {},
     });
-    env.NEXT_PUBLIC_WORLD_SCRIPTS = "1";
+    env[FLAG] = "1";
     env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner, editor";
     env.WORLD_SCRIPTS_AI_DAILY_LIMIT = "3";
     env.OPENROUTER_API_KEY = "key";
@@ -149,7 +153,7 @@ describe("saving a space's script", () => {
     });
 
     test("it is off unless the flag is on", async () => {
-        env.NEXT_PUBLIC_WORLD_SCRIPTS = "";
+        env[FLAG] = "";
         expect(
             await as("owner").save({
                 experienceId: "space-1",
@@ -339,7 +343,7 @@ describe("asking the model", () => {
     });
 
     test("it is off unless the flag is on", async () => {
-        env.NEXT_PUBLIC_WORLD_SCRIPTS = "";
+        env[FLAG] = "";
         expect(await ask("owner")).toEqual({
             ok: false,
             error: "World scripts are off here.",
