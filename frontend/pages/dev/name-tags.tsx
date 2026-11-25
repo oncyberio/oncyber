@@ -41,7 +41,6 @@ export default function NameTagsFixture() {
             forceWebGL,
         });
         renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-        renderer.setSize(host.clientWidth, host.clientHeight);
         host.append(renderer.domElement);
         const scene = new THREE.Scene();
         scene.background = new THREE.Color("#5d6f86");
@@ -81,6 +80,16 @@ export default function NameTagsFixture() {
         const tags = createNameTags(scene, 64, {
             fallbackPhoto: LOBBY_GUEST_PORTRAIT,
         });
+        const fit = () => {
+            const width = Math.max(1, host.clientWidth);
+            const height = Math.max(1, host.clientHeight);
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        };
+        fit();
+        const resize = new ResizeObserver(fit);
+        resize.observe(host);
         let frame = 0;
         const start = performance.now();
         renderer.setAnimationLoop(() => {
@@ -108,6 +117,7 @@ export default function NameTagsFixture() {
         });
         return () => {
             renderer.setAnimationLoop(null);
+            resize.disconnect();
             tags.dispose();
             renderer.dispose();
             renderer.domElement.remove();
