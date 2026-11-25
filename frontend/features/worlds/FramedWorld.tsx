@@ -650,7 +650,13 @@ function WorldFrameView({
             });
         };
         controls.current = {
-            send: post,
+            // Nothing is said to the frame before the world has spoken:
+            // until its document is in, the frame holds an empty one of
+            // this page's own origin, and a message addressed to the world
+            // is refused there. The world announces itself when it is up.
+            send: (kind, data) => {
+                if (told.current) post(kind, data);
+            },
             press(id) {
                 post("dock-press", { id });
                 element.current?.focus();
