@@ -721,5 +721,16 @@
     "Open now": "Abierto ahora",
     "Create new world": "Crear un mundo nuevo",
     "Yours": "Tuyos",
-    "Map view": "Vista de mapa"
+    "Map view": "Vista de mapa",
+    "Frame style": "Estilo de marco",
+    "Flat": "Plano",
+    "Frame color": "Color del marco",
+    "Frame width": "Ancho del marco",
+    "Frame depth": "Profundidad del marco",
+    "Mat": "Paspartú",
+    "Mat width": "Ancho del paspartú",
+    "Mat color": "Color del paspartú",
+    "Custom mat color": "Color de paspartú personalizado",
+    "Wall label": "Cartela",
+    "Give the artwork a title to show a label.": "Pon un título a la obra para mostrar una cartela."
 }
