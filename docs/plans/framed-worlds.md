@@ -113,6 +113,12 @@ default.
    they have no moderator rights in it. Signing in or out on the page
    starts the world again as that visitor.
 
+    A signed-out visitor is one guest everywhere. The page has a single
+    guest id (`frontend/utils/guestIdentity.ts`), hands it to the world
+    with the visitor and joins the room with it, and a space names a guest
+    as the lobby does: "Guest" and the end of that id. The id is not
+    saved, so a reload is a new guest, as it is in the lobby.
+
     The world says where it is (`location`) and the page keeps the address
     bar on it. The page believes the address only: after a portal taken
     inside the frame it shows the title the world gives the place, as text,
