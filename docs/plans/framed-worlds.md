@@ -417,7 +417,7 @@ The studio stays unframed until editing has its own plan.
     host for the branch (a domain assigned to it in Vercel, set as
     `NEXT_PUBLIC_WORLD_ORIGIN` for previews) removes that. To see where a
     slow load spends its time on a real machine, a preview build says each
-    stage in the console as it happens (`[load] page …`, `[load] world …`,
+    stage in the console as it happens (`[load] page …`, `[load] world …`; `NEXT_PUBLIC_LOAD_STAGES`,
     `frontend/utils/loadTimings.ts`).
 -   Production Firestore rules are not in this repository; the world reads
     as a signed-out visitor does today.

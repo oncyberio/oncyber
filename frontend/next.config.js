@@ -111,6 +111,11 @@ const nextConfig = {
         NEXT_PUBLIC_WORLD_SCRIPTS:
             process.env.NEXT_PUBLIC_WORLD_SCRIPTS ||
             (trialPreview() ? "1" : ""),
+        // Every preview says its load stages in the console
+        // (utils/loadTimings.ts); production never does unless asked.
+        NEXT_PUBLIC_LOAD_STAGES:
+            process.env.NEXT_PUBLIC_LOAD_STAGES ||
+            (process.env.VERCEL_ENV === "preview" ? "1" : ""),
         NEXT_PUBLIC_AWE_PLAYER_ORIGIN:
             process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN ||
             (process.env.VERCEL_ENV === "preview" &&

@@ -45,12 +45,12 @@ const now = () =>
 const isDevelopment = () => process.env.NODE_ENV === "development";
 
 /**
- * A preview build says each stage in the console as it happens, with how
+ * A preview build (NEXT_PUBLIC_LOAD_STAGES=1) says each stage in the console as it happens, with how
  * far into its document that was, so a slow load on someone's own machine
  * can be read off and reported: a framed world's page and the world below
  * it each say their own. Never in production.
  */
-const isPreview = () => process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+const isPreview = () => process.env.NEXT_PUBLIC_LOAD_STAGES === "1";
 
 export function sayLoadStage(kind: string, stage: string, ms?: number) {
     if (!isPreview()) return;

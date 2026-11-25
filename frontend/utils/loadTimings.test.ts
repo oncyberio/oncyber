@@ -64,22 +64,22 @@ test("in development every timeline is logged and nothing is sent", () => {
 });
 
 describe("a preview build", () => {
-    const before = env.NEXT_PUBLIC_VERCEL_ENV;
+    const before = env.NEXT_PUBLIC_LOAD_STAGES;
     afterEach(() => {
-        if (before === undefined) delete env.NEXT_PUBLIC_VERCEL_ENV;
-        else env.NEXT_PUBLIC_VERCEL_ENV = before;
+        if (before === undefined) delete env.NEXT_PUBLIC_LOAD_STAGES;
+        else env.NEXT_PUBLIC_LOAD_STAGES = before;
         jest.restoreAllMocks();
     });
 
     test("says each stage as it happens; production says nothing", () => {
         const said = jest.spyOn(console, "info").mockImplementation(() => {});
         env.NODE_ENV = "production";
-        env.NEXT_PUBLIC_VERCEL_ENV = "production";
+        env.NEXT_PUBLIC_LOAD_STAGES = "";
         startLoadTimeline("world", { random: () => 0.99 }).mark("engine-ready");
         sayLoadStage("page", "world-said-hello");
         expect(said).not.toHaveBeenCalled();
 
-        env.NEXT_PUBLIC_VERCEL_ENV = "preview";
+        env.NEXT_PUBLIC_LOAD_STAGES = "1";
         const load = startLoadTimeline("world", { random: () => 0.99 });
         load.mark("engine-ready");
         load.mark("engine-ready");
