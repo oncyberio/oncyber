@@ -25,9 +25,47 @@ export interface ArtworkFrame {
     matColor?: string;
     /** Show a wall label with the title and artist, when the art has a title. */
     label?: boolean;
+    /**
+     * Optional gallery credit typed by the artist, mostly for uploaded art
+     * that has no on-chain metadata. Any field left empty falls back to the
+     * artwork's own data (title) or is left off the label.
+     */
+    credit?: GalleryCredit | null;
 }
 
-export type GalleryFrame = Required<ArtworkFrame>;
+export interface GalleryCredit {
+    /** Artist name, the label's headline. */
+    artist?: string;
+    /** Where the artist is based, e.g. "New York". */
+    location?: string;
+    /** Artwork title; the artwork's own title when empty. */
+    title?: string;
+    /** X handle, without the "@". */
+    x?: string;
+    /** Website, without "https://". */
+    website?: string;
+}
+
+export const GALLERY_CREDIT_FIELDS = [
+    "artist",
+    "location",
+    "title",
+    "x",
+    "website",
+] as const;
+
+/** Longest value kept per credit field. */
+export const GALLERY_CREDIT_MAX: Record<keyof GalleryCredit, number> = {
+    artist: 48,
+    location: 48,
+    title: 80,
+    x: 15,
+    website: 60,
+};
+
+export type GalleryFrame = Required<Omit<ArtworkFrame, "credit">> & {
+    credit: GalleryCredit | null;
+};
 
 export const GALLERY_FRAME_DEFAULTS: GalleryFrame = {
     style: "gallery",
@@ -37,6 +75,7 @@ export const GALLERY_FRAME_DEFAULTS: GalleryFrame = {
     matWidth: 12,
     matColor: "#ece8e1",
     label: false,
+    credit: null,
 };
 
 export const GALLERY_FRAME_LIMITS = {
@@ -97,7 +136,47 @@ export function normalizeFrame(frame: unknown): GalleryFrame | null {
         matWidth: clamp(num(it.matWidth, d.matWidth), limits.matWidth),
         matColor: hex(it.matColor, d.matColor),
         label: it.label === true,
+        credit: normalizeCredit(it.credit),
     };
+}
+
+/** "@jarlan", "x.com/jarlan", "https://twitter.com/jarlan/" → "jarlan". */
+function cleanHandle(value: string) {
+    return value
+        .replace(/^https?:\/\//i, "")
+        .replace(/^(www\.)?(x|twitter)\.com\//i, "")
+        .replace(/^@+/, "")
+        .replace(/[/?#].*$/, "")
+        .replace(/[^A-Za-z0-9_]/g, "");
+}
+
+/** "https://www.jarlan.com/" → "jarlan.com"; keeps a path. */
+function cleanWebsite(value: string) {
+    return value
+        .replace(/^https?:\/\//i, "")
+        .replace(/^www\./i, "")
+        .replace(/\/+$/, "")
+        .replace(/\s+/g, "");
+}
+
+/**
+ * The credit fields trimmed, tidied and cut to length, or null when every
+ * field is empty (so an untouched form stores nothing).
+ */
+export function normalizeCredit(credit: unknown): GalleryCredit | null {
+    if (credit == null || typeof credit !== "object") return null;
+    const it = credit as Record<string, unknown>;
+    const out: GalleryCredit = {};
+    for (const key of GALLERY_CREDIT_FIELDS) {
+        const raw = it[key];
+        if (typeof raw !== "string") continue;
+        let value = raw.replace(/\s+/g, " ").trim();
+        if (key === "x") value = cleanHandle(value);
+        if (key === "website") value = cleanWebsite(value);
+        value = value.slice(0, GALLERY_CREDIT_MAX[key]).trim();
+        if (value) out[key] = value;
+    }
+    return Object.keys(out).length ? out : null;
 }
 
 /**
@@ -143,6 +222,8 @@ export interface GalleryFrameLayoutOptions {
     frame: GalleryFrame;
     /** Draw the label (the caller checks the art has a title). */
     withLabel?: boolean;
+    /** A gallery-credit label: larger, and taller for its extra lines. */
+    creditLabel?: boolean;
 }
 
 /** Four boxes around a `w` × `h` opening, `t` wide, from z0 to z1. */
@@ -180,6 +261,7 @@ export function galleryFrameLayout({
     scale = { x: 1, y: 1, z: 1 },
     frame,
     withLabel = false,
+    creditLabel = false,
 }: GalleryFrameLayoutOptions): GalleryFrameLayout {
     const W = width * scale.x;
     const H = height * scale.y;
@@ -234,8 +316,8 @@ export function galleryFrameLayout({
     let label: GalleryFrameLayout["label"] = null;
 
     if (withLabel) {
-        const w = ref * 0.3;
-        const h = w * 0.45;
+        const w = ref * (creditLabel ? 0.36 : 0.3);
+        const h = w * (creditLabel ? GALLERY_CREDIT_ASPECT : 0.45);
         const thick = h * 0.08;
         const x = outer.w / 2 + ref * 0.08 + w / 2;
         const y = -outer.h / 2 + h / 2;
@@ -253,6 +335,9 @@ export function galleryFrameLayout({
 
     return { boxes, label, outer };
 }
+
+/** Height / width of a gallery-credit label (the reference plates are 278 × 159). */
+export const GALLERY_CREDIT_ASPECT = 0.58;
 
 const FILE_NAME = /\.[a-z0-9]{2,5}$/i;
 const ACCOUNT_ID = /^(0x[0-9a-f]{6,}|tz[123][A-Za-z0-9]{20,}|[A-Za-z0-9]{24,})$/i;
@@ -279,16 +364,46 @@ function fileTitle(name: string) {
 export interface GalleryLabelText {
     title: string;
     artist: string;
+    /** Set when the label shows a gallery credit (artist headline). */
+    credit?: {
+        artist: string;
+        location: string;
+        title: string;
+        x: string;
+        website: string;
+    };
 }
 
 /**
- * The label's words from the artwork's own data: its name (a file name is
- * tidied) and the creator's username when there is one. Null when there is
- * no usable title, so no label is drawn.
+ * The label's words. With a gallery credit, the artist's own fields (the
+ * title falls back to the artwork's). Otherwise the artwork's own data: its
+ * name (a file name is tidied) and the creator's username when there is
+ * one. Null when there is nothing to show, so no label is drawn.
  */
-export function galleryLabelText(data: any): GalleryLabelText | null {
+export function galleryLabelText(
+    data: any,
+    credit?: GalleryCredit | null
+): GalleryLabelText | null {
     const raw = text(data?.name, 80);
-    const title = FILE_NAME.test(raw) ? fileTitle(raw) : raw;
+    const own = FILE_NAME.test(raw) ? fileTitle(raw) : raw;
+
+    const c = normalizeCredit(credit);
+    if (c && (c.artist || c.title || own)) {
+        const title = c.title || own;
+        return {
+            title,
+            artist: c.artist || "",
+            credit: {
+                artist: c.artist || "",
+                location: c.location || "",
+                title,
+                x: c.x || "",
+                website: c.website || "",
+            },
+        };
+    }
+
+    const title = own;
     if (!title) return null;
 
     const person = text(

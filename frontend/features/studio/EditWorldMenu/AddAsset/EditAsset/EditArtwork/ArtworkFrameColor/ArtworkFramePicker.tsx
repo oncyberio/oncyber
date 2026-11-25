@@ -3,16 +3,20 @@ import styled, { css } from "styled-components";
 import { Field } from "@features/studio/styles/Field";
 import { Label } from "@features/studio/styles/Label";
 import Slider from "@features/studio/styles/Slider";
+import { TextInput } from "@features/studio/styles/Input";
 import { Toggle } from "@features/studio/components/Toggle";
 import { studioAction } from "@features/studio/styles/primitives";
 import { studioTokens as studio } from "@styles/tokens";
 import { tx } from "@components/context/I18nContext";
 import {
     ArtworkFrame,
+    GALLERY_CREDIT_MAX,
+    GalleryCredit,
     GALLERY_FRAME_COLORS,
     GALLERY_FRAME_DEFAULTS,
     GALLERY_FRAME_LIMITS,
     GALLERY_MAT_COLORS,
+    normalizeCredit,
     normalizeFrame,
 } from "@components/_3DExhibit-v2/three/factory/border/galleryFrame";
 
@@ -50,6 +54,12 @@ export function ArtworkFramePicker({
     // Values being dragged: the sliders are controlled, so they show these
     // until the drag ends and the frame is saved.
     const [draft, setDraft] = useState<Partial<ArtworkFrame>>({});
+
+    // Artist details are opt-in: the switch only opens the fields, and the
+    // credit is saved once a field is filled in.
+    const [creditOpen, setCreditOpen] = useState(
+        () => !!normalizeFrame(frame)?.credit
+    );
 
     const saved = allowGallery ? normalizeFrame(frame) : null;
 
@@ -287,21 +297,141 @@ export function ArtworkFramePicker({
                         </Label>
                         <Toggle
                             label={tx("Wall label")}
-                            value={gallery.label && hasLabelText}
-                            disabled={disabled || !hasLabelText}
+                            value={gallery.label}
+                            disabled={disabled}
                             onChange={(label) => update({ label })}
                         />
                     </Row>
-                    {!hasLabelText ? (
-                        <Hint>
-                            {tx("Give the artwork a title to show a label.")}
-                        </Hint>
+                    {gallery.label ? (
+                        <>
+                            <Row>
+                                <Label className="component-label">
+                                    {tx("Artist details")}
+                                </Label>
+                                <Toggle
+                                    label={tx("Artist details")}
+                                    value={creditOpen}
+                                    disabled={disabled}
+                                    onChange={(open) => {
+                                        setCreditOpen(open);
+                                        if (!open && gallery.credit) {
+                                            update({ credit: null });
+                                        }
+                                    }}
+                                />
+                            </Row>
+                            {creditOpen ? (
+                                <CreditFields
+                                    key={JSON.stringify(saved?.credit ?? null)}
+                                    credit={saved?.credit ?? null}
+                                    disabled={disabled}
+                                    onPreview={(credit) =>
+                                        update({ credit }, true)
+                                    }
+                                    onSave={(credit) => update({ credit })}
+                                />
+                            ) : !hasLabelText ? (
+                                <Hint>
+                                    {tx(
+                                        "Give the artwork a title or add artist details to show a label."
+                                    )}
+                                </Hint>
+                            ) : null}
+                        </>
                     ) : null}
                 </GalleryControls>
             ) : null}
         </Field>
     );
 }
+
+const CREDIT_INPUTS: {
+    key: keyof GalleryCredit;
+    label: string;
+    placeholder: string;
+}[] = [
+    { key: "artist", label: "Artist name", placeholder: "Jarlan Perez" },
+    { key: "location", label: "Location", placeholder: "New York" },
+    { key: "title", label: "Artwork title", placeholder: "Onward" },
+    { key: "x", label: "X handle", placeholder: "@jarlanperez" },
+    { key: "website", label: "Website", placeholder: "jarlanperez.com" },
+];
+
+/**
+ * The artist's own gallery credit. Typing previews on the label; a field is
+ * saved when it loses focus or on Enter, so each edit is one undo step.
+ * `credit` is the saved credit, not the preview, so a save sees the change.
+ */
+function CreditFields({
+    credit,
+    disabled,
+    onPreview,
+    onSave,
+}: {
+    credit: GalleryCredit | null;
+    disabled: boolean;
+    onPreview: (credit: GalleryCredit | null) => void;
+    onSave: (credit: GalleryCredit | null) => void;
+}) {
+    const [values, setValues] = useState<GalleryCredit>(() => ({
+        ...(credit || {}),
+        x: credit?.x ? "@" + credit.x : "",
+    }));
+
+    const save = () => {
+        const next = normalizeCredit(values);
+        if (JSON.stringify(next) !== JSON.stringify(credit ?? null)) {
+            onSave(next);
+        }
+    };
+
+    return (
+        <CreditGrid>
+            {CREDIT_INPUTS.map(({ key, label, placeholder }) => (
+                <CreditField key={key}>
+                    <Label className="component-label" id={`credit-${key}`}>
+                        {tx(label)}
+                    </Label>
+                    <TextInput
+                        aria-labelledby={`credit-${key}`}
+                        value={values[key] || ""}
+                        maxLength={
+                            GALLERY_CREDIT_MAX[key] + (key === "x" ? 1 : 0)
+                        }
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        autoComplete="off"
+                        spellCheck={key === "artist" || key === "title"}
+                        onChange={(event) => {
+                            const next = {
+                                ...values,
+                                [key]: event.target.value,
+                            };
+                            setValues(next);
+                            onPreview(normalizeCredit(next));
+                        }}
+                        onBlur={save}
+                        onKeyDown={(event) => {
+                            if (!event.repeat && event.key === "Enter") save();
+                        }}
+                    />
+                </CreditField>
+            ))}
+        </CreditGrid>
+    );
+}
+
+const CreditGrid = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const CreditField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
 
 /** A new gallery frame with the default settings. */
 export const DEFAULT_GALLERY_FRAME: ArtworkFrame = {

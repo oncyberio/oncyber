@@ -732,5 +732,12 @@
     "Mat color": "Color del paspartú",
     "Custom mat color": "Color de paspartú personalizado",
     "Wall label": "Cartela",
-    "Give the artwork a title to show a label.": "Pon un título a la obra para mostrar una cartela."
+    "Give the artwork a title to show a label.": "Pon un título a la obra para mostrar una cartela.",
+    "Artist details": "Datos del artista",
+    "Give the artwork a title or add artist details to show a label.": "Pon un título a la obra o añade los datos del artista para mostrar una cartela.",
+    "Artist name": "Nombre del artista",
+    "Location": "Ubicación",
+    "Artwork title": "Título de la obra",
+    "X handle": "Usuario de X",
+    "Website": "Sitio web"
 }

@@ -120,7 +120,7 @@ export class GalleryFrames {
 
         const artworkData = artwork.artworkData || {}
 
-        const labelText = frame.label ? galleryLabelText(artworkData) : null
+        const labelText = frame.label ? galleryLabelText(artworkData, frame.credit) : null
 
         const layout = galleryFrameLayout({
             width,
@@ -129,6 +129,7 @@ export class GalleryFrames {
             scale: artwork.scale,
             frame,
             withLabel: labelText != null,
+            creditLabel: labelText?.credit != null,
         })
 
         const mesh = this.getMesh()
@@ -178,7 +179,7 @@ export class GalleryFrames {
 
             const color = box.part === "frame" ? moulding :
                 box.part === "mat" ? frame.matColor :
-                box.part === "label" ? PLATE_COLOR :
+                box.part === "label" ? (labelText?.credit ? "#ffffff" : PLATE_COLOR) :
                 // the backing shows through transparent images
                 frame.mat ? frame.matColor : moulding
 
@@ -203,13 +204,17 @@ export class GalleryFrames {
             return
         }
 
-        const key = text.title + "\n" + text.artist
+        const key = JSON.stringify(text)
 
         if(entry.label == null || entry.labelKey !== key) {
 
             this.disposeLabel(artwork, entry)
 
-            const texture = new CanvasTexture(drawLabel(text))
+            if(text.credit) loadLabelFont()
+
+            const texture = new CanvasTexture(text.credit ? drawCreditLabel(text.credit) : drawLabel(text))
+
+            texture.anisotropy = 4
 
             texture.colorSpace = SRGBColorSpace
 
@@ -217,7 +222,7 @@ export class GalleryFrames {
 
                 new PlaneGeometry(1, 1),
 
-                new MeshBasicMaterial({ map: texture, transparent: true }),
+                new MeshBasicMaterial({ map: texture, transparent: !text.credit, toneMapped: false, fog: false }),
 
                 { visibleOnOcclusion: false }
             )
@@ -229,6 +234,19 @@ export class GalleryFrames {
             entry.labelKey = key
 
             artwork.add(label)
+
+            // Credit labels are set in Open Sans: redraw once it has loaded.
+            if(text.credit && !labelFontReady) {
+
+                loadLabelFont().then((ok) => {
+
+                    if(!ok || entry.label !== label) return
+
+                    texture.image = drawCreditLabel(text.credit)
+
+                    texture.needsUpdate = true
+                })
+            }
         }
 
         const scale = artwork.scale
@@ -345,6 +363,198 @@ function drawLabel({ title, artist }) {
     }
 
     return canvas
+}
+
+const LABEL_FONT = "'Open Sans', 'Helvetica Neue', Arial, sans-serif"
+
+/** @type { Promise<boolean> | null } */
+let labelFont = null
+
+let labelFontReady = false
+
+/** Loads the label face (self-hosted Open Sans 400/700) once. */
+function loadLabelFont() {
+
+    if(labelFont) return labelFont
+
+    if(typeof FontFace === "undefined" || typeof document === "undefined") {
+
+        return (labelFont = Promise.resolve(false))
+    }
+
+    const faces = [
+        ["400", "/fonts/OpenSans/OpenSans-Regular.woff2"],
+        ["700", "/fonts/OpenSans/OpenSans-Bold.woff2"],
+    ].map(([weight, url]) => new FontFace("Open Sans", `url(${url}) format("woff2")`, { weight }))
+
+    labelFont = Promise.all(faces.map((face) => face.load()))
+        .then((loaded) => {
+
+            for(const face of loaded) document.fonts.add(face)
+
+            labelFontReady = true
+
+            return true
+        })
+        .catch(() => false)
+
+    return labelFont
+}
+
+/**
+ * A gallery credit, laid out like a museum wall label: the artist's name
+ * large and bold, their location, the artwork title in bold, then a gap and
+ * the X handle and website with small icons. Drawn on white, so the plate
+ * reads as a printed card. Empty fields are left out and the rest close up.
+ *
+ * @param { { artist: string, location: string, title: string, x: string, website: string } } credit
+ */
+function drawCreditLabel(credit) {
+
+    const canvas = document.createElement("canvas")
+
+    // 278 × 159 reference plate, drawn at ~2.75×
+    canvas.width = 768
+
+    canvas.height = Math.round(768 * 0.58)
+
+    const ctx = canvas.getContext("2d")
+
+    ctx.fillStyle = "#ffffff"
+
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    const pad = 46
+
+    const maxWidth = canvas.width - pad * 2
+
+    ctx.fillStyle = "#111111"
+
+    ctx.textBaseline = "alphabetic"
+
+    let y = pad
+
+    if(credit.artist) {
+
+        ctx.font = `700 72px ${LABEL_FONT}`
+
+        y += 62
+
+        ctx.fillText(fit(ctx, credit.artist, maxWidth), pad - 3, y)
+    }
+
+    if(credit.location) {
+
+        ctx.font = `400 42px ${LABEL_FONT}`
+
+        y += credit.artist ? 50 : 40
+
+        ctx.fillText(fit(ctx, credit.location, maxWidth), pad, y)
+    }
+
+    if(credit.title) {
+
+        ctx.font = `700 42px ${LABEL_FONT}`
+
+        for(const line of wrap(ctx, credit.title, maxWidth, 2)) {
+
+            y += y === pad ? 40 : 54
+
+            ctx.fillText(line, pad, y)
+        }
+    }
+
+    const links = [
+
+        credit.x ? { icon: drawXIcon, text: "@" + credit.x } : null,
+
+        credit.website ? { icon: drawGlobeIcon, text: credit.website } : null,
+
+    ].filter(Boolean)
+
+    // links sit at the foot of the card, as in the reference
+    const step = 50
+
+    let ly = canvas.height - pad + 4 - (links.length - 1) * step
+
+    ly = Math.max(ly, y + 84)
+
+    ctx.font = `400 36px ${LABEL_FONT}`
+
+    for(const link of links) {
+
+        if(ly > canvas.height - 12) break
+
+        link.icon(ctx, pad, ly - 28, 30)
+
+        ctx.fillStyle = "#222222"
+
+        ctx.fillText(fit(ctx, link.text, maxWidth - 46), pad + 46, ly)
+
+        ly += step
+    }
+
+    return canvas
+}
+
+/** The X logo in a `size` square at (x, y). */
+function drawXIcon(ctx, x, y, size) {
+
+    const s = size / 24
+
+    ctx.save()
+
+    ctx.translate(x, y)
+
+    ctx.scale(s, s)
+
+    ctx.fillStyle = "#111111"
+
+    ctx.fill(new Path2D("M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"))
+
+    ctx.restore()
+}
+
+/** A line globe in a `size` square at (x, y). */
+function drawGlobeIcon(ctx, x, y, size) {
+
+    const r = size / 2 - 1.5
+
+    const cx = x + size / 2
+
+    const cy = y + size / 2
+
+    ctx.save()
+
+    ctx.strokeStyle = "#111111"
+
+    ctx.lineWidth = 2.6
+
+    ctx.beginPath()
+
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+
+    ctx.moveTo(cx - r, cy)
+
+    ctx.lineTo(cx + r, cy)
+
+    ctx.moveTo(cx - r * 0.88, cy - r * 0.48)
+
+    ctx.lineTo(cx + r * 0.88, cy - r * 0.48)
+
+    ctx.moveTo(cx - r * 0.88, cy + r * 0.48)
+
+    ctx.lineTo(cx + r * 0.88, cy + r * 0.48)
+
+    ctx.stroke()
+
+    ctx.beginPath()
+
+    ctx.ellipse(cx, cy, r * 0.45, r, 0, 0, Math.PI * 2)
+
+    ctx.stroke()
+
+    ctx.restore()
 }
 
 function fit(ctx, text, maxWidth) {

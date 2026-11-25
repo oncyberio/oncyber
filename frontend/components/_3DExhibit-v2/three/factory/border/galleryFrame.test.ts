@@ -3,6 +3,7 @@ import {
     galleryFrameLayout,
     galleryLabelText,
     galleryMouldingColor,
+    normalizeCredit,
     normalizeFrame,
     referenceSide,
     type FrameBox,
@@ -233,5 +234,78 @@ describe("galleryLabelText", () => {
         expect(galleryLabelText({ name: "  " })).toBeNull();
         expect(galleryLabelText({ name: "Untitled" })).toBeNull();
         expect(galleryLabelText(null)).toBeNull();
+    });
+});
+
+describe("gallery credit", () => {
+    it("is off unless the artist fills something in", () => {
+        expect(gallery().credit).toBeNull();
+        expect(gallery({ credit: {} }).credit).toBeNull();
+        expect(gallery({ credit: { artist: "  ", x: "@" } }).credit).toBeNull();
+        expect(normalizeCredit("Jarlan")).toBeNull();
+    });
+
+    it("tidies handles and websites, and trims the rest", () => {
+        expect(
+            normalizeCredit({
+                artist: "  Jarlan   Perez ",
+                location: "New York",
+                x: "https://x.com/jarlanperez?s=20",
+                website: "https://www.jarlanperez.com/",
+                extra: "ignored",
+            })
+        ).toEqual({
+            artist: "Jarlan Perez",
+            location: "New York",
+            x: "jarlanperez",
+            website: "jarlanperez.com",
+        });
+        expect(normalizeCredit({ x: "@jarlan_p" })).toEqual({ x: "jarlan_p" });
+        expect(normalizeCredit({ artist: "a".repeat(200) }).artist).toHaveLength(48);
+    });
+
+    it("shows the artist's fields, falling back to the artwork's title", () => {
+        const text = galleryLabelText(
+            { name: "Onward", creator: { user: { username: "jarlan" } } },
+            { artist: "Jarlan Perez", location: "New York", x: "jarlanperez" }
+        );
+        expect(text.credit).toEqual({
+            artist: "Jarlan Perez",
+            location: "New York",
+            title: "Onward",
+            x: "jarlanperez",
+            website: "",
+        });
+        expect(text.title).toBe("Onward");
+    });
+
+    it("lets a credit title replace the artwork's, and label untitled art", () => {
+        expect(
+            galleryLabelText({ name: "IMG_2231.jpg" }, { title: "Outlast" }).title
+        ).toBe("Outlast");
+        expect(
+            galleryLabelText({}, { artist: "Jarlan Perez" }).credit.artist
+        ).toBe("Jarlan Perez");
+        // Only a location or links: nothing to headline, no label.
+        expect(galleryLabelText({}, { location: "New York" })).toBeNull();
+    });
+
+    it("keeps the plain label when there is no credit", () => {
+        expect(galleryLabelText({ name: "Orbit" }, null)).toEqual({
+            title: "Orbit",
+            artist: "",
+        });
+    });
+
+    it("gives a credit label a taller plate", () => {
+        const opts = { width: 2, height: 3, depth: 0.1, frame: gallery() };
+        const plain = galleryFrameLayout({ ...opts, withLabel: true }).label;
+        const credit = galleryFrameLayout({
+            ...opts,
+            withLabel: true,
+            creditLabel: true,
+        }).label;
+        expect(credit.w).toBeGreaterThan(plain.w);
+        expect(credit.h / credit.w).toBeGreaterThan(plain.h / plain.w);
     });
 });
