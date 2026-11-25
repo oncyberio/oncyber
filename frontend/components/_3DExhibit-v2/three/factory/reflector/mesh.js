@@ -109,6 +109,10 @@ class Reflector extends PipeLineMesh {
 
 		const scope = this;
 
+		// Counts the pixels of this mesh that pass the depth test each frame,
+		// so updateBefore can skip the reflection while none do.
+		this.occlusionTest = true
+
 		const color = ( options.color !== undefined ) ? new Color( options.color ) : new Color( 0x777777 );
 		const textureWidth = options.textureWidth || 1024;
 		const textureHeight = options.textureHeight || 1024;
@@ -138,6 +142,11 @@ class Reflector extends PipeLineMesh {
 			if( inMirror ) return
 
 			const { renderer, scene, camera } = frame
+
+			// Hidden behind the ground or walls in the last frame
+			// (occlusionTest): keep the last reflection instead of drawing
+			// the whole world a second time for nothing.
+			if( renderer.isOccluded?.( scope ) ) return
 
 			renderTarget = this.getRenderTarget( this.getVirtualCamera( camera ) )
 

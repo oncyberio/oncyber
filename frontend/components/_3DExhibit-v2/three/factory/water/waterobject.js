@@ -252,6 +252,10 @@ export default class Water extends PipeLineMesh {
 
 		const scope = this
 
+		// Counts the pixels of this mesh that pass the depth test each frame,
+		// so updateBefore can skip the reflection while none do.
+		this.occlusionTest = true
+
 		scope.material = material;
 
 		// the mesh is the mirror plane (local +Z is the normal)
@@ -278,6 +282,11 @@ export default class Water extends PipeLineMesh {
 			if( inMirror ) return
 
 			const { renderer, scene, camera } = frame
+
+			// Hidden behind the ground or walls in the last frame
+			// (occlusionTest): keep the last reflection instead of drawing
+			// the whole world a second time for nothing.
+			if( renderer.isOccluded?.( scope ) ) return
 
 			renderTarget = this.getRenderTarget( this.getVirtualCamera( camera ) )
 
