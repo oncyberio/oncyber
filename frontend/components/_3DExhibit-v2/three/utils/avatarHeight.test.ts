@@ -7,6 +7,7 @@ import {
     MINIMUM_VRM_BOX,
     avatarHeightToSize,
     avatarSizeToHeight,
+    worldAvatarSize,
 } from "./avatarHeight";
 import {
     DefaultRoomParameters,
@@ -58,4 +59,46 @@ test("a new upload starts in metres; loaded destinations are left alone", () => 
     // Each upload gets its own copy.
     params.fog.enabled = true;
     expect(DefaultRoomParameters.fog.enabled).toBe(false);
+});
+
+describe("worldAvatarSize", () => {
+    test("a size set on the space wins over the destination's", () => {
+        expect(
+            worldAvatarSize({
+                exhibit: { params: { avatarSize: 0.5 } },
+                roomParameters: { avatarSize: 0.23, user_height: 2.3 },
+            })
+        ).toBe(0.5);
+        expect(
+            worldAvatarSize({
+                exhibit: { params: {} },
+                roomParameters: { avatarSize: 0.23, user_height: 2.3 },
+            })
+        ).toBe(0.23);
+    });
+
+    test("an older destination stands avatars with their eyes at its own height", () => {
+        // The Starry Night dome: user_height 2.3, no avatar size anywhere.
+        const size = worldAvatarSize({
+            exhibit: { params: {} },
+            roomParameters: { user_height: 2.3 },
+        });
+
+        expect(avatarSizeToHeight(size)).toBeCloseTo(2.47, 2);
+        expect(avatarSizeToHeight(size) * 0.93).toBeCloseTo(2.3, 1);
+    });
+
+    test("a destination built very large stops at the tallest avatar", () => {
+        expect(worldAvatarSize({ roomParameters: { user_height: 17 } })).toBe(
+            1
+        );
+    });
+
+    test("with nothing to go by the visitor keeps their own size", () => {
+        expect(worldAvatarSize({ roomParameters: {} })).toBeNull();
+        expect(
+            worldAvatarSize({ roomParameters: { user_height: 0 } })
+        ).toBeNull();
+        expect(worldAvatarSize(null)).toBeNull();
+    });
 });

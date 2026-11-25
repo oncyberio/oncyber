@@ -147,6 +147,10 @@ them, and so does its Vercel preview; see
     speaks the games contract to it (`features/worlds/`). Unset, worlds run
     in the page. The plan and its slices:
     [docs/plans/framed-worlds.md](docs/plans/framed-worlds.md).
+-   **World scripts.** AI-written scripts on top of a native space run in an
+    opaque sandboxed frame and change the scene only through checked
+    messages (`features/world-scripts/`). Off unless
+    `NEXT_PUBLIC_WORLD_SCRIPTS=1`. See [docs/world-scripts.md](docs/world-scripts.md).
 -   **Wallets.** `dApp/connect.tsx` returns a connection per chain. An Ethereum
     connection carries an ethers provider (`getEthersProvider(connection)`);
     sign and send through it.

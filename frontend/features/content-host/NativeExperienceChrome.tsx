@@ -37,6 +37,11 @@ import NativeVisitorPanel, {
     nativePanelTitles,
     nativeUtilitySurface,
 } from "./NativeVisitorPanel";
+import {
+    setWorldScripts,
+    useWorldScripts,
+    WORLD_SCRIPTS_ENABLED,
+} from "@features/world-scripts/store";
 import ExperienceShell, {
     ExperienceIcon,
     ExperiencePanel,
@@ -105,6 +110,7 @@ export default function NativeExperienceChrome({
         setActiveProfileTab,
     } = usePanel();
     // One value says which panel is open, so opening one closes the others.
+    const worldScripts = useWorldScripts();
     const emotesOpen = spacePanel === "emotes";
     const moreOpen = spacePanel === "more";
     const searchOpen = spacePanel === "search";
@@ -435,6 +441,28 @@ export default function NativeExperienceChrome({
             buttonRef: searchButton,
             onClick: () => (searchOpen ? closeSearch() : openSearch()),
         },
+        // The owner's and editors' AI sidebar (docs/world-scripts.md).
+        ...(WORLD_SCRIPTS_ENABLED && worldScripts.canEdit
+            ? [
+                  {
+                      id: "ai",
+                      label: worldScripts.panelOpen
+                          ? "Close AI"
+                          : "Build with AI",
+                      icon: "multi-star",
+                      active: worldScripts.panelOpen,
+                      expanded: worldScripts.panelOpen,
+                      onClick: () => {
+                          closePhoneChat();
+                          document.exitPointerLock?.();
+                          dispatchSpacePanel({ type: "close" });
+                          setWorldScripts({
+                              panelOpen: !worldScripts.panelOpen,
+                          });
+                      },
+                  },
+              ]
+            : []),
         {
             id: "more",
             label: phoneControls && moreOpen ? "Close More" : "More",
@@ -575,7 +603,6 @@ export default function NativeExperienceChrome({
                             phoneControls ? moreButton : peopleButton
                         }
                         onClose={() => setPeopleOpen(false)}
-                        onModerate={() => toggleTab("users")}
                     />
                 )}
                 {voiceDebug && (
@@ -757,15 +784,32 @@ export default function NativeExperienceChrome({
                                                 }
                                             />
                                         )}
-                                    {room.isMod && (
-                                        <MoreAction
-                                            icon="mic"
-                                            label="Requests to speak"
-                                            onClick={() =>
-                                                toggleTab("voiceRequests")
-                                            }
-                                        />
-                                    )}
+                                </div>
+                            )}
+                            {/* Everything only the space's admins can do
+                                lives here, so the Back of each panel it
+                                opens returns to where it was opened. */}
+                            {multiplayer && room.isMod && (
+                                <div
+                                    className="more-actions"
+                                    role="group"
+                                    aria-labelledby="native-more-admin"
+                                >
+                                    <h3 id="native-more-admin">
+                                        Admin controls
+                                    </h3>
+                                    <MoreAction
+                                        icon="users"
+                                        label="Moderate people"
+                                        onClick={() => toggleTab("users")}
+                                    />
+                                    <MoreAction
+                                        icon="mic"
+                                        label="Requests to speak"
+                                        onClick={() =>
+                                            toggleTab("voiceRequests")
+                                        }
+                                    />
                                 </div>
                             )}
                             <div className="more-actions">
@@ -979,6 +1023,13 @@ const MorePanel = styled(ExperiencePanel)`
     .more-actions {
         display: grid;
         gap: 2px;
+    }
+    .more-actions > h3 {
+        margin: 6px 0 4px;
+        padding-left: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        color: #969daa;
     }
     .more-actions + .more-actions {
         margin-top: 6px;

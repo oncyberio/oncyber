@@ -29,6 +29,7 @@ import VRMS from "@3/three/factory/player/vrms.json";
 import { Experience } from "@uitypes/experience";
 import { RoomParameters } from "@uitypes/roomParameters";
 import { checkUrlResponse, cloudinary } from "@utils/urlUtils";
+import { worldAvatarSize } from "@3utils/avatarHeight";
 
 const maxFileSize = 8;
 
@@ -528,9 +529,10 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
             if (_roomParams) setRoomParams(_roomParams);
 
             const default_vrm_scale =
-                _exhibit?.params?.avatarSize ||
-                _roomParams?.avatarSize ||
-                userData?.settings?.default_vrm_scale;
+                worldAvatarSize({
+                    exhibit: _exhibit,
+                    roomParameters: _roomParams,
+                }) ?? userData?.settings?.default_vrm_scale;
 
             //
             if (
@@ -560,14 +562,14 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
 
         let scale = null;
 
-        if (exhibit?.params?.avatarSize) {
-            if (typeof exhibit.params.avatarSize === "number") {
-                scale = exhibit.params.avatarSize;
-            }
-        } else if (roomParams?.avatarSize) {
-            if (typeof roomParams.avatarSize === "number") {
-                scale = roomParams.avatarSize;
-            }
+        // The world's size, when it has one, comes before the visitor's own.
+        const worldSize = worldAvatarSize({
+            exhibit,
+            roomParameters: roomParams,
+        });
+
+        if (worldSize != null) {
+            scale = worldSize;
         } else if (isCustomVrm) {
             if (typeof activeVrm?.scale === "number") {
                 scale = activeVrm.scale;
