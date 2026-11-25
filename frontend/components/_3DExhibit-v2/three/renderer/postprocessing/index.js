@@ -38,6 +38,8 @@ import Shared from '@3shared'
 
 import { POST_PROCESSINGS, POST_TYPES } from "@3editgui/index.js"
 
+import { spaceMotionBlur } from "../motionblur"
+
 class PostProcessing {
 
 	constructor() {
