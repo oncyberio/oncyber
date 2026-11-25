@@ -191,7 +191,9 @@ export default function Header({
                     photo={userData?.avatar}
                     initialFocus={openingFocus.current}
                     onClose={() => setAccountOpen(false)}
-                    onEditProfile={() => editProfile()}
+                    profileHref={`/@${encodeURIComponent(
+                        username || String(user?.id || "")
+                    )}`}
                     onConnections={() => editProfile("connections")}
                     onFriends={() => setFriendsOpen(true)}
                     onSignOut={signOut}

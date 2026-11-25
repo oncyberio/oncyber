@@ -7,7 +7,7 @@ import NativeVisitorPanel, {
 /**
  * How a purchase looks, built from the design system (docs/brand): the
  * payment sidebar is the lobby's glass utility panel with its buttons and
- * rows. The wallet is not here: it is part of the account dashboard.
+ * rows. The wallet is not here: it is part of the visitor's profile.
  */
 
 /**

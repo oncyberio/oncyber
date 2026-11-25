@@ -367,6 +367,7 @@ function fakeChain() {
     const sent = new Map<string, { data: string; confirmations: number }>();
     const payer = "0x" + "cc".repeat(20);
     const reader: ChainReader = {
+        call: async () => "0x0",
         getTransaction: async (hash) =>
             sent.has(hash)
                 ? { to: config.token, from: payer, data: sent.get(hash)!.data }

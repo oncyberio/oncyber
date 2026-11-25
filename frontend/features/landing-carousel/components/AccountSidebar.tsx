@@ -19,7 +19,11 @@ type Props = {
     photo?: string;
     initialFocus?: "first" | "last";
     onClose(): void;
-    onEditProfile(): void;
+    /**
+     * The visitor's own profile: the lobby with their sidebar open, where
+     * Edit profile and their wallet are.
+     */
+    profileHref: string;
     onConnections(): void;
     onFriends(): void;
     onSignOut(): void;
@@ -44,7 +48,7 @@ export default function AccountSidebar({
     photo,
     initialFocus = "first",
     onClose,
-    onEditProfile,
+    profileHref,
     onConnections,
     onFriends,
     onSignOut,
@@ -225,16 +229,16 @@ export default function AccountSidebar({
                         className="sidebar-section settings-section"
                     >
                         <h3 id={`${id}-settings`}>{t("Account")}</h3>
-                        <button
-                            type="button"
+                        <Link
                             className="sidebar-row compact-row"
+                            href={profileHref}
                             data-account-item
-                            onClick={() => finish(onEditProfile)}
+                            onClick={() => finish()}
                         >
                             <Icon name="user" size={20} />
-                            <span>{t("Edit profile")}</span>
+                            <span>{t("Your profile")}</span>
                             {arrow}
-                        </button>
+                        </Link>
                         <button
                             type="button"
                             className="sidebar-row compact-row"

@@ -27,6 +27,8 @@ export interface ProfileInfo {
     avatar: string;
     href: string;
     hasNfts: boolean;
+    /** NFTs the person keeps off their profile (`<contract>/<token>`). */
+    hiddenNfts?: string[];
     spaces: SpaceCard[];
     featured: SpaceCard[];
 }
@@ -43,6 +45,23 @@ const EMPTY: NftPage = { nfts: [], next: "", loading: false, failed: false };
 const isNftSection = (section: ProfileSectionId): section is NftKind =>
     section === "owned" || section === "created";
 
+/** What edit mode can change, as the account's own fields. */
+export interface ProfileEdit {
+    username?: string;
+    avatar?: string;
+    avatarContractAddress?: string;
+    avatarTokenId?: string;
+    hiddenNfts?: string[];
+}
+/** The signed-in visitor, when this may be their own profile. */
+export interface ProfileSelf {
+    /** Their account id (a wallet address, or an account's id). */
+    id: string;
+    save(edit: ProfileEdit): Promise<{ success: boolean; message?: string }>;
+    /** The site's rule for a username; an error sentence, or "". */
+    checkUsername?(name: string): string;
+}
+
 /**
  * A person in the info sidebar: who they are, once, then one section at a
  * time behind a switch (their spaces, spaces showing their work, what they
@@ -55,7 +74,17 @@ export default function ProfileView({
     renderImage,
     onLoaded,
     actions,
+    self,
+    ownExtras,
 }: {
+    /**
+     * The signed-in visitor. When the profile shown is theirs they get
+     * Edit profile: the same sidebar, with its name, picture and NFTs
+     * editable in place.
+     */
+    self?: ProfileSelf;
+    /** Shown on the visitor's own profile only, e.g. their wallet. */
+    ownExtras?: React.ReactNode;
     profileId: string;
     fallbackName: string;
     fallbackAvatar?: string;
@@ -74,6 +103,15 @@ export default function ProfileView({
         created: EMPTY,
     });
     const requested = useRef<Record<string, boolean>>({});
+    // Edit mode, on the visitor's own profile.
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState<{
+        name: string;
+        picture: ProfileNft | null;
+        hidden: Set<string>;
+    }>({ name: "", picture: null, hidden: new Set() });
+    const [saving, setSaving] = useState(false);
+    const [editError, setEditError] = useState("");
 
     useEffect(() => {
         const controller = new AbortController();
@@ -104,6 +142,8 @@ export default function ProfileView({
             [kind]: { ...value[kind], loading: true, failed: false },
         }));
         const params = new URLSearchParams({ id: profileId, nfts: kind });
+        // Editing shows what is hidden too, so it can be shown again.
+        if (editing) params.set("all", "1");
         if (more && pages[kind].next) params.set("next", pages[kind].next);
         fetch(`/api/profile-info?${params}`)
             .then((response) => {
@@ -136,7 +176,72 @@ export default function ProfileView({
     useEffect(() => {
         if (profile?.hasNfts && isNftSection(section)) loadNfts(section);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [profile?.hasNfts, section]);
+    }, [profile?.hasNfts, section, editing]);
+
+    const own =
+        !!self &&
+        !!profile &&
+        [profile.id, profile.wallet].some(
+            (value) => !!value && value.toLowerCase() === self.id.toLowerCase()
+        );
+    // The lists differ in and out of edit mode (hidden NFTs): read again.
+    const switchMode = (next: boolean) => {
+        requested.current = {};
+        setPages({ owned: EMPTY, created: EMPTY });
+        setEditing(next);
+        setEditError("");
+    };
+    const startEdit = () => {
+        setDraft({
+            name: profile.username || "",
+            picture: null,
+            hidden: new Set(profile.hiddenNfts ?? []),
+        });
+        switchMode(true);
+    };
+    const save = async () => {
+        if (saving) return;
+        const edit: ProfileEdit = {};
+        const username = draft.name.trim();
+        if (username !== (profile.username || "")) {
+            const problem = !username
+                ? "A username can’t be empty."
+                : self.checkUsername?.(username) || "";
+            if (problem) return setEditError(problem);
+            edit.username = username;
+        }
+        if (draft.picture) {
+            const [contract, token] = draft.picture.id.split("/");
+            edit.avatar =
+                draft.picture.imageUrls[draft.picture.imageUrls.length - 1];
+            edit.avatarContractAddress = contract;
+            edit.avatarTokenId = token;
+        }
+        const hidden = [...draft.hidden].sort();
+        if (hidden.join() !== [...(profile.hiddenNfts ?? [])].sort().join())
+            edit.hiddenNfts = hidden;
+        if (!Object.keys(edit).length) return switchMode(false);
+        setSaving(true);
+        setEditError("");
+        const result = await self
+            .save(edit)
+            .catch(() => ({ success: false, message: "" }));
+        setSaving(false);
+        if (!result.success)
+            return setEditError(
+                result.message || "Your profile wasn’t saved. Try again."
+            );
+        setProfile({
+            ...profile,
+            ...(edit.username
+                ? { username: edit.username, name: edit.username }
+                : {}),
+            ...(edit.avatar ? { avatar: edit.avatar } : {}),
+            ...(edit.hiddenNfts ? { hiddenNfts: edit.hiddenNfts } : {}),
+        });
+        if (edit.username) onLoaded?.(edit.username);
+        switchMode(false);
+    };
 
     const name = profile?.name || fallbackName;
     const sections = profile ? profileSections(profile) : [];
@@ -147,11 +252,39 @@ export default function ProfileView({
         <>
             <div className="profile-summary">
                 <ProfilePortrait
-                    src={profile?.avatar || fallbackAvatar || undefined}
+                    src={
+                        (editing && draft.picture?.imageUrls[0]) ||
+                        profile?.avatar ||
+                        fallbackAvatar ||
+                        undefined
+                    }
                     className="profile-portrait"
                 />
                 <span className="identity">
-                    <strong>{name}</strong>
+                    {editing ? (
+                        <label className="profile-field">
+                            <span className="sr-only">Username</span>
+                            <input
+                                value={draft.name}
+                                maxLength={18}
+                                autoComplete="off"
+                                spellCheck={false}
+                                placeholder="Username"
+                                aria-invalid={!!editError || undefined}
+                                onChange={(event) =>
+                                    setDraft({
+                                        ...draft,
+                                        name: event.target.value,
+                                    })
+                                }
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") void save();
+                                }}
+                            />
+                        </label>
+                    ) : (
+                        <strong>{name}</strong>
+                    )}
                     {profile?.wallet && profile.username && (
                         <span
                             className="identity-detail"
@@ -163,7 +296,48 @@ export default function ProfileView({
                     )}
                 </span>
             </div>
-            {actions && <div className="profile-actions">{actions}</div>}
+            {actions && !editing && (
+                <div className="profile-actions">{actions}</div>
+            )}
+            {own && !editing && (
+                <div className="profile-actions">
+                    <button type="button" onClick={startEdit}>
+                        Edit profile
+                    </button>
+                </div>
+            )}
+            {own && editing && (
+                <div className="profile-edit">
+                    <p>
+                        {profile.hasNfts
+                            ? "Change your name here. Under Collected, choose a picture or hide what you don’t want shown."
+                            : "Change your name here."}
+                    </p>
+                    {editError && (
+                        <p className="profile-error" role="alert">
+                            {editError}
+                        </p>
+                    )}
+                    <div className="profile-actions">
+                        <button
+                            type="button"
+                            className="primary"
+                            disabled={saving}
+                            onClick={() => void save()}
+                        >
+                            {saving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                            type="button"
+                            disabled={saving}
+                            onClick={() => switchMode(false)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+            {own && !editing && ownExtras}
             {failed && (
                 <EmptyState
                     role="alert"
@@ -245,6 +419,32 @@ export default function ProfileView({
                             <NftGrid
                                 kind={section}
                                 page={pages[section]}
+                                edit={
+                                    own && editing
+                                        ? {
+                                              hidden: draft.hidden,
+                                              picture: draft.picture?.id,
+                                              onPicture: (nft) =>
+                                                  setDraft({
+                                                      ...draft,
+                                                      picture: nft,
+                                                  }),
+                                              onToggle: (nft) => {
+                                                  const hidden = new Set(
+                                                      draft.hidden
+                                                  );
+                                                  const id =
+                                                      nft.id.toLowerCase();
+                                                  if (!hidden.delete(id))
+                                                      hidden.add(id);
+                                                  setDraft({
+                                                      ...draft,
+                                                      hidden,
+                                                  });
+                                              },
+                                          }
+                                        : undefined
+                                }
                                 renderImage={renderImage}
                                 onMore={() => loadNfts(section, true)}
                                 onRetry={() => loadNfts(section)}
@@ -290,10 +490,18 @@ function SpaceGrid({
 function NftGrid({
     kind,
     page,
+    edit,
     renderImage,
     onMore,
     onRetry,
 }: {
+    /** Edit mode: each NFT can become the picture, or be hidden or shown. */
+    edit?: {
+        hidden: Set<string>;
+        picture?: string;
+        onPicture(nft: ProfileNft): void;
+        onToggle(nft: ProfileNft): void;
+    };
     kind: NftKind;
     page: NftPage;
     renderImage(urls: string[], className?: string): React.ReactNode;
@@ -305,23 +513,51 @@ function NftGrid({
         <>
             {page.nfts.length > 0 && (
                 <ul className="artworks">
-                    {page.nfts.map((nft) => (
-                        <li key={nft.id}>
-                            <a
-                                href={nft.href || undefined}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                <span className="thumb">
-                                    {renderImage(nft.imageUrls)}
-                                </span>
-                                <strong title={nft.title}>{nft.title}</strong>
-                                {nft.collection && (
-                                    <small>{nft.collection}</small>
+                    {page.nfts.map((nft) => {
+                        const hidden = edit?.hidden.has(nft.id.toLowerCase());
+                        return (
+                            <li key={nft.id} data-hidden={hidden || undefined}>
+                                <a
+                                    href={nft.href || undefined}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    <span className="thumb">
+                                        {renderImage(nft.imageUrls)}
+                                    </span>
+                                    <strong title={nft.title}>
+                                        {nft.title}
+                                    </strong>
+                                    {nft.collection && (
+                                        <small>{nft.collection}</small>
+                                    )}
+                                </a>
+                                {edit && (
+                                    <span className="nft-edit">
+                                        <button
+                                            type="button"
+                                            aria-pressed={
+                                                edit.picture === nft.id
+                                            }
+                                            disabled={!nft.imageUrls.length}
+                                            onClick={() => edit.onPicture(nft)}
+                                        >
+                                            {edit.picture === nft.id
+                                                ? "Your picture"
+                                                : "Use as picture"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-pressed={!!hidden}
+                                            onClick={() => edit.onToggle(nft)}
+                                        >
+                                            {hidden ? "Show" : "Hide"}
+                                        </button>
+                                    </span>
                                 )}
-                            </a>
-                        </li>
-                    ))}
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
             {page.loading && (

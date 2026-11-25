@@ -45,7 +45,7 @@ import { readPartyLeave } from "./gamePartyLeave";
 import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
 import { useGameResults } from "./useGameResults";
 import { useGamePurchases } from "./useGamePurchases";
-import { openWalletDashboard } from "./openWalletDashboard";
+import dynamic from "next/dynamic";
 import { useSignInSheet } from "@ui/components/ConnectWallet/SignInSheetHost";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
 import { useGamePause } from "./gamePause";
@@ -54,6 +54,12 @@ import { attachSavedData, signedInAccount } from "./savedDataBridge";
 import { createRemoteSavedStore } from "./savedDataRemote";
 import { joinedParty, rememberGameParty } from "./gamePartyJoin";
 import { useGameHealth } from "./gameHealth";
+
+// The profile sidebar, loaded when the visitor opens their wallet.
+const ProfileSidebar = dynamic(
+    () => import("@features/space-info/SpaceInfoSidebar"),
+    { ssr: false }
+);
 
 const PEER_INTERVAL = 100;
 
@@ -201,6 +207,8 @@ export default function GamePage({
     // whether it was bought (docs/games/purchases.md). A registered game
     // declares no products the site knows, so it sells nothing yet.
     const signInSheet = useSignInSheet();
+    const [profileOpen, setProfileOpen] = useState(false);
+    const profileClosed = useRef<() => void>();
     const purchases = useGamePurchases({
         game: GAME,
         title: gameName,
@@ -208,8 +216,13 @@ export default function GamePage({
         send: (message) => send.current(message),
         account: () => signedInAccount(profile.current),
         signIn: (done) => signInSheet?.open({ callbackAfterAuth: done }),
-        // The wallet is part of the account: its dashboard, at the wallet.
-        openWallet: openWalletDashboard,
+        // The wallet is part of the visitor's profile: the left sidebar,
+        // on their own profile. Resolves when it closes.
+        openWallet: () =>
+            new Promise<void>((resolve) => {
+                profileClosed.current = resolve;
+                setProfileOpen(true);
+            }),
         onClose: () => frame.current?.focus(),
     });
     // What breaks and how fast it runs on real visits (gameHealth.ts): it
@@ -715,6 +728,28 @@ export default function GamePage({
             )}
             {ready && !error && results.card}
             {ready && !error && purchases.element}
+            {profileOpen && user?.id && (
+                <ProfileSidebar
+                    id="game-profile"
+                    fallback={{ title: game.title }}
+                    initialProfile={{
+                        id: String(user.id),
+                        name:
+                            (typeof userData?.username === "string" &&
+                                userData.username) ||
+                            "You",
+                        avatar:
+                            typeof userData?.avatar === "string"
+                                ? userData.avatar
+                                : undefined,
+                    }}
+                    onClose={() => {
+                        setProfileOpen(false);
+                        profileClosed.current?.();
+                        profileClosed.current = undefined;
+                    }}
+                />
+            )}
             {error && (
                 <div
                     role="status"

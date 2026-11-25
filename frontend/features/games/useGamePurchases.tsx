@@ -132,8 +132,8 @@ const REFUSED: Partial<Record<PurchaseRefusal, string>> = {
  * The game never draws this and never learns the balance. `owned` is
  * answered with the permanent products the visitor holds.
  *
- * The wallet itself (balance, adding funds, what was bought) is part of
- * the account, in the account dashboard; the sidebar links to it.
+ * The wallet itself (balance, topping up, what was bought) is part of
+ * the visitor's profile, the left sidebar; this one links to it.
  */
 export function useGamePurchases(options: {
     game: string;
@@ -155,8 +155,9 @@ export function useGamePurchases(options: {
         userId?: string
     ) => Promise<WalletPaymentOutcome>;
     /**
-     * Opens the wallet in the account dashboard; resolves when it closes,
-     * so the balance shown here is read again.
+     * Opens the wallet, which is part of the visitor's profile (the left
+     * sidebar); resolves when it closes, so the balance shown here is read
+     * again.
      */
     openWallet?: () => Promise<unknown> | void;
     /** Called when the sidebar closes, to give the game its focus. */
@@ -171,7 +172,7 @@ export function useGamePurchases(options: {
     const asking = useRef<Ask | null>(null);
     asking.current = ask;
     const [wallet, setWallet] = useState<Wallet | null>(null);
-    // The account dashboard is open over the sidebar.
+    // The profile is open over the sidebar.
     const inWallet = useRef(false);
     const [funding, setFunding] = useState(false);
     const signedIn = !!options.account();
@@ -460,7 +461,7 @@ export function useGamePurchases(options: {
         const onKey = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
             // Something opened over the sidebar (the sign-in sheet, the
-            // account dashboard): Escape is its, and the question stays.
+            // profile): Escape is its, and the question stays.
             if (
                 inWallet.current ||
                 document.querySelector('[role="dialog"][aria-modal="true"]')
@@ -590,11 +591,7 @@ export function useGamePurchases(options: {
                         <Icon name="wallet" size={16} />
                         <span>
                             Wallet
-                            <small>
-                                {own
-                                    ? "What you bought"
-                                    : "Your balance and purchases"}
-                            </small>
+                            <small>In your profile</small>
                         </span>
                     </UtilityRow>
                 )}

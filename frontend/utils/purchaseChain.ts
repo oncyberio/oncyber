@@ -18,6 +18,7 @@ export interface ChainReader {
         confirmations: number;
         logs: Array<{ address: string; topics: string[]; data: string }>;
     } | null>;
+    call(transaction: { to: string; data: string }): Promise<string>;
 }
 
 const TRANSFER_EVENT =
@@ -112,4 +113,31 @@ export function walletRail(
                 : { ok: false, reason: "payment-failed" };
         },
     };
+}
+
+/**
+ * What `address` holds of the purchase token, in US cents (rounded down),
+ * for showing in the profile. Null when the chain cannot be read: it is
+ * information for the visitor, never what a purchase is checked against.
+ */
+export async function walletTokenCents(
+    config: WalletPaymentConfig,
+    address: string,
+    reader: ChainReader = readerFor(config)
+): Promise<number | null> {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return null;
+    try {
+        const held = await reader.call({
+            to: config.token,
+            // balanceOf(address)
+            data: "0x70a08231" + topicAddress(address).slice(2),
+        });
+        const cents = ethers.BigNumber.from(held).div(10_000);
+        // More than anyone holds, or a node answering nonsense.
+        return cents.gt(String(Number.MAX_SAFE_INTEGER))
+            ? null
+            : cents.toNumber();
+    } catch {
+        return null;
+    }
 }

@@ -951,4 +951,7 @@ the panel and returns keyboard focus to its opener.
 A purchase in a game is the same panel docked to the right edge on a wide
 screen (the payment sidebar, `features/games/gamePurchaseStyles.tsx`), so the
 game stays in view; on a phone it is the usual bottom sheet. The wallet is
-not a panel over the game: it is a step of the account dashboard.
+not a panel over the game: it is part of the visitor's own profile, the
+sidebar that opens from the left, which is also where a profile is edited
+(Edit profile turns that sidebar into its edit mode; there is no separate
+edit dialog for the name, picture or NFTs shown).

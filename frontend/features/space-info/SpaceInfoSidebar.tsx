@@ -1,16 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import Link from "next/link";
 import ProfilePortrait from "@ui/components/ProfilePortrait";
-import { actionButton, brandFoundation, outlineAction } from "@styles/brand";
+import {
+    actionButton,
+    brandFoundation,
+    outlineAction,
+    whiteAction,
+} from "@styles/brand";
+import { UPDATE_USER_DATA, UserContext } from "@components/context/UserContext";
+import { validateUsername } from "@utils/rules/user";
 import { baseTokens } from "@styles/tokens";
 import Icon from "@features/landing-carousel/components/Icon";
 import { STAFF_PICKS_DEFAULT_MIN } from "@features/landing-carousel/data";
 import dynamic from "next/dynamic";
 import type { SpaceInfo } from "./spaceInfo";
 import SpaceActions from "./SpaceActions";
-import ProfileView from "./ProfileView";
+import ProfileView, { type ProfileSelf } from "./ProfileView";
+import ProfileWallet from "./ProfileWallet";
 
 type View =
     | { kind: "guestbook" }
@@ -65,6 +73,40 @@ export default function SpaceInfoSidebar({
     const dialog = useRef<HTMLDialogElement>(null);
     const closeTimer = useRef<ReturnType<typeof setTimeout>>();
     const [closing, setClosing] = useState(false);
+    // The signed-in visitor: on their own profile they can edit it here,
+    // and see their wallet.
+    const account = useContext(UserContext) || ({} as any);
+    const self: ProfileSelf | undefined =
+        account.authenticated && !account.isAnonymous && account.user?.id
+            ? {
+                  id: String(account.user.id),
+                  checkUsername: (name) =>
+                      validateUsername(name).success === false
+                          ? "A username has fewer than 18 characters, no spaces, and doesn’t start with @."
+                          : "",
+                  save: async (edit) => {
+                      const { updateUser } = await import("@utils/saveToDb");
+                      const data = await updateUser(
+                          account.token,
+                          edit,
+                          account.user.id
+                      );
+                      // The rest of the page shows the new name and picture.
+                      if (data?.success)
+                          account.dispatch?.({
+                              type: UPDATE_USER_DATA,
+                              payload: edit,
+                          });
+                      return {
+                          success: !!data?.success,
+                          message:
+                              typeof data?.message === "string"
+                                  ? data.message
+                                  : "",
+                      };
+                  },
+              }
+            : undefined;
     const [info, setInfo] = useState<Partial<SpaceInfo>>(fallback);
     const [loading, setLoading] = useState(!!spaceId);
     const [failed, setFailed] = useState(false);
@@ -227,6 +269,8 @@ export default function SpaceInfoSidebar({
                             profileId={view.id}
                             fallbackName={view.name}
                             fallbackAvatar={view.avatar}
+                            self={self}
+                            ownExtras={<ProfileWallet />}
                             actions={
                                 stack.length === 1 && initialProfile
                                     ? profileActions
@@ -740,6 +784,157 @@ const Surface = styled.dialog`
     .profile-actions button {
         ${actionButton}
         ${outlineAction}
+    }
+    .profile-actions button.primary,
+    .profile-wallet button.primary {
+        ${whiteAction}
+    }
+    /* Edit mode: the same sidebar, its name, picture and NFTs editable. */
+    .profile-field {
+        display: block;
+    }
+    .profile-field input {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 12px;
+        border: 1px solid var(--oc-line-strong);
+        border-radius: var(--oc-radius-control);
+        background: var(--oc-surface);
+        color: var(--oc-ink);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 500;
+    }
+    .profile-field input:focus-visible {
+        outline: 2px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
+    .profile-edit {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .profile-edit p,
+    .profile-wallet p {
+        margin: 0;
+        color: var(--oc-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .profile-edit .profile-actions,
+    .profile-wallet .profile-actions {
+        margin-top: 0;
+    }
+    .profile-edit .profile-error {
+        color: var(--oc-danger);
+    }
+    .nft-edit {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .nft-edit button {
+        min-height: 28px;
+        padding: 4px 8px;
+        border: 1px solid var(--oc-line-strong);
+        border-radius: var(--oc-radius-inset);
+        background: transparent;
+        color: var(--oc-ink);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.4;
+        cursor: pointer;
+    }
+    .nft-edit button:hover:not(:disabled),
+    .nft-edit button[aria-pressed="true"] {
+        background: var(--oc-surface);
+        border-color: var(--oc-ink);
+    }
+    .nft-edit button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .nft-edit button:focus-visible {
+        outline: 2px solid var(--oc-accent);
+        outline-offset: 2px;
+    }
+    .artworks li[data-hidden] a {
+        opacity: 0.4;
+    }
+    /* The visitor's wallet, on their own profile. */
+    .profile-wallet {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+        padding: 16px;
+        border: 1px solid var(--oc-line);
+        border-radius: var(--oc-radius-control);
+        background: var(--oc-surface);
+    }
+    .profile-wallet button {
+        ${actionButton}
+        ${outlineAction}
+    }
+    .wallet-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .wallet-held {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .wallet-held small {
+        font: 11px/1.5 var(--oc-mono);
+        color: var(--oc-muted);
+    }
+    .wallet-held strong {
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+    .wallet-held .wallet-plain {
+        font-size: 15px;
+    }
+    .wallet-topup {
+        display: grid;
+        gap: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--oc-line);
+    }
+    .profile-wallet .wallet-purchases-toggle {
+        justify-self: start;
+    }
+    .wallet-purchases {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .wallet-purchases li {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid var(--oc-line);
+        font-size: 13px;
+    }
+    .wallet-purchases small {
+        display: block;
+        color: var(--oc-muted);
+        font-size: 12px;
+    }
+    .wallet-topup code {
+        font: 12px/1.5 var(--oc-mono);
+        color: var(--oc-ink);
+        overflow-wrap: anywhere;
+        user-select: all;
     }
     /* The sections of a profile, one at a time. The same voice as the
        landing's section switch: quiet mono labels, the open one in ink,

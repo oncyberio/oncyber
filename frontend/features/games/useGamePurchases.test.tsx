@@ -350,7 +350,7 @@ test("what the visitor owns is the server's list; a guest owns nothing", async (
     });
 });
 
-test("the wallet is the account's: the sidebar links to it and reads the balance again", async () => {
+test("the wallet is in the profile: the sidebar links to it and reads the balance again", async () => {
     const { host, press, fromGame, openWallet } = mount();
     // No wallet of the page's own over the game.
     expect(host.querySelector("button")).toBeNull();
@@ -447,8 +447,8 @@ test("with their own wallet the visitor pays the transfer asked for, and the pag
     const text = host.querySelector('[role="dialog"]')?.textContent;
     expect(text).toContain("Paid withUSDC on Base");
     expect(text).toContain("You confirm the payment in your own wallet.");
-    // No balance of the site's, and nothing to top up.
-    expect(text).not.toContain("balance");
+    // No balance of the site's here.
+    expect(text).not.toContain("Test balance");
     await press(/^Pay \$0\.99$/);
     await act(async () => {
         await new Promise((done) => setTimeout(done, 20));

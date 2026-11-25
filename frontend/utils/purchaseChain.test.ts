@@ -3,6 +3,7 @@ import { walletPaymentConfig } from "@features/games/walletPayment";
 import {
     paymentReference,
     walletRail,
+    walletTokenCents,
     type ChainReader,
 } from "./purchaseChain";
 
@@ -42,6 +43,7 @@ function chain(
         ...change.log,
     };
     const reader: ChainReader = {
+        call: async () => "0x0",
         getTransaction: async () =>
             change.tx === null
                 ? null
@@ -154,4 +156,35 @@ test("the rail holds no balance and takes no money itself", () => {
     const rail = walletRail(config, {} as ChainReader);
     expect(rail.balance).toBeUndefined();
     expect(rail.pay).toBeUndefined();
+});
+
+test("a wallet's balance is read in cents, rounded down, and is null when it can't be read", async () => {
+    const calls: Array<{ to: string; data: string }> = [];
+    const holding = (answer: string | Error) =>
+        ({
+            call: async (tx: { to: string; data: string }) => {
+                calls.push(tx);
+                if (answer instanceof Error) throw answer;
+                return answer;
+            },
+        } as ChainReader);
+    // 12.349999 of the token.
+    const units = "0x" + (12_349_999).toString(16).padStart(64, "0");
+    expect(await walletTokenCents(config, payer, holding(units))).toBe(1234);
+    expect(calls[0]).toEqual({
+        to: config.token,
+        data: "0x70a08231" + "0".repeat(24) + payer.slice(2).toLowerCase(),
+    });
+    expect(
+        await walletTokenCents(config, payer, holding("0x" + "0".repeat(64)))
+    ).toBe(0);
+    expect(
+        await walletTokenCents(config, payer, holding(new Error("down")))
+    ).toBeNull();
+    expect(
+        await walletTokenCents(config, payer, holding("0x" + "f".repeat(64)))
+    ).toBeNull();
+    expect(
+        await walletTokenCents(config, "not-an-address", holding(units))
+    ).toBeNull();
 });

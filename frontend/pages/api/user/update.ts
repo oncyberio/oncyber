@@ -5,6 +5,7 @@ import { validateUsername } from "@utils/rules/user";
 import { invalidateUserProfile } from "@utils/firestore/userProfiles";
 import { writesAccountIdentity } from "@utils/auth/accountOwnership";
 import { markProfileWritten } from "@utils/auth/profileWrites";
+import { readHiddenNfts } from "@features/space-info/profileSections";
 
 export async function isValidAndUniqueUsername(_username) {
     const username = _username
@@ -98,6 +99,17 @@ export default async (req, res) => {
         //     }
         // }
 
+        // Which of their NFTs a profile leaves out: a list of ids, checked
+        // here because the rest of this payload is written as it comes.
+        if ("hiddenNfts" in payload) {
+            const hidden = readHiddenNfts((payload as any).hiddenNfts);
+            if (!hidden)
+                return res.status(400).json({
+                    success: false,
+                    message: "That list of NFTs can’t be saved.",
+                });
+            (payload as any).hiddenNfts = hidden;
+        }
         // We he tries to change the username we first check if it exists
         if (payload.username) {
             const result = await isValidAndUniqueUsername(payload.username);

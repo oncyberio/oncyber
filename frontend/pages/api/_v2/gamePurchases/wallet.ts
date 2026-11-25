@@ -3,6 +3,7 @@ import { proc, NoApi } from "@utils/rpc/server";
 import { gamesPreviewEnabled } from "@features/games/catalog";
 import { purchasesMode } from "@features/games/gamePurchases";
 import { walletPaymentConfig } from "@features/games/walletPayment";
+import { walletTokenCents } from "@utils/purchaseChain";
 import { railFor } from "./rail";
 
 /**
@@ -23,11 +24,22 @@ export const wallet = proc({
         // page names the network instead of a balance.
         if (!rail.balance) {
             const chain = walletPaymentConfig();
+            // An account that is a wallet: what it holds is read from the
+            // chain, to show. Any other account pays from a wallet chosen
+            // at the time, and has no balance to show here.
+            const address = /^0x[0-9a-fA-F]{40}$/.test(this.userId)
+                ? this.userId.toLowerCase()
+                : "";
+            const cents =
+                chain && address
+                    ? await walletTokenCents(chain, address)
+                    : null;
             return {
                 mode,
-                cents: 0,
+                cents: cents ?? 0,
                 network: chain?.chainName ?? "",
                 token: chain?.tokenSymbol ?? "",
+                ...(address && cents !== null ? { address } : {}),
             };
         }
         return { mode, cents: await rail.balance(this.userId) };

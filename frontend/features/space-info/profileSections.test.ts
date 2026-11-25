@@ -104,3 +104,20 @@ describe("visitsLabel", () => {
         expect(visitsLabel("many")).toBe("");
     });
 });
+
+test("hidden NFTs are saved as unique lower-case ids, or not at all", () => {
+    const { readHiddenNfts, HIDDEN_NFTS_MAX } = require("./profileSections");
+    const a = "0x" + "AA".repeat(20) + "/12";
+    expect(readHiddenNfts([a, a.toLowerCase()])).toEqual([a.toLowerCase()]);
+    expect(readHiddenNfts([])).toEqual([]);
+    for (const bad of [
+        null,
+        "0x",
+        [42],
+        ["not-an-nft"],
+        ["0x" + "aa".repeat(20)],
+        ["0x" + "aa".repeat(20) + "/../x"],
+        Array(HIDDEN_NFTS_MAX + 1).fill(a),
+    ])
+        expect(readHiddenNfts(bad)).toBeNull();
+});

@@ -127,13 +127,16 @@ it("keeps the account identity and exposes separate spaces and destinations link
         "My spaces",
         "My destinations",
         "Friends",
-        "Edit profile",
+        "Your profile",
         "Linked accounts",
         "Sign out",
     ]);
-    // My spaces opens your worlds on the main page; there is no profile page.
+    // My spaces opens your worlds on the main page.
     expect(items()[0].getAttribute("href")).toBe("/?create=gallery&spaces=all");
-    expect(document.body.textContent).not.toContain("View profile");
+    // Your profile is the lobby with your own sidebar open; editing it and
+    // your wallet are there, not in a dialog.
+    expect(items()[3].getAttribute("href")).toMatch(/^\/@/);
+    expect(document.body.textContent).not.toContain("Edit profile");
     expect(items()[1].getAttribute("href")).toBe("/destinations");
     expect(document.activeElement).toBe(items()[0]);
     act(() => Simulate.click(items()[1]));
@@ -206,11 +209,11 @@ it("linked accounts uses the existing connections form after closing the sidebar
     );
 });
 
-it("opens the existing profile settings and signs out through UserContext", async () => {
+it("goes to your profile without a dialog, and signs out through UserContext", async () => {
     render();
     open();
     act(() => Simulate.click(items()[3]));
-    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(showModal).not.toHaveBeenCalled();
     expect(items()).toHaveLength(0);
     open();
     await act(async () => Simulate.click(items()[5]));

@@ -2,7 +2,7 @@
 import { createServer, type Server } from "http";
 import type { AddressInfo } from "net";
 import type { WalletPaymentConfig } from "@features/games/walletPayment";
-import { walletRail } from "./purchaseChain";
+import { walletRail, walletTokenCents } from "./purchaseChain";
 
 /**
  * The wallet rail against a JSON-RPC node, through the real chain client:
@@ -52,6 +52,9 @@ beforeAll(async () => {
                 const result =
                     one.method === "eth_chainId"
                         ? "0x2105"
+                        : one.method === "eth_call"
+                        ? // balanceOf: 7.25 of the token.
+                          word((7_250_000).toString(16))
                         : one.method === "eth_blockNumber"
                         ? "0x" + node.head.toString(16)
                         : one.method === "eth_getTransactionByHash"
@@ -158,4 +161,8 @@ test("a reverted transfer, or one the node has never seen, pays for nothing", as
     expect(
         await rail().verify!({ ...asked, proof: "0x" + "cd".repeat(32) })
     ).toEqual({ ok: false, reason: "payment-pending" });
+});
+
+test("a wallet's balance is read from a node", async () => {
+    expect(await walletTokenCents({ ...config, rpcUrl: url }, payer)).toBe(725);
 });

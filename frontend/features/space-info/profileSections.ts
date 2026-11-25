@@ -87,3 +87,23 @@ export function visitsLabel(visits: unknown): string {
     if (!Number.isFinite(count) || count < 1) return "";
     return `${compact.format(count)} ${count === 1 ? "visit" : "visits"}`;
 }
+
+/** An NFT's id on a profile: `<contract>/<token>` (spaceInfo.ts). */
+const NFT_ID = /^0x[0-9a-f]{40}\/[0-9a-z]{1,100}$/;
+export const HIDDEN_NFTS_MAX = 500;
+
+/**
+ * The NFTs a person keeps off their profile, as saved: unique ids in lower
+ * case, or null when the value is not such a list. It is a choice of what
+ * to show, not a secret: the wallet's contents are public either way.
+ */
+export function readHiddenNfts(value: unknown): string[] | null {
+    if (!Array.isArray(value) || value.length > HIDDEN_NFTS_MAX) return null;
+    const ids = new Set<string>();
+    for (const item of value) {
+        const id = typeof item === "string" ? item.toLowerCase() : "";
+        if (!NFT_ID.test(id)) return null;
+        ids.add(id);
+    }
+    return [...ids];
+}

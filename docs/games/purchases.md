@@ -138,12 +138,29 @@ on a phone (`gamePurchaseStyles.tsx`, built from the design system).
 -   A wallet smaller than the price is offered a top-up, and the question
     stays open.
 
-**The wallet is part of the account, not of the game page.** The balance,
-adding funds and everything the visitor bought, in every game, are the
-Wallet step of the account dashboard
-(`components/modals/AccountDashboard/Wallet`), shown where purchases are
-on. The sidebar links to it and reads the balance again when it closes
-(`openWalletDashboard.tsx`). A game page draws no wallet button.
+**The wallet is part of the visitor's profile, not of the game page.** The
+profile is the sidebar that opens from the left (`features/space-info/`,
+the one a `/@name` link opens). On their own profile a visitor sees their
+wallet (`ProfileWallet.tsx`): the balance, a way to top it up, and what
+they bought in every game.
+
+-   With play money, topping up is one press.
+-   With their own wallet, the balance is read from the chain for an
+    account that is a wallet, and topping up shows that address to send
+    the token to, with a copy button and a balance check. An account that
+    is not a wallet has no balance to show; it pays from a wallet chosen
+    when it buys.
+
+The payment sidebar links to it ("Wallet · In your profile"), opening the
+profile over the game, and reads the balance again when it closes. A game
+page draws no wallet button.
+
+The same sidebar is where a profile is edited. **Edit profile** on your own
+profile turns it into its edit mode in place: the name becomes a field, and
+under Collected each NFT can become your picture or be hidden from the
+profile (`ProfileView.tsx`; what is hidden is a choice of what to show, not
+a secret, and is saved as `hiddenNfts` on the account). The account menu's
+"Your profile" opens it.
 
 ## What the server does
 

@@ -8,6 +8,7 @@ import {
     profileSpaceCards,
     shortAddress,
 } from "@features/space-info/spaceInfo";
+import { readHiddenNfts } from "@features/space-info/profileSections";
 
 const SPACE_FIELDS = [
     "visibility",
@@ -201,7 +202,20 @@ export default async function handler(
                 kind === "owned"
                     ? await ownedNfts(evm, next)
                     : await createdNfts(evm, next);
-            return res.json(page);
+            // What the person keeps off their profile is left out, unless
+            // the whole list is asked for (their own edit mode). It is a
+            // choice of what to show, not a secret.
+            const hidden = new Set(readHiddenNfts(data.hiddenNfts) ?? []);
+            return res.json(
+                req.query.all === "1" || !hidden.size
+                    ? page
+                    : {
+                          ...page,
+                          nfts: page.nfts.filter(
+                              (nft) => !hidden.has(nft.id.toLowerCase())
+                          ),
+                      }
+            );
         }
         const [spaces, featured] = await Promise.all([
             account ? deployedSpaces(account.id, wallets) : [],
@@ -221,6 +235,7 @@ export default async function handler(
             // Only usernames have a page; /<wallet> is a 404.
             href: data.username ? `/${encodeURIComponent(data.username)}` : "",
             hasNfts: !!evm,
+            hiddenNfts: readHiddenNfts(data.hiddenNfts) ?? [],
             spaces,
             featured,
             spacesTotal: spaces.length,
