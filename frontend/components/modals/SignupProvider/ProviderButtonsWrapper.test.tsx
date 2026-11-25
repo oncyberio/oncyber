@@ -63,6 +63,10 @@ test("pending is distinct from success and duplicate sends are blocked", async (
     });
     expect(state.sendingEmailLink).toBe(true);
     expect(state.emailSuccess).toBe(false);
+    // The sign-in code is fetched when it is first used.
+    await act(async () => {
+        for (let turn = 0; turn < 5; turn++) await Promise.resolve();
+    });
     expect(sendSignInLink).toHaveBeenCalledTimes(1);
     await act(async () => {
         finish({ success: true });

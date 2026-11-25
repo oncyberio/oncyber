@@ -1,4 +1,4 @@
-import { Client, type Room } from "colyseus.js";
+import type { Room } from "colyseus.js";
 import { ARENA_HTTP_URL, ARENA_WS_URL } from "./constants";
 
 /**
@@ -23,7 +23,12 @@ export async function requestSeat(
     return result;
 }
 
-/** Takes the seat a reservation holds. */
-export function takeSeat(reservation: any): Promise<Room<any>> {
+/**
+ * Takes the seat a reservation holds. The rooms client is fetched here, by
+ * whoever actually holds a room: a framed world, whose room is the page's,
+ * never loads it.
+ */
+export async function takeSeat(reservation: any): Promise<Room<any>> {
+    const { Client } = await import("colyseus.js");
     return new Client(ARENA_WS_URL).consumeSeatReservation(reservation);
 }

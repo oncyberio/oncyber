@@ -1,4 +1,4 @@
-import * as Colyseus from "colyseus.js";
+import type * as Colyseus from "colyseus.js";
 
 import { nodeEnv } from "@env";
 
@@ -6,14 +6,12 @@ import voiceChat from "../voiceChat";
 
 import SocialApi from "@api/social/_api";
 
-import { ARENA_HTTP_URL, ARENA_WS_URL } from "./constants";
+import { ARENA_HTTP_URL } from "./constants";
 import { requestSeat, takeSeat } from "./join";
 import { joinRelayedRoom } from "@features/worlds/relayedRoom";
 import { worldDocument } from "@features/worlds/worldDocument";
 
 export const ARENA_SERVER = ARENA_HTTP_URL;
-
-const SERVER = ARENA_WS_URL;
 
 class Arena {
     public client: Colyseus.Client;
@@ -39,17 +37,14 @@ class Arena {
         //         currentSpace: "hub",
         //     };
         // };
-
         // window.joinMatch = this.joinMatch;
-
-        this.client = new Colyseus.Client(SERVER);
-
+        // No client is made here: nothing used it, and making one loaded
+        // the rooms library in every world. A seat is taken in ./join.
         // this.client.joinOrCreate("lobby").then((lobby) => {
         //     lobby.onMessage("rooms", (rooms) => {
         //         this.rooms = rooms;
         //         window.rooms = this.rooms;
         //     });
-
         //     lobby.onMessage("+", ([roomId, room]) => {
         //         const roomIndex = this.rooms.findIndex(
         //             (room) => room.roomId === roomId
@@ -59,19 +54,14 @@ class Arena {
         //         } else {
         //             this.rooms.push(room);
         //         }
-
         //         // here when someone leaves then leave that other room and join this one
-
         //         console.log("roooms update", this.rooms);
-
         //         window.rooms = this.rooms;
         //     });
-
         //     lobby.onMessage("-", (roomId) => {
         //         this.rooms = this.rooms.filter(
         //             (room) => room.roomId !== roomId
         //         );
-
         //         window.rooms = this.rooms;
         //     });
         // });

@@ -1,18 +1,7 @@
 import { Experience } from "@uitypes/experience";
-import { database } from "@utils/firebase";
+import { liveSpace } from "@utils/liveSpace";
 import Api from "../three/api";
 import { EDITION_ACTIONS } from "../three/constants";
-import {
-    get,
-    onValue,
-    orderByKey,
-    query,
-    ref,
-    set,
-    limitToLast,
-    push,
-    onChildAdded,
-} from "firebase/database";
 
 const SENDER_ID = Date.now() + Math.random().toString().slice(2);
 
@@ -33,78 +22,67 @@ export default function realtime({
 
     // doc.on("child_added", (snapshot) => {
 
-    const doc = onChildAdded(
-        query(
-            ref(database, "/exhibits/" + exhibit.id),
-            orderByKey(),
-            limitToLast(1)
-        ),
-        (snapshot) => {
-            if (!snapshot) return;
+    const doc = liveSpace().watchEvents(exhibit.id, (event) => {
+        if (!event) return;
 
-            const event = { id: snapshot.key, ...snapshot.val() };
+        // Check if event expired
+        const now = new Date().getTime();
+        const isExpired = now > event.timestamp;
+        if (isExpired) {
+            console.error(
+                "[fireabse/realtime] event expired and will be ignored!",
+                "event time",
+                new Date(event.timestamp),
+                "current time",
+                new Date(now),
+                event
+            );
+            return;
+        } else {
+            console.log("passed", event);
+        }
 
-            if (!event) return;
+        // Only add if the current sender isn't the issuer of the event
+        const isCurrentSender = event.SENDER_ID === SENDER_ID;
 
-            // Check if event expired
-            const now = new Date().getTime();
-            const isExpired = now > event.timestamp;
-            if (isExpired) {
-                console.error(
-                    "[fireabse/realtime] event expired and will be ignored!",
-                    "event time",
-                    new Date(event.timestamp),
-                    "current time",
-                    new Date(now),
-                    event
-                );
-                return;
-            } else {
-                console.log("passed", event);
-            }
+        if (world == null) return;
 
-            // Only add if the current sender isn't the issuer of the event
-            const isCurrentSender = event.SENDER_ID === SENDER_ID;
-
-            if (world == null) return;
-
-            if (!isCurrentSender || event.isServerEvent) {
-                //
-                if (event.type === RealtimeEvents.EDITOR_ACTION) {
-                    world.edit(event.action);
-                }
-
-                // Server side
-                if (event.type === "COMPRESSION_FINISHED") {
-                    world.edit({
-                        type: EDITION_ACTIONS.EDITOR_UPDATE_ARTWORK_MEDIA,
-                        artworkId: event.meshId,
-                        urlField: event.payload.urlField,
-                        mediaInfo: event.payload.mediaInfo,
-                        coverMediaInfo: event.payload.coverMediaInfo,
-                        isCurrentUser: isCurrentSender,
-                    });
-                }
-
-                // Server side
-                if (event.type === "REPLACE_ASSET") {
-                    world.edit({
-                        type: EDITION_ACTIONS.REPLACE_HTML_PREVIEW_TEXTURE,
-                        artworkId: event.meshId,
-                        asset: event.payload.asset,
-                    });
-                }
-            }
-
+        if (!isCurrentSender || event.isServerEvent) {
             //
-            if (
-                event.type === "USER_KICKED" &&
-                event.walletId.toLowerCase() !== user.id.toLowerCase()
-            ) {
-                location.reload();
+            if (event.type === RealtimeEvents.EDITOR_ACTION) {
+                world.edit(event.action);
+            }
+
+            // Server side
+            if (event.type === "COMPRESSION_FINISHED") {
+                world.edit({
+                    type: EDITION_ACTIONS.EDITOR_UPDATE_ARTWORK_MEDIA,
+                    artworkId: event.meshId,
+                    urlField: event.payload.urlField,
+                    mediaInfo: event.payload.mediaInfo,
+                    coverMediaInfo: event.payload.coverMediaInfo,
+                    isCurrentUser: isCurrentSender,
+                });
+            }
+
+            // Server side
+            if (event.type === "REPLACE_ASSET") {
+                world.edit({
+                    type: EDITION_ACTIONS.REPLACE_HTML_PREVIEW_TEXTURE,
+                    artworkId: event.meshId,
+                    asset: event.payload.asset,
+                });
             }
         }
-    );
+
+        //
+        if (
+            event.type === "USER_KICKED" &&
+            event.walletId.toLowerCase() !== user.id.toLowerCase()
+        ) {
+            location.reload();
+        }
+    });
 
     return () => {
         // doc.off("child_added");
@@ -118,7 +96,7 @@ export function sendEvent(exhibitId: string, event) {
     //     SENDER_ID,
     // });
 
-    push(ref(database, "/exhibits/" + exhibitId), {
+    liveSpace().sendEvent(exhibitId, {
         ...event,
         SENDER_ID,
     });

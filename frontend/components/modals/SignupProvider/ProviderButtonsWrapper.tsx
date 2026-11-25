@@ -23,8 +23,6 @@ import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 
 import AccountsAPI from "@api/accounts/_api";
 
-import { sendSignInLink } from "@features/auth/providers/password";
-
 import {
     describeSignInResponse,
     SignInFailure,
@@ -456,6 +454,10 @@ export const ProviderButtonsWrapper: FunctionComponent<
                 "email"
             );
         try {
+            // Fetched when used: it brings Firebase's sign-in library.
+            const { sendSignInLink } = await import(
+                "@features/auth/providers/password"
+            );
             const response = await sendSignInLink(email, isLink);
             if (!response.success) {
                 failed(response.message, !!response.retry);

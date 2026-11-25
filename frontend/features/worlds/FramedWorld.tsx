@@ -31,6 +31,9 @@ import {
 } from "./worldDock";
 import { hostWorldRoom, type HostedRoom } from "./worldRoomHost";
 import { hostWorldVoice, type WorldVoiceView } from "./worldVoiceHost";
+import { hostWorldLive } from "./worldLiveHost";
+import { LIVE_MESSAGE } from "./relayedLive";
+import { liveSpace } from "@utils/liveSpace";
 import { setFramedWorldLock } from "./worldPointer";
 import {
     readWorldFile,
@@ -327,6 +330,7 @@ export default function FramedWorld({
             <WorldFrameView
                 key={attempt}
                 title={title}
+                spaceId={spaceId}
                 src={src}
                 frame={frame}
                 visitor={visitor}
@@ -496,6 +500,7 @@ function usePageVisitor(gate?: { type: string }) {
 
 function WorldFrameView({
     title,
+    spaceId,
     src,
     frame,
     visitor,
@@ -517,6 +522,8 @@ function WorldFrameView({
     controls,
 }: {
     title: string;
+    /** The space this page opened. */
+    spaceId: string;
     src: string;
     frame: WorldFrame;
     visitor: { message: object } | null;
@@ -613,6 +620,9 @@ function WorldFrameView({
     // The world's room: the page holds the connection and relays it
     // (./roomRelay), so the session that joins it never enters the frame.
     const room = useRef<ReturnType<typeof hostWorldRoom> | null>(null);
+    // The space's live channels (edits as they are saved, editor actions)
+    // are the page's too: the world loads no Firebase (./relayedLive).
+    const live = useRef<ReturnType<typeof hostWorldLive> | null>(null);
     const voice = useRef<ReturnType<typeof hostWorldVoice> | null>(null);
     useEffect(() => {
         const post = (kind: string, data: object) =>
@@ -659,8 +669,16 @@ function WorldFrameView({
             },
         });
         room.current = host;
+        live.current = hostWorldLive({
+            post,
+            spaceId,
+            // Firebase itself loads when the world first asks.
+            live: liveSpace,
+        });
         return () => {
             host.dispose();
+            live.current?.dispose();
+            live.current = null;
             voice.current?.dispose();
             voice.current = null;
             controls.current = null;
@@ -675,6 +693,8 @@ function WorldFrameView({
                 return room.current?.receive(kind, event.data);
             if (kind?.startsWith("voice-"))
                 return voice.current?.receive(kind, event.data);
+            if (kind?.startsWith(LIVE_MESSAGE))
+                return live.current?.receive(kind, event.data);
             if (kind === "ask") {
                 // What only the page can know, because it holds the account.
                 const { n, name, label } = event.data;

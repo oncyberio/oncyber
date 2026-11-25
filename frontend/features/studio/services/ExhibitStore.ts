@@ -1,12 +1,11 @@
 import Emitter from "events";
-import { db } from "@utils/firebase";
+import { liveSpace } from "@utils/liveSpace";
 import { Experience, Script } from "@uitypes/experience";
 import produce, { setAutoFreeze } from "immer";
 import { enablePatches, Draft, Patch, applyPatches } from "immer";
 import ExhibitService from "@api/exhibit/_api";
 import { delay, Failure, noop, Result, Success } from "@utils/js";
 import { formatExhibit } from "@utils/metadata/formatExhibit";
-import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { setAnonExhibit } from "@utils/anon";
 
 enablePatches();
@@ -91,7 +90,7 @@ const heroImgFields = [
     "fHeroImg",
 ] as const;
 
-type HeroImgKeys = typeof heroImgFields[number];
+type HeroImgKeys = (typeof heroImgFields)[number];
 
 export type HeroImgUpdate = Partial<Record<HeroImgKeys, string>>;
 
@@ -286,49 +285,32 @@ export class ExhibitStore {
 
         if (!this.exhibit?.id) return () => {};
 
-        const offExhibit = onSnapshot(
-            doc(db, "exhibits", this.exhibit.id),
-            async (doc) => {
-                //
-                // v9 SDK: exists is a method; data() is undefined when the
-                // doc is missing (e.g. dev project doesn't have this exhibit)
-                let data = doc.data() as Experience;
+        const live = liveSpace();
 
-                if (!doc.exists() || data == null) return;
+        const offExhibit = live.watchSpace(this.exhibit.id, (saved) => {
+            //
+            const data = formatExhibit(saved as Experience);
 
-                data.id = doc.id;
+            this.checkRoomMismatch();
 
-                data.createdAt =
-                    (data.createdAt as any)?.toDate?.()?.toISOString?.() ||
-                    data.createdAt;
+            console.log("exhibit onSnapchot ", data);
 
-                data = formatExhibit(data);
-
-                this.checkRoomMismatch();
-
-                console.log("exhibit onSnapchot ", data);
-
-                this.updateServerSnapshot({ scope: "exhibit", exhibit: data });
-            }
-        );
+            this.updateServerSnapshot({ scope: "exhibit", exhibit: data });
+        });
 
         let offPortals;
 
         if (this.hasPortalCollection) {
             //
-            offPortals = onSnapshot(
-                collection(db, "exhibits", this.exhibit.id, "portals"),
-                async (snap) => {
+            offPortals = live.watchCollection(
+                this.exhibit.id,
+                "portals",
+                (pieces) => {
                     //
                     const portals = {};
 
-                    snap.forEach((doc) => {
-                        //
-                        portals[doc.id] = {
-                            id: doc.id,
-                            ...doc.data(),
-                        };
-                    });
+                    for (const [id, portal] of Object.entries(pieces))
+                        portals[id] = { id, ...portal };
 
                     this.updateServerSnapshot({ scope: "portals", portals });
                 }
@@ -338,24 +320,14 @@ export class ExhibitStore {
         let offKitbash;
 
         if (this.exhibit.hasKitbash) {
-            offKitbash = onSnapshot(
-                collection(db, "exhibits", this.exhibit.id, "kitbash"),
-                async (snap) => {
+            offKitbash = live.watchCollection(
+                this.exhibit.id,
+                "kitbash",
+                (kitbash) => {
                     //
-                    const kitbash = {};
-
-                    snap.forEach((doc) => {
-                        //
-                        kitbash[doc.id] = doc.data();
-                    });
-
                     console.log("kitbash onSnapchot ", kitbash);
 
                     this.updateServerSnapshot({ scope: "kitbash", kitbash });
-                },
-                (err) => {
-                    //
-                    console.error(err);
                 }
             );
         }
@@ -809,7 +781,9 @@ export class ExhibitStore {
 
     private flushTasks() {
         if (!this.flushPromise) {
-            this.flushPromise = this.drainTasks().finally(() => { this.flushPromise = null; });
+            this.flushPromise = this.drainTasks().finally(() => {
+                this.flushPromise = null;
+            });
         }
         return this.flushPromise;
     }
