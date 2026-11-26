@@ -56,18 +56,20 @@ import Renderer 	from '@3renderer'
 
 import gsap from 'gsap'
 
+import { loadCovered } from '../../utils/loadingStars'
+
 // Warp-speed star field shown while a space loads. It renders straight to the
 // screen during the intro (and on top while it fades out), or into
 // `renderTarget` for portal previews, where this object is the preview mesh's
-// material. It draws the same stars as the page's loading canvas
-// (`drawStarfield` in ui/LoaderVideoContainer), so the two read as one effect
-// when the page hands over to the engine. It used to be a lit, wobbling
+// material. It draws the same stars as the page's own (utils/starfield, over
+// a framed world and on the way in from the landing page), so the two read
+// as one effect when the page hands over to the engine. It used to be a lit, wobbling
 // tunnel, which made people dizzy.
 
 const STAR_COUNT = 400
 
-// Stars start this far away (in the canvas version's units) and fly at the
-// canvas version's 0.055 per 30 fps frame.
+// Stars start this far away and fly at this many units a second: the page's
+// stars (utils/starfield/stars.ts) use the same two numbers.
 const WARP_Z = 24
 
 const SPEED = 2.4
@@ -215,6 +217,8 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 		switch ( STATE ) {
 
 			case APP_STATES.INTRO:
+
+				this.covered = loadCovered()
 
 				this.activate()
 
@@ -491,6 +495,23 @@ class StarfieldMaterial extends MeshBasicNodeMaterial {
 	}
 
 	update( delta, total ){
+
+		// The page around a framed world draws the loading stars itself
+		// (utils/loadingStars): none are worked out or drawn here, for
+		// this load or for the fade that ends it.
+		if( this.covered && ( this.currentState == APP_STATES.INTRO || this.renderOnTop ) ) {
+
+			if( this.currentState == APP_STATES.INTRO ) {
+
+				Renderer.setClearColor(0x000000, 1)
+
+				Renderer.clear()
+
+				Renderer.setClearColor(0x000000, 0)
+			}
+
+			return
+		}
 
 		this.updateStars( delta )
 

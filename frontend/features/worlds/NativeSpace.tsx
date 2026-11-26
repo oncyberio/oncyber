@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import styled, { createGlobalStyle } from "styled-components";
 import { UserContext } from "@components/context/UserContext";
+import { setLoadCovered } from "@components/_3DExhibit-v2/three/utils/loadingStars";
 import { GatingErrorProvider } from "@components/context/GatingErrorContext";
 import SpaceSeo from "@components/seo/SpaceSeo";
 import NotificationService from "@api/notifications/_api";
@@ -87,6 +88,9 @@ export default function NativeSpace({
     // In the site's frame, the page is told once the world has drawn.
     const handleWorldDrawn = useCallback(() => {
         worldDocument()?.drawn();
+        // From here the page shows the world: a later load in this document
+        // (a portal) has no cover, and the engine draws its own stars.
+        setLoadCovered(false);
         handleWorldRendered();
     }, [handleWorldRendered]);
 

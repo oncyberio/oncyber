@@ -6,6 +6,8 @@ import { adoptGuestId } from "@utils/guestIdentity";
 import { PAGE_SESSION } from "./accountRelay";
 import { relayWorldAccount } from "./worldAccount";
 import { worldDocument } from "./worldDocument";
+import { setLoadCovered } from "@components/_3DExhibit-v2/three/utils/loadingStars";
+import { isGated } from "./worldStars";
 import { visitorUserData, type WorldVisitor } from "./worldVisitor";
 
 /**
@@ -48,6 +50,10 @@ export function useWorldVisitor(framed: boolean): {
             // A guest is the page's guest, under the page's guest name.
             if (next?.guestId) adoptGuestId(next.guestId);
             relayWorldAccount(!!next?.account);
+            // The page that answered covers this first load with its own
+            // stars, unless the world is gated (./worldStars): the engine
+            // need not draw any.
+            setLoadCovered(!!next && !isGated(next.gate));
             setVisitor(next);
         });
         return () => {
