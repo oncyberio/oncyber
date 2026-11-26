@@ -1,0 +1,284 @@
+{
+    "name": "The Revolving Hotel",
+    "avatar": "vrm",
+    "listing": {
+        "tagline": "the floor is about to move",
+        "description": "Cross a rotating hotel corridor as your Oncyber avatar. Fight two agents, leap between surfaces and reach the lift, or watch the choreographed sequence.",
+        "thumbnail": "preview.jpg",
+        "players": {
+            "min": 1,
+            "max": 1
+        },
+        "tags": [
+            "action",
+            "cinematic",
+            "gravity"
+        ]
+    },
+    "page": {
+        "socialRoom": "revolving-hotel-social-v1",
+        "crowdLabel": "in the hotel"
+    },
+    "network": [
+        "cyber.mypinata.cloud"
+    ],
+    "format": "match",
+    "devices": [
+        "desktop",
+        "phone",
+        "gamepad"
+    ],
+    "avatars": {
+        "others": "avatar",
+        "arrival": "pose",
+        "change": true
+    },
+    "arrival": {
+        "walkable": true
+    },
+    "locomotion": "lobby",
+    "departure": "matched",
+    "party": {
+        "sizes": [
+            1,
+            8
+        ],
+        "formats": [
+            {
+                "id": "solo",
+                "label": "Corridor run",
+                "sizes": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8
+                ]
+            }
+        ],
+        "solo": "solo",
+        "play": "solo",
+        "late": "A new arrival can explore the corridor or start their own run.",
+        "dropped": "One visitor leaving does not interrupt anyone else\u2019s run.",
+        "extra": "Every visitor has their own two agents and retains the shared social room."
+    },
+    "keysCheck": {
+        "start": [],
+        "ready": {
+            "screen": "arrival"
+        },
+        "move": "KeyW"
+    },
+    "results": {
+        "match": "autoplay&round=20",
+        "timeoutSeconds": 240
+    },
+    "runtime": {
+        "profile": "portable-v1",
+        "version": "1",
+        "platforms": [
+            "web"
+        ],
+        "entries": {
+            "web": "index.html",
+            "game": "src/game.js",
+            "scenario": "scenario.json"
+        },
+        "capabilities": [
+            "audio",
+            "avatar",
+            "results",
+            "travel"
+        ],
+        "assets": [],
+        "input": {
+            "up": {
+                "keyboard": [
+                    "KeyW",
+                    "ArrowUp"
+                ],
+                "touch": "stick-up",
+                "gamepad": [
+                    "left-stick-up",
+                    "dpad-up"
+                ]
+            },
+            "down": {
+                "keyboard": [
+                    "KeyS",
+                    "ArrowDown"
+                ],
+                "touch": "stick-down",
+                "gamepad": [
+                    "left-stick-down",
+                    "dpad-down"
+                ]
+            },
+            "left": {
+                "keyboard": [
+                    "KeyA",
+                    "ArrowLeft"
+                ],
+                "touch": "stick-left",
+                "gamepad": [
+                    "left-stick-left",
+                    "dpad-left"
+                ]
+            },
+            "right": {
+                "keyboard": [
+                    "KeyD",
+                    "ArrowRight"
+                ],
+                "touch": "stick-right",
+                "gamepad": [
+                    "left-stick-right",
+                    "dpad-right"
+                ]
+            },
+            "interact": {
+                "keyboard": [
+                    "KeyE"
+                ],
+                "touch": "button:Go",
+                "gamepad": "button-x"
+            },
+            "jump": {
+                "keyboard": [
+                    "Space"
+                ],
+                "touch": "button:Jump",
+                "gamepad": "button-a"
+            },
+            "run": {
+                "keyboard": [
+                    "ShiftLeft",
+                    "ShiftRight"
+                ],
+                "touch": "button:Run",
+                "gamepad": [
+                    "right-trigger",
+                    "left-stick-press"
+                ]
+            },
+            "back": {
+                "keyboard": [
+                    "Backspace"
+                ],
+                "gamepad": "button-b"
+            },
+            "lookX": {
+                "touch": "drag",
+                "gamepad": "right-stick-x"
+            },
+            "lookY": {
+                "touch": "drag",
+                "gamepad": "right-stick-y"
+            },
+            "strike": {
+                "keyboard": [
+                    "KeyJ"
+                ],
+                "touch": "button:Strike",
+                "gamepad": "right-bumper"
+            },
+            "watch": {
+                "keyboard": [
+                    "KeyC"
+                ],
+                "touch": "button:Watch",
+                "gamepad": "button-y"
+            }
+        }
+    },
+    "credits": [
+        {
+            "title": "three.js",
+            "kind": "library",
+            "package": "three",
+            "author": "three.js authors",
+            "source": "https://github.com/mrdoob/three.js",
+            "license": "MIT",
+            "licenseFile": "licenses/three-MIT.txt"
+        },
+        {
+            "title": "three-vrm",
+            "kind": "library",
+            "package": "@pixiv/three-vrm",
+            "author": "pixiv Inc.",
+            "source": "https://github.com/pixiv/three-vrm",
+            "license": "MIT",
+            "licenseFile": "licenses/three-vrm-MIT.txt"
+        },
+        {
+            "title": "Basis Universal transcoder",
+            "kind": "library",
+            "files": [
+                "assets/basis_transcoder-*.js",
+                "assets/basis_transcoder-*.wasm"
+            ],
+            "author": "Binomial LLC",
+            "source": "https://github.com/BinomialLLC/basis_universal",
+            "license": "Apache-2.0",
+            "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+            "note": "Shipped inside the three.js package; decodes compressed avatar textures."
+        },
+        {
+            "title": "Space Grotesk",
+            "kind": "font",
+            "files": [
+                "assets/SpaceGrotesk-*.woff2"
+            ],
+            "author": "The Space Grotesk Project Authors",
+            "source": "https://github.com/floriankarsten/space-grotesk",
+            "license": "OFL-1.1",
+            "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+            "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+        },
+        {
+            "title": "Space Mono",
+            "kind": "font",
+            "files": [
+                "assets/SpaceMono-*.woff2"
+            ],
+            "author": "The Space Mono Project Authors",
+            "source": "https://github.com/googlefonts/spacemono",
+            "license": "OFL-1.1",
+            "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+            "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+        },
+        {
+            "title": "Fitted cast anatomy",
+            "kind": "model",
+            "files": [
+                "assets/fitted-cast.json.gz"
+            ],
+            "author": "MakeHuman community and HumanForge contributors",
+            "source": "https://github.com/abdulrehman043/humanforge",
+            "license": "CC0-1.0",
+            "licenseFile": "licenses/anatomy.txt"
+        },
+        {
+            "title": "Universal Animation Library",
+            "kind": "motion",
+            "files": [
+                "assets/quaternius-*.lcp"
+            ],
+            "author": "Quaternius",
+            "source": "https://quaternius.com/packs/universalanimationlibrary.html",
+            "license": "CC0-1.0",
+            "licenseFile": "licenses/quaternius.txt"
+        },
+        {
+            "origin": "own",
+            "files": [
+                "assets/**/*.webp",
+                "assets/*.webp",
+                "preview.jpg"
+            ]
+        }
+    ]
+}

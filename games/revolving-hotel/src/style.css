@@ -1,0 +1,10 @@
+html,body,#stage{width:100%;height:100%;margin:0;overflow:hidden}
+body{background:var(--oui-glass-fallback);color:var(--oui-ink);font-family:var(--oui-font)}
+#stage{display:block;touch-action:none;outline:none}
+#boot{position:fixed;inset:0;pointer-events:none;display:grid;place-items:center}
+#boot img{position:absolute;width:100%;height:100%;object-fit:cover}
+#boot-text{position:relative;padding:var(--oui-space-3) var(--oui-space-5)}
+#hud{position:fixed;top:calc(var(--oncyber-safe-top,0px) + var(--oui-space-4));left:calc(var(--oncyber-safe-left,0px) + var(--oui-space-4));padding:var(--oui-space-3);max-width:min(27rem,calc(100vw - var(--oncyber-safe-left,0px) - var(--oncyber-safe-right,0px) - var(--oui-space-7)));box-sizing:border-box}
+#hud .oui-actions{display:flex;flex-wrap:wrap;margin:var(--oui-space-2) 0 0;gap:var(--oui-space-1)}
+#help,#readout{color:var(--oui-secondary);margin:var(--oui-space-1) 0 0;display:block}
+[hidden]{display:none!important}

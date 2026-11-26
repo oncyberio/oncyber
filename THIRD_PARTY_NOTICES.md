@@ -91,6 +91,18 @@ Generated from each game's `credits` in `games/<id>/game.json` by `pnpm games:cr
 | three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
 | three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
 
+### The Revolving Hotel (`games/revolving-hotel/`)
+
+| What | Kind | Author | Source | License |
+| --- | --- | --- | --- | --- |
+| Fitted cast anatomy | model | MakeHuman community and HumanForge contributors | <https://github.com/abdulrehman043/humanforge> | [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (`licenses/anatomy.txt`) |
+| Space Grotesk | font | The Space Grotesk Project Authors | <https://github.com/floriankarsten/space-grotesk> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceGrotesk-OFL-1.1.txt`) |
+| Space Mono | font | The Space Mono Project Authors | <https://github.com/googlefonts/spacemono> | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) (`licenses/SpaceMono-OFL-1.1.txt`) |
+| Universal Animation Library | motion | Quaternius | <https://quaternius.com/packs/universalanimationlibrary.html> | [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (`licenses/quaternius.txt`) |
+| Basis Universal transcoder | library | Binomial LLC | <https://github.com/BinomialLLC/basis_universal> | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) (`licenses/basis-universal-Apache-2.0.txt`) |
+| three-vrm | library | pixiv Inc. | <https://github.com/pixiv/three-vrm> | [MIT License](https://opensource.org/license/mit) (`licenses/three-vrm-MIT.txt`) |
+| three.js | library | three.js authors | <https://github.com/mrdoob/three.js> | [MIT License](https://opensource.org/license/mit) (`licenses/three-MIT.txt`) |
+
 <!-- prettier-ignore-end -->
 
 <!-- games-credits:end -->

@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "enter": {
+    "arrival": "lobby"
+  },
+  "steps": [
+    {
+      "type": "waitUntil",
+      "key": "standing",
+      "equals": true,
+      "timeoutFrames": 240
+    },
+    {
+      "type": "action",
+      "action": "up",
+      "value": 1,
+      "frames": 40
+    },
+    {
+      "type": "action",
+      "action": "up",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "assert",
+      "key": "walked",
+      "equals": true
+    },
+    {
+      "type": "action",
+      "action": "watch",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "watch",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "sequence"
+    },
+    {
+      "type": "action",
+      "action": "back",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "back",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "interact",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "match"
+    },
+    {
+      "type": "action",
+      "action": "strike",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "strike",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "jump",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "jump",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "back",
+      "value": 1,
+      "frames": 2
+    },
+    {
+      "type": "action",
+      "action": "back",
+      "value": 0,
+      "frames": 2
+    },
+    {
+      "type": "assert",
+      "key": "screen",
+      "equals": "arrival"
+    }
+  ]
+}
