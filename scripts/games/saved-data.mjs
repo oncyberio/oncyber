@@ -198,7 +198,7 @@ const harness = (
     id
 ) => `<!doctype html><meta charset="utf-8"><title>saved-data check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check=saved"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/game-builds/${id}/index.html?check=saved"></iframe>
 <script>
 const frame = document.getElementById("game");
 const CONTRACT = ${JSON.stringify(GAME_MESSAGE_PREFIX)};
@@ -241,7 +241,7 @@ function serve(id, out) {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness(id));
         }
-        const prefix = `/games/${id}/`;
+        const prefix = `/game-builds/${id}/`;
         const path = resolve(
             out,
             `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`
@@ -639,7 +639,7 @@ if (
         const stage = await runSavedDataStage({
             id,
             manifest,
-            out: join(root, "frontend/public/games", id),
+            out: join(root, "frontend/public/game-builds", id),
             launch,
         });
         stage.findings.unshift(

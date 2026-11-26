@@ -8,7 +8,11 @@ const {
     previewWorldOrigin,
     trialPreview,
 } = require("./utils/siteOrigin");
-const { gameNetworkHeaders } = require("./features/games/networkPolicy");
+const {
+    GAME_BUILDS_DIR,
+    GAME_BUILDS_PATH,
+    gameNetworkHeaders,
+} = require("./features/games/networkPolicy");
 const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
@@ -323,13 +327,13 @@ const nextConfig = {
         // the browser fetches their modules and files in CORS mode. They are
         // public static files with no credentials.
         headers.push({
-            source: "/games/:id/:path*",
+            source: `${GAME_BUILDS_PATH}/:id/:path*`,
             headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
         });
         // A game reaches its own files and the hosts it declared, nothing
         // else (features/games/networkPolicy.js, docs/games/trust.md).
         headers.push(
-            ...gameNetworkHeaders(path.join(__dirname, "public/games"), fs)
+            ...gameNetworkHeaders(path.join(__dirname, GAME_BUILDS_DIR), fs)
         );
 
         // Browser caching for static files under public/ (Next already serves

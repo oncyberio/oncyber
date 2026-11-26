@@ -127,7 +127,7 @@ test("the hidden frame loads the release the game's pointer names", async () => 
         prepareGameDestination("/games/ace");
         await settle();
         expect(frames()[0].getAttribute("src")).toBe(
-            "/games/ace/index.html?prepare"
+            "/game-builds/ace/index.html?prepare"
         );
     }
 
@@ -135,12 +135,12 @@ test("the hidden frame loads the release the game's pointer names", async () => 
     answer({
         paused: false,
         releases: [],
-        frame: { src: "/games/ace/index.html", release: null },
+        frame: { src: "/game-builds/ace/index.html", release: null },
     });
     prepareGameDestination("/games/ace");
     await settle();
     expect(frames()[0].getAttribute("src")).toBe(
-        "/games/ace/index.html?prepare"
+        "/game-builds/ace/index.html?prepare"
     );
 });
 
@@ -163,7 +163,9 @@ test("only shared-page games on this site are prepared", () => {
 test("the game loads hidden, sandboxed, as a guest, and leaves after its first frame", () => {
     expect(prepareGameDestination("/games/ace")).toBe(true);
     const [frame] = frames();
-    expect(frame.getAttribute("src")).toBe("/games/ace/index.html?prepare");
+    expect(frame.getAttribute("src")).toBe(
+        "/game-builds/ace/index.html?prepare"
+    );
     expect(frame.getAttribute("sandbox")).toBe("allow-scripts");
     expect(frame.getAttribute("aria-hidden")).toBe("true");
     expect(frame.style.opacity).toBe("0");

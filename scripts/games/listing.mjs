@@ -53,7 +53,7 @@ export function partySizesOf(manifest) {
  * Check a manifest's listing.
  *
  * `build` is the set of files in the published build (paths relative to
- * frontend/public/games/<id>/), or null to skip the checks that need one.
+ * frontend/public/game-builds/<id>/), or null to skip the checks that need one.
  * Returns `{ findings: [{ code, message }], listing }`; `listing` is the
  * normalised listing, or null when there are findings.
  */
@@ -264,7 +264,7 @@ export function catalogEntry(id, manifest) {
         title: text(manifest.name) || id,
         tagline: listing.tagline,
         description: listing.description,
-        thumbnail: `/games/${id}/${listing.thumbnail}`,
+        thumbnail: `/game-builds/${id}/${listing.thumbnail}`,
         players: listing.players,
         partySizes: listing.partySizes,
         devices: listing.devices,

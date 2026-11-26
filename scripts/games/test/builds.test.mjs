@@ -1,4 +1,4 @@
-// A game's build is committed (frontend/public/games/<id>/), so it can fall
+// A game's build is committed (frontend/public/game-builds/<id>/), so it can fall
 // behind what it was built from. This test fails when it has: when the
 // runtime, a kit the game uses or the game's own source changed after the
 // build, or when the committed files are not the ones that build wrote.
@@ -74,12 +74,12 @@ function fake() {
     write("games/kits/ui/README.md", "# UI");
     write("games/kits/ui/scripts/generate.mjs", "generate");
     write("games/kits/avatar/src/index.ts", "export const avatar = 1;");
-    write("frontend/public/games/pong/index.html", "<!doctype html>");
-    write("frontend/public/games/pong/assets/index-abc.js", "built");
+    write("frontend/public/game-builds/pong/index.html", "<!doctype html>");
+    write("frontend/public/game-builds/pong/assets/index-abc.js", "built");
     // What the check writes beside the build is not the build's.
-    write("frontend/public/games/pong/check.json", "{}");
-    write("frontend/public/games/pong/network.json", "{}");
-    write("frontend/public/games/pong/credits.json", "{}");
+    write("frontend/public/game-builds/pong/check.json", "{}");
+    write("frontend/public/game-builds/pong/network.json", "{}");
+    write("frontend/public/game-builds/pong/credits.json", "{}");
     return { root, write };
 }
 
@@ -124,7 +124,7 @@ test("a build is stale when any input changed, appeared or went", () => {
         const drift = buildDrift(root, "pong");
         assert.match(
             drift[0],
-            /frontend\/public\/games\/pong was built before games\/runtime\/src\/keys\.ts changed/
+            /frontend\/public\/game-builds\/pong was built before games\/runtime\/src\/keys\.ts changed/
         );
         assert.match(drift.at(-1), /pnpm games:publish pong/);
         write("games/runtime/src/keys.ts", "export const KEYS = 1;");
@@ -156,27 +156,38 @@ test("the committed files must be the build the record describes", () => {
     try {
         writeBuildRecord(root, "pong");
         // The check's own files come and go without the build changing.
-        write("frontend/public/games/pong/check.json", '{"status":"passed"}');
-        write("frontend/public/games/pong/thumbnail.jpg", "jpg");
+        write(
+            "frontend/public/game-builds/pong/check.json",
+            '{"status":"passed"}'
+        );
+        write("frontend/public/game-builds/pong/thumbnail.jpg", "jpg");
         assert.deepEqual(buildDrift(root, "pong"), []);
 
         // The record committed without the build, or the other way round.
-        write("frontend/public/games/pong/assets/index-abc.js", "rebuilt");
+        write(
+            "frontend/public/game-builds/pong/assets/index-abc.js",
+            "rebuilt"
+        );
         assert.match(
             buildDrift(root, "pong")[0],
             /is not the build its record describes: assets\/index-abc\.js differs/
         );
-        write("frontend/public/games/pong/assets/index-abc.js", "built");
-        write("frontend/public/games/pong/assets/old-xyz.js", "left over");
+        write("frontend/public/game-builds/pong/assets/index-abc.js", "built");
+        write(
+            "frontend/public/game-builds/pong/assets/old-xyz.js",
+            "left over"
+        );
         assert.match(
             buildDrift(root, "pong")[0],
             /holds assets\/old-xyz\.js, which the recorded build did not write/
         );
-        rmSync(join(root, "frontend/public/games/pong/assets/old-xyz.js"));
+        rmSync(
+            join(root, "frontend/public/game-builds/pong/assets/old-xyz.js")
+        );
 
         // A release.json from an earlier build names other files.
         write(
-            "frontend/public/games/pong/release.json",
+            "frontend/public/game-builds/pong/release.json",
             JSON.stringify({
                 files: [{ path: "index.html", sha256: "0".repeat(64) }],
             })

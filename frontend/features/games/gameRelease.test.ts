@@ -31,7 +31,7 @@ describe("releaseBase", () => {
         expect(releaseBase("ace", A, local)).toBe(local);
         expect(releaseBase("garden", A, local)).toBeNull();
         expect(releaseBase("ace", B, local)).toBeNull();
-        expect(releaseBase("ace", A, "/games/ace/")).toBeNull();
+        expect(releaseBase("ace", A, "/game-builds/ace/")).toBeNull();
         expect(releaseBase("ace", A, `//evil.example/${A}/`)).toBeNull();
     });
 
@@ -87,7 +87,7 @@ describe("resolveGameFrame", () => {
 
     it("falls back to the committed build", () => {
         const fallback = committedFrame("ace");
-        expect(fallback.src).toBe("/games/ace/index.html");
+        expect(fallback.src).toBe("/game-builds/ace/index.html");
         expect(resolveGameFrame("ace", [])).toEqual(fallback);
         expect(resolveGameFrame("garden", [hosted])).toEqual(
             committedFrame("garden")
@@ -146,8 +146,10 @@ describe("resolveGameFrame", () => {
     });
 
     it("names the folder the frame's files load from", () => {
-        expect(frameBase("ace")).toBe("/games/ace/");
-        expect(frameBase("ace", committedFrame("ace"))).toBe("/games/ace/");
+        expect(frameBase("ace")).toBe("/game-builds/ace/");
+        expect(frameBase("ace", committedFrame("ace"))).toBe(
+            "/game-builds/ace/"
+        );
         const base = "https://gateway.example/ipfs/bafybeigdyrzt/";
         expect(
             frameBase(

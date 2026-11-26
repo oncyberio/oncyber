@@ -169,7 +169,7 @@ window.__party = {
         const frame = document.createElement("iframe");
         frame.setAttribute("sandbox", "allow-scripts allow-pointer-lock");
         frame.setAttribute("referrerpolicy", "no-referrer");
-        frame.src = "/games/" + GAME + "/index.html?check=party";
+        frame.src = "/game-builds/" + GAME + "/index.html?check=party";
         seats.set(id, { frame, name, state: "here", order: ++order, ready: false, tokens: LIMIT.burst, last: performance.now(), sent: 0, refused: 0, largest: 0 });
         document.body.append(frame);
     },
@@ -210,7 +210,7 @@ function serve(id, out) {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness(id));
         }
-        const prefix = `/games/${id}/`;
+        const prefix = `/game-builds/${id}/`;
         const path = resolve(
             out,
             `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`

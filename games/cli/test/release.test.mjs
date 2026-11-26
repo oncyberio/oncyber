@@ -17,7 +17,7 @@ import { readProject } from "../lib/project.mjs";
 import { standinReleaseId } from "./standin.mjs";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const built = join(repo, "frontend/public/games/lantern-tag");
+const built = join(repo, "frontend/public/game-builds/lantern-tag");
 const manifest = JSON.parse(
     readFileSync(join(repo, "games/lantern-tag/game.json"), "utf8")
 );

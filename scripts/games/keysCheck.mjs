@@ -132,7 +132,7 @@ const harness = (
 ) => `<!doctype html><meta charset="utf-8"><title>keys check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}
 #chat{position:fixed;left:16px;bottom:16px;width:320px;font:16px system-ui;padding:8px}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/games/${id}/index.html"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/game-builds/${id}/index.html"></iframe>
 <input id="chat" data-game-chat placeholder="chat" autocomplete="off">
 <script type="module">
 import { createGameInputHost, focusGameChat } from "/__keys/gameInput.js";
@@ -223,7 +223,7 @@ const matches = (probe, want) =>
 
 /**
  * Browser half. Returns `{ findings, steps }`; a finding blocks the check.
- * `origin` already serves /games/<id>/; this adds the harness with routes.
+ * `origin` already serves /game-builds/<id>/; this adds the harness with routes.
  */
 export async function keysBrowserCheck({
     browser,

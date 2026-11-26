@@ -160,10 +160,10 @@ try {
         );
         process.exit(problems.length ? 1 : 0);
     } else if (command === "upload") {
-        const dir = join(root, "frontend/public/games", id);
+        const dir = join(root, "frontend/public/game-builds", id);
         if (!existsSync(join(dir, "release.json")))
             fail(
-                `frontend/public/games/${id}/release.json not found; run pnpm games:publish ${id}`
+                `frontend/public/game-builds/${id}/release.json not found; run pnpm games:publish ${id}`
             );
         const published = JSON.parse(
             readFileSync(join(dir, "release.json"), "utf8")
@@ -173,7 +173,7 @@ try {
         // the release its release.json describes.
         if (releaseId(files) !== published.release)
             fail(
-                `frontend/public/games/${id} no longer matches release ${published.release}; run pnpm games:publish ${id}`
+                `frontend/public/game-builds/${id} no longer matches release ${published.release}; run pnpm games:publish ${id}`
             );
         const { entry, previous, pointed } = await publishRelease({
             game: id,

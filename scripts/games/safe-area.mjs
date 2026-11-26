@@ -52,7 +52,7 @@ iframe{border:0;width:100%;height:100%;display:block}
 @media (max-width:550px){#party-chat{width:min(280px,calc(100% - 32px))}}
 </style>
 <main>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/games/${id}/index.html"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad" src="/game-builds/${id}/index.html"></iframe>
 <div data-game-overlay="controls" style="${css({
         position: "absolute",
         ...controlsStyle,

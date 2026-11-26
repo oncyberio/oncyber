@@ -1,13 +1,18 @@
-import { readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import {
     GAME_FILE_MATCHER,
     gamesPreviewEnabled,
     hiddenGameFile,
-    hiddenGamePage,
     isGameFile,
 } from "./gamesPreview";
 import { findGame, gamesPreviewEnabled as fromCatalog } from "./catalog";
+import { GAME_BUILDS_PATH, committedFrame } from "./gameRelease";
+import {
+    GAME_BUILDS_DIR,
+    GAME_BUILDS_PATH as headersPath,
+    gameNetworkHeaders,
+} from "./networkPolicy";
 
 const hidden = { NODE_ENV: "production" };
 const preview = { NODE_ENV: "production", GAMES_PREVIEW: "1" };
@@ -37,18 +42,23 @@ test("with nothing passed it reads the process's own variables", () => {
     }
 });
 
-test("a hidden game's files do not answer: the bundle and its reports", () => {
+test("a hidden game's files do not answer: the bundle, its reports, its folder", () => {
     for (const path of [
-        "/games/ace/index.html",
-        "/games/ace/check.json",
-        "/games/ace/release.json",
-        "/games/ace/assets/index-DEde1qxS.js",
-        "/games/padel/avatars/square-catalogue.vrm",
-        "/games/lantern-tag/licenses/three-MIT.txt",
-        "/games/ace/assets",
-        "/GAMES/ace/index.html",
-        "/games/ace/%69ndex.html",
-        "/games/not-a-game/anything",
+        "/game-builds/ace/index.html",
+        "/game-builds/ace/check.json",
+        "/game-builds/ace/release.json",
+        "/game-builds/ace/assets/index-DEde1qxS.js",
+        "/game-builds/padel/avatars/square-catalogue.vrm",
+        "/game-builds/lantern-tag/licenses/three-MIT.txt",
+        // A folder's address: a host answers it with the index file inside.
+        "/game-builds/ace",
+        "/game-builds/ace/",
+        "/game-builds/ace/assets",
+        "/game-builds",
+        "/GAME-BUILDS/ace/index.html",
+        "/game-builds/ace/%69ndex.html",
+        "/game-builds/not-a-game/anything",
+        committedFrame("ace").src,
     ]) {
         expect([path, hiddenGameFile(path, hidden)]).toEqual([path, true]);
         expect([path, hiddenGameFile(path, preview)]).toEqual([path, false]);
@@ -59,40 +69,49 @@ test("a hidden game's files do not answer: the bundle and its reports", () => {
     }
 });
 
-test("the game's page and the guide are not files of a build", () => {
-    // The page decides for itself (pages/games/[game].tsx); the guide for
+test("a game's page, the guide and other addresses are not files of a build", () => {
+    // The page decides for itself (pages/games/[game].tsx), and no build is
+    // kept where it could be served in the page's place; the guide for
     // building a game is public.
     for (const path of [
         "/games/ace",
         "/games/ace/",
+        "/games/ace/index.html",
         "/games/llms.txt",
         "/games",
         "/",
         "/api/games/paused",
-        "/docs/games/ace/index.html",
+        "/game-builds-of-mine",
+        "/docs/game-builds/ace/index.html",
     ])
         expect([path, hiddenGameFile(path, hidden)]).toEqual([path, false]);
 });
 
-test("a game's own address is hidden with it, and only that", () => {
-    for (const path of ["/games/ace", "/games/ace/", "/GAMES/lantern-tag"]) {
-        expect([path, hiddenGamePage(path, hidden)]).toEqual([path, true]);
-        expect([path, hiddenGamePage(path, preview)]).toEqual([path, false]);
-        expect([path, hiddenGamePage(path, development)]).toEqual([
-            path,
-            false,
-        ]);
-    }
-    // The guide is public; a build's files are asked about separately.
-    for (const path of [
-        "/games/llms.txt",
-        "/games",
-        "/games/",
-        "/games/ace/index.html",
-        "/api/games/paused",
-        "/",
-    ])
-        expect([path, hiddenGamePage(path, hidden)]).toEqual([path, false]);
+test("the builds have one address: the frame's, the headers' and the gate's", () => {
+    expect(GAME_BUILDS_PATH).toBe("/game-builds");
+    expect(headersPath).toBe(GAME_BUILDS_PATH);
+    expect(GAME_BUILDS_DIR).toBe(`public${GAME_BUILDS_PATH}`);
+    expect(GAME_FILE_MATCHER).toBe(`${GAME_BUILDS_PATH}/:path*`);
+    expect(committedFrame("ace").src).toBe("/game-builds/ace/index.html");
+    // The builds really are there, and none is left where a host would
+    // serve it at a game's own address, /games/<id>.
+    const publicDir = join(__dirname, "../../public");
+    expect(existsSync(join(publicDir, "game-builds/ace/index.html"))).toBe(
+        true
+    );
+    expect(existsSync(join(publicDir, "games"))).toBe(false);
+    // Every file of a build gets the policy, the folder's address included.
+    const rules = gameNetworkHeaders(join(publicDir, "game-builds"), {
+        existsSync,
+        readdirSync,
+        readFileSync,
+    });
+    expect(rules.map((rule) => rule.source)).toEqual(
+        expect.arrayContaining([
+            "/game-builds/:id/:path*",
+            "/game-builds/ace/:path*",
+        ])
+    );
 });
 
 test("the middleware matches a game's files, and asks before any other rule", () => {
@@ -108,7 +127,7 @@ test("the middleware matches a game's files, and asks before any other rule", ()
     // and the world host's are for pages.
     for (const rule of ["CATALOG.test(path)", "NAMED_SCRAPER.test(ua)"])
         expect(middleware.indexOf(rule, asked)).toBeGreaterThan(asked);
-    expect(isGameFile("/games/ace/index.html")).toBe(true);
+    expect(isGameFile("/game-builds/ace/index.html")).toBe(true);
     expect(isGameFile("/games/ace")).toBe(false);
 });
 

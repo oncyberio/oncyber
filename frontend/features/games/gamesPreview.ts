@@ -1,8 +1,8 @@
 /**
  * The one switch that hides games until launch. Everything of a game
  * answers only where it is on: its page (/games/<id>), its static build
- * (/games/<id>/..., `hiddenGameFile` below, asked by middleware.ts), its
- * hosted releases, its saved data, its results and its publishing.
+ * (/game-builds/<id>/..., `hiddenGameFile` below, asked by middleware.ts),
+ * its hosted releases, its saved data, its results and its publishing.
  *
  * On: the development server, or a deployment that sets `GAMES_PREVIEW=1`.
  *
@@ -25,11 +25,14 @@ export function gamesPreviewEnabled(
 }
 
 /**
- * A file of a game's committed build, as the site serves it from
- * `public/games/<id>/`: the bundle, `check.json`, `release.json`. Not the
- * game's page (/games/<id>) and not the guide (/games/llms.txt).
+ * Anything under the address the committed builds are served from,
+ * `public/game-builds/<id>/` (gameRelease.ts, `GAME_BUILDS_PATH`): the
+ * bundle, `check.json`, `release.json`, and a build's folder itself, which a
+ * host answers with its index file. A game's page (/games/<id>) is not
+ * here: no build can stand in for it, and it hides itself
+ * (pages/games/[game].tsx).
  */
-const GAME_FILE = /^\/games\/[^/]+\/[^/]/i;
+const GAME_FILE = /^\/game-builds(\/|$)/i;
 
 export function isGameFile(path: string): boolean {
     return GAME_FILE.test(path);
@@ -44,24 +47,8 @@ export function hiddenGameFile(
 }
 
 /**
- * A game's own address, /games/<id>. The page there hides itself
- * (pages/games/[game].tsx), but a host that answers a folder's address with
- * the index file inside it serves `public/games/<id>/index.html` in the
- * page's place: the build itself, where games are meant to be hidden. The
- * middleware asks this first, so the address answers nothing then either.
- */
-const GAME_PAGE = /^\/games\/[^/.]+\/?$/i;
-
-export function hiddenGamePage(
-    path: string,
-    env?: Record<string, string | undefined>
-): boolean {
-    return GAME_PAGE.test(path) && !gamesPreviewEnabled(env);
-}
-
-/**
  * What the middleware matches to ask this (Next's matcher syntax). Next
  * reads a middleware's matcher without running it, so middleware.ts writes
  * this same text out; gamesPreview.test.ts fails when the two differ.
  */
-export const GAME_FILE_MATCHER = "/games/:game/:file+";
+export const GAME_FILE_MATCHER = "/game-builds/:path*";

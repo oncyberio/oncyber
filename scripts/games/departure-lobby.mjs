@@ -75,7 +75,7 @@ export async function recordLobbyTrip({
             page
                 .frames()
                 .find((frame) =>
-                    frame.url().includes(`/games/${id}/index.html`)
+                    frame.url().includes(`/game-builds/${id}/index.html`)
                 );
         if (!game())
             throw new Error("the game's frame is not in the lobby page");

@@ -11,6 +11,15 @@
  * next.config.js (the header), scripts/games (the check) and the tests.
  */
 
+/**
+ * Where the site serves the committed builds, and the folder they are in
+ * (from frontend/). Not under /games/: a host answers a folder's address
+ * with its index file, which put a build at /games/<id> in place of the
+ * game's page. The same address is in gameRelease.ts and gamesPreview.ts.
+ */
+const GAME_BUILDS_PATH = "/game-builds";
+const GAME_BUILDS_DIR = "public/game-builds";
+
 /** The file a published build carries its declaration in, next to index.html. */
 const NETWORK_FILE = "network.json";
 const MAX_HOSTS = 16;
@@ -155,9 +164,10 @@ function releaseContentSecurityPolicy(published, options = {}) {
 /**
  * Header rules for next.config.js: every file of every published game gets a
  * policy. A game with no network.json (or a broken one) reaches only its own
- * files. `:path+` keeps the rule off the /games/<id> page itself.
+ * files, and so does the folder's own address, which a host answers with the
+ * build's index file.
  *
- * @param {string} gamesDir frontend/public/games
+ * @param {string} gamesDir frontend/public/game-builds
  * @param {{ existsSync: Function, readdirSync: Function, readFileSync: Function }} fs
  * @returns {{ source: string, headers: { key: string, value: string }[] }[]}
  */
@@ -172,7 +182,7 @@ function gameNetworkHeaders(gamesDir, fs) {
         ],
     });
     // Later rules win, so the per-game ones follow the default.
-    const rules = [rule("/games/:id/:path+", [])];
+    const rules = [rule(`${GAME_BUILDS_PATH}/:id/:path*`, [])];
     if (!fs.existsSync(gamesDir)) return rules;
     for (const entry of fs.readdirSync(gamesDir, { withFileTypes: true })) {
         if (
@@ -194,7 +204,7 @@ function gameNetworkHeaders(gamesDir, fs) {
         const { hosts, errors } = readNetwork(published?.hosts);
         rules.push(
             rule(
-                `/games/${entry.name}/:path+`,
+                `${GAME_BUILDS_PATH}/${entry.name}/:path*`,
                 errors.length ? [] : hosts,
                 readInlineScripts(published?.inlineScripts)
             )
@@ -204,6 +214,8 @@ function gameNetworkHeaders(gamesDir, fs) {
 }
 
 module.exports = {
+    GAME_BUILDS_PATH,
+    GAME_BUILDS_DIR,
     NETWORK_FILE,
     readNetwork,
     readInlineScripts,

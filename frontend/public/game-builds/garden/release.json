@@ -3,15 +3,15 @@
   "game": "garden",
   "name": "Bloom Garden",
   "release": "605b1f2e2784604c",
-  "publishedAt": "2026-11-25T23:31:27.632Z",
+  "publishedAt": "2026-11-26T00:45:49.257Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-25T23:31:22.511Z",
+    "checkedAt": "2026-11-26T00:45:43.930Z",
     "backend": "webgpu",
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.8,
+      "p95Ms": 16.7,
       "worstMs": 16.8
     }
   },

@@ -80,7 +80,7 @@ function buildInlineScripts(dir) {
 
 /**
  * @param manifest the game's game.json
- * @param out the build directory (frontend/public/games/<id>); the
+ * @param out the build directory (frontend/public/game-builds/<id>); the
  *   declaration is written there when the build exists
  */
 export function networkStage(manifest, out) {
@@ -235,7 +235,7 @@ export function networkStage(manifest, out) {
             server.removeAllListeners("request");
             server.on("request", (req, res) => {
                 if (this.handle(req, res)) return;
-                if (req.url.startsWith("/games/")) {
+                if (req.url.startsWith("/game-builds/")) {
                     const writeHead = res.writeHead.bind(res);
                     res.writeHead = (status, headers) =>
                         writeHead(

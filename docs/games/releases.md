@@ -6,7 +6,7 @@ which release each game's page loads. Publishing uploads a release; rolling
 back moves the pointer and uploads nothing.
 
 **The committed build is the default.** A game's page loads
-`frontend/public/games/<id>/` until a person switches that game to hosted
+`frontend/public/game-builds/<id>/` until a person switches that game to hosted
 releases with `pnpm games:release point <id>`. Publishing stores a release
 and lists it in the pointer file, but moves the pointer only for a game
 that is already switched. No game is switched today.
@@ -17,12 +17,12 @@ that is already switched. No game is switched today.
    in `games/<id>/` and run `pnpm games:publish <id>`. That makes a new
    release with a new id. Storage refuses different files under an existing
    id.
-2. **The working build is the draft.** `frontend/public/games/<id>/` is what
+2. **The working build is the draft.** `frontend/public/game-builds/<id>/` is what
    the build writes and `pnpm games:check` checks. It is not a release until
    it is published. On the development server, `/games/<id>?draft` shows it.
 3. **Use relative URLs inside a game.** A release is served from an address
    the game doesn't choose, so write `./assets/x.js` and keep Vite's
-   `base: "./"`. An absolute path such as `/games/<id>/x.png` fails the
+   `base: "./"`. An absolute path such as `/game-builds/<id>/x.png` fails the
    check with `RELEASE_ESCAPES`.
 4. **Don't ship a file named `oncyber-release.json`.** Every stored release
    gets one: its file list with sizes and hashes.
@@ -36,7 +36,7 @@ that is already switched. No game is switched today.
 6. **Keep keys out of it.** With no settings, everything uses the local
    folder backend. `PINATA_JWT_KEY` is server-only and is never written to a
    pointer or a release.
-7. **Leave the committed builds.** `frontend/public/games/<id>/` is what
+7. **Leave the committed builds.** `frontend/public/game-builds/<id>/` is what
    every game loads today and the fallback for a game with no pointer. A
    person removes it, not an agent.
 
@@ -129,7 +129,7 @@ applies:
    game there.
 3. The committed pointer, `frontend/features/games/releases.json`, for a
    game a person pointed.
-4. The committed build, `/games/<id>/index.html`.
+4. The committed build, `/game-builds/<id>/index.html`.
 
 Everything that needs to know which build a visit shows uses that one
 answer:
@@ -416,7 +416,7 @@ These were chosen as the smallest reversible option and need confirming.
    20 per game. Decide when old releases may be unpinned (rollback to an
    unpinned release would fail `verify`).
 6. **Removing committed builds.** Once a game has a production pointer, its
-   `frontend/public/games/<id>/` build (but not `preview.jpg` and
+   `frontend/public/game-builds/<id>/` build (but not `preview.jpg` and
    `thumbnail.jpg`, which the lobby cards use, nor `check.json` and
    `release.json`, which `/dev/games` reads) can be deleted and the folder
    ignored. Until then it is the fallback. `next.config.js` reads each

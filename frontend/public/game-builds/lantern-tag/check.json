@@ -1,0 +1,1729 @@
+{
+  "version": 1,
+  "game": "lantern-tag",
+  "checkedAt": "2026-11-26T00:43:38.599Z",
+  "status": "passed",
+  "scope": "scenario",
+  "files": {
+    "count": 15,
+    "bytes": 1672209,
+    "largest": {
+      "path": "assets/index-Bx45tV89.js",
+      "bytes": 942134
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [],
+    "ms": 4669,
+    "facts": {
+      "arrival": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -2.6,
+          3.4
+        ],
+        "arrival": {
+          "distance": 3.89,
+          "height": 1.94,
+          "fov": 50,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        },
+        "came": "lobby",
+        "standing": false,
+        "walked": false,
+        "partySize": 2,
+        "options": "duel,solo",
+        "format": "",
+        "role": "",
+        "phase": "idle",
+        "score": 0,
+        "missed": 0,
+        "left": 0,
+        "lanterns": 0,
+        "lanternsLit": false,
+        "players": 0,
+        "leaving": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 0,
+        "avatarOthersVrm": 0,
+        "avatarArrival": "crouched",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 2,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 240
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 16,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 68,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 640,
+            "y": 16,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 986.3,
+            "y": 12,
+            "width": 281.8,
+            "height": 40
+          },
+          {
+            "id": "match-row",
+            "x": 1157.3,
+            "y": 12,
+            "width": 110.7,
+            "height": 40
+          },
+          {
+            "id": "hint",
+            "x": 535.6,
+            "y": 672,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 186
+          },
+          {
+            "id": "results-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 153
+          }
+        ]
+      },
+      "entered": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -2.6,
+          3.4
+        ],
+        "arrival": {
+          "distance": 3.89,
+          "height": 1.94,
+          "fov": 50,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": false,
+          "handsEmpty": true
+        },
+        "came": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "options": "duel,solo",
+        "format": "",
+        "role": "",
+        "phase": "idle",
+        "score": 0,
+        "missed": 0,
+        "left": 0,
+        "lanterns": 0,
+        "lanternsLit": false,
+        "players": 0,
+        "leaving": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 18,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 240
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 16,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 68,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 640,
+            "y": 16,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 986.3,
+            "y": 12,
+            "width": 281.8,
+            "height": 40
+          },
+          {
+            "id": "match-row",
+            "x": 1157.3,
+            "y": 12,
+            "width": 110.7,
+            "height": 40
+          },
+          {
+            "id": "hint",
+            "x": 535.6,
+            "y": 672,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 186
+          },
+          {
+            "id": "results-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 153
+          }
+        ]
+      },
+      "others": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -2.6,
+          3.4
+        ],
+        "arrival": {
+          "distance": 3.89,
+          "height": 1.94,
+          "fov": 50,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": false,
+          "handsEmpty": true
+        },
+        "came": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "options": "duel,solo",
+        "format": "",
+        "role": "",
+        "phase": "idle",
+        "score": 0,
+        "missed": 0,
+        "left": 0,
+        "lanterns": 0,
+        "lanternsLit": false,
+        "players": 0,
+        "leaving": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 23,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 240
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 16,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 68,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 640,
+            "y": 16,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 986.3,
+            "y": 12,
+            "width": 281.8,
+            "height": 40
+          },
+          {
+            "id": "match-row",
+            "x": 1157.3,
+            "y": 12,
+            "width": 110.7,
+            "height": 40
+          },
+          {
+            "id": "hint",
+            "x": 535.6,
+            "y": 672,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 186
+          },
+          {
+            "id": "results-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 153
+          }
+        ]
+      },
+      "change": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -2.6,
+          3.4
+        ],
+        "arrival": {
+          "distance": 3.89,
+          "height": 1.94,
+          "fov": 50,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": false,
+          "handsEmpty": true
+        },
+        "came": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "options": "duel,solo",
+        "format": "",
+        "role": "",
+        "phase": "idle",
+        "score": 0,
+        "missed": 0,
+        "left": 0,
+        "lanterns": 0,
+        "lanternsLit": false,
+        "players": 0,
+        "leaving": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 1,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 49,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 240
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 16,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 68,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 640,
+            "y": 16,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 986.3,
+            "y": 12,
+            "width": 281.8,
+            "height": 40
+          },
+          {
+            "id": "match-row",
+            "x": 1157.3,
+            "y": 12,
+            "width": 110.7,
+            "height": 40
+          },
+          {
+            "id": "hint",
+            "x": 535.6,
+            "y": 672,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 186
+          },
+          {
+            "id": "results-card",
+            "x": 460,
+            "y": 59.2,
+            "width": 360,
+            "height": 153
+          }
+        ]
+      }
+    }
+  },
+  "hosted": {
+    "status": "passed",
+    "backend": "local",
+    "release": "57ad0cdd3b8e988f",
+    "files": 15,
+    "verified": 15,
+    "bootMs": 410,
+    "ms": 604
+  },
+  "findings": [],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 454,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 202,
+    "progress": {
+      "messages": 2,
+      "labels": [
+        "Laying the flagstones…",
+        "Ready"
+      ]
+    },
+    "resize": [
+      {
+        "width": 900,
+        "height": 620,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 520,
+        "height": 700,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      }
+    ],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": []
+  },
+  "social": {
+    "stage": "social",
+    "status": "passed",
+    "ms": 2345,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "audio",
+        "hello",
+        "progress",
+        "first-frame",
+        "ready",
+        "pose",
+        "arrival-ready"
+      ]
+    }
+  },
+  "safeArea": {
+    "status": "passed",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720,
+        "insets": {
+          "top": 125,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 84,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 24,
+            "y": 658,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 1210.3,
+            "y": 687,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 460,
+            "y": 180.2,
+            "width": 360,
+            "height": 240
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 141,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 193,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 640,
+            "y": 141,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 986.3,
+            "y": 137,
+            "width": 281.8,
+            "height": 40
+          },
+          {
+            "id": "match-row",
+            "x": 1157.3,
+            "y": 137,
+            "width": 110.7,
+            "height": 40
+          },
+          {
+            "id": "hint",
+            "x": 640,
+            "y": 614,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 460,
+            "y": 184.2,
+            "width": 360,
+            "height": 186
+          },
+          {
+            "id": "results-card",
+            "x": 460,
+            "y": 184.2,
+            "width": 360,
+            "height": 153
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844,
+        "insets": {
+          "top": 125,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 84,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 782,
+            "width": 280,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 320.3,
+            "y": 811,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 16,
+            "y": 137,
+            "width": 358,
+            "height": 231.5
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 141,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 245,
+            "width": 179.4,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 195,
+            "y": 245,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 96.3,
+            "y": 137,
+            "width": 281.8,
+            "height": 39.5
+          },
+          {
+            "id": "match-row",
+            "x": 267.3,
+            "y": 137,
+            "width": 110.7,
+            "height": 39.5
+          },
+          {
+            "id": "hint",
+            "x": 195,
+            "y": 193,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 16,
+            "y": 141,
+            "width": 358,
+            "height": 177.5
+          },
+          {
+            "id": "results-card",
+            "x": 16,
+            "y": 141,
+            "width": 358,
+            "height": 144.5
+          }
+        ],
+        "overlaps": [],
+        "outside": [
+          "hint"
+        ]
+      },
+      {
+        "name": "phone-landscape",
+        "width": 844,
+        "height": 390,
+        "insets": {
+          "top": 125,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 84,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 328,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 774.3,
+            "y": 357,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "title-card",
+            "x": 242,
+            "y": 137,
+            "width": 360,
+            "height": 179
+          },
+          {
+            "id": "score",
+            "x": 12,
+            "y": 141,
+            "width": 173.8,
+            "height": 39
+          },
+          {
+            "id": "board",
+            "x": 12,
+            "y": 245,
+            "width": 220,
+            "height": 18
+          },
+          {
+            "id": "notice",
+            "x": 422,
+            "y": 245,
+            "width": 26,
+            "height": 18
+          },
+          {
+            "id": "arrival-row",
+            "x": 550.3,
+            "y": 137,
+            "width": 281.8,
+            "height": 39.5
+          },
+          {
+            "id": "match-row",
+            "x": 721.3,
+            "y": 137,
+            "width": 110.7,
+            "height": 39.5
+          },
+          {
+            "id": "hint",
+            "x": 422,
+            "y": 193,
+            "width": 208.8,
+            "height": 36
+          },
+          {
+            "id": "menu-card",
+            "x": 242,
+            "y": 141,
+            "width": 360,
+            "height": 179
+          },
+          {
+            "id": "results-card",
+            "x": 242,
+            "y": 141,
+            "width": 360,
+            "height": 152.5
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      }
+    ],
+    "findings": []
+  },
+  "party": {
+    "status": "passed",
+    "ms": 11449,
+    "options": {
+      "1": [
+        "solo"
+      ],
+      "2": [
+        "duel",
+        "solo"
+      ],
+      "3": [
+        "round",
+        "solo"
+      ],
+      "4": [
+        "round",
+        "solo"
+      ],
+      "5-8": [
+        "round",
+        "solo"
+      ]
+    },
+    "drops": [
+      {
+        "dropped": "guest",
+        "packetsPerSecond": {
+          "a": 30,
+          "b": 0.6
+        },
+        "largestPacket": 106,
+        "refused": 0,
+        "after": {
+          "role": "authority",
+          "authority": "a",
+          "standIns": []
+        }
+      },
+      {
+        "dropped": "host",
+        "packetsPerSecond": {
+          "a": 30.2,
+          "b": 0.6
+        },
+        "largestPacket": 106,
+        "refused": 0,
+        "after": {
+          "role": "authority",
+          "authority": "b",
+          "standIns": []
+        }
+      }
+    ]
+  },
+  "warnings": [],
+  "ui": {
+    "screens": [
+      {
+        "name": "#title",
+        "controls": 2,
+        "kit": true
+      },
+      {
+        "name": "#hud",
+        "controls": 4,
+        "kit": true
+      },
+      {
+        "name": "#menu",
+        "controls": 3,
+        "kit": true
+      },
+      {
+        "name": "#results",
+        "controls": 2,
+        "kit": true
+      }
+    ]
+  },
+  "results": [
+    {
+      "match": "lt-q8fjm8ctmwwtuzq5",
+      "format": "solo",
+      "durationSeconds": 20,
+      "teams": [
+        {
+          "score": 12,
+          "players": [
+            {
+              "id": "self",
+              "name": "Check",
+              "kind": "self"
+            }
+          ]
+        },
+        {
+          "score": 0,
+          "players": [
+            {
+              "id": "cpu-night",
+              "name": "The night",
+              "kind": "cpu"
+            }
+          ]
+        }
+      ],
+      "winner": 0
+    }
+  ],
+  "consoleErrors": [],
+  "contract": {
+    "listed": true,
+    "prefix": "oncyber:game:",
+    "version": 3,
+    "visit": {
+      "arrival": "lobby",
+      "party": 0
+    },
+    "warnings": []
+  },
+  "devices": {
+    "declared": [
+      "desktop",
+      "phone",
+      "gamepad"
+    ],
+    "notes": [
+      {
+        "code": "TOUCH_CUSTOM",
+        "message": "2 action(s) name touch controls the runtime does not draw (lookX, lookY); the game's UI page must provide them"
+      }
+    ],
+    "profiles": {
+      "desktop": {
+        "status": "passed",
+        "input": "keyboard",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "claimed": true
+      },
+      "phone": {
+        "status": "passed",
+        "input": "touch",
+        "viewport": "412 x 839",
+        "emulates": "Pixel 7",
+        "scope": "scenario",
+        "findings": [],
+        "controls": {
+          "stick": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ],
+          "buttons": [
+            "interact",
+            "jump",
+            "run"
+          ]
+        },
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgl2",
+          "bootMs": 475,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 475
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 10682
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 14380
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 83.3,
+            "p95Ms": 100,
+            "worstMs": 100
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "match",
+            "position": [
+              -2.6,
+              1.84
+            ],
+            "arrival": null,
+            "came": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 1,
+            "options": "solo",
+            "format": "solo",
+            "role": "solo",
+            "phase": "playing",
+            "score": 0,
+            "missed": 2,
+            "left": 76,
+            "lanterns": 2,
+            "lanternsLit": true,
+            "players": 1,
+            "leaving": false,
+            "avatarSelf": "stand-in",
+            "avatarSelfInFrame": true,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "avatarSelfChanges": 0,
+            "audioState": "running",
+            "audioRouted": true,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0.1068,
+            "audioLevel": 0.1068,
+            "hostPhase": "entered",
+            "hostFrames": 307,
+            "hostArrival": "lobby",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      },
+      "gamepad": {
+        "status": "passed",
+        "input": "gamepad",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "findings": [],
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgl2",
+          "bootMs": 561,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 561
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 5943
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 8651
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 50,
+            "p95Ms": 50.1,
+            "worstMs": 66.6
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "match",
+            "position": [
+              -2.6,
+              1.84
+            ],
+            "arrival": null,
+            "came": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 1,
+            "options": "solo",
+            "format": "solo",
+            "role": "solo",
+            "phase": "playing",
+            "score": 0,
+            "missed": 1,
+            "left": 81,
+            "lanterns": 1,
+            "lanternsLit": true,
+            "players": 1,
+            "leaving": false,
+            "avatarSelf": "stand-in",
+            "avatarSelfInFrame": true,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": true,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "avatarSelfChanges": 0,
+            "audioState": "suspended",
+            "audioRouted": false,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0,
+            "audioLevel": 0,
+            "hostPhase": "entered",
+            "hostFrames": 307,
+            "hostArrival": "lobby",
+            "hostParty": 0,
+            "hostPartyArrived": 0,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      }
+    }
+  },
+  "saved": {
+    "status": "passed",
+    "ms": 0,
+    "keys": 0,
+    "runs": []
+  },
+  "listing": {
+    "thumbnail": "thumbnail.jpg",
+    "thumbnailTaken": true,
+    "players": {
+      "min": 1,
+      "max": 8
+    },
+    "partySizes": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "devices": [
+      "desktop",
+      "phone",
+      "gamepad"
+    ],
+    "tags": [
+      "party",
+      "arcade",
+      "tag",
+      "night"
+    ]
+  },
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
+  "credits": {
+    "thirdParty": 5,
+    "own": 0,
+    "warnings": []
+  },
+  "run": {
+    "version": 1,
+    "status": "passed",
+    "backend": "webgl2",
+    "bootMs": 487,
+    "stages": [
+      {
+        "stage": "boot",
+        "status": "passed",
+        "ms": 487
+      },
+      {
+        "stage": "scenario",
+        "status": "passed",
+        "ms": 5805
+      },
+      {
+        "stage": "lifecycle",
+        "status": "passed",
+        "ms": 0
+      },
+      {
+        "stage": "frames",
+        "status": "passed",
+        "ms": 9330
+      },
+      {
+        "stage": "sound",
+        "status": "passed",
+        "ms": 3865,
+        "facts": {
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 0.975,
+          "audioInput": 0.1111,
+          "audioLevel": 0.1081
+        }
+      },
+      {
+        "stage": "departure",
+        "status": "passed",
+        "ms": 1949,
+        "departure": {
+          "answerMs": 555.7,
+          "frameMs": 49.983,
+          "lobbyFrame": "projected",
+          "view": {
+            "cameraOffset": {
+              "x": 0,
+              "y": 2.51,
+              "z": 4.672
+            },
+            "cameraTargetOffset": {
+              "x": 0,
+              "y": 1.128,
+              "z": -0.133
+            },
+            "avatarRotation": 0,
+            "avatarHeight": 1.75,
+            "fov": 58
+          },
+          "gameAvatar": {
+            "x": 0.5,
+            "top": 0.394,
+            "bottom": 0.728,
+            "height": 0.333,
+            "width": 0.069
+          },
+          "lobbyAvatar": {
+            "x": 0.5,
+            "top": 0.392,
+            "bottom": 0.695,
+            "height": 0.303
+          },
+          "frames": [
+            {
+              "ms": 43,
+              "phase": "playing",
+              "lit": 0.726
+            },
+            {
+              "ms": 852,
+              "phase": "leaving",
+              "lit": 0.017
+            },
+            {
+              "ms": 1357,
+              "phase": "last",
+              "lit": 0.017
+            },
+            {
+              "ms": 1864,
+              "phase": "held",
+              "lit": 0.017
+            }
+          ]
+        }
+      },
+      {
+        "stage": "results",
+        "status": "passed",
+        "ms": 23009
+      }
+    ],
+    "frames": {
+      "count": 180,
+      "medianMs": 50,
+      "p95Ms": 66.7,
+      "worstMs": 83.4
+    },
+    "inspect": {
+      "booted": true,
+      "screen": "match",
+      "position": [
+        -2.6,
+        1.84
+      ],
+      "arrival": null,
+      "came": "lobby",
+      "standing": true,
+      "walked": true,
+      "partySize": 1,
+      "options": "solo",
+      "format": "solo",
+      "role": "solo",
+      "phase": "playing",
+      "score": 0,
+      "missed": 2,
+      "left": 81,
+      "lanterns": 0,
+      "lanternsLit": false,
+      "players": 1,
+      "leaving": false,
+      "avatarSelf": "stand-in",
+      "avatarSelfInFrame": true,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "standing",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": true,
+      "avatarTalking": 0,
+      "avatarEmote": "",
+      "avatarSelfChanges": 0,
+      "audioState": "suspended",
+      "audioRouted": false,
+      "audioBypass": 0,
+      "audioMuted": false,
+      "audioVolume": 1,
+      "audioDucked": false,
+      "audioSuspended": false,
+      "audioGain": 1,
+      "audioInput": 0,
+      "audioLevel": 0,
+      "hostPhase": "entered",
+      "hostFrames": 307,
+      "hostArrival": "lobby",
+      "hostParty": 0,
+      "hostPartyArrived": 0,
+      "hostInputPaused": false
+    }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 8,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 12,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
+  },
+  "locomotion": {
+    "status": "passed",
+    "seconds": 2.017,
+    "wallSeconds": 2.01,
+    "metres": 5.658,
+    "lobbyMetres": 5.658,
+    "tolerance": 0.05
+  },
+  "process": {
+    "status": "passed",
+    "checks": [
+      {
+        "id": "brief",
+        "rule": "The brief was written first",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "offer",
+        "rule": "Respect the party",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "solo",
+        "rule": "Keep a solo path",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "bot",
+        "rule": "Ship a bot",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "arrival",
+        "rule": "Arrive like a world",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "handoff",
+        "rule": "Match the handoff",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "video",
+        "rule": "Leave a recording for review",
+        "status": "skipped",
+        "note": "recording is off; run the check with --video",
+        "findings": []
+      }
+    ],
+    "findings": [],
+    "video": null,
+    "log": [
+      {
+        "at": 0.4,
+        "event": "revealed",
+        "answered": true,
+        "screen": "arrival",
+        "arrival": {
+          "distance": 5.19,
+          "height": 2.06,
+          "fov": 58,
+          "avatarHeight": 1.75,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        }
+      },
+      {
+        "at": 3.4,
+        "event": "arrival",
+        "status": "passed"
+      },
+      {
+        "at": 28.5,
+        "event": "play",
+        "status": "passed"
+      },
+      {
+        "at": 30.2,
+        "event": "leave",
+        "status": "passed"
+      },
+      {
+        "at": 31.2,
+        "event": "facts",
+        "facts": {
+          "booted": true,
+          "screen": "arrival",
+          "position": [
+            -2.48,
+            -1.06
+          ],
+          "arrival": {
+            "distance": 4.78,
+            "height": 2.07,
+            "fov": 58,
+            "avatarHeight": 1.75,
+            "facingCamera": false,
+            "crouched": false,
+            "handsEmpty": true
+          },
+          "came": "lobby",
+          "standing": true,
+          "walked": true,
+          "partySize": 1,
+          "options": "solo",
+          "format": "",
+          "role": "",
+          "phase": "idle",
+          "score": 0,
+          "missed": 0,
+          "left": 0,
+          "lanterns": 0,
+          "lanternsLit": false,
+          "players": 0,
+          "leaving": false,
+          "avatarSelf": "stand-in",
+          "avatarSelfInFrame": true,
+          "avatarOthers": 0,
+          "avatarOthersDrawn": 0,
+          "avatarOthersVrm": 0,
+          "avatarArrival": "standing",
+          "avatarFacingCamera": false,
+          "avatarHandsEmpty": true,
+          "avatarTalking": 0,
+          "avatarEmote": "",
+          "avatarSelfChanges": 0,
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 1,
+          "audioInput": 0.1305,
+          "audioLevel": 0.1305,
+          "hostPhase": "entered",
+          "hostFrames": 1850,
+          "hostArrival": "lobby",
+          "hostParty": 0,
+          "hostPartyArrived": 0,
+          "hostInputPaused": false,
+          "matchOpen": false,
+          "resultsSent": 1,
+          "hud": [
+            {
+              "id": "title-card",
+              "x": 460,
+              "y": 59.2,
+              "width": 360,
+              "height": 240
+            },
+            {
+              "id": "score",
+              "x": 12,
+              "y": 16,
+              "width": 173.8,
+              "height": 39
+            },
+            {
+              "id": "board",
+              "x": 12,
+              "y": 68,
+              "width": 220,
+              "height": 18
+            },
+            {
+              "id": "notice",
+              "x": 640,
+              "y": 16,
+              "width": 26,
+              "height": 18
+            },
+            {
+              "id": "arrival-row",
+              "x": 986.3,
+              "y": 12,
+              "width": 281.8,
+              "height": 40
+            },
+            {
+              "id": "match-row",
+              "x": 1157.3,
+              "y": 12,
+              "width": 110.7,
+              "height": 40
+            },
+            {
+              "id": "hint",
+              "x": 535.6,
+              "y": 672,
+              "width": 208.8,
+              "height": 36
+            },
+            {
+              "id": "menu-card",
+              "x": 460,
+              "y": 59.2,
+              "width": 360,
+              "height": 261
+            },
+            {
+              "id": "results-card",
+              "x": 460,
+              "y": 59.2,
+              "width": 360,
+              "height": 257
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "network": {
+    "hosts": [
+      "cyber.mypinata.cloud"
+    ],
+    "requested": []
+  }
+}

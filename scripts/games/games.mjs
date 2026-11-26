@@ -4,13 +4,13 @@
 //   node scripts/games/games.mjs check <id> [--headed] [--video]
 //   node scripts/games/games.mjs publish <id> [--headed] [--video]
 //
-// check   Serves frontend/public/games/<id>/ on a loopback port, opens it in
+// check   Serves frontend/public/game-builds/<id>/ on a loopback port, opens it in
 //         the same sandboxed frame the site uses, with ?check. The game plays
 //         its scenario.json through the lifecycle and reports back; this
 //         script adds console errors, a screenshot and the bundle's size, and
-//         writes frontend/public/games/<id>/check.json. Exits 1 on failure.
+//         writes frontend/public/game-builds/<id>/check.json. Exits 1 on failure.
 // publish Builds games/<id> (npm run build), runs check, and only when it
-//         passes writes frontend/public/games/<id>/release.json: a version
+//         passes writes frontend/public/game-builds/<id>/release.json: a version
 //         derived from the files' hashes plus the check summary. A release
 //         is that fixed set of files; publishing again makes a new version.
 //
@@ -133,7 +133,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 const harness = (query, visit) => `<!doctype html><meta charset="utf-8"><title>check</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad; autoplay" src="/games/${id}/index.html?check${query}"></iframe>
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" allow="gamepad; autoplay" src="/game-builds/${id}/index.html?check${query}"></iframe>
 <script>
 const frame = document.getElementById("game");
 ${savedFreshVisitor}
@@ -180,7 +180,7 @@ function serve() {
             res.writeHead(200, { "content-type": "text/html" });
             return res.end(harness(`=${url.pathname.slice("/devices/".length)}`, contract.visit));
         }
-        const prefix = `/games/${id}/`;
+        const prefix = `/game-builds/${id}/`;
         const path = resolve(out, `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`);
         if (!url.pathname.startsWith(prefix) || !path.startsWith(out + sep) || !existsSync(path) || statSync(path).isDirectory()) {
             res.writeHead(404);
@@ -391,7 +391,7 @@ if (command === "publish") {
         files,
     };
     writeFileSync(join(out, "release.json"), JSON.stringify(release, null, 2) + "\n");
-    console.log(`${id}: published release ${version} (${files.length} files). Commit frontend/public/games/${id}.`);
+    console.log(`${id}: published release ${version} (${files.length} files). Commit frontend/public/game-builds/${id}.`);
     // Hosted release: store the checked files. The pointer moves only for a game a person already switched to hosted releases (docs/games/releases.md); otherwise the page keeps loading the committed build.
     const target = releaseTarget();
     const { entry, pointed } = await publishRelease({ game: id, dir: out, files, ...target });

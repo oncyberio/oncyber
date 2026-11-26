@@ -28,7 +28,7 @@ test("reads credits and links the licence text shipped with the game", () => {
     expect(parsed?.credits[0]).toMatchObject({
         title: "Anton",
         licenseName: "SIL Open Font License 1.1",
-        licenseHref: "/games/padel/fonts/Anton-OFL.txt",
+        licenseHref: "/game-builds/padel/fonts/Anton-OFL.txt",
         source: "https://github.com/googlefonts/AntonFont",
         confirmed: true,
     });
@@ -95,7 +95,7 @@ test("a missing credits.json is not an error", async () => {
     }) as unknown as typeof fetch;
     expect(await loadGameCredits("ace", undefined, broken)).toBeNull();
     const found = (async (url: string) => ({
-        ok: url === "/games/ace/credits.json",
+        ok: url === "/game-builds/ace/credits.json",
         json: async () => ({ version: 1, own: 1, credits: [anton] }),
     })) as unknown as typeof fetch;
     expect(

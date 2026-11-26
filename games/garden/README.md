@@ -148,7 +148,7 @@ fallback). Not yet run in a native shell or on a physical device.
 npm install
 npm run dev      # http://127.0.0.1:14730, offline (no room)
 npm test         # care rules and both mini game sims
-npm run build    # host + single-file ui.html into ../../frontend/public/games/garden
+npm run build    # host + single-file ui.html into ../../frontend/public/game-builds/garden
 ```
 
 QA URL flags: `?time=0.9` sets the time of day (0–1), `?grow=60` makes

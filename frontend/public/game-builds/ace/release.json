@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "game": "lantern-tag",
-  "name": "Lantern Tag",
-  "release": "c194750996061efd",
-  "publishedAt": "2026-11-25T22:45:23.448Z",
+  "game": "ace",
+  "name": "ACE! Tennis",
+  "release": "50f6e76e7e54818b",
+  "publishedAt": "2026-11-26T01:03:47.124Z",
   "check": {
     "status": "passed",
-    "checkedAt": "2026-11-25T22:44:51.890Z",
+    "checkedAt": "2026-11-26T01:01:12.343Z",
     "backend": "webgl2",
     "frames": {
       "count": 180,
-      "medianMs": 50,
-      "p95Ms": 66.7,
-      "worstMs": 66.7
+      "medianMs": 333.3,
+      "p95Ms": 366.7,
+      "worstMs": 400
     }
   },
   "files": [
@@ -42,24 +42,34 @@
       "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
     },
     {
-      "path": "assets/index-BFgPY9PX.css",
-      "bytes": 16691,
-      "sha256": "0d2929d67689184db533a8fdc1849c03fb10912ba93aee7315e9301bfecb8a6e"
+      "path": "assets/emotes-hP_wzozT.json",
+      "bytes": 201043,
+      "sha256": "b60a863f42b40c729d417ae0a7d4e97f713c701f8adec55b22951eb7af6fb989"
     },
     {
-      "path": "assets/index-By93zKCV.js",
-      "bytes": 940321,
-      "sha256": "5fec218a5cad37e7a0ee729e75c24e489fd40a1c34b222dd9847b41ab499abe1"
+      "path": "assets/index-DDQvoBVq.js",
+      "bytes": 1068671,
+      "sha256": "08d84475bf2ce40e94a7238fa32f0ee8564d6e6677a15fe01ba3eb9850af4607"
+    },
+    {
+      "path": "assets/index-DfKGbgoh.css",
+      "bytes": 31713,
+      "sha256": "6f19f29c3f3db26a1dcb7c72a37251c940247f974cfae78117a2793819c75ebd"
+    },
+    {
+      "path": "assets/locomotion-DBQJaU7P.json",
+      "bytes": 211080,
+      "sha256": "fc8945b1d6aedd912ac78000c421cc8c735a07128502d07b491cd164c42718c2"
     },
     {
       "path": "credits.json",
-      "bytes": 2709,
-      "sha256": "2add1f2257d402b78c9e3f4abd2690e7bf23c16d20065aaa1c055300f9566658"
+      "bytes": 3631,
+      "sha256": "5828c5e54406937738571c915f7b5c17e68d17be549e16c0169cacb63fa74b6b"
     },
     {
       "path": "index.html",
-      "bytes": 4419,
-      "sha256": "41810b4057bca60cb7f90f6cf9feeb80feb213066ecf112b5040ee97db8233c0"
+      "bytes": 14666,
+      "sha256": "a805b6ec0bc747825a7ccedd522b65047e2d924cdf8c1782f6f1430b68a53f36"
     },
     {
       "path": "licenses/SpaceGrotesk-OFL-1.1.txt",
@@ -90,6 +100,11 @@
       "path": "network.json",
       "bytes": 87,
       "sha256": "622bc8f2d2734dc0a5c2795529e550d4a01736c6d92ddb5d3a82dd6d682cd993"
+    },
+    {
+      "path": "preview.jpg",
+      "bytes": 233127,
+      "sha256": "c62fba13ad2efdf53aa167d21e8f3b401ba4d7e5af101eeff4d71d4d4283622d"
     }
   ]
 }

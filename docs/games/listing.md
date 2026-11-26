@@ -73,7 +73,7 @@ are exactly the sizes its format rules (`partyFormats`) offer something for.
 ## The thumbnail
 
 With no `listing.thumbnail`, the check saves the running game's frame as
-`frontend/public/games/<id>/thumbnail.jpg` (1280 × 720), the first time it
+`frontend/public/game-builds/<id>/thumbnail.jpg` (1280 × 720), the first time it
 passes boot. It is taken again by `pnpm games:publish <id>` and by
 `pnpm games:check <id> --thumbnail`, so a release's card shows that release.
 The file is a report like `check.json`: it is committed with the build but is

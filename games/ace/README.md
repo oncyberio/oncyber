@@ -125,7 +125,7 @@ system fonts.
 npm install
 npm run dev      # http://127.0.0.1:14720
 npm test         # rules, solver and full bot-vs-CPU matches
-npm run build    # writes ../../frontend/public/games/ace
+npm run build    # writes ../../frontend/public/game-builds/ace
 ```
 
 `node scripts/sim-human.mjs <rookie|pro|ace> <lead-seconds> [nosteer]` plays the

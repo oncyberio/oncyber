@@ -10,8 +10,8 @@ const runtime = resolve("../runtime/src");
 // bundles it and supplies three.js, so there is one copy of each.
 const kit = resolve("../kits/avatar");
 
-// Built straight into the frontend's static games folder; /games/padel
-// iframes /games/padel/index.html.
+// Built into the frontend's static folder for game builds; the page at
+// /games/padel frames /game-builds/padel/index.html.
 export default defineConfig({
   base: "./",
   resolve: {
@@ -84,7 +84,7 @@ export default defineConfig({
   server: { fs: { allow: [".."] } },
   build: {
     target: "es2022",
-    outDir: "../../frontend/public/games/padel",
+    outDir: "../../frontend/public/game-builds/padel",
     emptyOutDir: true,
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 1800,

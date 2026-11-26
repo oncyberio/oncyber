@@ -113,14 +113,14 @@ const manifest = {
 
 async function withFixture(query, run) {
     const files = {
-        "/games/fixture/index.html": [
+        "/game-builds/fixture/index.html": [
             "text/html",
             readFileSync(join(here, "fixtures/keys-game.html"), "utf8").replace(
                 "location.search",
                 JSON.stringify(query)
             ),
         ],
-        "/games/fixture/keysBrowser.ts": [
+        "/game-builds/fixture/keysBrowser.ts": [
             "text/javascript",
             stripTypeScriptTypes(
                 readFileSync(
@@ -129,7 +129,7 @@ async function withFixture(query, run) {
                 )
             ),
         ],
-        "/games/fixture/keys.ts": [
+        "/game-builds/fixture/keys.ts": [
             "text/javascript",
             stripTypeScriptTypes(
                 readFileSync(join(root, "games/runtime/src/keys.ts"), "utf8")

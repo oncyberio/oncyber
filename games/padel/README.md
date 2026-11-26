@@ -40,7 +40,7 @@ Original synthesized sounds distinguish paddle, underarm serve, floor bounce, gl
 
 ## Development
 
-Run `npm run dev`, `npm run build`, or `npm test` here. `npm run build` writes `frontend/public/games/padel/`; `pnpm games:check padel` checks it and `pnpm games:publish padel` builds, checks and writes the release (here: `GAMES_CHECK_TIMEOUT_S=900`). Standalone (`npm run dev`), `?arrive` stands in for a lobby trip and `?party=4` for a party.
+Run `npm run dev`, `npm run build`, or `npm test` here. `npm run build` writes `frontend/public/game-builds/padel/`; `pnpm games:check padel` checks it and `pnpm games:publish padel` builds, checks and writes the release (here: `GAMES_CHECK_TIMEOUT_S=900`). Standalone (`npm run dev`), `?arrive` stands in for a lobby trip and `?party=4` for a party.
 
 - `host.js`: the browser host: the page bridge, the declared input, saved settings, avatar bytes, results, departure, loading, the one pause, sound.
 - `game.js`: the lifecycle game: the club (the avatar and locomotion kits), the menus (the UI kit), the match and its HUD.

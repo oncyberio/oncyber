@@ -3,7 +3,7 @@
  * immutable set of files outside the repository, named by a hash of their
  * contents. A small pointer says which release each game uses; this file
  * reads pointers and turns one into the frame's address. Games with no
- * pointer still load the build committed under public/games/<id>/.
+ * pointer still load the build committed under public/game-builds/<id>/.
  *
  * Pointers are written by `pnpm games:publish` and `pnpm games:release`
  * (scripts/games/releases/). See docs/games/releases.md.
@@ -19,7 +19,7 @@ export interface GameFrame {
     src: string;
     /** The release id, when the frame is a hosted release. */
     release: string | null;
-    /** hosted: from a pointer. committed: public/games/<id>. draft: the working build. */
+    /** hosted: from a pointer. committed: public/game-builds/<id>. draft: the working build. */
     source: "hosted" | "committed" | "draft";
 }
 
@@ -87,10 +87,23 @@ export function pinnedRelease(
     return base ? { release, base } : null;
 }
 
-/** The build in public/games/<id>: the fallback, and the draft in development. */
+/**
+ * Where the site serves the committed builds: `public/game-builds/<id>/`,
+ * at /game-builds/<id>/. Not under /games/: a host answers a folder's
+ * address with the index file inside it, so a build kept at /games/<id>/
+ * was served at /games/<id>, in place of the game's page. The same address
+ * is in networkPolicy.js (the files' headers) and gamesPreview.ts (hidden
+ * with the rest); gameRelease.test.ts holds the three together.
+ */
+export const GAME_BUILDS_PATH = "/game-builds";
+
+/** The folder a committed build's files load from, ending in "/". */
+export const committedBuildBase = (id: string) => `${GAME_BUILDS_PATH}/${id}/`;
+
+/** The build in public/game-builds/<id>: the fallback, and the draft in development. */
 export function committedFrame(id: string): GameFrame {
     return {
-        src: `/games/${id}/index.html`,
+        src: `${committedBuildBase(id)}index.html`,
         release: null,
         source: "committed",
     };
@@ -128,7 +141,7 @@ export function releaseBase(
 
 /**
  * The folder a frame's files load from, ending in "/": the release's base
- * URL, or /games/<id>/ for the committed build. The page reads what travels
+ * URL, or /game-builds/<id>/ for the committed build. The page reads what travels
  * with the build (its credits) from here, so it describes the build shown.
  */
 export function frameBase(id: string, frame?: GameFrame | null): string {

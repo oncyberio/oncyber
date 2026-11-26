@@ -19,7 +19,8 @@
     "devices": ["desktop", "phone", "gamepad"],
     "avatars": {
         "others": "avatar",
-        "arrival": "pose"
+        "arrival": "pose",
+        "change": true
     },
     "arrival": {
         "walkable": true

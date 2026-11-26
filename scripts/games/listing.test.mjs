@@ -209,7 +209,7 @@ test("a catalog entry carries the listing and the page settings", () => {
         title: "Test Game",
         tagline: "a game for the tests",
         description: "Hit the ball over the net until somebody misses it.",
-        thumbnail: "/games/test/thumbnail.jpg",
+        thumbnail: "/game-builds/test/thumbnail.jpg",
         players: { min: 1, max: 4 },
         partySizes: [2, 4],
         devices: ["desktop", "phone"],
@@ -260,7 +260,7 @@ test("the catalog goes stale when a manifest changes", () => {
 
 test("the stage takes the thumbnail once, unless the game brings its own", async () => {
     const dir = mkdtempSync(join(tmpdir(), "listing-"));
-    const out = join(dir, "frontend/public/games/test");
+    const out = join(dir, "frontend/public/game-builds/test");
     mkdirSync(out, { recursive: true });
     mkdirSync(join(dir, "games/test"), { recursive: true });
     mkdirSync(join(dir, dirname(CATALOG_PATH)), { recursive: true });

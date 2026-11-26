@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const runtime = resolve(root, "../runtime/src");
-const out = resolve(root, "../../frontend/public/games/garden/ui.html");
+const out = resolve(root, "../../frontend/public/game-builds/garden/ui.html");
 const result = await build({
     entryPoints: [resolve(root, "src/ui/main.js")],
     bundle: true,

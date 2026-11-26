@@ -160,7 +160,7 @@ const visitor = {
         frame = document.createElement("iframe");
         frame.setAttribute("sandbox", "allow-scripts allow-pointer-lock");
         frame.setAttribute("referrerpolicy", "no-referrer");
-        frame.src = `/games/${GAME}/index.html`;
+        frame.src = `/game-builds/${GAME}/index.html`;
         addEventListener("message", (event) => {
             if (event.source !== frame.contentWindow) return;
             const type = event.data?.type;

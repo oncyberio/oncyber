@@ -6,7 +6,7 @@
 //   ... --json                                machine-readable
 //
 // Reads the last `pnpm games:check <id>` report
-// (frontend/public/games/<id>/check.json); it does not run the check.
+// (frontend/public/game-builds/<id>/check.json); it does not run the check.
 // A check is the bundle scan, the contract, one stage of the lifecycle run,
 // one of the stages the areas add (sound, loading, departure, results,
 // social, keys, safe area, devices, locomotion, avatars, party, saved
@@ -151,7 +151,7 @@ export function checksOf(report) {
 }
 
 export function scoreGame(root, id) {
-    const path = join(root, "frontend/public/games", id, "check.json");
+    const path = join(root, "frontend/public/game-builds", id, "check.json");
     const built = existsSync(join(root, "games", id, "game.json"));
     let report = null;
     try {

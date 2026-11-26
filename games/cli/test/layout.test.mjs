@@ -16,11 +16,11 @@ test("in the repository: games/<id>, built into the site's static folder", () =>
     assert.equal(gameSource(root, "ace", {}), join(root, "games/ace"));
     assert.equal(
         gameOut(root, "ace", {}),
-        join(root, "frontend/public/games/ace")
+        join(root, "frontend/public/game-builds/ace")
     );
     assert.equal(
         gameReports(root, "ace", {}),
-        join(root, "frontend/public/games/ace")
+        join(root, "frontend/public/game-builds/ace")
     );
 });
 

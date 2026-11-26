@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // What a game's committed build was made from, and the check that it still
-// is. A build under frontend/public/games/<id>/ is committed, so it can fall
+// is. A build under frontend/public/game-builds/<id>/ is committed, so it can fall
 // behind the source it was built from: the runtime changes, the build does
 // not, and the site serves the old one. This file keeps the two together.
 //
@@ -19,7 +19,7 @@
 // has changed since, when one was added or removed, or when the committed
 // build is not the files the record lists. The fix is always the same:
 // `pnpm games:publish <id>`, which builds, checks and records, then commit
-// games/<id>/build.json with frontend/public/games/<id>/.
+// games/<id>/build.json with frontend/public/game-builds/<id>/.
 //
 // A file here counts as an input even when the game does not import it (a
 // runtime module it never uses): the rule has to be one a person can check
@@ -144,7 +144,7 @@ export function gameInputs(root, id) {
 
 /** Where a game's committed build is. */
 export const buildFolder = (root, id) =>
-    join(root, "frontend/public/games", id);
+    join(root, "frontend/public/game-builds", id);
 
 /** Every file the build wrote, as paths from the build's folder. */
 export function buildOutputs(root, id) {
@@ -168,7 +168,7 @@ export function buildRecord(root, id) {
     return {
         version: 1,
         game: id,
-        about: "What frontend/public/games/<game>/ was built from, written by the game's build (scripts/games/build-record.mjs). pnpm games:test fails when an input changed since or the build is not these outputs; rebuild with pnpm games:publish <game> and commit both.",
+        about: "What frontend/public/game-builds/<game>/ was built from, written by the game's build (scripts/games/build-record.mjs). pnpm games:test fails when an input changed since or the build is not these outputs; rebuild with pnpm games:publish <game> and commit both.",
         // Enough of each hash to tell two versions of a file apart.
         inputs: hashes(root, gameInputs(root, id), 16),
         outputs: hashes(buildFolder(root, id), buildOutputs(root, id), 64),
@@ -196,7 +196,7 @@ const some = (list) =>
 export function buildDrift(root, id) {
     const out = buildFolder(root, id);
     if (!existsSync(join(out, "index.html"))) return [];
-    const shown = `frontend/public/games/${id}`;
+    const shown = `frontend/public/game-builds/${id}`;
     const fix = `Rebuild and check it: pnpm games:publish ${id}, then commit games/${id}/${BUILD_RECORD} with ${shown}/.`;
     const path = join(root, "games", id, BUILD_RECORD);
     let record = null;
@@ -296,7 +296,7 @@ if (
         process.exit(2);
     }
     if (!existsSync(join(buildFolder(repo, id), "index.html"))) {
-        console.error(`games: frontend/public/games/${id} is not built`);
+        console.error(`games: frontend/public/game-builds/${id} is not built`);
         process.exit(1);
     }
     const record = writeBuildRecord(repo, id);

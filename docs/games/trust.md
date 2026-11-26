@@ -44,12 +44,12 @@ receive anything the game sends it.
 
 ### How it is enforced
 
-| Where                                      | What happens                                                                                                                                                                                                                |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frontend/features/games/networkPolicy.js` | Reads the declaration and builds the game's `Content-Security-Policy`.                                                                                                                                                      |
-| `frontend/public/games/<id>/network.json`  | The declaration as published, written by the check. Part of the release: commit it with the build.                                                                                                                          |
-| `frontend/next.config.js`                  | Serves the policy on every file under `/games/<id>/`. A game with no `network.json`, or a malformed one, gets its own files only.                                                                                           |
-| `scripts/games/networkCheck.mjs`           | The check serves the build with the same policy and fails on `NETWORK_DECLARATION` (missing or malformed list), `NETWORK_UNDECLARED` (a request to a host not in the list) and `POLICY_BLOCKED` (eval, an injected script). |
+| Where                                           | What happens                                                                                                                                                                                                                |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/features/games/networkPolicy.js`      | Reads the declaration and builds the game's `Content-Security-Policy`.                                                                                                                                                      |
+| `frontend/public/game-builds/<id>/network.json` | The declaration as published, written by the check. Part of the release: commit it with the build.                                                                                                                          |
+| `frontend/next.config.js`                       | Serves the policy on every file under `/game-builds/<id>/`. A game with no `network.json`, or a malformed one, gets its own files only.                                                                                     |
+| `scripts/games/networkCheck.mjs`                | The check serves the build with the same policy and fails on `NETWORK_DECLARATION` (missing or malformed list), `NETWORK_UNDECLARED` (a request to a host not in the list) and `POLICY_BLOCKED` (eval, an injected script). |
 
 A game loaded from a hosted release gets the same policy from the
 release's host, built from the `network.json` inside the release; a host

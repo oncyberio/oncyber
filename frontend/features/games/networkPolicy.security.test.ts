@@ -15,7 +15,7 @@ const directive = (policy: string, name: string) =>
         ?.split(" ")
         .slice(1) ?? [];
 
-const games = path.join(__dirname, "../../public/games");
+const games = path.join(__dirname, "../../public/game-builds");
 const sources = path.join(__dirname, "../../../games");
 const hash = "sha256-n0yitukgHPWhP2R0+VSC57iD+ieTtiIPDO1lA5N7OdE=";
 
@@ -177,11 +177,16 @@ describe("game file headers", () => {
     const policyFor = (source: string) =>
         rules.filter((rule) => rule.source === source).pop()?.headers[0];
 
-    it("covers every game's files but not the /games/<id> pages", () => {
-        // `:path+` needs a segment after the id, so the Next.js page at
-        // /games/ace keeps the site's own headers.
-        for (const rule of rules) expect(rule.source).toMatch(/\/:path\+$/);
-        expect(rules[0].source).toBe("/games/:id/:path+");
+    it("covers every game's files, the build's own address included, and no page", () => {
+        // The builds are served from /game-builds/<id>/, apart from the
+        // game's page at /games/<id>, which keeps the site's own headers.
+        // `:path*` also covers the folder's address, which a host answers
+        // with the build's index file.
+        for (const rule of rules) {
+            expect(rule.source).toMatch(/^\/game-builds\/[^/]+\/:path\*$/);
+            expect(rule.source).not.toMatch(/^\/games\//);
+        }
+        expect(rules[0].source).toBe("/game-builds/:id/:path*");
         expect(rules[0].headers[0].value).toBe(gameContentSecurityPolicy([]));
     });
 
@@ -198,7 +203,7 @@ describe("game file headers", () => {
                 fs.readFileSync(path.join(games, id, "network.json"), "utf8")
             );
             expect(published.hosts).toEqual(declared.hosts);
-            const header = policyFor(`/games/${id}/:path+`);
+            const header = policyFor(`/game-builds/${id}/:path*`);
             expect(header.key).toBe("Content-Security-Policy");
             expect(header.value).toBe(
                 gameContentSecurityPolicy(declared.hosts, {
@@ -227,7 +232,7 @@ describe("game file headers", () => {
             '{"hosts":["cdn.example.com; script-src *"]}',
         ]) {
             const [, rule] = gameNetworkHeaders("/games", fake(content));
-            expect(rule.source).toBe("/games/demo/:path+");
+            expect(rule.source).toBe("/game-builds/demo/:path*");
             expect(rule.headers[0].value).toBe(strict);
         }
     });

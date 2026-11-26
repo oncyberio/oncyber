@@ -98,7 +98,7 @@ export function serveSocialCheck(id, out) {
                 "text/javascript",
                 readFileSync(join(here, "social-check-page.js"))
             );
-        const prefix = `/games/${id}/`;
+        const prefix = `/game-builds/${id}/`;
         const path = resolve(
             out,
             `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`

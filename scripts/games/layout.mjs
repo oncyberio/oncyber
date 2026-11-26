@@ -1,7 +1,7 @@
 // Where a game's source, build and reports are.
 //
 // In this repository (the default): games/<id>/ is the source,
-// frontend/public/games/<id>/ the build, and the reports sit beside the
+// frontend/public/game-builds/<id>/ the build, and the reports sit beside the
 // build. The `oncyber` command (games/cli/) runs the same checks on a game
 // that lives in a folder of its own, outside the repository, by setting:
 //
@@ -24,7 +24,7 @@ export const gameSource = (root, id, env = process.env) =>
 export const gameOut = (root, id, env = process.env) =>
     standalone(env)
         ? resolve(env.ONCYBER_GAME_OUT || join(env.ONCYBER_GAME_DIR, "dist"))
-        : join(root, "frontend/public/games", id);
+        : join(root, "frontend/public/game-builds", id);
 
 /** Where check.json is written. */
 export const gameReports = (root, id, env = process.env) =>

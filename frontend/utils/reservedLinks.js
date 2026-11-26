@@ -22,6 +22,8 @@ const APP_PATHS = [
     "exhibits",
     "explore",
     "feed",
+    // The committed game builds (public/game-builds/<id>/).
+    "game-builds",
     "games",
     "gl",
     "ingest",

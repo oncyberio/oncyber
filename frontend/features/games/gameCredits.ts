@@ -7,6 +7,8 @@
  * docs/games/releases.md) and shows the credits of the build on screen.
  * See docs/games/credits.md.
  */
+import { committedBuildBase } from "./gameRelease";
+
 export interface GameCredit {
     title: string;
     kind: string;
@@ -67,7 +69,7 @@ function licenseFileHref(base: string, value: unknown): string | null {
 export function parseGameCredits(
     game: string,
     value: unknown,
-    base = `/games/${game}/`
+    base = committedBuildBase(game)
 ): GameCredits | null {
     const data = value as {
         version?: unknown;
@@ -117,7 +119,7 @@ export async function loadGameCredits(
     game: string,
     signal?: AbortSignal,
     fetcher?: typeof fetch,
-    base = `/games/${game}/`
+    base = committedBuildBase(game)
 ): Promise<GameCredits | null> {
     try {
         const response = await (fetcher ?? fetch)(`${base}credits.json`, {

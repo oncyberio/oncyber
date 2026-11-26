@@ -7,6 +7,11 @@
 //            contains the visitor's avatar: crouched, facing the camera,
 //            hands empty. After `entered` it stands up.
 //   others   the second player in the room is drawn, as their Oncyber avatar.
+//   change   for a game that says `"avatars": { "change": true }`: the page
+//            says the visitor chose another avatar (`avatar`, what its
+//            picker sends), and the game wears it in place. The check's
+//            page also answers a game's `avatar-picker` request with that
+//            avatar, as if the visitor had picked it at once.
 //
 // A game opts out of either in game.json, with a reason (see readAvatarRule).
 // The harness answers in the form the game greeted in (docs/games/contract.md):
@@ -27,6 +32,7 @@ import { fileURLToPath } from "node:url";
 import { GAME_MESSAGE_PREFIX } from "../../games/runtime/src/contract.ts";
 import {
     arrivalProblems,
+    changeProblems,
     enteredProblems,
     othersProblems,
     readAvatarRule,
@@ -65,13 +71,16 @@ const harness = (
     id
 ) => `<!doctype html><meta charset="utf-8"><title>avatar check</title>
 <style>html,body{margin:0;height:100%;background:#000}iframe{border:0;width:100%;height:100%}</style>
-<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/games/${id}/index.html?check=avatars&party=2${
+<iframe id="game" sandbox="allow-scripts allow-pointer-lock" referrerpolicy="no-referrer" src="/game-builds/${id}/index.html?check=avatars&party=2${
     process.env.GAMES_CHECK_QUERY || ""
 }"></iframe>
 <script>
 const frame = document.getElementById("game");
 const avatar = location.origin + "/__check/avatar.vrm";
-const state = (window.__avatars = { prefix: "", ready: false, error: "", arrivalReady: false, pose: null, inspect: null, nonce: 0 });
+const state = (window.__avatars = { prefix: "", ready: false, error: "", arrivalReady: false, pose: null, inspect: null, nonce: 0, pickerAsked: 0 });
+// The avatar the page's picker would hand over: the same file at another
+// address, so the game has to fetch and wear it anew.
+const chosen = { avatarUrl: avatar + "?chosen", avatarId: "check-avatar-chosen", avatarName: "Check avatar" };
 const post = (kind, data = {}) => frame.contentWindow.postMessage({ type: state.prefix + kind, ...data }, "*");
 const other = { id: "check-2", name: "Player 2", pfp: "", avatarUrl: avatar + "?2" };
 const party = { id: "check-party-2-avatars", size: 2, members: [other] };
@@ -93,6 +102,11 @@ addEventListener("message", (event) => {
     if (kind === "ready") state.ready = true;
     if (kind === "error") state.error = String(event.data.message || "error");
     if (kind === "arrival-ready") state.arrivalReady = true;
+    // The page's picker, with a visitor who chooses at once.
+    if (kind === "avatar-picker") {
+        state.pickerAsked++;
+        post("avatar", chosen);
+    }
     if (kind === "pose" && [event.data.x, event.data.y, event.data.z, event.data.h].every(Number.isFinite)) state.pose = event.data;
 });
 // The party's room: this visitor's id, and the other player ten times a
@@ -105,6 +119,7 @@ window.__room = () => {
     }, 100);
 };
 window.__send = post;
+window.__choose = () => post("avatar", chosen);
 // The lobby's hand-over with its view, or (no view) a direct visit.
 window.__arrive = (view) => {
     if (contract()) post("enter", { arrival: view ? { from: "lobby", view } : { from: "direct", view: null }, trip });
@@ -133,7 +148,7 @@ export function serve(id, out) {
         if (url.pathname === "/") return send("text/html", harness(id));
         if (url.pathname === "/__check/avatar.vrm")
             return send("model/gltf-binary", readFileSync(FIXTURE));
-        const prefix = `/games/${id}/`;
+        const prefix = `/game-builds/${id}/`;
         const path = resolve(
             out,
             `.${decodeURIComponent(url.pathname.slice(prefix.length - 1))}`
@@ -181,7 +196,8 @@ export async function avatarStage({
     if (rule.arrival === "none" && rule.arrivalWhy)
         skipped.push({ check: "arrival", why: rule.arrivalWhy });
     const wantOthers = rule.others === "avatar",
-        wantArrival = rule.arrival === "pose";
+        wantArrival = rule.arrival === "pose",
+        wantChange = rule.change;
     const done = (extra = {}) => ({
         status: findings.length ? "failed" : "passed",
         party: 2,
@@ -189,7 +205,8 @@ export async function avatarStage({
         skipped,
         ...extra,
     });
-    if (findings.length || (!wantOthers && !wantArrival)) return done();
+    if (findings.length || (!wantOthers && !wantArrival && !wantChange))
+        return done();
 
     const server = await serve(id, out);
     const browser = await chromium.launch({
@@ -290,6 +307,25 @@ export async function avatarStage({
             await page.waitForTimeout(300);
             await page.screenshot({
                 path: join(source, ".check/avatar-party.png"),
+            });
+        }
+        if (wantChange) {
+            // The visitor chooses another avatar in the page's picker: the
+            // game wears it in place, without starting again.
+            const before = await page.evaluate(() => window.__ask());
+            await page.evaluate(() => window.__choose());
+            facts.change = await until(async () => {
+                const f = await page.evaluate(() => window.__ask());
+                return changeProblems(before, f).length ? null : f;
+            }, 30_000);
+            if (!facts.change) {
+                facts.change = await page.evaluate(() => window.__ask());
+                for (const message of changeProblems(before, facts.change))
+                    findings.push({ code: "AVATAR_CHANGE", message });
+            }
+            await page.waitForTimeout(300);
+            await page.screenshot({
+                path: join(source, ".check/avatar-changed.png"),
             });
         }
     } finally {

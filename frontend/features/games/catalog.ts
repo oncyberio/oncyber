@@ -8,7 +8,7 @@ export { gamesPreviewEnabled } from "./gamesPreview";
 
 /**
  * Games served by this deployment. Each one is a static bundle under
- * `public/games/<id>/`, built from `games/<id>/` with `pnpm games:publish`.
+ * `public/game-builds/<id>/`, built from `games/<id>/` with `pnpm games:publish`.
  * The entries are generated from each game's `game.json` (`listing` and
  * `page`) by `pnpm games:catalog`; see docs/games/listing.md.
  * Games are hidden at launch: nothing of a game answers outside development

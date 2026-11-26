@@ -46,7 +46,7 @@ nothing is published) when a file is unaccounted for.
 
 | Field         | Meaning                                                                                                                                            |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `files`       | Paths in the built folder (`frontend/public/games/<id>/`). `*` matches within a folder (use it for hashed names), `**` across folders.             |
+| `files`       | Paths in the built folder (`frontend/public/game-builds/<id>/`). `*` matches within a folder (use it for hashed names), `**` across folders.       |
 | `origin`      | `"own"`: made for this game. Then only `files` and an optional `note`.                                                                             |
 | `title`       | What it is, as a visitor would read it in the credits.                                                                                             |
 | `kind`        | `model`, `texture`, `image`, `audio`, `font`, `motion`, `library`, `data` or `other`.                                                              |
@@ -95,7 +95,7 @@ rule; they are a list of open questions, not a precedent.
 
 ## Where credits show up
 
--   `frontend/public/games/<id>/credits.json`, written by the check. It is
+-   `frontend/public/game-builds/<id>/credits.json`, written by the check. It is
     one of the release's files ([releases.md](releases.md)): the page reads
     it from wherever the game's frame loads, so a hosted release shows its
     own credits and licence texts.

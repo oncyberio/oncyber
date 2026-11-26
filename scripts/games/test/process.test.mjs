@@ -183,7 +183,7 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
     assert.ok(!existsSync(at("build.json")));
     assert.match(
         readFileSync(at("vite.config.js"), "utf8"),
-        /frontend\/public\/games\/brief-sumo"/
+        /frontend\/public\/game-builds\/brief-sumo"/
     );
     assert.match(readFileSync(at("index.html"), "utf8"), /Sumo Ring/);
     assert.equal(
@@ -281,10 +281,10 @@ test("the score counts passed checks and holds unbuilt games to the same list", 
     );
     const root = mkdtempSync(join(tmpdir(), "oncyber-score-"));
     mkdirSync(join(root, "games/a"), { recursive: true });
-    mkdirSync(join(root, "frontend/public/games/a"), { recursive: true });
+    mkdirSync(join(root, "frontend/public/game-builds/a"), { recursive: true });
     writeFileSync(join(root, "games/a/game.json"), "{}");
     writeFileSync(
-        join(root, "frontend/public/games/a/check.json"),
+        join(root, "frontend/public/game-builds/a/check.json"),
         JSON.stringify(report)
     );
     const result = scoreAll(root, ["a", "missing"]);

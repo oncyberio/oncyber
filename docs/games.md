@@ -8,7 +8,7 @@ ships no engine. Why: [plans/agent-built-worlds.md](plans/agent-built-worlds.md)
 
 Games are hidden at launch. Nothing of a game answers outside development
 unless `GAMES_PREVIEW=1` is set: not its page (`/games/<id>`), not the files
-of its build (`/games/<id>/...`, `check.json` and `release.json` included,
+of its build (`/game-builds/<id>/...`, `check.json` and `release.json` included,
 stopped in `frontend/middleware.ts`), not its hosted releases
 (`/api/games/releases/`), its saved data, its results or publishing. One
 function decides for all of them: `gamesPreviewEnabled` in
@@ -17,26 +17,49 @@ in a browser only the development server reads as on: a preview deployment
 serves a game to someone who has its address, and the lobby lists games on
 the development server alone.
 
+## Addresses
+
+A game lives at `/games/<id>`: the site's page (`pages/games/[game].tsx`),
+which frames the game. Its committed build is served from somewhere else,
+`/game-builds/<id>/` (`frontend/public/game-builds/<id>/`), and that is
+deliberate. A host answers a folder's address with the index file inside
+it, ahead of any page: while builds were kept in `public/games/<id>/`, a
+deployment answered `/games/<id>` with the build's own `index.html`, the
+raw game with no page around it. Nothing may be put under `public/games/`
+again; `gamesPreview.test.ts` fails if the folder comes back.
+
+The build's address is one constant on each side that needs it
+(`GAME_BUILDS_PATH` in `features/games/gameRelease.ts` for the frame,
+`networkPolicy.js` for the files' headers, `gamesPreview.ts` for the
+middleware) and the tests hold them together. `game-builds` is reserved, so
+no space can take it as its link (`utils/reservedLinks.js`).
+
+A game has no short address of its own yet. A space is at `/spaces/<id>`
+until its owner sets a link, and then also at `/<link>`
+(`pages/[slug].tsx`, which looks the link up among spaces and profiles
+only). Nothing gives a game a link: not `game.json`, not the catalog, not a
+published game's record. What it would take is under "Not built yet".
+
 ## Where things are
 
-| Path                              | What it is                                                                          |
-| --------------------------------- | ----------------------------------------------------------------------------------- |
-| `games/runtime/`                  | The lifecycle runtime (TypeScript source, no dependencies). Games bundle it.        |
-| `docs/games/`                     | One page of rules per area of the contract, written for coding agents.              |
-| `games/<id>/`                     | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project. |
-| `games/kits/avatar/`              | Optional avatar kit for three.js games: [games/avatar-kit.md](games/avatar-kit.md). |
-| `games/kits/locomotion/`          | Optional kit to walk like the lobby: [games/locomotion.md](games/locomotion.md).    |
-| `frontend/public/games/<id>/`     | The published build, plus `release.json` and `check.json`. Committed.               |
-| `frontend/features/games/`        | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
-| `frontend/pages/games/[game].tsx` | `/games/<id>`.                                                                      |
-| `frontend/pages/dev/games.tsx`    | `/dev/games`: each game's release and last check.                                   |
-| `scripts/games/games.mjs`         | `pnpm games:check` and `pnpm games:publish`.                                        |
-| `docs/games/party.md`             | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
-| `games/kits/ui/`                  | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
-| `docs/games/listing.md`           | What a game's listing must contain, and what the lobby shows from it.               |
-| `scripts/games/releases/`         | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
-| `games/runtime/messages.json`     | Every message kind, who sends it, and the file on each side that handles it.        |
-| `games/<id>/build.json`           | What the committed build was made from (`scripts/games/build-record.mjs`).          |
+| Path                                | What it is                                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| `games/runtime/`                    | The lifecycle runtime (TypeScript source, no dependencies). Games bundle it.        |
+| `docs/games/`                       | One page of rules per area of the contract, written for coding agents.              |
+| `games/<id>/`                       | A game's source, its `game.json` manifest and `scenario.json`. Its own npm project. |
+| `games/kits/avatar/`                | Optional avatar kit for three.js games: [games/avatar-kit.md](games/avatar-kit.md). |
+| `games/kits/locomotion/`            | Optional kit to walk like the lobby: [games/locomotion.md](games/locomotion.md).    |
+| `frontend/public/game-builds/<id>/` | The published build, plus `release.json` and `check.json`. Committed.               |
+| `frontend/features/games/`          | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
+| `frontend/pages/games/[game].tsx`   | `/games/<id>`.                                                                      |
+| `frontend/pages/dev/games.tsx`      | `/dev/games`: each game's release and last check.                                   |
+| `scripts/games/games.mjs`           | `pnpm games:check` and `pnpm games:publish`.                                        |
+| `docs/games/party.md`               | Parties: roster, host, seats, formats, the match channel, and the rule for games.   |
+| `games/kits/ui/`                    | Optional UI kit so menus look like Oncyber. See [games/ui-kit.md](games/ui-kit.md). |
+| `docs/games/listing.md`             | What a game's listing must contain, and what the lobby shows from it.               |
+| `scripts/games/releases/`           | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
+| `games/runtime/messages.json`       | Every message kind, who sends it, and the file on each side that handles it.        |
+| `games/<id>/build.json`             | What the committed build was made from (`scripts/games/build-record.mjs`).          |
 
 ## The lifecycle
 
@@ -74,7 +97,7 @@ binds no key the page reserves. The rule and its check:
 
 ## The page bridge
 
-`GamePage` mounts `public/games/<id>/index.html` with
+`GamePage` mounts `public/game-builds/<id>/index.html` with
 `sandbox="allow-scripts allow-pointer-lock"`. The game has an opaque origin:
 no cookies, storage or account access. Messages are `oncyber:game:<kind>`
 for every game; a build from before the contract says `<id>:<kind>` and is
@@ -104,6 +127,13 @@ Chat and voice are the page's: a game never builds its own. It may send
 `voice` (poses for spatial voice) and it receives `talking`. See
 [games/voice-chat.md](games/voice-chat.md).
 
+The avatar picker is the page's too, the same one a framed world gets
+(`frontend/features/avatar-picker/`): a game asks for it (`avatar-picker`)
+and is told what the visitor chose (`avatar`), which it wears in place with
+the avatar kit's `kit.wear(url)`. A game never lists avatars, draws a
+picker or saves one. See [games/avatar-kit.md](games/avatar-kit.md),
+"Changing avatar".
+
 Leaving has its own four messages (`exit`, `departure`, `departure-staging`,
 `departure-ready`) and one rule: exit always returns to the lobby, from the
 walkable arrival state, never from a dead end. See
@@ -126,7 +156,7 @@ string storage (a `storage` message and values in `identity`) went with
 contract 3; what a visitor saved through it still reads as a key's first
 value.
 
-Files under `/games/<id>/` are served with `Access-Control-Allow-Origin: *`
+Files under `/game-builds/<id>/` are served with `Access-Control-Allow-Origin: *`
 because the opaque frame loads them in CORS mode.
 
 A game reaches only its own files and the hosts in its `game.json`
@@ -250,7 +280,7 @@ scenario stub, and declares the game's saved keys to the page;
 `pnpm games:score` reports which checks each game passes.
 
 1. Copy `games/lantern-tag` as a template, or start a Vite project in
-   `games/<id>/` that builds into `frontend/public/games/<id>/` and aliases
+   `games/<id>/` that builds into `frontend/public/game-builds/<id>/` and aliases
    `@oncyber/game-runtime` to `games/runtime/src` (see Lantern Tag's
    `vite.config.js`). Its `npm run build` must end by writing the build's
    record, as every game's does (`scripts/games/build-record.mjs`). Do not
@@ -278,6 +308,7 @@ claimed phone doesn't pass. Rules: [games/devices.md](games/devices.md).
 ## Check and publish
 
 ```sh
+pnpm games:build garden      # build only, to try a change (it clears the last check)
 pnpm games:check garden      # run the check on the current build
 pnpm games:publish garden    # build, check, and write release.json if it passed
 ```
@@ -356,7 +387,7 @@ Every shipped file must also be credited under an allowed licence
 ([games/credits.md](games/credits.md)).
 
 A release is the set of files whose hashes make up its `release` id. Commit
-`frontend/public/games/<id>` to ship it, with `games/<id>/build.json`.
+`frontend/public/game-builds/<id>` to ship it, with `games/<id>/build.json`.
 
 A committed build can fall behind what it was built from: the runtime
 changes, the build does not, and the site serves the old one. Every build
@@ -392,8 +423,8 @@ Still owed:
 -   **Padel** plays NPC doubles only (no match between people), does not
     claim the phone, and keeps its own bodies on court: the avatar kit
     cannot play a game's own motion capture on its rig.
--   **What Padel's own page did that the shared page does not**: an avatar
-    picker and a live avatar change during the visit; the lobby's emote
+-   **What Padel's own page did that the shared page does not**: the
+    lobby's emote
     panel and its 1 to 9 shortcuts (a game gets the kit's four emotes on
     keys it declares itself); a way for the page to ask the game to open
     something (its Play and Settings buttons) and for the game to tell the
@@ -409,11 +440,12 @@ Still owed:
     it (`pnpm games:new` copies Lantern Tag).
 -   **The page's own interface** (the bar of controls, chat, credits, the
     results card, the gates) takes its colours, fonts and durations from
-    the design tokens through `features/games/gameChrome.ts`, but is still
-    written as inline styles: no hover or focus states, the chat field
-    removes its outline, and its buttons are not the shared `ActionButton`
-    or the lobby's `experienceControl`. Moving it onto those is a redesign,
-    not a rename. `/dev/games` still writes its own colours.
+    the design tokens, and everything a visitor can press, type in or
+    follow is a shared primitive (`features/games/gameControls.tsx`: the
+    lobby's glass and control material over the game, the app's
+    `ActionButton` in cards, dialogs and notices), with hover, pressed,
+    disabled and focus states. Nobody has yet looked at it over a running
+    game on a phone, where the bar of controls is now the lobby's height.
 -   **Ace** shows the draw for doubles and tournaments; playing them
     through is not built.
 -   The process stage's bot plays alone. A bot for a match between two
@@ -434,3 +466,14 @@ why: [games/field-health.md](games/field-health.md).
     [games/releases.md](games/releases.md).
 -   A headset profile for the check (phone and gamepad: [games/devices.md](games/devices.md)).
 -   Games in the lobby's Explore panel outside the development server.
+-   A game at `/<link>`. Spaces have links: one collection of names
+    (`customLink`), set through `exhibit/updateCustomLink` in a transaction
+    that keeps them unique, and read by `pages/[slug].tsx`. For a game it
+    needs: a `link` a game may declare (the listing in `game.json` for a
+    catalogued game, the record for a published one, with the `oncyber`
+    command and the publish procedures carrying it); the same collection
+    made the one registry of names for spaces and games, so neither can
+    take the other's; and `pages/[slug].tsx` asking it which of the two a
+    name is before it renders (the game's page is `pages/games/[game].tsx`'s,
+    with the same gates). The lobby and party links would keep using
+    `/games/<id>`, which stays the game's permanent address.
