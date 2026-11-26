@@ -138,6 +138,29 @@ describe("saving a space's script", () => {
             expect((procedure as any)._RPC_OPTS.auth).toBe(true);
     });
 
+    test("a space keeps one script, and what is sent is only what a script is", () => {
+        const schema = (save as any)._RPC_OPTS.schema;
+        const input = (scripts: object[]) => ({
+            experienceId: "space-1",
+            scripts,
+        });
+        expect(schema.safeParse(input([script()])).success).toBe(true);
+        expect(schema.safeParse(input([])).success).toBe(true);
+        expect(schema.safeParse(input([script(), script()])).success).toBe(
+            false
+        );
+        // What an older page still sends with a script is dropped, not kept.
+        const parsed = schema.parse(
+            input([{ ...script(), prompt: "make a game", updatedAt: 3 }])
+        );
+        expect(Object.keys(parsed.scripts[0]).sort()).toEqual([
+            "enabled",
+            "id",
+            "name",
+            "source",
+        ]);
+    });
+
     test("an admin in early access saves it, stamped", async () => {
         const result = await as("owner").save({
             experienceId: "space-1",
@@ -261,7 +284,6 @@ describe("asking the model", () => {
             canEdit: true,
             earlyAccess: true,
             allowed: true,
-            remaining: 3,
         });
         expect(await as("visitor").access()).toMatchObject({
             canEdit: false,
@@ -283,7 +305,6 @@ describe("asking the model", () => {
         expect(await ask("owner")).toMatchObject({
             ok: true,
             source: "go()",
-            remaining: 2,
         });
         expect(usage("owner")).toMatchObject({ requests: 1, costUsd: 0.01 });
         expect(ledger()).toEqual([
@@ -312,7 +333,7 @@ describe("asking the model", () => {
         expect(ledger().map((row) => row.ok)).toEqual([false, false]);
         // One left of three.
         answers();
-        expect(await ask("owner")).toMatchObject({ ok: true, remaining: 0 });
+        expect(await ask("owner")).toMatchObject({ ok: true });
         expect(await ask("owner")).toEqual({
             ok: false,
             error: "That's today's limit. Try again tomorrow.",

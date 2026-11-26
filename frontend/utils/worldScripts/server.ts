@@ -79,8 +79,6 @@ export interface AiAccess {
      */
     earlyAccess: boolean;
     reason?: string;
-    /** Requests left today; credits will replace this. */
-    remaining?: number;
 }
 
 function dayKey(now = new Date()) {
@@ -127,15 +125,9 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
         .get()
         .catch(() => null);
     const used = usage?.exists ? Number(usage.data()?.requests) || 0 : 0;
-    const remaining = dailyLimit() - used;
-    if (remaining <= 0)
-        return {
-            allowed: false,
-            earlyAccess: true,
-            reason: TODAYS_LIMIT,
-            remaining: 0,
-        };
-    return { allowed: true, earlyAccess: true, remaining };
+    if (used >= dailyLimit())
+        return { allowed: false, earlyAccess: true, reason: TODAYS_LIMIT };
+    return { allowed: true, earlyAccess: true };
 }
 
 /**
@@ -147,19 +139,18 @@ export async function checkAiAccess(userId: string): Promise<AiAccess> {
 export async function reserveAiRequest(
     userId: string,
     limit: number = dailyLimit()
-): Promise<{ allowed: boolean; remaining: number; reason?: string }> {
+): Promise<{ allowed: boolean; reason?: string }> {
     const ref = dailyUsage(userId);
     return db.runTransaction(async (transaction) => {
         const usage = await transaction.get(ref);
         const used = usage.exists ? Number(usage.data()?.requests) || 0 : 0;
-        if (used >= limit)
-            return { allowed: false, remaining: 0, reason: TODAYS_LIMIT };
+        if (used >= limit) return { allowed: false, reason: TODAYS_LIMIT };
         transaction.set(
             ref,
             { userId, day: dayKey(), requests: used + 1 },
             { merge: true }
         );
-        return { allowed: true, remaining: limit - used - 1 };
+        return { allowed: true };
     });
 }
 

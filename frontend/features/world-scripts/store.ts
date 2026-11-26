@@ -41,7 +41,6 @@ export interface WorldScriptsState {
     /** On the early-access list: the AI sidebar is offered to these only. */
     earlyAccess: boolean;
     askReason: string;
-    remaining: number | null;
     busy: boolean;
     panelOpen: boolean;
     transcript: TranscriptEntry[];
@@ -64,7 +63,6 @@ const initial: WorldScriptsState = {
     canAsk: false,
     earlyAccess: false,
     askReason: "",
-    remaining: null,
     busy: false,
     panelOpen: false,
     transcript: [],

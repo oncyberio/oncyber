@@ -284,8 +284,6 @@ export function createController(
                     answer.source.split("\n").length
                 } lines)`,
             });
-            if (answer.remaining != null)
-                setWorldScripts({ remaining: answer.remaining });
             // A style the model wrote comes with the script: the world is
             // drawn in it, and it is saved, only if the script lands.
             const style = cleanStyle(answer.style) || undefined;
@@ -347,7 +345,6 @@ export function createController(
                 {
                     source: answer.source,
                     name: answer.name,
-                    prompt: request,
                     enabled: true,
                 },
                 style

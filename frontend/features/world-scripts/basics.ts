@@ -28,8 +28,6 @@ export const WORLD_SCRIPT_LIMITS = {
     maxSeconds: 30,
     /** Source size the server saves and the sandbox accepts. */
     maxSourceBytes: 48_000,
-    /** Scripts one space can keep. */
-    maxScriptsPerSpace: 3,
     /** Errors before the host stops a script for good. */
     maxErrors: 25,
     /** Models one script can have (a painted one is thousands of strokes). */

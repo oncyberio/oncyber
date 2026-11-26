@@ -18,6 +18,16 @@ asking the model, and putting a script or a style on a space. An admin who
 is not on the list can still take a space's scripts away. Being on the list
 does not make someone an editor: both are checked.
 
+The page asks the server what an account may do (`access`) only when the
+answer could be yes: for the space's owner and its editors, who are on the
+space the page already has, and once per space for as long as the page
+lives (`features/world-scripts/access.ts`). Every other visitor is not
+asked about at all. A site admin may edit any space's scripts without
+being one of its editors, and the page cannot tell one from any other
+visitor: an admin adds `?scripts=1` to the space's address, which makes
+the page ask. Anyone can add it; the server's answer for anyone else is
+no, as it is on every request whatever the page shows.
+
 ## Asking for a change
 
 A space's admins (its owner, its editors and site admins) who are in early
@@ -148,8 +158,73 @@ than 120 messages between two frames is stopped. A limit a script runs
 into is said once in the sidebar. The host
 sends it the player and camera every frame, and keys and clicks.
 
-What the script can use is in `features/world-scripts/sdk.ts`; the model's
-brief, with an example game, is `features/world-scripts/brief.ts`.
+## What a script can use
+
+The script API is defined in two tables, and nowhere else:
+
+-   `features/world-scripts/scriptApi.ts`: every name a script can use
+    (`world.add`, `ui.hud`, `thing.remove`...), each marked with whether the
+    model's brief tells of it.
+-   `THING_PROPS` in `features/world-scripts/protocol.ts`: every property of
+    a thing, with the check it passes on the way in, what a change of it
+    means in the scene (placed, built again, drawn again), how the SDK sends
+    it (whenever it changes, or once), and whether the model is told of it.
+
+Made from them: the host's check of a thing's properties
+(`cleanThingProps`), the engine's lists of what to rebuild or redraw, the
+lists the SDK sends properties by, what the script's code is handed, and
+the brief's lists to choose from (shapes, patterns, sounds, corners). What
+cannot be made from a table is held to them by `scriptApi.test.ts`, in both
+directions: the SDK (`sdk.ts`), run for real, has exactly the names listed;
+the brief (`brief.ts`) tells of every name and property marked as offered
+and of none that is not; every request the SDK sends is one the host takes.
+To add to the API, add it to the table, to the SDK, and, when the model
+should use it, to the brief: the test says what is missing.
+
+### In the SDK, not yet offered to the model
+
+These work, are checked by the host like everything else and have tests
+(`sdk.test.ts`), but the brief does not mention them, so the model never
+writes them. They have not been tried with the model in a browser; offering
+one is a change to the brief and a flag in the table.
+
+-   `world.build(spec)`: a model made of parts (`poly`, `box`, `beam`,
+    `prism`, `line`, `place`, `clear`), drawn in the world's style
+    (`parts.ts`). A part needs a colour to be drawn.
+-   `world.solid(spec)`: boxes and one-sided walls a visitor cannot walk
+    through; and `solid: true` on a plain shape.
+-   `world.open(spec)`: a box-shaped hole in the world's own model, in what
+    is drawn and in what is walked into, for as long as the script keeps it.
+-   `world.avatar(spec)`: one of Oncyber's built-in avatars standing in the
+    world, with a name, a motion and `speak(text, seconds)`.
+-   `world.doors` and `world.door(id)`: the world's own doors, each with
+    where it is and `open` from 0 to 1; a door the space made a portal is
+    listed and cannot be swung.
+
+## The engine
+
+A script's things are drawn in the real scene, so the feature has to reach
+into the 3D engine, which has no interface for it. It does so in one file,
+`features/world-scripts/engine/facade.ts` (and `engine/worldUp.ts`, the one
+thing read before the engine's own modules may be loaded). Nothing else in
+the feature imports the engine or reads its globals; a test fails if
+something does.
+
+The engine is JavaScript reached through its singletons, and most of what
+the facade reads is optional by nature (no player yet, no world between two
+spaces), so a rename there would not fail to compile here: it would quietly
+give no artworks, no collisions, no teleport. `engine/facade.contract.test.ts`
+reads the engine's source and fails, by name, when something the facade
+relies on is gone. When it fails, the engine changed: fix the facade, then
+the list.
+
+`engineAdapter.ts` only puts the parts together. Each has its own file and
+test in `engine/`: the script's things (`things.ts`; how they are drawn in
+`thingLooks.ts`, `text.ts` and `geometry.ts`; what is more than a shape in
+`specials.ts`, `models.ts`, `avatars.ts`; glides in `glides.ts`), the
+space's artworks (`artworks.ts`), what is walked into (`collision.ts`,
+`openings.ts`, `doors.ts`), where the visitor stands (`view.ts`), and keys
+and clicks (`input.ts`).
 
 ## In a framed world
 
@@ -213,6 +288,11 @@ space's other updates refuse those fields
 ```sh
 pnpm -C frontend test features/world-scripts utils/worldScripts pages/api/_v2/worldScripts
 ```
+
+A saved script's record is `{ id, name, source, enabled, updatedAt }`, one
+to a space. `enabled: false` switches a script off for everyone without
+taking it away; nothing in the interface sets it, it is how a script is
+turned off by hand.
 
 The host and the SDK are tested without a browser: `scriptSandbox.jest.ts`
 runs the real SDK and a script in a context of their own, and

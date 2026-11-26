@@ -35,7 +35,10 @@ export const access = proc({
                 canEdit: false,
                 reason: "Only this space's admins can change its scripts.",
             };
-        return { ...(await checkAiAccess(this.userId)), canEdit: true };
+        const { allowed, earlyAccess, reason } = await checkAiAccess(
+            this.userId
+        );
+        return { allowed, earlyAccess, reason, canEdit: true };
     },
 });
 
@@ -107,11 +110,7 @@ export const generate = proc({
         try {
             const { answer, usage } = await askForScript({ ...input, request });
             await recordAiUsage({ ...usage, ...who, ok: true });
-            return {
-                ok: true as const,
-                ...answer,
-                remaining: reserved.remaining,
-            };
+            return { ok: true as const, ...answer };
         } catch (error) {
             // A call that timed out or was refused says nothing of its
             // cost: it is in the ledger all the same.

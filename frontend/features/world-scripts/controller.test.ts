@@ -60,7 +60,6 @@ function server(answers: string[], extra: object = {}) {
                           name: "Game",
                           say: "Done.",
                           change: "content",
-                          remaining: 7,
                           ...extra,
                       }
                     : { ok: false, error: "No more." };
@@ -105,13 +104,11 @@ describe("the AI sidebar's requests", () => {
         expect(saved[0].scripts[0]).toMatchObject({
             source: "first()",
             name: "Game",
-            prompt: "make a game",
             enabled: true,
         });
         expect(getWorldScripts()).toMatchObject({
             source: "first()",
             busy: false,
-            remaining: 7,
         });
     });
 

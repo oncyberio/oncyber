@@ -28,7 +28,6 @@ const scriptSchema = z.object({
             "The script is too long."
         ),
     enabled: z.boolean(),
-    prompt: z.string().max(1200).optional(),
 });
 
 /**
@@ -48,7 +47,8 @@ export const save = proc({
     auth: true,
     schema: z.object({
         experienceId: z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/),
-        scripts: z.array(scriptSchema).max(L.maxScriptsPerSpace).optional(),
+        // One script to a space: a list, as it is stored, of one or none.
+        scripts: z.array(scriptSchema).max(1).optional(),
         /** The world's creative direction; checked by cleanStyle. */
         style: z.record(z.string(), z.unknown()).optional(),
         base: z.number().nonnegative().optional(),
