@@ -100,6 +100,29 @@ stopped and visitors see the space without it, so open the space after a
 push. The command and its tests are `scripts/world-script.mjs`; `pnpm
 world:test`.
 
+### One written this way: Starry Night's "Fallen stars"
+
+`frontend/features/world-scripts/examples/starryNight.fallenStars.js` is a
+script written in a file against the reference and pushed with the command
+above, for the space built on the Starry Night world. Seven stars have
+fallen along the road from where a visitor starts down to the first house;
+catching one lights a lantern on the way, and all seven light the road.
+
+It is here as a worked example, with a test beside it that runs it in the
+sandbox the way a visitor's browser does (it starts, a star is caught only
+from the ground beside it, the last one ends the round). A script in the
+repository does nothing by being here: it reaches a space only when someone
+who may edit that space pushes it.
+
+```sh
+pnpm world script push <the Starry Night space's id> \
+    frontend/features/world-scripts/examples/starryNight.fallenStars.js
+```
+
+A script places things at points of the world it was written for, so its
+positions (here the ground along that road) are that world's and mean
+nothing in another.
+
 ## How a change lands
 
 The model labels each change:

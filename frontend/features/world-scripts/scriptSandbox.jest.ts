@@ -57,10 +57,16 @@ export function openSandbox(
                 ...extra,
             });
         },
-        /** One frame; returns the requests the script answered it with. */
-        tick(dt = 1 / 60) {
+        /**
+         * One frame; returns the requests the script answered it with.
+         * `at` is where the visitor stands for it.
+         */
+        tick(dt = 1 / 60, at?: number[]) {
             const before = posted.length;
-            send({ t: "tick", seq: ++seq, dt, view: VIEW });
+            const view = at
+                ? { ...VIEW, player: { ...VIEW.player, position: at } }
+                : VIEW;
+            send({ t: "tick", seq: ++seq, dt, view });
             return posted
                 .slice(before)
                 .filter((message) => message.t === "ops")
