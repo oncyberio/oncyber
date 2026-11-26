@@ -33,9 +33,9 @@ describe("motionBlurOptions", () => {
     });
 });
 
-test("tiles are the longest blur: 4% of the height", () => {
-    expect(tileSize(1080)).toBe(44);
-    expect(tileSize(2160)).toBe(87);
+test("tiles are the longest blur: 6% of the height", () => {
+    expect(tileSize(1080)).toBe(65);
+    expect(tileSize(2160)).toBe(130);
     expect(tileSize(10)).toBe(4);
 });
 

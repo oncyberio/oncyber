@@ -68,7 +68,7 @@ import { isCameraCut, tileSize } from "./settings"
  */
 export class CameraMotionBlur {
 
-	constructor({ shutter = 0.5, samples = 12 } = {}) {
+	constructor({ shutter = 1, samples = 16 } = {}) {
 
 		this.shutter = shutter
 
@@ -574,12 +574,12 @@ export class CameraMotionBlur {
 		u.reprojection.value.copy( this.previousViewProjection ).multiply( camera.matrixWorld )
 
 		// The shutter stays open for `shutter` of a 30 fps frame whatever
-		// the frame rate (0.5: 1/60 s, the usual game setting), so the
-		// blur is as long at 60 or 120 fps as at 30. Never more than the
-		// whole step between two frames.
+		// the frame rate (1: 1/30 s, the strong blur of console games), so
+		// the blur is as long at 60 or 120 fps as at 30. At most twice the
+		// step between two frames.
 		const gap = Math.max( time - this.previous.time, 1e-3 )
 
-		u.scale.value = 0.5 * Math.min( 1, this.shutter / 30 / gap )
+		u.scale.value = 0.5 * Math.min( 2, this.shutter / 30 / gap )
 
 		this.updateAnchor( camera, time )
 

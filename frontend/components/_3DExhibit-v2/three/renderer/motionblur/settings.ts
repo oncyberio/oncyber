@@ -4,21 +4,21 @@
  * The blur is off unless the page asks for it with `?motionblur=1` (any of
  * 1, on, true, yes). `?motionblur=0` turns it off. `?mbshutter=` changes the
  * shutter (0 to 1: how much of a 30 fps frame the virtual shutter stays
- * open, whatever the real frame rate; 0.5, an exposure of 1/60 s, is the
- * usual game setting and twice what a 180 degree shutter gives at 60 fps). `?mbsamples=` changes the
- * number of taps per pixel (4 to 32, default 12).
+ * open, whatever the real frame rate; the default 1, an exposure of 1/30 s,
+ * is the strong blur of console games). `?mbsamples=` changes the number of
+ * taps per pixel (4 to 32, default 16).
  */
 
-export const DEFAULT_SHUTTER = 0.5;
+export const DEFAULT_SHUTTER = 1;
 
-export const DEFAULT_SAMPLES = 12;
+export const DEFAULT_SAMPLES = 16;
 
 /**
  * Longest blur, as a fraction of the drawing buffer's height. It is also
  * the tile size of the reconstruction filter, so it bounds the cost of the
- * tile pass. 4% is about 44 px on a 1080 px tall view.
+ * tile pass. 6% is about 65 px on a 1080 px tall view.
  */
-export const MAX_BLUR_FRACTION = 0.04;
+export const MAX_BLUR_FRACTION = 0.06;
 
 /** A camera jump longer than this (scene units, metres) is a cut: no blur. */
 export const CUT_DISTANCE = 3;
