@@ -5,11 +5,11 @@
  */
 import { BufferAttribute, BufferGeometry, Mesh, type Object3D } from "three";
 import { createPaintedSurface } from "@features/worldMods/paintedSurface/paintedSurface";
-import { IS_MOBILE } from "@3/three/constants";
 import { resolveLook, type createLookCache } from "../looks";
 import { buildParts } from "../parts";
 import type { ThingProps } from "../protocol";
 import type { WorldStyle } from "../style";
+import { onMobile } from "./facade";
 
 type Looks = ReturnType<typeof createLookCache>;
 
@@ -74,7 +74,7 @@ export function createModel(id: string, holder: Object3D, looks: Looks) {
                 painted,
                 // lit looks take their light from the world's own lights
                 lamp: painted || spec.look === "flat" ? props.lamp : undefined,
-                density: IS_MOBILE ? 0.6 : 1,
+                density: onMobile() ? 0.6 : 1,
                 strokes: style.strokes,
                 seed: seedOf(id),
             });

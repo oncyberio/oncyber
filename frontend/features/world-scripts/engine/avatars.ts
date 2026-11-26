@@ -8,19 +8,14 @@
  * script cannot make the page fetch a file of its choosing.
  */
 import { Vector3, type Object3D } from "three";
-import Scene from "@3/three/scene";
-import Players from "@3/three/factory/player";
-import GLTF from "@3/three/gltf";
-import VRMS from "@3/three/factory/player/vrms.json";
-import {
-    CURRENT_SPACE,
-    DEFAULT_PLAYER_AVATAR_PICTURE,
-} from "@3/three/constants";
-import {
-    UPDATE_CHAT,
-    UPDATE_USERNAME,
-} from "@3/three/factory/player/constants";
 import type { AvatarMotion, ThingProps } from "../protocol";
+import {
+    avatarCatalogue,
+    loadAvatarFile,
+    requestPooledAvatar,
+    standAvatar,
+    type StandingAvatar,
+} from "./facade";
 
 /** Each motion as the engine's emote number; idle is no emote. */
 const EMOTE: Record<AvatarMotion, number> = {
@@ -35,7 +30,7 @@ const DEFAULT_AVATAR = "sunshine";
 
 /** The catalogue's file for an avatar id, or the default avatar's. */
 export function avatarUrl(id: string | undefined): string {
-    const catalogue = VRMS as Record<string, { url?: string }>;
+    const catalogue = avatarCatalogue();
     return (
         (id && Object.prototype.hasOwnProperty.call(catalogue, id)
             ? catalogue[id]?.url
@@ -46,7 +41,7 @@ export function avatarUrl(id: string | undefined): string {
 let count = 0;
 
 export function createAvatar(id: string, holder: Object3D) {
-    let npc: any = null;
+    let npc: StandingAvatar | null = null;
     let disposed = false;
     let url = "";
     let props: ThingProps = {};
@@ -60,46 +55,19 @@ export function createAvatar(id: string, holder: Object3D) {
 
     async function load(wanted: string) {
         url = wanted;
-        const gltf = GLTF as any;
-        if (gltf[wanted] == null)
-            await gltf.loadOnce({ name: wanted, url: wanted });
+        await loadAvatarFile(wanted);
         if (disposed || url !== wanted) return;
-        const userData: Record<string, unknown> = {
-            avatar: DEFAULT_PLAYER_AVATAR_PICTURE,
-            username: props.name || "",
-            walletId: "",
-            isAdmin: false,
-            VRM: wanted,
-            HIGH_VRM: wanted,
-        };
-        // an avatar with moving hair and cloth is drawn from a pool
-        if (gltf[wanted]?.isHighQuality) {
-            const pooled = await gltf.requestPool(wanted);
-            if (disposed || url !== wanted) return;
-            pooled.scene.poolUsed = true;
-            userData.VRMMeshes = pooled;
-        }
+        const pooled = await requestPooledAvatar(wanted);
+        if (disposed || url !== wanted) return;
         holder.getWorldPosition(at);
-        const main = (Players as any).main;
-        const next = (Players as any).get({
-            userData,
-            exhibit: { id: (CURRENT_SPACE as any)?.exhibit?.id },
-            user: { id: key },
-            sessionId: key,
-            roomParameters: { user_height: 2.8 },
-            position: at.clone(),
-            rotation: holder.rotation.y,
-            isDummy: true,
+        npc = standAvatar({
+            url: wanted,
+            pooled,
+            name: props.name || "",
+            key,
+            position: at,
+            yaw: holder.rotation.y,
         });
-        npc = next;
-        (Scene as any).add(next);
-        next.visible = true;
-        // drawn however far the visitor is, as the world's own things are
-        if (next.username?.wrapper) next.username.wrapper.ignoreLOD = true;
-        if (next.avatar3D) next.avatar3D.ignoreLOD = true;
-        // as tall as the visitors of this world stand
-        if (typeof main?.modelScale === "number")
-            next.scaleVRM(main.modelScale);
         named = "";
         said = "";
         motion = undefined;
@@ -112,17 +80,12 @@ export function createAvatar(id: string, holder: Object3D) {
         const name = props.name || "";
         if (name !== named) {
             named = name;
-            npc.updatePlayer({
-                type: UPDATE_USERNAME,
-                payload: name,
-                textOnly: true,
-            });
+            npc.setName(name);
         }
         const wanted = props.motion || "idle";
         if (wanted !== motion) {
             motion = wanted;
-            npc.handleSit?.(wanted === "sit");
-            npc.playEmote?.(EMOTE[wanted]);
+            npc.setMotion(wanted === "sit", EMOTE[wanted]);
         }
         const say = props.say || "";
         if (say !== said) {
@@ -132,8 +95,7 @@ export function createAvatar(id: string, holder: Object3D) {
         const show = props.visible !== false;
         if (show !== shown) {
             shown = show;
-            if (show) npc.show?.();
-            else npc.hide?.();
+            npc.setShown(show);
         }
     }
 
@@ -150,16 +112,9 @@ export function createAvatar(id: string, holder: Object3D) {
         frame() {
             if (!npc) return;
             holder.getWorldPosition(at);
-            npc.position.copy(at);
-            npc.rotation.y = holder.rotation.y;
+            npc.place(at, holder.rotation.y);
             // its label is placed a frame after it is made: speech waits for it
-            if (pendingSay && npc.username?.wrapper?.position?.y) {
-                npc.updatePlayer({
-                    type: UPDATE_CHAT,
-                    payload: { text: pendingSay, date: "", acc_date: "" },
-                });
-                pendingSay = "";
-            }
+            if (pendingSay && npc.say(pendingSay)) pendingSay = "";
         },
         dispose() {
             disposed = true;
@@ -168,13 +123,7 @@ export function createAvatar(id: string, holder: Object3D) {
     };
 
     function remove() {
-        if (!npc) return;
-        try {
-            (Scene as any).remove(npc);
-            npc.dispose();
-        } catch {
-            /* the engine let its players go first (leaving the space) */
-        }
+        npc?.remove();
         npc = null;
     }
 }

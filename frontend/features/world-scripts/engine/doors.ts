@@ -7,12 +7,14 @@
  * and a script cannot swing it.
  */
 import { Box3, Matrix4, Vector3, type Mesh, type Object3D } from "three";
-import Root from "@3/three/root";
-import { CURRENT_SPACE } from "@3/three/constants";
 import type { DoorInfo } from "../protocol";
-import { worldModel } from "./openings";
+import {
+    assignedPortalIds,
+    DOOR_MESH_NAME as DOOR_NAME,
+    portalPlaceholders,
+    worldModel,
+} from "./facade";
 
-const DOOR_NAME = /^Portal_Door_(\d+)$/i;
 /** How far a door swings when fully open, as the worlds' own clips do. */
 const FULL_SWING = (Math.PI * 3) / 4;
 const MAX_DOORS = 200;
@@ -102,11 +104,6 @@ export function createDoors() {
     let model: Object3D | null = null;
     let doors = new Map<string, Door>();
 
-    function assigned(): Set<string> {
-        const portals = (CURRENT_SPACE as any)?.exhibit?.portals || {};
-        return new Set(Object.values(portals).map((portal: any) => portal?.id));
-    }
-
     function read() {
         const now = worldModel();
         if (now === model) return;
@@ -114,9 +111,8 @@ export function createDoors() {
         doors = new Map();
         if (!model) return;
         model.updateMatrixWorld(true);
-        const placeholders: any[] =
-            (Root as any).currentSpace?.portalPlaceholders || [];
-        const portals = assigned();
+        const placeholders = portalPlaceholders();
+        const portals = assignedPortalIds();
         const parts = buildingParts(model);
         const found: Object3D[] = [];
         model.traverse((node) => {
@@ -133,12 +129,10 @@ export function createDoors() {
             if (bounds.isEmpty()) continue;
             bounds.getCenter(centre);
             const placeholder = placeholders.find(
-                (item) => item?.meshes?.portalDoor === object
+                (item) => item.door === object
             );
             // what the portal would show stands just behind the door
-            const preview =
-                placeholder?.meshes?.originalPreviewMesh ||
-                placeholder?.meshes?.previewMesh;
+            const preview = placeholder?.preview;
             if (!preview) continue;
             if (preview.parent) preview.getWorldPosition(behind);
             else behind.copy(preview.position);

@@ -14,29 +14,16 @@ import {
     type Matrix4,
     type Object3D,
 } from "three";
-import Camera from "@3/three/camera";
 import type { SolidWall, Vec3 } from "../protocol";
+import {
+    collisionWorld,
+    forgetCollider,
+    type CollisionTriangle,
+    type CollisionWorld,
+} from "./facade";
 
-/** The engine's collision world: a static tree and colliders that can move. */
-type Octree = {
-    staticOctree: {
-        traverseTriangles(visit: (triangle: Triangle) => void): void;
-    };
-    addCollider(mesh: Object3D): unknown;
-    removeCollider(mesh: Object3D): void;
-    updateDynOctree(): void;
-};
-type Triangle = { a: Vector3; b: Vector3; c: Vector3 };
-
-/** The collision world of the space on show, or null between spaces. */
-export function currentOctree(): Octree | null {
-    try {
-        const controls = (Camera as any).currentControls;
-        return controls?.world?.collisions?.worldOctree ?? null;
-    } catch {
-        return null;
-    }
-}
+type Octree = CollisionWorld;
+type Triangle = CollisionTriangle;
 
 /**
  * The triangles of boxes (five sides: no underside) and one-sided walls,
@@ -68,6 +55,26 @@ export function solidPositions(
 }
 
 /**
+ * The box a plain shape stops a visitor with: its geometry's own bounds, as
+ * positions. A plane has no thickness: it is given a little, so both sides
+ * stop.
+ */
+export function shapeBoxPositions(geometry: BufferGeometry): Float32Array {
+    if (!geometry.boundingBox) geometry.computeBoundingBox();
+    const { min, max } = geometry.boundingBox;
+    const thin = (lo: number, hi: number) =>
+        hi - lo < 0.02 ? [lo - 0.05, hi + 0.05] : [lo, hi];
+    const [z0, z1] = thin(min.z, max.z);
+    const [y0, y1] = thin(min.y, max.y);
+    return solidPositions([
+        [
+            [min.x, y0, z0],
+            [max.x, y1, z1],
+        ],
+    ]);
+}
+
+/**
  * Colliders the scripts own. The collision world is rebuilt when a visitor
  * travels, so what is registered is checked every frame and put back.
  */
@@ -78,7 +85,7 @@ export function createSolids() {
     function register(mesh: Mesh) {
         mesh.updateWorldMatrix(true, false);
         // the engine keeps its collider on the mesh: a new world needs a new one
-        mesh.userData._collider = null;
+        forgetCollider(mesh);
         octree?.addCollider(mesh);
     }
 
@@ -119,7 +126,7 @@ export function createSolids() {
         },
         /** Once a frame: a new collision world gets every solid again. */
         sync() {
-            const now = currentOctree();
+            const now = collisionWorld();
             if (now === octree) return;
             octree = now;
             if (!octree) return;
@@ -155,7 +162,7 @@ export function createCollisionHoles() {
         if (!hole) return;
         holes.delete(id);
         // a new collision world was built from the model again: nothing to undo
-        if (hole.octree !== currentOctree()) return;
+        if (hole.octree !== collisionWorld()) return;
         for (const triangle of hole.moved) {
             triangle.a.sub(AWAY);
             triangle.b.sub(AWAY);
@@ -170,7 +177,7 @@ export function createCollisionHoles() {
          */
         open(id: string, bounds: Box3, toHole: Matrix4, half: Vector3) {
             close(id);
-            const octree = currentOctree();
+            const octree = collisionWorld();
             if (!octree) return false;
             // a triangle sits in every cell it crosses: move each one once
             const found = new Set<Triangle>();
@@ -203,7 +210,7 @@ export function createCollisionHoles() {
         /** True when the hole was cut in a collision world that is gone. */
         stale(id: string) {
             const hole = holes.get(id);
-            return !!hole && hole.octree !== currentOctree();
+            return !!hole && hole.octree !== collisionWorld();
         },
         close,
         dispose() {

@@ -18,22 +18,13 @@ import {
     type InstancedMesh,
     type Object3D,
 } from "three";
-import Root from "@3/three/root";
 import { WORLD_SCRIPT_LIMITS, type Vec3 } from "../protocol";
 import type { createCollisionHoles } from "./collision";
+import { worldModel } from "./facade";
 
 type Holes = ReturnType<typeof createCollisionHoles>;
 
 type Undo = () => void;
-
-/** The world's model: what the space loader put on show. */
-export function worldModel(): Object3D | null {
-    try {
-        return (Root as any).currentSpace?.scene?.spaceScene ?? null;
-    } catch {
-        return null;
-    }
-}
 
 /**
  * `geometry` without the triangles `drop` names, given each corner in the

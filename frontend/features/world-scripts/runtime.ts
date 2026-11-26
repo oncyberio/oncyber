@@ -12,6 +12,7 @@ import type { SwapMode, WorldScriptStatus } from "./host";
 import { TRIAL_REPLACED, type TrialFault } from "./trial";
 import { NEUTRAL_STYLE, WorldStyle } from "./style";
 import { readContext } from "./runtimeRelay";
+import { worldHasScene } from "./engine/worldUp";
 import {
     getWorldScriptScreen,
     resetWorldScriptScreen,
@@ -174,7 +175,7 @@ export function createLocalRuntime(
     const patience = () =>
         Math.max(startedAt + READY_GIVE_UP_MS, Date.now() + READY_RETRY_MS);
     /** The world has a scene: a script could be run in it. */
-    const worldUp = () => !disposed && !!(window as any).scene;
+    const worldUp = () => !disposed && worldHasScene();
     async function until(up: () => boolean) {
         const deadline = patience();
         while (!disposed && !up()) {
