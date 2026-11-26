@@ -36,6 +36,7 @@ import {
     emMetres,
     fitName,
     layoutTag,
+    needsShaping,
     tagName,
 } from "./layout";
 
@@ -67,12 +68,6 @@ const PHOTO_TILES = PHOTO_COLUMNS * PHOTO_COLUMNS;
 /** A tag is the chip, the picture and up to this many glyphs. */
 const MAX_GLYPHS = 30;
 const UPLOAD_MS = 80;
-/**
- * Scripts whose letters join or reorder (Arabic, Hebrew, Indic, Thai, ...):
- * a name in one is drawn as one shaped run, not letter by letter.
- */
-const COMPLEX_SCRIPT =
-    /[\u0590-\u08ff\u0900-\u0dff\u0e00-\u0eff\u0f00-\u109f\u1780-\u17ff\ufb1d-\ufdff\ufe70-\ufeff]/;
 /** Metres a tag is drawn toward the camera; see positionNode. */
 const DEPTH_BIAS = 0.3;
 /** How far the rim moves the chip's fill toward white, and its extra opacity. */
@@ -128,7 +123,7 @@ export function createNameTags(
 
     // Glyphs: coverage drawn by the browser, turned into distance.
     const scratch = document.createElement("canvas");
-    // Wide enough for a whole shaped name (see COMPLEX_SCRIPT).
+    // Wide enough for a whole shaped name (see needsShaping).
     scratch.width = Math.ceil(GLYPH_PX * (T.maxNameEm + 1)) + 2 * BUFFER;
     scratch.height = ROW_PX;
     const scratchContext = scratch.getContext("2d", {
@@ -237,7 +232,7 @@ export function createNameTags(
         const cached = texts.get(name);
         if (cached) return cached;
         const fittedName = fitName(Array.from(name), measure);
-        if (COMPLEX_SCRIPT.test(fittedName)) {
+        if (needsShaping(fittedName)) {
             // The browser shapes the whole run, joining and ordering it.
             const key = `\u0001${fittedName}`;
             let run = glyphs.get(key);
