@@ -180,7 +180,7 @@ describe("galleryFrameLayout", () => {
     });
 
     it("puts the label beside the lower right corner, on the wall", () => {
-        const { label, outer, boxes } = galleryFrameLayout({
+        const { label, outer } = galleryFrameLayout({
             width: 2,
             height: 3,
             depth,
@@ -190,10 +190,9 @@ describe("galleryFrameLayout", () => {
         expect(label).not.toBeNull();
         expect(label.x - label.w / 2).toBeGreaterThan(outer.w / 2);
         expect(label.y - label.h / 2).toBeCloseTo(-outer.h / 2);
-        expect(boxes.filter((it) => it.part === "label")).toHaveLength(1);
     });
 
-    it("uses 9 boxes without a mat, 13 with, 14 with a label", () => {
+    it("keeps the label out of the frame box batch", () => {
         const count = (extra, withLabel = false) =>
             galleryFrameLayout({
                 width: 1,
@@ -204,7 +203,7 @@ describe("galleryFrameLayout", () => {
             }).boxes.length;
         expect(count({ mat: false })).toBe(9);
         expect(count({})).toBe(13);
-        expect(count({}, true)).toBe(14);
+        expect(count({}, true)).toBe(13);
     });
 });
 
@@ -344,17 +343,22 @@ describe("frame shape and rounded labels", () => {
         expect(squareSide(16, 9)).toBeCloseTo(12);
         expect(squareSide(4, 4)).toBe(4);
     });
+});
 
-    it("draws no plate box for a rounded label, but still places it", () => {
-        const opts = { width: 2, height: 3, depth: 0.1, frame: gallery() };
-        const square = galleryFrameLayout({ ...opts, withLabel: true });
-        const round = galleryFrameLayout({
-            ...opts,
-            withLabel: true,
-            roundedLabel: true,
-        });
-        expect(round.boxes.filter((b) => b.part === "label")).toHaveLength(0);
-        expect(round.boxes).toHaveLength(square.boxes.length - 1);
-        expect(round.label).toEqual(square.label);
+it("normalizes optional Instagram and description fields without affecting old labels", () => {
+    const normalized = normalizeCredit({
+        instagram: "https://www.instagram.com/lucia.studio/?igsh=abc",
+        description: "  Glazed    stoneware. ",
     });
+    expect(normalized).toEqual({
+        instagram: "lucia.studio",
+        description: "Glazed stoneware.",
+    });
+    expect(
+        galleryLabelText({ name: "Ceramic Study" }, normalized).credit
+    ).toMatchObject(normalized);
+    expect(normalizeCredit({ instagram: "@", description: " " })).toBeNull();
+    expect(
+        normalizeCredit({ description: "D".repeat(400) }).description
+    ).toHaveLength(240);
 });

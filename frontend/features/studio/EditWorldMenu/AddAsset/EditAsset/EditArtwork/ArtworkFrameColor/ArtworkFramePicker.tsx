@@ -407,7 +407,17 @@ const CREDIT_INPUTS: {
     { key: "artist", label: "Artist name", placeholder: "Jarlan Perez" },
     { key: "location", label: "Location", placeholder: "New York" },
     { key: "title", label: "Artwork title", placeholder: "Onward" },
+    {
+        key: "description",
+        label: "Label description",
+        placeholder: "Materials, year, or a short note",
+    },
     { key: "x", label: "X handle", placeholder: "@jarlanperez" },
+    {
+        key: "instagram",
+        label: "Instagram handle",
+        placeholder: "@jarlanperez",
+    },
     { key: "website", label: "Website", placeholder: "jarlanperez.com" },
 ];
 
@@ -430,6 +440,7 @@ function CreditFields({
     const [values, setValues] = useState<GalleryCredit>(() => ({
         ...(credit || {}),
         x: credit?.x ? "@" + credit.x : "",
+        instagram: credit?.instagram ? "@" + credit.instagram : "",
     }));
 
     const save = () => {
@@ -450,12 +461,17 @@ function CreditFields({
                         aria-labelledby={`credit-${key}`}
                         value={values[key] || ""}
                         maxLength={
-                            GALLERY_CREDIT_MAX[key] + (key === "x" ? 1 : 0)
+                            GALLERY_CREDIT_MAX[key] +
+                            (key === "x" || key === "instagram" ? 1 : 0)
                         }
                         placeholder={placeholder}
                         disabled={disabled}
                         autoComplete="off"
-                        spellCheck={key === "artist" || key === "title"}
+                        spellCheck={
+                            key === "artist" ||
+                            key === "title" ||
+                            key === "description"
+                        }
                         onChange={(event) => {
                             const next = {
                                 ...values,

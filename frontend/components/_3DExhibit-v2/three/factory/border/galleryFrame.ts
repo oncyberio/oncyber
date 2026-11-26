@@ -52,6 +52,10 @@ export interface GalleryCredit {
     title?: string;
     /** X handle, without the "@". */
     x?: string;
+    /** Instagram handle, without the "@". */
+    instagram?: string;
+    /** Optional artwork description; shortened on the wall label. */
+    description?: string;
     /** Website, without "https://". */
     website?: string;
 }
@@ -61,7 +65,9 @@ export const GALLERY_CREDIT_FIELDS = [
     "location",
     "title",
     "x",
+    "instagram",
     "website",
+    "description",
 ] as const;
 
 /** Longest value kept per credit field. */
@@ -70,7 +76,9 @@ export const GALLERY_CREDIT_MAX: Record<keyof GalleryCredit, number> = {
     location: 48,
     title: 80,
     x: 15,
+    instagram: 30,
     website: 60,
+    description: 240,
 };
 
 export type GalleryFrame = Required<Omit<ArtworkFrame, "credit">> & {
@@ -163,6 +171,15 @@ export function normalizeFrame(frame: unknown): GalleryFrame | null {
 }
 
 /** "@jarlan", "x.com/jarlan", "https://twitter.com/jarlan/" → "jarlan". */
+function cleanInstagram(value: string) {
+    return value
+        .replace(/^https?:\/\//i, "")
+        .replace(/^(?:www\.)?instagram\.com\//i, "")
+        .replace(/^@+/, "")
+        .replace(/[/?#].*$/, "")
+        .replace(/[^A-Za-z0-9_.]/g, "");
+}
+
 function cleanHandle(value: string) {
     return value
         .replace(/^https?:\/\//i, "")
@@ -194,6 +211,7 @@ export function normalizeCredit(credit: unknown): GalleryCredit | null {
         if (typeof raw !== "string") continue;
         let value = raw.replace(/\s+/g, " ").trim();
         if (key === "x") value = cleanHandle(value);
+        if (key === "instagram") value = cleanInstagram(value);
         if (key === "website") value = cleanWebsite(value);
         value = value.slice(0, GALLERY_CREDIT_MAX[key]).trim();
         if (value) out[key] = value;
@@ -223,6 +241,8 @@ export function squareSide(width: number, height: number) {
 
 /** Corner radius of a rounded label plate, a share of its height. */
 export const LABEL_CORNER = 0.07;
+/** Thickness of the mounted stock, as a share of label height. */
+export const LABEL_DEPTH = 0.028;
 
 /**
  * The length frame and mat widths are a share of: the shorter side, but at
@@ -235,7 +255,7 @@ export function referenceSide(width: number, height: number) {
     return Math.max(short, long * 0.25);
 }
 
-export type FramePart = "backing" | "mat" | "frame" | "label";
+export type FramePart = "backing" | "mat" | "frame";
 
 /** An axis-aligned box in the artwork's frame, centre and size. */
 export interface FrameBox {
@@ -269,11 +289,6 @@ export interface GalleryFrameLayoutOptions {
     withLabel?: boolean;
     /** A gallery-credit label: larger, and taller for its extra lines. */
     creditLabel?: boolean;
-    /**
-     * A rounded label: the plate is drawn as its own rounded mesh, so no box
-     * is added for it (the label rect is still returned).
-     */
-    roundedLabel?: boolean;
 }
 
 /** Four boxes around a `w` × `h` opening, `t` wide, from z0 to z1. */
@@ -312,7 +327,6 @@ export function galleryFrameLayout({
     frame,
     withLabel = false,
     creditLabel = false,
-    roundedLabel = false,
 }: GalleryFrameLayoutOptions): GalleryFrameLayout {
     const W = width * scale.x;
     const H = height * scale.y;
@@ -369,19 +383,9 @@ export function galleryFrameLayout({
     if (withLabel) {
         const w = ref * (creditLabel ? 0.36 : 0.3);
         const h = w * (creditLabel ? GALLERY_CREDIT_ASPECT : 0.45);
-        const thick = h * 0.08;
+        const thick = h * LABEL_DEPTH;
         const x = outer.w / 2 + ref * 0.08 + w / 2;
         const y = -outer.h / 2 + h / 2;
-        if (!roundedLabel)
-            boxes.push({
-                part: "label",
-                x,
-                y,
-                z: zBack + thick / 2,
-                w,
-                h,
-                d: thick,
-            });
         label = { x, y, z: zBack + thick, w, h };
     }
 
@@ -424,6 +428,8 @@ export interface GalleryLabelText {
         title: string;
         x: string;
         website: string;
+        instagram?: string;
+        description?: string;
     };
 }
 
@@ -452,6 +458,8 @@ export function galleryLabelText(
                 title,
                 x: c.x || "",
                 website: c.website || "",
+                ...(c.instagram ? { instagram: c.instagram } : {}),
+                ...(c.description ? { description: c.description } : {}),
             },
         };
     }
