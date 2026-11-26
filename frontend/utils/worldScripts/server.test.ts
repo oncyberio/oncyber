@@ -6,7 +6,7 @@ jest.mock("@api/accounts/authenticate/utils/link", () => ({
     getAccountDoc: jest.fn(),
 }));
 
-jest.mock("@api/social/isMod", () => ({ ADMINS: [] }));
+jest.mock("@utils/siteAdmins", () => ({ isSiteAdmin: () => false }));
 
 import { askForScript, isAllowlisted, worldScriptsEnabled } from "./server";
 

@@ -74,7 +74,9 @@ jest.mock("@utils/firebaseAdmin", () => ({
 jest.mock("@api/accounts/authenticate/utils/link", () => ({
     getAccountDoc: jest.fn(async (id: string) => ({ id, data: () => ({}) })),
 }));
-jest.mock("@api/social/isMod", () => ({ ADMINS: ["site-admin"] }));
+jest.mock("@utils/siteAdmins", () => ({
+    isSiteAdmin: (id: string) => String(id).toLowerCase() === "site-admin",
+}));
 
 import { access, generate } from "./generate";
 import { save } from "./save";

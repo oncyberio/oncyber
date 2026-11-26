@@ -13,7 +13,7 @@
  * call, charge the call's cost (which OpenRouter reports) after it.
  */
 import { db, fire } from "@utils/firebaseAdmin";
-import { ADMINS } from "@api/social/isMod";
+import { isSiteAdmin } from "@utils/siteAdmins";
 import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
 import {
     WORLD_SCRIPT_BRIEF,
@@ -91,10 +91,8 @@ function dailyLimit(env: Env = process.env) {
     return Number.isFinite(value) && value >= 0 ? value : DEFAULT_DAILY_LIMIT;
 }
 
-/** Oncyber's own admins: they may always use world scripts, and say who else may. */
-export function isSiteAdmin(userId: string) {
-    return ADMINS.includes(String(userId || "").toLowerCase());
-}
+// Oncyber's own admins may always use world scripts, and say who else may.
+export { isSiteAdmin };
 
 /**
  * The people in early access, one document each under the account's id.

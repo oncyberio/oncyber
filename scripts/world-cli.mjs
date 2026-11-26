@@ -321,9 +321,15 @@ async function main() {
             { baseUrl: BASE_URL }
         );
 
+    // A destination's settings (./world-destination.mjs).
+    if (cmd === "destination")
+        return destinationCommand(process.argv.slice(3), (method, params) =>
+            rpcCall(method, params, { service: "destinations" })
+        );
+
     if (!cmd || !exhibitId) {
         console.error(
-            "Usage: world-cli.mjs <login|pull|push|snapshot|script> [exhibitId] [file|label]"
+            "Usage: world-cli.mjs <login|pull|push|snapshot|script|destination> [exhibitId] [file|label]"
         );
         process.exit(1);
     }

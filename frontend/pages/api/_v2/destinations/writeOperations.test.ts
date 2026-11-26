@@ -56,7 +56,13 @@ jest.mock("@utils/firebaseAdmin", () => ({
             commit: async () => undefined,
         }),
     },
-    fire: { Timestamp: { now: () => 0 } },
+    fire: {
+        Timestamp: { now: () => 0 },
+        FieldValue: { delete: () => "(deleted)" },
+    },
+}));
+jest.mock("@utils/siteAdmins", () => ({
+    isSiteAdmin: (id: string) => String(id).toLowerCase() === "0xadmin",
 }));
 jest.mock("@utils/rpc/server", () => ({
     NoApi: jest.fn(),
@@ -304,5 +310,64 @@ describe("moving destinations between accounts", () => {
         store("active", { userId: "0xvictim" });
         expect(Object.hasOwn(api, "transferDestinationsToUser")).toBe(false);
         expect(stored().userId).toBe("0xvictim");
+    });
+});
+
+describe("avatar height", () => {
+    const admin = { userId: "0xAdmin" } as any;
+    const params = { user_height: 2.3, gravity: 20 };
+
+    test("the owner sets it, in the destination's units, and nothing else changes", async () => {
+        store("active", { params });
+        const answer = await api.setAvatarHeight.call(owner, {
+            id: "room",
+            height: 4,
+        });
+        expect(answer).toEqual({
+            success: true,
+            avatarSize: 0.8571,
+            height: 4,
+            was: null,
+        });
+        // One field of the settings, by its path: the rest is not resent.
+        expect(stored()["params.avatarSize"]).toBe(0.8571);
+        expect(stored().params).toEqual(params);
+        expect(stored().status).toBe("active");
+    });
+
+    test("a site admin may set it on a destination someone else owns", async () => {
+        store("active", { params: { ...params, avatarSize: 0.5 } });
+        const answer = await api.setAvatarHeight.call(admin, {
+            id: "room",
+            height: 1.8,
+        });
+        expect(answer).toMatchObject({ height: 1.8, was: 2.75 });
+    });
+
+    test("taking it away leaves the destination to its own eye height", async () => {
+        store("active", { params: { ...params, avatarSize: 0.5 } });
+        const answer = await api.setAvatarHeight.call(admin, {
+            id: "room",
+            height: null,
+        });
+        expect(answer).toMatchObject({ avatarSize: null, height: null });
+        expect(stored()["params.avatarSize"]).toBe("(deleted)");
+    });
+
+    test("nobody else may, and a height outside what avatars can stand is refused", async () => {
+        store("active", { params });
+        await expect(
+            api.setAvatarHeight.call(stranger, { id: "room", height: 4 })
+        ).rejects.toThrow("Unauthorized");
+        expect(stored()["params.avatarSize"]).toBeUndefined();
+        await expect(
+            api.setAvatarHeight.call(owner, { id: "nowhere", height: 4 })
+        ).rejects.toThrow("Destination not found");
+        const schema = (api.setAvatarHeight as any)._RPC_OPTS.schema;
+        expect(schema.safeParse({ id: "room", height: 0.5 }).success).toBe(
+            false
+        );
+        expect(schema.safeParse({ id: "room", height: 9 }).success).toBe(false);
+        expect(schema.safeParse({ id: "room", height: 4 }).success).toBe(true);
     });
 });
