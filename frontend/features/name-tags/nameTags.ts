@@ -33,6 +33,7 @@ import { coverageToSdf } from "./sdf";
 import {
     Glyph,
     TagText,
+    drawnDepth,
     emMetres,
     fitName,
     layoutTag,
@@ -655,9 +656,10 @@ export function createNameTags(
                     tag.y - eye[13],
                     tag.z - eye[14]
                 );
-                const drawn =
-                    tag.depth * (1 - DEPTH_BIAS / Math.max(range, 1e-3));
-                const em = emMetres(Math.max(drawn, 0.05), pixelsPerUnit);
+                const em = emMetres(
+                    drawnDepth(tag.depth, range, DEPTH_BIAS),
+                    pixelsPerUnit
+                );
                 const photo = tag.photo
                     ? {
                           u:

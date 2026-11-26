@@ -4,6 +4,7 @@ import {
     KIND_GLYPH,
     KIND_PHOTO,
     chipSize,
+    drawnDepth,
     emMetres,
     fitName,
     layoutTag,
@@ -108,5 +109,24 @@ describe("needsShaping", () => {
             "日本",
         ])
             expect(needsShaping(name)).toBe(false);
+    });
+});
+
+describe("drawnDepth", () => {
+    it("pulls an off-axis tag closer by less than the bias", () => {
+        // 0.36 m ahead and 0.33 m to the side: about 0.139 m once drawn.
+        const range = Math.hypot(0.36, 0.33);
+        expect(drawnDepth(0.36, range, 0.3)).toBeCloseTo(0.1386, 3);
+        // On the axis the whole bias applies.
+        expect(drawnDepth(2, 2, 0.3)).toBeCloseTo(1.7, 6);
+        expect(drawnDepth(0.2, 0.2, 0.3)).toBe(0.05);
+    });
+    it("keeps an off-axis tag inside the screen size limits", () => {
+        const ppu = 800;
+        const depth = 0.36;
+        const drawn = drawnDepth(depth, Math.hypot(depth, 0.33), 0.3);
+        const px = (emMetres(drawn, ppu) * ppu) / drawn;
+        expect(px).toBeGreaterThanOrEqual(T.minPx - 1e-6);
+        expect(px).toBeLessThanOrEqual(T.maxPx + 1e-6);
     });
 });

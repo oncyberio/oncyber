@@ -159,6 +159,15 @@ export function layoutTag(
 }
 
 /**
+ * View depth of a tag drawn `bias` metres toward the camera from a point
+ * `depth` in front of it and `range` away: off the view axis the pull
+ * shortens the depth by less than `bias`.
+ */
+export function drawnDepth(depth: number, range: number, bias: number) {
+    return Math.max(depth * (1 - bias / Math.max(range, 1e-3)), 0.05);
+}
+
+/**
  * Metres per em for a tag `depth` metres in front of the camera: its world
  * size, kept between the screen sizes the tokens allow so far tags stay
  * readable and near ones don't fill the view. `pixelsPerUnit` is half the
