@@ -22,6 +22,8 @@
  *   node scripts/world-cli.mjs pull <exhibitId> [file]
  *   node scripts/world-cli.mjs push <exhibitId> [file]
  *   node scripts/world-cli.mjs snapshot <exhibitId> [label]
+ *   node scripts/world-cli.mjs script <reference|pull|check|push|clear> ...
+ *       the space's world script, written in a file (./world-script.mjs)
  *
  * `file` defaults to `./<exhibitId>.world.json` — this is the file to hand
  *-edit (or have Claude edit) between a pull and a push. Its shape:
@@ -38,6 +40,7 @@ import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+import { scriptCommand } from "./world-script.mjs";
 
 const BASE_URL = process.env.ONCYBER_BASE_URL || "http://localhost:3000";
 
@@ -259,10 +262,17 @@ async function main() {
     const [, , cmd, exhibitId, ...rest] = process.argv;
 
     if (cmd === "login") return cmdLogin();
+    // A space's world script, written in a file (./world-script.mjs).
+    if (cmd === "script")
+        return scriptCommand(
+            process.argv.slice(3),
+            (method, params) => rpcCall(method, params, { service: "worldScripts" }),
+            { baseUrl: BASE_URL }
+        );
 
     if (!cmd || !exhibitId) {
         console.error(
-            "Usage: world-cli.mjs <login|pull|push|snapshot> [exhibitId] [file|label]"
+            "Usage: world-cli.mjs <login|pull|push|snapshot|script> [exhibitId] [file|label]"
         );
         process.exit(1);
     }

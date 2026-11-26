@@ -57,6 +57,49 @@ changed somewhere else since (another editor, another tab), the request is
 refused before the model is asked, and a save is refused rather than
 written over the other change; the sidebar says to reload.
 
+## Writing one in a file
+
+The sidebar is one way to make a space's script. The other is to write it
+in a file and push it: for a person who would rather write code, and for a
+coding agent working on a space from a terminal. Both go through the same
+checked procedure, `worldScripts.save`: the same rules about who may (the
+space's owner, an editor or a site admin, in early access), the same
+limits, the same one script to a space.
+
+```sh
+pnpm world login                          # once: opens the browser to sign in
+pnpm world script reference               # everything a script may use
+pnpm world script pull <spaceId>          # -> ./<spaceId>.world-script.js
+pnpm world script check <file>            # does it parse as a script?
+pnpm world script push <spaceId>          # save it to the space
+pnpm world script clear <spaceId>         # the space has no script
+```
+
+`ONCYBER_BASE_URL` says which deployment (`http://localhost:3000` unless
+set).
+
+-   **`reference`** prints what the model is given about the script
+    itself, cut from the same text (`brief.ts`), so a script written by
+    hand and one written by the model are written against one reference.
+-   **`pull`** writes the saved script as it is, or a starter when the space
+    has none, and beside it `<file>.base.json`: the save this file builds
+    on.
+-   **`check`** reads the file as the sandbox will, with the names a script
+    is handed, and stops on what cannot run: it is too long, it does not
+    parse. It warns about what a script is not given (the page, the
+    network, modules). It does not run the script.
+-   **`push`** checks, then saves. The script's name is its first line when
+    that is `// name: ...`, else `--name`, else what it was called. A push
+    that builds on an older save than the space has now is refused (an
+    editor changed it in the sidebar meanwhile): pull into another file,
+    carry the change over, push that.
+
+Nothing tries a pushed script out of sight first, as the sidebar does
+before it lets a change land. A script that fails when it starts is
+stopped and visitors see the space without it, so open the space after a
+push. The command and its tests are `scripts/world-script.mjs`; `pnpm
+world:test`.
+
 ## How a change lands
 
 The model labels each change:
