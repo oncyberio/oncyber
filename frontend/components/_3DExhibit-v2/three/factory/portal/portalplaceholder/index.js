@@ -11,6 +11,8 @@ import { Mesh } from 'three'
 
 import { PortalPreviewMesh } from '../previewmesh'
 
+import { findDoorClips } from './doorClips'
+
 
 class PortalPlaceholderFactory {
 
@@ -76,13 +78,13 @@ class PortalPlaceholderFactory {
 
                     index++
 
-                    let openAnimations = animations.filter((animation) => {
-                        return animation.name.includes(`Portal_Open_${match[3]}`);
-                    });
+                    // By door number, not by text: Portal_Preview_073 owns
+                    // Portal_Open_0073 (see ./doorClips)
+                    const doorClips = findDoorClips(animations, match[3])
 
-                    let closeAnimations = animations.filter((animation) => {
-                        return animation.name.includes(`Portal_Close_${match[3]}`);
-                    });
+                    let openAnimations = doorClips.open
+
+                    let closeAnimations = doorClips.close
 
                     let previewMesh = PortalPreviewMesh.createFromPlaceholder(mesh)
 
