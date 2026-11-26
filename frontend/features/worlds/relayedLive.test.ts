@@ -32,9 +32,12 @@ function channels() {
 /** A world and its page joined by messages, as the frame joins them. */
 function joined(spaceId = "space-1") {
     const page = channels();
+    // The page's channels that carry no sign-in.
+    const unsigned = channels();
     const worldHears = new Set<(kind: string, data: any) => void>();
     const host = hostWorldLive({
         live: () => page.live,
+        others: () => unsigned.live,
         spaceId,
         post: (kind, data) =>
             worldHears.forEach((handler) => handler(kind, data)),
@@ -46,7 +49,7 @@ function joined(spaceId = "space-1") {
             return () => void worldHears.delete(handler);
         },
     });
-    return { world, host, page };
+    return { world, host, page, unsigned };
 }
 
 describe("a space's live channels across the frame", () => {
@@ -79,10 +82,19 @@ describe("a space's live channels across the frame", () => {
         expect([...page.watching.keys()]).toEqual([]);
     });
 
-    test("the world may watch another space, and write only to the one the page opened", () => {
-        const { world, page } = joined("space-1");
+    test("another space is read with no sign-in, and written to never", () => {
+        const { world, page, unsigned } = joined("space-1");
+        world.watchSpace("space-1", () => {});
         world.watchSpace("space-2", () => {});
-        expect([...page.watching.keys()]).toEqual(["space space-2"]);
+        world.watchEvents("space-2", () => {});
+        // The opened space, as the page reads it; any other, as a
+        // signed-out visitor would.
+        expect([...page.watching.keys()]).toEqual(["space space-1"]);
+        expect([...unsigned.watching.keys()]).toEqual([
+            "space space-2",
+            "events space-2",
+        ]);
+        expect(unsigned.sent).toEqual([]);
         world.sendEvent("space-2", { type: "USER_KICKED" });
         world.sendEvent("space-1", { type: "EDITOR_ACTION", action: { x: 1 } });
         expect(page.sent).toEqual([
@@ -99,10 +111,13 @@ describe("a space's live channels across the frame", () => {
     });
 
     test("a world cannot make the page hold more channels than a world has", () => {
-        const { world, page } = joined();
+        const { world, page, unsigned } = joined();
         for (let i = 0; i < MAX_LIVE_WATCHES + 5; i++)
             world.watchSpace(`space-${i}`, () => {});
-        expect(page.watching.size).toBe(MAX_LIVE_WATCHES);
+        // Across both sets of channels: the limit is the world's.
+        expect(page.watching.size + unsigned.watching.size).toBe(
+            MAX_LIVE_WATCHES
+        );
     });
 });
 

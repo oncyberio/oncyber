@@ -15,7 +15,7 @@ import {
     readGameMessage,
 } from "@features/games/gameContract";
 import { SCRIPT_MESSAGE } from "@features/world-scripts/basics";
-import { deferred, liveSpace } from "@utils/liveSpace";
+import { deferred, liveSpace, signedOutLiveSpace } from "@utils/liveSpace";
 import { sayLoadStage } from "@utils/loadTimings";
 import { relayLobbyDestination } from "@utils/lobbyDestinationBridge";
 import { WORLD_GAME_ID } from "./worldDocument";
@@ -273,6 +273,8 @@ export default function WorldFrameView({
             // what changes during a visit, and a loading world should
             // have the line to itself.
             live: () => deferred(drawn.current.promise.then(liveSpace)),
+            others: () =>
+                deferred(drawn.current.promise.then(signedOutLiveSpace)),
         });
         return () => {
             host.dispose();

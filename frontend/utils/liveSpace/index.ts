@@ -74,6 +74,18 @@ async function loadFirebase(): Promise<LiveSpace> {
     return (await import("./firebase")).default;
 }
 
+let unsigned: LiveSpace | undefined;
+/**
+ * Channels that carry no sign-in, whatever the page holds: for what a
+ * framed world reads, through the page, of a space the page did not open.
+ * Never loads the sign-in library.
+ */
+export function signedOutLiveSpace(): LiveSpace {
+    return (unsigned ||= deferred(
+        import("./firebase").then((firebase) => firebase.signedOutChannels())
+    ));
+}
+
 let live: LiveSpace | undefined;
 
 /** This document's live channels. */

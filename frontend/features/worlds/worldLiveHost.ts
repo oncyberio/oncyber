@@ -1,7 +1,10 @@
 /**
  * The page's side of a framed world's live channels (./relayedLive.ts).
- * The page holds the connections, with whatever sign-in it has, and passes
- * what arrives down to the world.
+ * The page holds the connections and passes what arrives down to the
+ * world. The space this page opened is read with whatever sign-in the page
+ * has, as the page itself reads it. Any other space a world names (where a
+ * portal led, or anywhere at all) is read with none: a world is shown of
+ * another space only what a signed-out visitor is shown.
  */
 import type { LiveSpace } from "@utils/liveSpace";
 import {
@@ -13,11 +16,14 @@ import {
 
 export function hostWorldLive({
     live,
+    others,
     post,
     spaceId,
 }: {
     /** The page's own channels (utils/liveSpace). */
     live: () => LiveSpace;
+    /** Channels with no sign-in, for a space the page did not open. */
+    others: () => LiveSpace;
     post(kind: string, data: object): void;
     /** The space this page opened: the only feed it writes to. */
     spaceId: string;
@@ -39,7 +45,8 @@ export function hostWorldLive({
                             n: asked.n,
                             data: value,
                         });
-                    const channels = live();
+                    const channels =
+                        asked.space === spaceId ? live() : others();
                     watches.set(
                         asked.n,
                         asked.what === "space"

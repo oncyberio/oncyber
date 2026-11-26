@@ -3,7 +3,12 @@
  * the world's that imports Firebase; loaded on first use, and never in a
  * framed world.
  */
-import { connectEmulator, firebaseApp } from "@utils/firebaseApp";
+import type { FirebaseApp } from "firebase/app";
+import {
+    connectEmulator,
+    firebaseApp,
+    signedOutFirebaseApp,
+} from "@utils/firebaseApp";
 import {
     collection,
     connectFirestoreEmulator,
@@ -23,60 +28,78 @@ import {
 } from "firebase/database";
 import type { LiveSpace } from "./index";
 
-// The same two services utils/firebase.js starts, without its sign-in
-// library: ./index.ts loads that first for a visitor who has a sign-in
-// saved, and nobody else needs it.
-const database = getDatabase(firebaseApp);
-connectEmulator("database", (host, port) =>
-    connectDatabaseEmulator(database, host, port)
-);
-const db = getFirestore(firebaseApp);
-connectEmulator("firestore", (host, port) =>
-    connectFirestoreEmulator(db, host, port)
-);
+/**
+ * The channels of one Firebase app: the main one (with whatever sign-in
+ * ./index.ts loaded for it), or the one nobody signs in to.
+ */
+function channels(app: FirebaseApp, name = ""): LiveSpace {
+    // The same two services utils/firebase.js starts, without its sign-in
+    // library: ./index.ts loads that first for a visitor who has a sign-in
+    // saved, and nobody else needs it.
+    const database = getDatabase(app);
+    connectEmulator(
+        "database",
+        (host, port) => connectDatabaseEmulator(database, host, port),
+        name
+    );
+    const db = getFirestore(app);
+    connectEmulator(
+        "firestore",
+        (host, port) => connectFirestoreEmulator(db, host, port),
+        name
+    );
+    return {
+        watchSpace(id, onData) {
+            return onSnapshot(doc(db, "exhibits", id), (snapshot) => {
+                // v9 SDK: exists is a method; data() is undefined when the
+                // doc is missing (e.g. dev project doesn't have this exhibit)
+                const data = snapshot.data() as any;
+                if (!snapshot.exists() || data == null) return;
+                data.id = snapshot.id;
+                data.createdAt =
+                    data.createdAt?.toDate?.()?.toISOString?.() ||
+                    data.createdAt;
+                onData(data);
+            });
+        },
+        watchCollection(id, name, onData) {
+            return onSnapshot(
+                collection(db, "exhibits", id, name),
+                (snapshot) => {
+                    const pieces: Record<string, any> = {};
+                    snapshot.forEach((piece) => {
+                        pieces[piece.id] = piece.data();
+                    });
+                    onData(pieces);
+                },
+                (error) => console.error(error)
+            );
+        },
+        watchEvents(id, onEvent) {
+            return onChildAdded(
+                query(
+                    ref(database, "/exhibits/" + id),
+                    orderByKey(),
+                    limitToLast(1)
+                ),
+                (snapshot) => {
+                    if (!snapshot) return;
+                    onEvent({ id: snapshot.key, ...snapshot.val() });
+                }
+            );
+        },
+        sendEvent(id, event) {
+            void push(ref(database, "/exhibits/" + id), event);
+        },
+    };
+}
 
-const firebaseLiveSpace: LiveSpace = {
-    watchSpace(id, onData) {
-        return onSnapshot(doc(db, "exhibits", id), (snapshot) => {
-            // v9 SDK: exists is a method; data() is undefined when the
-            // doc is missing (e.g. dev project doesn't have this exhibit)
-            const data = snapshot.data() as any;
-            if (!snapshot.exists() || data == null) return;
-            data.id = snapshot.id;
-            data.createdAt =
-                data.createdAt?.toDate?.()?.toISOString?.() || data.createdAt;
-            onData(data);
-        });
-    },
-    watchCollection(id, name, onData) {
-        return onSnapshot(
-            collection(db, "exhibits", id, name),
-            (snapshot) => {
-                const pieces: Record<string, any> = {};
-                snapshot.forEach((piece) => {
-                    pieces[piece.id] = piece.data();
-                });
-                onData(pieces);
-            },
-            (error) => console.error(error)
-        );
-    },
-    watchEvents(id, onEvent) {
-        return onChildAdded(
-            query(
-                ref(database, "/exhibits/" + id),
-                orderByKey(),
-                limitToLast(1)
-            ),
-            (snapshot) => {
-                if (!snapshot) return;
-                onEvent({ id: snapshot.key, ...snapshot.val() });
-            }
-        );
-    },
-    sendEvent(id, event) {
-        void push(ref(database, "/exhibits/" + id), event);
-    },
-};
+const firebaseLiveSpace = channels(firebaseApp);
+
+let signedOut: LiveSpace | undefined;
+/** The same channels, read as a signed-out visitor reads them. */
+export function signedOutChannels(): LiveSpace {
+    return (signedOut ||= channels(signedOutFirebaseApp(), "signed-out"));
+}
 
 export default firebaseLiveSpace;
