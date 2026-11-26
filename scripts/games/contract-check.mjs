@@ -282,7 +282,7 @@ export function enterFindings({ id, contract, visit, report }) {
     }
     // A build made for another contract was not built from this runtime:
     // the page would run it as out of date, or not at all
-    // (frontend/features/games/gameContract.ts, `contractSupport`).
+    // (frontend/features/games/contract/gameContract.ts, `contractSupport`).
     if (contract.version !== CONTRACT_VERSION)
         findings.push({
             code: "CONTRACT_VERSION",

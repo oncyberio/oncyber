@@ -2,7 +2,7 @@
 import React, { act, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
-import { holdGamePause, useGamePause } from "./gamePause";
+import { holdGamePause, useGamePause } from "../contract/gamePause";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 

@@ -1,13 +1,24 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import list from "../../../games/runtime/messages.json";
+import list from "../../../../games/runtime/messages.json";
 
 // games/runtime/messages.json is the one list of what a game and its page
 // say to each other. This test holds the page's side to it: every listed
 // kind is still handled by the file the list names, and the page sends and
 // hears no kind the list leaves out. The game's side is held by
 // games/runtime/test/messages.test.mjs.
-const here = __dirname;
+//
+// The list names a page file by its path under frontend/features/games
+// (`contract/gameInput.ts`).
+const here = join(__dirname, "..");
+// The page's files: this feature's folders, and the frame helpers it shares
+// with worlds (features/frame).
+const pageFiles = (dir: string, prefix = ""): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory()
+            ? pageFiles(join(dir, entry.name), `${prefix}${entry.name}/`)
+            : [`${prefix}${entry.name}`]
+    );
 const kinds = Object.entries(
     list.kinds as Record<
         string,
@@ -59,7 +70,10 @@ test("the page sends and hears no kind the list leaves out", () => {
         "cpu",
     ]);
     const used = new Map<string, string>();
-    for (const file of readdirSync(here)) {
+    for (const file of [
+        ...pageFiles(here),
+        ...pageFiles(join(here, "../frame"), "../frame/"),
+    ]) {
         if (!/\.tsx?$/.test(file) || /\.(test|jest)\./.test(file)) continue;
         const text = readFileSync(join(here, file), "utf8");
         for (const spelling of spellings)

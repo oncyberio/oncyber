@@ -3,7 +3,7 @@ import { proc, NoApi } from "@utils/rpc/server";
 import {
     assertMayPublish,
     minePublished,
-} from "@features/games/publishedGamesServer";
+} from "@features/games/publish/publishedGamesServer";
 
 /** The games the signed-in account has published. */
 export const mine = proc({

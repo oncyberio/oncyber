@@ -34,21 +34,21 @@ import {
     setGameLink,
     unpublishGame,
 } from "./publishedGamesServer";
-import { publishedGameHoldsLink } from "./gameSlugServer";
+import { publishedGameHoldsLink } from "../gameSlugServer";
 import { searchUrl } from "@utils/siteUrl";
-import GamePublishService from "../../pages/api/_v2/gamePublish/index";
+import GamePublishService from "../../../pages/api/_v2/gamePublish/index";
 import uploadRoute, {
     config as uploadConfig,
-} from "../../pages/api/games/uploads/[...path]";
+} from "../../../pages/api/games/uploads/[...path]";
 import releasesRoute, {
     forgetPinnedPolicies,
-} from "../../pages/api/games/releases/[...path]";
-import { getServerSideProps } from "../../pages/games/[game]";
+} from "../../../pages/api/games/releases/[...path]";
+import { getServerSideProps } from "../../../pages/games/[game]";
 
 // The page's components are not under test; its server half is.
-jest.mock("./GamePage", () => () => null);
-jest.mock("./GameDeviceGate", () => () => null);
-jest.mock("./GameKillSwitchGate", () => () => null);
+jest.mock("../GamePage", () => () => null);
+jest.mock("../interface/GameDeviceGate", () => () => null);
+jest.mock("../health/GameKillSwitchGate", () => () => null);
 
 const get = gatewayGet as jest.MockedFunction<typeof gatewayGet>;
 const CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";

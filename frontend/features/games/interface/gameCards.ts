@@ -1,16 +1,16 @@
 import { useMemo } from "react";
 import type { LandingCard } from "@features/landing-carousel/types";
-import { GAMES, type GameEntry } from "./catalog";
-import { gamesPreviewEnabled } from "./gamesPreview";
+import { GAMES, type GameEntry } from "../catalog";
+import { gamesPreviewEnabled } from "../gamesPreview";
 import {
     joinableParty,
     playingLabel,
     useGamePresence,
     type GamePresence,
-} from "./gamePresence";
-import { partyJoinHref, rememberedGameParties } from "./gamePartyJoin";
+} from "../room/gamePresence";
+import { partyJoinHref, rememberedGameParties } from "../room/gamePartyJoin";
 import { gameOnDevice } from "./gameDevices";
-import { gameDevice, type VisitorDevice } from "./gameHealth";
+import { gameDevice, type VisitorDevice } from "../health/gameHealth";
 
 /** "1 player", "1 to 8 players". */
 export function playersLabel({ min, max }: GameEntry["players"]): string {

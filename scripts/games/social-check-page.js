@@ -1,5 +1,5 @@
 // One visitor in the chat and voice check (scripts/games/social-check.mjs).
-// The page's real social layer (frontend/features/games/gameSocial.ts) runs
+// The page's real social layer (frontend/features/games/social/gameSocial.ts) runs
 // here around the real game build in the site's sandbox. Only the network
 // and the audio are stand-ins: rooms are BroadcastChannels shared by the
 // visitors' pages, and a voice is a level sent on the room.

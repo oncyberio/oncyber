@@ -7,18 +7,18 @@ import { findGame, gamesPreviewEnabled } from "@features/games/catalog";
 import {
     gameKillSwitch,
     killSwitchForRelease,
-} from "@features/games/gameDisabled";
-import type { HostedRelease } from "@features/games/gameRelease";
+} from "@features/games/health/gameDisabled";
+import type { HostedRelease } from "@features/games/publish/gameRelease";
 import {
     committedPinnedRelease,
     localReleasesDir,
-} from "@features/games/gameReleaseServer";
-import { gatewayGet } from "@features/games/pinnedGateway";
-import { publishingEnabled } from "@features/games/publishedGames";
+} from "@features/games/publish/gameReleaseServer";
+import { gatewayGet } from "@features/games/publish/pinnedGateway";
+import { publishingEnabled } from "@features/games/publish/publishedGames";
 import {
     NETWORK_FILE,
     releaseContentSecurityPolicy,
-} from "@features/games/networkPolicy";
+} from "@features/games/publish/networkPolicy";
 
 /**
  * Serves releases: the files of /api/games/releases/<game>/<release>/<path>.
@@ -27,7 +27,7 @@ import {
  *
  * 1. The local releases folder (see localReleasesDir), where it is on, and
  *    only for files inside it.
- * 2. A release the committed pointer (features/games/releases.json) stores
+ * 2. A release the committed pointer (features/games/publish/releases.json) stores
  *    on IPFS through Pinata: the file is fetched from that entry's gateway
  *    folder and passed on. This route is what sits in front of the gateway,
  *    because a gateway cannot send a release's own policy. Where to fetch
@@ -229,7 +229,7 @@ export function forgetStoredPolicies() {
 
 /**
  * One file of a registered game's release kept in this server's bucket
- * (features/games/releaseBucket.ts). The object's name is made from the
+ * (features/games/publish/releaseBucket.ts). The object's name is made from the
  * game and release the registry answered for and a path held to the rule
  * for a release's paths; the storage code loads only for such a request.
  */
@@ -244,8 +244,8 @@ async function serveStored(
         { isMissing, releaseBucket, releaseObject },
         { ObjectTooLong, readObjectText },
     ] = await Promise.all([
-        import("@features/games/releaseBucket"),
-        import("@features/games/publishedGamesStorage"),
+        import("@features/games/publish/releaseBucket"),
+        import("@features/games/publish/publishedGamesStorage"),
     ]);
     const bucket = releaseBucket();
     const object = releaseObject(game, release, rest.join("/"));
@@ -304,7 +304,7 @@ async function registeredReleaseOf(game: string, release: string) {
     if (!publishingEnabled()) return null;
     if (killSwitchForRelease(gameKillSwitch(game), release).paused) return null;
     const { registeredRelease } = await import(
-        "@features/games/publishedGamesServer"
+        "@features/games/publish/publishedGamesServer"
     );
     return registeredRelease(game, release).catch(() => null);
 }

@@ -58,7 +58,7 @@ results.abandon(); // the match was left unfinished: report nothing
 
 The rules live in one function, `readMatchResult` in
 `games/runtime/src/results.ts`. The page applies the same rules
-(`frontend/features/games/gameResults.ts`); both run against
+(`frontend/features/games/results/gameResults.ts`); both run against
 `games/runtime/test/results.fixtures.json`, so change the three together.
 
 Two games report today. Ace reports each match against the CPU (format
@@ -79,7 +79,7 @@ the `results` capability; a visitor who only watched reports nothing.
 | game | `result`        | `{ result }`: a finished match.                                                                                                      |
 | page | `result-status` | `{ match, status, reason }`: `recorded`, `unrecorded` (signed out, a repeat, storage failed) or `rejected` (invalid or a duplicate). |
 
-`useGameResults` (`frontend/features/games/useGameResults.tsx`) takes one
+`useGameResults` (`frontend/features/games/results/useGameResults.tsx`) takes one
 valid result per match id and at most 200 per visit. For a signed-in
 visitor it calls the `games` RPC (`frontend/pages/api/_v2/games/`):
 

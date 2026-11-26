@@ -4,7 +4,7 @@
 // (the social controls where the catalog puts them, and the party chat the
 // lobby keeps on screen), at a desktop and two phone viewport sizes. For
 // each size it measures the overlays, sends the game the same insets the
-// real page would (frontend/features/games/safeArea.ts), in the form the
+// real page would (frontend/features/games/contract/safeArea.ts), in the form the
 // game greeted in (docs/games/contract.md), asks the game where
 // its HUD is (`inspect().hud`, through "oncyber:hud-request") and fails when a
 // HUD rectangle shares pixels with an overlay.
@@ -146,7 +146,7 @@ async function askGame(page, id, area, request, waitMs) {
 
 export async function checkSafeArea({ browser, origin, id, shots }) {
     const { computeSafeInsets, CONTROLS_PLACEMENT } = await import(
-        "../../frontend/features/games/safeArea.ts"
+        "../../frontend/features/games/contract/safeArea.ts"
     );
     const {
         findHudOverlaps,

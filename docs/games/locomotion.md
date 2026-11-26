@@ -131,7 +131,7 @@ They are copies of the lobby's own code
 `frontend/features/lobby/createLobbyScene.tsx`, `lobbyControls.ts`), which
 stays the source. Two tests fail when they drift:
 `games/kits/locomotion/test/lobby-parity.test.mjs` (`pnpm games:test`) and
-`frontend/features/games/locomotionParity.test.ts` (the frontend's Jest run
+`frontend/features/games/contract/locomotionParity.test.ts` (the frontend's Jest run
 in CI). Change the lobby first, then the constants file.
 
 The lobby reads no gamepad; the kit's gamepad mapping (left stick moves,

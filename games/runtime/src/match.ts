@@ -10,7 +10,7 @@
  * the pace allows, once per frame.
  *
  * The limits are the server's (multiplayer/src/rooms/cyber/match/limits.ts)
- * and the page's (frontend/features/games/gameMatch.ts): the same three
+ * and the page's (frontend/features/games/room/gameMatch.ts): the same three
  * numbers in all three files, held together by games/runtime/test/parity.test.mjs.
  */
 /** Packets a second a member may send, averaged: the channel's limit. */

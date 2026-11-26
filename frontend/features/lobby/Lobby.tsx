@@ -46,7 +46,7 @@ import EmotePanel from "./EmotePanel";
 import LobbyGroupsModal from "./LobbyGroupsModal";
 import LobbyGroupNotices from "./LobbyGroupNotices";
 import LobbyVoiceRequests from "./LobbyVoiceRequests";
-import { useLobbySocialHandoff } from "@features/games/lobbySocialHandoff";
+import { useLobbySocialHandoff } from "@features/games/social/lobbySocialHandoff";
 import LobbySummonNotice from "./LobbySummonNotice";
 import useLobbyGroupJourney from "./useLobbyGroupJourney";
 import { conversationStyles } from "./conversationStyles";

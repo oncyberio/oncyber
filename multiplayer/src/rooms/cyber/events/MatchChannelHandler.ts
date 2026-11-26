@@ -3,7 +3,7 @@ import { Client, Room } from "colyseus";
 import { MATCH_BURST, MATCH_MAX_BYTES, MATCH_RATE, isPartyRoom } from "../match/limits";
 import { PacketBudget, PartyRoster } from "../match/roster";
 
-// A party's room (see frontend/features/games/gameParty.ts) gets two things
+// A party's room (see frontend/features/games/room/gameParty.ts) gets two things
 // the shared rooms don't: a roster ("game-roster": members in arrival
 // order, the host, seats, who dropped) and a real-time channel between its
 // members ("game-match", about thirty small packets a second each). The

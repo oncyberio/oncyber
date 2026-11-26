@@ -2,7 +2,7 @@
 // This file loads both and compares what each one says and does: the
 // version, the prefix, the limits, and the answer of both readers to every
 // case in contract.fixtures.json (the page's own Jest test runs the same
-// cases: frontend/features/games/gameContract.test.ts).
+// cases: frontend/features/games/contract/gameContract.test.ts).
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
@@ -27,7 +27,7 @@ const repo = new URL("../../../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, repo), "utf8");
 const fixtures = JSON.parse(read("games/runtime/test/contract.fixtures.json"));
 const page = await import(
-    new URL("frontend/features/games/gameContract.ts", repo).href
+    new URL("frontend/features/games/contract/gameContract.ts", repo).href
 );
 /** `export const NAME = 12` (or `const NAME = 12`) in a file this test cannot import. */
 function constant(path, name) {
@@ -111,7 +111,7 @@ test("the match channel has one set of limits: runtime, page, check and server",
         MATCH_MAX_BYTES,
     };
     const places = [
-        "frontend/features/games/gameMatch.ts",
+        "frontend/features/games/room/gameMatch.ts",
         "scripts/games/party-check.mjs",
         // Not in a packed copy of the SDK, and not ours to edit: read only.
         "multiplayer/src/rooms/cyber/match/limits.ts",
@@ -123,7 +123,7 @@ test("the match channel has one set of limits: runtime, page, check and server",
     // The runtime sends under the limit, so a late timer never crosses it.
     assert.ok(MATCH_SEND_RATE < MATCH_RATE && MATCH_SEND_RATE >= 20);
     assert.equal(
-        constant("frontend/features/games/gameMatch.ts", "ROSTER_MAX"),
+        constant("frontend/features/games/room/gameMatch.ts", "ROSTER_MAX"),
         ROSTER_MAX
     );
 });

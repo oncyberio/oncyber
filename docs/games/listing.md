@@ -123,18 +123,18 @@ is behind.
 ## What the lobby shows
 
 On the development server (games stay hidden elsewhere), each game has a
-card in Explore built from its listing (`features/games/gameCards.ts`):
+card in Explore built from its listing (`features/games/interface/gameCards.ts`):
 thumbnail, title, tagline and player count.
 
 -   **Who is playing now.** While Explore is open the lobby reads the
     realtime server's room list every 30 seconds
-    (`features/games/gamePresence.ts`) and adds up the people in the game's
+    (`features/games/room/gamePresence.ts`) and adds up the people in the game's
     shared room (or its `socialRoom`) and in every party's room: "5 playing
     now". It shows a
     count, not names; names are only sent to people inside a room.
 -   **Join your party.** When a party the visitor belongs to is in a game, a
     second card leads: "Your party is here · 3 in your party". It opens
-    `/games/<id>?join=<party id>` (`features/games/gamePartyJoin.ts`), which
+    `/games/<id>?join=<party id>` (`features/games/room/gamePartyJoin.ts`), which
     puts the late arrival in the party's room. A party counts as the
     visitor's when its id is the trip id of one of their lobby groups, or a
     party this browser tab played with in the last two hours. Other parties

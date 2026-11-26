@@ -1,6 +1,6 @@
 import type { GameKillSwitch } from "./gameDisabled";
 import type { FieldHealth } from "./gameHealthSummary";
-import { gameChrome } from "./gameChrome";
+import { gameChrome } from "../interface/gameChrome";
 
 const muted = { margin: "6px 0", color: gameChrome.color.muted };
 

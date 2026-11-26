@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { fromFrame } from "./frameOrigin";
+import { fromFrame } from "../../frame/frameOrigin";
 import { readGameMessage } from "./gameContract";
 
 /**

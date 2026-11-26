@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import GamesService from "@api/games/_api";
-import { readGameMessage } from "./gameContract";
-import type { GameRoom } from "./gameRoom";
+import { readGameMessage } from "../contract/gameContract";
+import type { GameRoom } from "../room/gameRoom";
 import {
     GameResultLedger,
     isPartyResultPacket,
@@ -22,8 +22,8 @@ import {
     type PartyVerdict,
     type ResultReport,
 } from "./resultTrust";
-import { gameChrome } from "./gameChrome";
-import { GameGlass, GameMark } from "./gameControls";
+import { gameChrome } from "../interface/gameChrome";
+import { GameGlass, GameMark } from "../interface/gameControls";
 
 const CARD_MS = 9000;
 /** How long a match between members waits for the others' reports. */

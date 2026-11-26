@@ -7,11 +7,11 @@ import {
     type SavedDoc,
     type SavedQuotaDoc,
     type SavedTransaction,
-} from "@features/games/savedDataServer";
+} from "@features/games/saved/savedDataServer";
 
 /**
  * Saved data for games (docs/games/saved-data.md). The rules live in
- * features/games/savedDataServer.ts; these procedures give them a Firestore
+ * features/games/saved/savedDataServer.ts; these procedures give them a Firestore
  * transaction and the caller's account.
  *
  * Collections: `gameSaved` (one document per value) and `gameSavedQuota`

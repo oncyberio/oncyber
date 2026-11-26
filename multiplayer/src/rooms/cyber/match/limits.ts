@@ -1,6 +1,6 @@
 // Limits of the party match channel, enforced here per sender. The clients
 // pace themselves to the same numbers; mirror any change in
-// games/runtime/src/match.ts and frontend/features/games/gameMatch.ts.
+// games/runtime/src/match.ts and frontend/features/games/room/gameMatch.ts.
 
 /** Packets a second a member may send, averaged (the clients send 30). */
 export const MATCH_RATE = 32;

@@ -34,11 +34,11 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const { NETWORK_FILE, releaseContentSecurityPolicy } = createRequire(
     import.meta.url
-)(join(root, "frontend/features/games/networkPolicy.js"));
+)(join(root, "frontend/features/games/publish/networkPolicy.js"));
 /** The pointer file production reads. Committed; a few lines per game. */
 export const COMMITTED_POINTERS = join(
     root,
-    "frontend/features/games/releases.json"
+    "frontend/features/games/publish/releases.json"
 );
 
 /** The storage and pointer file the environment selects. */

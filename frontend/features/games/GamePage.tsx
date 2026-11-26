@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { fromFrame } from "./frameOrigin";
+import { fromFrame } from "../frame/frameOrigin";
 import {
     CONTENT_PERMISSIONS,
     CONTENT_SANDBOX,
@@ -16,18 +16,22 @@ import {
 import {
     readVisitorIdentity as readGameIdentity,
     type VisitorIdentity as GameIdentity,
-} from "./gameIdentity";
-import { accountIdentity } from "./accountIdentity";
-import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
+} from "../frame/gameIdentity";
+import { accountIdentity } from "../frame/accountIdentity";
+import { GameRoom, type GamePose, type GameRoomState } from "./room/gameRoom";
 import type { GameEntry } from "./catalog";
-import GameCredits from "./GameCredits";
-import { committedFrame, frameBase, type GameFrame } from "./gameRelease";
+import GameCredits from "./interface/GameCredits";
+import {
+    committedFrame,
+    frameBase,
+    type GameFrame,
+} from "./publish/gameRelease";
 import {
     developmentParty,
     gameParty,
     partyRoomLabel,
     type GameParty,
-} from "./gameParty";
+} from "./room/gameParty";
 import { readLobbyGroupCohort } from "@utils/lobbyGroupContext";
 import {
     contractNotice,
@@ -41,30 +45,30 @@ import {
     tripKey,
     type GameDialect,
     type GameRoomMember,
-} from "./gameContract";
-import { useGameSocial } from "./useGameSocial";
-import GameChat from "./GameChat";
-import GameInputLayer from "./GameInputLayer";
-import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./safeArea";
-import { useGameDeparture } from "./useGameDeparture";
-import { readPartyLeave } from "./gamePartyLeave";
-import { MatchBridge, matchSeatKey, type PageRoster } from "./gameMatch";
-import { useGameResults } from "./useGameResults";
-import { GameLoadingCover, useGameLoading } from "./GameLoadingCover";
-import { useGamePause } from "./gamePause";
-import { GameSoundButton, useGameAudio } from "./GameSound";
-import { attachSavedData, signedInAccount } from "./savedDataBridge";
-import { createRemoteSavedStore } from "./savedDataRemote";
-import { joinedParty, rememberGameParty } from "./gamePartyJoin";
-import { useGameHealth } from "./gameHealth";
-import { useGameAvatar } from "./useGameAvatar";
-import { gameChrome } from "./gameChrome";
+} from "./contract/gameContract";
+import { useGameSocial } from "./social/useGameSocial";
+import GameChat from "./social/GameChat";
+import GameInputLayer from "./interface/GameInputLayer";
+import { bridgeGameSafeArea, CONTROLS_PLACEMENT } from "./contract/safeArea";
+import { useGameDeparture } from "./room/useGameDeparture";
+import { readPartyLeave } from "./room/gamePartyLeave";
+import { MatchBridge, matchSeatKey, type PageRoster } from "./room/gameMatch";
+import { useGameResults } from "./results/useGameResults";
+import { GameLoadingCover, useGameLoading } from "./loading/GameLoadingCover";
+import { useGamePause } from "./contract/gamePause";
+import { GameSoundButton, useGameAudio } from "./interface/GameSound";
+import { attachSavedData, signedInAccount } from "./saved/savedDataBridge";
+import { createRemoteSavedStore } from "./saved/savedDataRemote";
+import { joinedParty, rememberGameParty } from "./room/gamePartyJoin";
+import { useGameHealth } from "./health/gameHealth";
+import { useGameAvatar } from "./interface/useGameAvatar";
+import { gameChrome } from "./interface/gameChrome";
 import {
     ActionButton,
     GameControl,
     GameGlass,
     GameNotice,
-} from "./gameControls";
+} from "./interface/gameControls";
 
 const PEER_INTERVAL = 100;
 

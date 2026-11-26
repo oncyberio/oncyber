@@ -18,7 +18,7 @@ import { gameOut, gameSource, standalone } from "./layout.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const NOTICES = join(root, "THIRD_PARTY_NOTICES.md");
 const { NETWORK_FILE } = createRequire(import.meta.url)(
-    join(root, "frontend/features/games/networkPolicy.js")
+    join(root, "frontend/features/games/publish/networkPolicy.js")
 );
 
 /**

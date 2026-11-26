@@ -10,8 +10,8 @@ import {
     SOCIAL_REQUEST,
     type GameSocialState,
 } from "./gameSocial";
-import type { GameRoom } from "./gameRoom";
-import { readGameMessage } from "./gameContract";
+import type { GameRoom } from "../room/gameRoom";
+import { readGameMessage } from "../contract/gameContract";
 
 const TICK_MS = 100;
 

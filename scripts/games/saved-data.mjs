@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // The saved-data stage of `pnpm games:check`, and the declarations sync.
 //
-//   node scripts/games/saved-data.mjs sync     write frontend/features/games/savedData.declared.json
+//   node scripts/games/saved-data.mjs sync     write frontend/features/games/saved/savedData.declared.json
 //   node scripts/games/saved-data.mjs check <id>   run only this stage on the current build
 //
 // A game declares its saved keys in game.json (`saved`); see
 // docs/games/saved-data.md. The stage proves, in the real sandboxed frame
-// and against the page's own store rules (frontend/features/games/savedData.ts):
+// and against the page's own store rules (frontend/features/games/saved/savedData.ts):
 //
 //   round trip   each key's `sample` is saved through the game, the game is
 //                reloaded, and the sample comes back
@@ -37,7 +37,10 @@ import { GAME_MESSAGE_PREFIX } from "../../games/runtime/src/contract.ts";
 import { standalone } from "./layout.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const DECLARED = join(root, "frontend/features/games/savedData.declared.json");
+const DECLARED = join(
+    root,
+    "frontend/features/games/saved/savedData.declared.json"
+);
 const CHECK_PARTY = "check-party-0123456789";
 const LEGACY_KEYS = ["save", "settings", "muted"];
 
@@ -51,7 +54,9 @@ function rules() {
             const copy = join(dir, "savedData.mts");
             writeFileSync(
                 copy,
-                readFileSync(join(root, "frontend/features/games/savedData.ts"))
+                readFileSync(
+                    join(root, "frontend/features/games/saved/savedData.ts")
+                )
             );
             return await import(pathToFileURL(copy).href);
         } catch (error) {
@@ -622,7 +627,9 @@ if (
             DECLARED,
             JSON.stringify(await allDeclared(), null, 4) + "\n"
         );
-        console.log("wrote frontend/features/games/savedData.declared.json");
+        console.log(
+            "wrote frontend/features/games/saved/savedData.declared.json"
+        );
     } else if (
         command === "check" &&
         /^[a-z0-9][a-z0-9-]{0,62}$/.test(id ?? "")

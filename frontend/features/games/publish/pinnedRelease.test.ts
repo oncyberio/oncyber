@@ -2,7 +2,7 @@
 import { Readable, Writable } from "stream";
 import handler, {
     forgetPinnedPolicies,
-} from "../../pages/api/games/releases/[...path]";
+} from "../../../pages/api/games/releases/[...path]";
 import { gatewayGet } from "./pinnedGateway";
 import { gameContentSecurityPolicy } from "./networkPolicy";
 

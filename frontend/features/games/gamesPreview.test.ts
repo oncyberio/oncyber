@@ -7,12 +7,12 @@ import {
     isGameFile,
 } from "./gamesPreview";
 import { findGame, gamesPreviewEnabled as fromCatalog } from "./catalog";
-import { GAME_BUILDS_PATH, committedFrame } from "./gameRelease";
+import { GAME_BUILDS_PATH, committedFrame } from "./publish/gameRelease";
 import {
     GAME_BUILDS_DIR,
     GAME_BUILDS_PATH as headersPath,
     gameNetworkHeaders,
-} from "./networkPolicy";
+} from "./publish/networkPolicy";
 
 const hidden = { NODE_ENV: "production" };
 const preview = { NODE_ENV: "production", GAMES_PREVIEW: "1" };

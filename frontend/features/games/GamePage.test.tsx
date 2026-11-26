@@ -32,10 +32,13 @@ jest.mock("@utils/lobbyGroupContext", () => ({
     readLobbyGroupCohort: jest.fn(),
 }));
 // Layers with tests of their own; this file is about the contract.
-jest.mock("./useGameSocial", () => ({ useGameSocial: () => ({}) }));
-jest.mock("./GameChat", () => ({ __esModule: true, default: () => null }));
+jest.mock("./social/useGameSocial", () => ({ useGameSocial: () => ({}) }));
+jest.mock("./social/GameChat", () => ({
+    __esModule: true,
+    default: () => null,
+}));
 // Field health only listens; its release lookup and analytics stay out.
-jest.mock("./gameHealth", () => ({ useGameHealth: () => {} }));
+jest.mock("./health/gameHealth", () => ({ useGameHealth: () => {} }));
 // The page's avatar picker (features/avatar-picker), reduced to its two
 // ends: opened by the game's request, and the visitor choosing.
 const mockPicker = {
@@ -54,11 +57,11 @@ jest.mock("@features/avatar-picker/usePageAvatarPicker", () => ({
     },
 }));
 const mockSetAvatar = jest.fn();
-jest.mock("./GameInputLayer", () => ({
+jest.mock("./interface/GameInputLayer", () => ({
     __esModule: true,
     default: () => null,
 }));
-jest.mock("./safeArea", () => ({
+jest.mock("./contract/safeArea", () => ({
     bridgeGameSafeArea: () => () => undefined,
     CONTROLS_PLACEMENT: {},
 }));
@@ -75,8 +78,8 @@ jest.mock("@api/gameSaved/_api", () => ({
     default: { savedRead: jest.fn(), savedWrite: jest.fn() },
 }));
 // The seat key needs the browser's crypto and storage; the bridge is real.
-jest.mock("./gameMatch", () => ({
-    ...jest.requireActual("./gameMatch"),
+jest.mock("./room/gameMatch", () => ({
+    ...jest.requireActual("./room/gameMatch"),
     matchSeatKey: () => "seat-key-0123456789abcdef",
 }));
 // The party's room: connects at once as "room-me" with whoever `mockPeers` holds.
@@ -89,7 +92,7 @@ const mockMatchRoom = {
     },
     send: jest.fn(),
 };
-jest.mock("./gameRoom", () => ({
+jest.mock("./room/gameRoom", () => ({
     GameRoom: class {
         sessionId = "room-me";
         mockState: (state: any) => void;
@@ -534,7 +537,7 @@ test("an older build's result is answered in its own prefix", async () => {
 });
 
 test("loading is read in the form the game speaks and a page menu's pause goes out through the page's sender", async () => {
-    const { holdGamePause } = jest.requireActual("./gamePause");
+    const { holdGamePause } = jest.requireActual("./contract/gamePause");
     await mount();
     const cover = () =>
         host.querySelector<HTMLElement>('[data-machine="game-loading"]');

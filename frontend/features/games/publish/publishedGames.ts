@@ -14,14 +14,14 @@ import {
     gamesPreviewEnabled,
     type GameDevice,
     type GameEntry,
-} from "./catalog";
+} from "../catalog";
 import {
     LOCAL_RELEASES_PATH,
     pinnedGatewayBase,
     type GameFrame,
     type HostedRelease,
 } from "./gameRelease";
-import { GAME_SLUG, gamePath, gameSlugProblem } from "./gameSlug";
+import { GAME_SLUG, gamePath, gameSlugProblem } from "../gameSlug";
 
 /** Limits of one release and of one account (docs/games/publishing.md). */
 export const PUBLISH_MAX_BYTES = 30 * 1024 * 1024;

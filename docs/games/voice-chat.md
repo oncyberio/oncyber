@@ -61,13 +61,13 @@ two messages work directly:
 
 ## What the page does
 
-| Piece                                              | Where                                                |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| The social layer: chat log, voice restore, talkers | `frontend/features/games/gameSocial.ts` (no imports) |
-| Its React hook and the chat panel                  | `useGameSocial.ts`, `GameChat.tsx`                   |
-| The room: chat channel, voice mesh, volumes        | `gameRoom.ts`, `voiceLevels.ts`                      |
-| The lobby's half of the handoff                    | `lobbySocialHandoff.ts`, called from `Lobby.tsx`     |
-| The game's helper                                  | `games/runtime/src/voice.ts`                         |
+| Piece                                              | Where                                                                                                      |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| The social layer: chat log, voice restore, talkers | `frontend/features/games/social/gameSocial.ts` (no imports)                                                |
+| Its React hook and the chat panel                  | `social/useGameSocial.ts`, `social/GameChat.tsx`                                                           |
+| The room: chat channel, voice mesh, volumes        | `room/gameRoom.ts`; `frontend/features/frame/roomVoice.ts` and `voiceLevels.ts`, shared with framed worlds |
+| The lobby's half of the handoff                    | `social/lobbySocialHandoff.ts`, called from `Lobby.tsx`                                                    |
+| The game's helper                                  | `games/runtime/src/voice.ts`                                                                               |
 
 On the way in, the game page asks the lobby page around it for the visitor's
 recent room chat and their voice state (`oncyber:game-social-request`, same

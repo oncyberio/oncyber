@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { proc, NoApi } from "@utils/rpc/server";
 import { GAME_SLUG } from "@features/games/gameSlug";
-import { PUBLISH_ID } from "@features/games/publishedGames";
+import { PUBLISH_ID } from "@features/games/publish/publishedGames";
 import {
     assertMayPublish,
     setGameLink,
-} from "@features/games/publishedGamesServer";
+} from "@features/games/publish/publishedGamesServer";
 
 /**
  * Give a published game its short address, /<slug>, change it, or (with

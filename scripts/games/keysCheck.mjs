@@ -3,7 +3,7 @@
 //   scan     Reads the game's source. Flags raw key listeners, direct
 //            pointer-lock requests, and bindings on keys the page reserves.
 //   browser  Opens the build beside a page that runs the site's own key
-//            handling (frontend/features/games/gameInput.ts), plays, then
+//            handling (frontend/features/games/contract/gameInput.ts), plays, then
 //            types in the page's chat field and opens its menu, and asserts
 //            the game took no input and the player did not move.
 //
@@ -205,7 +205,7 @@ export async function harnessPage(page, id) {
             contentType: "text/javascript",
             body: stripTypeScriptTypes(
                 readFileSync(
-                    join(root, "frontend/features/games/gameInput.ts"),
+                    join(root, "frontend/features/games/contract/gameInput.ts"),
                     "utf8"
                 )
             ),

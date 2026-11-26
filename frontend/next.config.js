@@ -13,7 +13,7 @@ const {
     GAME_BUILDS_DIR,
     GAME_BUILDS_PATH,
     gameNetworkHeaders,
-} = require("./features/games/networkPolicy");
+} = require("./features/games/publish/networkPolicy");
 const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
@@ -340,7 +340,7 @@ const nextConfig = {
             headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
         });
         // A game reaches its own files and the hosts it declared, nothing
-        // else (features/games/networkPolicy.js, docs/games/trust.md).
+        // else (features/games/publish/networkPolicy.js, docs/games/trust.md).
         headers.push(
             ...gameNetworkHeaders(path.join(__dirname, GAME_BUILDS_DIR), fs)
         );

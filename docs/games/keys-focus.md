@@ -24,7 +24,7 @@ with Cmd or Ctrl held, which a game never sees. `KeyM` on its own is the
 game's to bind, like any other key.
 
 The table lives in `games/runtime/src/keys.ts` (`RESERVED_KEYS`,
-`PAGE_CHORDS`) and `frontend/features/games/gameInput.ts`; a test keeps
+`PAGE_CHORDS`) and `frontend/features/games/contract/gameInput.ts`; a test keeps
 them equal. A reserved key in `game.json` fails the check. Use other keys:
 Space or J to confirm, Backspace to go back, P for a pause of your own.
 
@@ -95,7 +95,7 @@ Space or J to confirm, Backspace to go back, P for a pause of your own.
 
 ## What the page does
 
-`frontend/features/games/gameInput.ts` (used by `GameInputLayer`, mounted in
+`frontend/features/games/contract/gameInput.ts` (used by `GameInputLayer`, mounted in
 `GamePage`):
 
 -   Pauses the game while any text field of the page has focus (and, inside
@@ -164,4 +164,4 @@ own (none today); a game on the shared `GamePage` must not use it.
 
 Tests: `pnpm games:test` (runtime and the check, including a fixture game
 that breaks the rule on purpose) and
-`pnpm -C frontend test features/games/gameInput.test.ts`.
+`pnpm -C frontend test features/games/contract/gameInput.test.ts`.

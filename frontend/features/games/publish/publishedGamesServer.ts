@@ -36,11 +36,11 @@ import type { Readable } from "stream";
 import { Transform } from "stream";
 import { pipeline } from "stream/promises";
 import { db } from "@utils/firebaseAdmin";
-import type { GameEntry } from "./catalog";
+import type { GameEntry } from "../catalog";
 import type { GameFrame } from "./gameRelease";
 import { localReleasesDir } from "./gameReleaseServer";
-import { GAME_SLUG, gamePath } from "./gameSlug";
-import { gameLinkRef } from "./gameSlugServer";
+import { GAME_SLUG, gamePath } from "../gameSlug";
+import { gameLinkRef } from "../gameSlugServer";
 import {
     pinnedReleaseBase,
     pinnedUploadsConfig,

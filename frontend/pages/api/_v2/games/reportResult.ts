@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { proc, NoApi } from "@utils/rpc/server";
 import { findGame, gamesPreviewEnabled } from "@features/games/catalog";
-import { gameResultSchema, resultMembers } from "@features/games/gameResults";
+import {
+    gameResultSchema,
+    resultMembers,
+} from "@features/games/results/gameResults";
 import { recordGameResult } from "@utils/firestore/gameResults";
 
 /**

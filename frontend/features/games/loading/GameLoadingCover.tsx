@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState, type RefObject } from "react";
 import { baseTokens } from "@styles/tokens";
-import { fromFrame } from "./frameOrigin";
+import { fromFrame } from "../../frame/frameOrigin";
 import {
     isLobbyDestination,
     lobbyDestinationProgress,
@@ -11,7 +11,7 @@ import {
     readGameLoadingMessage,
     type GameLoadingState,
 } from "./gameLoading";
-import { gameChrome } from "./gameChrome";
+import { gameChrome } from "../interface/gameChrome";
 
 /**
  * Follows a game's loading messages (`progress`, `first-frame`, `frame`)

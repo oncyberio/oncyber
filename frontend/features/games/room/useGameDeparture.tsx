@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { fromFrame } from "./frameOrigin";
+import { fromFrame } from "../../frame/frameOrigin";
 import { useRouter } from "next/router";
 import { requestLobbyDestinationBack } from "@utils/lobbyDestinationBridge";
 import { createGameDeparture, type DepartureReason } from "./gameDeparture";
@@ -11,9 +11,9 @@ import {
     type PartyLeaveOffer,
 } from "./gamePartyLeave";
 import type { GameRoom } from "./gameRoom";
-import { readGameMessage } from "./gameContract";
-import { gameChrome } from "./gameChrome";
-import { ActionButton, GameGlass } from "./gameControls";
+import { readGameMessage } from "../contract/gameContract";
+import { gameChrome } from "../interface/gameChrome";
+import { ActionButton, GameGlass } from "../interface/gameControls";
 
 const OFFER_MS = 30_000;
 /**

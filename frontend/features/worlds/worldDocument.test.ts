@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { CONTRACT_VERSION } from "@features/games/gameContract";
+import { CONTRACT_VERSION } from "@features/games/contract/gameContract";
 import { createWorldDocument, isWorldDocument } from "./worldDocument";
 import { readWorldFrame } from "./worldFrame";
 

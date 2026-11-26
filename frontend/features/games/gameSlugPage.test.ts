@@ -49,7 +49,7 @@ jest.mock("./catalog.generated", () => ({
         maze: { id: "maze", title: "Maze", devices: [] },
     },
 }));
-jest.mock("./gameReleaseServer", () => ({
+jest.mock("./publish/gameReleaseServer", () => ({
     loadGameFrame: async (id: string) => ({
         src: `/game-builds/${id}/index.html`,
         release: null,
@@ -69,7 +69,7 @@ const mockRegistered = jest.fn(async (slug: string) =>
           }
         : null
 );
-jest.mock("./publishedGamesServer", () => ({
+jest.mock("./publish/publishedGamesServer", () => ({
     loadRegisteredGame: async () => null,
     loadRegisteredGameBySlug: (slug: string) => mockRegistered(slug),
 }));

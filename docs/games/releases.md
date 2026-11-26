@@ -57,15 +57,15 @@ pnpm games:release:test                # the tests for all of this
 
 ## How it fits together
 
-| Piece           | Where                                            | What it does                                                                                                                                   |
-| --------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Storage         | `scripts/games/releases/storage.mjs`             | `put` a release, `read` a file back. Backends: `local`, `pinata`.                                                                              |
-| Pointer         | `scripts/games/releases/pointer.mjs`             | `current` release per game (or none) plus the last 20, each with its base URL.                                                                 |
-| Publish         | `scripts/games/releases/publish.mjs`             | Store, verify, list; move a hosted game's pointer. Checks the host's headers.                                                                  |
-| Check stage     | `scripts/games/releases/stage.mjs`               | The `hosted` stage of `games:check`.                                                                                                           |
-| Page reader     | `frontend/features/games/gameRelease.ts`         | Turns pointers into the frame's `src`. Unusable pointers are skipped.                                                                          |
-| Releases route  | `frontend/pages/api/games/releases/[...path].ts` | Serves a release to the page with the headers below: from the local folder, or from the IPFS gateway of a release the committed pointer lists. |
-| Gateway request | `frontend/features/games/pinnedGateway.ts`       | The route's one outbound request: https, public addresses only, no redirect followed, a timeout.                                               |
+| Piece           | Where                                              | What it does                                                                                                                                   |
+| --------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Storage         | `scripts/games/releases/storage.mjs`               | `put` a release, `read` a file back. Backends: `local`, `pinata`.                                                                              |
+| Pointer         | `scripts/games/releases/pointer.mjs`               | `current` release per game (or none) plus the last 20, each with its base URL.                                                                 |
+| Publish         | `scripts/games/releases/publish.mjs`               | Store, verify, list; move a hosted game's pointer. Checks the host's headers.                                                                  |
+| Check stage     | `scripts/games/releases/stage.mjs`                 | The `hosted` stage of `games:check`.                                                                                                           |
+| Page reader     | `frontend/features/games/publish/gameRelease.ts`   | Turns pointers into the frame's `src`. Unusable pointers are skipped.                                                                          |
+| Releases route  | `frontend/pages/api/games/releases/[...path].ts`   | Serves a release to the page with the headers below: from the local folder, or from the IPFS gateway of a release the committed pointer lists. |
+| Gateway request | `frontend/features/games/publish/pinnedGateway.ts` | The route's one outbound request: https, public addresses only, no redirect followed, a timeout.                                               |
 
 The release id is the first 16 hex digits of the SHA-256 of every
 `path:sha256` line, the same id `release.json` already carried. The stored
@@ -90,10 +90,10 @@ Everything in the build folder, except what the check writes about it:
 
 ### Backends
 
-| Backend           | Release lives at                                     | The page loads it from                                            | Pointer file                                       | Needs                                      |
-| ----------------- | ---------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
-| `local` (default) | `.games-releases/<game>/<release>/` (ignored by git) | `/api/games/releases/<game>/<release>/`, read from the folder     | `.games-releases/pointers.json`                    | nothing                                    |
-| `pinata`          | one pinned IPFS directory, `<gateway>/ipfs/<cid>/`   | `/api/games/releases/<game>/<release>/`, fetched from the gateway | `frontend/features/games/releases.json`, committed | `PINATA_JWT_KEY`, `GAMES_RELEASES_GATEWAY` |
+| Backend           | Release lives at                                     | The page loads it from                                            | Pointer file                                               | Needs                                      |
+| ----------------- | ---------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------ |
+| `local` (default) | `.games-releases/<game>/<release>/` (ignored by git) | `/api/games/releases/<game>/<release>/`, read from the folder     | `.games-releases/pointers.json`                            | nothing                                    |
+| `pinata`          | one pinned IPFS directory, `<gateway>/ipfs/<cid>/`   | `/api/games/releases/<game>/<release>/`, fetched from the gateway | `frontend/features/games/publish/releases.json`, committed | `PINATA_JWT_KEY`, `GAMES_RELEASES_GATEWAY` |
 
 Both variables of the `pinata` backend are for the publishing scripts. The
 site needs neither: it reads each release's gateway address from the
@@ -127,7 +127,7 @@ applies:
 2. The local pointer, where the local folder is on (the development server,
    or any server with `GAMES_RELEASES_DIR` set) and a person pointed the
    game there.
-3. The committed pointer, `frontend/features/games/releases.json`, for a
+3. The committed pointer, `frontend/features/games/publish/releases.json`, for a
    game a person pointed.
 4. The committed build, `/game-builds/<id>/index.html`.
 
@@ -186,7 +186,7 @@ A host of releases must send two headers with **every file of a release**:
    ([trust.md](trust.md)): the game reaches its own files and the hosts it
    declared, nothing else. The sandbox keeps a release opened directly in a
    tab off the host's origin. `releaseContentSecurityPolicy()` in
-   `frontend/features/games/networkPolicy.js` returns the exact value.
+   `frontend/features/games/publish/networkPolicy.js` returns the exact value.
 
 Without the second header a game loaded from that host could reach any
 server, so the rule is enforced, not only written down:
@@ -219,7 +219,7 @@ For a request the local folder does not answer (production has no local
 folder), the route:
 
 1. looks the game and release up in the committed pointer,
-   `frontend/features/games/releases.json`. Any listed release counts, not
+   `frontend/features/games/publish/releases.json`. Any listed release counts, not
    only `current`, so a rollback needs nothing new. Not listed, or not a
    usable `pinata` entry: 404, and nothing is fetched;
 2. reads the release's `network.json` from the entry's gateway folder and
@@ -264,7 +264,7 @@ release is published:
 -   the pointer entry is one the route accepts (a CID, an `https` base
     ending in `/ipfs/<cid>/`), and it is marked `"served": "site"`;
 -   the route's headers are proved by its tests
-    (`frontend/features/games/pinnedRelease.test.ts`), against a stand-in
+    (`frontend/features/games/publish/pinnedRelease.test.ts`), against a stand-in
     gateway. The `hosted` check stage still runs on the local folder
     backend; it does not start the site.
 
@@ -323,7 +323,7 @@ Then, for a game `<id>` from the catalog:
 pnpm games:publish <id>          # build, check, pin the release, read every file back and compare hashes
 pnpm games:release list <id>     # the release is listed; the page still uses the committed build
 pnpm games:release point <id>    # read it back again, then switch the game's page to it
-git add frontend/features/games/releases.json
+git add frontend/features/games/publish/releases.json
 git commit -m "Games: <id> loads its hosted release"
 ```
 
@@ -331,7 +331,7 @@ git commit -m "Games: <id> loads its hosted release"
 of `games:publish`, when it should not be rebuilt.
 
 `point` writes the game's entry into
-`frontend/features/games/releases.json`: the release id, the CID, the
+`frontend/features/games/publish/releases.json`: the release id, the CID, the
 gateway folder and `"served": "site"`. Nothing changes for visitors until
 that file is deployed. Open a pull request with it; the preview deployment
 is where to try it:

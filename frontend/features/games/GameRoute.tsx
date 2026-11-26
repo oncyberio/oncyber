@@ -1,7 +1,7 @@
 import Head from "next/head";
 import GamePage from "./GamePage";
-import GameDeviceGate from "./GameDeviceGate";
-import GameKillSwitchGate from "./GameKillSwitchGate";
+import GameDeviceGate from "./interface/GameDeviceGate";
+import GameKillSwitchGate from "./health/GameKillSwitchGate";
 import type { GameRouteProps } from "./gameRoute";
 
 /**

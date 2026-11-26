@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { UserContext } from "@components/context/UserContext";
-import { presentAccount } from "@features/games/accountIdentity";
+import { presentAccount } from "@features/frame/accountIdentity";
 import { guestId } from "@utils/guestIdentity";
 import { worldAccount, worldVisitorMessage } from "./worldVisitor";
 

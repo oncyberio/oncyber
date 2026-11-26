@@ -3,11 +3,11 @@ import {
     gameResultOutcome,
     type GameResult,
     type GameResultOutcome,
-} from "@features/games/gameResults";
+} from "@features/games/results/gameResults";
 import {
     leaderboardEligible,
     type ResultTrust,
-} from "@features/games/resultTrust";
+} from "@features/games/results/resultTrust";
 
 /**
  * Where match results live. Two small collections per game:
@@ -20,7 +20,7 @@ import {
  * `verified` is false on both documents until something else decides which
  * results count. Other players named in a result are text, never accounts.
  *
- * Each result carries a trust level (features/games/resultTrust.ts). Only
+ * Each result carries a trust level (features/games/results/resultTrust.ts). Only
  * results a whole party agreed on count for the leaderboard: they add to
  * the standing's `rankedPlayed` and `rankedWins`, which is what the
  * leaderboard lists. A solo result is kept and never ranked.

@@ -155,14 +155,14 @@ build was not rebuilt after the runtime changed ([../games.md](../games.md),
 
 ## Where it lives
 
-| File                                        | What                                                                       |
-| ------------------------------------------- | -------------------------------------------------------------------------- |
-| `games/runtime/src/contract.ts`             | Enter data (`Arrival`, `Trip`), the prefix, bounded readers, `tripPlayers` |
-| `games/runtime/src/manifest.ts`             | `game.json` types and `validateGameJson`                                   |
-| `games/runtime/src/page.ts`                 | `connectPage()`, the game's side of the bridge                             |
-| `frontend/features/games/gameContract.ts`   | The page's side: prefix, `enter` message, the trip from the party's room   |
-| `games/runtime/messages.json`               | Every message kind, who sends it, and the file on each side                |
-| `games/runtime/test/parity.test.mjs`        | Both halves loaded and compared: version, prefix, limits, and every reader |
-| `games/runtime/test/contract.fixtures.json` | The cases both halves must answer the same way                             |
-| `scripts/games/contract-check.mjs`          | The check stage                                                            |
-| `games/ace/`                                | The reference: `src/host.js` (host), `src/game.js` (game), `scenario.json` |
+| File                                               | What                                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------------- |
+| `games/runtime/src/contract.ts`                    | Enter data (`Arrival`, `Trip`), the prefix, bounded readers, `tripPlayers` |
+| `games/runtime/src/manifest.ts`                    | `game.json` types and `validateGameJson`                                   |
+| `games/runtime/src/page.ts`                        | `connectPage()`, the game's side of the bridge                             |
+| `frontend/features/games/contract/gameContract.ts` | The page's side: prefix, `enter` message, the trip from the party's room   |
+| `games/runtime/messages.json`                      | Every message kind, who sends it, and the file on each side                |
+| `games/runtime/test/parity.test.mjs`               | Both halves loaded and compared: version, prefix, limits, and every reader |
+| `games/runtime/test/contract.fixtures.json`        | The cases both halves must answer the same way                             |
+| `scripts/games/contract-check.mjs`                 | The check stage                                                            |
+| `games/ace/`                                       | The reference: `src/host.js` (host), `src/game.js` (game), `scenario.json` |

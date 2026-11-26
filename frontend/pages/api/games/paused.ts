@@ -3,15 +3,15 @@ import { findGame, gamesPreviewEnabled } from "@features/games/catalog";
 import {
     gameKillSwitch,
     killSwitchForRelease,
-} from "@features/games/gameDisabled";
-import { loadGameFrame } from "@features/games/gameReleaseServer";
+} from "@features/games/health/gameDisabled";
+import { loadGameFrame } from "@features/games/publish/gameReleaseServer";
 
 /**
  * The kill switch for one game (`GAMES_DISABLED`, docs/games/field-health.md):
  * `{ paused, releases, frame }`, the same answer /games/<id> gets in its
  * page props: whether the game may load, and the frame its pointer names
  * (docs/games/releases.md). The lobby asks before it prepares a game in a
- * hidden frame (features/games/gamePrepare.ts), so a paused game loads
+ * hidden frame (features/games/loading/gamePrepare.ts), so a paused game loads
  * nowhere and a prepared one is the release the page will show.
  */
 export default async function handler(

@@ -85,7 +85,7 @@ jest.mock("@utils/arena/join", () => ({
 
 // The page's voice in a room: what was asked of it, and a way to answer.
 const mockVoices: any[] = [];
-jest.mock("@features/games/roomVoice", () => ({
+jest.mock("@features/frame/roomVoice", () => ({
     RoomVoice: class {
         state = "off";
         toggle = jest.fn();

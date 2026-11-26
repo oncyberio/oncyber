@@ -15,8 +15,8 @@ const directive = (policy: string, name: string) =>
         ?.split(" ")
         .slice(1) ?? [];
 
-const games = path.join(__dirname, "../../public/game-builds");
-const sources = path.join(__dirname, "../../../games");
+const games = path.join(__dirname, "../../../public/game-builds");
+const sources = path.join(__dirname, "../../../../games");
 const hash = "sha256-n0yitukgHPWhP2R0+VSC57iD+ieTtiIPDO1lA5N7OdE=";
 
 describe("game network boundary", () => {

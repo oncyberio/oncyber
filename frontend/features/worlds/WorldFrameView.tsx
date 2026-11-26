@@ -6,14 +6,14 @@
  * page (./FramedWorld decides each answer).
  */
 import { useEffect, useRef, useState } from "react";
-import { BEAT_EVERY_MS, createStallWatch } from "@features/games/frameStall";
-import { RoomVoice } from "@features/games/roomVoice";
-import { useGameLoading } from "@features/games/GameLoadingCover";
-import { fromFrame, frameTarget } from "@features/games/frameOrigin";
+import { BEAT_EVERY_MS, createStallWatch } from "@features/frame/frameStall";
+import { RoomVoice } from "@features/frame/roomVoice";
+import { useGameLoading } from "@features/games/loading/GameLoadingCover";
+import { fromFrame, frameTarget } from "@features/frame/frameOrigin";
 import {
     GAME_MESSAGE_PREFIX,
     readGameMessage,
-} from "@features/games/gameContract";
+} from "@features/games/contract/gameContract";
 import { SCRIPT_MESSAGE } from "@features/world-scripts/basics";
 import { deferred, liveSpace, signedOutLiveSpace } from "@utils/liveSpace";
 import { sayLoadStage } from "@utils/loadTimings";

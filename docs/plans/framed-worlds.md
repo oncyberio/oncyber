@@ -153,7 +153,7 @@ default.
        is not one the page can see. A world can mute its visitor; it
        cannot unmute them. The world's code never reaches a microphone or
        a peer connection. The page's voice is the one a game page has
-       (`features/games/roomVoice.ts`).
+       (`features/frame/roomVoice.ts`).
 
         The world asks the page what only the page can know (`ask`): so
         far, whether its visitor moderates the space, answered with the
@@ -181,7 +181,7 @@ default.
 
     3. **A world that stops.** _(Done.)_ A world that has drawn says it
        is alive about once a second; silence while the page is in view
-       means its thread hangs or died (`features/games/frameStall.ts`).
+       means its thread hangs or died (`features/frame/frameStall.ts`).
        The page says so, with a way to load the world again, and what is
        the page's carries on: the room, voice, the header and the dock.
 

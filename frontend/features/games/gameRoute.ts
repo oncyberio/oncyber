@@ -1,6 +1,6 @@
 import type { GameEntry } from "./catalog";
-import type { GameKillSwitch } from "./gameDisabled";
-import type { GameFrame } from "./gameRelease";
+import type { GameKillSwitch } from "./health/gameDisabled";
+import type { GameFrame } from "./publish/gameRelease";
 
 /** What a game's page is rendered from, at either of its addresses. */
 export interface GameRouteProps {

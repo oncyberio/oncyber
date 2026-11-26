@@ -4,7 +4,7 @@
  * message prefix both sides speak. Pure data and readers: no DOM, usable in
  * the game, the page's tests and the check script. See docs/games/contract.md.
  *
- * `frontend/features/games/gameContract.ts` is the page's half; a test in
+ * `frontend/features/games/contract/gameContract.ts` is the page's half; a test in
  * games/runtime/test/contract.test.mjs keeps the two in step.
  */
 import { readRoster, type Roster } from "./roster.ts";
@@ -12,7 +12,7 @@ import { readRoster, type Roster } from "./roster.ts";
 /**
  * Raised when the messages or the enter data change shape or meaning. The
  * page reads it from `hello` and says so when a build is older than it
- * speaks (frontend/features/games/gameContract.ts, `contractSupport`).
+ * speaks (frontend/features/games/contract/gameContract.ts, `contractSupport`).
  *
  * 2  `oncyber:game:<kind>` for every game; `enter` carries the visit.
  * 3  Keys: M on its own is the game's; the page's chords arrive as

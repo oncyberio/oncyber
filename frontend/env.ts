@@ -129,13 +129,13 @@ export const nodeEnv = {
     // Server-only. Who may publish a game from outside the repository
     // (docs/games/publishing.md): unset is off (open on the development
     // server), "open", or a comma list of account ids. Read through
-    // publishingGate() in features/games/publishedGames.ts.
+    // publishingGate() in features/games/publish/publishedGames.ts.
     GAMES_PUBLISHING: process.env.GAMES_PUBLISHING,
     // Server-only. Upload mode `storage` of that publishing: releases kept
     // in a private Firebase Storage bucket, for a host with no disk. Unset
     // uses the bucket where there is no local releases folder; "on" uses
     // it even where there is one; "off" never. Read through
-    // releaseBucketConfig() in features/games/releaseBucket.ts.
+    // releaseBucketConfig() in features/games/publish/releaseBucket.ts.
     GAMES_PUBLISHING_STORAGE: process.env.GAMES_PUBLISHING_STORAGE,
     // Server-only. The bucket for it; unset is the Firebase project's
     // bucket (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).

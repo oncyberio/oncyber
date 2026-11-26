@@ -159,7 +159,7 @@ Common findings:
 ## What the site does with it
 
 The site offers a game only on devices it lists
-(`frontend/features/games/gameDevices.ts`). A phone or tablet needs `phone`;
+(`frontend/features/games/interface/gameDevices.ts`). A phone or tablet needs `phone`;
 a desktop needs `desktop`. On a device a game doesn't list:
 
 -   the lobby's Explore panel leaves its card out;

@@ -1,7 +1,7 @@
 // The chat and voice stage of `pnpm games:check` (docs/games/voice-chat.md).
 //
 // Two visitors chat in a lobby, travel into the game together and carry on:
-// the page's own social layer (frontend/features/games/gameSocial.ts) runs
+// the page's own social layer (frontend/features/games/social/gameSocial.ts) runs
 // in a browser around the real game build in the site's sandbox. It proves:
 //
 //   - chat sent before the trip is still on screen after it;
@@ -73,7 +73,7 @@ const visitorPage = (
 export function serveSocialCheck(id, out) {
     const social = stripTypeScriptTypes(
         readFileSync(
-            join(root, "frontend/features/games/gameSocial.ts"),
+            join(root, "frontend/features/games/social/gameSocial.ts"),
             "utf8"
         )
     );

@@ -1,5 +1,5 @@
-import fixtures from "../../../games/runtime/test/contract.fixtures.json";
-import messages from "../../../games/runtime/messages.json";
+import fixtures from "../../../../games/runtime/test/contract.fixtures.json";
+import messages from "../../../../games/runtime/messages.json";
 import { readAvatarMessage } from "@features/avatar-picker/pageAvatar";
 import {
     CONTRACT_OLDEST,

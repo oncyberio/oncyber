@@ -1,5 +1,5 @@
 {
-    "about": "Cases both halves of the game contract must answer the same way: games/runtime/src/contract.ts (the game's side) and frontend/features/games/gameContract.ts (the page's). Read by games/runtime/test/parity.test.mjs and frontend/features/games/gameContract.test.ts, and the avatar-picker's two readers (games/runtime/src/avatar.ts and frontend/features/avatar-picker/pageAvatar.ts).",
+    "about": "Cases both halves of the game contract must answer the same way: games/runtime/src/contract.ts (the game's side) and frontend/features/games/contract/gameContract.ts (the page's). Read by games/runtime/test/parity.test.mjs and frontend/features/games/contract/gameContract.test.ts, and the avatar-picker's two readers (games/runtime/src/avatar.ts and frontend/features/avatar-picker/pageAvatar.ts).",
     "arrivalViews": [
         {
             "name": "the framing only: extra fields are dropped",

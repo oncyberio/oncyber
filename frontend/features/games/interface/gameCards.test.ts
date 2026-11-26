@@ -1,4 +1,4 @@
-import { GAMES, findGame } from "./catalog";
+import { GAMES, findGame } from "../catalog";
 import { gameCards, playersLabel } from "./gameCards";
 
 const MINE = "trip_0123456789abcdef";

@@ -1,9 +1,9 @@
 import { proc, NoApi } from "@utils/rpc/server";
-import { publishBeginSchema } from "@features/games/publishedGames";
+import { publishBeginSchema } from "@features/games/publish/publishedGames";
 import {
     assertMayPublish,
     beginPublish,
-} from "@features/games/publishedGamesServer";
+} from "@features/games/publish/publishedGamesServer";
 
 /**
  * Start publishing a release: the id, the listing and the list of files

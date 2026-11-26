@@ -4,7 +4,7 @@ import {
     loadGameCredits,
     type GameCredits as Credits,
 } from "./gameCredits";
-import { holdGamePause } from "./gamePause";
+import { holdGamePause } from "../contract/gamePause";
 import { gameChrome } from "./gameChrome";
 import {
     ActionButton,

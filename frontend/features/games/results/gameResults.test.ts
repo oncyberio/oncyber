@@ -1,4 +1,4 @@
-import fixtures from "../../../games/runtime/test/results.fixtures.json";
+import fixtures from "../../../../games/runtime/test/results.fixtures.json";
 import {
     GameResultLedger,
     gameResultOutcome,

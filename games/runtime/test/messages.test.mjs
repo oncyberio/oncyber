@@ -2,7 +2,7 @@
 // say to each other. This test holds the game's side to it: every kind the
 // runtime sends or hears is listed, every listed kind is still handled by
 // the file the list names, and its page of the docs still describes it.
-// The page's side is held by frontend/features/games/gameMessages.test.ts.
+// The page's side is held by frontend/features/games/contract/gameMessages.test.ts.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import test from "node:test";

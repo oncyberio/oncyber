@@ -12,7 +12,7 @@
 // Writes games/<id>/ (a copy of games/lantern-tag, renamed), games/<id>/BRIEF.md
 // (from games/BRIEF.md), bot.json and scenario.json stubs, a game.json whose
 // party statement is still to write, any saved keys the template declares
-// in frontend/features/games/savedData.declared.json, and a listing whose
+// in frontend/features/games/saved/savedData.declared.json, and a listing whose
 // entry goes into the generated catalog
 // (frontend/features/games/catalog.generated.ts, docs/games/listing.md).
 // The new game passes the contract, keys and manifest checks as it is (it
@@ -151,7 +151,7 @@ export function createGame({ root = repo, id, name = id }) {
     // (docs/games/saved-data.md): the copy declares what the template does.
     const declared = join(
         root,
-        "frontend/features/games/savedData.declared.json"
+        "frontend/features/games/saved/savedData.declared.json"
     );
     if (existsSync(declared)) {
         const all = JSON.parse(readFileSync(declared, "utf8"));

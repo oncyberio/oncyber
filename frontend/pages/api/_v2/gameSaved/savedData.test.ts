@@ -25,7 +25,7 @@ jest.mock("@utils/firebaseAdmin", () => ({
 }));
 
 import GameSavedService from "./index";
-import declared from "@features/games/savedData.declared.json";
+import declared from "@features/games/saved/savedData.declared.json";
 
 const env = process.env as Record<string, string | undefined>;
 const previous = env.GAMES_PREVIEW;

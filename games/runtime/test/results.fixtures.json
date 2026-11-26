@@ -1,5 +1,5 @@
 {
-    "comment": "Shared by games/runtime/test/results.test.mjs and frontend/features/games/gameResults.test.ts so the game side and the page side accept the same results.",
+    "comment": "Shared by games/runtime/test/results.test.mjs and frontend/features/games/results/gameResults.test.ts so the game side and the page side accept the same results.",
     "valid": {
         "match": "m_0123456789",
         "format": "cpu",

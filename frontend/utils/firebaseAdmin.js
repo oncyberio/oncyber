@@ -40,6 +40,6 @@ if (!admin.apps.length) {
 export const db = admin.firestore();
 export const auth = admin.auth;
 export const fire = admin.firestore;
-// Cloud Storage, for game releases (features/games/releaseBucket.ts). A
+// Cloud Storage, for game releases (features/games/publish/releaseBucket.ts). A
 // function, so the storage library loads only where a bucket is used.
 export const storage = () => admin.storage();

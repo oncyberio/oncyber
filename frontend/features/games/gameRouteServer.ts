@@ -5,9 +5,9 @@
  */
 import { searchUrl } from "@utils/siteUrl";
 import { findGame, type GameEntry } from "./catalog";
-import { gameKillSwitch, killSwitchForRelease } from "./gameDisabled";
-import type { GameFrame } from "./gameRelease";
-import { loadGameFrame } from "./gameReleaseServer";
+import { gameKillSwitch, killSwitchForRelease } from "./health/gameDisabled";
+import type { GameFrame } from "./publish/gameRelease";
+import { loadGameFrame } from "./publish/gameReleaseServer";
 import type { GameRouteProps } from "./gameRoute";
 import { GAME_SLUG, catalogGameBySlug, gamePath } from "./gameSlug";
 import { gamesPreviewEnabled } from "./gamesPreview";
@@ -41,7 +41,9 @@ export async function loadGameRoute(
     if (game) return catalogued(game, draft);
     // Not in the catalog: a game the registry holds. It runs in the same
     // page, behind the same gates.
-    const { loadRegisteredGame } = await import("./publishedGamesServer");
+    const { loadRegisteredGame } = await import(
+        "./publish/publishedGamesServer"
+    );
     const registered = await loadRegisteredGame(id);
     return registered ? route(registered.game, registered.frame) : null;
 }
@@ -64,7 +66,7 @@ export async function loadGameRouteBySlug(
     if (game) found = await catalogued(game, draft);
     else {
         const { loadRegisteredGameBySlug } = await import(
-            "./publishedGamesServer"
+            "./publish/publishedGamesServer"
         );
         const registered = await loadRegisteredGameBySlug(slug);
         if (registered) found = route(registered.game, registered.frame);

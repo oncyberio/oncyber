@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import committed from "../../public/game-builds/lantern-tag/release.json";
+import committed from "../../../public/game-builds/lantern-tag/release.json";
 import {
     PUBLISH_KEEP_RELEASES,
     PUBLISH_MAX_BYTES,

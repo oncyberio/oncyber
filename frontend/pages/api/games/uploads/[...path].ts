@@ -4,8 +4,8 @@ import {
     UPLOAD_ID,
     mayPublish,
     publishingEnabled,
-} from "@features/games/publishedGames";
-import { acceptUploadedFile } from "@features/games/publishedGamesServer";
+} from "@features/games/publish/publishedGames";
+import { acceptUploadedFile } from "@features/games/publish/publishedGamesServer";
 
 /**
  * Upload mode `site` of publishing from outside the repository

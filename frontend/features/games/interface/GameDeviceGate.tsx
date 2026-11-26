@@ -3,9 +3,9 @@ import {
     failLobbyDestination,
     requestLobbyDestinationBack,
 } from "@utils/lobbyDestinationBridge";
-import type { GameEntry } from "./catalog";
+import type { GameEntry } from "../catalog";
 import { deviceNotice, gameOnDevice } from "./gameDevices";
-import { gameDevice, type VisitorDevice } from "./gameHealth";
+import { gameDevice, type VisitorDevice } from "../health/gameHealth";
 import { ActionButton, GameNotice } from "./gameControls";
 
 /**

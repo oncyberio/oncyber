@@ -2,7 +2,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import handler from "../../pages/api/games/releases/[...path]";
+import handler from "../../../pages/api/games/releases/[...path]";
 import { gameContentSecurityPolicy } from "./networkPolicy";
 
 const RELEASE = "0800022feca2d8ba";

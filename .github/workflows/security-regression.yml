@@ -26,7 +26,7 @@ jobs:
           node-version: 22
       - run: corepack enable && corepack prepare pnpm@9.12.2 --activate
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm -C frontend exec jest --runInBand utils/security features/games/networkPolicy.security.test.ts features/games/resultTrust.test.ts utils/rpc/server.privacy.test.ts utils/voiceChat/legacyTokenRoutes.test.ts
+      - run: pnpm -C frontend exec jest --runInBand utils/security features/games/publish/networkPolicy.security.test.ts features/games/results/resultTrust.test.ts utils/rpc/server.privacy.test.ts utils/voiceChat/legacyTokenRoutes.test.ts
 
   cloud-image-fetch:
     runs-on: ubuntu-24.04

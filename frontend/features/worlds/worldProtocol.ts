@@ -1,7 +1,7 @@
 /**
  * Every kind of message a framed world and its page exchange, in one place
  * (docs/plans/framed-worlds.md). Each travels as `oncyber:game:<kind>`, the
- * games contract's form (features/games/gameContract.ts), and is checked
+ * games contract's form (features/games/contract/gameContract.ts), and is checked
  * on arrival by the file named here. A kind that is not on this list is
  * not part of the protocol: ./worldProtocol.test.ts fails when either side
  * of the bridge sends or reads one that is missing.

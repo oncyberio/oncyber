@@ -1,5 +1,5 @@
 import { warmDestination } from "./destinationWarmup";
-import { prepareGameDestination } from "@features/games/gamePrepare";
+import { prepareGameDestination } from "@features/games/loading/gamePrepare";
 import { createHostedExperienceLocation } from "@utils/experienceLocation";
 import {
     getLobbyPortalPreview,

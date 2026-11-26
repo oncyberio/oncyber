@@ -1,4 +1,4 @@
-import { gameTrip } from "./gameContract";
+import { gameTrip } from "../contract/gameContract";
 import {
     joinedParty,
     partyJoinHref,

@@ -16,11 +16,11 @@ jest.mock("./GamePage", () => ({
         <div data-game={game.id} data-frame={frame.src} />
     ),
 }));
-jest.mock("./GameDeviceGate", () => ({
+jest.mock("./interface/GameDeviceGate", () => ({
     __esModule: true,
     default: ({ children }: any) => <>{children}</>,
 }));
-jest.mock("./GameKillSwitchGate", () => ({
+jest.mock("./health/GameKillSwitchGate", () => ({
     __esModule: true,
     default: ({ children, killSwitch }: any) =>
         killSwitch.paused ? <p>paused</p> : <>{children}</>,

@@ -39,13 +39,13 @@ import {
 } from "./releaseBucket";
 import releasesRoute, {
     forgetStoredPolicies,
-} from "../../pages/api/games/releases/[...path]";
-import { getServerSideProps } from "../../pages/games/[game]";
+} from "../../../pages/api/games/releases/[...path]";
+import { getServerSideProps } from "../../../pages/games/[game]";
 
 // The page's components are not under test; its server half is.
-jest.mock("./GamePage", () => () => null);
-jest.mock("./GameDeviceGate", () => () => null);
-jest.mock("./GameKillSwitchGate", () => () => null);
+jest.mock("../GamePage", () => () => null);
+jest.mock("../interface/GameDeviceGate", () => () => null);
+jest.mock("../health/GameKillSwitchGate", () => () => null);
 
 const NOW = new Date("2026-11-17T10:00:00.000Z");
 const SANDBOX = "sandbox allow-scripts allow-pointer-lock";

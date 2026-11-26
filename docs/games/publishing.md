@@ -460,7 +460,7 @@ Not yet, for a registered game:
 | `GAMES_PUBLISHING_PINATA`  | `car` switches mode `pinata` on. Not verified; leave unset.                                                                 |
 | `SECRET_JWT_KEY`           | Signs the session tokens the command sends.                                                                                 |
 
-The code: the rules in `frontend/features/games/publishedGames.ts`, the
+The code: the rules in `frontend/features/games/publish/publishedGames.ts`, the
 store and the folder in `publishedGamesServer.ts`, the procedures in
 `frontend/pages/api/_v2/gamePublish/`, the upload address in
 `frontend/pages/api/games/uploads/[...path].ts`, mode `storage` in

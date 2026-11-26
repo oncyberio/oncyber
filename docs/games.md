@@ -29,7 +29,7 @@ raw game with no page around it. Nothing may be put under `public/games/`
 again; `gamesPreview.test.ts` fails if the folder comes back.
 
 The build's address is one constant on each side that needs it
-(`GAME_BUILDS_PATH` in `features/games/gameRelease.ts` for the frame,
+(`GAME_BUILDS_PATH` in `features/games/publish/gameRelease.ts` for the frame,
 `networkPolicy.js` for the files' headers, `gamesPreview.ts` for the
 middleware) and the tests hold them together. `game-builds` is reserved, so
 no space can take it as its link (`utils/reservedLinks.js`).
@@ -99,7 +99,8 @@ What a person must still do, and what is not there:
 | `games/kits/avatar/`                | Optional avatar kit for three.js games: [games/avatar-kit.md](games/avatar-kit.md). |
 | `games/kits/locomotion/`            | Optional kit to walk like the lobby: [games/locomotion.md](games/locomotion.md).    |
 | `frontend/public/game-builds/<id>/` | The published build, plus `release.json` and `check.json`. Committed.               |
-| `frontend/features/games/`          | The page side: catalog, the page bridge (`GamePage`), the shared room, saved data.  |
+| `frontend/features/games/`          | The page side, in folders by area: the table below.                                 |
+| `frontend/features/frame/`          | What a page does for any frame it hosts, a game or a framed world: the table below. |
 | `frontend/pages/games/[game].tsx`   | `/games/<id>`.                                                                      |
 | `frontend/pages/dev/games.tsx`      | `/dev/games`: each game's release and last check.                                   |
 | `scripts/games/games.mjs`           | `pnpm games:check` and `pnpm games:publish`.                                        |
@@ -109,6 +110,29 @@ What a person must still do, and what is not there:
 | `scripts/games/releases/`           | Hosted releases and rollback: [games/releases.md](games/releases.md).               |
 | `games/runtime/messages.json`       | Every message kind, who sends it, and the file on each side that handles it.        |
 | `games/<id>/build.json`             | What the committed build was made from (`scripts/games/build-record.mjs`).          |
+
+The page side, `frontend/features/games/`:
+
+| Folder       | What it holds                                                                                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (the folder) | The catalog and its slugs, the switch that hides games (`gamesPreview.ts`), a game's addresses (`gameSlug.ts`) and the page itself (`GamePage.tsx`, `GameRoute.tsx`). |
+| `contract/`  | What the page and a game say to each other: the contract, keys and focus, safe areas, pausing, sound, and the tests that hold both halves together.                   |
+| `loading/`   | Loading: the state machine, the cover, and preparing a game from the lobby.                                                                                           |
+| `room/`      | The game's room and the party: roster, match channel, joining, presence, leaving together.                                                                            |
+| `social/`    | Chat and voice on a game page, and the handoff from the lobby.                                                                                                        |
+| `health/`    | Field health and the kill switch.                                                                                                                                     |
+| `saved/`     | Saved data: the shared rules, the page's bridge, the server's half.                                                                                                   |
+| `results/`   | Match results and how far they are trusted.                                                                                                                           |
+| `publish/`   | Releases and where a frame loads from, the network policy, and games published from outside the repository.                                                           |
+| `interface/` | The page's controls over a game, built on the design system: the shared controls, credits, sound, the device gate, the lobby's cards, the avatar picker.              |
+
+`frontend/features/frame/` holds what worlds use too and no game owns: which
+document a frame is (`frameOrigin.ts`), whether it has stalled
+(`frameStall.ts`), voice in a room (`roomVoice.ts`, `voiceLevels.ts`,
+`gameTalking.ts`) and the visitor a frame may see (`gameIdentity.ts`,
+`accountIdentity.ts`). It imports nothing from `features/games` or
+`features/worlds`; both import it. A file that serves games and worlds
+alike goes there, not into either feature.
 
 ## The lifecycle
 
@@ -268,7 +292,7 @@ can prove it: [games/safe-area.md](games/safe-area.md).
 ## Parties
 
 A lobby group that travels together shares one trip id. The page reads it
-(`features/games/gameParty.ts`) and puts the party in a room of its own,
+(`features/games/room/gameParty.ts`) and puts the party in a room of its own,
 `oncyber-<game>-party-<trip id>`, with the relay on. The game gets the trip
 in `enter()` (`continuity.trip`) and again through `party(trip)` when it
 changes: the members the lobby named, the room's name, the visitor's room id
@@ -499,7 +523,7 @@ Still owed:
 -   **The page's own interface** (the bar of controls, chat, credits, the
     results card, the gates) takes its colours, fonts and durations from
     the design tokens, and everything a visitor can press, type in or
-    follow is a shared primitive (`features/games/gameControls.tsx`: the
+    follow is a shared primitive (`features/games/interface/gameControls.tsx`: the
     lobby's glass and control material over the game, the app's
     `ActionButton` in cards, dialogs and notices), with hover, pressed,
     disabled and focus states. Nobody has yet looked at it over a running

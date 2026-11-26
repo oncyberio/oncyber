@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { proc, NoApi } from "@utils/rpc/server";
-import { UPLOAD_ID } from "@features/games/publishedGames";
+import { UPLOAD_ID } from "@features/games/publish/publishedGames";
 import {
     assertMayPublish,
     finishPublish,
-} from "@features/games/publishedGamesServer";
+} from "@features/games/publish/publishedGamesServer";
 
 /**
  * Register an uploaded release: every file is verified against the hashes

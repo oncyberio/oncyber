@@ -3,10 +3,10 @@ import {
     createGameInputHost,
     focusGameChat,
     type GameKeyIntent,
-} from "./gameInput";
-import { readGameMessage } from "./gameContract";
-import { holdGamePause } from "./gamePause";
-import { soundStore } from "./gameAudio";
+} from "../contract/gameInput";
+import { readGameMessage } from "../contract/gameContract";
+import { holdGamePause } from "../contract/gamePause";
+import { soundStore } from "../contract/gameAudio";
 import { gameChrome } from "./gameChrome";
 import { ActionButton, GameScrim, moveMenuFocus } from "./gameControls";
 

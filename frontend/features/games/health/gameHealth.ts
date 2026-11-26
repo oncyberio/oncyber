@@ -18,11 +18,11 @@
  * no account data and no game content: see docs/games/field-health.md.
  */
 import { useEffect, type RefObject } from "react";
-import { fromFrame } from "./frameOrigin";
+import { fromFrame } from "../../frame/frameOrigin";
 import { amplitude_logAnalyticsEvent } from "@utils/analytics";
 import { fetchGameRelease } from "./gameDisabled";
-import { readGameMessage } from "./gameContract";
-import { readGameLoadingMessage } from "./gameLoading";
+import { readGameMessage } from "../contract/gameContract";
+import { readGameLoadingMessage } from "../loading/gameLoading";
 
 /**
  * What the visitor is on, as the page works it out (`gameDevice`). Not the

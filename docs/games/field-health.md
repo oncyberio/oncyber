@@ -63,7 +63,7 @@ How it is collected:
     build that still speaks its own prefix). It sends nothing over the
     network: the game's network declaration ([trust.md](trust.md)) needs no
     host for it, and the check's network stage would fail on one.
--   The page (`frontend/features/games/gameHealth.ts`, one hook in
+-   The page (`frontend/features/games/health/gameHealth.ts`, one hook in
     `GamePage`) treats those messages as outside input: known kinds only,
     numbers range-checked, strings cut to size, and nothing else in the
     message is forwarded. The time to the first frame is not measured a
@@ -117,7 +117,7 @@ that reason. The paused state is one of the page's overlays
 first (`/api/games/paused?game=<id>`) and loads nothing for a paused game,
 or when it can't get an answer. `/dev/games` shows what is paused.
 
-The switch lives in `frontend/features/games/gameDisabled.ts`
+The switch lives in `frontend/features/games/health/gameDisabled.ts`
 (`gamePause.ts` is the page menu's pause of a running game, a different
 thing).
 

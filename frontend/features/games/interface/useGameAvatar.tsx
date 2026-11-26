@@ -5,8 +5,8 @@ import {
     avatarMessage,
 } from "@features/avatar-picker/pageAvatar";
 import { usePageAvatarPicker } from "@features/avatar-picker/usePageAvatarPicker";
-import { readGameMessage } from "./gameContract";
-import { holdGamePause } from "./gamePause";
+import { readGameMessage } from "../contract/gameContract";
+import { holdGamePause } from "../contract/gamePause";
 
 /**
  * Changing avatar from inside a game (docs/games/avatar-kit.md). The picker

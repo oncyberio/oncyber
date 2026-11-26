@@ -14,16 +14,16 @@ import {
     input,
     state,
     step,
-} from "../../../multiplayer/protocol/movement";
-import { MOTION } from "../../../games/kits/locomotion/src/constants";
+} from "../../../../multiplayer/protocol/movement";
+import { MOTION } from "../../../../games/kits/locomotion/src/constants";
 
 // The kit is source for Node and Vite, which import "./file.ts" by its
 // extension; loading it at run time keeps that out of this project's types.
 const { createJumpInput, keyCode, readKeys } = jest.requireActual(
-    "../../../games/kits/locomotion/src/input"
+    "../../../../games/kits/locomotion/src/input"
 );
 const { stepWalker, walkerState } = jest.requireActual(
-    "../../../games/kits/locomotion/src/motion"
+    "../../../../games/kits/locomotion/src/motion"
 );
 
 const CODES = [

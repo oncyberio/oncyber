@@ -15,8 +15,8 @@ import {
     CONTRACT_VERSION,
     GAME_MESSAGE_PREFIX,
     readGameMessage,
-} from "@features/games/gameContract";
-import { BEAT_EVERY_MS } from "@features/games/frameStall";
+} from "@features/games/contract/gameContract";
+import { BEAT_EVERY_MS } from "@features/frame/frameStall";
 import { WORLD_FRAME, type WorldFrame } from "./worldFrame";
 import { keepFramesComing } from "./worldFrames";
 import { captureWorldLinks } from "./worldLinks";
@@ -186,7 +186,7 @@ export function createWorldDocument(
             });
             post("ready");
             // From here the page expects to hear this thread is running
-            // (features/games/frameStall).
+            // (features/frame/frameStall).
             beating = win.setInterval(() => post("alive"), BEAT_EVERY_MS);
         },
         failed() {

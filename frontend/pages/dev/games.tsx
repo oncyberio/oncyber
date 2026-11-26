@@ -1,17 +1,17 @@
 import Head from "next/head";
 import { GAMES } from "@features/games/catalog";
-import GameFieldHealth from "@features/games/GameFieldHealth";
+import GameFieldHealth from "@features/games/health/GameFieldHealth";
 import {
     gameKillSwitch,
     type GameKillSwitch,
-} from "@features/games/gameDisabled";
-import { gameChrome } from "@features/games/gameChrome";
-import { GameLink } from "@features/games/gameControls";
-import { GAME_BUILDS_DIR } from "@features/games/networkPolicy";
+} from "@features/games/health/gameDisabled";
+import { gameChrome } from "@features/games/interface/gameChrome";
+import { GameLink } from "@features/games/interface/gameControls";
+import { GAME_BUILDS_DIR } from "@features/games/publish/networkPolicy";
 import {
     readFieldHealth,
     type FieldHealth,
-} from "@features/games/gameHealthSummary";
+} from "@features/games/health/gameHealthSummary";
 
 type Finding = { code: string; message: string };
 type Frames = { medianMs: number; p95Ms: number; worstMs: number };

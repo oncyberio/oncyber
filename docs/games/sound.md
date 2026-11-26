@@ -109,8 +109,8 @@ The facts (`audioState`, `audioRouted`, `audioBypass`, `audioMuted`,
 
 -   Game side: `games/runtime/src/audio.ts` (the output, no DOM) and
     `audio-browser.ts` (messages, gestures, tab visibility, the bypass count).
--   Page side: `frontend/features/games/gameAudio.ts` (the setting and the
-    bridge) and `GameSound.tsx` (the hook `GamePage` uses and the page's
+-   Page side: `frontend/features/games/contract/gameAudio.ts` (the setting and the
+    bridge) and `interface/GameSound.tsx` beside it (the hook `GamePage` uses and the page's
     sound button). The hook sends through `GamePage`'s `send`, so a game
     hears `oncyber:game:audio`. Cmd+M and the world menu's Sound button
     (`GameInputLayer`) change the same setting.

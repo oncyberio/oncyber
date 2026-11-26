@@ -1,4 +1,4 @@
-import { GAMES } from "./catalog";
+import { GAMES } from "../catalog";
 import { deviceNotice, gameOnDevice } from "./gameDevices";
 
 describe("games by device", () => {

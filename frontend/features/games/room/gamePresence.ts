@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ARENA_HTTP_URL } from "@utils/arena/constants";
-import type { GameEntry } from "./catalog";
+import type { GameEntry } from "../catalog";
 import { isPartyId } from "./gamePartyJoin";
 
 /**

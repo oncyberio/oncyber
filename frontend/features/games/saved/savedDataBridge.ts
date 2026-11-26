@@ -21,7 +21,7 @@ import {
     type SavedSlot,
     type SavedStore,
 } from "./savedData";
-import { readGameMessage } from "./gameContract";
+import { readGameMessage } from "../contract/gameContract";
 import declaredByGame from "./savedData.declared.json";
 
 export interface SavedDataBridgeOptions {

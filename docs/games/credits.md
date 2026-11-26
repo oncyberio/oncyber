@@ -100,13 +100,13 @@ rule; they are a list of open questions, not a precedent.
     it from wherever the game's frame loads, so a hosted release shows its
     own credits and licence texts.
 -   The **Credits** button on the game's page
-    (`frontend/features/games/GameCredits.tsx`). The page owns it, so a game
+    (`frontend/features/games/interface/GameCredits.tsx`). The page owns it, so a game
     cannot hide or change its credits.
 -   The games section of `THIRD_PARTY_NOTICES.md`.
 
 Code: `games/runtime/src/credits.ts` (rules, pure),
 `scripts/games/credits.mjs` (the check stage and the notices generator),
-`frontend/features/games/gameCredits.ts` (the page's reader).
+`frontend/features/games/interface/gameCredits.ts` (the page's reader).
 
 ## Not covered yet
 

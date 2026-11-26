@@ -59,7 +59,7 @@ storage of its own, so the page keeps its values and the game asks for them.
 | `old`          | Saves from earlier versions: `{ stateVersion, value, expect? }`, `expect` being `"migrated"` or `"reset"`. |
 
 After editing `saved`, run `node scripts/games/saved-data.mjs sync` and
-commit `frontend/features/games/savedData.declared.json`. The page and the
+commit `frontend/features/games/saved/savedData.declared.json`. The page and the
 server know a game's keys only through that file; the check fails when it
 is out of date.
 
@@ -183,14 +183,14 @@ visitor).
 
 ## How it is built
 
-| Path                                         | What it is                                                                 |
-| -------------------------------------------- | -------------------------------------------------------------------------- |
-| `games/runtime/src/saved.ts`                 | The game side: `connectSavedData`, versions and migration, `update`.       |
-| `frontend/features/games/savedData.ts`       | The rules every side shares: declarations, JSON and size, compare-and-set. |
-| `frontend/features/games/savedDataBridge.ts` | The page: answers the game's `saved` messages, picks the store.            |
-| `frontend/features/games/savedDataServer.ts` | The server rules, inside one transaction.                                  |
-| `frontend/pages/api/_v2/gameSaved/`          | RPC procedures `savedRead` and `savedWrite` over Firestore.                |
-| `scripts/games/saved-data.mjs`               | The check stage and `sync`.                                                |
+| Path                                               | What it is                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------------- |
+| `games/runtime/src/saved.ts`                       | The game side: `connectSavedData`, versions and migration, `update`.       |
+| `frontend/features/games/saved/savedData.ts`       | The rules every side shares: declarations, JSON and size, compare-and-set. |
+| `frontend/features/games/saved/savedDataBridge.ts` | The page: answers the game's `saved` messages, picks the store.            |
+| `frontend/features/games/saved/savedDataServer.ts` | The server rules, inside one transaction.                                  |
+| `frontend/pages/api/_v2/gameSaved/`                | RPC procedures `savedRead` and `savedWrite` over Firestore.                |
+| `scripts/games/saved-data.mjs`                     | The check stage and `sync`.                                                |
 
 Messages (`oncyber:game:<kind>`, or `<id>:<kind>` from an older build): the
 game posts `saved` `{ request, op: "get" | "set" | "remove", key,

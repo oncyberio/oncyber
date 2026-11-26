@@ -1,5 +1,5 @@
-import type { GameEntry } from "./catalog";
-import { gameDevice, type VisitorDevice } from "./gameHealth";
+import type { GameEntry } from "../catalog";
+import { gameDevice, type VisitorDevice } from "../health/gameHealth";
 
 /**
  * Whether a game is offered on the visitor's device. A game lists the

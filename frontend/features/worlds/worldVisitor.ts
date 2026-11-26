@@ -8,7 +8,7 @@
 import {
     readVisitorIdentity,
     type VisitorIdentity,
-} from "@features/games/gameIdentity";
+} from "@features/frame/gameIdentity";
 import type { TravelAvatar } from "@utils/travelAvatar";
 import { isGuestId } from "@utils/guestIdentity";
 

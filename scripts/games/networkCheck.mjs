@@ -4,7 +4,7 @@
 // list. This stage:
 //   - validates the declaration and writes it into the build as
 //     network.json, where the site reads it to set the game's
-//     Content-Security-Policy (frontend/features/games/networkPolicy.js);
+//     Content-Security-Policy (frontend/features/games/publish/networkPolicy.js);
 //   - serves the check's copy of the game with that same policy, on every
 //     stage's server (`guard`), so a game that only works with wider access
 //     fails here, not after publishing;
@@ -28,7 +28,7 @@ const {
     hostDeclared,
     gameContentSecurityPolicy,
 } = createRequire(import.meta.url)(
-    join(root, "frontend/features/games/networkPolicy.js")
+    join(root, "frontend/features/games/publish/networkPolicy.js")
 );
 
 export const REPORT_PATH = "/__csp-report";

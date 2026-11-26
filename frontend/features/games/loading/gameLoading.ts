@@ -12,7 +12,7 @@
  * the frame and the messages; every change of state goes through
  * `gameLoadingTransition`.
  */
-import { readGameMessage } from "./gameContract";
+import { readGameMessage } from "../contract/gameContract";
 
 export type GameLoadingPhase = "loading" | "drawn" | "failed";
 

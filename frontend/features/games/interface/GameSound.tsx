@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { createGameAudioBridge, soundStore } from "./gameAudio";
-import { readGameMessage } from "./gameContract";
+import { createGameAudioBridge, soundStore } from "../contract/gameAudio";
+import { readGameMessage } from "../contract/gameContract";
 import { GameControl } from "./gameControls";
 
 /**

@@ -7,7 +7,7 @@
 //      the prefix the game greeted in, and waits for the game's `health`
 //      report of it to reach the page.
 //   2. A disabled game does not load. The page's own decision
-//      (frontend/features/games/gameDisabled.ts) is run for this game and this
+//      (frontend/features/games/health/gameDisabled.ts) is run for this game and this
 //      build's release id: listed in GAMES_DISABLED it must pause, by id and
 //      by release, and it must play when only something else is listed.
 //
@@ -41,7 +41,7 @@ export const releaseId = (files) =>
 /** Runs the page's pause decision (TypeScript) for a few GAMES_DISABLED values. */
 export function pauseDecisions(id, release) {
     const module = pathToFileURL(
-        resolve(root, "frontend/features/games/gameDisabled.ts")
+        resolve(root, "frontend/features/games/health/gameDisabled.ts")
     ).href;
     const cases = {
         byGame: id,

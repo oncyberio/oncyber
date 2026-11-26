@@ -118,7 +118,7 @@ answer is listed as `unreported` and passes for now.
 
 ## How the page works it out
 
-`frontend/features/games/safeArea.ts`. Anything marked `data-game-overlay`
+`frontend/features/games/contract/safeArea.ts`. Anything marked `data-game-overlay`
 in the game page, and in the lobby's document when the page runs inside the
 lobby, is an overlay. Each one reserves a band along the edge it is closest
 to (as a share of the frame); `data-game-overlay-edge="left"` pins the edge.

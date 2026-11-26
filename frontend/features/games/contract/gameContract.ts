@@ -10,8 +10,8 @@
  * Every message kind, who sends it and the file on each side that handles
  * it is one list: games/runtime/messages.json.
  */
-import type { GameParty, GamePartyMember } from "./gameParty";
-import type { PageRoster } from "./gameMatch";
+import type { GameParty, GamePartyMember } from "../room/gameParty";
+import type { PageRoster } from "../room/gameMatch";
 
 /** What this page speaks. The history is in games/runtime/src/contract.ts. */
 export const CONTRACT_VERSION = 3;

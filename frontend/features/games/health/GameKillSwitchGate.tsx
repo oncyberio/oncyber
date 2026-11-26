@@ -8,7 +8,7 @@ import {
     resolveKillSwitch,
     type GameKillSwitch,
 } from "./gameDisabled";
-import { ActionButton, GameNotice } from "./gameControls";
+import { ActionButton, GameNotice } from "../interface/gameControls";
 
 /**
  * Renders the game only when the kill switch allows it (gameDisabled.ts).

@@ -7,7 +7,7 @@
  * docs/games/releases.md) and shows the credits of the build on screen.
  * See docs/games/credits.md.
  */
-import { committedBuildBase } from "./gameRelease";
+import { committedBuildBase } from "../publish/gameRelease";
 
 export interface GameCredit {
     title: string;

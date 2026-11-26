@@ -74,7 +74,7 @@ state its arrival uses, so the two can't drift apart
 | game | `departure-staging` | At once: "I know this message, wait for me." Without it the page leaves after 0.6 s.           |
 | game | `departure-ready`   | `{ view }`: the last frame is on screen. `{ view: null, problem }` when there is none.         |
 
-The page (`frontend/features/games/gameDeparture.ts`, `useGameDeparture.tsx`)
+The page (`frontend/features/games/room/gameDeparture.ts`, `useGameDeparture.tsx`)
 turns the view into the lobby's return view (planted, idle, third person) and
 gives it to the lobby through the same bridge native spaces use
 (`registerLobbyDestinationEntry`'s `depart`). A game that doesn't know the

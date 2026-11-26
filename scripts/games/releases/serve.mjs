@@ -14,7 +14,7 @@ const { NETWORK_FILE, releaseContentSecurityPolicy } = createRequire(
 )(
     join(
         dirname(fileURLToPath(import.meta.url)),
-        "../../../frontend/features/games/networkPolicy.js"
+        "../../../frontend/features/games/publish/networkPolicy.js"
     )
 );
 

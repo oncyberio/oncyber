@@ -3,8 +3,9 @@
 Rules for a coding agent building or changing a game. The helpers are in
 `games/runtime/src/loading.ts` and `pausing.ts` (no dependencies; a game
 with no lifecycle can import them too). The page's side is
-`frontend/features/games/gameLoading.ts`, `GameLoadingCover.tsx`,
-`gamePause.ts` and `gamePrepare.ts`. `pnpm games:check <id>` enforces all
+in `frontend/features/games/`: `loading/gameLoading.ts`,
+`loading/GameLoadingCover.tsx`, `loading/gamePrepare.ts` and
+`contract/gamePause.ts`. `pnpm games:check <id>` enforces all
 of it (`scripts/games/loading-check.mjs`).
 
 ## The rules

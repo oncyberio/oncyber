@@ -72,7 +72,9 @@ function fakeFrame() {
 }
 
 test("the page and the runtime reserve the same keys", async () => {
-    const page = await import("../../../frontend/features/games/gameInput.ts");
+    const page = await import(
+        "../../../frontend/features/games/contract/gameInput.ts"
+    );
     assert.deepEqual({ ...page.GAME_RESERVED_KEYS }, { ...RESERVED_KEYS });
     assert.deepEqual({ ...page.GAME_PAGE_CHORDS }, { ...PAGE_CHORDS });
 });

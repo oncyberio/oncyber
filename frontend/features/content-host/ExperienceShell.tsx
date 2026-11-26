@@ -14,7 +14,7 @@ import { brandFoundation } from "@styles/brand";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
 import { useIsWorldDocument } from "@features/worlds/worldDocument";
 import { useWorldDock } from "@features/worlds/useWorldDock";
-import { isTypingTarget } from "@features/games/gameInput";
+import { isTypingTarget } from "@features/games/contract/gameInput";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
 // The site's header, with its account menu. It is drawn by the page: in a

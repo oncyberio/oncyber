@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { GAME_CHAT_ATTRIBUTE } from "./gameInput";
+import { GAME_CHAT_ATTRIBUTE } from "../contract/gameInput";
 import type { GameSocialView } from "./useGameSocial";
-import { gameChrome } from "./gameChrome";
-import { GameControl, GameField, GameGlass } from "./gameControls";
+import { gameChrome } from "../interface/gameChrome";
+import { GameControl, GameField, GameGlass } from "../interface/gameControls";
 
 /**
  * The page's chat over a game: what was said in the lobby before the trip,

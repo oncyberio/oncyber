@@ -44,7 +44,7 @@ import {
     pinnedGatewayBase,
     pinnedRelease,
     resolveGameFrame,
-} from "../../../../frontend/features/games/gameRelease.ts";
+} from "../../../../frontend/features/games/publish/gameRelease.ts";
 
 const scratch = (t) => {
     const dir = mkdtempSync(join(tmpdir(), "releases-test-"));
@@ -623,7 +623,10 @@ test("the environment selects storage and pointer file", () => {
         GAMES_RELEASES_GATEWAY: "https://games.example",
     });
     assert.equal(pinata.storage.name, "pinata");
-    assert.match(pinata.pointers, /frontend\/features\/games\/releases\.json$/);
+    assert.match(
+        pinata.pointers,
+        /frontend\/features\/games\/publish\/releases\.json$/
+    );
     assert.throws(
         () => releaseTarget({ GAMES_RELEASES_BACKEND: "pinata" }),
         /PINATA_JWT_KEY/

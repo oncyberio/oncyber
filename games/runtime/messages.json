@@ -1,5 +1,5 @@
 {
-    "about": "Every message a game and the page around it exchange, as `oncyber:game:<kind>` (docs/games/contract.md). `from` is who sends it: game, page or both. `sdk` is the file under games/runtime/src that holds the game's side, `page` the file under frontend/features/games that holds the page's; null where that side has none. `check: true` marks a kind only `pnpm games:check` uses: its page is the check's, not the site's. `legacy: true` marks a kind only builds from before contract 2 hear. Add a kind here first: games/runtime/test/messages.test.mjs and frontend/features/games/gameMessages.test.ts fail on a kind either side uses that is not listed, and on a listed kind its file no longer handles.",
+    "about": "Every message a game and the page around it exchange, as `oncyber:game:<kind>` (docs/games/contract.md). `from` is who sends it: game, page or both. `sdk` is the file under games/runtime/src that holds the game's side, `page` the file under frontend/features/games that holds the page's, with its folder (`contract/gameInput.ts`); null where that side has none. `check: true` marks a kind only `pnpm games:check` uses: its page is the check's, not the site's. `legacy: true` marks a kind only builds from before contract 2 hear. Add a kind here first: games/runtime/test/messages.test.mjs and frontend/features/games/contract/gameMessages.test.ts fail on a kind either side uses that is not listed, and on a listed kind its file no longer handles.",
     "contract": 3,
     "prefix": "oncyber:game:",
     "kinds": {
@@ -98,61 +98,61 @@
         "match": {
             "from": "both",
             "sdk": "partyLink.ts",
-            "page": "gameMatch.ts",
+            "page": "room/gameMatch.ts",
             "doc": "docs/games/contract.md"
         },
         "match-limit": {
             "from": "page",
             "sdk": "partyLink.ts",
-            "page": "gameMatch.ts",
+            "page": "room/gameMatch.ts",
             "doc": "docs/games/contract.md"
         },
         "progress": {
             "from": "game",
             "sdk": "loading.ts",
-            "page": "gameLoading.ts",
+            "page": "loading/gameLoading.ts",
             "doc": "docs/games/loading-and-pausing.md"
         },
         "first-frame": {
             "from": "game",
             "sdk": "loading.ts",
-            "page": "gameLoading.ts",
+            "page": "loading/gameLoading.ts",
             "doc": "docs/games/loading-and-pausing.md"
         },
         "frame": {
             "from": "game",
             "sdk": "loading.ts",
-            "page": "gameLoading.ts",
+            "page": "loading/gameLoading.ts",
             "doc": "docs/games/loading-and-pausing.md"
         },
         "pause": {
             "from": "page",
             "sdk": "pausing.ts",
-            "page": "gamePause.ts",
+            "page": "contract/gamePause.ts",
             "doc": "docs/games/loading-and-pausing.md"
         },
         "resume": {
             "from": "page",
             "sdk": "pausing.ts",
-            "page": "gamePause.ts",
+            "page": "contract/gamePause.ts",
             "doc": "docs/games/loading-and-pausing.md"
         },
         "key": {
             "from": "game",
             "sdk": "keys.ts",
-            "page": "gameInput.ts",
+            "page": "contract/gameInput.ts",
             "doc": "docs/games/keys-focus.md"
         },
         "input": {
             "from": "page",
             "sdk": "keys.ts",
-            "page": "gameInput.ts",
+            "page": "contract/gameInput.ts",
             "doc": "docs/games/keys-focus.md"
         },
         "muted": {
             "from": "page",
             "sdk": "keys.ts",
-            "page": "gameInput.ts",
+            "page": "contract/gameInput.ts",
             "doc": "docs/games/keys-focus.md"
         },
         "input-probe": {
@@ -172,13 +172,13 @@
         "safe-area": {
             "from": "page",
             "sdk": "safe-area.ts",
-            "page": "safeArea.ts",
+            "page": "contract/safeArea.ts",
             "doc": "docs/games/safe-area.md"
         },
         "audio": {
             "from": "both",
             "sdk": "audio-browser.ts",
-            "page": "gameAudio.ts",
+            "page": "contract/gameAudio.ts",
             "doc": "docs/games/sound.md"
         },
         "audio-state": {
@@ -191,13 +191,13 @@
         "saved": {
             "from": "game",
             "sdk": "saved.ts",
-            "page": "savedDataBridge.ts",
+            "page": "saved/savedDataBridge.ts",
             "doc": "docs/games/saved-data.md"
         },
         "saved-result": {
             "from": "page",
             "sdk": "saved.ts",
-            "page": "savedDataBridge.ts",
+            "page": "saved/savedDataBridge.ts",
             "doc": "docs/games/saved-data.md"
         },
         "saved-probe": {
@@ -224,62 +224,62 @@
         "result": {
             "from": "game",
             "sdk": "results.ts",
-            "page": "useGameResults.tsx",
+            "page": "results/useGameResults.tsx",
             "doc": "docs/games/results.md"
         },
         "result-status": {
             "from": "page",
             "sdk": null,
-            "page": "useGameResults.tsx",
+            "page": "results/useGameResults.tsx",
             "doc": "docs/games/results.md",
             "note": "The runtime has no reader: a game's host listens if it shows the status."
         },
         "departure": {
             "from": "page",
             "sdk": "page.ts",
-            "page": "gameDeparture.ts",
+            "page": "room/gameDeparture.ts",
             "doc": "docs/games/departure.md"
         },
         "departure-staging": {
             "from": "game",
             "sdk": "departure.ts",
-            "page": "gameDeparture.ts",
+            "page": "room/gameDeparture.ts",
             "doc": "docs/games/departure.md"
         },
         "departure-ready": {
             "from": "game",
             "sdk": "departure.ts",
-            "page": "gameDeparture.ts",
+            "page": "room/gameDeparture.ts",
             "doc": "docs/games/departure.md"
         },
         "voice": {
             "from": "game",
             "sdk": "voice.ts",
-            "page": "useGameSocial.ts",
+            "page": "social/useGameSocial.ts",
             "doc": "docs/games/voice-chat.md"
         },
         "talking": {
             "from": "page",
             "sdk": "voice.ts",
-            "page": "gameSocial.ts",
+            "page": "social/gameSocial.ts",
             "doc": "docs/games/voice-chat.md"
         },
         "avatar-picker": {
             "from": "game",
             "sdk": "avatar.ts",
-            "page": "useGameAvatar.tsx",
+            "page": "interface/useGameAvatar.tsx",
             "doc": "docs/games/avatar-kit.md"
         },
         "avatar": {
             "from": "page",
             "sdk": "avatar.ts",
-            "page": "useGameAvatar.tsx",
+            "page": "interface/useGameAvatar.tsx",
             "doc": "docs/games/avatar-kit.md"
         },
         "health": {
             "from": "game",
             "sdk": "health.ts",
-            "page": "gameHealth.ts",
+            "page": "health/gameHealth.ts",
             "doc": "docs/games/field-health.md"
         },
         "health-probe": {

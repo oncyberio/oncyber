@@ -116,8 +116,8 @@ function fakeRepo() {
     cpSync(join(repo, "games/BRIEF.md"), join(root, "games/BRIEF.md"));
     mkdirSync(join(root, "frontend/features/games"), { recursive: true });
     cpSync(
-        join(repo, "frontend/features/games/savedData.declared.json"),
-        join(root, "frontend/features/games/savedData.declared.json")
+        join(repo, "frontend/features/games/saved/savedData.declared.json"),
+        join(root, "frontend/features/games/saved/savedData.declared.json")
     );
     // The catalog is generated from the manifests (docs/games/listing.md),
     // so a listed game is one with a manifest: Ace's stands in for it.
@@ -206,7 +206,10 @@ test("games:new creates a renamed game with a brief, manifest, bot and scenario,
     assert.equal(
         JSON.parse(
             readFileSync(
-                join(root, "frontend/features/games/savedData.declared.json"),
+                join(
+                    root,
+                    "frontend/features/games/saved/savedData.declared.json"
+                ),
                 "utf8"
             )
         )["brief-sumo"],

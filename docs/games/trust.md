@@ -44,12 +44,12 @@ receive anything the game sends it.
 
 ### How it is enforced
 
-| Where                                           | What happens                                                                                                                                                                                                                |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `frontend/features/games/networkPolicy.js`      | Reads the declaration and builds the game's `Content-Security-Policy`.                                                                                                                                                      |
-| `frontend/public/game-builds/<id>/network.json` | The declaration as published, written by the check. Part of the release: commit it with the build.                                                                                                                          |
-| `frontend/next.config.js`                       | Serves the policy on every file under `/game-builds/<id>/`. A game with no `network.json`, or a malformed one, gets its own files only.                                                                                     |
-| `scripts/games/networkCheck.mjs`                | The check serves the build with the same policy and fails on `NETWORK_DECLARATION` (missing or malformed list), `NETWORK_UNDECLARED` (a request to a host not in the list) and `POLICY_BLOCKED` (eval, an injected script). |
+| Where                                              | What happens                                                                                                                                                                                                                |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/features/games/publish/networkPolicy.js` | Reads the declaration and builds the game's `Content-Security-Policy`.                                                                                                                                                      |
+| `frontend/public/game-builds/<id>/network.json`    | The declaration as published, written by the check. Part of the release: commit it with the build.                                                                                                                          |
+| `frontend/next.config.js`                          | Serves the policy on every file under `/game-builds/<id>/`. A game with no `network.json`, or a malformed one, gets its own files only.                                                                                     |
+| `scripts/games/networkCheck.mjs`                   | The check serves the build with the same policy and fails on `NETWORK_DECLARATION` (missing or malformed list), `NETWORK_UNDECLARED` (a request to a host not in the list) and `POLICY_BLOCKED` (eval, an injected script). |
 
 A game loaded from a hosted release gets the same policy from the
 release's host, built from the `network.json` inside the release; a host
@@ -85,7 +85,7 @@ that browser. So every result has a trust level:
 | `party-agreed`    | Every member of the party reported the same outcome. | yes              |
 | `server-judged`   | A server ran or replayed the match. Not built yet.   | yes              |
 
-`frontend/features/games/resultTrust.ts` holds the comparison,
+`frontend/features/games/results/resultTrust.ts` holds the comparison,
 `judgePartyResult(members, reports)`, and `leaderboardEligible(trust)`.
 It is pure: the page runs it now, and a server can run the same code on
 what the pages submit.

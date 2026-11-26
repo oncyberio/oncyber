@@ -74,7 +74,7 @@ const CID = /^(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{58,120})$/;
  * only from an entry whose `address` is a CID and whose `base` is an https
  * URL ending in /ipfs/<cid>/ with no credentials, query or fragment. This
  * is the same test as `pinnedGatewayBase` in
- * frontend/features/games/gameRelease.ts; the tests hold the two together.
+ * frontend/features/games/publish/gameRelease.ts; the tests hold the two together.
  */
 export function siteRouteProblems({ base, address }) {
     if (typeof address !== "string" || !CID.test(address))

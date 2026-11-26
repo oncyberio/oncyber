@@ -1,12 +1,12 @@
 import type { Room } from "colyseus.js";
 import { requestSeat, takeSeat } from "@utils/arena/join";
-import { RoomVoice, type VoiceState } from "./roomVoice";
+import { RoomVoice, type VoiceState } from "../../frame/roomVoice";
 import {
     isPagePacket,
     voiceVolume,
     type GameSocial,
     type SocialRoom,
-} from "./gameSocial";
+} from "../social/gameSocial";
 
 export type RoomIdentity = {
     userId: string;

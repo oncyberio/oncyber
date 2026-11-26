@@ -32,7 +32,7 @@ import useDiscovery from "../landing-carousel/hooks/useDiscovery";
 import useDestinationPreviews from "../landing-carousel/hooks/useDestinationPreviews";
 import type { LobbyDestination } from "./sceneTypes";
 import { warmDestination } from "./destinationWarmup";
-import { useGameCards } from "@features/games/gameCards";
+import { useGameCards } from "@features/games/interface/gameCards";
 import { CARD_WARM_DWELL_MS } from "./destinationWarmupSource";
 
 export default function LobbyExplorePanel({

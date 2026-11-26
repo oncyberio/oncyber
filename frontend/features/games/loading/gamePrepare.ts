@@ -1,22 +1,22 @@
-import { findGame } from "./catalog";
-import { fromFrame } from "./frameOrigin";
-import { gameOnDevice } from "./gameDevices";
+import { findGame } from "../catalog";
+import { fromFrame } from "../../frame/frameOrigin";
+import { gameOnDevice } from "../interface/gameDevices";
 import {
     fetchGameRelease,
     resolveKillSwitch,
     type GameKillSwitch,
-} from "./gameDisabled";
+} from "../health/gameDisabled";
 import {
     committedFrame,
     frameBase,
     releaseBase,
     type GameFrame,
-} from "./gameRelease";
+} from "../publish/gameRelease";
 import {
     gameMessageTypes,
     readGameMessage,
     type GameDialect,
-} from "./gameContract";
+} from "../contract/gameContract";
 
 /**
  * Prepares a game while the visitor is still in the lobby.

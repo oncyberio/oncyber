@@ -7,9 +7,9 @@
  * click inside the frame is not one the page can see.
  */
 import { AUDIO_LOW_BAR } from "@utils/voiceChat/levels";
-import type { VoiceState } from "@features/games/roomVoice";
+import type { VoiceState } from "@features/frame/roomVoice";
 
-/** The parts of the page's voice in a room (features/games/roomVoice) used here. */
+/** The parts of the page's voice in a room (features/frame/roomVoice) used here. */
 export interface PageVoiceEngine {
     state: VoiceState;
     toggle(): Promise<void> | void;
