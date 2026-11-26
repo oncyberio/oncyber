@@ -7,6 +7,7 @@ const {
     siteOrigin,
     previewWorldOrigin,
     trialPreview,
+    looksSameSite,
 } = require("./utils/siteOrigin");
 const {
     GAME_BUILDS_DIR,
@@ -101,6 +102,15 @@ const STATIC_REVALIDATED_SOURCES = [
 ];
 
 /** @type {import('next').NextConfig} */
+// The world host must be another site, not another name under this one.
+const worldOrigin =
+    process.env.NEXT_PUBLIC_WORLD_ORIGIN || previewWorldOrigin();
+if (worldOrigin && looksSameSite(siteOrigin(), worldOrigin))
+    console.warn(
+        `[worlds] NEXT_PUBLIC_WORLD_ORIGIN (${worldOrigin}) looks like the same site as ${siteOrigin()}. ` +
+            "Worlds are framed to keep them apart from the account: give the world host a domain of its own."
+    );
+
 const nextConfig = {
     // Lets a dev server run beside a production build (NEXT_DIST_DIR=.next-dev).
     distDir: process.env.NEXT_DIST_DIR || ".next",
@@ -110,8 +120,7 @@ const nextConfig = {
         NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
         // Set in the environment, these are as set. A preview of the trial
         // branch turns both on by itself (utils/siteOrigin.js).
-        NEXT_PUBLIC_WORLD_ORIGIN:
-            process.env.NEXT_PUBLIC_WORLD_ORIGIN || previewWorldOrigin(),
+        NEXT_PUBLIC_WORLD_ORIGIN: worldOrigin,
         NEXT_PUBLIC_WORLD_SCRIPTS:
             process.env.NEXT_PUBLIC_WORLD_SCRIPTS ||
             (trialPreview() ? "1" : ""),
