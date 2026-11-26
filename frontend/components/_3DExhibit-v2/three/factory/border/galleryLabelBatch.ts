@@ -2,7 +2,7 @@ import * as THREE from "three/webgpu";
 import {
     attribute,
     Discard,
-    float,
+    float as tslFloat,
     Fn,
     fwidth,
     If,
@@ -21,6 +21,7 @@ import {
     type GalleryLabelText,
 } from "./galleryFrame";
 import {
+    fitPlacardRect,
     layoutGalleryLabel,
     type LabelIcon,
     type LabelLayout,
@@ -124,12 +125,12 @@ function makeMaterial(atlas: THREE.DataTexture) {
     material.colorNode = Fn(() => {
         const width = max(fwidth(field).mul(0.75), 1 / 255);
         const glyph = smoothstep(
-            float(0.5).sub(width),
-            float(0.5).add(width),
+            tslFloat(0.5).sub(width),
+            tslFloat(0.5).add(width),
             field
         );
         // The mounted board is geometry. Only lettering needs the atlas.
-        const alpha = select(aspect.greaterThan(0), float(1), glyph);
+        const alpha = select(aspect.greaterThan(0), tslFloat(1), glyph);
         If(alpha.lessThan(0.004), () => {
             Discard();
         });
@@ -482,8 +483,9 @@ export class GalleryLabelBatch {
         for (const [art, label] of this.labels) {
             if (!label.visible) continue;
             const { layout, quads } = (label.prepared ??= this.prepare(label));
+            const rect = fitPlacardRect(label.rect, layout);
             for (const quad of quads)
-                this.quad(art, label.rect, layout, label.rounded, quad);
+                this.quad(art, rect, layout, label.rounded, quad);
         }
         for (const page of this.pages) this.updatePage(page);
     }

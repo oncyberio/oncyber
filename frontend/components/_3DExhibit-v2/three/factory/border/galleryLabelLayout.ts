@@ -1,4 +1,4 @@
-import type { GalleryLabelText } from "./galleryFrame";
+import { LABEL_DEPTH, type GalleryLabelText } from "./galleryFrame";
 
 export type LabelIcon = "x" | "instagram" | "website";
 export type LabelLine = {
@@ -28,7 +28,7 @@ export function layoutGalleryLabel(
 ): LabelLayout {
     const credit = label.credit;
     const width = credit ? 768 : 512;
-    const height = credit ? Math.round(768 * 0.58) : 232;
+    let height: number;
     const background = PLAIN_PLATE_COLOR;
     const lines: LabelLine[] = [];
     const icons: LabelLayout["icons"] = [];
@@ -52,18 +52,22 @@ export function layoutGalleryLabel(
         fit(text, max, (value) => measure(font, value));
     const wrapped = (text: string, font: string) =>
         wrap(text, maxWidth, (value) => measure(font, value));
-    let y = pad;
+    let y = credit ? 39 : 29;
 
     if (!credit) {
         const titleFont = lineFont(40, 600);
+        let bottom = y;
         for (const line of wrapped(label.title, titleFont)) {
             add(line, titleFont, 40, pad, y, "#1d1d1d");
+            bottom = y + 40;
             y += 48;
         }
         if (label.artist) {
             const font = lineFont(30, 400);
-            add(fitted(label.artist, font), font, 30, pad, y + 10, "#555555");
+            add(fitted(label.artist, font), font, 30, pad, y + 5, "#555555");
+            bottom = y + 35;
         }
+        height = Math.max(110, bottom + 28);
     } else {
         type Link = { icon: LabelIcon; text: string };
         const socials: Link[] = [];
@@ -85,51 +89,41 @@ export function layoutGalleryLabel(
         if (credit.website)
             rows.push([{ icon: "website", text: credit.website }]);
 
-        const rowStep = rows.length > 2 ? 44 : 50;
-        const firstFooter =
-            height - pad + 4 - Math.max(0, rows.length - 1) * rowStep;
+        let hasText = false;
         if (credit.artist) {
-            const font = lineFont(72, 700);
-            y += 62;
-            add(fitted(credit.artist, font), font, 72, pad - 3, y, "#111111");
+            const font = lineFont(58, 700);
+            y += 52;
+            add(fitted(credit.artist, font), font, 58, pad, y, "#111111");
+            hasText = true;
         }
         if (credit.location) {
-            const font = lineFont(42, 400);
-            y += credit.artist ? 50 : 40;
-            add(fitted(credit.location, font), font, 42, pad, y, "#111111");
+            const font = lineFont(38, 400);
+            y += 46;
+            add(fitted(credit.location, font), font, 38, pad, y, "#41403d");
+            hasText = true;
         }
         if (credit.title) {
-            const font = lineFont(42, 700);
-            const titleLines = rows.length > 2 && credit.description ? 1 : 2;
-            for (const line of wrap(
-                credit.title,
-                maxWidth,
-                (value) => measure(font, value),
-                titleLines
-            )) {
-                y += y === pad ? 40 : 54;
-                add(line, font, 42, pad, y, "#111111");
+            const font = lineFont(44, 400);
+            for (const line of wrapped(credit.title, font)) {
+                y += 50;
+                add(line, font, 44, pad, y, "#111111");
             }
+            hasText = true;
         }
         if (credit.description) {
             const size = 33;
             const font = lineFont(size, 400);
-            const start = (y === pad ? pad : y) + 43;
-            const last = rows.length ? firstFooter - 40 : height - pad;
-            const count = Math.min(2, Math.floor((last - start) / 42) + 1);
-            if (count > 0) {
-                wrap(
-                    credit.description,
-                    maxWidth,
-                    (v) => measure(font, v),
-                    count
-                ).forEach((line, i) =>
-                    add(line, font, size, pad, start + i * 42, "#41403d")
-                );
+            for (const line of wrap(credit.description, maxWidth, (v) =>
+                measure(font, v)
+            )) {
+                y += 41;
+                add(line, font, size, pad, y, "#41403d");
             }
+            hasText = true;
         }
+        const firstFooter = y + (hasText ? 57 : 38);
         rows.forEach((row, i) => {
-            const ly = firstFooter + i * rowStep;
+            const ly = firstFooter + i * 42;
             const size = row.length > 1 || rows.length > 2 ? 32 : 36;
             const font = lineFont(size, 400);
             const col = row.length > 1 ? (maxWidth - 22) / 2 : maxWidth;
@@ -146,8 +140,31 @@ export function layoutGalleryLabel(
                 );
             });
         });
+        const bottom = rows.length ? firstFooter + (rows.length - 1) * 42 : y;
+        const naturalHeight = bottom + 40;
+        height = Math.max(226, naturalHeight);
+        // A two-line label still has physical margins, but no empty footer.
+        const shift = (height - naturalHeight) / 2;
+        if (shift) {
+            for (const line of lines) line.y += shift;
+            for (const icon of icons) icon.y += shift;
+        }
     }
     return { width, height, background, lines, icons };
+}
+
+/** Match the face to the measured lines without moving its bottom or wall plane. */
+export function fitPlacardRect<
+    T extends { x: number; y: number; z: number; w: number; h: number }
+>(rect: T, layout: Pick<LabelLayout, "width" | "height">): T {
+    const h = (rect.w * layout.height) / layout.width;
+    const change = h - rect.h;
+    return {
+        ...rect,
+        h,
+        y: rect.y + change / 2,
+        z: rect.z + change * LABEL_DEPTH,
+    };
 }
 
 function fit(text: string, max: number, measure: (value: string) => number) {

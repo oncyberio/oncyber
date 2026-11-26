@@ -240,7 +240,7 @@ export function squareSide(width: number, height: number) {
 }
 
 /** Corner radius of a rounded label plate, a share of its height. */
-export const LABEL_CORNER = 0.07;
+export const LABEL_CORNER = 0.025;
 /** Thickness of the mounted stock, as a share of label height. */
 export const LABEL_DEPTH = 0.028;
 
@@ -381,7 +381,7 @@ export function galleryFrameLayout({
     let label: GalleryFrameLayout["label"] = null;
 
     if (withLabel) {
-        const w = ref * (creditLabel ? 0.36 : 0.3);
+        const w = ref * (creditLabel ? 0.32 : 0.27);
         const h = w * (creditLabel ? GALLERY_CREDIT_ASPECT : 0.45);
         const thick = h * LABEL_DEPTH;
         const x = outer.w / 2 + ref * 0.08 + w / 2;
