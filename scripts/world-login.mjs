@@ -27,8 +27,13 @@ export function loginLink(baseUrl, challenge) {
     return link.toString();
 }
 
-/** As long as the server keeps a code, and a little for the person. */
-export const PENDING_LOGIN_MS = 15 * 60 * 1000;
+/**
+ * How long a printed link can wait for its person: an agent may hand it
+ * over and hear back hours later. The link is no use to anyone else in
+ * that time. Whoever opens it signs in as themselves, and only this
+ * terminal can take the code. The code itself lasts five minutes.
+ */
+export const PENDING_LOGIN_MS = 24 * 60 * 60 * 1000;
 
 /**
  * The sign-in a code belongs to, or why there is none: it must have been
