@@ -10,13 +10,30 @@ script runs for every visitor; writing one with the AI is in early access.
 
 ## Early access
 
-The AI sidebar is offered only to accounts on the early-access list
-(`WORLD_SCRIPTS_AI_ALLOWLIST`: account ids or wallets; `*` opens it to every
-editor). An account that is not on it sees no AI button, in the dock or in
-the studio, and the server refuses its requests whatever the page shows:
-asking the model, and putting a script or a style on a space. An admin who
-is not on the list can still take a space's scripts away. Being on the list
-does not make someone an editor: both are checked.
+The AI sidebar is offered only to accounts in early access. Three things
+put an account there:
+
+-   **It is one of Oncyber's site admins.** They are always in.
+-   **A site admin added it.** The people added are kept in the database
+    (`worldScriptsAccess`, written by the server only), so letting someone
+    in changes no setting and needs no deploy:
+
+    ```sh
+    pnpm world script access                 # who is in
+    pnpm world script access add <who>       # an account id, wallet or username
+    pnpm world script access remove <who>
+    ```
+
+-   **The deployment's settings list it** (`WORLD_SCRIPTS_AI_ALLOWLIST`:
+    account ids or wallets; `*` opens it to every editor). This is for a
+    deployment with no site admin to ask, such as one of your own.
+
+An account that is not in early access sees no AI button, in the dock or
+in the studio, and the server refuses its requests whatever the page
+shows: asking the model, and putting a script or a style on a space. An
+admin of a space who is not in early access can still take its scripts
+away. Being in early access does not make someone an editor: both are
+checked.
 
 The page asks the server what an account may do (`access`) only when the
 answer could be yes: for the space's owner and its editors, who are on the

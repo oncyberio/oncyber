@@ -14,6 +14,7 @@
  *   node scripts/world-cli.mjs script check <file>
  *   node scripts/world-cli.mjs script push <exhibitId> [file] [--name "..."]
  *   node scripts/world-cli.mjs script clear <exhibitId>
+ *   node scripts/world-cli.mjs script access [add|remove <who>]
  *
  * `file` defaults to `./<exhibitId>.world-script.js`: the script's source,
  * exactly as it is saved. Beside it `pull` and `push` keep
@@ -25,6 +26,10 @@
  * the same strictness) and stops on what cannot run: it is too long, it
  * does not parse, it reaches for something a script is not given. It does
  * not run the script: open the space to see it.
+ *
+ * `access` is for Oncyber's site admins: who is in early access for world
+ * scripts. With nothing after it, the list; `add` and `remove` take an
+ * account id, a wallet or a username.
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -168,9 +173,43 @@ export async function scriptCommand(args, rpc, io = {}) {
         say("Not run: push it and open the space to see it.");
         return;
     }
+    if (command === "access") {
+        const action = first || "list";
+        if (action === "list") {
+            const { people, fromSettings } = await ask("people", {});
+            say("In early access for world scripts (site admins always are):");
+            for (const person of people)
+                say(
+                    `  ${person.username || person.accountId}` +
+                        (person.username ? `  (${person.accountId})` : "") +
+                        `  added by ${person.addedBy}`
+                );
+            for (const name of fromSettings)
+                say(`  ${name}  (from this deployment's settings)`);
+            if (!people.length && !fromSettings.length) say("  nobody yet");
+            return;
+        }
+        if (!["add", "remove"].includes(action) || !second)
+            throw new Error("Usage: script access [add|remove <who>]");
+        if (action === "add") {
+            const { person } = await ask("grant", { who: second });
+            say(
+                `${person.username || person.accountId} is in early access now.`
+            );
+            return;
+        }
+        const { removed, still } = await ask("revoke", { who: second });
+        say(
+            removed
+                ? `${second} is out of early access.`
+                : `${second} was not on the list.`
+        );
+        if (still) say(`They can still use world scripts: they are ${still}.`);
+        return;
+    }
     if (!first)
         throw new Error(
-            "Usage: script <reference|pull|check|push|clear> [exhibitId] [file]"
+            "Usage: script <reference|pull|check|push|clear|access> [exhibitId] [file]"
         );
     const exhibitId = first;
     const file = second || scriptFile(exhibitId);

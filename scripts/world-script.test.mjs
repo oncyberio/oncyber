@@ -266,3 +266,61 @@ test("check passes a good file without saving; reference prints; clear empties",
     assert.equal(w.space(), null);
     await assert.rejects(w.run("bogus", "abc"), /Unknown script command/);
 });
+
+test("access: a site admin reads the list, adds someone and takes them out", async () => {
+    const listed = new Map();
+    const said = [];
+    const rpc = async (method, params) => {
+        if (method === "people")
+            return {
+                ok: true,
+                people: [...listed.values()],
+                fromSettings: ["0xabc"],
+            };
+        if (method === "grant") {
+            if (params.who === "nobody")
+                return { ok: false, error: 'No account goes by "nobody".' };
+            const person = {
+                accountId: "acc-1",
+                username: params.who,
+                addedBy: "admin",
+                addedAt: 1,
+            };
+            listed.set(person.accountId, person);
+            return { ok: true, person };
+        }
+        if (method === "revoke")
+            return {
+                ok: true,
+                removed: listed.delete("acc-1"),
+                still: params.who === "boss" ? "a site admin" : "",
+            };
+        throw new Error(method);
+    };
+    const io = { log: (line) => said.push(line) };
+    await scriptCommand(["access", "add", "alice"], rpc, io);
+    assert.match(said.pop(), /alice is in early access now/);
+    await scriptCommand(["access"], rpc, io);
+    assert.ok(
+        said.some((line) => /alice\s+\(acc-1\)\s+added by admin/.test(line))
+    );
+    assert.ok(
+        said.some((line) =>
+            /0xabc\s+\(from this deployment's settings\)/.test(line)
+        )
+    );
+    await scriptCommand(["access", "remove", "alice"], rpc, io);
+    assert.match(said.pop(), /alice is out of early access/);
+    await scriptCommand(["access", "remove", "boss"], rpc, io);
+    assert.match(said.pop(), /still use world scripts: they are a site admin/);
+    assert.match(said.pop(), /boss was not on the list/);
+    // The server's own refusal is what is said.
+    await assert.rejects(
+        scriptCommand(["access", "add", "nobody"], rpc, io),
+        /No account goes by "nobody"/
+    );
+    await assert.rejects(
+        scriptCommand(["access", "add"], rpc, io),
+        /Usage: script access/
+    );
+});

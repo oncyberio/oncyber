@@ -3,7 +3,8 @@
  * itself (OpenRouter, with the deployment's own key), and the usage ledger
  * that a credits system will later draw from.
  *
- * Today the AI is in early access: an allowlist (WORLD_SCRIPTS_AI_ALLOWLIST)
+ * Today the AI is in early access: site admins, the people they add
+ * (`hasEarlyAccess`) and a list in the settings (WORLD_SCRIPTS_AI_ALLOWLIST),
  * plus a daily cap, because every call is paid from one key. A request is
  * counted before the model is called (`reserveAiRequest`, in a transaction,
  * so requests made at once cannot all slip under the cap) and stays counted
@@ -90,13 +91,119 @@ function dailyLimit(env: Env = process.env) {
     return Number.isFinite(value) && value >= 0 ? value : DEFAULT_DAILY_LIMIT;
 }
 
-/** On the early-access list, under any of the names the account goes by. */
+/** Oncyber's own admins: they may always use world scripts, and say who else may. */
+export function isSiteAdmin(userId: string) {
+    return ADMINS.includes(String(userId || "").toLowerCase());
+}
+
+/**
+ * The people in early access, one document each under the account's id.
+ * Site admins add and remove them (`worldScripts.grant` and `revoke`,
+ * `pnpm world script access`), so nobody has to change a deployment's
+ * settings to let someone in. Written by the server only.
+ */
+export const EARLY_ACCESS = "worldScriptsAccess";
+
+const asDocId = (name: string) =>
+    /^[\w.:@-]{1,200}$/.test(name) ? name.toLowerCase() : "";
+
+/**
+ * In early access, under any of the names the account goes by: a site
+ * admin, someone a site admin added, or someone the deployment's settings
+ * list (WORLD_SCRIPTS_AI_ALLOWLIST, which also takes `*` for everyone).
+ */
 export async function hasEarlyAccess(userId: string) {
+    if (isSiteAdmin(userId)) return true;
     const account = await getAccountDoc(userId).catch((): null => null);
-    return isAllowlisted([
+    const names = [
         userId.toLowerCase(),
         ...(account ? accountNames(account as any) : []),
-    ]);
+    ];
+    if (isAllowlisted(names)) return true;
+    const added = await Promise.all(
+        [...new Set(names.map(asDocId).filter(Boolean))].map((name) =>
+            db
+                .collection(EARLY_ACCESS)
+                .doc(name)
+                .get()
+                .then((doc) => doc.exists)
+                .catch(() => false)
+        )
+    );
+    return added.includes(true);
+}
+
+/** The account someone means by an id, a wallet or a username. */
+async function accountCalled(who: string) {
+    const name = who.trim().replace(/^@/, "");
+    if (!name) return null;
+    const byId = await getAccountDoc(name).catch((): null => null);
+    if (byId) return byId;
+    return getAccountDoc(name, null, "username").catch((): null => null);
+}
+
+export interface EarlyAccessPerson {
+    accountId: string;
+    username: string;
+    addedBy: string;
+    addedAt: number;
+}
+
+/** Who site admins have added, newest first, and who the settings list. */
+export async function earlyAccessPeople() {
+    const found = await db.collection(EARLY_ACCESS).limit(500).get();
+    const people: EarlyAccessPerson[] = found.docs
+        .map((doc) => doc.data() as EarlyAccessPerson)
+        .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    return {
+        people,
+        fromSettings: list(process.env.WORLD_SCRIPTS_AI_ALLOWLIST),
+    };
+}
+
+/** Adds an account to early access. Null when nobody goes by that name. */
+export async function grantEarlyAccess(who: string, addedBy: string) {
+    const account = await accountCalled(who);
+    const id = account ? asDocId(account.id) : "";
+    if (!id) return null;
+    const person: EarlyAccessPerson = {
+        accountId: account.id,
+        username: String((account as any).data?.()?.username || ""),
+        addedBy,
+        addedAt: Date.now(),
+    };
+    await db.collection(EARLY_ACCESS).doc(id).set(person);
+    return person;
+}
+
+/**
+ * Takes an account out of early access. `still` says why they can use
+ * world scripts all the same, when they can.
+ */
+export async function revokeEarlyAccess(who: string) {
+    const account = await accountCalled(who);
+    // Also under the name as given: an account can be gone and still listed.
+    const ids = [
+        ...new Set(
+            [account?.id || "", who.trim().replace(/^@/, "")]
+                .map(asDocId)
+                .filter(Boolean)
+        ),
+    ];
+    let removed = false;
+    for (const id of ids) {
+        const ref = db.collection(EARLY_ACCESS).doc(id);
+        if (!(await ref.get()).exists) continue;
+        await ref.delete();
+        removed = true;
+    }
+    const names = account ? accountNames(account as any) : ids;
+    const still = names.some(isSiteAdmin)
+        ? "a site admin"
+        : isAllowlisted(names)
+        ? "listed in this deployment's settings"
+        : "";
+    return { removed, still };
 }
 
 const TODAYS_LIMIT = "That's today's limit. Try again tomorrow.";
@@ -335,7 +442,7 @@ export function isSpaceAdmin(
         ...(Array.isArray(experience.editors) ? experience.editors : []),
     ];
     return (
-        ADMINS.includes(id) ||
+        isSiteAdmin(id) ||
         editors.some(
             (editor) =>
                 typeof editor === "string" && editor.toLowerCase() === id

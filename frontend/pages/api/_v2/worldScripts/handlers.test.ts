@@ -20,13 +20,27 @@ const mockSnap = (path: string) => ({
     data: () => mockDocs.get(path),
     ref: { path },
 });
-const mockRef = (path: string) => ({ path, get: async () => mockSnap(path) });
+const mockRef = (path: string) => ({
+    path,
+    get: async () => mockSnap(path),
+    set: async (data: Record<string, any>) => void mockDocs.set(path, data),
+    delete: async () => void mockDocs.delete(path),
+});
 jest.mock("@utils/firebaseAdmin", () => ({
     db: {
-        collection: (name: string) => ({
-            doc: (id?: string) =>
-                mockRef(`${name}/${id ?? `auto${++mockAuto}`}`),
-        }),
+        collection: (name: string) => {
+            const all = {
+                doc: (id?: string) =>
+                    mockRef(`${name}/${id ?? `auto${++mockAuto}`}`),
+                limit: () => all,
+                get: async () => ({
+                    docs: [...mockDocs.keys()]
+                        .filter((path) => path.startsWith(`${name}/`))
+                        .map(mockSnap),
+                }),
+            };
+            return all;
+        },
         runTransaction(run: (transaction: any) => Promise<unknown>) {
             const result = mockQueue.then(() =>
                 run({
@@ -65,6 +79,8 @@ jest.mock("@api/social/isMod", () => ({ ADMINS: ["site-admin"] }));
 import { access, generate } from "./generate";
 import { save } from "./save";
 import { get, reference } from "./read";
+import { grant, people, revoke } from "./people";
+import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
 
 const env = process.env as Record<string, string | undefined>;
 // Named in two pieces: a build writes a NEXT_PUBLIC_ variable's value in
@@ -100,6 +116,9 @@ const as = (userId: string) => ({
     access: () => (access as any).call({ userId }, { experienceId: "space-1" }),
     get: () => (get as any).call({ userId }, { experienceId: "space-1" }),
     reference: () => (reference as any).call({ userId }, {}),
+    people: () => (people as any).call({ userId }, {}),
+    grant: (who: string) => (grant as any).call({ userId }, { who }),
+    revoke: (who: string) => (revoke as any).call({ userId }, { who }),
 });
 
 /** The model, answering with a script (or as told). */
@@ -431,5 +450,103 @@ describe("asking the model", () => {
         });
         expect(await as("owner").access()).toMatchObject({ canEdit: false });
         expect(model).not.toHaveBeenCalled();
+    });
+});
+
+describe("who is in early access", () => {
+    beforeEach(() => {
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "";
+    });
+
+    test("a site admin is in without being listed anywhere", async () => {
+        expect(await as("site-admin").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: true,
+        });
+        expect(await as("owner").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: false,
+        });
+    });
+
+    test("a site admin adds someone, who may then save a script", async () => {
+        const refused = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+        });
+        expect(refused).toMatchObject({ ok: false });
+        expect(await as("site-admin").grant("@Owner")).toMatchObject({
+            ok: true,
+            person: { accountId: "Owner", addedBy: "site-admin" },
+        });
+        expect(await as("owner").access()).toMatchObject({
+            earlyAccess: true,
+        });
+        const saved = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+        });
+        expect(saved).toMatchObject({ ok: true });
+        expect(await as("site-admin").people()).toMatchObject({
+            ok: true,
+            people: [{ accountId: "Owner" }],
+            fromSettings: [],
+        });
+    });
+
+    test("taking someone out closes it again, and says when it does not", async () => {
+        await as("site-admin").grant("owner");
+        expect(await as("site-admin").revoke("owner")).toEqual({
+            ok: true,
+            removed: true,
+            still: "",
+        });
+        expect(await as("owner").access()).toMatchObject({
+            earlyAccess: false,
+        });
+        expect(await as("site-admin").revoke("owner")).toMatchObject({
+            removed: false,
+        });
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "editor";
+        expect(await as("site-admin").revoke("editor")).toMatchObject({
+            removed: false,
+            still: "listed in this deployment's settings",
+        });
+        expect(await as("site-admin").revoke("site-admin")).toMatchObject({
+            still: "a site admin",
+        });
+    });
+
+    test("nobody else may read or change the list", async () => {
+        for (const someone of ["owner", "editor", "visitor"]) {
+            expect(await as(someone).grant(someone)).toMatchObject({
+                ok: false,
+                error: expect.stringMatching(/site admins/),
+            });
+            expect(await as(someone).people()).toMatchObject({ ok: false });
+            expect(await as(someone).revoke("owner")).toMatchObject({
+                ok: false,
+            });
+        }
+        expect(
+            [...mockDocs.keys()].filter((path) =>
+                path.startsWith("worldScriptsAccess/")
+            )
+        ).toEqual([]);
+    });
+
+    test("a name no account goes by is refused, and with the flag off so is all of it", async () => {
+        (getAccountDoc as jest.Mock)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null);
+        expect(await as("site-admin").grant("nobody")).toEqual({
+            ok: false,
+            error: 'No account goes by "nobody".',
+        });
+        env[FLAG] = "";
+        expect(await as("site-admin").grant("owner")).toMatchObject({
+            ok: false,
+        });
+        expect(await as("site-admin").people()).toMatchObject({ ok: false });
     });
 });
