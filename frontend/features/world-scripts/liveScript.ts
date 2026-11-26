@@ -117,6 +117,13 @@ export function followSavedScript(
     let rewind = false;
     /** How the script now running landed, for a rewind that is heard late. */
     let landedAs: Landed["as"] | null = null;
+    /**
+     * A save whose script did not run here. It is not tried again each
+     * time the world asks: the old script stays until something newer is
+     * saved. (A world that was not ready is another matter: that is tried
+     * again.)
+     */
+    let refused = 0;
 
     async function land() {
         const answer = await deps.read(spaceId).catch((): null => null);
@@ -162,7 +169,11 @@ export function followSavedScript(
             mode = "fresh";
             result = await runtime.run(read, mode, next || undefined);
         }
-        if (stopped || !result.ok) return;
+        if (stopped) return;
+        if (!result.ok) {
+            if (result.fault !== "world") refused = at;
+            return;
+        }
         landed(mode === "keep" ? "kept" : "fresh");
     }
 
@@ -206,12 +217,15 @@ export function followSavedScript(
     let asking = false;
     const unask = deps.often(
         () => {
-            if (asking || stopped) return;
+            // A landing under way reads the newest save itself; and what
+            // it leaves undone is asked about again soon enough.
+            if (asking || busy || stopped) return;
             asking = true;
             void deps
                 .asks(spaceId)
                 .then((said) => {
-                    if (stopped || !(Number(said?.savedAt) > savedAt)) return;
+                    const at = Number(said?.savedAt) || 0;
+                    if (stopped || at <= savedAt || at <= refused) return;
                     if (said.landing === "rewind") rewind = true;
                     void follow();
                 })

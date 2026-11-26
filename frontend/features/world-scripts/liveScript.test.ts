@@ -297,6 +297,35 @@ describe("a world that is open follows its space's saved script", () => {
         expect(world.reads).toHaveBeenCalledTimes(1);
     });
 
+    test("a script that does not run is not tried again every time the world asks", async () => {
+        const world = open();
+        world.outcome.push(
+            { ok: false, fault: "script" },
+            { ok: false, fault: "script" }
+        );
+        await world.saveQuietly("broken(", 20);
+        expect(world.runs).toHaveLength(2);
+        world.asked.ask();
+        world.asked.ask();
+        await world.settle();
+        expect(world.reads).toHaveBeenCalledTimes(1);
+        expect(world.runs).toHaveLength(2);
+        // Something newer is tried.
+        await world.saveQuietly("c();", 30);
+        expect(world.runs.at(-1)).toEqual(["c();", "keep"]);
+    });
+
+    test("a world that was not ready is tried again the next time it asks", async () => {
+        const world = open();
+        world.outcome.push({ ok: false, fault: "world" });
+        await world.saveQuietly("b();", 20);
+        expect(world.landed).toEqual([]);
+        world.asked.ask();
+        await world.settle();
+        expect(world.reads).toHaveBeenCalledTimes(2);
+        expect(world.landed).toHaveLength(1);
+    });
+
     test("a space with a script asks often; one without, rarely", () => {
         expect(open().asked.everyMs).toBeLessThan(20_000);
         expect(open({ source: "", savedAt: 0 }).asked.everyMs).toBeGreaterThan(
