@@ -6,9 +6,15 @@ import {
 } from "./gameCredits";
 import { holdGamePause } from "./gamePause";
 import { gameChrome } from "./gameChrome";
+import {
+    ActionButton,
+    GameChip,
+    GameDialog,
+    GameLink,
+    GameScrim,
+} from "./gameControls";
 
 const FONT = gameChrome.family;
-const linkStyle = { color: gameChrome.color.ink, textUnderlineOffset: 3 };
 
 /**
  * A small "Credits" button over a game and the panel it opens: every
@@ -75,8 +81,7 @@ export default function GameCredits({
 
     return (
         <>
-            <button
-                type="button"
+            <GameChip
                 aria-haspopup="dialog"
                 aria-expanded={open}
                 // A page overlay (docs/games/safe-area.md): the game keeps
@@ -92,48 +97,21 @@ export default function GameCredits({
                     // Bottom right: the development tools badge owns the left.
                     right: 12,
                     bottom: 10,
-                    border: 0,
-                    borderRadius: gameChrome.radius.pill,
-                    padding: "6px 10px",
-                    font: `500 11px/1 ${FONT}`,
-                    color: gameChrome.color.secondary,
-                    background: gameChrome.color.chip,
-                    cursor: "pointer",
                 }}
             >
                 Credits
-            </button>
+            </GameChip>
             {open && (
-                <div
+                <GameScrim
                     // Covers the frame, so it reserves no band.
                     data-game-overlay="credits-panel"
                     onClick={close}
-                    style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "grid",
-                        placeItems: "center",
-                        padding: 16,
-                        background: gameChrome.color.scrim,
-                    }}
                 >
-                    <section
+                    <GameDialog
                         role="dialog"
                         aria-modal="true"
                         aria-label={`Credits for ${title}`}
                         onClick={(event) => event.stopPropagation()}
-                        style={{
-                            width: "min(560px, 100%)",
-                            maxHeight: "min(80vh, 640px)",
-                            overflowY: "auto",
-                            boxSizing: "border-box",
-                            padding: 24,
-                            borderRadius: 18,
-                            color: gameChrome.color.ink,
-                            background: gameChrome.color.dialog,
-                            border: `1px solid ${gameChrome.color.line}`,
-                            font: `400 13px/1.5 ${FONT}`,
-                        }}
                     >
                         <header
                             style={{
@@ -146,34 +124,25 @@ export default function GameCredits({
                             <h2
                                 style={{
                                     margin: 0,
-                                    font: `600 18px/1.2 ${FONT}`,
+                                    font: `${gameChrome.weight.medium} 18px/1.2 ${FONT}`,
                                 }}
                             >
                                 Credits · {title}
                             </h2>
-                            <button
+                            <ActionButton
                                 ref={closeButton}
-                                type="button"
+                                $shape="pill"
                                 onClick={close}
-                                style={{
-                                    border: 0,
-                                    borderRadius: gameChrome.radius.pill,
-                                    padding: "8px 14px",
-                                    font: `600 13px/1 ${FONT}`,
-                                    color: gameChrome.color.ink,
-                                    background: gameChrome.color.control,
-                                    cursor: "pointer",
-                                }}
                             >
                                 Close
-                            </button>
+                            </ActionButton>
                         </header>
                         {groups.map((group) => (
                             <div key={group.kind}>
                                 <h3
                                     style={{
                                         margin: "20px 0 6px",
-                                        font: `600 11px/1 ${FONT}`,
+                                        font: `${gameChrome.weight.medium} ${gameChrome.size.xs}px/1 ${FONT}`,
                                         letterSpacing: "0.08em",
                                         textTransform: "uppercase",
                                         opacity: 0.6,
@@ -195,17 +164,19 @@ export default function GameCredits({
                                         >
                                             <div>
                                                 {credit.source ? (
-                                                    <a
+                                                    <GameLink
                                                         href={credit.source}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         style={{
-                                                            ...linkStyle,
-                                                            fontWeight: 600,
+                                                            fontWeight:
+                                                                gameChrome
+                                                                    .weight
+                                                                    .medium,
                                                         }}
                                                     >
                                                         {credit.title}
-                                                    </a>
+                                                    </GameLink>
                                                 ) : (
                                                     <strong>
                                                         {credit.title}
@@ -216,16 +187,15 @@ export default function GameCredits({
                                             </div>
                                             <div style={{ opacity: 0.75 }}>
                                                 {credit.licenseHref ? (
-                                                    <a
+                                                    <GameLink
                                                         href={
                                                             credit.licenseHref
                                                         }
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        style={linkStyle}
                                                     >
                                                         {credit.licenseName}
-                                                    </a>
+                                                    </GameLink>
                                                 ) : (
                                                     credit.licenseName
                                                 )}
@@ -247,8 +217,8 @@ export default function GameCredits({
                                 ? "Everything else in this game was made for it by Oncyber."
                                 : "Everything in this game was made for it by Oncyber."}
                         </p>
-                    </section>
-                </div>
+                    </GameDialog>
+                </GameScrim>
             )}
         </>
     );

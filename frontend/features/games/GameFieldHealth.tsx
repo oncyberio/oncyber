@@ -1,3 +1,4 @@
+import type { GameKillSwitch } from "./gameDisabled";
 import type { FieldHealth } from "./gameHealthSummary";
 import { gameChrome } from "./gameChrome";
 
@@ -10,12 +11,13 @@ const muted = { margin: "6px 0", color: gameChrome.color.muted };
 export default function GameFieldHealth({
     health,
     current,
-    pause,
+    killSwitch,
 }: {
     health: (FieldHealth & { error?: string }) | null | undefined;
     /** The published release id, to mark its row. */
     current: string | null;
-    pause: { paused: boolean; releases: string[] } | null | undefined;
+    /** `GAMES_DISABLED` for this game (gameDisabled.ts). */
+    killSwitch: GameKillSwitch | null | undefined;
 }) {
     const from =
         health?.source === "posthog"
@@ -30,12 +32,12 @@ export default function GameFieldHealth({
                 borderTop: `1px solid ${gameChrome.color.line}`,
             }}
         >
-            {(pause?.paused || !!pause?.releases.length) && (
+            {(killSwitch?.paused || !!killSwitch?.releases.length) && (
                 <p style={{ margin: "6px 0", color: gameChrome.color.warning }}>
                     Paused by <code>GAMES_DISABLED</code>:{" "}
-                    {pause.paused
+                    {killSwitch.paused
                         ? "every release"
-                        : `release ${pause.releases.join(", ")}`}
+                        : `release ${killSwitch.releases.join(", ")}`}
                 </p>
             )}
             <p style={muted}>Field health ({from})</p>

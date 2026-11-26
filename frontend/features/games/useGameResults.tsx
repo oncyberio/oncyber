@@ -23,6 +23,7 @@ import {
     type ResultReport,
 } from "./resultTrust";
 import { gameChrome } from "./gameChrome";
+import { GameGlass, GameMark } from "./gameControls";
 
 const CARD_MS = 9000;
 /** How long a match between members waits for the others' reports. */
@@ -268,7 +269,7 @@ export function useGameResults(options: {
     }, []);
 
     const element = card && (
-        <div
+        <GameGlass
             role="status"
             data-game-result={card.from}
             data-game-overlay="result"
@@ -280,12 +281,8 @@ export function useGameResults(options: {
                 minWidth: 260,
                 maxWidth: "min(92vw, 420px)",
                 padding: "14px 18px",
-                borderRadius: 18,
-                background: gameChrome.color.card,
-                backdropFilter: "blur(10px)",
-                color: gameChrome.color.ink,
+                borderRadius: gameChrome.radius.panel,
                 font: gameChrome.font.text,
-                boxShadow: gameChrome.shadow,
             }}
         >
             <div
@@ -299,7 +296,12 @@ export function useGameResults(options: {
                 <strong style={{ fontSize: 15 }}>
                     {card.summary.headline}
                 </strong>
-                <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                <span
+                    style={{
+                        fontWeight: gameChrome.weight.bold,
+                        whiteSpace: "nowrap",
+                    }}
+                >
                     {card.summary.score}
                 </span>
             </div>
@@ -334,28 +336,14 @@ export function useGameResults(options: {
                     ))}
                 </ol>
             )}
-            <button
-                type="button"
+            <GameMark
                 aria-label="Dismiss result"
                 onClick={() => setCard(null)}
-                style={{
-                    position: "absolute",
-                    top: -8,
-                    right: -8,
-                    width: 24,
-                    height: 24,
-                    border: 0,
-                    borderRadius: gameChrome.radius.pill,
-                    cursor: "pointer",
-                    color: gameChrome.color.ink,
-                    background: gameChrome.color.controlRaised,
-                    font: "inherit",
-                    lineHeight: 1,
-                }}
+                style={{ position: "absolute", top: -8, right: -8 }}
             >
                 ×
-            </button>
-        </div>
+            </GameMark>
+        </GameGlass>
     );
     return { card: element, fromParty };
 }

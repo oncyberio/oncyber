@@ -25,7 +25,7 @@ async function mount(pause: any, release?: string) {
                 title="ACE! Tennis"
                 killSwitch={pause}
             >
-                <iframe src="/games/ace/index.html" />
+                <iframe src="/game-builds/ace/index.html" />
             </GameKillSwitchGate>
         );
     });

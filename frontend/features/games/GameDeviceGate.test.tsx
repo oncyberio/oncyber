@@ -26,7 +26,7 @@ async function mount(devices: string[], agent?: string) {
             <GameDeviceGate
                 game={{ id: "padel", title: "Padel", devices: devices as any }}
             >
-                <iframe src="/games/padel/index.html" />
+                <iframe src="/game-builds/padel/index.html" />
             </GameDeviceGate>
         );
     });

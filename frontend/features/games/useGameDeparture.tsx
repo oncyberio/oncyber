@@ -13,16 +13,9 @@ import {
 import type { GameRoom } from "./gameRoom";
 import { readGameMessage } from "./gameContract";
 import { gameChrome } from "./gameChrome";
+import { ActionButton, GameGlass } from "./gameControls";
 
 const OFFER_MS = 30_000;
-const button = {
-    border: 0,
-    borderRadius: gameChrome.radius.pill,
-    padding: "8px 14px",
-    font: "inherit",
-    cursor: "pointer",
-} as const;
-
 /**
  * Leaving for GamePage: the departure handshake with the game, the trip
  * back to the lobby, and the party's offer to follow. See
@@ -100,7 +93,7 @@ export function useGameDeparture(options: {
         },
         leaving,
         offer: offer && !leaving && (
-            <div
+            <GameGlass
                 role="alertdialog"
                 data-game-overlay="party-leave"
                 aria-label="Your party is leaving"
@@ -114,9 +107,6 @@ export function useGameDeparture(options: {
                     gap: 8,
                     padding: "8px 8px 8px 18px",
                     borderRadius: gameChrome.radius.pill,
-                    background: gameChrome.color.panel,
-                    backdropFilter: "blur(10px)",
-                    font: gameChrome.font.control,
                     whiteSpace: "nowrap",
                     maxWidth: "calc(100vw - 32px)",
                 }}
@@ -124,32 +114,23 @@ export function useGameDeparture(options: {
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                     {partyLeaveText(offer)}
                 </span>
-                <button
-                    type="button"
+                <ActionButton
+                    $variant="white"
+                    $shape="pill"
                     onClick={() => leave.current("party")}
-                    style={{
-                        ...button,
-                        color: gameChrome.color.onInk,
-                        background: gameChrome.color.on,
-                    }}
                 >
                     Follow
-                </button>
-                <button
-                    type="button"
+                </ActionButton>
+                <ActionButton
+                    $shape="pill"
                     onClick={() => {
                         setOffer(null);
                         latest.current.frame.current?.focus();
                     }}
-                    style={{
-                        ...button,
-                        color: gameChrome.color.ink,
-                        background: gameChrome.color.control,
-                    }}
                 >
                     Stay
-                </button>
-            </div>
+                </ActionButton>
+            </GameGlass>
         ),
     };
 }

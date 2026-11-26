@@ -2,16 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GAME_CHAT_ATTRIBUTE } from "./gameInput";
 import type { GameSocialView } from "./useGameSocial";
 import { gameChrome } from "./gameChrome";
-
-const pill = {
-    border: 0,
-    borderRadius: gameChrome.radius.pill,
-    padding: "8px 14px",
-    font: "inherit",
-    cursor: "pointer",
-    color: gameChrome.color.ink,
-    background: gameChrome.color.control,
-} as const;
+import { GameControl, GameField, GameGlass } from "./gameControls";
 
 /**
  * The page's chat over a game: what was said in the lobby before the trip,
@@ -74,11 +65,10 @@ export default function GameChat({
         >
             <style>{`html[data-party-chat-open] .game-chat { display: none; }`}</style>
             {open && (
-                <div
+                <GameGlass
                     style={{
-                        borderRadius: 14,
-                        background: gameChrome.color.panel,
-                        backdropFilter: "blur(10px)",
+                        borderRadius: gameChrome.radius.panel,
+                        font: "inherit",
                         overflow: "hidden",
                     }}
                 >
@@ -117,7 +107,11 @@ export default function GameChat({
                                         : {}),
                                 }}
                             >
-                                <b style={{ fontWeight: 700 }}>
+                                <b
+                                    style={{
+                                        fontWeight: gameChrome.weight.bold,
+                                    }}
+                                >
                                     {message.self ? "You" : message.name}
                                 </b>{" "}
                                 {message.text}
@@ -136,7 +130,7 @@ export default function GameChat({
                             borderTop: `1px solid ${gameChrome.color.line}`,
                         }}
                     >
-                        <input
+                        <GameField
                             ref={input}
                             {...{ [GAME_CHAT_ATTRIBUTE]: "" }}
                             value={draft}
@@ -150,42 +144,23 @@ export default function GameChat({
                                 event.stopPropagation();
                                 if (event.key === "Escape") close();
                             }}
-                            style={{
-                                flex: 1,
-                                minWidth: 0,
-                                border: 0,
-                                borderRadius: gameChrome.radius.pill,
-                                padding: "8px 12px",
-                                font: "inherit",
-                                color: gameChrome.color.ink,
-                                background: gameChrome.color.control,
-                                outline: "none",
-                            }}
                         />
-                        <button
+                        <GameControl
                             type="submit"
                             disabled={!connected || !draft.trim()}
-                            style={pill}
                         >
                             Send
-                        </button>
+                        </GameControl>
                     </form>
-                </div>
+                </GameGlass>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button
-                    type="button"
+                <GameControl
                     aria-expanded={open}
                     onClick={() => (open ? close() : setOpen(true))}
-                    style={{
-                        ...pill,
-                        fontWeight: 600,
-                        background: gameChrome.color.bar,
-                        backdropFilter: "blur(10px)",
-                    }}
                 >
                     {open ? "Close chat" : unread ? `Chat · ${unread}` : "Chat"}
-                </button>
+                </GameControl>
                 {talkers.length > 0 && (
                     <span role="status" style={{ opacity: 0.85 }}>
                         {talkers.slice(0, 2).join(", ")}

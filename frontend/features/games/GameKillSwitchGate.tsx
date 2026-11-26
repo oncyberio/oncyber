@@ -8,7 +8,7 @@ import {
     resolveKillSwitch,
     type GameKillSwitch,
 } from "./gameDisabled";
-import { gameChrome } from "./gameChrome";
+import { ActionButton, GameNotice } from "./gameControls";
 
 /**
  * Renders the game only when the kill switch allows it (gameDisabled.ts).
@@ -56,23 +56,13 @@ export default function GameKillSwitchGate({
 
     if (state === "play") return <>{children}</>;
     return (
-        <main
+        <GameNotice
+            as="main"
             // A page overlay like the others the page puts over a game
             // (docs/games/safe-area.md); here there is no game under it.
             data-game-overlay="paused"
             data-game-paused={state === "paused" ? game : undefined}
-            style={{
-                position: "fixed",
-                inset: 0,
-                display: "grid",
-                placeContent: "center",
-                gap: 14,
-                padding: 24,
-                textAlign: "center",
-                background: gameChrome.color.frame,
-                color: gameChrome.color.ink,
-                fontFamily: gameChrome.family,
-            }}
+            style={{ position: "fixed" }}
         >
             {state === "paused" && (
                 <div role="status">
@@ -83,18 +73,20 @@ export default function GameKillSwitchGate({
                         {title} is taking a short break while we fix something.
                         Your saved progress is safe.
                     </p>
-                    <a
+                    <ActionButton
+                        as="a"
+                        $variant="white"
+                        $shape="pill"
                         href="/?lobby=1"
-                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();
                         }}
                     >
                         Back to lobby
-                    </a>
+                    </ActionButton>
                 </div>
             )}
-        </main>
+        </GameNotice>
     );
 }

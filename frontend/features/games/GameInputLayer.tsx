@@ -8,17 +8,7 @@ import { readGameMessage } from "./gameContract";
 import { holdGamePause } from "./gamePause";
 import { soundStore } from "./gameAudio";
 import { gameChrome } from "./gameChrome";
-
-const button = {
-    border: 0,
-    borderRadius: gameChrome.radius.pill,
-    padding: "12px 18px",
-    font: "inherit",
-    cursor: "pointer",
-    color: gameChrome.color.ink,
-    background: gameChrome.color.control,
-    textAlign: "left" as const,
-};
+import { ActionButton, GameScrim, moveMenuFocus } from "./gameControls";
 
 /**
  * Keys and focus for a game page (docs/games/keys-focus.md): the page owns
@@ -122,44 +112,43 @@ export default function GameInputLayer({
 
     if (!menu) return null;
     return (
-        <div
+        <GameScrim
             role="dialog"
             aria-modal="true"
             aria-label={`${title} menu`}
-            style={{
-                position: "absolute",
-                inset: 0,
-                display: "grid",
-                placeContent: "center",
-                background: gameChrome.color.bar,
-                backdropFilter: "blur(10px)",
-                font: gameChrome.font.title,
-            }}
+            style={{ backdropFilter: `blur(${gameChrome.blur}px)` }}
             onClick={(event) => {
                 if (event.target === event.currentTarget) setMenu(false);
             }}
         >
-            <div style={{ display: "grid", gap: 10, minWidth: 240 }}>
-                <p style={{ margin: "0 0 6px", opacity: 0.7 }}>{title}</p>
-                <button
-                    type="button"
+            <div
+                // Up and Down move between the actions, as in any menu.
+                onKeyDown={moveMenuFocus}
+                style={{ display: "grid", gap: 10, minWidth: 240 }}
+            >
+                <p
+                    style={{
+                        margin: "0 0 6px",
+                        font: gameChrome.font.title,
+                        opacity: 0.7,
+                    }}
+                >
+                    {title}
+                </p>
+                <ActionButton
                     autoFocus
-                    style={button}
+                    $variant="white"
                     onClick={() => setMenu(false)}
                 >
                     Resume
-                </button>
-                <button
-                    type="button"
+                </ActionButton>
+                <ActionButton
                     aria-pressed={!muted}
-                    style={button}
                     onClick={() => applyMuted(!muted)}
                 >
                     Sound: {muted ? "Off" : "On"}
-                </button>
-                <button type="button" style={button} onClick={onLeave}>
-                    Back to lobby
-                </button>
+                </ActionButton>
+                <ActionButton onClick={onLeave}>Back to lobby</ActionButton>
                 <p
                     style={{
                         margin: "6px 0 0",
@@ -170,6 +159,6 @@ export default function GameInputLayer({
                     Esc menu · Enter chat · M sound
                 </p>
             </div>
-        </div>
+        </GameScrim>
     );
 }

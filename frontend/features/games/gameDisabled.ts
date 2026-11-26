@@ -101,7 +101,8 @@ export async function fetchGameRelease(
     fetcher: typeof fetch = fetch
 ): Promise<string | null> {
     try {
-        const response = await fetcher(`/games/${id}/release.json`, {
+        // The committed build's own (gameRelease.ts, `GAME_BUILDS_PATH`).
+        const response = await fetcher(`/game-builds/${id}/release.json`, {
             cache: "no-store",
             // Older browsers have no AbortSignal.timeout; they just wait.
             signal: AbortSignal.timeout?.(5000),
@@ -115,12 +116,3 @@ export async function fetchGameRelease(
         return null;
     }
 }
-
-/**
- * @deprecated The kill switch's names before they were told apart from the
- * page menu's pause (gamePause.ts). pages/dev/games.tsx still imports these
- * two; nothing else should.
- */
-export type GamePause = GameKillSwitch;
-/** @deprecated Use `gameKillSwitch`. */
-export const gamePause = gameKillSwitch;

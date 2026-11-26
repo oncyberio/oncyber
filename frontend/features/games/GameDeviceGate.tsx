@@ -6,7 +6,7 @@ import {
 import type { GameEntry } from "./catalog";
 import { deviceNotice, gameOnDevice } from "./gameDevices";
 import { gameDevice, type VisitorDevice } from "./gameHealth";
-import { gameChrome } from "./gameChrome";
+import { ActionButton, GameNotice } from "./gameControls";
 
 /**
  * Renders the game only on a device it supports (gameDevices.ts). The
@@ -35,21 +35,11 @@ export default function GameDeviceGate({
 
     if (device !== null && !blocked) return <>{children}</>;
     return (
-        <main
+        <GameNotice
+            as="main"
             data-game-overlay="device"
             data-game-device-blocked={blocked ? game.id : undefined}
-            style={{
-                position: "fixed",
-                inset: 0,
-                display: "grid",
-                placeContent: "center",
-                gap: 14,
-                padding: 24,
-                textAlign: "center",
-                background: gameChrome.color.frame,
-                color: gameChrome.color.ink,
-                fontFamily: gameChrome.family,
-            }}
+            style={{ position: "fixed" }}
         >
             {blocked && (
                 <div role="status">
@@ -61,18 +51,20 @@ export default function GameDeviceGate({
                             ? "You can play it on a computer."
                             : "You can play it on a phone."}
                     </p>
-                    <a
+                    <ActionButton
+                        as="a"
+                        $variant="white"
+                        $shape="pill"
                         href="/?lobby=1"
-                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();
                         }}
                     >
                         Back to lobby
-                    </a>
+                    </ActionButton>
                 </div>
             )}
-        </main>
+        </GameNotice>
     );
 }

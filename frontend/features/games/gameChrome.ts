@@ -1,16 +1,13 @@
 /**
- * What the page draws around and over a game, by role, taken from the
- * design tokens (frontend/styles/tokens, docs/brand/tokens.md). The game
- * page's controls, chat, credits, results card and gates read these instead
- * of writing a colour, a font stack or a duration in place.
+ * The values the games interface still writes in its own styles, by role,
+ * taken from the design tokens (frontend/styles/tokens, docs/brand/tokens.md):
+ * where a panel sits and how its text reads. No component here writes a
+ * colour, a font stack or a duration in place.
  *
- * These are the lobby's values, because this is interface over a 3D scene:
- * the lobby's glass tint behind a bar of controls, its control fills, its
- * hairlines. The backdrop is the base set's frame colour, the same one the
- * loading cover uses. The page's own styles are still written inline, so
- * hover and focus states, and the shared action buttons
- * (`ActionButton`, `experienceControl`), are a redesign still to do; see
- * docs/games.md, "SDK and checks still owed".
+ * Everything a visitor can press, type in or follow, and the surfaces those
+ * sit on, are the shared primitives in gameControls.tsx: the lobby's glass
+ * and control material over the game, and the app's `ActionButton` in the
+ * cards, dialogs and notices. This file is only what is left around them.
  */
 import {
     actionTokens as action,
@@ -31,27 +28,10 @@ export const gameChrome = {
         /** Behind a game, and behind what stands in for one. */
         frame: base.color.frame,
         ink: base.color.white,
-        /** Text that is not the point of its panel. */
-        secondary: base.color.secondary,
         muted: base.color.muted,
-        /** A bar of controls floating over the game. */
-        bar: lobby.glass.tint,
-        /** A panel with lines to read: chat, the offer to follow a party. */
-        panel: lobby.control.background,
-        /** A card that covers play: a match's result. */
-        card: lobby.control.notice,
-        /** A dialog, and the wash over the game behind it. */
-        dialog: lobby.glass.fallback,
-        scrim: lobby.glass.tint,
-        /** A small label over the game itself. */
-        chip: lobby.control.chip,
-        /** A button on any of those, at rest and raised. */
-        control: base.color.line.default,
-        controlRaised: lobby.control.pressed,
-        /** A control that is on (the microphone), and a main action. */
-        on: base.color.paper,
-        onInk: base.color.paperInk,
-        /** Hairlines between rows, and around a field. */
+        /** A solid panel on that backdrop: a card of the developer's page. */
+        panel: lobby.glass.fallback,
+        /** Hairlines between rows of a panel. */
         line: base.color.line.soft,
         lineStrong: base.color.line.strong,
         /** The empty part of a progress bar. */
@@ -59,12 +39,12 @@ export const gameChrome = {
         /** A developer's notice: something is paused, something failed. */
         warning: base.color.selectionEnd,
         error: base.color.accentCreate,
+        good: base.color.selectionStart,
     },
-    shadow: lobby.glass.shadow,
     family: action.type.family,
+    weight: base.font.weight,
+    size: base.font.size,
     font: {
-        /** A control's label, and a bar of them. */
-        control: font("medium", "md", 1),
         /** Lines of text in a panel. */
         text: font("medium", "md", 1.35),
         /** A note under a control. */
@@ -72,7 +52,14 @@ export const gameChrome = {
         /** A title over a cover or a menu. */
         title: font("medium", "body", 1.3),
     },
-    radius: { pill: action.radius.pill },
+    radius: {
+        /** A bar of controls. */
+        pill: action.radius.pill,
+        /** A panel or a card over the game: the lobby's. */
+        panel: lobby.panel.radius,
+    },
+    /** The lobby's blur behind a wash over the game. */
+    blur: lobby.glass.blur,
     motion: {
         /** A cover or a panel coming and going. */
         fade: `${base.motion.standard}ms ${base.motion.ease}`,
