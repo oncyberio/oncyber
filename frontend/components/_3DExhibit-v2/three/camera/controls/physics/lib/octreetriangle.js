@@ -17,11 +17,14 @@ const testBox = new Box3()
 
 export class OctreeTriangle extends Triangle {
 
-    constructor(a, b, c, meshName) {
+    constructor(a, b, c, meshName, cameraIgnores = false) {
 
         super(a, b, c)
 
         this.meshName = meshName
+
+        /** Camera rays pass through it; the player still collides. */
+        this.cameraIgnores = cameraIgnores
     }
 
     getAreaCached() {

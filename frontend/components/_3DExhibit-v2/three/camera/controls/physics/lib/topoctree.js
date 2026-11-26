@@ -200,9 +200,16 @@ export class TopOctree  {
         return null;
     }
 
-    rayIntersect(ray) {
+    /**
+     * @param { Ray } ray
+     * @param { { camera?: boolean } } [opts] camera: skip the triangles the
+     * camera looks through (invisible walls and floors)
+     */
+    rayIntersect(ray, opts) {
 
         if (ray.direction.length() === 0) return;
+
+        const forCamera = opts?.camera === true;
 
         /** @type { OctreeTriangle[] } */
         const triangles = [];
@@ -216,6 +223,8 @@ export class TopOctree  {
         for (let i = 0; i < triangles.length; i++) {
 
             const tri = triangles[i];
+
+            if (forCamera && tri.cameraIgnores) continue;
 
             const result = tri.rayIntersect(ray, _v1);
 

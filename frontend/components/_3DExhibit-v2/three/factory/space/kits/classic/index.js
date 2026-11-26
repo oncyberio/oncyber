@@ -213,6 +213,9 @@ class ClassicSpaceFactory extends SpaceFactoryAbstract {
                         colliderMeshes.push( child )
 
                         child.visible = false
+
+                        // the player stands on it; the camera sees through it
+                        child.userData.cameraIgnores = true
                     }
 
                 })
@@ -245,6 +248,9 @@ class ClassicSpaceFactory extends SpaceFactoryAbstract {
 
                         colliderMeshes.push(child)
 
+                        // invisible walls keep visitors in bounds, but the
+                        // camera shouldn't bump into what nobody can see
+                        child.userData.cameraIgnores = true
                     }
 
                     child.visible = false

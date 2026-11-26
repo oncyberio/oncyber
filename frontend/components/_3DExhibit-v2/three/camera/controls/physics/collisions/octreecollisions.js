@@ -496,6 +496,17 @@ export class OctreeCollisions extends AbstractCollisions {
     }
 
     /**
+     * Like rayIntersect, for the third-person camera: it sees through
+     * invisible walls and floors.
+     *
+     * @param { Ray } ray
+     */
+    cameraRayIntersect(ray) {
+
+        return this.worldOctree.rayIntersect(ray, { camera: true })
+    }
+
+    /**
      *
      * @param {Vector3} cameraPos
      */
