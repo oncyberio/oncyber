@@ -146,7 +146,7 @@ export default class InstanceUserName extends Object3D {
 
 		for( const { player, wrapper } of shown ) {
 
-			const photo = player.nameTagTextOnly ? "" : ( player.userData?.avatar || DEFAULT_PLAYER_AVATAR_PICTURE )
+			const photo = player.nameTagTextOnly ? "" : ( player.nameTagPhoto || DEFAULT_PLAYER_AVATAR_PICTURE )
 
 			tags.show(
 

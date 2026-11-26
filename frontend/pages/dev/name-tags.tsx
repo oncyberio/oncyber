@@ -17,6 +17,7 @@ const NAMES = [
     "0x8f3…a91c",
     "Murakami fan club",
     "z",
+    "ريان",
 ];
 
 /**

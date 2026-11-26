@@ -111,6 +111,8 @@ export class SpeechBubbles {
             text: string;
             photo: string;
             nameText: string;
+            /** Rim width last written, in pre-scale pixels. */
+            rim: string;
         }
     >();
 
@@ -151,7 +153,6 @@ export class SpeechBubbles {
             padding: `0 ${PAD_EM}em`,
             borderRadius: "999px",
             background: TAG.fill,
-            boxShadow: `inset 0 0 0 1px ${TAG.border}, ${TAG.shadow}`,
             color: TAG.ink,
             font: `500 1em/1 ${actionTokens.type.family}`,
             textShadow: "none",
@@ -186,7 +187,13 @@ export class SpeechBubbles {
             flex: "none",
             display: "none",
         });
-        image.onerror = () => (image.style.display = "none");
+        // A dead photo gets the guest portrait once, like the tag; only a
+        // failed portrait leaves the pill without a picture.
+        image.onerror = () => {
+            if (!image.src.endsWith(LOBBY_GUEST_PORTRAIT))
+                image.src = LOBBY_GUEST_PORTRAIT;
+            else image.style.display = "none";
+        };
         const name = document.createElement("span");
         Object.assign(name.style, {
             display: "block",
@@ -217,6 +224,7 @@ export class SpeechBubbles {
             text: "",
             photo: "",
             nameText: "\u0000",
+            rim: "",
         };
     }
 
@@ -267,6 +275,12 @@ export class SpeechBubbles {
             const size =
                 match + (Math.max(match, MIN_FONT_PX) - match) * presence;
             const zoom = size / BASE_PX;
+            // The rim stays 1.5 screen pixels however the pill scales.
+            const rim = (1.5 / zoom).toFixed(2);
+            if (entry.rim !== rim) {
+                entry.rim = rim;
+                entry.row.style.boxShadow = `inset 0 0 0 ${rim}px ${TAG.rim}, ${TAG.shadow}`;
+            }
             // Sub-pixel positions: rounding made the line step a pixel at a
             // time against the smoothly moving avatar, which read as shaking.
             entry.root.style.transform = `translate3d(${screen.x.toFixed(
