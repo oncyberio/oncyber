@@ -689,6 +689,10 @@ export default function createGame(context) {
         trip = continuity.trip ?? null;
         state.came = continuity.arrival?.from === "lobby" ? "lobby" : "direct";
         $("#title-lobby").hidden = !config.embedded;
+        // Changing avatar: the page's picker (the host's `connectAvatar`).
+        // No page, no picker, no button.
+        $("#avatar").hidden = !bridge.changeAvatar;
+        $("#avatar").addEventListener("click", () => bridge.changeAvatar?.());
         $("#title-go").addEventListener("click", () => goArrival(null));
         $("#start").addEventListener("click", () => {
             if (state.screen === "arrival") openMenu();
@@ -754,6 +758,9 @@ export default function createGame(context) {
     });
 
     bridge.peers = (players) => kit?.setPeers(players);
+    // The visitor chose another avatar in the page's picker: wear it in
+    // place (the cloaked bearer steps aside once an avatar is on).
+    bridge.wear = (ref) => kit?.wear(ref);
     bridge.entered = () => kit?.arrival.enter();
     bridge.stageDeparture = stageDeparture;
     bridge.redraw = () => {

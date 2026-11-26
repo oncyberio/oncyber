@@ -88,6 +88,14 @@ export interface AvatarKit {
     readonly arrival: Arrival;
     /** Loads the visitor's avatar and the locomotion clips. Resolves false when the stand-in stays. */
     loadSelf(): Promise<boolean>;
+    /**
+     * Wears another avatar in place: the one the visitor just chose in the
+     * page's picker (`connectAvatar` in @oncyber/game-runtime/avatar). The
+     * body keeps its place, its motion and its clips, and the avatar worn
+     * until now stays on until the new one has loaded. Resolves false when
+     * it could not be loaded (the old one stays) or a later call replaced it.
+     */
+    wear(ref: string): Promise<boolean>;
     /** The page's `peers` list: `[{ id, name, vrm, x, y, z, h, a, talking }]`. */
     setPeers(list: unknown): void;
     /** Play a lobby emote on the visitor until `emote("")` or the game sets another motion. */
@@ -131,6 +139,10 @@ export function createAvatarKit(options: AvatarKitOptions): AvatarKit {
     let camera: THREE.Camera | null = null,
         selfDrawn = false,
         disposed = false;
+    // The avatar each body is wearing, by its ref; and the visitor's swaps.
+    const worn = new Map<Avatar, string>();
+    let wearing = 0,
+        changes = 0;
 
     let motion: Promise<Clips | null> | null = null,
         emotes: Promise<Clips | null> | null = null;
@@ -171,6 +183,33 @@ export function createAvatarKit(options: AvatarKitOptions): AvatarKit {
         }
         avatar.attach(vrm);
         avatar.addClips(clips);
+        worn.set(avatar, ref);
+    };
+
+    // The visitor's own avatar: the first one, and any chosen later, which
+    // takes the place of the one worn. The last one asked for wins.
+    const putOn = async (ref: string) => {
+        const turn = ++wearing;
+        try {
+            if (!options.services.avatar)
+                throw new Error("AVATAR_SERVICE_MISSING");
+            const [bytes, clips] = await Promise.all([
+                options.services.avatar(ref, lifetime.signal),
+                locomotion(),
+            ]);
+            const vrm = await load(bytes);
+            if (disposed || turn !== wearing) {
+                vrm.dispose?.();
+                return false;
+            }
+            self.attach(vrm);
+            self.addClips(clips);
+            worn.set(self, ref);
+            return true;
+        } catch (error) {
+            if (!disposed) report(error, "visitor");
+            return false;
+        }
     };
 
     // Other players' avatars load a few at a time.
@@ -182,7 +221,9 @@ export function createAvatarKit(options: AvatarKitOptions): AvatarKit {
                 disposed ||
                 others.get(player.id) !== player ||
                 player.vrm !== ref ||
-                player.avatar.kind === "vrm"
+                // Already wearing it. Another ref is a player who changed
+                // avatar during the visit: it replaces the one they wore.
+                worn.get(player.avatar) === ref
             )
                 return next();
             loading++;
@@ -228,17 +269,18 @@ export function createAvatarKit(options: AvatarKitOptions): AvatarKit {
         arrival,
         async loadSelf() {
             const ref = options.services.identity.avatar;
-            try {
-                if (!ref) {
-                    self.addClips(await locomotion());
-                    return false;
-                }
-                await fetchAvatar(self, ref);
-                return true;
-            } catch (error) {
-                if (!disposed) report(error, "visitor");
+            if (!ref) {
+                self.addClips(await locomotion());
                 return false;
             }
+            return putOn(ref);
+        },
+        async wear(ref) {
+            if (typeof ref !== "string" || !ref) return false;
+            if (worn.get(self) === ref) return true;
+            const done = await putOn(ref);
+            if (done) changes++;
+            return done;
         },
         setPeers(list) {
             if (disposed) return;
@@ -343,6 +385,7 @@ export function createAvatarKit(options: AvatarKitOptions): AvatarKit {
                 avatarTalking: [...others.values()].filter((p) => p.talking)
                     .length,
                 avatarEmote: self.motion.emote ?? "",
+                avatarSelfChanges: changes,
             };
         },
         dispose() {

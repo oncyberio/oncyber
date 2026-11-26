@@ -41,7 +41,7 @@ const MAX_FAILURES = 10;
 /** A window with fewer frames than this says nothing about the game. */
 const MIN_FRAMES = 30;
 
-/** `https://host/games/ace/assets/index-abc.js?x:12:3` -> `index-abc.js:12`. No hosts, paths or queries. */
+/** `https://host/game-builds/ace/assets/index-abc.js?x:12:3` -> `index-abc.js:12`. No hosts, paths or queries. */
 function place(file: unknown, line?: unknown): string {
     if (typeof file !== "string" || !file) return "";
     const name = file.split(/[?#]/)[0].split("/").pop() ?? "";

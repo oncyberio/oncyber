@@ -18,6 +18,7 @@ import {
 } from "../src/arrival.ts";
 import { pushSample, readPeer, samplePose } from "../src/peers.ts";
 import {
+    changeProblems,
     arrivalProblems,
     enteredProblems,
     othersProblems,
@@ -219,8 +220,15 @@ test("game.json rule: avatars and the arrival pose unless the game says why not"
         why: "",
         arrival: "pose",
         arrivalWhy: "",
+        change: false,
         problems: [],
     });
+    // A game that lets the visitor change avatar says so.
+    assert.equal(readAvatarRule({ avatars: { change: true } }).change, true);
+    assert.match(
+        readAvatarRule({ avatars: { change: "yes" } }).problems[0],
+        /avatars\.change/
+    );
     assert.deepEqual(
         readAvatarRule({ avatars: { others: "avatar", arrival: "pose" } })
             .problems,
@@ -255,6 +263,28 @@ test("game.json rule: avatars and the arrival pose unless the game says why not"
     assert.deepEqual(rule.problems, []);
     assert.equal(rule.others, "other");
     assert.equal(rule.arrival, "none");
+});
+
+test("a changed avatar: the game wears it in place", () => {
+    const before = { avatarSelf: "vrm", avatarSelfChanges: 0 };
+    assert.deepEqual(
+        changeProblems(before, { avatarSelf: "vrm", avatarSelfChanges: 1 }),
+        []
+    );
+    assert.match(
+        changeProblems(before, before)[0],
+        /did not change after the page's `avatar` message/
+    );
+    assert.match(
+        changeProblems(before, {
+            avatarSelf: "stand-in",
+            avatarSelfChanges: 1,
+        })[0],
+        /is stand-in, not their avatar/
+    );
+    assert.deepEqual(changeProblems(before, null), [
+        "the game reported no avatar facts",
+    ]);
 });
 
 test("check assertions on the facts", () => {

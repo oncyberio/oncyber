@@ -26,6 +26,7 @@
     "./device-check": "./src/deviceCheck.ts",
     "./loading": "./src/loading.ts",
     "./pausing": "./src/pausing.ts",
+    "./avatar": "./src/avatar.ts",
     "./audio": "./src/audio.ts",
     "./audio-browser": "./src/audio-browser.ts",
     "./saved": "./src/saved.ts",

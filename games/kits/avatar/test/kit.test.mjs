@@ -242,6 +242,90 @@ test("kit: the visitor and another player are drawn as their avatars", async () 
     assert.equal(kit.group.parent, null);
 });
 
+test("kit: wear() swaps the visitor's avatar in place, clips and all", async () => {
+    const { kit, frame, asked } = kitFor();
+    assert.equal(await kit.loadSelf(), true);
+    kit.self.root.position.set(3, 0, -2);
+    kit.self.motion = { speed: 1 };
+    for (let i = 0; i < 20; i++) frame();
+    const first = kit.self.vrm;
+    assert.equal(kit.self.playing, "WALK");
+    assert.equal(kit.inspect().avatarSelfChanges, 0);
+
+    // The visitor chose another avatar in the page's picker.
+    assert.equal(await kit.wear("/second.vrm"), true);
+    // (Compared with ===: a failed assertion would print the whole scene.)
+    assert.ok(kit.self.vrm !== first, "a new body");
+    assert.ok(first.scene.parent === null, "the old one left the scene");
+    assert.equal(kit.self.kind, "vrm");
+    assert.deepEqual(
+        kit.self.root.position.toArray(),
+        [3, 0, -2],
+        "where the old one stood"
+    );
+    for (let i = 0; i < 20; i++) frame();
+    assert.equal(kit.self.playing, "WALK", "doing what the old one did");
+    const facts = kit.inspect();
+    assert.equal(facts.avatarSelf, "vrm");
+    assert.equal(facts.avatarSelfInFrame, true, "the new one is drawn");
+    assert.equal(facts.avatarSelfChanges, 1);
+    // An emote learnt before the change still plays after it.
+    kit.emote("HIPHOP");
+    await idle();
+    assert.equal(await kit.wear("/third.vrm"), true);
+    for (let i = 0; i < 30; i++) frame();
+    assert.equal(kit.self.playing, "HIPHOP");
+
+    // The same avatar again is nothing to do; one that fails leaves the
+    // visitor as they were; of two choices in a row the last one wins.
+    assert.equal(await kit.wear("/third.vrm"), true);
+    assert.equal(kit.inspect().avatarSelfChanges, 2);
+    const worn = kit.self.vrm;
+    assert.equal(await kit.wear("/broken.vrm"), false);
+    assert.ok(kit.self.vrm === worn, "still wearing the last one");
+    assert.equal(await kit.wear(""), false);
+    const [early, late] = await Promise.all([
+        kit.wear("/fourth.vrm"),
+        kit.wear("/fifth.vrm"),
+    ]);
+    assert.deepEqual([early, late], [false, true]);
+    assert.equal(kit.inspect().avatarSelfChanges, 3);
+    assert.deepEqual(asked, [
+        "/me.vrm",
+        "/second.vrm",
+        "/third.vrm",
+        "/broken.vrm",
+        "/fourth.vrm",
+        "/fifth.vrm",
+    ]);
+    kit.dispose();
+});
+
+test("kit: another player who changes avatar is redrawn as the new one", async () => {
+    const { kit, frame, asked } = kitFor();
+    const peer = (vrm) => [
+        { id: "p2", name: "Player 2", vrm, x: 1, y: 0, z: 0, h: 0, a: 0 },
+    ];
+    kit.setPeers(peer("/p2.vrm"));
+    await idle();
+    for (let i = 0; i < 10; i++) frame();
+    const p2 = kit.others.get("p2");
+    const first = p2.avatar.vrm;
+    assert.ok(first);
+    // The same avatar announced again is not fetched again.
+    kit.setPeers(peer("/p2.vrm"));
+    await idle();
+    assert.deepEqual(asked, ["/p2.vrm"]);
+    kit.setPeers(peer("/p2-new.vrm"));
+    await idle();
+    for (let i = 0; i < 10; i++) frame();
+    assert.deepEqual(asked, ["/p2.vrm", "/p2-new.vrm"]);
+    assert.ok(p2.avatar.vrm !== first, "a new body");
+    assert.ok(first.scene.parent === null, "the old one left the scene");
+    assert.equal(kit.inspect().avatarOthersVrm, 1);
+    kit.dispose();
+});
+
 test("kit: arrival frame, then standing after entered; emotes ride the pose", async () => {
     const { kit, frame, camera } = kitFor();
     await kit.loadSelf();

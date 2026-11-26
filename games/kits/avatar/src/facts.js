@@ -16,6 +16,7 @@
  * @property {boolean} avatarHandsEmpty
  * @property {number} avatarTalking Players showing the talking indicator.
  * @property {string} avatarEmote The visitor's current emote, or "".
+ * @property {number} avatarSelfChanges Times the visitor's avatar was swapped in place for another (the page's `avatar` message).
  */
 
 /** @type {AvatarFacts} */
@@ -30,6 +31,7 @@ export const NO_AVATARS = {
     avatarHandsEmpty: false,
     avatarTalking: 0,
     avatarEmote: "",
+    avatarSelfChanges: 0,
 };
 
 /**
@@ -40,7 +42,12 @@ export const NO_AVATARS = {
  *   "avatars": { "others": "other", "why": "<a sentence>" }
  *   "avatars": { "arrival": "none", "arrivalWhy": "<a sentence>" }
  *
- * @returns {{ others: "avatar" | "other", why: string, arrival: "pose" | "none", arrivalWhy: string, problems: string[] }}
+ * A game that lets the visitor change avatar says so, and the check then
+ * hands it another avatar and holds it to wearing it:
+ *
+ *   "avatars": { "change": true }
+ *
+ * @returns {{ others: "avatar" | "other", why: string, arrival: "pose" | "none", arrivalWhy: string, change: boolean, problems: string[] }}
  */
 export function readAvatarRule(manifest) {
     const block = manifest?.avatars ?? {};
@@ -54,6 +61,7 @@ export function readAvatarRule(manifest) {
         why: "",
         arrival: "pose",
         arrivalWhy: "",
+        change: false,
         problems,
     };
     if (typeof block !== "object" || Array.isArray(block)) {
@@ -70,6 +78,9 @@ export function readAvatarRule(manifest) {
         !["pose", "none"].includes(block.arrival)
     )
         problems.push('game.json "avatars.arrival" must be "pose" or "none"');
+    if (block.change !== undefined && typeof block.change !== "boolean")
+        problems.push('game.json "avatars.change" must be true or false');
+    rule.change = block.change === true;
     if (block.others === "other") {
         rule.others = "other";
         rule.why = sentence(block.why);
@@ -151,4 +162,33 @@ export function enteredProblems(facts) {
                   facts?.avatarArrival ?? "not staged"
               } after entering, not standing`,
           ];
+}
+
+/**
+ * After the page said the visitor chose another avatar (`avatar`): the game
+ * wears it in place. `before` is what the game reported before the message.
+ * @param {Partial<AvatarFacts> | null | undefined} before
+ * @param {Partial<AvatarFacts> | null | undefined} after
+ * @returns {string[]}
+ */
+export function changeProblems(before, after) {
+    if (!after || typeof after !== "object")
+        return ["the game reported no avatar facts"];
+    const problems = [];
+    if (
+        !(
+            Number(after.avatarSelfChanges) >
+            Number(before?.avatarSelfChanges ?? 0)
+        )
+    )
+        problems.push(
+            "the visitor's avatar did not change after the page's `avatar` message; wear it with kit.wear(avatar.url)"
+        );
+    if (after.avatarSelf !== "vrm")
+        problems.push(
+            `after changing avatar the visitor is ${
+                after.avatarSelf ?? "nothing"
+            }, not their avatar`
+        );
+    return problems;
 }

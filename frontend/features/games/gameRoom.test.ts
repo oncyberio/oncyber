@@ -26,6 +26,21 @@ it("sends the game's pose as the native move message", () => {
     expect(room.send).toHaveBeenCalledWith("move", [1, 2, 3, 0.5, 9, true]);
 });
 
+it("tells the room when the visitor changes avatar", () => {
+    const { game, room } = connected({});
+    game.setAvatar("https://example.com/new.vrm");
+    expect(room.send).toHaveBeenCalledWith(
+        "VRM",
+        "https://example.com/new.vrm"
+    );
+    // A reconnect joins with it too.
+    expect((game as any).identity.avatarUrl).toBe(
+        "https://example.com/new.vrm"
+    );
+    game.setAvatar("");
+    expect(room.send).toHaveBeenCalledTimes(1);
+});
+
 it("samples everyone else, marking only changed poses fresh", () => {
     const peer = {
         positionX: 10,

@@ -210,7 +210,7 @@ times longer.
 | Chat and voice      | The page owns chat and voice; a game never builds its own, and reads who is talking from the SDK.                                           | `docs/games/voice-chat.md`          |
 | Keys                | Declare every action in `game.json` with its keyboard binding; no raw key listeners; Escape, Enter and NumpadEnter are the page's.          | `docs/games/keys-focus.md`          |
 | Screen space        | Keep the HUD inside the page's safe areas (`--oncyber-safe-*`), on every screen size.                                                       | `docs/games/safe-area.md`           |
-| Avatars             | Draw each visitor as the avatar they arrived with, through the avatar kit, at its real proportions.                                         | `docs/games/avatar-kit.md`          |
+| Avatars             | Draw each visitor as the avatar they arrived with, through the avatar kit, at its real proportions. No picker of your own: ask the page's.  | `docs/games/avatar-kit.md`          |
 | Movement            | Walk, run and jump with the locomotion kit, so travelling doesn't change how a body feels.                                                  | `docs/games/locomotion.md`          |
 | Menus               | Build menus from the UI kit: keyboard, pointer and gamepad all work, and focus is visible.                                                  | `docs/games/ui-kit.md`              |
 | Devices             | Claim `desktop`, `phone`, `gamepad` and give each action its keyboard, touch and gamepad binding; never read touch or gamepad events.       | `docs/games/devices.md`             |

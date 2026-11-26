@@ -167,7 +167,11 @@ export interface Avatar {
     manual: boolean;
     /** The clip that carries the most weight right now. */
     readonly playing: string;
-    /** Swap the stand-in for a loaded avatar. */
+    /**
+     * Swap the stand-in for a loaded avatar, or the avatar worn until now
+     * for another: the body keeps its place, its motion and its clips, and
+     * the old one is disposed.
+     */
     attach(vrm: VrmLike): void;
     /** Add lobby clips (`{ IDLE: {...}, ... }`). Safe before `attach`. */
     addClips(data: Record<string, ClipData> | null | undefined): void;
@@ -210,7 +214,9 @@ export function createAvatar(
         watch(standIn);
     }
     let rig: Rig | null = null;
-    const pending: Array<Record<string, ClipData>> = [];
+    // Every set of clips this avatar was given: a body attached later, or
+    // in place of another, plays the same ones.
+    const given: Array<Record<string, ClipData>> = [];
     let emote = "",
         wasAir = false,
         bob = 0,
@@ -271,6 +277,22 @@ export function createAvatar(
         }
     };
 
+    // Takes the worn avatar off: out of the scene, its clips stopped, its
+    // meshes freed. What plays next starts from its beginning.
+    const release = () => {
+        if (!rig) return;
+        rig.mixer.stopAllAction();
+        root.remove(rig.holder);
+        rig.holder.remove(rig.vrm.scene);
+        if (rig.vrm.proxyRoot) root.remove(rig.vrm.proxyRoot);
+        if (rig.vrm.dispose) rig.vrm.dispose();
+        else disposeMeshes(rig.vrm.scene);
+        rig = null;
+        emote = "";
+        wasAir = false;
+        playing = "";
+    };
+
     const avatar: Avatar = {
         root,
         height,
@@ -289,7 +311,7 @@ export function createAvatar(
             return playing;
         },
         attach(vrm) {
-            if (rig) throw new Error("AVATAR_ATTACHED");
+            release();
             const holder = new THREE.Group();
             holder.name = "vrm";
             holder.add(vrm.scene);
@@ -337,7 +359,7 @@ export function createAvatar(
                 clips: new Map(),
                 sourceHeight: 1,
             };
-            for (const data of pending.splice(0)) addTo(rig, data);
+            for (const data of given) addTo(rig, data);
             if (standIn) {
                 root.remove(standIn);
                 disposeMeshes(standIn);
@@ -347,13 +369,13 @@ export function createAvatar(
         },
         addClips(data) {
             if (!data || typeof data !== "object") return;
+            if (!given.includes(data)) given.push(data);
             if (rig) addTo(rig, data);
-            else pending.push(data);
         },
         hasClip(name) {
             return rig
                 ? rig.clips.has(name)
-                : pending.some((data) => name in data);
+                : given.some((data) => name in data);
         },
         drive(seconds, crouch = 0) {
             const motion = avatar.motion;
@@ -424,12 +446,7 @@ export function createAvatar(
         dispose() {
             root.parent?.remove(root);
             if (standIn) disposeMeshes(standIn);
-            if (rig) {
-                rig.mixer.stopAllAction();
-                if (rig.vrm.dispose) rig.vrm.dispose();
-                else disposeMeshes(rig.vrm.scene);
-                rig = null;
-            }
+            release();
         },
     };
     return avatar;

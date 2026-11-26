@@ -14,6 +14,10 @@ The lifecycle and the page bridge: [../games.md](../games.md).
    contract), the first frame shows their avatar crouched, facing the
    camera, with empty hands. When the page sends `entered`, the avatar
    stands up. Give them a racket, a tool or a pet only after that.
+3. **A game never draws its own avatar picker and never saves an avatar.**
+   It has no account to read a visitor's avatars from or to save a choice
+   to. To let the visitor change avatar, ask the page for its picker and
+   wear what comes back ("Changing avatar" below).
 
 `game.json` (both lines are the default; write them anyway):
 
@@ -114,6 +118,60 @@ cannot tell from the black frame; the check's main visit sends no avatar,
 so a game that shows the stand-in there fails `DEPARTURE_MISMATCH` (Padel
 gives a visitor without an avatar its house avatar instead).
 
+## Changing avatar
+
+The picker is the page's: the lobby's, with the visitor's own avatars, for
+every game and every world the site frames. The page saves the choice to
+the visitor's account and keeps it for the visit; the game asks, and wears.
+
+| From | Kind            | Meaning                                                                                                           |
+| ---- | --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| game | `avatar-picker` | Show the picker. No payload. Ignored until the game has its `identity`.                                           |
+| page | `avatar`        | `{ avatarUrl, avatarId, avatarName, avatarScale? }`: what the visitor chose. Not sent when they close the picker. |
+
+```js
+import { connectAvatar } from "@oncyber/game-runtime/avatar";
+
+const avatars = connectAvatar();
+// Somewhere there is already a place for it: a menu, the arrival row.
+button.hidden = !avatars.available; // no page (a dev server): no picker
+button.onclick = () => avatars.ask();
+avatars.on((avatar) => {
+    vouch(avatar.url); // the host's services.avatar() serves it from now on
+    kit.wear(avatar.url); // swaps the visitor's avatar in place
+});
+```
+
+`kit.wear(url)` keeps the body where it stands, doing what it was doing,
+with the clips it had; the avatar worn until then stays on until the new
+one has loaded, and stays for good if it cannot be. Of two choices in a
+row the last one wins. Everyone else in the room hears the new avatar in
+`peers` (the page tells the room), and the kit redraws a player whose
+`vrm` changed, so `kit.setPeers(players)` is all another visitor's game
+needs.
+
+The message is read on arrival the same way the page reads its own
+(`readAvatarMessage`: a web address or a path of the site, never anything
+else), and both sides answer the same cases
+(`games/runtime/test/contract.fixtures.json`).
+
+It is an addition to contract 3, not a new version: a page from before it
+ignores the request, and a game from before it ignores the answer
+([contract.md](contract.md), "Versions"). A game that offers the button
+says so, and the check holds it to wearing what it is handed:
+
+```json
+"avatars": { "others": "avatar", "arrival": "pose", "change": true }
+```
+
+Lantern Tag does this (the Avatar button beside Lobby in the courtyard:
+`games/lantern-tag/src/host.js`, `src/game.js`), and so does every game
+started from it.
+
+Not built: the party's roster keeps the avatar a member joined with, and
+the page answers `hello` once per visit, so a frame that reloads is not
+told who is visiting again.
+
 ## The check
 
 `pnpm games:check <id>` runs an avatar stage
@@ -128,13 +186,16 @@ gets the lobby's view and the party in `enter`), and asks the game for
 | after the arrival    | `avatarSelf` is `vrm` or `stand-in`, `avatarSelfInFrame`, `avatarArrival: "crouched"`, `avatarFacingCamera`, `avatarHandsEmpty` |
 | after `entered`      | `avatarArrival: "standing"`                                                                                                     |
 | with a second player | `avatarOthersDrawn >= 1` and `avatarOthersVrm >= 1`                                                                             |
+| after `avatar`       | with `"change": true`: `avatarSelfChanges` went up and `avatarSelf` is `vrm` (`AVATAR_CHANGE`)                                  |
 
 "Drawn" means the renderer submitted the body's meshes in the last frame,
 not that an object exists. To answer the question, call
 `answerInspect(inspect)` from `@oncyber/avatar-kit/page` once (it only
 answers when the page was opened with `?check`). Findings are `AVATAR_*`
-in `check.json`; the two frames are saved as
-`games/<id>/.check/avatar-arrival.png` and `avatar-party.png`.
+in `check.json`; the frames are saved as
+`games/<id>/.check/avatar-arrival.png`, `avatar-party.png` and
+`avatar-changed.png`. The check's page also answers a game's
+`avatar-picker` with a test avatar, as a visitor who chooses at once.
 
 If the headless browser loses its graphics device the stage fails with
 `AVATAR_GPU_LOST`: run with `PW_CHANNEL=chrome`, or

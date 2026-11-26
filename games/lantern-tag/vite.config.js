@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 
 // The lifecycle runtime and the kits are TypeScript source in games/runtime
 // and games/kits; the game bundles what it imports. Built straight into the
-// frontend's static games folder: /games/lantern-tag frames its index.html.
+// frontend's static folder for game builds: /games/lantern-tag frames it.
 const runtime = resolve("../runtime/src");
 const avatarKit = resolve("../kits/avatar");
 export default defineConfig({
@@ -59,7 +59,7 @@ export default defineConfig({
     },
     server: { fs: { allow: [".."] } },
     build: {
-        outDir: "../../frontend/public/games/lantern-tag",
+        outDir: "../../frontend/public/game-builds/lantern-tag",
         emptyOutDir: true,
         assetsInlineLimit: 0,
         chunkSizeWarningLimit: 1400,

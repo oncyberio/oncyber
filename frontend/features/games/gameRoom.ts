@@ -231,6 +231,21 @@ export class GameRoom implements SocialRoom {
         }
     }
 
+    /**
+     * The visitor changed avatar during the visit (useGameAvatar.tsx): the
+     * room is told, so everyone else's game hears the new one in `peers`,
+     * and a reconnect joins with it.
+     */
+    setAvatar(avatarUrl: string) {
+        if (typeof avatarUrl !== "string" || !avatarUrl) return;
+        this.identity = { ...this.identity, avatarUrl };
+        try {
+            this.room?.send("VRM", avatarUrl);
+        } catch {
+            // Socket closing; the next room joins with the new avatar.
+        }
+    }
+
     setPose(pose: GamePose) {
         this.pose = pose;
         this.sendPose();

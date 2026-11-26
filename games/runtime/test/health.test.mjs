@@ -44,7 +44,7 @@ test("an error is described by name, short message and file:line, nothing else",
         "x is not a function\n  secret " + "y".repeat(400)
     );
     error.stack =
-        "TypeError: x\n    at hit (https://oncyber.io/games/ace/assets/index-BU5.js?token=abc:120:14)\n    at frame (https://oncyber.io/a.js:1:1)";
+        "TypeError: x\n    at hit (https://oncyber.io/game-builds/ace/assets/index-BU5.js?token=abc:120:14)\n    at frame (https://oncyber.io/a.js:1:1)";
     const described = describeError(error);
     assert.equal(described.message.length, 200);
     assert.match(
@@ -53,7 +53,7 @@ test("an error is described by name, short message and file:line, nothing else",
     );
     assert.equal(described.where, "index-BU5.js:120");
     assert.deepEqual(
-        describeError("plain", "https://x.test/games/ace/main.js?v=1", 7),
+        describeError("plain", "https://x.test/game-builds/ace/main.js?v=1", 7),
         { message: "plain", where: "main.js:7" }
     );
     assert.deepEqual(describeError(undefined), {
@@ -95,7 +95,7 @@ test("uncaught errors and rejections are reported once each, up to a limit", () 
     });
     window.fire("error", {
         error: new Error("boom"),
-        filename: "https://x.test/games/ace/assets/main.js",
+        filename: "https://x.test/game-builds/ace/assets/main.js",
         lineno: 3,
     });
     window.fire("error", { error: new Error("boom") });

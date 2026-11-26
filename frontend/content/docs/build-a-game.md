@@ -75,8 +75,9 @@ pnpm games:new <id> --name "Game Name"   # creates games/<id>/ and lists it
 # fill in games/<id>/BRIEF.md             # the check fails while a section says TODO
 npm --prefix games/<id> install
 npm --prefix games/<id> run dev          # the game alone, on its own port
+pnpm games:build <id>                    # build only, to try it in the site's page
 pnpm games:check <id>                    # done is this exiting 0
-pnpm games:publish <id>                  # build, check, write frontend/public/games/<id>/
+pnpm games:publish <id>                  # build, check, write frontend/public/game-builds/<id>/
 ```
 
 Know before you start:
@@ -90,15 +91,20 @@ Know before you start:
     `src/match.js`). `games/ace/` is the full worked example. Bloom Garden
     (`games/garden/`) predates the contract and still speaks a prefix of its
     own: do not copy from it.
--   `npm run build` in a game clears its `check.json` and `release.json`;
-    finish with `pnpm games:publish <id>`.
+-   A build (`pnpm games:build <id>`, or `npm run build` in the game)
+    clears its `check.json` and `release.json`; finish with
+    `pnpm games:publish <id>`.
+-   The site's page for a game is `/games/<id>`. The build is served from
+    `/game-builds/<id>/`, never from under `/games/`: a build's folder there
+    would be served in the page's place. Use relative URLs in the game
+    (`base: "./"`), so the build runs from any address.
 -   A build is committed, so it can fall behind its source. Every build
     writes `games/<id>/build.json` (what it was built from), and
     `pnpm games:test` fails when the runtime, a kit the game uses or the
     game's own files changed after it (`scripts/games/build-record.mjs`).
     After changing any of them, run `pnpm games:publish <id>` again.
 -   Commit `games/<id>/` (with its `build.json`) and
-    `frontend/public/games/<id>/`. Format with Prettier (four spaces, 80
+    `frontend/public/game-builds/<id>/`. Format with Prettier (four spaces, 80
     columns).
 
 In both places the checks run a real browser. On a machine with no GPU set
@@ -193,6 +199,25 @@ kit.update(seconds, camera); // every frame
     dark for the departure check; draw your own simple figure for that case.
 -   Name tags and talking indicators over other players come with the kit.
 -   To opt out: `"avatars": { "others": "other", "why": "<one sentence>" }`.
+
+Changing avatar: never draw your own picker and never save an avatar. Ask
+the page for its picker and wear what the visitor chose.
+
+```js
+import { connectAvatar } from "@oncyber/game-runtime/avatar";
+
+const avatars = connectAvatar();
+button.hidden = !avatars.available; // no page, no picker
+button.onclick = () => avatars.ask(); // the page shows its picker
+avatars.on((avatar) => kit.wear(avatar.url)); // swapped in place
+```
+
+-   Let `services.avatar()` serve `avatar.url` before you wear it (the host
+    vouches for it, as for the visitor's first avatar).
+-   Say so in `game.json`: `"avatars": { "change": true }`. The check then
+    hands the game another avatar and fails if it is not worn
+    (`AVATAR_CHANGE`).
+-   Worked example: the Avatar button in `games/lantern-tag/src/host.js`.
 
 Page: `docs/games/avatar-kit.md`.
 

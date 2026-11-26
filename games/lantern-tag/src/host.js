@@ -29,6 +29,7 @@ import {
     watchSafeArea,
 } from "@oncyber/game-runtime/safe-area";
 import { connectVoice } from "@oncyber/game-runtime/voice";
+import { connectAvatar } from "@oncyber/game-runtime/avatar";
 import { answerInspect } from "@oncyber/avatar-kit/page";
 import manifest from "../game.json";
 import scenario from "../scenario.json";
@@ -100,6 +101,17 @@ link.on("roster", (roster) => {
     for (const member of roster.members)
         if (member.avatarUrl) vouched.add(member.avatarUrl);
 });
+// Changing avatar is the page's (docs/games/avatar-kit.md): the game asks
+// for the picker, the page shows the lobby's and says what was chosen, and
+// the game wears it in place. Standalone there is no page to ask.
+const avatars = connectAvatar();
+avatars.on((chosen) => {
+    vouched.add(chosen.url);
+    // What the visitor's own avatar is from now on (the avatar service).
+    if (identity) identity.avatar = chosen.url;
+    bridge.wear?.(chosen.url);
+});
+if (avatars.available) bridge.changeAvatar = () => avatars.ask();
 // Every way out asks the page to start the trip back; the page then asks
 // for the last frame, which the game stages in its arrival state.
 const departure = createDeparture({

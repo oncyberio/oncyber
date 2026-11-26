@@ -1,5 +1,6 @@
 import fixtures from "../../../games/runtime/test/contract.fixtures.json";
 import messages from "../../../games/runtime/messages.json";
+import { readAvatarMessage } from "@features/avatar-picker/pageAvatar";
 import {
     CONTRACT_OLDEST,
     CONTRACT_VERSION,
@@ -179,6 +180,13 @@ describe("the cases both halves of the contract share", () => {
     });
     test.each(fixtures.names)("name $name", (fixture) => {
         expect(gameName(fixture.name)).toBe(fixture.expect);
+    });
+    // The page's reader is the avatar picker's own; the game's is
+    // games/runtime/src/avatar.ts, held to the same cases.
+    test.each(fixtures.avatars)("avatar message: $name", (fixture) => {
+        expect(
+            readAvatarMessage(fixture.message, fixtures.avatarOrigin)
+        ).toEqual(fixture.expect);
     });
     test("the list of kinds is for this contract", () => {
         expect(messages.contract).toBe(CONTRACT_VERSION);

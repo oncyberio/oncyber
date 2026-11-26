@@ -264,6 +264,18 @@
             "page": "gameSocial.ts",
             "doc": "docs/games/voice-chat.md"
         },
+        "avatar-picker": {
+            "from": "game",
+            "sdk": "avatar.ts",
+            "page": "useGameAvatar.tsx",
+            "doc": "docs/games/avatar-kit.md"
+        },
+        "avatar": {
+            "from": "page",
+            "sdk": "avatar.ts",
+            "page": "useGameAvatar.tsx",
+            "doc": "docs/games/avatar-kit.md"
+        },
         "health": {
             "from": "game",
             "sdk": "health.ts",

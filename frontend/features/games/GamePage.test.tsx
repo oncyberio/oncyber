@@ -36,6 +36,24 @@ jest.mock("./useGameSocial", () => ({ useGameSocial: () => ({}) }));
 jest.mock("./GameChat", () => ({ __esModule: true, default: () => null }));
 // Field health only listens; its release lookup and analytics stay out.
 jest.mock("./gameHealth", () => ({ useGameHealth: () => {} }));
+// The page's avatar picker (features/avatar-picker), reduced to its two
+// ends: opened by the game's request, and the visitor choosing.
+const mockPicker = {
+    opened: 0,
+    choose: (_avatar: { id: string; name?: string; url: string }) => {},
+};
+jest.mock("@features/avatar-picker/usePageAvatarPicker", () => ({
+    usePageAvatarPicker: (onChosen: (avatar: any) => void) => {
+        mockPicker.choose = onChosen;
+        return {
+            isOpen: false,
+            open: () => void mockPicker.opened++,
+            close: () => {},
+            picker: null,
+        };
+    },
+}));
+const mockSetAvatar = jest.fn();
 jest.mock("./GameInputLayer", () => ({
     __esModule: true,
     default: () => null,
@@ -90,6 +108,9 @@ jest.mock("./gameRoom", () => ({
                 players: mockPeers.length + 1,
             });
             (this as any).onRoom?.(mockMatchRoom);
+        }
+        setAvatar(url: string) {
+            mockSetAvatar(url);
         }
         onRelay() {}
         relay() {}
@@ -154,6 +175,8 @@ async function mount(id = "ace") {
 beforeEach(() => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     mockPeers = [];
+    mockPicker.opened = 0;
+    mockSetAvatar.mockClear();
     (isLobbyDestination as jest.Mock).mockReturnValue(false);
     (readLobbyGroupCohort as jest.Mock).mockReturnValue(undefined);
     (registerLobbyDestinationEntry as jest.Mock).mockClear();
@@ -185,6 +208,64 @@ test("a contract game is answered in the one prefix and told how to enter", asyn
     await fromGame({ type: "oncyber:game:ready" });
     await wait();
     expect(types().at(-1)).toBe("oncyber:game:entered");
+    expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
+});
+
+test("a game asks for the page's avatar picker and is told what was chosen", async () => {
+    await mount("garden");
+    // Not before the game has been told who is visiting, and never for
+    // another window's message.
+    await fromGame({ type: "garden:avatar-picker" });
+    expect(mockPicker.opened).toBe(0);
+    await fromGame({ type: "garden:hello" });
+    await wait(150);
+    await act(async () => {
+        window.dispatchEvent(
+            new MessageEvent("message", {
+                data: { type: "garden:avatar-picker" },
+                source: window,
+                origin: window.location.origin,
+            })
+        );
+    });
+    expect(mockPicker.opened).toBe(0);
+    await fromGame({ type: "garden:avatar-picker" });
+    expect(mockPicker.opened).toBe(1);
+
+    // The visitor chooses: the game hears it in the form it speaks, and
+    // the room's seat wears it for everyone else.
+    await act(async () =>
+        mockPicker.choose({
+            id: "vrm-7",
+            name: "Astro",
+            url: "/models/astro.vrm",
+        })
+    );
+    expect(last("garden:avatar")).toEqual({
+        type: "garden:avatar",
+        avatarUrl: "/models/astro.vrm",
+        avatarId: "vrm-7",
+        avatarName: "Astro",
+    });
+    expect(mockSetAvatar).toHaveBeenCalledWith("/models/astro.vrm");
+});
+
+test("a contract game hears its new avatar in the one prefix", async () => {
+    await mount();
+    await fromGame({ type: "oncyber:game:hello", contract: 3 });
+    await wait();
+    await fromGame({ type: "oncyber:game:avatar-picker" });
+    expect(mockPicker.opened).toBe(1);
+    await act(async () =>
+        mockPicker.choose({
+            id: "https://cdn.example/w.vrm",
+            url: "https://cdn.example/w.vrm",
+        })
+    );
+    expect(last("oncyber:game:avatar")).toMatchObject({
+        avatarUrl: "https://cdn.example/w.vrm",
+        avatarName: "Avatar",
+    });
     expect(types().some((type) => type.startsWith("ace:"))).toBe(false);
 });
 

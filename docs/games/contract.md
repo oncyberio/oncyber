@@ -142,6 +142,12 @@ meaning, in both halves at once, and say what changed:
     message and the values in `identity` are gone: saved data is
     [saved-data.md](saved-data.md).
 
+An addition both sides may ignore does not raise the version: a new kind an
+older page drops, with an answer an older game drops. The avatar picker
+(`avatar-picker`, `avatar`; [avatar-kit.md](avatar-kit.md)) was added to
+contract 3 that way. The cost is that a game cannot tell from the version
+whether the page has the picker: a page without it stays silent.
+
 `pnpm games:check` fails a build that greets with another version than the
 runtime's (`CONTRACT_VERSION`), and `pnpm games:test` fails when a committed
 build was not rebuilt after the runtime changed ([../games.md](../games.md),

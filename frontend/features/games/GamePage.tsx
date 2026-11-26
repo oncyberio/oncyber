@@ -21,7 +21,7 @@ import { accountIdentity } from "./accountIdentity";
 import { GameRoom, type GamePose, type GameRoomState } from "./gameRoom";
 import type { GameEntry } from "./catalog";
 import GameCredits from "./GameCredits";
-import { frameBase, type GameFrame } from "./gameRelease";
+import { committedFrame, frameBase, type GameFrame } from "./gameRelease";
 import {
     developmentParty,
     gameParty,
@@ -57,7 +57,14 @@ import { attachSavedData, signedInAccount } from "./savedDataBridge";
 import { createRemoteSavedStore } from "./savedDataRemote";
 import { joinedParty, rememberGameParty } from "./gamePartyJoin";
 import { useGameHealth } from "./gameHealth";
+import { useGameAvatar } from "./useGameAvatar";
 import { gameChrome } from "./gameChrome";
+import {
+    ActionButton,
+    GameControl,
+    GameGlass,
+    GameNotice,
+} from "./gameControls";
 
 const PEER_INTERVAL = 100;
 
@@ -87,7 +94,7 @@ function readPose(value: any): GamePose | null {
 }
 
 /**
- * A game from public/games/<id> in a sandboxed frame. The page owns identity,
+ * A game from public/game-builds/<id> in a sandboxed frame. The page owns identity,
  * the shared room, voice and the game's saved values; the game renders
  * everything, avatars included. Messages are `oncyber:game:<kind>` on both
  * sides (docs/games/contract.md; every kind is listed in
@@ -162,6 +169,11 @@ export default function GamePage({
         roster: null as PageRoster | null,
     });
     const sentIdentityRef = useRef(false);
+    // The avatar the visitor chose in the page's picker during this visit
+    // (useGameAvatar.tsx). From then on it is the avatar of the identity
+    // the page hands a game, and of the room's seat.
+    const wornAvatar = useRef<string | null>(null);
+    const roomNow = useRef<GameRoom | null>(null);
     const tripNow = () =>
         gameTrip(
             partyRef.current,
@@ -232,6 +244,21 @@ export default function GamePage({
         name: identity?.name || "Someone",
     });
     const leave = useRef(departure.leave);
+    // Changing avatar is the page's (docs/games/avatar-kit.md): the game
+    // asks for the picker, the page shows the lobby's, saves the choice
+    // and tells the game, which wears it and plays on.
+    const avatarPicker = useGameAvatar({
+        game: GAME,
+        frame,
+        fromGame,
+        post: (kind, data) => postGame.current(kind, data),
+        allowed: () => sentIdentityRef.current && !error,
+        onChosen: (avatarUrl) => {
+            wornAvatar.current = avatarUrl;
+            // Everyone else in the room sees it too.
+            roomNow.current?.setAvatar(avatarUrl);
+        },
+    });
 
     // The game keeps its HUD clear of whatever this page floats over it.
     useEffect(
@@ -290,6 +317,7 @@ export default function GamePage({
                 post("identity", {
                     ...approved,
                     name: nameForGame(approved.name) || approved.name,
+                    avatarUrl: wornAvatar.current ?? approved.avatarUrl,
                 });
                 announceTrip.current(true);
                 if (!inJourney) sendEnter();
@@ -493,7 +521,7 @@ export default function GamePage({
                         : getGuestId(),
                 name: identity.name,
                 pfp: identity.pfp,
-                avatarUrl: identity.avatarUrl,
+                avatarUrl: wornAvatar.current ?? identity.avatarUrl,
                 matchKey: party ? matchSeatKey() : undefined,
             },
             (state) => {
@@ -530,6 +558,7 @@ export default function GamePage({
               })
             : null;
         gameRoom.onRoom = (joined) => match?.attach(joined);
+        roomNow.current = gameRoom;
         setRoom(gameRoom);
         void gameRoom.connect();
         const receive = (event: MessageEvent) => {
@@ -564,6 +593,7 @@ export default function GamePage({
             window.removeEventListener("message", receive);
             postGame.current("peers", { players: [] });
             roomFacts.current = { self: "", arrived: [], roster: null };
+            if (roomNow.current === gameRoom) roomNow.current = null;
             setRoom(null);
             setRoomState(null);
             void gameRoom.close();
@@ -594,7 +624,7 @@ export default function GamePage({
         >
             <iframe
                 ref={frame}
-                src={gameFrame?.src ?? `/games/${GAME}/index.html`}
+                src={gameFrame?.src ?? committedFrame(GAME).src}
                 data-release={gameFrame?.release ?? undefined}
                 title={title}
                 sandbox={CONTENT_SANDBOX}
@@ -614,7 +644,7 @@ export default function GamePage({
             {!error && <GameLoadingCover state={loading} title={gameName} />}
             {departure.offer}
             {ready && !error && roomLabel && !departure.leaving && (
-                <div
+                <GameGlass
                     role="group"
                     aria-label="Game social controls"
                     data-game-overlay="controls"
@@ -627,9 +657,6 @@ export default function GamePage({
                         gap: 8,
                         padding: 6,
                         borderRadius: gameChrome.radius.pill,
-                        background: gameChrome.color.bar,
-                        backdropFilter: "blur(10px)",
-                        font: gameChrome.font.control,
                         whiteSpace: "nowrap",
                     }}
                 >
@@ -639,8 +666,7 @@ export default function GamePage({
                     >
                         {people}
                     </span>
-                    <button
-                        type="button"
+                    <GameControl
                         disabled={!room || roomState?.status !== "connected"}
                         aria-pressed={roomState?.voiceState === "live"}
                         title={roomState?.voiceError || voiceLabel}
@@ -648,43 +674,16 @@ export default function GamePage({
                             void room?.toggleVoice();
                             frame.current?.focus();
                         }}
-                        style={{
-                            border: 0,
-                            borderRadius: gameChrome.radius.pill,
-                            padding: "8px 14px",
-                            font: "inherit",
-                            cursor: "pointer",
-                            color:
-                                roomState?.voiceState === "live"
-                                    ? gameChrome.color.onInk
-                                    : gameChrome.color.ink,
-                            background:
-                                roomState?.voiceState === "live"
-                                    ? gameChrome.color.on
-                                    : gameChrome.color.control,
-                        }}
                     >
                         {roomState?.voiceState === "live"
                             ? "Mic on"
                             : "Mic off"}
-                    </button>
+                    </GameControl>
                     <GameSoundButton onDone={() => frame.current?.focus()} />
-                    <button
-                        type="button"
-                        onClick={() => leave.current()}
-                        style={{
-                            border: 0,
-                            borderRadius: gameChrome.radius.pill,
-                            padding: "8px 14px",
-                            font: "inherit",
-                            cursor: "pointer",
-                            color: gameChrome.color.ink,
-                            background: gameChrome.color.control,
-                        }}
-                    >
+                    <GameControl onClick={() => leave.current()}>
                         Lobby
-                    </button>
-                </div>
+                    </GameControl>
+                </GameGlass>
             )}
             {ready && !error && roomLabel && (
                 <GameChat
@@ -729,32 +728,23 @@ export default function GamePage({
                 />
             )}
             {ready && !error && results.card}
+            {!error && avatarPicker}
             {error && (
-                <div
-                    role="status"
-                    style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "grid",
-                        placeContent: "center",
-                        gap: 18,
-                        textAlign: "center",
-                        background: gameChrome.color.frame,
-                        fontFamily: gameChrome.family,
-                    }}
-                >
-                    <p>{error}</p>
-                    <a
+                <GameNotice role="status">
+                    <p style={{ margin: 0 }}>{error}</p>
+                    <ActionButton
+                        as="a"
+                        $variant="white"
+                        $shape="pill"
                         href="/?lobby=1"
-                        style={{ color: gameChrome.color.ink }}
                         onClick={(event) => {
                             if (requestLobbyDestinationBack())
                                 event.preventDefault();
                         }}
                     >
                         Back to lobby
-                    </a>
-                </div>
+                    </ActionButton>
+                </GameNotice>
             )}
         </main>
     );

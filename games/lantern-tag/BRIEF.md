@@ -56,7 +56,9 @@ phone the hint moves to the top so the stick and buttons have the bottom.
 ## Kits
 
 The avatar kit draws the visitor and everyone else in the room as their
-Oncyber avatars, with name tags and the arrival pose. A visitor with no
+Oncyber avatars, with name tags and the arrival pose. The Avatar button
+in the courtyard asks the page for its avatar picker, and the visitor then
+wears what they chose without the game starting again. A visitor with no
 avatar is the game's own cloaked figure, because the kit's stand-in has
 near-black legs that the departure check cannot see. The avatars' idle,
 walk, run and jump are generated in code, not the kit's motion files, which
