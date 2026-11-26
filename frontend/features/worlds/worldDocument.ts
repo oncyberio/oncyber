@@ -9,6 +9,7 @@
  * `travel` to leave for somewhere else on the site.
  * Messages go to the site's origin and are heard from it alone.
  */
+import type { FrameLink } from "./frameLink";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
     CONTRACT_VERSION,
@@ -29,7 +30,12 @@ const HELLO_FOR_MS = 20_000;
 /** How long the world waits for the page to answer a question. */
 const ASK_FOR_MS = 8_000;
 
-export interface WorldDocument {
+/**
+ * The world's hold on its page: any message to the page and the page's to
+ * the world (./frameLink.ts), and the few things said so often they have a
+ * name.
+ */
+export interface WorldDocument extends FrameLink {
     /**
      * Who the page says is visiting. Null when the page names no one, or
      * never answers: the world then runs for its own guest.
@@ -42,9 +48,6 @@ export interface WorldDocument {
     location(href: string, title?: string): void;
     /** Go somewhere else on the site: only the page can. */
     travel(href: string): void;
-    /** Any other message to the page, and the page's to the world. */
-    send(kind: string, data?: object): void;
-    listen(handler: (kind: string, data: any) => void): () => void;
     /**
      * Asks the page something only it can know (it holds the account).
      * Undefined when the page does not answer.

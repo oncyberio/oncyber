@@ -3,13 +3,12 @@
  * parts of a room the engine and the in-world interface use, backed by
  * messages to the page that holds the real connection.
  */
+import type { FrameLink } from "./frameLink";
 import type { RoomPlayer } from "./roomRelay";
 
 /** The frame link a relayed room speaks over (./worldDocument). */
-export interface RoomLink {
-    send(kind: string, data?: object): void;
-    listen(handler: (kind: string, data: any) => void): () => void;
-}
+/** The link a relayed room is written against (./frameLink.ts). */
+export type RoomLink = FrameLink;
 
 const JOIN_TIMEOUT_MS = 30_000;
 let joins = 0;

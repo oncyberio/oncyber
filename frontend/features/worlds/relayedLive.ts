@@ -11,6 +11,7 @@
  * reads any visitor's browser already makes. It writes only to the feed
  * of the space it opened (./worldLiveHost.ts).
  */
+import type { FrameLink } from "./frameLink";
 import type { LiveCollection, LiveSpace } from "@utils/liveSpace";
 
 export const LIVE_MESSAGE = "live-";
@@ -63,10 +64,7 @@ export function readLiveSend(
 }
 
 /** The link a framed world has to its page (./worldDocument). */
-interface PageLink {
-    send(kind: string, data?: object): void;
-    listen(handler: (kind: string, data: any) => void): () => void;
-}
+type PageLink = FrameLink;
 
 /** The world's side: each watch is a number the page answers under. */
 export function relayedLiveSpace(page: PageLink): LiveSpace {
