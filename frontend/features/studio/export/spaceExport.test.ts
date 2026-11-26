@@ -111,6 +111,28 @@ describe("buildSpaceExport", () => {
         expect(input.gating.password.password).toBe("p");
     });
 
+    it("keeps each artwork's frame style", () => {
+        const frame = {
+            style: "gallery",
+            width: 5,
+            depth: 0.6,
+            mat: true,
+            matWidth: 12,
+            matColor: "#ece8df",
+            label: true,
+        };
+        const input = exhibit();
+        input.artworks.a.data.borderColor = "#141414";
+        input.artworks.a.data.frame = frame;
+        const out = buildSpaceExport({ exhibit: input });
+        expect(out.space.artworks.a.data.frame).toEqual(frame);
+        expect(out.space.artworks.a.data.borderColor).toBe("#141414");
+        expect(out.space.artworks.b.data.frame).toBeUndefined();
+        // Survives a round trip through the file.
+        const back = JSON.parse(JSON.stringify(out));
+        expect(back.space.artworks.a.data.frame).toEqual(frame);
+    });
+
     it("marks a world hosted outside Oncyber as external", () => {
         const out = buildSpaceExport({
             exhibit: exhibit({

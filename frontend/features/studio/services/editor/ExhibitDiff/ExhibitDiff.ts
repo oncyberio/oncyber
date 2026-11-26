@@ -310,13 +310,15 @@ export class ExhibitDiff {
 
         if (
             supportsBorder(mediaType) &&
-            !deepEqual(current.data.borderColor, incoming.data.borderColor)
+            (!deepEqual(current.data.borderColor, incoming.data.borderColor) ||
+                !deepEqual(current.data.frame, incoming.data.frame))
         ) {
             //
             cmds.push({
                 type: EDITION_ACTIONS.EDITOR_CHANGE_BORDER,
                 artworkId: id,
                 color: incoming.data.borderColor,
+                frame: incoming.data.frame ?? null,
             });
         }
 

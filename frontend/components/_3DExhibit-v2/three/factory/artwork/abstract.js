@@ -24,6 +24,13 @@ import { AbstractAudioController } from "./controllers/abstractaudiocontroller"
 
 import { VideoController } from "./controllers/videocontroller"
 
+import { TYPES } from "./constants"
+
+import { normalizeFrame } from "@3factory/border/galleryFrame"
+
+/** Media that can take the gallery frame: flat pictures with a known size. */
+const GALLERY_FRAME_TYPES = [TYPES.IMAGE, TYPES.VIDEO, TYPES.PANORAMA]
+
 
 
 export class SpaceArtwork extends SpaceItem {
@@ -51,6 +58,17 @@ export class SpaceArtwork extends SpaceItem {
         this._maxLookatDistance = null
 
         this.instancedBorder = null
+
+        /**
+         * The space's gallery frames, set when the artwork is added to the
+         * artwork container.
+         *
+         * @type { import("@3factory/border/galleryframes").GalleryFrames | null }
+         */
+        this.galleryFrames = null
+
+        /** Unsaved gallery settings shown while a Studio slider is dragged. */
+        this._previewFrame = undefined
 
         this.mesh = opts.mesh
 
@@ -149,6 +167,84 @@ export class SpaceArtwork extends SpaceItem {
                 this.updateBorderInstance()
             }
         }
+
+        this.syncFrame()
+    }
+
+    /**
+     * The normalized gallery frame settings, or null for the flat border.
+     *
+     * @returns { import("@3factory/border/galleryFrame").GalleryFrame | null }
+     */
+    get galleryFrame() {
+
+        // read the shape from the data: setBorder runs before userData is set
+        const shape = this.artworkData?.shape || "square"
+
+        if(!GALLERY_FRAME_TYPES.includes(this.mediaType) || shape !== "square") return null
+
+        const frame = this._previewFrame !== undefined ? this._previewFrame : this.artworkData?.frame
+
+        return normalizeFrame(frame)
+    }
+
+    /**
+     * The frame style (`data.frame`); null or undefined is the flat border.
+     *
+     * @param { import("@3factory/border/galleryFrame").ArtworkFrame | null | undefined } val
+     */
+    set frame(val) {
+
+        this._previewFrame = undefined
+
+        if(val == null) {
+
+            delete this.artworkData.frame
+        }
+        else {
+
+            this.artworkData.frame = val
+        }
+
+        this.syncFrame()
+    }
+
+    get frame() {
+
+        return this.artworkData?.frame ?? null
+    }
+
+    /**
+     * Shows `frame` without saving it (Studio sliders while dragging);
+     * `undefined` goes back to the saved frame.
+     *
+     * @param { import("@3factory/border/galleryFrame").ArtworkFrame | null | undefined } frame
+     */
+    previewFrame(frame) {
+
+        this._previewFrame = frame
+
+        this.syncFrame()
+    }
+
+    /** Shows the gallery frame or the flat border, whichever the artwork uses. */
+    syncFrame() {
+
+        const gallery = this.galleryFrame
+
+        // A square gallery frame crops the art to fill it; anything else
+        // shows the art at its own proportions.
+        /** @type { any } only LOD meshes (images, videos) can change fit */
+        const mesh = this.mesh
+
+        mesh?.setFit?.(gallery?.fit === "square" ? "square" : "image")
+
+        if(this.instancedBorder) {
+
+            this.instancedBorder.visible = gallery == null && this.instancedBorderOpts?._visible !== false
+        }
+
+        this.galleryFrames?.set(this)
     }
 
     get hasBorder() {
@@ -361,6 +457,11 @@ export class SpaceArtwork extends SpaceItem {
 
             this.instancedBorder.updateCoords(this.position, this.quaternion, opts.scale)
         }
+
+        if(this.galleryFrames && this.galleryFrame) {
+
+            this.galleryFrames.set(this)
+        }
     }
 
 
@@ -446,7 +547,7 @@ export class SpaceArtwork extends SpaceItem {
                         z: depth
                     },
 
-                    _visible: artworkData.borderColor != 'transparent-borderless',
+                    _visible: artworkData.borderColor != 'transparent-borderless' && this.galleryFrame == null,
 
                     scale: {
                         x: artworkScaledWidth,
@@ -509,6 +610,10 @@ export class SpaceArtwork extends SpaceItem {
         this.mesh?.dispose?.()
 
         this.removeEvents()
+
+        this.galleryFrames?.remove(this)
+
+        this.galleryFrames = null
 
         for (let i = 0; i < this.resources.length; i++) {
 

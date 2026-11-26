@@ -29,7 +29,8 @@ const transform = Fn( ( [ position, T, R, S ] ) => {
     return transformed
 } )
 
-const positionNode = transform(
+/** Instanced unit box: per-instance `offset`, `rotation` (quaternion) and `scale`. */
+export const instancedBoxPosition = transform(
 
     positionGeometry,
 
@@ -68,7 +69,7 @@ export default class BorderInstancedMaterial extends ArtworkNodeMaterial {
 
         super()
 
-        this.positionNode = positionNode
+        this.positionNode = instancedBoxPosition
 
         // The WebGL shader converted its output (colorspace_fragment): use the colour as-is.
         this.colorNode = colorNode
