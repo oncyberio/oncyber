@@ -21,7 +21,9 @@ describe("motionBlurOptions", () => {
             enabled: true,
             shutter: DEFAULT_SHUTTER,
             samples: DEFAULT_SAMPLES,
+            edges: 1,
         });
+        expect(motionBlurOptions("?mbedges=0").edges).toBe(0);
         expect(motionBlurOptions("?mbshutter=0.25").shutter).toBe(0.25);
         expect(motionBlurOptions("?mbshutter=4").shutter).toBe(1);
         expect(motionBlurOptions("?mbshutter=abc").shutter).toBe(

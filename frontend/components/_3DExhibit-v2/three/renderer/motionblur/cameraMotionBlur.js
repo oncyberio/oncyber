@@ -68,11 +68,13 @@ import { isCameraCut, tileSize } from "./settings"
  */
 export class CameraMotionBlur {
 
-	constructor({ shutter = 1, samples = 16 } = {}) {
+	constructor({ shutter = 1, samples = 16, edges = 1 } = {}) {
 
 		this.shutter = shutter
 
 		this.samples = samples
+
+		this.edges = edges
 
 		this.width = 1
 
@@ -120,6 +122,8 @@ export class CameraMotionBlur {
 			tileResolution: uniform( new Vector2( 1, 1 ) ),
 			tile: uniform( 16 ),
 			scale: uniform( 0.5 ),
+			centre: uniform( 1 ),
+			edge: uniform( 1 ),
 		}
 
 		this.scratch = {
@@ -279,7 +283,13 @@ export class CameraMotionBlur {
 
 			const before = getScreenPositionFromClip( clip )
 
-			const v = p.sub( before ).mul( u.resolution ).mul( u.scale ).toVar()
+			// Edge focus: crisp in the middle of the view, where the avatar
+			// and what you look at are, and strongest at the edges.
+			const r = length( p.sub( 0.5 ).mul( 2 ) ).mul( Math.SQRT1_2 )
+
+			const focus = mix( u.centre, u.edge, smoothstep( 0.12, 0.8, r ) )
+
+			const v = p.sub( before ).mul( u.resolution ).mul( u.scale ).mul( focus ).toVar()
 
 			// Points behind last frame's camera have no meaningful motion.
 			v.assign( clip.w.greaterThan( 0 ).select( v, vec2( 0 ) ) )
@@ -580,6 +590,10 @@ export class CameraMotionBlur {
 		const gap = Math.max( time - this.previous.time, 1e-3 )
 
 		u.scale.value = 0.5 * Math.min( 2, this.shutter / 30 / gap )
+
+		u.centre.value = 1 - 0.75 * this.edges
+
+		u.edge.value = 1 + 0.5 * this.edges
 
 		this.updateAnchor( camera, time )
 

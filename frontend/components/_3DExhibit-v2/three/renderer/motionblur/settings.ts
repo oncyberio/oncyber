@@ -6,12 +6,16 @@
  * shutter (0 to 1: how much of a 30 fps frame the virtual shutter stays
  * open, whatever the real frame rate; the default 1, an exposure of 1/30 s,
  * is the strong blur of console games). `?mbsamples=` changes the number of
- * taps per pixel (4 to 32, default 16).
+ * taps per pixel (4 to 32, default 16). `?mbedges=` (0 to 1, default 1)
+ * keeps the middle of the view crisp and puts the blur at the edges; 0 blurs
+ * the whole view evenly.
  */
 
 export const DEFAULT_SHUTTER = 1;
 
 export const DEFAULT_SAMPLES = 16;
+
+export const DEFAULT_EDGES = 1;
 
 /**
  * Longest blur, as a fraction of the drawing buffer's height. It is also
@@ -33,6 +37,7 @@ export interface MotionBlurOptions {
     enabled: boolean;
     shutter: number;
     samples: number;
+    edges: number;
 }
 
 const ON = new Set(["1", "on", "true", "yes"]);
@@ -59,6 +64,7 @@ export function motionBlurOptions(search: string = ""): MotionBlurOptions {
         samples: Math.round(
             numberIn(params.get("mbsamples"), DEFAULT_SAMPLES, 4, 32)
         ),
+        edges: numberIn(params.get("mbedges"), DEFAULT_EDGES, 0, 1),
     };
 }
 
@@ -69,6 +75,7 @@ export function pageMotionBlurOptions(): MotionBlurOptions {
             enabled: false,
             shutter: DEFAULT_SHUTTER,
             samples: DEFAULT_SAMPLES,
+            edges: DEFAULT_EDGES,
         };
     return motionBlurOptions(window.location.search);
 }
