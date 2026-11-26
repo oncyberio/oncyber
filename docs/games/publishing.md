@@ -20,6 +20,8 @@ oncyber check                # the same checks as pnpm games:check
 oncyber login                # opens the browser; saves a token
 oncyber publish              # build, check, upload; prints the game's link
 oncyber games                # what this account has published
+oncyber link my-game sky-run # also at /sky-run, when the name is free
+oncyber link my-game --clear # give the name up; /games/my-game stays
 oncyber unpublish my-game    # take it down
 ```
 
@@ -311,8 +313,29 @@ for the bucket's lifecycle rule (below).
 ### `mine`
 
 No input (`"params": []`). The account's games:
-`[{ id, title, status, release, publishedAt, url }]`, unpublished ones
-included.
+`[{ id, title, status, release, publishedAt, url, slug }]`, unpublished
+ones included. `url` is the game's canonical address: `/<slug>` when it has
+one, else `/games/<id>`. `slug` is null without one.
+
+### `link`
+
+Input: `{ "id": "my-game", "slug": "sky-run" }` to claim the address
+`/sky-run`, `{ "id": "my-game", "slug": null }` to give it up. Only the
+owner. Answers `{ "id": "my-game", "slug": "sky-run", "url": "/sky-run" }`.
+
+A slug is 3 to 40 lowercase letters and digits, in words joined by single
+dashes. It is one name among the site's: the claim is refused when the name
+is one of the site's own pages or a catalogued game's
+(`/<slug> is taken; choose another link.`), another published game's
+(`/<slug> is another game's link; choose another.`) or a space's
+(`/<slug> is a space's link; choose another.`). The check and the claim
+are one transaction, and a space asking for the name afterwards is refused
+by the same claim. Claiming a new slug gives the old one up. `/games/<id>`
+answers whether or not the game has a slug, and `finish` and `mine` answer
+with the slug's address once there is one.
+
+A game keeps its slug across releases and when it is unpublished; give it
+up to free the name.
 
 ### `unpublish`
 
@@ -337,6 +360,7 @@ One record per game in the `publishedGames` collection:
     "id": "my-game",
     "owner": "<account id>",
     "status": "unlisted",
+    "slug": "sky-run",
     "entry": {},
     "current": "<16 hex>",
     "releases": [
@@ -364,6 +388,10 @@ A `storage` release records no bucket and no object name: the server reads
 it from `games/<id>/<release>/` in the bucket it is configured with, a
 place made from the record's own id and release.
 The rooms are not in the record: the site makes them from the id each time.
+`slug` is there only while the game holds one, and each held slug has a
+claim, `gameLinks/<slug>` (`{ game, owner, claimedAt }`): the document a
+space's link and another game's claim are checked against, and what
+`/<slug>` is resolved from.
 
 Two more collections hold what is in flight: `gameUploads/<uploadId>` (an
 upload between `begin` and `finish`; `expireAt` is there for a Firestore
@@ -550,7 +578,8 @@ Then check what a visitor gets. Pages refuse tools' own user agents
 ```sh
 curl -sI -A "Mozilla/5.0" http://localhost:13000/games/<id>                    # 200
 curl -sI http://localhost:13000/api/games/releases/<id>/<release>/index.html   # 200, the release headers
-oncyber unpublish <id>                                                         # both answer 404
+oncyber link <id> sky-run && curl -sI -A "Mozilla/5.0" http://localhost:13000/sky-run   # 200, the same page
+oncyber unpublish <id>                                                         # all three answer 404
 ```
 
 The records are in the emulator's data browser

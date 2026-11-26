@@ -2,7 +2,7 @@
 // commands that talk to the site.
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { HELP, UsageError, parseArgs } from "./args.mjs";
+import { COMMANDS, HELP, UsageError, parseArgs } from "./args.mjs";
 import {
     baseUrl,
     credentialsPath,
@@ -13,7 +13,7 @@ import {
 import { OUTSIDE_NOTE, readTopic, topics } from "./docs.mjs";
 import { PACKAGE } from "./paths.mjs";
 import { readProject } from "./project.mjs";
-import { listGames, publishGame, unpublishGame } from "./publish.mjs";
+import { linkGame, listGames, publishGame, unpublishGame } from "./publish.mjs";
 import { PLAYWRIGHT_MISSING, hasPlaywright, npmRun, runCheck } from "./run.mjs";
 import { SiteError, createSite } from "./site.mjs";
 import { createStarter } from "./starter.mjs";
@@ -145,6 +145,22 @@ const commands = {
         await unpublishGame(connection, id);
         console.log(
             `${id}: unpublished. Its page no longer loads; the id stays yours.`
+        );
+    },
+    async link({ args: [id, slug], flags }, { env }) {
+        // One or the other: a slug to set, or --clear to give it up.
+        if (Boolean(flags.clear) === (slug !== undefined))
+            throw new UsageError(`usage: oncyber ${COMMANDS.link.usage}`);
+        const connection = requireLogin(env);
+        const linked = await linkGame(connection, id, slug ?? null);
+        const address = new URL(
+            linked?.url ?? `/games/${id}`,
+            `${connection.baseUrl}/`
+        ).href;
+        console.log(
+            linked?.slug
+                ? `${id}: its address is now ${address} (/games/${id} still opens it).`
+                : `${id}: its link is given up. Its address is ${address}.`
         );
     },
     docs({ args: [topic], flags }) {

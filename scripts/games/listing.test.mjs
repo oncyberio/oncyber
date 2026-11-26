@@ -6,7 +6,9 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
     CATALOG_PATH,
+    GAME_SLUG,
     GENERATED_THUMBNAIL,
+    SLUGS_PATH,
     buildCatalog,
     catalogEntry,
     catalogStale,
@@ -15,6 +17,8 @@ import {
     partySizesOf,
     readManifests,
     renderCatalog,
+    renderSlugs,
+    reservedSiteLinks,
 } from "./listing.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -231,6 +235,79 @@ test("a catalog entry carries the listing and the page settings", () => {
         () => catalogEntry("test", { name: "x" }),
         /games\/test\/game\.json/
     );
+});
+
+test("a game's slug is carried into the catalog, and is one name among the site's", () => {
+    const manifest = good();
+    manifest.page = { slug: "test-game" };
+    assert.equal(catalogEntry("test", manifest).slug, "test-game");
+    assert.equal(catalogEntry("test", good()).slug, undefined);
+    for (const slug of [
+        "ab",
+        "Test-Game",
+        "test--game",
+        "test_game",
+        "-test",
+        7,
+        "",
+    ])
+        assert.throws(
+            () => catalogEntry("test", { ...good(), page: { slug } }),
+            /page\.slug is 3 to 40 lowercase letters/,
+            String(slug)
+        );
+    assert.deepEqual(codes({ ...good(), page: { slug: "Test Game" } }), [
+        "LISTING_SLUG",
+    ]);
+    assert.deepEqual(codes(manifest), []);
+    const other = { ...good(), page: { slug: "other-game" } };
+    const built = buildCatalog({ test: manifest, other, plain: good() });
+    assert.deepEqual(built.slugs, {
+        "other-game": "other",
+        "test-game": "test",
+    });
+    assert.equal(
+        renderSlugs(built),
+        '{\n    "other-game": "other",\n    "test-game": "test"\n}\n'
+    );
+    assert.equal(renderSlugs(buildCatalog({ plain: good() })), "{}\n");
+    // No two games share one, and none is an address the site answers.
+    assert.throws(
+        () => buildCatalog({ test: manifest, twin: manifest }),
+        /games\/twin\/game\.json: page\.slug "test-game" is already test's/
+    );
+    assert.throws(
+        () =>
+            buildCatalog(
+                { test: { ...good(), page: { slug: "studio" } } },
+                { reserved: new Set(["studio"]) }
+            ),
+        /page\.slug "studio" is one of the site's own addresses/
+    );
+    // The site's own list, as the repository has it.
+    const reserved = reservedSiteLinks(root);
+    for (const name of ["studio", "games", "game-builds", "contact"])
+        assert.ok(reserved.has(name), name);
+    assert.equal(reservedSiteLinks(tmpdir()).size, 0);
+    assert.match("sky-run", GAME_SLUG);
+});
+
+test("the slugs the site reserves go stale with the manifests too", () => {
+    const dir = mkdtempSync(join(tmpdir(), "listing-"));
+    mkdirSync(join(dir, "games/test"), { recursive: true });
+    mkdirSync(join(dir, dirname(CATALOG_PATH)), { recursive: true });
+    const manifest = { ...good(), page: { slug: "test-game" } };
+    writeFileSync(join(dir, "games/test/game.json"), JSON.stringify(manifest));
+    const built = buildCatalog(readManifests(dir));
+    writeFileSync(join(dir, CATALOG_PATH), renderCatalog(built));
+    // The catalog alone is not enough: the reserved links read the slugs.
+    assert.match(catalogStale(dir), /catalog\.slugs\.json is out of date/);
+    writeFileSync(join(dir, SLUGS_PATH), renderSlugs(built));
+    assert.equal(catalogStale(dir), null);
+    writeFileSync(join(dir, SLUGS_PATH), '{ "test-game": "another" }');
+    assert.match(catalogStale(dir), /catalog\.slugs\.json is out of date/);
+    writeFileSync(join(dir, SLUGS_PATH), "not json");
+    assert.match(catalogStale(dir), /catalog\.slugs\.json is out of date/);
 });
 
 test("the catalog goes stale when a manifest changes", () => {

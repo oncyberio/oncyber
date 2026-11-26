@@ -4,7 +4,7 @@
 //
 //   node games/cli/test/standin.mjs [port]
 //
-// It implements cli.exchange, gamePublish.begin / finish / mine / unpublish
+// It implements cli.exchange, gamePublish.begin / finish / mine / link / unpublish
 // and the mode `site` upload address, and verifies what the contract says
 // the site verifies: the id, who owns it, the limits, the check's word, the
 // release id, and every file's size and SHA-256. Nothing is kept on disk.
@@ -280,8 +280,37 @@ export async function createStandin({
                     status: game.status,
                     release: game.current,
                     publishedAt: game.releases.at(-1).publishedAt,
-                    url: `/games/${game.id}`,
+                    url: game.slug ? `/${game.slug}` : `/games/${game.id}`,
+                    slug: game.slug ?? null,
                 }));
+        },
+        link(account, input) {
+            const game = state.games.get(input?.id);
+            if (!game || game.owner !== account)
+                fail("That is not a game of this account.");
+            const slug = input.slug;
+            if (slug !== null) {
+                if (
+                    typeof slug !== "string" ||
+                    !/^(?=.{3,40}$)[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+                )
+                    fail(
+                        "A game's link is 3 to 40 lowercase letters and digits, in words joined by single dashes."
+                    );
+                if (["studio", "games", "about"].includes(slug))
+                    fail(`/${slug} is taken; choose another link.`);
+                for (const other of state.games.values())
+                    if (other !== game && other.slug === slug)
+                        fail(
+                            `/${slug} is another game's link; choose another.`
+                        );
+                game.slug = slug;
+            } else delete game.slug;
+            return {
+                id: game.id,
+                slug: game.slug ?? null,
+                url: game.slug ? `/${game.slug}` : `/games/${game.id}`,
+            };
         },
         unpublish(account, input) {
             const game = state.games.get(input?.id);

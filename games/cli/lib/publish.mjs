@@ -341,6 +341,14 @@ export async function publishGame({ project, site, log = () => {} }) {
 /** The account's games. */
 export const listGames = (site) => site.rpc("gamePublish", "mine");
 
+/**
+ * Give a published game its short address, /<slug>, or (null) give it up.
+ * Only its owner can, and the name must be free on the site: not a page,
+ * not a space's link, not another game's.
+ */
+export const linkGame = (site, id, slug) =>
+    site.rpc("gamePublish", "link", { id, slug });
+
 /** Take a game down. Only its owner can. */
 export const unpublishGame = (site, id) =>
     site.rpc("gamePublish", "unpublish", { id });

@@ -34,11 +34,60 @@ The build's address is one constant on each side that needs it
 middleware) and the tests hold them together. `game-builds` is reserved, so
 no space can take it as its link (`utils/reservedLinks.js`).
 
-A game has no short address of its own yet. A space is at `/spaces/<id>`
-until its owner sets a link, and then also at `/<link>`
-(`pages/[slug].tsx`, which looks the link up among spaces and profiles
-only). Nothing gives a game a link: not `game.json`, not the catalog, not a
-published game's record. What it would take is under "Not built yet".
+### A game at `/<slug>`
+
+A game is at `/games/<id>` until it has a slug, and then also at `/<slug>`;
+a space is at `/spaces/<id>` until its owner sets a link, and then also at
+`/<link>`. Both answer with the same page (`features/games/GameRoute.tsx`,
+its props from `gameRouteServer.ts`), behind the same gates: with games
+hidden, `/<slug>` is the site's ordinary "nothing here" page.
+
+**The canonical address is `/<slug>` when a slug is set, else
+`/games/<id>`.** Both addresses carry it as `<link rel="canonical">`, and
+`gamePath(game)` (`features/games/gameSlug.ts`) is the one place that
+decides. `/games/<id>` never redirects: it is the permanent address, what
+the lobby's cards, party links and rooms are made from, and it keeps
+working when the slug changes or is given up. A slug typed with capitals
+redirects to the lowercase one.
+
+Spaces, profiles, the site's own pages and games share one set of names,
+and nothing is claimed twice:
+
+| Whose name               | Where it is kept                                                               | Who refuses a second claim                                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The site's pages         | `utils/reservedLinks.js`                                                       | Space links (`isReservedLink`), game slugs (`gameSlugProblem`, and `pnpm games:catalog` for a catalogued game)                                                                           |
+| A catalogued game's slug | `page.slug` in `game.json`, generated into `features/games/catalog.slugs.json` | `pnpm games:catalog` fails on a slug that is a reserved link or another game's; `reservedLinks.js` reads the file, so a space or a published game asking for the name is refused         |
+| A published game's slug  | `slug` on its `publishedGames` record, and the claim `gameLinks/<slug>`        | `gamePublish.link`, in one transaction that reads the claim and the spaces; `exhibit/updateCustomLink` reads the claim in its own transaction, the older `api/customLink` before writing |
+| A space's link           | `info.customLink` on its `exhibits` record                                     | `exhibit/updateCustomLink` among spaces, as before; `gamePublish.link` refuses a slug a space holds                                                                                      |
+| A profile                | `/@name`: the `@` keeps it apart from every other name                         |                                                                                                                                                                                          |
+
+`pages/[slug].tsx` asks in this order: a profile (`@name`), a catalogued
+game's slug (a reserved name, so no space can hold it; asked from memory,
+it costs other names nothing), a space's link exactly as before, and last,
+only when no space has the name, a published game's claim. With games
+hidden the two game steps are skipped.
+
+What a person must still do, and what is not there:
+
+-   **Before a catalogued game is given a slug**, look for a space that
+    already holds the name (`exhibits` where `info.customLink == <slug>`,
+    in the production project). A catalogued game's slug is a reserved
+    link from then on, so where games are on such a space would lose
+    `/<link>` to the game. No game in this repository has a slug yet:
+    choosing one is the owner's.
+-   Slugs are lowercase. Space links are compared as written, so an older
+    space link with capitals is a different name from a game's slug; a new
+    space link that differs from a game's slug only in capitals is refused.
+-   `api/customLink` (the older route) checks and writes without a
+    transaction, as it always has, so two requests at the same instant can
+    still race there. `exhibit/updateCustomLink` reads spaces outside its
+    transaction, as before, and the game's claim inside it.
+-   An unpublished game keeps its slug, as it keeps its id: `/<slug>`
+    answers "nothing here" and nobody else can take the name until the
+    owner gives it up (`oncyber link <id> --clear`).
+-   Nothing needs a data migration or a new index: a claim is read by its
+    document id, and the space lookup is the one-field equality query the
+    slug page already runs.
 
 ## Where things are
 
@@ -466,14 +515,6 @@ why: [games/field-health.md](games/field-health.md).
     [games/releases.md](games/releases.md).
 -   A headset profile for the check (phone and gamepad: [games/devices.md](games/devices.md)).
 -   Games in the lobby's Explore panel outside the development server.
--   A game at `/<link>`. Spaces have links: one collection of names
-    (`customLink`), set through `exhibit/updateCustomLink` in a transaction
-    that keeps them unique, and read by `pages/[slug].tsx`. For a game it
-    needs: a `link` a game may declare (the listing in `game.json` for a
-    catalogued game, the record for a published one, with the `oncyber`
-    command and the publish procedures carrying it); the same collection
-    made the one registry of names for spaces and games, so neither can
-    take the other's; and `pages/[slug].tsx` asking it which of the two a
-    name is before it renders (the game's page is `pages/games/[game].tsx`'s,
-    with the same gates). The lobby and party links would keep using
-    `/games/<id>`, which stays the game's permanent address.
+-   A slug for one of the catalogued games: the route is built ("A game
+    at `/<slug>`" above) and no game has been given a name. Lobby cards and
+    party links use `/games/<id>` whether or not a game has one.

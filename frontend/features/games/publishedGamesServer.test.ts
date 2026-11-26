@@ -29,9 +29,13 @@ import {
     forgetPendingUploads,
     forgetPublishedGames,
     loadRegisteredGame,
+    loadRegisteredGameBySlug,
     minePublished,
+    setGameLink,
     unpublishGame,
 } from "./publishedGamesServer";
+import { publishedGameHoldsLink } from "./gameSlugServer";
+import { searchUrl } from "@utils/siteUrl";
 import GamePublishService from "../../pages/api/_v2/gamePublish/index";
 import uploadRoute, {
     config as uploadConfig,
@@ -282,6 +286,7 @@ describe("mode site, end to end", () => {
                 release,
                 publishedAt: NOW.toISOString(),
                 url: "/games/my-game",
+                slug: null,
             },
         ]);
         expect(await minePublished("user-b", NOW)).toEqual([]);
@@ -881,9 +886,19 @@ describe("the page and the releases route", () => {
                     source: "hosted",
                 },
                 killSwitch: { paused: false, releases: [] },
+                // With no slug, /games/<id> is the game's one address.
+                canonical: searchUrl("/games/my-game"),
                 lobbyWorld: true,
             },
         });
+        // With a slug, the same page says the slug is its address.
+        await setGameLink("user-a", "my-game", "sky-run", NOW);
+        forgetPublishedGames();
+        const linked = (await page("my-game")).props;
+        expect(linked.game.slug).toBe("sky-run");
+        expect(linked.canonical).toBe(searchUrl("/sky-run"));
+        await setGameLink("user-a", "my-game", null, NOW);
+        forgetPublishedGames();
         expect(await page("nobody-published-this")).toEqual({ notFound: true });
         // A catalogued game is still the catalog's.
         expect(
@@ -1204,5 +1219,137 @@ describe("mode pinata, against a stand-in", () => {
                 .status
         ).toBe(404);
         expect(get).not.toHaveBeenCalled();
+    });
+});
+
+describe("a published game's short address", () => {
+    const linkOf = (id: string) => memoryDocs.get(`publishedGames/${id}`).slug;
+    const atSlug = (slug: string) => {
+        forgetPublishedGames();
+        return loadRegisteredGameBySlug(slug);
+    };
+
+    test("its owner claims a slug: the record, the claim and the page at it", async () => {
+        await publish("user-a", "my-game");
+        expect(await setGameLink("user-a", "my-game", "sky-run", NOW)).toEqual({
+            id: "my-game",
+            slug: "sky-run",
+            url: "/sky-run",
+        });
+        expect(linkOf("my-game")).toBe("sky-run");
+        expect(memoryDocs.get("gameLinks/sky-run")).toEqual({
+            game: "my-game",
+            owner: "user-a",
+            claimedAt: NOW.toISOString(),
+        });
+        // The game's page is found by it, and says its slug.
+        expect((await atSlug("sky-run")).game).toMatchObject({
+            id: "my-game",
+            slug: "sky-run",
+        });
+        expect(await atSlug("sky-walk")).toBeNull();
+        expect(await atSlug("Sky-Run")).toBeNull();
+        expect(await publishedGameHoldsLink("sky-run")).toBe(true);
+        // A space may not take it by spelling it with capitals.
+        expect(await publishedGameHoldsLink(" Sky-Run ")).toBe(true);
+        expect(await publishedGameHoldsLink("sky-walk")).toBe(false);
+        // The same slug again changes nothing; `mine` shows it.
+        await setGameLink("user-a", "my-game", "sky-run", NOW);
+        expect(await minePublished("user-a", NOW)).toEqual([
+            expect.objectContaining({
+                id: "my-game",
+                slug: "sky-run",
+                url: "/sky-run",
+            }),
+        ]);
+    });
+
+    test("a new release keeps the slug; a new slug frees the old one; null gives it up", async () => {
+        await publish("user-a", "my-game");
+        await setGameLink("user-a", "my-game", "sky-run", NOW);
+        const next = await publish("user-a", "my-game", {
+            ...BUILD,
+            "assets/a.js": "export default 2",
+        });
+        expect(next.url).toBe("/sky-run");
+        expect(linkOf("my-game")).toBe("sky-run");
+
+        await setGameLink("user-a", "my-game", "sky-walk", NOW);
+        expect(memoryDocs.has("gameLinks/sky-run")).toBe(false);
+        expect(memoryDocs.get("gameLinks/sky-walk").game).toBe("my-game");
+        expect(await atSlug("sky-run")).toBeNull();
+        expect((await atSlug("sky-walk")).game.id).toBe("my-game");
+
+        expect(await setGameLink("user-a", "my-game", null, NOW)).toEqual({
+            id: "my-game",
+            slug: null,
+            url: "/games/my-game",
+        });
+        expect(linkOf("my-game")).toBeUndefined();
+        expect(memoryDocs.has("gameLinks/sky-walk")).toBe(false);
+        expect(await atSlug("sky-walk")).toBeNull();
+    });
+
+    test("nothing is claimed twice: another game's, a space's, the site's own", async () => {
+        await publish("user-a", "my-game");
+        await publish("user-b", "their-game");
+        await setGameLink("user-a", "my-game", "sky-run", NOW);
+        await expect(
+            setGameLink("user-b", "their-game", "sky-run", NOW)
+        ).rejects.toThrow("/sky-run is another game's link");
+        // A space holds this one (its `info.customLink`).
+        memoryDocs.set("exhibits/space-1", {
+            owner: "0xsomeone",
+            info: { customLink: "frahm-gallery" },
+        });
+        await expect(
+            setGameLink("user-b", "their-game", "frahm-gallery", NOW)
+        ).rejects.toThrow("/frahm-gallery is a space's link");
+        // The site's own pages, and what is not a slug at all.
+        for (const slug of ["studio", "games", "about", "game-builds"])
+            await expect(
+                setGameLink("user-b", "their-game", slug, NOW)
+            ).rejects.toThrow(`/${slug} is taken`);
+        for (const slug of ["ab", "Sky-Run", "@ada", "sky--run", "sky/run"])
+            await expect(
+                setGameLink("user-b", "their-game", slug, NOW)
+            ).rejects.toThrow("3 to 40 lowercase letters");
+        // Nothing of those attempts was stored.
+        expect(linkOf("their-game")).toBeUndefined();
+        expect(
+            [...memoryDocs.keys()].filter((key) => key.startsWith("gameLinks/"))
+        ).toEqual(["gameLinks/sky-run"]);
+    });
+
+    test("only the owner, and only for a game there is", async () => {
+        await publish("user-a", "my-game");
+        await expect(
+            setGameLink("user-b", "my-game", "sky-run", NOW)
+        ).rejects.toThrow("not a game of this account");
+        await expect(
+            setGameLink("user-a", "no-game", "sky-run", NOW)
+        ).rejects.toThrow("not a game of this account");
+        expect(memoryDocs.has("gameLinks/sky-run")).toBe(false);
+    });
+
+    test("a slug leads nowhere once the game is taken down, hidden or the claim is stale", async () => {
+        await publish("user-a", "my-game");
+        await setGameLink("user-a", "my-game", "sky-run", NOW);
+        // A claim whose record no longer says the slug is not followed.
+        const record = memoryDocs.get("publishedGames/my-game");
+        memoryDocs.set("publishedGames/my-game", { ...record, slug: "other" });
+        expect(await atSlug("sky-run")).toBeNull();
+        memoryDocs.set("publishedGames/my-game", record);
+        expect((await atSlug("sky-run")).game.id).toBe("my-game");
+
+        await unpublishGame("user-a", "my-game", NOW);
+        expect(await atSlug("sky-run")).toBeNull();
+        // The name stays the owner's while the game is down.
+        expect(await publishedGameHoldsLink("sky-run")).toBe(true);
+
+        await publish("user-a", "my-game");
+        expect((await atSlug("sky-run")).game.id).toBe("my-game");
+        delete process.env.GAMES_PREVIEW;
+        expect(await atSlug("sky-run")).toBeNull();
     });
 });

@@ -15,6 +15,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
     describeRelease,
+    linkGame,
     listGames,
     publishGame,
     unpublishGame,
@@ -137,10 +138,13 @@ test("games lists the account's games; unpublish takes one down, only for its ow
         "id",
         "publishedAt",
         "release",
+        "slug",
         "status",
         "title",
         "url",
     ]);
+    assert.equal(listed.slug, null);
+    assert.equal(listed.url, "/games/mine-game");
     assert.equal(listed.status, "unlisted");
     assert.deepEqual(await listGames(site("other-token")), []);
     await assert.rejects(
@@ -152,6 +156,46 @@ test("games lists the account's games; unpublish takes one down, only for its ow
         (await listGames(site())).find((entry) => entry.id === "mine-game")
             .status,
         "unpublished"
+    );
+});
+
+test("link gives a game the address /<slug> and takes it back, only for its owner", async () => {
+    await publishGame({ project: await game("link-game"), site: site() });
+    await publishGame({ project: await game("link-rival"), site: site() });
+    assert.deepEqual(await linkGame(site(), "link-game", "sky-run"), {
+        id: "link-game",
+        slug: "sky-run",
+        url: "/sky-run",
+    });
+    const listed = async () =>
+        (await listGames(site())).find((entry) => entry.id === "link-game");
+    assert.equal((await listed()).url, "/sky-run");
+    assert.equal((await listed()).slug, "sky-run");
+    // Somebody else's game, another game's link, a page of the site, a
+    // name that is no link at all: each is refused and nothing changes.
+    await assert.rejects(
+        linkGame(site("other-token"), "link-game", "theirs"),
+        /not a game of this account/
+    );
+    await assert.rejects(
+        linkGame(site(), "link-rival", "sky-run"),
+        /another game's link/
+    );
+    await assert.rejects(linkGame(site(), "link-game", "studio"), /is taken/);
+    await assert.rejects(
+        linkGame(site(), "link-game", "Sky Run"),
+        /lowercase letters and digits/
+    );
+    assert.equal((await listed()).slug, "sky-run");
+    assert.deepEqual(await linkGame(site(), "link-game", null), {
+        id: "link-game",
+        slug: null,
+        url: "/games/link-game",
+    });
+    // Given up, the name is free for the other game.
+    assert.equal(
+        (await linkGame(site(), "link-rival", "sky-run")).url,
+        "/sky-run"
     );
 });
 

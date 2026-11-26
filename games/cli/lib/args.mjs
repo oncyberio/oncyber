@@ -24,6 +24,12 @@ export const COMMANDS = {
     },
     games: { usage: "games [--json]", max: 0, flags: { json: false } },
     unpublish: { usage: "unpublish <id>", min: 1, max: 1, flags: {} },
+    link: {
+        usage: "link <id> <slug> | link <id> --clear",
+        min: 1,
+        max: 2,
+        flags: { clear: false },
+    },
     docs: { usage: "docs [topic] [--list]", max: 1, flags: { list: false } },
 };
 
@@ -93,6 +99,8 @@ export const HELP = `oncyber: build a game for Oncyber
   oncyber publish                    build, check, upload; prints the game's link
   oncyber games                      what this account has published
   oncyber unpublish <id>             take a game down
+  oncyber link <id> <slug>           give a published game the address /<slug>
+  oncyber link <id> --clear          give that address up; /games/<id> stays
   oncyber docs [topic]               the guide to building a game, or one page (--list)
   oncyber logout                     forget the saved token
 

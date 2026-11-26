@@ -4,6 +4,7 @@ import { firestore } from "firebase-admin";
 import { db } from "@utils/firebaseAdmin";
 import { Failure, Success } from "@utils/js";
 import { isReservedLink } from "@utils/reservedLinks";
+import { publishedGameHoldsLink } from "@features/games/gameSlugServer";
 
 async function doUpdateCustomLink(
     customLink: string,
@@ -22,9 +23,19 @@ async function doUpdateCustomLink(
         // TODO: For now we don't handle yet concurrent customLink edits very well
         const isRemove = customLink === null || customLink == "";
 
-        // The site's own pages answer these addresses, never the space.
+        // The site's own pages answer these addresses, never the space;
+        // so do its own games, at their slugs (utils/reservedLinks.js).
         if (!isRemove && isReservedLink(customLink)) {
             throw new Error("This link is reserved. Try another one.");
+        }
+        // A game published on the site may hold the name as its own short
+        // address (features/games/gameSlug.ts). Read in this transaction,
+        // as the game's claim reads the spaces in its own.
+        if (
+            !isRemove &&
+            (await publishedGameHoldsLink(customLink, (ref) => batch.get(ref)))
+        ) {
+            throw new Error("This link already exists.");
         }
 
         //

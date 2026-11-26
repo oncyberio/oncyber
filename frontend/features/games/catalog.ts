@@ -20,6 +20,12 @@ export type GameDevice = "desktop" | "phone" | "gamepad";
 export interface GameEntry {
     /** Folder under /games and the prefix of the page bridge messages. */
     id: string;
+    /**
+     * The game's short address, /<slug>, when it has one: `page.slug` in
+     * game.json for a catalogued game, the record's for a published one
+     * (gameSlug.ts). The game is at /games/<id> either way.
+     */
+    slug?: string;
     title: string;
     /** Shown in the tab title after the name. */
     tagline: string;

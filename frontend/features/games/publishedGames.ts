@@ -21,6 +21,7 @@ import {
     type GameFrame,
     type HostedRelease,
 } from "./gameRelease";
+import { GAME_SLUG, gamePath, gameSlugProblem } from "./gameSlug";
 
 /** Limits of one release and of one account (docs/games/publishing.md). */
 export const PUBLISH_MAX_BYTES = 30 * 1024 * 1024;
@@ -369,6 +370,11 @@ export interface PublishedGame {
     entry: PublishedEntry;
     current: string;
     releases: PublishedRelease[];
+    /**
+     * The game's short address, /<slug>, when its owner claimed one
+     * (`planLink`, gameSlug.ts). The game is at /games/<id> either way.
+     */
+    slug?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -503,6 +509,8 @@ export function planPublish(options: {
             entry,
             current: release.release,
             releases,
+            // A new release keeps the game's link.
+            ...(recordSlug(record) ? { slug: recordSlug(record) } : {}),
             createdAt: record?.createdAt ?? at,
             updatedAt: at,
         },
@@ -526,6 +534,40 @@ export function planUnpublish(
         return refuse("That is not a game of this account.");
     if (record.status === "unpublished") return record;
     return { ...record, status: "unpublished", updatedAt: now.toISOString() };
+}
+
+/** The slug a record holds, or null: one that is not a slug is none. */
+export function recordSlug(record: PublishedGame | null): string | null {
+    return typeof record?.slug === "string" && GAME_SLUG.test(record.slug)
+        ? record.slug
+        : null;
+}
+
+/**
+ * The owner gives the game a short address, changes it or (null) takes it
+ * away. This decides only what the record may hold: that nobody else holds
+ * the name (a space, another game) is asked of the store, in the same
+ * transaction (publishedGamesServer.ts, `setGameLink`).
+ */
+export function planLink(
+    record: PublishedGame | null,
+    owner: string,
+    slug: string | null,
+    now: Date
+): PublishedGame {
+    if (!record || record.owner !== owner)
+        return refuse("That is not a game of this account.");
+    if (slug !== null) {
+        const problem = gameSlugProblem(slug);
+        if (problem) refuse(problem);
+    }
+    if (recordSlug(record) === slug) return record;
+    const { slug: _before, ...rest } = record;
+    return {
+        ...rest,
+        ...(slug ? { slug } : {}),
+        updatedAt: now.toISOString(),
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -597,6 +639,7 @@ export function registeredGameEntry(record: PublishedGame): GameEntry {
         socialRoom: registeredSocialRoom(id),
         crowdLabel: String(entry.crowdLabel ?? ""),
         registered: true,
+        ...(recordSlug(record) ? { slug: recordSlug(record) } : {}),
     };
 }
 
@@ -620,6 +663,9 @@ export function publishedGameSummary(record: PublishedGame) {
         status: record.status,
         release: record.current,
         publishedAt: current?.publishedAt ?? record.updatedAt,
-        url: `/games/${record.id}`,
+        // The game's address: its link when it has one. /games/<id> always
+        // answers too.
+        url: gamePath({ id: record.id, slug: recordSlug(record) }),
+        slug: recordSlug(record),
     };
 }

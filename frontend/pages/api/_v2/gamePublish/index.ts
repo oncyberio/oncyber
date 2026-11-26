@@ -1,6 +1,7 @@
 import { api } from "@utils/rpc/server";
 import { begin } from "./begin";
 import { finish } from "./finish";
+import { link } from "./link";
 import { mine } from "./mine";
 import { unpublish } from "./unpublish";
 
@@ -16,6 +17,7 @@ const GamePublishService = {
 
     begin,
     finish,
+    link,
     mine,
     unpublish,
 };

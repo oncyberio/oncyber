@@ -88,6 +88,14 @@ Know before you start:
 -   A build (`pnpm games:build <id>`, or `npm run build` in the game)
     clears its `check.json` and `release.json`; finish with
     `pnpm games:publish <id>`.
+-   A game's address is `/games/<id>`, and also `/<slug>` once it has a
+    slug (3 to 40 lowercase letters and digits, words joined by single
+    dashes; one name among the site's pages, spaces and games). A game in
+    this repository declares it as `page.slug` in `game.json` and runs
+    `pnpm games:catalog`; a game published with the command claims it with
+    `oncyber link <id> <slug>` and gives it up with
+    `oncyber link <id> --clear`. Links a game builds itself use
+    `/games/<id>`, which always answers.
 -   The site's page for a game is `/games/<id>`. The build is served from
     `/game-builds/<id>/`, never from under `/games/`: a build's folder there
     would be served in the page's place. Use relative URLs in the game

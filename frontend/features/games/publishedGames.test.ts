@@ -9,6 +9,7 @@ import {
     PublishRefused,
     mayPublish,
     planBegin,
+    planLink,
     planPublish,
     planUnpublish,
     publishBeginSchema,
@@ -18,6 +19,7 @@ import {
     publisherAt,
     publishingGate,
     readPublishedGame,
+    recordSlug,
     registeredGameEntry,
     registeredGameFrame,
     releaseFilesProblem,
@@ -426,7 +428,49 @@ describe("the record's moves", () => {
         expect(after === before).toBe(from === "unpublished");
     });
 
+    test("link: the owner sets, changes and gives up the game's slug", () => {
+        const linked = planLink(record(), "user-a", "sky-run", NOW);
+        expect(linked.slug).toBe("sky-run");
+        expect(linked.status).toBe("unlisted");
+        // The same slug again is the same record: nothing to store.
+        expect(planLink(linked, "user-a", "sky-run", NOW)).toBe(linked);
+        expect(planLink(linked, "user-a", "sky-walk", NOW).slug).toBe(
+            "sky-walk"
+        );
+        const cleared = planLink(linked, "user-a", null, NOW);
+        expect("slug" in cleared).toBe(false);
+        expect(planLink(record(), "user-a", null, NOW).slug).toBeUndefined();
+        // A new release keeps it; a take-down keeps it too.
+        expect(publish(linked).record.slug).toBe("sky-run");
+        expect(planUnpublish(linked, "user-a", NOW).slug).toBe("sky-run");
+        expect("slug" in publish(record()).record).toBe(false);
+    });
+
+    test.each([
+        ["ab", /3 to 40 lowercase/],
+        ["Sky-Run", /3 to 40 lowercase/],
+        ["sky--run", /3 to 40 lowercase/],
+        ["-sky", /3 to 40 lowercase/],
+        ["sky-", /3 to 40 lowercase/],
+        ["sky_run", /3 to 40 lowercase/],
+        ["@ada", /3 to 40 lowercase/],
+        ["a".repeat(41), /3 to 40 lowercase/],
+        ["studio", /\/studio is taken/],
+        ["games", /\/games is taken/],
+        ["contact", /\/contact is taken/],
+    ])("link: %s is refused", (slug, why) => {
+        expect(refused(() => planLink(record(), "user-a", slug, NOW))).toMatch(
+            why
+        );
+    });
+
     test("only the owner moves a record", () => {
+        expect(
+            refused(() => planLink(record(), "user-b", "sky-run", NOW))
+        ).toMatch(/not a game of this account/);
+        expect(refused(() => planLink(null, "user-a", "sky-run", NOW))).toMatch(
+            /not a game of this account/
+        );
         expect(refused(() => publish(record(), { owner: "user-b" }))).toMatch(
             /another account/
         );
@@ -667,6 +711,20 @@ describe("what the site serves from a record", () => {
             release: one,
             publishedAt: NOW.toISOString(),
             url: "/games/my-game",
+            slug: null,
         });
+        // With a slug, that is the game's address.
+        expect(publishedGameSummary(record({ slug: "sky-run" }))).toMatchObject(
+            { url: "/sky-run", slug: "sky-run" }
+        );
+        expect(registeredGameEntry(record({ slug: "sky-run" })).slug).toBe(
+            "sky-run"
+        );
+        expect(registeredGameEntry(record()).slug).toBeUndefined();
+        // A record that holds something that is not a slug has none.
+        expect(recordSlug(record({ slug: "Not A Slug" }))).toBeNull();
+        expect(
+            registeredGameEntry(record({ slug: "../x" })).slug
+        ).toBeUndefined();
     });
 });

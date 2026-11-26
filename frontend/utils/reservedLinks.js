@@ -2,7 +2,8 @@
 //
 // The site's own top-level pages win over custom links, so a space that took
 // one of these names would have a link that never opens it. The same goes
-// for the redirects in next.config.js. Plain CommonJS: next.config.js reads
+// for the redirects in next.config.js, and for the slugs of the site's own
+// games. Plain CommonJS: next.config.js reads
 // it too.
 
 /** Top-level paths the app answers itself (pages/, redirects, rewrites, locales). */
@@ -52,11 +53,26 @@ const PAGE_REDIRECTS = {
     "about-us": "/about",
 };
 
-const RESERVED = new Set([...APP_PATHS, ...Object.keys(PAGE_REDIRECTS)]);
+/**
+ * The short addresses of the site's own games, `{ "<slug>": "<game id>" }`:
+ * a catalogued game with a slug is at /<slug> as well as /games/<id>
+ * (docs/games/listing.md). Generated from each game.json by
+ * `pnpm games:catalog`. A slug is the site's own address like any page
+ * above, so no space can take one. (A game published from outside the
+ * repository keeps its slug in the registry, which the procedures that
+ * claim a link ask: features/games/gameSlugServer.ts.)
+ */
+const GAME_SLUGS = require("../features/games/catalog.slugs.json");
+
+const RESERVED = new Set([
+    ...APP_PATHS,
+    ...Object.keys(PAGE_REDIRECTS),
+    ...Object.keys(GAME_SLUGS),
+]);
 
 /** Is this custom link taken by the site itself? */
 function isReservedLink(link) {
     return typeof link === "string" && RESERVED.has(link.trim().toLowerCase());
 }
 
-module.exports = { APP_PATHS, PAGE_REDIRECTS, isReservedLink };
+module.exports = { APP_PATHS, PAGE_REDIRECTS, GAME_SLUGS, isReservedLink };

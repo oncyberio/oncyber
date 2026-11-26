@@ -18,8 +18,14 @@ import {
     fetchUserByUsername,
     fetchUserByWalletId,
 } from "@api/accounts/user/utils";
+import { catalogGameBySlug } from "@features/games/gameSlug";
+import { gamesPreviewEnabled } from "@features/games/gamesPreview";
 
 const Profile = dynamic(() => import("../components/profile"));
+
+// A game with a slug is at /<slug> as well as /games/<id>: the same page
+// (features/games/GameRoute.tsx), loaded only for such an address.
+const GameRoute = dynamic(() => import("@features/games/GameRoute"));
 
 const Error = dynamic(() => import("../components/Error"));
 
@@ -52,6 +58,10 @@ export default function CustomLinkExhibit({
             });
         }
     }, []);
+
+    if (props.gameRoute) {
+        return <GameRoute {...props.gameRoute} />;
+    }
 
     if (props.notFound) {
         return <NotFoundPage {...(props as any)} />;
@@ -87,6 +97,32 @@ export default function CustomLinkExhibit({
             worldFrameRole={props.worldFrameRole}
         />
     );
+}
+
+/**
+ * What this page returns for a game's slug, or null when the name is no
+ * game's (or games are hidden). `lobbyWorld` is what a game's own page sets
+ * (pages/games/[game].tsx): the game owns the lobby bridge.
+ */
+async function gameAtSlug(slug: unknown, draft: boolean, resolvedUrl: string) {
+    if (!gamesPreviewEnabled()) return null;
+    const { loadGameRouteBySlug } = await import(
+        "@features/games/gameRouteServer"
+    );
+    const found = await loadGameRouteBySlug(slug, { draft });
+    if (!found) return null;
+    if ("redirect" in found) {
+        const search = resolvedUrl.includes("?")
+            ? resolvedUrl.slice(resolvedUrl.indexOf("?"))
+            : "";
+        return {
+            redirect: {
+                destination: `${found.redirect}${search}`,
+                permanent: true,
+            },
+        };
+    }
+    return { gameRoute: found.props, lobbyWorld: true };
 }
 
 // A profile link (/@name) never reaches this page: next.config.js serves it
@@ -135,6 +171,16 @@ export const getServerSideProps = BasicServerSideProps(
 
         if (params.slug === "built") params.slug = "BUILT"; // temporary quick hack
 
+        // One of the site's own games, at its slug: a reserved name, which
+        // no space can hold (utils/reservedLinks.js), so it is asked first
+        // and costs nothing for any other name. Nothing while games are
+        // hidden (features/games/gameRouteServer.ts).
+        const draft = "draft" in query;
+        if (catalogGameBySlug(String(params.slug).toLowerCase())) {
+            const game = await gameAtSlug(params.slug, draft, resolvedUrl);
+            if (game) return game;
+        }
+
         // Started beside the sign-in reads (prefetchSlugPageData below).
         const data =
             (await prefetched) ??
@@ -164,6 +210,11 @@ export const getServerSideProps = BasicServerSideProps(
                     };
                 }
             }
+            // Not a space: a game published on the site may hold the name
+            // as its slug. Looked up only now, so a space's link resolves
+            // exactly as it did, and only where games are on.
+            const game = await gameAtSlug(params.slug, draft, resolvedUrl);
+            if (game) return game;
             // No such space: a real 404, showing the landing with the link's
             // words in the search.
             return {

@@ -46,6 +46,7 @@ oncyber check                # the same checks as the repository's pnpm games:ch
 oncyber login                # opens the browser; saves a token
 oncyber publish              # build, check, upload; prints the game's link
 oncyber games                # what this account has published
+oncyber link my-game sky-run # also at /sky-run, when the name is free
 oncyber unpublish my-game    # take it down
 ```
 
@@ -59,6 +60,7 @@ oncyber unpublish my-game    # take it down
 | `publish [--video]`           | Builds, checks, and only when the check passes sends the release to the site: `begin`, each file with its SHA-256, `finish`. Prints the game's link. The game is unlisted.                                |
 | `games [--json]`              | The account's games: id, title, status, release, date, link.                                                                                                                                              |
 | `unpublish <id>`              | Takes a game down. The id stays the owner's.                                                                                                                                                              |
+| `link <id> <slug>`            | Gives a published game the address `/<slug>` beside `/games/<id>`, when no page, space or other game has the name. `link <id> --clear` gives it up.                                                       |
 | `docs [topic]`, `docs --list` | Prints the guide (`games/llms.txt`), or a page of `docs/games/` by name: `oncyber docs party`.                                                                                                            |
 
 ## Environment

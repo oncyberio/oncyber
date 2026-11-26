@@ -39,6 +39,8 @@ import { db } from "@utils/firebaseAdmin";
 import type { GameEntry } from "./catalog";
 import type { GameFrame } from "./gameRelease";
 import { localReleasesDir } from "./gameReleaseServer";
+import { GAME_SLUG, gamePath } from "./gameSlug";
+import { gameLinkRef } from "./gameSlugServer";
 import {
     pinnedReleaseBase,
     pinnedUploadsConfig,
@@ -63,6 +65,7 @@ import {
     UPLOAD_ID,
     mayPublish,
     planBegin,
+    planLink,
     planPublish,
     planUnpublish,
     publishIdProblem,
@@ -71,6 +74,7 @@ import {
     publisherAt,
     publishingEnabled,
     readPublishedGame,
+    recordSlug,
     registeredGameEntry,
     registeredGameFrame,
     releaseFilesProblem,
@@ -138,10 +142,14 @@ const CACHE_MAX = 500;
 const LOOKUP_TIMEOUT_MS = 5000;
 const cache = new Map<string, { at: number; record: PublishedGame | null }>();
 
+const linkCache = new Map<string, { at: number; game: string | null }>();
+
 /** For tests, and after this server changes a record. */
 export function forgetPublishedGames(id?: string) {
     if (id) cache.delete(id);
     else cache.clear();
+    // Which game a link leads to may have changed with it.
+    linkCache.clear();
 }
 
 /**
@@ -187,6 +195,44 @@ export async function loadRegisteredGame(
         game: registeredGameEntry(record),
         frame: registeredGameFrame(record),
     };
+}
+
+/**
+ * What /<slug> shows when a published game holds that slug, or null. The
+ * claim is read at most once in ten seconds per slug on this server, as a
+ * record is, and counts only while the game's own record says the same
+ * slug: a claim with no record behind it leads nowhere.
+ */
+export async function loadRegisteredGameBySlug(
+    slug: unknown,
+    now = Date.now()
+): Promise<{ game: GameEntry; frame: GameFrame } | null> {
+    if (typeof slug !== "string" || !GAME_SLUG.test(slug)) return null;
+    if (!publishingEnabled()) return null;
+    let cached = linkCache.get(slug);
+    if (!cached || now - cached.at >= CACHE_MS) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const game = await Promise.race([
+            gameLinkRef(slug)
+                .get()
+                .then((doc) => {
+                    const id = doc.exists ? doc.data()?.game : null;
+                    return typeof id === "string" ? id : null;
+                }),
+            new Promise<null>((done) => {
+                timer = setTimeout(() => done(null), LOOKUP_TIMEOUT_MS);
+            }),
+        ])
+            .catch(() => null)
+            .finally(() => clearTimeout(timer));
+        if (linkCache.size >= CACHE_MAX) linkCache.clear();
+        cached = { at: now, game };
+        linkCache.set(slug, cached);
+    }
+    if (!cached.game) return null;
+    const record = await publishedGame(cached.game, now);
+    if (!record || recordSlug(record) !== slug) return null;
+    return loadRegisteredGame(cached.game);
 }
 
 /** Where the releases route reads one release of a registered game, or null. */
@@ -736,7 +782,8 @@ export async function finishPublish(
     return {
         id: game,
         release,
-        url: `/games/${game}`,
+        // The game's address: its link when it has one.
+        url: gamePath({ id: game, slug: recordSlug(record) }),
         status: record.status,
     };
 }
@@ -778,4 +825,60 @@ export async function unpublishGame(
     });
     forgetPublishedGames(id);
     return { id, status: record.status };
+}
+
+// ---------------------------------------------------------------------------
+// A game's short address
+
+/**
+ * The owner gives their game a slug, changes it or (null) gives it up
+ * (gameSlug.ts). One transaction: the record must be theirs, and nobody
+ * else may hold the name, neither another game (the `gameLinks` document
+ * of that name) nor a space (an exhibit whose `info.customLink` is that
+ * name). A space claiming a link looks at `gameLinks` in its own
+ * transaction, so of two claims for one name at the same moment one is
+ * refused. The slug given up is free again at once.
+ */
+export async function setGameLink(
+    owner: string,
+    id: string,
+    slug: string | null,
+    now = new Date()
+) {
+    const ref = db.collection(GAMES).doc(id);
+    const record = await db.runTransaction(async (transaction) => {
+        const doc = await transaction.get(ref);
+        const before = doc.exists ? readPublishedGame(doc.data()) : null;
+        const next = planLink(before, owner, slug, now);
+        const held = recordSlug(before);
+        if (held === slug) return next;
+        if (slug) {
+            const claim = gameLinkRef(slug);
+            const [claimed, spaces] = await Promise.all([
+                transaction.get(claim),
+                transaction.get(
+                    db
+                        .collection("exhibits")
+                        .where("info.customLink", "==", slug)
+                        .select()
+                        .limit(1)
+                ),
+            ]);
+            if (claimed.exists && claimed.data()?.game !== id)
+                refuse(`/${slug} is another game's link; choose another.`);
+            if (!spaces.empty)
+                refuse(`/${slug} is a space's link; choose another.`);
+            transaction.set(claim, {
+                game: id,
+                owner,
+                claimedAt: now.toISOString(),
+            });
+        }
+        if (held) transaction.delete(gameLinkRef(held));
+        transaction.set(ref, plainData(next));
+        return next;
+    });
+    forgetPublishedGames(id);
+    const held = recordSlug(record);
+    return { id, slug: held, url: gamePath({ id, slug: held }) };
 }

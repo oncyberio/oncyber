@@ -4,6 +4,7 @@
 // (`pnpm games:catalog`, scripts/games/catalog.mjs). Rules for authors:
 // docs/games/listing.md.
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
@@ -14,6 +15,21 @@ export const MAX_PARTY = 8;
 /** What games:check writes when a listing names no thumbnail of its own. */
 export const GENERATED_THUMBNAIL = "thumbnail.jpg";
 export const CATALOG_PATH = "frontend/features/games/catalog.generated.ts";
+/**
+ * The catalogued games' own short addresses, `{ "<slug>": "<game id>" }`,
+ * beside the catalog: the site's reserved links read it
+ * (frontend/utils/reservedLinks.js), so no space can take a game's slug.
+ */
+export const SLUGS_PATH = "frontend/features/games/catalog.slugs.json";
+/** Where the site keeps the names no space or game may take (in the repository). */
+const RESERVED_PATH = "frontend/utils/reservedLinks.js";
+
+/**
+ * A game's slug, the name in its short address /<slug>: 3 to 40 lowercase
+ * letters and digits, in words joined by single dashes. The same rule as
+ * `gameSlugProblem` in frontend/features/games/gameSlug.ts.
+ */
+export const GAME_SLUG = /^(?=.{3,40}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const THUMBNAIL_TYPES = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const THUMBNAIL_MAX = 512 * 1024;
@@ -172,6 +188,14 @@ export function checkListing(manifest, { build = null, sizes = null } = {}) {
             "LISTING_ROOM",
             "page.socialRoom is for a game with no page.room: declare one or the other"
         );
+    if (
+        page.slug !== undefined &&
+        (typeof page.slug !== "string" || !GAME_SLUG.test(page.slug))
+    )
+        add(
+            "LISTING_SLUG",
+            "page.slug is 3 to 40 lowercase letters and digits, in words joined by single dashes"
+        );
     if (playersValid && partyValid) {
         const outside = partySizes.filter(
             (size) => size < players.min || size > players.max
@@ -275,7 +299,27 @@ export function catalogEntry(id, manifest) {
     };
     if (page.socialRoom) entry.socialRoom = text(page.socialRoom);
     if (record(page.controls)) entry.controlsStyle = page.controls;
+    // The game's short address, /<slug>, beside /games/<id>.
+    if (page.slug !== undefined) {
+        if (typeof page.slug !== "string" || !GAME_SLUG.test(page.slug))
+            throw new Error(
+                `games/${id}/game.json: page.slug is 3 to 40 lowercase letters and digits, in words joined by single dashes`
+            );
+        entry.slug = page.slug;
+    }
     return entry;
+}
+
+/**
+ * The names the site answers itself (its pages and redirects), which no
+ * game's slug may be. Read from the repository; empty outside it, where
+ * there is no catalog either.
+ */
+export function reservedSiteLinks(root) {
+    const path = join(root, RESERVED_PATH);
+    if (!existsSync(path)) return new Set();
+    const { APP_PATHS, PAGE_REDIRECTS } = createRequire(import.meta.url)(path);
+    return new Set([...APP_PATHS, ...Object.keys(PAGE_REDIRECTS)]);
 }
 
 /** Every game with a manifest, by id. */
@@ -290,16 +334,49 @@ export function readManifests(root) {
     return manifests;
 }
 
-/** The generated catalog's data and the hash that names it. */
-export function buildCatalog(manifests) {
+/**
+ * The generated catalog's data and the hash that names it. A slug is one
+ * name in the site's one space of names: `reserved` are the site's own
+ * (`reservedSiteLinks`), and no two games share one.
+ */
+export function buildCatalog(manifests, { reserved = new Set() } = {}) {
     const games = {};
-    for (const id of Object.keys(manifests).sort())
-        games[id] = catalogEntry(id, manifests[id]);
+    const slugs = {};
+    for (const id of Object.keys(manifests).sort()) {
+        const entry = (games[id] = catalogEntry(id, manifests[id]));
+        if (!entry.slug) continue;
+        if (reserved.has(entry.slug))
+            throw new Error(
+                `games/${id}/game.json: page.slug "${entry.slug}" is one of the site's own addresses; choose another`
+            );
+        if (slugs[entry.slug])
+            throw new Error(
+                `games/${id}/game.json: page.slug "${entry.slug}" is already ${
+                    slugs[entry.slug]
+                }'s; choose another`
+            );
+        slugs[entry.slug] = id;
+    }
     const hash = createHash("sha256")
         .update(JSON.stringify(games))
         .digest("hex")
         .slice(0, 16);
-    return { games, hash };
+    return { games, hash, slugs };
+}
+
+/** The slugs file's text: `{ "<slug>": "<game id>" }`, sorted. */
+export function renderSlugs({ slugs = {} }) {
+    return (
+        JSON.stringify(
+            Object.fromEntries(
+                Object.keys(slugs)
+                    .sort()
+                    .map((slug) => [slug, slugs[slug]])
+            ),
+            null,
+            4
+        ) + "\n"
+    );
 }
 
 export function renderCatalog({ games, hash }) {
@@ -318,12 +395,30 @@ export const GAMES: Record<string, GameEntry> = ${JSON.stringify(
 
 /** Null when the committed catalog matches the manifests, else why not. */
 export function catalogStale(root) {
-    let hash;
+    let hash, catalog;
     try {
-        ({ hash } = buildCatalog(readManifests(root)));
+        catalog = buildCatalog(readManifests(root), {
+            reserved: reservedSiteLinks(root),
+        });
+        ({ hash } = catalog);
     } catch (error) {
         return `the catalog can't be generated: ${error.message}`;
     }
+    // The slugs the site reserves must be the catalog's. No file reads as
+    // no slugs.
+    const slugsPath = join(root, SLUGS_PATH);
+    let reserved = {};
+    try {
+        if (existsSync(slugsPath))
+            reserved = JSON.parse(readFileSync(slugsPath, "utf8"));
+    } catch {
+        reserved = null;
+    }
+    if (
+        JSON.stringify(reserved) !==
+        JSON.stringify(JSON.parse(renderSlugs(catalog)))
+    )
+        return `${SLUGS_PATH} is out of date with the manifests; run pnpm games:catalog`;
     const path = join(root, CATALOG_PATH);
     const current = existsSync(path)
         ? /^\/\/ source: ([0-9a-f]{16})$/m.exec(readFileSync(path, "utf8"))?.[1]

@@ -31,9 +31,12 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
     CATALOG_PATH,
+    SLUGS_PATH,
     buildCatalog,
     readManifests,
     renderCatalog,
+    renderSlugs,
+    reservedSiteLinks,
 } from "./listing.mjs";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -197,7 +200,11 @@ export function createGame({ root = repo, id, name = id }) {
             `pnpm games:publish ${id}    # from the repository root: build, check, release\n\`\`\`\n`
     );
     // The site's catalog is generated from the manifests.
-    writeFileSync(catalog, renderCatalog(buildCatalog(readManifests(root))));
+    const built = buildCatalog(readManifests(root), {
+        reserved: reservedSiteLinks(root),
+    });
+    writeFileSync(catalog, renderCatalog(built));
+    writeFileSync(join(root, SLUGS_PATH), renderSlugs(built));
     return {
         target,
         files: ["BRIEF.md", "game.json", "bot.json", "scenario.json"],

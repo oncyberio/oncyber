@@ -17,6 +17,13 @@ test("a command, its arguments and its flags", () => {
         headed: true,
     });
     assert.deepEqual(parseArgs(["unpublish", "sky-run"]).args, ["sky-run"]);
+    assert.deepEqual(parseArgs(["link", "sky-run", "sky"]).args, [
+        "sky-run",
+        "sky",
+    ]);
+    assert.deepEqual(parseArgs(["link", "sky-run", "--clear"]).flags, {
+        clear: true,
+    });
     assert.deepEqual(parseArgs(["docs"]).args, []);
     assert.deepEqual(parseArgs(["docs", "party"]).args, ["party"]);
 });
@@ -48,6 +55,7 @@ test("mistakes are usage errors, not guesses", () => {
     assert.throws(() => parseArgs(["new"]), /usage: oncyber new <id>/);
     assert.throws(() => parseArgs(["new", "a", "b"]), /usage/);
     assert.throws(() => parseArgs(["unpublish"]), /usage: oncyber unpublish/);
+    assert.throws(() => parseArgs(["link"]), /usage: oncyber link <id> <slug>/);
     assert.throws(() => parseArgs(["check", "--fast"]), /has no --fast/);
     assert.throws(
         () => parseArgs(["new", "a", "--name"]),

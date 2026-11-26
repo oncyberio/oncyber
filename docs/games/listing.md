@@ -46,7 +46,31 @@ shared room everyone playing joins), `socialRoom` (for a game with no `room`:
 the room its visitors share for chat and voice only,
 [voice-chat.md](voice-chat.md)), `relay` (pass `<id>:net` packets through
 the room), `crowdLabel` ("in the garden") and `controls` (where the social
-controls sit). Every game runs on the shared page (`pages/games/[game].tsx`).
+controls sit) and `slug` (below). Every game runs on the shared page
+(`pages/games/[game].tsx`).
+
+### A short address
+
+`page.slug` gives a catalogued game the address `/<slug>` beside
+`/games/<id>`: 3 to 40 lowercase letters and digits, in words joined by
+single dashes.
+
+```json
+"page": { "slug": "lantern-tag" }
+```
+
+`pnpm games:catalog` carries it into the catalog and into
+`frontend/features/games/catalog.slugs.json`, which the site's reserved
+links read: from then on no space and no published game can take the name.
+It fails when the slug is one of the site's own addresses or another
+game's. Before choosing one, a person checks that no space already holds
+it ([../games.md](../games.md#a-game-at-slug)). `/<slug>` becomes the
+game's canonical address; `/games/<id>` keeps answering. `pnpm games:new`
+does not copy a slug to the new game.
+
+A game published with the `oncyber` command does not take its slug from
+`game.json`: its owner claims one with `oncyber link`
+([publishing.md](publishing.md#link)).
 
 ## What the check enforces
 
@@ -64,6 +88,7 @@ The listing stage runs inside `pnpm games:check <id>`
 | `LISTING_TAGS`          | None, more than six, or not lowercase.                                                                                                                                                  |
 | `LISTING_TAGLINE`       | Missing or longer than 60 characters.                                                                                                                                                   |
 | `LISTING_ROOM`          | `page.room` or `page.socialRoom` is not a lowercase room label, or both are set.                                                                                                        |
+| `LISTING_SLUG`          | `page.slug` is not 3 to 40 lowercase letters and digits in words joined by single dashes.                                                                                               |
 | `LISTING_CATALOG_STALE` | The site's catalog no longer matches the manifests. Run `pnpm games:catalog`.                                                                                                           |
 
 Keep the party block honest with a test in the game: Ace's
