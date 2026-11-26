@@ -10,7 +10,6 @@ import {
     select,
     smoothstep,
     texture,
-    vec3,
     vec4,
 } from "three/tsl";
 import { coverageToSdf } from "@features/name-tags/sdf";
@@ -31,6 +30,7 @@ import {
 const ATLAS_SIZE = 1024;
 const GLYPH_PX = 48;
 const PAD = 7;
+const VERTEX_STRIDE = 9; // position (3), UV (2), ink (3), solid flag (1)
 const POSITION = new THREE.Vector3();
 const INK = new THREE.Color();
 const QUAD = [
@@ -74,7 +74,6 @@ type MeshFactory = (
     geometry: THREE.BufferGeometry,
     material: THREE.Material
 ) => THREE.Mesh;
-type Vertex = { p: number[]; uv: number[]; color: number[]; aspect: number };
 type Page = {
     data: Uint8Array;
     texture: THREE.DataTexture;
@@ -82,9 +81,10 @@ type Page = {
     y: number;
     row: number;
     dirty: boolean;
-    vertices: Vertex[];
+    vertices: Float32Array;
+    vertexCount: number;
+    vertexBuffer?: THREE.InterleavedBuffer;
     mesh?: THREE.Mesh;
-    capacity: number;
 };
 
 let creditFonts: Promise<boolean> | undefined;
@@ -194,6 +194,14 @@ export class GalleryLabelBatch {
         if (this.labels.delete(art)) this.dirty = true;
     }
 
+    /** The owning room already checks artwork visibility for its frame instances. */
+    setVisible(art: Artwork, visible: boolean) {
+        const label = this.labels.get(art);
+        if (!label || label.visible === visible) return;
+        label.visible = visible;
+        this.dirty = true;
+    }
+
     private addPage(): Page {
         const data = new Uint8Array(ATLAS_SIZE * ATLAS_SIZE);
         const image = new THREE.DataTexture(
@@ -212,8 +220,8 @@ export class GalleryLabelBatch {
             x: 0,
             y: 0,
             row: 0,
-            vertices: [],
-            capacity: 0,
+            vertices: new Float32Array(0),
+            vertexCount: 0,
             dirty: true,
         };
         this.pages.push(page);
@@ -315,11 +323,14 @@ export class GalleryLabelBatch {
             )
                 .applyQuaternion(art.quaternion)
                 .add(art.position);
-            const uv = [
+            writeVertex(
+                page,
+                POSITION,
                 (glyph.x + u * glyph.w) / ATLAS_SIZE,
                 (glyph.y + v * glyph.h) / ATLAS_SIZE,
-            ];
-            page.vertices.push({ p: POSITION.toArray(), uv, color, aspect: 0 });
+                color,
+                0
+            );
         }
     }
 
@@ -352,12 +363,7 @@ export class GalleryLabelBatch {
             POSITION.set(rect.x + pt[0], rect.y + pt[1], rect.z + z)
                 .applyQuaternion(art.quaternion)
                 .add(art.position);
-            page.vertices.push({
-                p: POSITION.toArray(),
-                uv: [0, 0],
-                color,
-                aspect: 1,
-            });
+            writeVertex(page, POSITION, 0, 0, color, 1);
         };
         const depth = rect.h * LABEL_DEPTH;
         const center = [0, 0];
@@ -425,11 +431,11 @@ export class GalleryLabelBatch {
     }
 
     private updatePage(page: Page) {
-        if (page.vertices.length === 0) {
+        const n = page.vertexCount;
+        if (n === 0) {
             if (page.mesh) page.mesh.visible = false;
             return;
         }
-        const n = page.vertices.length;
         if (!page.mesh) {
             page.mesh = this.createMesh(
                 new THREE.BufferGeometry(),
@@ -439,32 +445,38 @@ export class GalleryLabelBatch {
             page.mesh.frustumCulled = false;
             this.parent.add(page.mesh);
         }
-        if (n > page.capacity) {
+        // One reusable buffer per atlas page. Replace it only on growth.
+        if (page.vertexBuffer?.array !== page.vertices) {
             const next = new THREE.BufferGeometry();
-            page.capacity = Math.max(n, page.capacity * 2, 128);
-            next.setAttribute("position", buffer(page.capacity, 3));
-            next.setAttribute("labelUV", buffer(page.capacity, 2));
-            next.setAttribute("labelInk", buffer(page.capacity, 3));
-            next.setAttribute("labelAspect", buffer(page.capacity, 1));
+            const vertices = new THREE.InterleavedBuffer(
+                page.vertices,
+                VERTEX_STRIDE
+            ).setUsage(THREE.DynamicDrawUsage);
+            next.setAttribute(
+                "position",
+                new THREE.InterleavedBufferAttribute(vertices, 3, 0)
+            );
+            next.setAttribute(
+                "labelUV",
+                new THREE.InterleavedBufferAttribute(vertices, 2, 3)
+            );
+            next.setAttribute(
+                "labelInk",
+                new THREE.InterleavedBufferAttribute(vertices, 3, 5)
+            );
+            next.setAttribute(
+                "labelAspect",
+                new THREE.InterleavedBufferAttribute(vertices, 1, 8)
+            );
             page.mesh.geometry.dispose();
             page.mesh.geometry = next;
+            page.vertexBuffer = vertices;
         }
         const geo = page.mesh.geometry;
-        const p = geo.getAttribute("position"),
-            uv = geo.getAttribute("labelUV"),
-            color = geo.getAttribute("labelInk"),
-            aspect = geo.getAttribute("labelAspect");
-        page.vertices.forEach((v, i) => {
-            p.setXYZ(i, v.p[0], v.p[1], v.p[2]);
-            uv.setXY(i, v.uv[0], v.uv[1]);
-            color.setXYZ(i, v.color[0], v.color[1], v.color[2]);
-            aspect.setX(i, v.aspect);
-        });
-        p.needsUpdate =
-            uv.needsUpdate =
-            color.needsUpdate =
-            aspect.needsUpdate =
-                true;
+        const vertices = page.vertexBuffer!;
+        vertices.clearUpdateRanges();
+        vertices.addUpdateRange(0, n * VERTEX_STRIDE);
+        vertices.needsUpdate = true;
         geo.setDrawRange(0, n);
         page.mesh.visible = true;
         if (page.dirty) {
@@ -474,15 +486,9 @@ export class GalleryLabelBatch {
     }
 
     flush() {
-        for (const [art, label] of this.labels) {
-            if (art.visible !== label.visible) {
-                label.visible = art.visible;
-                this.dirty = true;
-            }
-        }
         if (!this.dirty) return;
         this.dirty = false;
-        for (const page of this.pages) page.vertices.length = 0;
+        for (const page of this.pages) page.vertexCount = 0;
         for (const [art, label] of this.labels) {
             if (!label.visible) continue;
             const { layout, quads } = (label.prepared ??= this.prepare(label));
@@ -545,11 +551,32 @@ export class GalleryLabelBatch {
     }
 }
 
-function buffer(capacity: number, width: number) {
-    return new THREE.BufferAttribute(
-        new Float32Array(capacity * width),
-        width
-    ).setUsage(THREE.DynamicDrawUsage);
+function writeVertex(
+    page: Page,
+    p: THREE.Vector3,
+    u: number,
+    v: number,
+    color: number[],
+    solid: number
+) {
+    const i = page.vertexCount++ * VERTEX_STRIDE;
+    if (i >= page.vertices.length) {
+        const next = new Float32Array(
+            Math.max(128 * VERTEX_STRIDE, page.vertices.length * 2)
+        );
+        next.set(page.vertices);
+        page.vertices = next;
+    }
+    const data = page.vertices;
+    data[i] = p.x;
+    data[i + 1] = p.y;
+    data[i + 2] = p.z;
+    data[i + 3] = u;
+    data[i + 4] = v;
+    data[i + 5] = color[0];
+    data[i + 6] = color[1];
+    data[i + 7] = color[2];
+    data[i + 8] = solid;
 }
 
 function paintIcon(

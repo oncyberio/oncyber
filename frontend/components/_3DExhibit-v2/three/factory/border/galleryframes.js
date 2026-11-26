@@ -58,6 +58,7 @@ export class GalleryFrames {
                 if(entry.visible === artwork.visible) continue
                 entry.visible = artwork.visible
                 for(const wrapper of entry.wrappers) wrapper.visible = entry.visible
+                this.labels?.setVisible(artwork, entry.visible)
             }
             this.labels?.flush()
         }
