@@ -5,6 +5,7 @@ import {
     relayedRpc,
     relayedSettings,
     relayedSpaceEdit,
+    savedSettings,
 } from "./accountRelay";
 import { answerWorldAccount, type WorldAccountHost } from "./worldAccountHost";
 
@@ -73,6 +74,47 @@ describe("what a framed world may do with its visitor's account", () => {
             null,
         ])
             expect(relayedSettings(body)).toBe(false);
+    });
+});
+
+describe("the page's copy of the settings after a world saved to them", () => {
+    const before = { vrm: "square", quality: "high", camera: { mode: "tp" } };
+    test("settings named whole take the place of them all, as on the server", () => {
+        // The in-world panels send every setting with the one that changed.
+        expect(
+            savedSettings(before, {
+                payload: { settings: { ...before, vrm: "robot" } },
+            })
+        ).toEqual({ ...before, vrm: "robot" });
+        expect(
+            savedSettings(before, { payload: { settings: { vrm: "robot" } } })
+        ).toEqual({ vrm: "robot" });
+    });
+    test("a setting named by its path is set, and its neighbours kept", () => {
+        const after = savedSettings(before, {
+            payload: { "settings.camera.fov": 70, "settings.vrm": "robot" },
+        });
+        expect(after).toEqual({
+            vrm: "robot",
+            quality: "high",
+            camera: { mode: "tp", fov: 70 },
+        });
+        // a copy: what the page held is not changed under it
+        expect(before.camera).toEqual({ mode: "tp" });
+    });
+    test("a first setting, on an account that had none", () => {
+        expect(
+            savedSettings(undefined, { payload: { "settings.vrm": "robot" } })
+        ).toEqual({ vrm: "robot" });
+    });
+    test("anything that is not a save of settings changes nothing", () => {
+        for (const body of [
+            { payload: { username: "mallory" } },
+            { payload: {} },
+            null,
+            "x",
+        ])
+            expect(savedSettings(before, body)).toBeNull();
     });
 });
 

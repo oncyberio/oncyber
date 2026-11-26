@@ -84,6 +84,47 @@ export function relayedSettings(body: unknown): boolean {
 }
 
 /**
+ * The account's settings after a world saved to them through the page: the
+ * page's own copy, brought up to what the server now holds, so the next
+ * world the page starts is handed the avatar the visitor just chose and
+ * not the one before. Null when the body saves no setting.
+ *
+ * A save names the settings whole (`settings: {...}`, which takes the
+ * place of them all, as it does on the server) or one at a time by path
+ * (`settings.vrm`).
+ */
+export function savedSettings(
+    current: unknown,
+    body: unknown
+): Record<string, unknown> | null {
+    if (!relayedSettings(body)) return null;
+    const payload = (body as { payload: Record<string, unknown> }).payload;
+    const whole = payload.settings;
+    const next: Record<string, unknown> =
+        whole && typeof whole === "object" && !Array.isArray(whole)
+            ? { ...(whole as object) }
+            : "settings" in payload
+            ? {}
+            : { ...(current && typeof current === "object" ? current : {}) };
+    for (const [key, value] of Object.entries(payload)) {
+        if (key === "settings") continue;
+        // "settings.camera.mode": the object at each step is copied, the
+        // last name is set.
+        const path = key.split(".").slice(1);
+        let at = next;
+        for (const name of path.slice(0, -1)) {
+            const inner = at[name];
+            at = at[name] =
+                inner && typeof inner === "object" && !Array.isArray(inner)
+                    ? { ...(inner as object) }
+                    : {};
+        }
+        at[path[path.length - 1]] = value;
+    }
+    return next;
+}
+
+/**
  * The edits the in-world editor makes to a space: one of its pieces at a
  * time (an artwork, a portal, a kit part), each with the fields that edit
  * carries (components/_3DExhibit-v2/utils/db.ts). Not here: the path

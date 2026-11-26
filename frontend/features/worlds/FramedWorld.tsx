@@ -2,7 +2,8 @@ import { useContext, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { baseTokens } from "@styles/tokens";
-import { UserContext } from "@components/context/UserContext";
+import { UPDATE_USER_DATA, UserContext } from "@components/context/UserContext";
+import { relayedRoute, savedSettings } from "./accountRelay";
 import ExperienceShell from "@features/content-host/ExperienceShell";
 import {
     publicPageHref,
@@ -93,7 +94,8 @@ export default function FramedWorld({
         });
     };
     useEffect(() => () => closeSignIn.current?.(), []);
-    const { token, user, userData, isSignedIn } = useContext(UserContext);
+    const { token, user, userData, isSignedIn, dispatch } =
+        useContext(UserContext);
     const visitor = usePageVisitor(gate);
     // The one dock: the world's buttons, drawn here, with the page's own
     // microphone in the voice button's place (./worldDock).
@@ -200,6 +202,32 @@ export default function FramedWorld({
     };
     const authority = useRef<PageAuthority>(null);
     authority.current ||= createPageAuthority(spaceId, () => session.current);
+    // An account call for the world. When it saved a setting (an avatar
+    // chosen in the world), the page's own copy of the account follows, so
+    // a world started later in this visit is handed the new one; the
+    // world that made the change keeps running.
+    const account = async (name: unknown, data: any) => {
+        const answer: any = await authority.current.account(name, data);
+        if (name !== "api" || answer?.status !== 200) return answer;
+        const route = relayedRoute(
+            data?.method,
+            data?.url,
+            window.location.origin
+        );
+        let body: unknown = null;
+        try {
+            body = JSON.parse(data?.body);
+        } catch {}
+        const settings =
+            route?.kind === "settings"
+                ? savedSettings(userData?.settings, body)
+                : null;
+        if (settings) {
+            world.current?.keepVisitor();
+            dispatch?.({ type: UPDATE_USER_DATA, payload: { settings } });
+        }
+        return answer;
+    };
     const travel = (href: unknown) => {
         // Only ever to a page: an address that acts when it is opened is
         // not somewhere a world sends its visitor.
@@ -267,7 +295,7 @@ export default function FramedWorld({
                 onTravel={travel}
                 identify={(label) => authority.current.identify(label)}
                 moderates={(label) => authority.current.moderates(label)}
-                account={(name, data) => authority.current.account(name, data)}
+                account={account}
                 onDock={(actions, line) => {
                     setDock(actions);
                     setConnection(line);

@@ -50,6 +50,11 @@ export const WORLD_LOAD_TIMEOUT_MS = 120_000;
  * asks every 250 ms.
  */
 export const LATE_VISITOR_MS = 1500;
+/**
+ * How long after a world saved a setting through the page the visitor's
+ * change that follows is taken as the world's own doing.
+ */
+export const KEEP_VISITOR_MS = 5000;
 
 /** What the page's dock does to the world in the frame. */
 export interface WorldControls {
@@ -57,6 +62,12 @@ export interface WorldControls {
     toggleVoice(): void;
     /** Any other message to the world. */
     send(kind: string, data: object): void;
+    /**
+     * The visitor is about to change because of something the world itself
+     * did (it saved a setting through the page): the world already has it,
+     * so it is not started again for it.
+     */
+    keepVisitor(): void;
 }
 
 export default function WorldFrameView({
@@ -228,6 +239,9 @@ export default function WorldFrameView({
             send: (kind, data) => {
                 if (told.current) post(kind, data);
             },
+            keepVisitor() {
+                kept.current = Date.now();
+            },
             press(id) {
                 post("dock-press", { id });
                 element.current?.focus();
@@ -271,6 +285,7 @@ export default function WorldFrameView({
     }, [frame.world, doc]);
     const told = useRef<object | null>(null);
     const asked = useRef(false);
+    const kept = useRef(0);
     useEffect(() => {
         const receive = (event: MessageEvent) => {
             if (!fromFrame(event, element.current, frame.world)) return;
@@ -367,7 +382,12 @@ export default function WorldFrameView({
     useEffect(() => {
         if (!visitor) return;
         if (told.current) {
-            if (told.current !== visitor) changed.current();
+            if (told.current === visitor) return;
+            // A change the world made itself is taken as told.
+            if (Date.now() - kept.current < KEEP_VISITOR_MS) {
+                kept.current = 0;
+                told.current = visitor;
+            } else changed.current();
             return;
         }
         // The world asked before the page knew its visitor. It asks again

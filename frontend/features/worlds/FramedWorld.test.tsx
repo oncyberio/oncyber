@@ -55,7 +55,10 @@ let account: {
 };
 jest.mock("@components/context/UserContext", () => {
     const { createContext } = require("react");
-    return { UserContext: createContext({}) };
+    return {
+        UserContext: createContext({}),
+        UPDATE_USER_DATA: "UPDATE_USER_DATA",
+    };
 });
 jest.mock("@features/lobby/avatarSelection", () => ({
     DEFAULT_LOBBY_AVATAR_URL: "/avatars/square.vrm",
@@ -286,6 +289,53 @@ test("signing in after the world started starts it again as that visitor", async
     listen();
     hello();
     expect(sent[0].message).toMatchObject({ guest: false, name: "ada" });
+});
+
+test("a setting the world saves is kept by the page too, and the world runs on", async () => {
+    // The page's account, with a dispatch that applies the update as the
+    // real one does.
+    const signedIn = (settings: object) => ({
+        isSignedIn: true,
+        token: "page-session",
+        user: { id: "0xabc" },
+        userData: { username: "ada", walletId: "0xabc", settings },
+        dispatch: jest.fn((action: any) => {
+            account = signedIn(action.payload.settings) as any;
+        }),
+    });
+    account = signedIn({ vrm: "square" }) as any;
+    await render();
+    const first = element();
+    listen();
+    hello();
+    (globalThis as any).fetch = jest.fn(async () => ({
+        status: 200,
+        text: async () => '{"success":true}',
+    }));
+    // The world saves the avatar its visitor chose, through the page.
+    await act(async () => {
+        window.dispatchEvent(
+            new MessageEvent("message", {
+                data: {
+                    type: "oncyber:game:ask",
+                    n: 1,
+                    name: "api",
+                    method: "POST",
+                    url: "/api/user/update",
+                    body: JSON.stringify({
+                        payload: { settings: { vrm: "robot" } },
+                    }),
+                },
+                origin: frame.world,
+                source: element().contentWindow,
+            })
+        );
+    });
+    expect((account as any).userData.settings).toEqual({ vrm: "robot" });
+    // The page now presents the new avatar; the world that chose it is
+    // the same world.
+    await render();
+    expect(element()).toBe(first);
 });
 
 describe("a world that asks before the page knows its visitor", () => {
