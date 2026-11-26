@@ -80,6 +80,19 @@ export function fitName(
     return `${chars.slice(0, low).join("").trimEnd()}…`;
 }
 
+/**
+ * Scripts whose letters join, reorder or stack (Arabic, Hebrew, Syriac,
+ * N'Ko, Indic, Southeast Asian, Tibetan, Mongolian, ...), combining marks
+ * and joined emoji: a name with any is drawn as one shaped run, not letter
+ * by letter.
+ */
+const SHAPED =
+    /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}\p{Script=Mandaic}\p{Script=Samaritan}\p{Script=Devanagari}\p{Script=Bengali}\p{Script=Gurmukhi}\p{Script=Gujarati}\p{Script=Oriya}\p{Script=Tamil}\p{Script=Telugu}\p{Script=Kannada}\p{Script=Malayalam}\p{Script=Sinhala}\p{Script=Thai}\p{Script=Lao}\p{Script=Tibetan}\p{Script=Myanmar}\p{Script=Khmer}\p{Script=Mongolian}\p{Script=Javanese}\p{Script=Balinese}\p{M}\u200c\u200d]/u;
+
+export function needsShaping(name: string) {
+    return SHAPED.test(name);
+}
+
 export function chipSize(textWidth: number, photo: boolean) {
     const height = T.photoEm + 2 * PHOTO_INSET_EM;
     const width = photo

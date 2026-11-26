@@ -7,6 +7,7 @@ import {
     emMetres,
     fitName,
     layoutTag,
+    needsShaping,
     tagName,
 } from "./layout";
 import { coverageToSdf } from "./sdf";
@@ -81,4 +82,31 @@ test("the distance field is 128 on the outline, high inside, low outside", () =>
     // Just inside and just outside the left edge straddle the cut.
     expect(field[8 * size + 4]).toBeGreaterThan(128);
     expect(field[8 * size + 3]).toBeLessThan(128);
+});
+
+describe("needsShaping", () => {
+    it("sends joining, reordering and combining text to the shaped path", () => {
+        for (const name of [
+            "ريان",
+            "שלום",
+            "ܫܠܡܐ",
+            "नमस्ते",
+            "สวัสดี",
+            "ᠮᠣᠩᠭᠣᠯ",
+            "élodie",
+            "👩‍🎨",
+        ])
+            expect(needsShaping(name)).toBe(true);
+    });
+    it("keeps the cached glyph path for plain names", () => {
+        for (const name of [
+            "rayan",
+            "ÉLODIE",
+            "kō",
+            "Mfer #4212",
+            "0x8f3…a91c",
+            "日本",
+        ])
+            expect(needsShaping(name)).toBe(false);
+    });
 });
