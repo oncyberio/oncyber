@@ -90,21 +90,6 @@ export const THING_PATTERNS = [
 ] as const;
 export type ThingPattern = (typeof THING_PATTERNS)[number];
 
-/**
- * What a plain shape's geometry is built from, besides its shape: a thing is
- * built again when one of these changes (engineAdapter.ts), and replaced
- * when a new version makes it without one it had (host.ts).
- */
-export const BUILT_FROM_KEYS = [
-    "size",
-    "billboard",
-    "profile",
-    "outline",
-    "depth",
-    "bevel",
-    "points",
-] as const;
-
 /** Points a lathe profile or an extrude outline may have. */
 export const MAX_SHAPE_POINTS = 64;
 
@@ -121,7 +106,11 @@ export type SoundName = (typeof SOUND_NAMES)[number];
 
 export type Vec3 = [number, number, number];
 
-/** Properties a script can set on its own objects. */
+/**
+ * Properties a script can set on its own objects. Each has a rule in
+ * THING_PROPS below (how it is checked, what it changes, how the SDK sends
+ * it); the two cannot drift apart, the table is typed by this.
+ */
 export interface ThingProps {
     shape?: ThingShape;
     position?: Vec3;
@@ -259,84 +248,304 @@ function cleanVec(value: unknown, min: number, max: number): Vec3 | undefined {
 }
 
 const ANGLE = 1e4;
+const AVATAR_ID = /^[a-zA-Z0-9_-]{1,40}$/;
 
-function cleanTransform(raw: Record<string, unknown>) {
-    const L = WORLD_SCRIPT_LIMITS;
-    const out: { position?: Vec3; rotation?: Vec3; scale?: Vec3 } = {};
-    const position = cleanVec(raw.position, -L.maxCoordinate, L.maxCoordinate);
-    if (position) out.position = position;
-    const rotation = cleanVec(raw.rotation, -ANGLE, ANGLE);
-    if (rotation) out.rotation = rotation;
-    const scale = cleanVec(raw.scale, L.minScale, L.maxScale);
-    if (scale) out.scale = scale;
-    return out;
+const oneOf =
+    <T extends string>(list: readonly T[]) =>
+    (value: unknown) =>
+        list.includes(value as T) ? (value as T) : undefined;
+const flag = (value: unknown) =>
+    typeof value === "boolean" ? value : undefined;
+const between = (min: number, max: number) => (value: unknown) =>
+    finite(value) ? clamp(value, min, max) : undefined;
+const vector = (min: number, max: number) => (value: unknown) =>
+    cleanVec(value, min, max);
+const words = (max?: number) => (value: unknown) =>
+    value == null ? undefined : cleanText(value, max);
+/** Null takes it away; anything else is `check`ed. */
+const orNone =
+    <T>(check: (value: unknown) => T | null | undefined) =>
+    (value: unknown) =>
+        value === null
+            ? null
+            : value == null
+            ? undefined
+            : check(value) || undefined;
+
+/** What the scene does when a property of a thing changes. */
+export type ThingPropDraws = "place" | "geometry" | "look" | "special";
+
+export interface ThingPropRule<T> {
+    /** The checked value, or undefined when it is refused. */
+    clean(value: unknown): T | undefined;
+    /**
+     * What a change of it means in the scene: the thing is put elsewhere
+     * ("place"), its geometry is built again ("geometry"), its surface or
+     * text is drawn again ("look"), or what stands behind a model, a
+     * solid, an opening or an avatar is told ("special").
+     */
+    draws: readonly ThingPropDraws[];
+    /**
+     * How the SDK sends it: "live" whenever the script changes it, "given"
+     * once, from what the thing was made with, or in a way of its "own"
+     * (the shape, the parent, a model's parts).
+     */
+    travels: "live" | "given" | "own";
+    /** Whether the model's brief tells of it (brief.ts). */
+    briefed: boolean;
+}
+
+const L = WORLD_SCRIPT_LIMITS;
+
+/**
+ * Every property a thing has, once: the check it passes on the way in,
+ * what it changes in the scene, how it travels from the script, and
+ * whether the model is told of it. `cleanThingProps`, the engine's lists of
+ * what to rebuild or redraw (engine/things.ts), and the lists the SDK sends
+ * by (sdk.ts) are all made from this; scriptApi.test.ts holds the brief
+ * and the SDK's own code to it.
+ */
+export const THING_PROPS: {
+    [K in keyof Required<ThingProps>]: ThingPropRule<ThingProps[K]>;
+} = {
+    shape: {
+        clean: oneOf(THING_SHAPES),
+        draws: [],
+        travels: "own",
+        briefed: true,
+    },
+    position: {
+        clean: vector(-L.maxCoordinate, L.maxCoordinate),
+        draws: ["place"],
+        travels: "live",
+        briefed: true,
+    },
+    rotation: {
+        clean: vector(-ANGLE, ANGLE),
+        draws: ["place"],
+        travels: "live",
+        briefed: true,
+    },
+    scale: {
+        clean: vector(L.minScale, L.maxScale),
+        draws: ["place"],
+        travels: "live",
+        briefed: true,
+    },
+    size: {
+        clean: vector(L.minScale, L.maxSize),
+        draws: ["geometry", "special"],
+        travels: "given",
+        briefed: true,
+    },
+    color: {
+        clean: cleanColor,
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    opacity: {
+        clean: between(0, 1),
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    glow: { clean: flag, draws: ["look"], travels: "live", briefed: true },
+    visible: { clean: flag, draws: ["look"], travels: "live", briefed: true },
+    text: { clean: words(), draws: ["look"], travels: "live", briefed: true },
+    textColor: {
+        clean: cleanColor,
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    background: {
+        clean: cleanColor,
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    billboard: {
+        clean: flag,
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    look: {
+        clean: oneOf(THING_LOOKS),
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    pattern: {
+        clean: oneOf(THING_PATTERNS),
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    color2: {
+        clean: cleanColor,
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    wobble: {
+        clean: between(0, 1),
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    parent: {
+        clean: orNone(cleanId),
+        draws: [],
+        travels: "own",
+        briefed: false,
+    },
+    profile: {
+        clean(value) {
+            const profile = cleanPoints(value, 0, L.maxSize);
+            return profile && profile.length >= 2 ? profile : undefined;
+        },
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    outline: {
+        clean(value) {
+            const outline = cleanPoints(value, -L.maxSize, L.maxSize);
+            return outline && outline.length >= 3 ? outline : undefined;
+        },
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    depth: {
+        clean: between(0.001, L.maxSize),
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    bevel: {
+        clean: between(0, 1),
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    points: {
+        clean: (value) =>
+            finite(value) ? Math.round(clamp(value, 3, 24)) : undefined,
+        draws: ["geometry"],
+        travels: "given",
+        briefed: true,
+    },
+    shader: {
+        clean: orNone(cleanShader),
+        draws: ["look"],
+        travels: "live",
+        briefed: true,
+    },
+    solid: { clean: flag, draws: [], travels: "live", briefed: false },
+    parts: {
+        clean: (value) =>
+            Array.isArray(value) ? cleanParts(value, cleanColor) : undefined,
+        draws: ["special"],
+        travels: "own",
+        briefed: false,
+    },
+    lamp: {
+        clean: orNone(cleanLamp),
+        draws: ["special"],
+        travels: "own",
+        briefed: false,
+    },
+    boxes: {
+        clean: (value) =>
+            cleanCorners(value, 2) as Array<[Vec3, Vec3]> | undefined,
+        draws: ["special"],
+        travels: "given",
+        briefed: false,
+    },
+    walls: {
+        clean: (value) => cleanCorners(value, 4) as SolidWall[] | undefined,
+        draws: ["special"],
+        travels: "given",
+        briefed: false,
+    },
+    avatar: {
+        clean: (value) =>
+            typeof value === "string" && AVATAR_ID.test(value)
+                ? value
+                : undefined,
+        draws: ["special"],
+        travels: "live",
+        briefed: false,
+    },
+    name: {
+        clean: words(L.maxNameLength),
+        draws: ["special"],
+        travels: "live",
+        briefed: false,
+    },
+    say: {
+        clean: words(L.maxSpeechLength),
+        draws: ["special"],
+        travels: "live",
+        briefed: false,
+    },
+    motion: {
+        clean: oneOf(AVATAR_MOTIONS),
+        draws: ["special"],
+        travels: "live",
+        briefed: false,
+    },
+};
+
+export type ThingPropKey = keyof ThingProps;
+export const THING_PROP_KEYS = Object.keys(THING_PROPS) as ThingPropKey[];
+
+const keysThat = (holds: (rule: ThingPropRule<unknown>) => boolean) =>
+    THING_PROP_KEYS.filter((key) => holds(THING_PROPS[key]));
+
+/**
+ * What a plain shape's geometry is built from, besides its shape: a thing
+ * is built again when one of these changes (engine/things.ts), and replaced
+ * when a new version makes it without one it had (host.ts).
+ */
+export const BUILT_FROM_KEYS = keysThat((rule) =>
+    rule.draws.includes("geometry")
+);
+/** A change of one of these draws the thing's surface or text again. */
+export const LOOK_KEYS = keysThat((rule) => rule.draws.includes("look"));
+/** What a model, a solid, an opening or an avatar is made from. */
+export const SPECIAL_KEYS = keysThat((rule) => rule.draws.includes("special"));
+/** Where a thing is, which way it is turned and how big. */
+export const PLACE_KEYS = keysThat((rule) => rule.draws.includes("place"));
+/** What the SDK sends whenever the script changes it. */
+export const LIVE_KEYS = keysThat((rule) => rule.travels === "live");
+/** What the SDK sends once, from what the thing was made with. */
+export const GIVEN_KEYS = keysThat((rule) => rule.travels === "given");
+
+/** The properties in `raw` that pass their check, from `keys`. */
+function cleanProps<K extends ThingPropKey>(
+    raw: Record<string, unknown>,
+    keys: readonly K[]
+): Pick<ThingProps, K> {
+    const props: ThingProps = {};
+    for (const key of keys) {
+        const value = (THING_PROPS[key] as ThingPropRule<unknown>).clean(
+            raw[key]
+        );
+        if (value !== undefined)
+            (props as Record<string, unknown>)[key] = value;
+    }
+    return props as Pick<ThingProps, K>;
 }
 
 export function cleanThingProps(raw: unknown): ThingProps {
     if (!raw || typeof raw !== "object") return {};
-    const input = raw as Record<string, unknown>;
-    const L = WORLD_SCRIPT_LIMITS;
-    const props: ThingProps = cleanTransform(input);
-    if (THING_SHAPES.includes(input.shape as ThingShape))
-        props.shape = input.shape as ThingShape;
-    const size = cleanVec(input.size, L.minScale, L.maxSize);
-    if (size) props.size = size;
-    for (const key of ["color", "textColor", "background"] as const) {
-        const color = cleanColor(input[key]);
-        if (color) props[key] = color;
-    }
-    if (finite(input.opacity)) props.opacity = clamp(input.opacity, 0, 1);
-    for (const key of ["glow", "visible", "billboard"] as const) {
-        if (typeof input[key] === "boolean") props[key] = input[key] as boolean;
-    }
-    if (input.text != null) props.text = cleanText(input.text);
-    if (THING_LOOKS.includes(input.look as ThingLook))
-        props.look = input.look as ThingLook;
-    if (THING_PATTERNS.includes(input.pattern as ThingPattern))
-        props.pattern = input.pattern as ThingPattern;
-    const color2 = cleanColor(input.color2);
-    if (color2) props.color2 = color2;
-    if (finite(input.wobble)) props.wobble = clamp(input.wobble, 0, 1);
-    if (input.parent === null) props.parent = null;
-    else if (input.parent != null) {
-        const parent = cleanId(input.parent);
-        if (parent) props.parent = parent;
-    }
-    const profile = cleanPoints(input.profile, 0, L.maxSize);
-    if (profile && profile.length >= 2) props.profile = profile;
-    const outline = cleanPoints(input.outline, -L.maxSize, L.maxSize);
-    if (outline && outline.length >= 3) props.outline = outline;
-    if (finite(input.depth)) props.depth = clamp(input.depth, 0.001, L.maxSize);
-    if (finite(input.bevel)) props.bevel = clamp(input.bevel, 0, 1);
-    if (finite(input.points))
-        props.points = Math.round(clamp(input.points, 3, 24));
-    if (input.shader === null) props.shader = null;
-    else if (input.shader != null) {
-        const shader = cleanShader(input.shader);
-        if (shader) props.shader = shader;
-    }
-    if (typeof input.solid === "boolean") props.solid = input.solid;
-    if (Array.isArray(input.parts))
-        props.parts = cleanParts(input.parts, cleanColor);
-    if (input.lamp === null) props.lamp = null;
-    else if (input.lamp != null) {
-        const lamp = cleanLamp(input.lamp);
-        if (lamp) props.lamp = lamp;
-    }
-    const boxes = cleanCorners(input.boxes, 2);
-    if (boxes) props.boxes = boxes as Array<[Vec3, Vec3]>;
-    const walls = cleanCorners(input.walls, 4);
-    if (walls) props.walls = walls as SolidWall[];
-    if (typeof input.avatar === "string" && AVATAR_ID.test(input.avatar))
-        props.avatar = input.avatar;
-    if (input.name != null) props.name = cleanText(input.name, L.maxNameLength);
-    if (input.say != null) props.say = cleanText(input.say, L.maxSpeechLength);
-    if (AVATAR_MOTIONS.includes(input.motion as AvatarMotion))
-        props.motion = input.motion as AvatarMotion;
-    return props;
+    return cleanProps(raw as Record<string, unknown>, THING_PROP_KEYS);
 }
 
-const AVATAR_ID = /^[a-zA-Z0-9_-]{1,40}$/;
 const DOOR_ID = /^[a-zA-Z0-9_ .:-]{1,60}$/;
 
 /** A list of point groups (a box's two corners, a wall's four), checked. */
@@ -373,9 +582,7 @@ function cleanPoints(
 export function cleanArtworkProps(raw: unknown): ArtworkProps {
     if (!raw || typeof raw !== "object") return {};
     const input = raw as Record<string, unknown>;
-    const props: ArtworkProps = cleanTransform(input);
-    if (typeof input.visible === "boolean") props.visible = input.visible;
-    return props;
+    return cleanProps(input, ["position", "rotation", "scale", "visible"]);
 }
 
 function seconds(value: unknown, fallback: number) {
@@ -384,7 +591,13 @@ function seconds(value: unknown, fallback: number) {
         : fallback;
 }
 
-const CORNERS: HudCorner[] = ["top", "top-left", "top-right", "bottom"];
+export const HUD_CORNERS: HudCorner[] = [
+    "top",
+    "top-left",
+    "top-right",
+    "bottom",
+];
+const CORNERS = HUD_CORNERS;
 
 /** One raw request from the sandbox, checked. Null when it is refused. */
 export function cleanOp(raw: unknown): WorldScriptOp | null {
@@ -509,8 +722,12 @@ export interface WorldScriptRecord {
     id: string;
     name: string;
     source: string;
+    /**
+     * False switches the script off for everyone without taking it away.
+     * Nothing in the interface sets it; it is how a space's script is
+     * turned off by hand (the save procedure takes it, and so does the
+     * space's record).
+     */
     enabled: boolean;
-    /** The last request the creator made, kept to continue the conversation. */
-    prompt?: string;
     updatedAt?: number;
 }

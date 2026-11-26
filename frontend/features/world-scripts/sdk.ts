@@ -6,27 +6,14 @@
  * the Oncyber page: sandboxDocument.ts puts it in a Blob worker inside an
  * opaque frame. Plain ES2019 only, no template literals or imports.
  *
- * What a script sees (also what the AI brief documents, see brief.ts):
- *   world.add(spec) -> thing      shapes, text; thing.position.x += 1 just works
- *   thing.add(spec) -> part       a part that moves with the thing
- *   world.build(spec) -> model    an object made of parts, drawn in the world's style:
- *                                 model.poly / box / beam / prism / line / place
- *   world.solid(spec)             boxes and walls a visitor cannot walk through
- *   world.open(spec)              a box-shaped hole in the world's own model
- *   world.avatar(spec) -> avatar  one of Oncyber's avatars: avatar.say(text), avatar.motion
- *   world.doors / world.door(id)  the world's doors: door.open = 0..1, door.toWorld(p)
- *   world.style                   the world's creative direction (palette, look)
- *   world.player / world.camera   position {x,y,z}, forward {x,y,z}
- *   world.artworks                the space's artworks: id, name, position, visible
- *   world.onUpdate(fn(dt, time))  every frame
- *   world.onClick(fn(hit))        hit.thing or hit.artwork, hit.point
- *   world.restart()               rewind to the start (same as a logic change)
- *   input.isDown(code), input.onKeyDown(fn), input.onKeyUp(fn)
- *   ui.hud(key, text, corner), ui.toast(text, s), ui.banner(text, s)
- *   sound.play(name, volume)
- *   keep(name, initial)           state that survives a live edit in place
- *   wait(s), every(s, fn), random(), distance(a, b)
+ * What a script sees is listed once, by name, in ./scriptApi.ts (with what
+ * the model is told of it), and a thing's properties in ./protocol.ts
+ * (THING_PROPS). The lists this code sends properties by are made from
+ * that table; scriptApi.test.ts holds the rest of it to both.
  */
+import { GIVEN_KEYS, LIVE_KEYS, PLACE_KEYS } from "./protocol";
+import { SCRIPT_GLOBALS } from "./scriptApi";
+
 export const WORLD_SCRIPT_SDK = String.raw`
 "use strict";
 (function () {
@@ -117,15 +104,19 @@ export const WORLD_SCRIPT_SDK = String.raw`
         }
         return changed;
     }
+    // A thing's properties as they travel (protocol.ts, THING_PROPS): LIVE
+    // whenever the script changes them, GIVEN once from what it was made
+    // with. Where it is and how big (PLACE) is {x, y, z} here, an array there.
+    var LIVE = ${JSON.stringify(LIVE_KEYS)};
+    var GIVEN = ${JSON.stringify(GIVEN_KEYS)};
+    var PLACE = ${JSON.stringify(PLACE_KEYS)};
     function thingProps(thing) {
-        return {
-            position: arr(thing.position), rotation: arr(thing.rotation), scale: arr(thing.scale),
-            color: thing.color, opacity: thing.opacity, visible: thing.visible, text: thing.text,
-            glow: thing.glow, textColor: thing.textColor, background: thing.background,
-            look: thing.look, pattern: thing.pattern, color2: thing.color2,
-            wobble: thing.wobble, shader: thing.shader === undefined ? undefined : thing.shader,
-            solid: thing.solid, name: thing.name, say: thing.say, motion: thing.motion, avatar: thing.avatar,
-        };
+        var props = {};
+        for (var i = 0; i < LIVE.length; i++) {
+            var key = LIVE[i];
+            props[key] = PLACE.indexOf(key) < 0 ? thing[key] : arr(thing[key]);
+        }
+        return props;
     }
 
     // A point as a script may write it ([x, y, z] or {x, y, z}), as an array.
@@ -250,18 +241,10 @@ export const WORLD_SCRIPT_SDK = String.raw`
         }
         var props = thingProps(thing);
         props.shape = thing.shape;
-        props.size = spec.size;
-        props.boxes = spec.boxes;
-        props.walls = spec.walls;
+        for (var g = 0; g < GIVEN.length; g++) props[GIVEN[g]] = spec[GIVEN[g]];
         // Parts given up front go with the thing; later ones follow in a flush.
         if (thing._rev) { props.parts = thing.parts; props.lamp = thing.lamp; thing._sentRev = thing._rev; }
-        props.billboard = spec.billboard;
         props.parent = thing.parent;
-        props.profile = spec.profile;
-        props.outline = spec.outline;
-        props.depth = spec.depth;
-        props.bevel = spec.bevel;
-        props.points = spec.points;
         things[id] = thing;
         delete sent[id];
         changedProps(id, thing);
@@ -467,6 +450,9 @@ export const WORLD_SCRIPT_SDK = String.raw`
         flush(message.seq);
     }
 
+    // What the script's code is handed, in the order its wrapper names them.
+    var GLOBALS = ${JSON.stringify(SCRIPT_GLOBALS)};
+    var handed = { world: world, input: input, ui: ui, sound: sound, keep: keep, wait: wait, every: every, random: random, distance: distance, console: con };
     var userMain = null;
     self.__defineScript = function (main) { userMain = main; };
 
@@ -484,7 +470,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
             doorList = (message.doors || []).map(makeDoor);
             doorList.forEach(function (d) { doorById[d.id] = d; });
             try {
-                if (userMain) userMain(world, input, ui, sound, keep, wait, every, random, distance, con);
+                if (userMain) userMain.apply(null, GLOBALS.map(function (name) { return handed[name]; }));
             } catch (error) {
                 report(error);
             }
@@ -527,7 +513,7 @@ export const WORLD_SCRIPT_SDK = String.raw`
 /** The creator's source wrapped so it sees only the SDK's names. */
 export function wrapUserSource(source: string) {
     return (
-        "self.__defineScript(function (world, input, ui, sound, keep, wait, every, random, distance, console) {\n" +
+        `self.__defineScript(function (${SCRIPT_GLOBALS.join(", ")}) {\n` +
         '"use strict";\n' +
         source +
         "\n});\n"
