@@ -24,8 +24,10 @@ import VRMS from "@3/three/factory/player/vrms.json";
 import Emitter from "@3/three/events/emitter";
 import Events from "@3/three/events/events";
 import {
+    APP_STATES,
     CANVAS,
     CURRENT_SPACE,
+    CURRENT_STATE,
     DEFAULT_PLAYER_AVATAR_PICTURE,
     IS_MOBILE,
 } from "@3/three/constants";
@@ -39,10 +41,20 @@ export { worldHasScene } from "./worldUp";
 
 type Vec3 = [number, number, number];
 
-/** The world is showing: a player and a camera are in place. */
+/**
+ * The world is showing: a player and a camera are in place, and the
+ * world's loading animation is over. A script that starts while the world
+ * still loads builds its things on the thread that is loading, and a
+ * visitor waits longer for both.
+ */
 export function engineReady() {
     try {
-        return !!(Players as any).main && !!Camera.current && !!CANVAS;
+        return (
+            !!(Players as any).main &&
+            !!Camera.current &&
+            !!CANVAS &&
+            CURRENT_STATE !== APP_STATES.INTRO
+        );
     } catch {
         return false;
     }

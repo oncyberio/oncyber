@@ -180,7 +180,14 @@ const CONTRACT: Array<[string, string, RegExp[]]> = [
             /export var CURRENT_SPACE\b/,
             /\bIS_MOBILE\b/,
             /\bDEFAULT_PLAYER_AVATAR_PICTURE\b/,
+            /\bCURRENT_STATE\b/,
+            /\bAPP_STATES\b/,
         ],
+    ],
+    [
+        "engineReady: the engine says when its loading animation is on",
+        "shellconstants.js",
+        [/export var CURRENT_STATE\b/, /INTRO: asConst\("INTRO"\)/],
     ],
     [
         "onUpdate: listeners can be taken off again",

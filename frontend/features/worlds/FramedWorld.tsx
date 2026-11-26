@@ -319,6 +319,7 @@ export default function FramedWorld({
                     scriptRuntime.current?.receive(kind, data)
                 }
                 onLink={offers.offerLink}
+                gated={!!gate}
                 controls={world}
             />
             {avatars.picker}

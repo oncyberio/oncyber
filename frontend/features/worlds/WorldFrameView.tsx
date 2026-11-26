@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { BEAT_EVERY_MS, createStallWatch } from "@features/frame/frameStall";
 import { RoomVoice } from "@features/frame/roomVoice";
 import { useGameLoading } from "@features/games/loading/GameLoadingCover";
+import { WorldStars } from "./WorldStars";
 import { fromFrame, frameTarget } from "@features/frame/frameOrigin";
 import {
     GAME_MESSAGE_PREFIX,
@@ -92,6 +93,7 @@ export default function WorldFrameView({
     onSignIn,
     onAvatarPicker,
     onScript,
+    gated,
     controls,
 }: {
     title: string;
@@ -131,6 +133,8 @@ export default function WorldFrameView({
     onLink(href: unknown): void;
     /** The world went silent after it had drawn, or came back. */
     onStalled(stalled: boolean): void;
+    /** The world is gated: what it shows before it draws is not covered. */
+    gated: boolean;
     controls: { current: WorldControls | null };
 }) {
     const element = useRef<HTMLIFrameElement>(null);
@@ -470,8 +474,9 @@ export default function WorldFrameView({
                     display: "block",
                 }}
             />
-            {/* No cover: a world draws its own loading animation, and the
-                visitor sees it as they always have. */}
+            {/* The same stars the world draws while it loads, drawn by the
+                page so that the loading does not hold them up. */}
+            <WorldStars phase={loading.phase} gated={gated} />
         </>
     );
 }

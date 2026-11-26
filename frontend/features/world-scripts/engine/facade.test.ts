@@ -15,6 +15,8 @@ const mockConstants: any = {
     CURRENT_SPACE: null,
     DEFAULT_PLAYER_AVATAR_PICTURE: "picture.png",
     IS_MOBILE: false,
+    APP_STATES: { INTRO: "INTRO", IDLE: "IDLE" },
+    CURRENT_STATE: "INTRO",
 };
 const mockDemand = { setContinuous: jest.fn() };
 
@@ -65,12 +67,16 @@ describe("whether the world is showing", () => {
         expect(engine.worldHasScene(undefined)).toBe(false);
     });
 
-    test("ready takes a player, a camera and a canvas", () => {
+    test("ready takes a player, a camera, a canvas and the end of the loading animation", () => {
         expect(engine.engineReady()).toBe(false);
         mockPlayers.main = {};
         mockCamera.current = {};
         expect(engine.engineReady()).toBe(false);
         mockConstants.CANVAS = {};
+        // Everything is in place, but the world is still loading behind
+        // its stars: a script would build its things on that thread.
+        expect(engine.engineReady()).toBe(false);
+        mockConstants.CURRENT_STATE = "IDLE";
         expect(engine.engineReady()).toBe(true);
     });
 });
