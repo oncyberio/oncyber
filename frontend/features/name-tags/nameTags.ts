@@ -651,11 +651,18 @@ export function createNameTags(
                     tag.text = text;
                     tag.generation = generation;
                 }
-                // Sized at the depth it is drawn at (see DEPTH_BIAS).
-                const em = emMetres(
-                    Math.max(tag.depth - DEPTH_BIAS, 0.05),
-                    pixelsPerUnit
+                // Sized at the depth it is drawn at: the shader pulls the
+                // anchor DEPTH_BIAS toward the camera, which shortens its
+                // view depth by DEPTH_BIAS * depth / range.
+                const eye = camera.matrixWorld.elements;
+                const range = Math.hypot(
+                    tag.x - eye[12],
+                    tag.y - eye[13],
+                    tag.z - eye[14]
                 );
+                const drawn =
+                    tag.depth * (1 - DEPTH_BIAS / Math.max(range, 1e-3));
+                const em = emMetres(Math.max(drawn, 0.05), pixelsPerUnit);
                 const photo = tag.photo
                     ? {
                           u:
