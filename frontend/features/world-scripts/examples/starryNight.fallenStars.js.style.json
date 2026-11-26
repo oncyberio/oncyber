@@ -1,0 +1,17 @@
+{
+    "summary": "Van Gogh's Starry Night: thick, short brush strokes that swirl; a deep ultramarine and cobalt night, cadmium yellow light, dark outlines. Everything looks painted by the same hand as the sky.",
+    "palette": [
+        "#1f3a86",
+        "#f6d94a",
+        "#5d8fd0",
+        "#17296a",
+        "#e2b53a",
+        "#fff3a0",
+        "#2f5560",
+        "#c0352b"
+    ],
+    "look": "painted",
+    "strokes": 1,
+    "wobble": 0.1,
+    "outline": true
+}

@@ -42,74 +42,135 @@ const FALLEN = [0, 1, 3, 4, 6, 7, 9].map((i, n) => {
     return [p[0] + side, p[1] + TALL * 0.55, p[2] + side * 0.6];
 });
 
-const GOLD = "#ffd76a";
-const NIGHT = "#2a3358";
+// Painted like the world: these are built from parts (world.build), which a
+// painted world draws as brush strokes, the way the room in the house is.
+// The tones are the room's own.
+const IRON = ["#17296a", "#1f3a86", "#12205a", "#2b4a9e", "#0e1844"];
+const GLASS = ["#9fb4b0", "#b4c6c0", "#8aa3a6", "#c5d2c8"];
+const FLAME = ["#fff3a8", "#ffe26a", "#fff8cc"];
+const STAR = ["#f6d94a", "#e2b53a", "#edc552", "#fff3a0"];
+const HALO = ["#fff3a0", "#f6d94a", "#e9e4b4", "#8db6e6"];
+const DARK = "#1c1830";
 const game = keep("game", { caught: [], done: false });
 
+// A ring of short strokes around [0, y, 0], as the stars in the sky have.
+function ring(model, radius, y, dashes, width) {
+    const step = (Math.PI * 2) / dashes;
+    for (let k = 0; k < dashes; k++) {
+        const a = k * step;
+        const b = a + step * 0.62;
+        model.line(
+            [Math.cos(a) * radius, y + Math.sin(a) * radius, 0],
+            [Math.cos(b) * radius, y + Math.sin(b) * radius, 0],
+            [0, 0, 1],
+            { color: HALO[k % HALO.length], width, glow: true }
+        );
+    }
+}
+
+// A gas lamp on an iron post: foot, shaft, a six-sided glass and its roof.
+function drawLantern(model, lit) {
+    const h = POST / 5.8;
+    const iron = {
+        color: IRON[0],
+        colors: IRON,
+        under: DARK,
+        fine: 0.09,
+        flow: Math.PI / 2,
+    };
+    model
+        .clear()
+        .prism([0, 0], 0.46, 0, 0.3 * h, { ...iron, topRadius: 0.36 })
+        .prism([0, 0], 0.34, 0.3 * h, 0.95 * h, { ...iron, topRadius: 0.15 })
+        .prism([0, 0], 0.14, 0.95 * h, 4.05 * h, { ...iron, topRadius: 0.11 })
+        .prism([0, 0], 0.27, 4.05 * h, 4.2 * h, { ...iron, top: true })
+        .prism([0, 0], 0.26, 4.2 * h, 5.05 * h, {
+            color: lit ? FLAME[0] : GLASS[0],
+            colors: lit ? FLAME : GLASS,
+            under: lit ? STAR[1] : DARK,
+            sides: 6,
+            topRadius: 0.44,
+            fine: 0.08,
+            glow: lit,
+        })
+        .prism([0, 0], 0.56, 5.05 * h, 5.5 * h, {
+            ...iron,
+            sides: 6,
+            topRadius: 0.07,
+            top: true,
+        })
+        .prism([0, 0], 0.07, 5.5 * h, 5.78 * h, { ...iron, top: true });
+    // The bars of the glass, drawn dark as an outline.
+    for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        const out = [Math.cos(a), 0, Math.sin(a)];
+        model.line(
+            [out[0] * 0.26, 4.2 * h, out[2] * 0.26],
+            [out[0] * 0.44, 5.05 * h, out[2] * 0.44],
+            out,
+            { color: DARK, width: 0.06 }
+        );
+    }
+    if (!lit) return;
+    // Its light, as two rings of strokes, seen from the road either way.
+    for (const yaw of [0, Math.PI / 2])
+        model.place([0, 0, 0], yaw, (halo) => {
+            ring(halo, 0.95, 4.62 * h, 9, 0.11);
+            ring(halo, 1.45, 4.62 * h, 13, 0.09);
+        });
+}
+
+// A five-pointed star with a bright heart and two rings of light.
+function drawStar(model) {
+    const size = TALL * 0.24;
+    const at = (k, radius) => {
+        const a = Math.PI / 2 + (k * Math.PI) / 5;
+        return [Math.cos(a) * radius, Math.sin(a) * radius, 0];
+    };
+    const paint = {
+        color: STAR[0],
+        colors: STAR,
+        under: STAR[1],
+        fine: 0.08,
+        flow: ["around", 0, 0],
+        glow: true,
+    };
+    for (let k = 0; k < 10; k += 2)
+        model.poly(
+            [
+                [0, 0, 0],
+                at(k - 1, size * 0.42),
+                at(k, size),
+                at(k + 1, size * 0.42),
+            ],
+            paint
+        );
+    model.poly(
+        [0, 2, 4, 6, 8].map((k) => {
+            const p = at(k + 1, size * 0.34);
+            return [p[0], p[1], 0.03];
+        }),
+        { ...paint, color: FLAME[0], colors: FLAME }
+    );
+    ring(model, size * 1.4, 0, 10, 0.1);
+    ring(model, size * 1.9, 0, 14, 0.08);
+}
+
 const lanterns = POSTS.map((p, i) => {
-    const post = world.add({
-        id: "lantern-" + i,
-        shape: "cylinder",
-        size: [0.22, POST, 0.22],
-        position: [p[0], p[1] + POST / 2, p[2]],
-        color: NIGHT,
-        look: "matte",
-    });
-    post.add({
-        id: "lantern-" + i + ".arm",
-        shape: "box",
-        size: [1, 0.13, 0.13],
-        position: [0.4, POST / 2 - 0.2, 0],
-        color: NIGHT,
-        look: "matte",
-    });
-    const lamp = post.add({
-        id: "lantern-" + i + ".lamp",
-        shape: "lathe",
-        size: [0.85, 1, 0.85],
-        profile: [
-            [0.1, -0.5],
-            [0.42, -0.3],
-            [0.5, 0.1],
-            [0.3, 0.42],
-            [0.08, 0.5],
-        ],
-        position: [0.85, POST / 2 - 0.8, 0],
-        color: "#6b7396",
-        look: "matte",
-    });
-    return { post, lamp };
+    const lantern = world.build({ id: "lantern-" + i, position: p });
+    drawLantern(lantern, false);
+    return lantern;
 });
 
 const stars = FALLEN.map((p, i) => {
-    const star = world.add({
-        id: "star-" + i,
-        shape: "star",
-        points: 5,
-        depth: 0.4,
-        size: [1.4, 1.4, 1.4],
-        position: p,
-        color: GOLD,
-        look: "glow",
-        glow: true,
-    });
-    // A thin hoop around it, so it reads from up the road.
-    star.add({
-        id: "star-" + i + ".halo",
-        shape: "torus",
-        size: [2.2, 2.2, 0.3],
-        color: GOLD,
-        look: "glow",
-        opacity: 0.7,
-    });
+    const star = world.build({ id: "star-" + i, position: p });
+    drawStar(star);
     star.data.home = p[1];
     return star;
 });
 
 function light(i) {
-    const lamp = lanterns[i] && lanterns[i].lamp;
-    if (!lamp) return;
-    lamp.set({ color: GOLD, look: "glow", glow: true });
+    if (lanterns[i]) drawLantern(lanterns[i], true);
 }
 function show() {
     const n = game.caught.length;

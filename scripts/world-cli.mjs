@@ -42,6 +42,7 @@ import { spawn } from "node:child_process";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { scriptCommand } from "./world-script.mjs";
+import { destinationCommand } from "./world-destination.mjs";
 import { loginLink, newLogin, pendingLogin } from "./world-login.mjs";
 
 const BASE_URL = process.env.ONCYBER_BASE_URL || "http://localhost:3000";

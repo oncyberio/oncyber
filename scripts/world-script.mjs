@@ -22,6 +22,11 @@
  * sends it, and the server refuses a push that builds on an older save
  * than the space now has (pull again and carry your change over).
  *
+ * A space's style is the look its script's things are drawn in (a painted
+ * world paints them). It is kept in `<file>.style.json`: `pull` writes it
+ * when the space has one, and `push` saves it with the script when the
+ * file is there. Without a style, things are plain.
+ *
  * `check` reads the file as the sandbox will (the same names handed to it,
  * the same strictness) and stops on what cannot run: it is too long, it
  * does not parse, it reaches for something a script is not given. It does
@@ -40,6 +45,7 @@ const SCRIPT_ID = "script";
 
 export const scriptFile = (exhibitId) => `${exhibitId}.world-script.js`;
 export const basePath = (file) => `${file}.base.json`;
+export const stylePath = (file) => `${file}.style.json`;
 
 /** A first line `// name: Lanterns on the road` names the script. */
 export function readName(source) {
@@ -101,8 +107,9 @@ export function checkSource(source, { names, maxSourceBytes }) {
 }
 
 /** What `worldScripts.save` is sent for this file. */
-export function saveRequest(exhibitId, source, base, { name, id } = {}) {
+export function saveRequest(exhibitId, source, base, { name, id, style } = {}) {
     return {
+        ...(style ? { style } : {}),
         experienceId: exhibitId,
         scripts: [
             {
@@ -230,6 +237,11 @@ export async function scriptCommand(args, rpc, io = {}) {
                 2
             ) + "\n"
         );
+        if (saved.style)
+            await write(
+                stylePath(file),
+                JSON.stringify(saved.style, null, 4) + "\n"
+            );
         say(
             script
                 ? `Pulled "${script.name}" from ${exhibitId} -> ${file}`
@@ -243,9 +255,25 @@ export async function scriptCommand(args, rpc, io = {}) {
         const base = exists(basePath(file))
             ? JSON.parse(await read(basePath(file)))
             : { savedAt: 0 };
+        let style;
+        if (!exists(stylePath(file)))
+            say(
+                `warning: no ${stylePath(
+                    file
+                )}. Unless the space already has a style, ` +
+                    "what the script makes is drawn plain, not in the world's look."
+            );
+        if (exists(stylePath(file))) {
+            try {
+                style = JSON.parse(await read(stylePath(file)));
+            } catch {
+                throw new Error(`${stylePath(file)} is not JSON.`);
+            }
+        }
         const request = saveRequest(exhibitId, source, base.savedAt, {
             name: flags.name || readName(source) || base.name,
             id: base.id,
+            style,
         });
         const answer = await rpc("save", request);
         if (!answer?.ok)
@@ -264,7 +292,10 @@ export async function scriptCommand(args, rpc, io = {}) {
                 2
             ) + "\n"
         );
-        say(`Saved "${stored.name}" to ${exhibitId}.`);
+        say(
+            `Saved "${stored.name}" to ${exhibitId}` +
+                (style ? ", with its style." : ".")
+        );
         if (baseUrl) say(`See it: ${baseUrl}/spaces/${exhibitId}`);
         return;
     }

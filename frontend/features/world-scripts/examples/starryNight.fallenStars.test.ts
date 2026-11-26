@@ -21,6 +21,11 @@ const added = (ops: any[], ids: RegExp) =>
         .filter((item) => ids.test(item.id))
         .map((item) => ({ id: item.id, ...item.props }));
 const stars = (ops: any[]) => added(ops, /^star-\d+$/);
+/** The parts a built thing was last given in these requests. */
+const partsOf = (ops: any[], id: string): any[] =>
+    [...of(ops, "add"), ...of(ops, "set")]
+        .filter((item) => item.id === id && item.props?.parts)
+        .pop()?.props.parts || [];
 
 describe("Starry Night's script, Fallen stars", () => {
     test("fits in a saved script and asks only for what the host takes", () => {
@@ -39,9 +44,16 @@ describe("Starry Night's script, Fallen stars", () => {
         const script = runScript(SOURCE);
         const ops = script.ops();
         expect(stars(ops)).toHaveLength(7);
-        const lamps = added(ops, /^lantern-\d+\.lamp$/);
-        expect(lamps).toHaveLength(7);
-        expect(lamps.every((lamp) => !lamp.glow)).toBe(true);
+        // Built from parts, so a painted world paints them; none is lit.
+        const lanterns = added(ops, /^lantern-\d+$/);
+        expect(lanterns).toHaveLength(7);
+        expect(lanterns.every((thing) => thing.shape === "model")).toBe(true);
+        for (let i = 0; i < 7; i++) {
+            const parts = partsOf(ops, "lantern-" + i);
+            expect(parts.length).toBeGreaterThan(8);
+            expect(JSON.stringify(parts)).not.toContain('"glow":true');
+        }
+        expect(partsOf(ops, "star-0").length).toBeGreaterThan(20);
         expect(hud(ops, "score")).toBe("Stars 0/7");
         expect(hud(ops, "goal")).toMatch(/Catch them/);
     });
@@ -58,7 +70,11 @@ describe("Starry Night's script, Fallen stars", () => {
         const set = (id: string) =>
             of(ops, "set").find((item) => item.id === id)?.props;
         expect(set("star-0")).toMatchObject({ visible: false });
-        expect(set("lantern-0.lamp")).toMatchObject({ glow: true });
+        // The first lantern is drawn again, lit, with its rings of light.
+        const lit = JSON.stringify(partsOf(ops, "lantern-0"));
+        expect(lit).toContain('"glow":true');
+        expect(lit).toContain('"place"');
+        expect(partsOf(ops, "lantern-1")).toEqual([]);
         expect(of(ops, "sound")[0]).toMatchObject({ name: "coin" });
     });
 

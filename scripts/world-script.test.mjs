@@ -7,6 +7,7 @@ import {
     saveRequest,
     scriptCommand,
     scriptFile,
+    stylePath,
 } from "./world-script.mjs";
 
 const rules = {
@@ -118,7 +119,7 @@ function world(saved = null) {
                           },
                       ]
                     : [],
-                style: null,
+                style: space?.style || null,
                 savedAt: space?.updatedAt || 0,
             };
         if (method === "save") {
@@ -134,9 +135,10 @@ function world(saved = null) {
                 };
             space = {
                 ...params.scripts[0],
+                style: params.style || space?.style,
                 updatedAt: (space?.updatedAt || 100) + 1,
             };
-            return { ok: true, scripts: [space], style: null };
+            return { ok: true, scripts: [space], style: space.style || null };
         }
         return { ok: false, error: "unknown" };
     };
@@ -322,5 +324,39 @@ test("access: a site admin reads the list, adds someone and takes them out", asy
     await assert.rejects(
         scriptCommand(["access", "add"], rpc, io),
         /Usage: script access/
+    );
+});
+
+test("a style travels with its script: pushed when its file is there, pulled when the space has one", async () => {
+    const style = {
+        summary: "Painted.",
+        palette: ["#112233", "#ffcc00"],
+        look: "painted",
+    };
+    const w = world();
+    w.files.set("stars.js", "// name: Stars\nui.clear();");
+    // No style file: the request names none, and the space keeps what it has.
+    await w.run("push", "abc", "stars.js");
+    assert.equal("style" in w.calls.at(-1)[1], false);
+    assert.ok(
+        w.said.some((line) => /warning: no stars\.js\.style\.json/.test(line))
+    );
+    assert.match(w.said.at(-2), /Saved "Stars" to abc\.$/);
+
+    w.files.set(stylePath("stars.js"), JSON.stringify(style));
+    await w.run("push", "abc", "stars.js");
+    assert.deepEqual(w.calls.at(-1)[1].style, style);
+    assert.match(w.said.at(-2), /with its style\.$/);
+
+    await w.run("pull", "abc", "again.js");
+    assert.deepEqual(JSON.parse(w.files.get(stylePath("again.js"))), style);
+
+    w.files.set(stylePath("stars.js"), "{ not json");
+    const before = w.calls.length;
+    await assert.rejects(w.run("push", "abc", "stars.js"), /is not JSON/);
+    // Nothing was saved: only the rules were asked for.
+    assert.deepEqual(
+        w.calls.slice(before).map(([method]) => method),
+        ["reference"]
     );
 });

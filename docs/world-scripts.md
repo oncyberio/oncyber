@@ -120,6 +120,11 @@ session ends (30 days) or its machine is thrown away.
     is handed, and stops on what cannot run: it is too long, it does not
     parse. It warns about what a script is not given (the page, the
     network, modules). It does not run the script.
+-   **A style goes with the script.** A space's style (its palette and
+    look, `worldStyle`) is what a script's things are drawn in: with none,
+    they are plain shapes in a painted world. It is kept in
+    `<file>.style.json` beside the script; `pull` writes it when the space
+    has one, `push` saves it when it is there and warns when it is not.
 -   **`push`** checks, then saves. The script's name is its first line when
     that is `// name: ...`, else `--name`, else what it was called. A push
     that builds on an older save than the space has now is refused (an
@@ -139,6 +144,21 @@ script written in a file against the reference and pushed with the command
 above, for the space built on the Starry Night world. Seven stars have
 fallen along the road from where a visitor starts down to the first house;
 catching one lights a lantern on the way, and all seven light the road.
+
+Two things it had to get right, both learned from getting them wrong:
+
+-   **It is painted like the world.** The lanterns and stars are built
+    from parts (`world.build`, below), which a painted world draws as
+    brush strokes with the same brush as the room in the house, in that
+    room's tones; and its style file gives the space a painted style. The
+    first version used plain shapes with a look and colours of its own and
+    no style, and stood in the painting like plastic.
+-   **It is sized for the people of that world.** Starry Night is about
+    2.3 times life size and its avatars stand 4 units
+    ([destinations-firestore-schema.md](destinations-firestore-schema.md)),
+    so everything is sized from one person height at the top of the
+    script. The reference's "about 1.8 m tall" is a new world's default,
+    not every world's.
 
 It is here as a worked example, with a test beside it that runs it in the
 sandbox the way a visitor's browser does (it starts, a star is caught only
