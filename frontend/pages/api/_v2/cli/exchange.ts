@@ -52,14 +52,11 @@ export const exchange = proc({
                 const given = crypto
                     .createHash("sha256")
                     .update(verifier || "")
-                    .digest("base64url");
-                const same =
-                    given.length === data.challenge.length &&
-                    crypto.timingSafeEqual(
-                        Buffer.from(given),
-                        Buffer.from(data.challenge)
-                    );
-                if (!verifier || !same)
+                    .digest()
+                    .toString("base64url");
+                // The challenge is no secret (it was in the link): a plain
+                // comparison gives nothing away.
+                if (!verifier || given !== data.challenge)
                     throw new Error("Invalid or already-used code");
             }
 

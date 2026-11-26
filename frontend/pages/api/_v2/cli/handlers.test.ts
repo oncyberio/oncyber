@@ -37,7 +37,7 @@ const mint = (userId: string, input: object = {}) =>
 const trade = (input: object) => (exchange as any).call({}, input);
 const secret = () => crypto.randomBytes(32).toString("base64url");
 const challengeOf = (verifier: string) =>
-    crypto.createHash("sha256").update(verifier).digest("base64url");
+    crypto.createHash("sha256").update(verifier).digest().toString("base64url");
 
 beforeEach(() => {
     mockDocs.clear();
