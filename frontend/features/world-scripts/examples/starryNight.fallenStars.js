@@ -30,11 +30,16 @@ const POSTS = [
     [22.07, -13.82, -31.12],
     [29.03, -18.17, -46.27],
 ];
-// Where the stars fell: beside the way, one for each lantern.
+// This world is about 2.3 times life size: a person stands 4 units tall
+// here, and its doors are over 5. Everything below is sized from that.
+const TALL = 4;
+const POST = TALL * 1.3;
+const REACH = TALL * 0.6;
+// Where the stars fell: beside the way at chest height, one for each lantern.
 const FALLEN = [0, 1, 3, 4, 6, 7, 9].map((i, n) => {
     const p = WAY[i];
-    const side = n % 2 ? 1.2 : -1.2;
-    return [p[0] + side, p[1] + 1.25, p[2] + side * 0.6];
+    const side = n % 2 ? 2 : -2;
+    return [p[0] + side, p[1] + TALL * 0.55, p[2] + side * 0.6];
 });
 
 const GOLD = "#ffd76a";
@@ -45,23 +50,23 @@ const lanterns = POSTS.map((p, i) => {
     const post = world.add({
         id: "lantern-" + i,
         shape: "cylinder",
-        size: [0.12, 2.4, 0.12],
-        position: [p[0], p[1] + 1.2, p[2]],
+        size: [0.22, POST, 0.22],
+        position: [p[0], p[1] + POST / 2, p[2]],
         color: NIGHT,
         look: "matte",
     });
     post.add({
         id: "lantern-" + i + ".arm",
         shape: "box",
-        size: [0.5, 0.07, 0.07],
-        position: [0.2, 1.1, 0],
+        size: [1, 0.13, 0.13],
+        position: [0.4, POST / 2 - 0.2, 0],
         color: NIGHT,
         look: "matte",
     });
     const lamp = post.add({
         id: "lantern-" + i + ".lamp",
         shape: "lathe",
-        size: [0.42, 0.5, 0.42],
+        size: [0.85, 1, 0.85],
         profile: [
             [0.1, -0.5],
             [0.42, -0.3],
@@ -69,7 +74,7 @@ const lanterns = POSTS.map((p, i) => {
             [0.3, 0.42],
             [0.08, 0.5],
         ],
-        position: [0.42, 0.82, 0],
+        position: [0.85, POST / 2 - 0.8, 0],
         color: "#6b7396",
         look: "matte",
     });
@@ -81,8 +86,8 @@ const stars = FALLEN.map((p, i) => {
         id: "star-" + i,
         shape: "star",
         points: 5,
-        depth: 0.22,
-        size: [0.8, 0.8, 0.8],
+        depth: 0.4,
+        size: [1.4, 1.4, 1.4],
         position: p,
         color: GOLD,
         look: "glow",
@@ -92,7 +97,7 @@ const stars = FALLEN.map((p, i) => {
     star.add({
         id: "star-" + i + ".halo",
         shape: "torus",
-        size: [1.25, 1.25, 0.2],
+        size: [2.2, 2.2, 0.3],
         color: GOLD,
         look: "glow",
         opacity: 0.7,
@@ -135,12 +140,13 @@ world.onUpdate((dt, time) => {
     stars.forEach((star, i) => {
         if (!star.visible) return;
         star.rotation.y += dt * 1.6;
-        star.position.y = star.data.home + Math.sin(time * 1.8 + i) * 0.18;
-        // Feet to star: close on the ground, and not from a floor above or below.
+        star.position.y = star.data.home + Math.sin(time * 1.8 + i) * 0.3;
+        // Feet to star: within reach on the ground, and not from a floor
+        // above or below.
         const dx = star.position.x - me.x,
             dz = star.position.z - me.z;
-        if (dx * dx + dz * dz > 2.6 || Math.abs(star.position.y - me.y) > 3.5)
-            return;
+        if (dx * dx + dz * dz > REACH * REACH) return;
+        if (Math.abs(star.position.y - me.y) > TALL * 1.4) return;
         star.visible = false;
         light(game.caught.length);
         game.caught.push(i);

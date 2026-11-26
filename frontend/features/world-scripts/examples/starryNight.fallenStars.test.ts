@@ -52,7 +52,7 @@ describe("Starry Night's script, Fallen stars", () => {
         // Far away: nothing is caught.
         expect(hud(script.tick(), "score")).toBeUndefined();
         const [x, y, z] = first.position;
-        const ops = script.tick(1 / 60, [x, y - 1.25, z]);
+        const ops = script.tick(1 / 60, [x, y - 2.2, z]);
         expect(script.errors()).toEqual([]);
         expect(hud(ops, "score")).toBe("Stars 1/7");
         const set = (id: string) =>
@@ -74,7 +74,7 @@ describe("Starry Night's script, Fallen stars", () => {
         let last: any[] = [];
         for (const star of stars(script.ops())) {
             const [x, y, z] = star.position;
-            last = script.tick(1 / 60, [x, y - 1.25, z]);
+            last = script.tick(1 / 60, [x, y - 2.2, z]);
         }
         expect(hud(last, "score")).toBe("Stars 7/7");
         expect(hud(last, "goal")).toMatch(/The way is lit/);
