@@ -7,6 +7,7 @@ import {
     hasEarlyAccess,
     isSpaceAdmin,
     scriptsSavedAt,
+    scriptsSavedMark,
     SCRIPT_CHANGED_ELSEWHERE,
     worldScriptsEnabled,
 } from "@utils/worldScripts/server";
@@ -75,6 +76,10 @@ export const save = proc({
         const ref = db.collection("exhibits").doc(experienceId);
         const now = Date.now();
         let records: WorldScriptRecord[] | null = null;
+        // When this save was made, as spaces that are open are told: the
+        // script's own time, or now for a script taken away or a style
+        // alone.
+        let mark = now;
         const refused = await db.runTransaction(async (transaction) => {
             const document = await transaction.get(ref);
             if (!document.exists || document.data().deleted === true)
@@ -88,7 +93,14 @@ export const save = proc({
             if (scripts && base != null && base !== savedAt)
                 return { error: SCRIPT_CHANGED_ELSEWHERE, conflict: true };
             records = scripts ? stamped(scripts, now, savedAt) : null;
+            mark = Math.max(
+                now,
+                scriptsSavedMark(experience) + 1,
+                Number((records as any)?.[0]?.updatedAt) || 0
+            );
             transaction.update(ref, {
+                worldScriptsSavedAt: mark,
+                worldScriptsLanding: landing || "add",
                 ...(records ? { worldScripts: records } : {}),
                 ...(style ? { worldStyle: style } : {}),
                 worldScriptsUpdatedBy: userId,
@@ -97,13 +109,12 @@ export const save = proc({
             return null;
         });
         if (refused) return { ok: false as const, ...refused };
-        // Spaces that are open follow: told when this was saved (the
-        // script's own time, or now for a script taken away or a style
-        // alone) and how to land it. Added unless the saver says rewind.
-        const saved = records as WorldScriptRecord[] | null;
+        // Spaces that are open follow (features/world-scripts/livePickup):
+        // those that can hear the space's feed are told now; the rest
+        // find the mark above the next time they ask.
         const announced = await announceScript(
             experienceId,
-            Math.max(now, Number(saved?.[0]?.updatedAt) || 0),
+            mark,
             landing || "add"
         );
         return {

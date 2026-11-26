@@ -225,11 +225,17 @@ A space that is open when its script is saved picks the new one up
 without a page reload: a push from a terminal, an editor's change in the
 sidebar seen by everyone else in the room, a script taken away.
 
--   **How they hear.** The save puts a short notice on the space's live
-    feed (`utils/liveSpace`, the feed editor actions already travel on):
-    when it was saved and how to land it, nothing of the script. Every
-    open space listens to that feed already, framed or not, signed in or
-    not. The notice is written as the server (`utils/worldScripts/announce`).
+-   **How they hear.** Two ways, because one does not reach everyone.
+    The save puts a short notice on the space's live feed
+    (`utils/liveSpace`, the feed editor actions travel on): when it was
+    saved and how to land it, nothing of the script. A visitor whose
+    browser can read that feed hears at once. On Oncyber's own database
+    the feed refuses anyone who is not signed in, so every open world also
+    asks, about every twelve seconds while it is on show, when the script
+    was last saved (`/api/world-scripts/saved`: a GET the CDN answers
+    from one copy for a few seconds, reading two numbers of the space's
+    document). A guest follows a save within about twenty seconds; a
+    space with no script asks once a minute.
 -   **What they do.** The world reads the script the space runs now
     (`worldScripts.current`, which anyone may ask: it is what the page
     hands every visitor at load) and swaps it in as above: tried out of
@@ -254,6 +260,8 @@ sidebar seen by everyone else in the room, a script taken away.
     feed, so a notice is only a reason to read: what happens is decided
     from what the server then says the space has. A false notice costs a
     read; at worst it turns an addition into a rewind at a real save.
+    What a world is told when it asks comes from the server and cannot be
+    forged.
 
 One thing is not carried across yet: in a framed world, the sidebar on the
 page does not hear that the world took a push. An editor who has it open

@@ -13,6 +13,8 @@ export const PROTECTED_EXHIBIT_FIELDS = [
     "worldScripts",
     "worldStyle",
     "worldScriptsUpdatedBy",
+    "worldScriptsSavedAt",
+    "worldScriptsLanding",
 ];
 
 const isOperation = (key: string) => key.startsWith("FIRESTORE_");

@@ -3,6 +3,7 @@ import { proc, NoApi } from "@utils/rpc/server";
 import {
     editableSpace,
     scriptsSavedAt,
+    scriptsSavedMark,
     worldScriptsEnabled,
 } from "@utils/worldScripts/server";
 import { WORLD_SCRIPT_LIMITS } from "@features/world-scripts/basics";
@@ -87,7 +88,14 @@ export const current = proc({
         // is asked by every open space each time its script is saved.
         const [document] = await db.getAll(
             db.collection("exhibits").doc(experienceId),
-            { fieldMask: ["worldScripts", "worldStyle", "deleted"] }
+            {
+                fieldMask: [
+                    "worldScripts",
+                    "worldStyle",
+                    "worldScriptsSavedAt",
+                    "deleted",
+                ],
+            }
         );
         const experience = document?.exists ? document.data() : null;
         if (!experience || experience.deleted === true)
@@ -103,7 +111,7 @@ export const current = proc({
             ok: true as const,
             source: (running?.source as string) || "",
             style: cleanStyle(experience.worldStyle) || null,
-            savedAt: scriptsSavedAt(experience),
+            savedAt: scriptsSavedMark(experience),
         };
     },
 });

@@ -34,6 +34,11 @@ function open(start = { source: "a();", savedAt: 10 }) {
         setStyle: jest.fn(),
     };
     const reads = jest.fn(async () => saved);
+    // What the world is told when it asks, and the asking itself.
+    const asked: any = {
+        answer: { savedAt: 0, landing: "add" },
+        ask: () => {},
+    };
     const stop = followSavedScript(
         "space-1",
         { ...start, style: null },
@@ -47,6 +52,12 @@ function open(start = { source: "a();", savedAt: 10 }) {
             read: reads,
             now: () => NOW,
             pause: async () => {},
+            asks: async () => asked.answer,
+            often: (ask, everyMs) => {
+                asked.ask = ask;
+                asked.everyMs = everyMs;
+                return () => (asked.ask = () => {});
+            },
         }
     );
     const settle = async () => {
@@ -57,6 +68,18 @@ function open(start = { source: "a();", savedAt: 10 }) {
         runs,
         landed,
         reads,
+        asked,
+        /** The space is saved, and nobody says so: the world has to ask. */
+        async saveQuietly(
+            source: string,
+            savedAt: number,
+            landing: any = "add"
+        ) {
+            saved = { ok: true, source, style: null, savedAt };
+            asked.answer = { savedAt, landing };
+            asked.ask();
+            await settle();
+        },
         outcome,
         stop,
         settle,
@@ -239,12 +262,46 @@ describe("a world that is open follows its space's saved script", () => {
                 }),
                 now: () => NOW,
                 pause: async () => {},
+                asks: async () => ({ savedAt: 0, landing: "add" as const }),
+                often: () => () => {},
             },
             () => "b();"
         );
         feed(scriptEvent(20, "rewind", NOW));
         for (let i = 0; i < 20; i++) await Promise.resolve();
         expect(runtime.run).not.toHaveBeenCalled();
+    });
+
+    test("a world the feed does not reach follows by asking", async () => {
+        const world = open();
+        // A guest: the feed refuses them, so no notice ever comes.
+        await world.saveQuietly("b();", 20);
+        expect(world.runs).toEqual([["b();", "keep"]]);
+        await world.saveQuietly("c();", 30, "rewind");
+        expect(world.runs.at(-1)).toEqual(["c();", "fresh"]);
+        expect(world.landed.map((now) => now.as)).toEqual(["kept", "fresh"]);
+    });
+
+    test("asking and hearing of the same save land it once", async () => {
+        const world = open();
+        await world.save("b();", 20);
+        world.asked.answer = { savedAt: 20, landing: "add" };
+        world.asked.ask();
+        await world.settle();
+        expect(world.reads).toHaveBeenCalledTimes(1);
+        expect(world.runs).toHaveLength(1);
+        // An answer the CDN held from before the save is older, not newer.
+        world.asked.answer = { savedAt: 10, landing: "rewind" };
+        world.asked.ask();
+        await world.settle();
+        expect(world.reads).toHaveBeenCalledTimes(1);
+    });
+
+    test("a space with a script asks often; one without, rarely", () => {
+        expect(open().asked.everyMs).toBeLessThan(20_000);
+        expect(open({ source: "", savedAt: 0 }).asked.everyMs).toBeGreaterThan(
+            45_000
+        );
     });
 
     test("stops listening when the space goes off show", async () => {

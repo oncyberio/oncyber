@@ -462,5 +462,21 @@ export function scriptsSavedAt(experience: { worldScripts?: unknown }) {
     );
 }
 
+/**
+ * When anything about a space's script was last saved: the script, its
+ * style, or its being taken away (which leaves no script to carry a time).
+ * What a space that is open compares to know there is something newer
+ * (features/world-scripts/livePickup.ts).
+ */
+export function scriptsSavedMark(experience: {
+    worldScripts?: unknown;
+    worldScriptsSavedAt?: unknown;
+}) {
+    return Math.max(
+        scriptsSavedAt(experience),
+        Number(experience.worldScriptsSavedAt) || 0
+    );
+}
+
 export const SCRIPT_CHANGED_ELSEWHERE =
     "This space's script was changed somewhere else. Reload to carry on from that one.";

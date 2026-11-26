@@ -19,12 +19,60 @@ export interface LiveScriptDeps {
     now(): number;
     /** A breath between two reads, so a busy feed cannot ask without end. */
     pause(): Promise<void>;
+    /**
+     * When the space's script was last saved, and how that save lands
+     * (/api/world-scripts/saved): asked every so often by a world that
+     * cannot count on hearing the feed.
+     */
+    asks(spaceId: string): Promise<{ savedAt: number; landing: Landing }>;
+    /** Runs `ask` now and then while the page is on show; returns a stop. */
+    often(ask: () => void, everyMs: number): () => void;
 }
 
 /** At most this often is the saved script read, however many notices come. */
 const READ_GAP_MS = 1500;
 
+/**
+ * How often a world asks whether its script was saved. The live feed that
+ * carries the notice refuses visitors who are not signed in, so for them
+ * this is how a save is followed: within about this long, plus the few
+ * seconds the answer is held by the CDN. A space with no script asks
+ * rarely; its first script is the one thing it could be waiting for.
+ */
+export const ASK_EVERY_MS = 12_000;
+export const ASK_IDLE_EVERY_MS = 60_000;
+
+function often(ask: () => void, everyMs: number) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const wait = () => {
+        clearTimeout(timer);
+        // Not in step with everyone else who opened the space together.
+        timer = setTimeout(() => {
+            if (!document.hidden) ask();
+            wait();
+        }, everyMs * (0.75 + Math.random() * 0.5));
+    };
+    // Back on show: ask at once, a save may have gone by.
+    const shown = () => {
+        if (!document.hidden) ask();
+    };
+    document.addEventListener("visibilitychange", shown);
+    wait();
+    return () => {
+        clearTimeout(timer);
+        document.removeEventListener("visibilitychange", shown);
+    };
+}
+
 const live: LiveScriptDeps = {
+    asks: async (spaceId) => {
+        const answer = await fetch(
+            `/api/world-scripts/saved?space=${encodeURIComponent(spaceId)}`
+        );
+        if (!answer.ok) throw new Error(String(answer.status));
+        return answer.json();
+    },
+    often,
     watch: (spaceId, onEvent) => liveSpace().watchEvents(spaceId, onEvent),
     read: (spaceId) =>
         (WorldScriptsApi as any).current({ experienceId: spaceId }),
@@ -153,8 +201,29 @@ export function followSavedScript(
         void follow();
     });
 
+    // And asked, for a world the feed does not reach. Only something
+    // newer than what this world has is a reason to read.
+    let asking = false;
+    const unask = deps.often(
+        () => {
+            if (asking || stopped) return;
+            asking = true;
+            void deps
+                .asks(spaceId)
+                .then((said) => {
+                    if (stopped || !(Number(said?.savedAt) > savedAt)) return;
+                    if (said.landing === "rewind") rewind = true;
+                    void follow();
+                })
+                .catch(() => undefined)
+                .finally(() => (asking = false));
+        },
+        started.source ? ASK_EVERY_MS : ASK_IDLE_EVERY_MS
+    );
+
     return () => {
         stopped = true;
         unwatch();
+        unask();
     };
 }
