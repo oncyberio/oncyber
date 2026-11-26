@@ -1,4 +1,9 @@
-import { previewWorldOrigin, siteOrigin, trialPreview } from "./siteOrigin";
+import {
+    looksSameSite,
+    previewWorldOrigin,
+    siteOrigin,
+    trialPreview,
+} from "./siteOrigin";
 import { readWorldFrame } from "@features/worlds/worldFrame";
 
 const preview = {
@@ -42,5 +47,40 @@ describe("everywhere else", () => {
     ])("%s goes by its own settings", (_name, env) => {
         expect(trialPreview(env)).toBe(false);
         expect(previewWorldOrigin(env)).toBe("");
+    });
+});
+
+describe("whether a world host looks like the same site", () => {
+    test("another name under the same domain is the same site", () => {
+        expect(
+            looksSameSite(
+                "https://www.oncyber.com",
+                "https://worlds.oncyber.com"
+            )
+        ).toBe(true);
+        expect(
+            looksSameSite("https://oncyber.com", "https://a.b.oncyber.com")
+        ).toBe(true);
+    });
+    test("a domain of its own is not, and nor are two names on a shared host", () => {
+        expect(
+            looksSameSite(
+                "https://www.oncyber.com",
+                "https://oncyber-worlds.com"
+            )
+        ).toBe(false);
+        expect(
+            looksSameSite(
+                "https://oncyber-git-games-dev-oncyber.vercel.app",
+                "https://oncyber-abc123-oncyber.vercel.app"
+            )
+        ).toBe(false);
+        // the local pair: one machine, two names a browser keeps apart
+        expect(
+            looksSameSite("http://localhost:13000", "http://127.0.0.1:13000")
+        ).toBe(false);
+        expect(looksSameSite("not a url", "https://www.oncyber.com")).toBe(
+            false
+        );
     });
 });
