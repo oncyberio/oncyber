@@ -9,7 +9,8 @@
 //   sdk/games/lantern-tag/     the starter game's template
 //   sdk/games/llms.txt, BRIEF.md, licenses.json
 //   sdk/scripts/games/         the check tool
-//   sdk/frontend/features/games/   the page's rules the check tool loads
+//   sdk/frontend/features/games/   the page's rules the check tool loads,
+//                                  in their folders (contract/, publish/, ...)
 //   sdk/docs/games/, sdk/docs/games.md
 import {
     cpSync,
@@ -25,7 +26,12 @@ import { fileURLToPath } from "node:url";
 
 const pkg = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = resolve(pkg, "../..");
-const out = join(pkg, "sdk");
+// ONCYBER_SDK_OUT writes the copy somewhere else: the test of this script
+// uses it, so the package's own sdk/ is never there while other tests run.
+// The folder it names is replaced, like sdk/: give it one of its own.
+const out = process.env.ONCYBER_SDK_OUT
+    ? resolve(process.env.ONCYBER_SDK_OUT)
+    : join(pkg, "sdk");
 
 rmSync(out, { recursive: true, force: true });
 if (process.argv.includes("--clean")) process.exit(0);
@@ -115,7 +121,7 @@ const pageFiles = new Set(
     scripts.flatMap(({ text }) =>
         [
             ...text.matchAll(
-                /(?:frontend\/features\/games|multiplayer\/protocol)\/[\w.-]+\.(?:ts|js)\b/g
+                /(?:frontend\/features\/games|multiplayer\/protocol)\/(?:[\w-]+\/)?[\w.-]+\.(?:ts|js)\b/g
             ),
         ]
             .map((match) => match[0])

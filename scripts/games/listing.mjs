@@ -10,7 +10,7 @@ import { extname, join } from "node:path";
 
 /** The devices a game can claim (games/runtime/src/devices.ts). */
 export const DEVICES = ["desktop", "phone", "gamepad"];
-/** The page caps a party at eight (frontend/features/games/gameParty.ts). */
+/** The page caps a party at eight (frontend/features/games/room/gameParty.ts). */
 export const MAX_PARTY = 8;
 /** What games:check writes when a listing names no thumbnail of its own. */
 export const GENERATED_THUMBNAIL = "thumbnail.jpg";
@@ -27,7 +27,9 @@ const RESERVED_PATH = "frontend/utils/reservedLinks.js";
 /**
  * A game's slug, the name in its short address /<slug>: 3 to 40 lowercase
  * letters and digits, in words joined by single dashes. The same rule as
- * `gameSlugProblem` in frontend/features/games/gameSlug.ts.
+ * the site's `gameSlugProblem` (gameSlug.ts in its games feature; not
+ * named by path here, because the `oncyber` package copies every page file
+ * a check script names by path, and this one is not loaded).
  */
 export const GAME_SLUG = /^(?=.{3,40}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
