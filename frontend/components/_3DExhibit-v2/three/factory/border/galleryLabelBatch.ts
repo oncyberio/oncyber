@@ -367,8 +367,11 @@ export class GalleryLabelBatch {
             const [dx, dy] = [side[j][0] - side[i][0], side[j][1] - side[i][1]];
             const n = Math.hypot(dx, dy) || 1;
             const exposure = Math.max(0, (dy * -0.45 - dx * 0.9) / n);
-            const rim = face.map((c) => c * (0.82 + 0.15 * exposure));
-            const edge = face.map((c) => c * (0.56 + 0.32 * exposure));
+            // Darken only the cut edge, especially where it meets the wall.
+            // The face stays smooth and unchanged; no cast shadow is needed.
+            const rim = face.map((c) => c * (0.74 + 0.19 * exposure));
+            const edge = face.map((c) => c * (0.46 + 0.25 * exposure));
+            const contact = face.map((c) => c * (0.3 + 0.32 * exposure));
             vertex(center, 0, face);
             vertex(front[i], 0, face);
             vertex(front[j], 0, face);
@@ -379,10 +382,10 @@ export class GalleryLabelBatch {
             vertex(side[j], -bevel, rim);
             vertex(front[j], 0, face);
             vertex(side[i], -bevel, edge);
-            vertex(side[i], -depth, edge);
-            vertex(side[j], -depth, edge);
+            vertex(side[i], -depth, contact);
+            vertex(side[j], -depth, contact);
             vertex(side[i], -bevel, edge);
-            vertex(side[j], -depth, edge);
+            vertex(side[j], -depth, contact);
             vertex(side[j], -bevel, edge);
         }
     }
