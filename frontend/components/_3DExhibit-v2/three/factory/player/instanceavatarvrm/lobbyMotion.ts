@@ -15,6 +15,9 @@ import {
 } from "./constants";
 
 import { GROUND_BRAKE } from "../../../camera/controls/physics/groundMotion";
+import * as THREE from "three";
+import { createProceduralRig } from "@features/lobby/proceduralRig";
+import { createMotionInertia } from "@features/lobby/motionInertia";
 
 const PREFIX = "@lobby/";
 // The lobby clock expects metres per second for a 1.8 m avatar. Space avatars
@@ -84,12 +87,38 @@ export function createNativeLobbyMotion(
     const animations = [0, 0, 0, -1];
     let active = false;
     const actions = () => wrapper.vrm?.possibleActions;
+    // Live skeletons get the lobby's detail pass too: posture (lean into
+    // starts and turns, torso lead), planted feet and short inertial
+    // handoffs between clips. Built once per rig, from a sampled idle.
+    let detail:
+        | {
+              rig: ReturnType<typeof createProceduralRig>;
+              inertia: ReturnType<typeof createMotionInertia>;
+              root: any;
+          }
+        | undefined;
+    let sampled: LobbyLocomotionPose | undefined;
+    const reducedMotion =
+        typeof globalThis.matchMedia === "function"
+            ? globalThis.matchMedia("(prefers-reduced-motion: reduce)")
+            : undefined;
+    const restoreDetail = () => {
+        detail?.rig.restore();
+        detail?.inertia.restore();
+    };
     return {
+        restore() {
+            restoreDetail();
+            sampled = undefined;
+        },
         update(dt: number) {
             const step = Math.max(
                 0,
                 Math.min(Number.isFinite(dt) ? dt : 0, 0.1)
             );
+            // The mixer samples next; it must start from the authored pose.
+            restoreDetail();
+            sampled = undefined;
             const p = wrapper.position;
             const dx = p.x - position.x,
                 dy = p.y - position.y,
@@ -144,9 +173,12 @@ export function createNativeLobbyMotion(
                 ? input.speed / GROUND_BRAKE
                 : undefined;
             input.headingError = native?.headingError;
-            input.turnIntent = native?.stopping
-                ? undefined
-                : native?.headingError;
+            // Like the lobby: the turn the visitor asks for, none once released.
+            input.turnIntent = native
+                ? native.stopping
+                    ? 0
+                    : native.turnIntent ?? native.headingError
+                : undefined;
             const yaw = wrapper.rotation || 0;
             input.turnRate =
                 !discontinuity && step > 0
@@ -174,6 +206,10 @@ export function createNativeLobbyMotion(
                 !defaults.includes(wrapper.currentAction)
             )
                 return false;
+            // Stride warping pairs cadence with the rig's foot targets, so it
+            // only applies where the rig runs.
+            input.warping = !!detail && wrapper.isHighQuality;
+            input.procedural = !reducedMotion?.matches;
             const pose = locomotion.update(step, input);
             if (wrapper.isHighQuality) {
                 const available = actions();
@@ -197,6 +233,7 @@ export function createNativeLobbyMotion(
                 };
                 sample(a, pose.primary.time, 1 - pose.blend);
                 sample(b, pose.secondary.time, pose.blend);
+                sampled = pose;
             } else {
                 if (
                     !encodeLobbyPose(
@@ -222,7 +259,63 @@ export function createNativeLobbyMotion(
             active = true;
             return true;
         },
+        /** After the mixer has sampled this frame, before vrm.update. */
+        afterMixer(dt: number) {
+            const step = Math.max(
+                0,
+                Math.min(Number.isFinite(dt) ? dt : 0, 0.1)
+            );
+            const root = wrapper.isHighQuality && wrapper.highQualityMeshes;
+            if (detail && detail.root !== root) {
+                restoreDetail();
+                detail = undefined;
+            }
+            if (!sampled) {
+                detail?.inertia.reset();
+                detail?.rig.reset();
+                return;
+            }
+            const bone = (name: string) =>
+                wrapper.vrm?.vrm?.humanoid?.getNormalizedBoneNode(name) ||
+                null;
+            if (!detail) {
+                // Legs are measured from the pose on the bones: wait for idle.
+                if (!root || !bone("hips") || input.speed > 0.05) return;
+                if (!input.grounded) return;
+                root.updateWorldMatrix(true, true);
+                const nodes = new Set<any>();
+                for (const action of Object.values(actions() || {}) as any[])
+                    for (const track of action.getClip().tracks) {
+                        const node = root.getObjectByName(
+                            track.name.slice(0, track.name.lastIndexOf("."))
+                        );
+                        if (node) nodes.add(node);
+                    }
+                detail = {
+                    root,
+                    rig: createProceduralRig(THREE, root, bone, metadata),
+                    inertia: createMotionInertia(
+                        THREE,
+                        Array.from(nodes),
+                        bone("hips") || undefined
+                    ),
+                };
+                return;
+            }
+            const detailed = input.procedural !== false;
+            detail.inertia.update(
+                step,
+                detailed
+                    ? `${sampled.primary.name}:${sampled.secondary.name}`
+                    : undefined
+            );
+            detail.rig.update(step, input, sampled);
+        },
         release() {
+            restoreDetail();
+            detail?.inertia.reset();
+            detail?.rig.reset();
+            sampled = undefined;
             if (!active) return;
             active = false;
             if (wrapper.isHighQuality) {

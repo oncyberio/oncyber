@@ -308,6 +308,9 @@ export class Players {
 
             newUserNameBlock.visible = instance.visible
 
+            // the name tag shows no picture ( the spawn point's label )
+            instance.nameTagTextOnly = textOnly === true
+
             instance.username = newUserNameBlock
 
             newUserNameBlock.wrapper.position = newUserNameBlock.wrapper.position

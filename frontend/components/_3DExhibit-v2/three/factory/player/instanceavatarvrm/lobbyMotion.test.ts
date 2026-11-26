@@ -250,3 +250,63 @@ test("authored flight retains legacy animation ownership", () => {
     expect(createNativeLobbyMotion(w, metadata).update(1 / 60)).toBe(false);
     expect(w.animations).toEqual([0, 0, 0, 0]);
 });
+
+test("live skeletons get the lobby's posture over the sampled pose, and lose it before the next sample", () => {
+    const root = new THREE.Group();
+    const bones: Record<string, THREE.Object3D> = {};
+    const add = (name: string, parent: THREE.Object3D, x: number, y: number) => {
+        const node = new THREE.Bone();
+        node.name = name;
+        node.position.set(x, y, 0);
+        parent.add(node);
+        return (bones[name] = node);
+    };
+    const hips = add("hips", root, 0, 1);
+    add("chest", add("spine", hips, 0, 0.2), 0, 0.2);
+    for (const [side, x] of [["left", 0.1], ["right", -0.1]] as const)
+        add(`${side}Foot`, add(`${side}LowerLeg`, add(`${side}UpperLeg`, hips, x, -0.05), 0, -0.45), 0, -0.45);
+    const w = wrapper();
+    w.isHighQuality = true;
+    w.highQualityMeshes = root;
+    const mixer = new THREE.AnimationMixer(root);
+    const possibleActions = {};
+    for (const [name, meta] of Object.entries(metadata))
+        possibleActions["@lobby/" + name] = mixer.clipAction(
+            new THREE.AnimationClip("@lobby/" + name, meta.duration, [])
+        );
+    w.vrm = {
+        possibleActions,
+        vrm: { humanoid: { getNormalizedBoneNode: (n: string) => bones[n] || null } },
+    };
+    const motion = createNativeLobbyMotion(w, metadata);
+    const frame = () => {
+        motion.restore();
+        motion.update(1 / 60);
+        motion.afterMixer(1 / 60);
+    };
+    frame(); // idle: the rig measures the legs
+    w.nativeMotionInput = {
+        grounded: true, jumpCount: 0, verticalVelocity: 0, speed: 6,
+        stopping: false, flying: false, headingError: 0.5, turnIntent: 0.8,
+    };
+    for (let i = 0; i < 20; i++) {
+        w.position.x += 0.1;
+        w.rotation += 0.04;
+        root.rotation.y = w.rotation;
+        frame();
+    }
+    const identity = new THREE.Quaternion();
+    expect(bones.chest.quaternion.angleTo(identity)).toBeGreaterThan(0.01);
+    motion.restore();
+    expect(bones.chest.quaternion.angleTo(identity)).toBeCloseTo(0, 6);
+    motion.release();
+});
+
+test("the gallery passes its turn intent through, and none once released", () => {
+    const w = wrapper();
+    const motion = createNativeLobbyMotion(w, metadata) as any;
+    w.nativeMotionInput = { grounded: true, speed: 3, stopping: false, headingError: 0.2, turnIntent: 0.9 };
+    expect(() => motion.update(1 / 60)).not.toThrow();
+    // No live rig on the GPU path: afterMixer is a no-op.
+    expect(() => motion.afterMixer(1 / 60)).not.toThrow();
+});

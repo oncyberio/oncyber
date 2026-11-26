@@ -1122,6 +1122,9 @@ export default class InstancePlayer extends Group {
 
                         this.avatarImg = img
 
+                        // the name tag shows a picture only once it loaded
+                        if( img ) this.nameTagPhoto = url
+
                         Players.updateUserName( this, this.username , this.userData.username, img )
 
             			if (IS_MULTIPLAYER && this.currentEntity && !opts.display) {
@@ -1431,10 +1434,9 @@ export default class InstancePlayer extends Group {
         motion.stopping = playerState.originalDirection.lengthSq() === 0 &&
             playerState.joystickState.pan.lengthSq() === 0;
         motion.flying = flyMode || playerState.quidditch || playerState.opts.editMode;
-        motion.headingError = Math.atan2(
-            Math.sin(playerState.tempRotation - playerState.rotation.y),
-            Math.cos(playerState.tempRotation - playerState.rotation.y)
-        );
+        // The lobby's turn signals: travel and input, each against the body.
+        motion.headingError = playerState.headingError;
+        motion.turnIntent = playerState.turnIntent;
 
 
 	    // console.log( this.isPlayerOnFloor )

@@ -1,5 +1,11 @@
+import { actionTokens } from "@styles/tokens/action";
 import { lobbyTokens } from "@styles/tokens/lobby";
-import { shownName } from "@utils/guestIdentity";
+import { LOBBY_GUEST_PORTRAIT } from "./lobbyIdentity";
+import {
+    PAD_EM,
+    PHOTO_INSET_EM,
+    tagName as nameOnTag,
+} from "@features/name-tags/layout";
 
 /** How long a line stays over its speaker, including the transitions. */
 export const SPEECH_SHOW_MS = 6000;
@@ -68,20 +74,17 @@ type Projector = (point: Point) => {
     scale: number;
 };
 
-// The name tag's own measures (webgpu/nameTags.ts), so the line can stand
-// exactly where the tag was: text height in metres, then sizes in ems of it.
-const TAG_FONT_METRES = 0.081;
-const PHOTO_EM = 1.9;
-const GAP_EM = 0.37;
+// The name tag's own measures (features/name-tags), so the line can stand
+// exactly where the tag was.
+const TAG = lobbyTokens.nameTag;
 const BASE_PX = 16;
 /** A message never gets smaller than this, however far the speaker is. */
 const MIN_FONT_PX = 14;
 /** How far the outgoing line travels, in ems. */
 const SLIDE_EM = 1.25;
-const tagName = (name: string, photo: boolean) => {
-    name = shownName(name);
-    return photo && name.length > 18 ? `${name.slice(0, 18)}...` : name;
-};
+/** The tag's font size on screen for `scale` CSS pixels per metre. */
+const tagPx = (scale: number) =>
+    Math.min(TAG.maxPx, Math.max(TAG.minPx, TAG.fontMetres * scale));
 
 /**
  * What someone just said, shown in place of their name tag. The message
@@ -89,7 +92,7 @@ const tagName = (name: string, photo: boolean) => {
  * out; when it leaves it is pushed back down as the tag returns. The message
  * stands alone, centred over the speaker.
  *
- * The name tag itself is drawn on the GPU, so while someone is `speaking`
+ * The name tag itself is drawn in the scene, so while someone is `speaking`
  * the scene hides it and this draws a DOM twin in the same place and size.
  * Text in the DOM wraps and stays crisp; the scene only moves each element
  * with a transform once per frame.
@@ -108,8 +111,8 @@ export class SpeechBubbles {
             text: string;
             photo: string;
             nameText: string;
-            /** Half the name's width plus the picture, in base pixels. */
-            lead: number;
+            /** Rim width last written, in pre-scale pixels. */
+            rim: string;
         }
     >();
 
@@ -135,6 +138,7 @@ export class SpeechBubbles {
             pointerEvents: "none",
             transformOrigin: "0 0",
         });
+        // The tag's chip: picture and name in the menu rows' glass.
         const row = document.createElement("div");
         Object.assign(row.style, {
             position: "absolute",
@@ -142,9 +146,16 @@ export class SpeechBubbles {
             top: "0",
             display: "flex",
             alignItems: "center",
-            gap: `${GAP_EM}em`,
-            height: "1.25em",
+            gap: `${TAG.gapEm}em`,
             width: "max-content",
+            boxSizing: "border-box",
+            height: `${TAG.photoEm + 2 * PHOTO_INSET_EM}em`,
+            padding: `0 ${PAD_EM}em`,
+            borderRadius: "999px",
+            background: TAG.fill,
+            color: TAG.ink,
+            font: `500 1em/1 ${actionTokens.type.family}`,
+            textShadow: "none",
         });
         // The message hangs from the tag's baseline, centred on the speaker,
         // and grows upward when it wraps.
@@ -168,18 +179,28 @@ export class SpeechBubbles {
         image.decoding = "async";
         Object.assign(image.style, {
             position: "relative",
-            width: `${PHOTO_EM}em`,
-            height: `${PHOTO_EM}em`,
+            width: `${TAG.photoEm}em`,
+            height: `${TAG.photoEm}em`,
+            background: TAG.photoFill,
             borderRadius: "50%",
             objectFit: "cover",
             flex: "none",
             display: "none",
         });
-        image.onerror = () => (image.style.display = "none");
+        // A dead photo gets the guest portrait once, like the tag; only a
+        // failed portrait leaves the pill without a picture.
+        image.onerror = () => {
+            if (!image.src.endsWith(LOBBY_GUEST_PORTRAIT))
+                image.src = LOBBY_GUEST_PORTRAIT;
+            else image.style.display = "none";
+        };
         const name = document.createElement("span");
         Object.assign(name.style, {
             display: "block",
             whiteSpace: "nowrap",
+            maxWidth: `${TAG.maxNameEm}em`,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
         });
         const line = document.createElement("span");
         Object.assign(line.style, {
@@ -203,7 +224,7 @@ export class SpeechBubbles {
             text: "",
             photo: "",
             nameText: "\u0000",
-            lead: 0,
+            rim: "",
         };
     }
 
@@ -235,26 +256,31 @@ export class SpeechBubbles {
                         ? `${line.text.slice(0, 139)}…`
                         : line.text;
             }
-            const photo = head.photo || "";
-            const nameText = tagName(head.name || "Guest", !!photo);
+            // The tag shows the guest portrait when there is no photo.
+            const photo = head.photo || LOBBY_GUEST_PORTRAIT;
+            const nameText = nameOnTag(head.name || "Guest");
             if (entry.photo !== photo || entry.nameText !== nameText) {
                 entry.photo = photo;
                 entry.nameText = nameText;
                 entry.image.style.display = photo ? "block" : "none";
                 if (photo) entry.image.src = photo;
                 entry.name.textContent = nameText;
-                // The tag centres the name and hangs the picture off its
-                // left; one layout read per speaker, not per frame.
-                entry.lead =
-                    entry.name.offsetWidth / 2 +
-                    (photo ? (PHOTO_EM + GAP_EM) * BASE_PX : 0);
+                entry.row.style.paddingLeft = photo
+                    ? `${PHOTO_INSET_EM}em`
+                    : `${PAD_EM}em`;
             }
             // Starts at the tag's own size, and grows to a readable one when
             // the speaker is far away.
-            const match = TAG_FONT_METRES * screen.scale;
+            const match = tagPx(screen.scale);
             const size =
                 match + (Math.max(match, MIN_FONT_PX) - match) * presence;
             const zoom = size / BASE_PX;
+            // The rim stays 1.5 screen pixels however the pill scales.
+            const rim = (1.5 / zoom).toFixed(2);
+            if (entry.rim !== rim) {
+                entry.rim = rim;
+                entry.row.style.boxShadow = `inset 0 0 0 ${rim}px ${TAG.rim}, ${TAG.shadow}`;
+            }
             // Sub-pixel positions: rounding made the line step a pixel at a
             // time against the smoothly moving avatar, which read as shaking.
             entry.root.style.transform = `translate3d(${screen.x.toFixed(
@@ -262,9 +288,9 @@ export class SpeechBubbles {
             )}px, ${screen.y.toFixed(2)}px, 0) scale(${zoom.toFixed(4)})`;
             // The whole tag leaves upward as the message arrives from below.
             entry.row.style.opacity = (1 - presence).toFixed(3);
-            entry.row.style.transform = `translate(${(-entry.lead).toFixed(
-                2
-            )}px, calc(-50% - ${(SLIDE_EM * presence).toFixed(3)}em))`;
+            entry.row.style.transform = `translate(-50%, calc(-50% - ${(
+                SLIDE_EM * presence
+            ).toFixed(3)}em))`;
             entry.bubble.style.opacity = presence.toFixed(3);
             entry.bubble.style.transform = `translate(-50%, calc(0.625em - 100% + ${(
                 SLIDE_EM *

@@ -1,34 +1,8 @@
-import {
+import { Object3D } from 'three'
 
-	Mesh,
-
-	Object3D,
-
-	Vector3
-
-} from 'three'
-
-const temp1 = new Vector3()
-
-import Geometry from './geometry.js'
-
-import Material from './material'
-
-import Atlas  	from '@3factory/atlas'
-
-import {
-
-	ATLAS_EVENTS,
-
-	TEXTURE_SIZE,
-
-	BLOCK_SIZE
-
-} from '@3factory/atlas/constants'
+import { ATLAS_EVENTS } from '@3factory/atlas/constants'
 
 import Wrapper from './wrapper.js'
-
-import BASE_GEOMETRY from './basegeometry.js'
 
 import Emitter from '@3emitter'
 
@@ -38,14 +12,27 @@ import Players from "@3factory/player"
 
 import PipeLineMesh from '@3abstract/pipelinemesh'
 
-let c = 0
+import Camera from '@3camera'
 
+import Renderer from '@3renderer'
 
-import {
+import { CANVAS, LOD_VRM_VISIBILITY } from '@3constants'
 
-	LOD_VRM_VISIBILITY
+import { DEFAULT_PLAYER_AVATAR_PICTURE } from '../constants.js'
 
-} from '@3constants'
+import { createNameTags } from '@features/name-tags/nameTags'
+
+/*
+ * Name tags over the players: the shared tags ( features/name-tags ), the
+ * same as the lobby's, drawn as sharp distance field text in one instanced
+ * draw. The username atlas still hands each player a block whose wrapper
+ * carries the tag's position, visibility and opacity ( chat bubbles move
+ * and fade it ); the tag itself is written here every frame from those.
+ */
+
+const MAX_TAGS = 64
+
+const MAX_DISTANCE = Math.min( 50, LOD_VRM_VISIBILITY )
 
 export default class InstanceUserName extends Object3D {
 
@@ -55,10 +42,6 @@ export default class InstanceUserName extends Object3D {
 
 		this.atlas = atlas
 
-		this.onNewTextureEvent =  this.onNewTexture.bind(this)
-
-		this.atlas.on(ATLAS_EVENTS.NEW_TEX, this.onNewTextureEvent )
-
 		this.onBlockDataEvent = this.onBlockData.bind(this)
 
 		this.atlas.on(ATLAS_EVENTS.BLOCK_DATA, this.onBlockDataEvent )
@@ -67,50 +50,29 @@ export default class InstanceUserName extends Object3D {
 
 		this.atlas.on(ATLAS_EVENTS.REMOVE_BLOCK, this.onBlockRemoveEvent )
 
+		this.tags = createNameTags( this, MAX_TAGS, {
+
+			// hidden only when the camera is inside the head ( first person )
+			closeFade: [ 0.8, 1.4 ],
+
+			fallbackPhoto: DEFAULT_PLAYER_AVATAR_PICTURE,
+
+			createMesh: ( geometry, material, occlusionMaterial ) => new PipeLineMesh( geometry, material, {
+
+				occlusionMaterial,
+
+				visibleOnMirror: false
+			})
+		})
+
+		this.tags.mesh.matrixAutoUpdate = false
+
+		this.shown = []
+
+		// after the players and the camera moved, before the frame draws
 		this.updateEvent = this.update.bind(this)
 
-		Emitter.on(Events.PRE_UPDATE, this.updateEvent)
-
-		this.meshes = []
-
-		this.height = 0
-
-		this.textureCount = -1
-
-		window.pppp = this
-	}
-
-	// set enabled
-
-	onNewTexture( tex ){
-
-		this.textureCount++
-
-		const mat = new Material( {tex: tex} )
-
-		const instanceMesh  = new PipeLineMesh(
-			new Geometry(BASE_GEOMETRY, { opacity: true, pause: true, atlas: true, max: this.atlas.distanceBasedMaxElements , sorting: false }),
-			mat,
-			{
-				occlusionMaterial: mat.occlusionMaterial,
-				visibleOnMirror: false
-			}
-
-		)
-
-		instanceMesh.frustumCulled 	  = false
-
-		instanceMesh.matrixAutoUpdate = false
-
-		this.meshes.push(
-
-			instanceMesh
-		)
-
-		instanceMesh.textureCount = this.textureCount
-
-		this.add( instanceMesh )
-
+		Emitter.on(Events.DUSK_UPDATE, this.updateEvent)
 	}
 
 	onBlockRemove( block ){
@@ -121,117 +83,105 @@ export default class InstanceUserName extends Object3D {
 		}
 	}
 
-
-	update(){
-
-		let i = 0
-
-		while( i < this.meshes.length ){
-
-			if( this.meshes[i].wrappers.length > 0 ) {
-
-				this.meshes[i].geometry.sort( this.meshes[i].wrappers )
-
-				this.meshes[i].visible = true
-			}
-
-			else {
-
-				this.meshes[i].visible = false
-			}
-
-			i++
-		}
-	}
-
 	onBlockData( blocks ){
 
 		let i = 0
 
-		// i = 0
-		while( i < this.meshes.length){
-
-			this.meshes[i].wrappers = []
-
-			i++
-		}
-
-		i = 0
-
-		// console.log(Players.main?.position)
-
 		while( i < blocks.length ) {
 
 			const block = blocks[i]
-
-			const textureIndex = block.textureIndex
-
-			// if no wrapper at all
 
 			if( block.wrapper == null ) {
 
 				block.wrapper = new Wrapper()
 			}
 
-			const wrapper = block.wrapper
-
-			wrapper.atlas = { x: block.uvScale.x, y: block.uvScale.y, z: block.uvPos.x, w: block.uvPos.y }
-
-
-			const mesh = this.meshes[ textureIndex  ]
-
-			if ( wrapper.visible && wrapper.position != null && Players.main?.position ) {
-
-				temp1.copy( wrapper.position )
-
-            	wrapper.distance =  temp1.distanceTo( Players.main.position )
-
-                if (wrapper.ignoreLOD) {
-
-                    wrapper.distance = 1
-                }
-            }
-			else {
-
-				wrapper.distance = Infinity
-			}
-
-            // mesh may not exists if distance based
-			if( mesh != null ){
-
-				if( wrapper.distance < Math.min( 50, LOD_VRM_VISIBILITY ) ) {
-
-					mesh.wrappers.push( wrapper )
-				}
-			}
-
 			i++
 		}
 	}
 
-	dispose(){
+	update(){
 
-		this.atlas.off(ATLAS_EVENTS.NEW_TEX, this.onNewTextureEvent )
+		const tags = this.tags
+
+		tags.begin()
+
+		const camera = Camera.current
+
+		if( !this.visible || camera == null ) {
+
+			tags.end( camera || Camera.mainCamera, 0 )
+
+			return
+		}
+
+		const main = Players.main?.position
+
+		const shown = this.shown
+
+		shown.length = 0
+
+		for( const player of Players.instances ) {
+
+			const wrapper = player.username?.wrapper
+
+			const position = wrapper?.position
+
+			if( !player.visible || !wrapper?.visible || position == null ) continue
+
+			let distance = 0
+
+			if( main && !wrapper.ignoreLOD ) {
+
+				distance = Math.hypot( position.x - main.x, position.y - main.y, position.z - main.z )
+
+				if( distance >= MAX_DISTANCE ) continue
+			}
+
+			shown.push( { player, wrapper, distance } )
+		}
+
+		// a full space keeps the nearest
+		if( shown.length > MAX_TAGS ) shown.sort( ( a, b ) => a.distance - b.distance )
+
+		for( const { player, wrapper } of shown ) {
+
+			const photo = player.nameTagTextOnly ? "" : ( player.nameTagPhoto || DEFAULT_PLAYER_AVATAR_PICTURE )
+
+			tags.show(
+
+				player.userData?.sessionId || "",
+
+				player.userData?.username || "",
+
+				photo,
+
+				wrapper.position.x,
+
+				wrapper.position.y,
+
+				wrapper.position.z,
+
+				false,
+
+				wrapper.opacity ?? 1
+			)
+		}
+
+		// in VR there is no single screen to keep a size on: world size
+		const presenting = Renderer.xr?.isPresenting === true
+
+		tags.end( camera, presenting ? 0 : ( CANVAS?.clientHeight || 0 ) )
+	}
+
+	dispose(){
 
 		this.atlas.off(ATLAS_EVENTS.BLOCK_DATA, this.onBlockDataEvent )
 
 		this.atlas.off(ATLAS_EVENTS.REMOVE_BLOCK, this.onBlockRemoveEvent )
 
-		let i = 0
+		Emitter.off(Events.DUSK_UPDATE, this.updateEvent )
 
-		while(i < this.meshes.length ) {
-
-			var mesh = this.meshes[i]
-
-			this.remove(mesh)
-
-			mesh.material.dispose()
-
-			mesh.geometry.dispose()
-
-			mesh = null
-
-			i++
-		}
+		this.tags.dispose()
 	}
 }

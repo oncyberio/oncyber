@@ -9,18 +9,24 @@ let images: HTMLImageElement[];
 
 beforeEach(() => {
     context = {
-        save: jest.fn(),
-        restore: jest.fn(),
-        beginPath: jest.fn(),
-        rect: jest.fn(),
-        clip: jest.fn(),
         clearRect: jest.fn(),
+        fillRect: jest.fn(),
         fillText: jest.fn(),
-        measureText: jest.fn(() => ({ width: 80 })),
-        arc: jest.fn(),
+        measureText: jest.fn((text: string) => ({
+            width: 20 * text.length,
+            actualBoundingBoxAscent: 30,
+            actualBoundingBoxDescent: 8,
+            actualBoundingBoxLeft: 1,
+            actualBoundingBoxRight: 20,
+        })),
+        getImageData: jest.fn(
+            (_x: number, _y: number, w: number, h: number) => ({
+                data: new Uint8ClampedArray(w * h * 4),
+            })
+        ),
         drawImage: jest.fn(),
     } as unknown as CanvasRenderingContext2D;
-    // Jest infers the last (WebGPU) overload; this atlas requests only 2D.
+    // Jest infers the last (WebGPU) overload; the tags request only 2D.
     jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
         () => context as any
     );
@@ -53,12 +59,12 @@ test("a visitor without a photo loads and draws the guest portrait", () => {
     load(images[0]);
     expect(context.drawImage).toHaveBeenCalledWith(
         images[0],
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number),
-        expect.any(Number)
+        ...Array(8).fill(expect.any(Number))
     );
-    tags.end(new THREE.PerspectiveCamera());
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(0, 2, 5);
+    camera.updateMatrixWorld();
+    tags.end(camera, 800);
     expect(tags.count).toBe(1);
 });
 

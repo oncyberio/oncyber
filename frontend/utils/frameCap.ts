@@ -36,6 +36,8 @@ export function maxFrameRate(value: unknown): number {
 export function createFrameCap(maxFps: number) {
     let next = -Infinity;
     return {
+        /** The cap in frames a second; 0 draws every refresh. */
+        maxFps: maxFps > 0 ? maxFps : 0,
         shouldDraw(time: number): boolean {
             if (!(maxFps > 0)) return true;
             const interval = 1000 / maxFps;

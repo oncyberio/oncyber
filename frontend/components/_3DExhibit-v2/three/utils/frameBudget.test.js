@@ -116,6 +116,30 @@ describe("resolution governor", () => {
         expect(run(governor, 8, 6)).toEqual([1]);
     });
 
+    test("under a 60 fps cap, holding 60 recovers the full size", () => {
+        const governor = createResolutionGovernor({ capFps: 60 });
+        // A slow arrival steps down twice.
+        expect(run(governor, 40, 5)).toEqual([0.9, 0.8]);
+        // Capped frames can never be 8 ms: holding the cap is fast.
+        expect(run(governor, 16.7, 13)).toEqual([0.9, 1]);
+    });
+
+    test("a step up that turns slow again is not retried", () => {
+        const governor = createResolutionGovernor({ capFps: 60 });
+        run(governor, 40, 2);
+        expect(run(governor, 16.7, 6)).toEqual([1]);
+        // The full size is too heavy: back down, and it stays there.
+        expect(run(governor, 40, 3)).toEqual([0.9]);
+        expect(run(governor, 16.7, 30)).toEqual([]);
+        expect(governor.scale).toBe(0.9);
+    });
+
+    test("a cap slower than the budget is not a slow device", () => {
+        const governor = createResolutionGovernor({ capFps: 30 });
+        expect(run(governor, 33.4, 20)).toEqual([]);
+        expect(run(governor, 60, 2)).toEqual([0.9]);
+    });
+
     test("pauses and stalls are not frames", () => {
         const governor = createResolutionGovernor();
         expect(run(governor, MAX_FRAME_GAP_MS + 1, 10)).toEqual([]);

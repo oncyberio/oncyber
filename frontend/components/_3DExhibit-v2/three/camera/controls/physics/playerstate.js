@@ -12,7 +12,9 @@ import Players from "@components/_3DExhibit-v2/three/factory/player";
 
 // import Camera from '@3camera'
 
-import { AIR_CONTROL } from "./groundMotion";
+import { AIR_CONTROL, advanceHeading } from "./groundMotion";
+
+const STILL = { x: 0, z: 0 };
 
 export class PlayerState {
     // params to be set on each frame
@@ -42,6 +44,10 @@ export class PlayerState {
 
     quaternion = new Quaternion
     currentSpeed = 0;
+    /** Travel direction relative to the body (radians), for the motion clock. */
+    headingError = 0;
+    /** Input direction relative to the body (radians), 0 with no input. */
+    turnIntent = 0;
 
     constructor(opts = {}){
 
@@ -287,13 +293,28 @@ export class PlayerState {
 
 
 
-    update(){
+    update(delta){
 
         this.rotateQuarternion.setFromAxisAngle(this.rotateAngle,  this.tempRotation)
 
-        this.quaternion.rotateTowards(this.rotateQuarternion, 0.16)
+        // The lobby's facing: the body turns toward its travel. First person
+        // keeps the body under the camera.
+        const steering = IS_FIRST_PERSON || this.originalDirection.lengthSq() > 0
 
-        this.rotation.setFromQuaternion ( this.quaternion, 'YXZ' )
+        const heading = advanceHeading(
+            this.rotation.y,
+            IS_FIRST_PERSON ? STILL : this.veclocity,
+            steering ? this.tempRotation : undefined,
+            delta
+        )
+
+        this.headingError = heading.headingError
+
+        this.turnIntent = heading.turnIntent
+
+        this.rotation.set(0, heading.rotation, 0, 'YXZ')
+
+        this.quaternion.setFromEuler(this.rotation)
 
         if( this.isJumping && this.playerOnFloor == true ) {
 
