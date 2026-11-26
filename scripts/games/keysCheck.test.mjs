@@ -1,7 +1,7 @@
 // node --test scripts/games/keysCheck.test.mjs
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { createRequire, stripTypeScriptTypes } from "node:module";
+import { stripTypeScriptTypes } from "node:module";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +12,7 @@ import {
     scanText,
     stripComments,
 } from "./keysCheck.mjs";
+import { browserForTests, inCi } from "./test/browser.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../..");
@@ -97,12 +98,7 @@ test("reserved bindings in game.json are findings; a legacy game's are warnings"
 });
 
 // The browser half against a tiny game: once following the rule, once breaking it.
-let chromium;
-try {
-    ({ chromium } = createRequire(import.meta.url)("playwright"));
-} catch {
-    /* no Playwright here: the browser tests are skipped */
-}
+const { chromium, skip } = browserForTests();
 const manifest = {
     input: {
         right: { keyboard: ["KeyD"] },
@@ -156,7 +152,7 @@ async function withFixture(query, run) {
     }
 }
 
-test("browser: a game on the binder passes", { skip: !chromium }, async () => {
+test("browser: a game on the binder passes", { skip }, async () => {
     const result = await withFixture("", (browser, origin) =>
         keysBrowserCheck({
             browser,
@@ -180,7 +176,7 @@ test("browser: a game on the binder passes", { skip: !chromium }, async () => {
 
 test(
     "browser: a raw key listener is caught moving the player while the visitor types",
-    { skip: !chromium },
+    { skip },
     async () => {
         const result = await withFixture("?leak", (browser, origin) =>
             keysBrowserCheck({
@@ -204,8 +200,8 @@ test(
 
 test(
     "browser: the pointer lock goes to the page on pause and comes back on the next click",
-    { skip: !chromium },
-    async () => {
+    { skip },
+    async (t) => {
         await withFixture("?lock", async (browser, origin) => {
             const { harnessPage } = await import("./keysCheck.mjs");
             const page = await browser.newPage({
@@ -224,8 +220,12 @@ test(
             });
             await page.mouse.click(320, 100);
             await page.waitForTimeout(300);
-            if (!(await state()).locked)
-                return test.skip?.("this browser grants no pointer lock");
+            if (!(await state()).locked) {
+                // The browser the workflow installs grants it: in CI a
+                // refusal is a failure, not a test that quietly stops.
+                assert.ok(!inCi(), "this browser grants no pointer lock");
+                return t.skip("this browser grants no pointer lock");
+            }
             // Enter: chat takes focus, the game lets go of the cursor.
             await page.keyboard.press("Enter");
             await page.waitForTimeout(300);

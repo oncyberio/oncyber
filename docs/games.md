@@ -460,6 +460,15 @@ Chrome and its GPU; `--headed` shows the window. Headless frame times follow
 the headless browser's frame rate, not the game's. Without a GPU a WebGL
 game renders slowly; `GAMES_CHECK_TIMEOUT_S=600` waits longer for the report.
 
+Playwright is not a dependency of this repository: the check uses the one
+installed on the machine (`npm i -g playwright`, `NODE_PATH` set to
+`npm root -g`, `npx playwright install chromium`). `pnpm games:test` runs
+twelve of its tests in that browser too (the network policy, keys and
+pointer lock, sound, a hosted release). Without Playwright they are
+reported as skipped, with the reason, on a person's machine; in CI the run
+fails instead, and the workflow installs it
+(`.github/workflows/games.yml`, `scripts/games/test/browser.mjs`).
+
 ## SDK and checks still owed
 
 What the first version of this list asked for is delivered: `enter()`

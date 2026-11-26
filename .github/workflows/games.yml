@@ -56,8 +56,19 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22
-            # No install: these tests run on Node alone (TypeScript is
-            # stripped by Node, and nothing here imports a package).
+            # No `pnpm install`: these tests import no package of this
+            # repository (TypeScript is stripped by Node). Twelve of them
+            # run a small game in a real browser (the network policy, keys
+            # and pointer lock, sound, a hosted release), and for those the
+            # check uses the Playwright installed on the machine, as it does
+            # for a person: found through NODE_PATH. Without it the run
+            # fails rather than skip them (scripts/games/test/browser.mjs).
+            # The version is the one the committed builds were checked with.
+            - name: Playwright and Chromium, for the tests that run in a browser
+              run: |
+                  npm install --global playwright@1.63.0
+                  echo "NODE_PATH=$(npm root --global)" >> "$GITHUB_ENV"
+                  playwright install --with-deps chromium
             # The runtime, the kits, the check's own rules, the docs they
             # keep true, the two halves of the contract, and that every
             # committed build was built from the source beside it.

@@ -8,10 +8,10 @@ import {
     rmSync,
     writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { networkStage, REPORT_PATH } from "../../networkCheck.mjs";
+import { browserForTests } from "../../test/browser.mjs";
 import {
     currentRelease,
     HISTORY,
@@ -715,15 +715,10 @@ test("hosted stage: passes a sound build, names what is wrong with a bad one", a
 
 // The browser half: a release runs under its game's network policy when it
 // is loaded from a release address, as it does from the committed folder.
-let chromium;
-try {
-    ({ chromium } = createRequire(import.meta.url)("playwright"));
-} catch {
-    /* no Playwright here: the browser test is skipped */
-}
+const { chromium, skip } = browserForTests();
 test(
     "hosted stage: a release address holds the game to the hosts it declared",
-    { skip: !chromium && "Playwright not installed" },
+    { skip },
     async (t) => {
         const root = scratch(t);
         const page = (host) =>

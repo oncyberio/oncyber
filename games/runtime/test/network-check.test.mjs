@@ -1,22 +1,18 @@
 // The network stage of games:check, against a real browser: a game document
 // served with its policy, in the same sandbox as the site, doing what a game
-// must not do. Skipped where Playwright is not installed.
+// must not do. Without Playwright the browser tests are skipped on a
+// person's machine and fail in CI (scripts/games/test/browser.mjs).
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createServer } from "node:http";
-import { createRequire } from "node:module";
 import {
     inlineScriptHashes,
     networkStage,
     requestHost,
 } from "../../../scripts/games/networkCheck.mjs";
+import { browserForTests } from "../../../scripts/games/test/browser.mjs";
 
-let chromium = null;
-try {
-    ({ chromium } = createRequire(import.meta.url)("playwright"));
-} catch {
-    // No browser here; the pure tests below still run.
-}
+const { chromium, skip } = browserForTests();
 
 const codes = (stage) => stage.findings().map((finding) => finding.code);
 
@@ -146,7 +142,7 @@ const settle = `const tried = async (work) => { try { await work(); return "ok";
 
 test(
     "a game reaches its own files and its declared hosts",
-    { skip: !chromium },
+    { skip },
     async () => {
         const { stage, done } = await play(
             { network: ["cdn.example.com"] },
@@ -173,7 +169,7 @@ test(
 
 test(
     "requests to undeclared hosts are refused and fail the check",
-    { skip: !chromium },
+    { skip },
     async () => {
         const { stage, done } = await play(
             { network: ["cdn.example.com"] },
@@ -226,7 +222,7 @@ test(
 
 test(
     "code comes from the game's files: no remote script, eval or injected inline script",
-    { skip: !chromium },
+    { skip },
     async () => {
         const { stage, done } = await play(
             { network: ["cdn.example.com"] },
@@ -281,7 +277,7 @@ test(
 
 test(
     "a stage with its own server and browser is under the same policy",
-    { skip: !chromium },
+    { skip },
     async () => {
         // Every stage of the check serves the game from a server of its own
         // and opens its own pages: `guard` and `patrol` put both under the

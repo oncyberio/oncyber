@@ -1,13 +1,18 @@
 // The sound stage against small fixture games in headless Chromium:
 //   node --test scripts/games/sound-check.test.mjs
+// Every test here needs the browser: without Playwright they are skipped on
+// a person's machine and fail in CI (test/browser.mjs).
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { createRequire, stripTypeScriptTypes } from "node:module";
+import { stripTypeScriptTypes } from "node:module";
 import { dirname, resolve } from "node:path";
 import test, { after, before } from "node:test";
 import { fileURLToPath } from "node:url";
 import { soundHarness, soundStage } from "./sound-check.mjs";
+import { browserForTests } from "./test/browser.mjs";
+
+const { chromium, skip } = browserForTests();
 
 const sdk = resolve(
     dirname(fileURLToPath(import.meta.url)),
@@ -69,9 +74,7 @@ before(async () => {
     });
     await new Promise((done) => server.listen(0, "127.0.0.1", done));
     origin = `http://127.0.0.1:${server.address().port}`;
-    browser = await createRequire(import.meta.url)(
-        "playwright"
-    ).chromium.launch();
+    if (!skip) browser = await chromium.launch();
 });
 after(async () => {
     await browser?.close();
@@ -95,26 +98,40 @@ async function run(name, { required = false, allow } = {}) {
     }
 }
 
-test("a game routed through the SDK output passes", async () => {
+test("a game routed through the SDK output passes", { skip }, async () => {
     const stage = await run("routed", { required: true });
     assert.equal(stage.status, "passed", stage.error);
     assert.equal(stage.facts.audioBypass, 0);
 });
-test("sound that goes around the output fails", async () => {
+test("sound that goes around the output fails", { skip }, async () => {
     assert.match((await run("around")).error, /^SOUND_NOT_ROUTED/);
     const both = await run("both");
     assert.deepEqual([both.report, both.status], ["failed", "failed"]);
     assert.match(both.error, /^SOUND_BYPASS/);
 });
-test("a game with no SDK output is skipped, or fails when it declares audio", async () => {
-    const skipped = await run("private");
-    assert.deepEqual([skipped.report, skipped.status], ["passed", "skipped"]);
-    assert.match(skipped.error, /no SDK sound output/);
-    assert.match(
-        (await run("private", { required: true })).error,
-        /^SOUND_NOT_CONNECTED/
-    );
-});
-test("the page's gesture only reaches a frame that is allowed to autoplay", async () => {
-    assert.match((await run("routed", { allow: "" })).error, /^SOUND_LOCKED/);
-});
+test(
+    "a game with no SDK output is skipped, or fails when it declares audio",
+    { skip },
+    async () => {
+        const skipped = await run("private");
+        assert.deepEqual(
+            [skipped.report, skipped.status],
+            ["passed", "skipped"]
+        );
+        assert.match(skipped.error, /no SDK sound output/);
+        assert.match(
+            (await run("private", { required: true })).error,
+            /^SOUND_NOT_CONNECTED/
+        );
+    }
+);
+test(
+    "the page's gesture only reaches a frame that is allowed to autoplay",
+    { skip },
+    async () => {
+        assert.match(
+            (await run("routed", { allow: "" })).error,
+            /^SOUND_LOCKED/
+        );
+    }
+);
