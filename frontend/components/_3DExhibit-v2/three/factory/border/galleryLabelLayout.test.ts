@@ -1,3 +1,4 @@
+import { LABEL_DEPTH } from "./galleryFrame";
 import { fitPlacardRect, layoutGalleryLabel } from "./galleryLabelLayout";
 
 const measure = (_font: string, text: string) => Array.from(text).length * 20;
@@ -167,12 +168,12 @@ test("a label with only an artist and title uses about half the old height", () 
 });
 
 test("resizing to contents leaves the bottom aligned and the back on the wall", () => {
-    const base = { x: 2, y: 1, z: -0.025 + 0.58 * 0.028, w: 1, h: 0.58 };
+    const base = { x: 2, y: 1, z: -0.025 + 0.58 * LABEL_DEPTH, w: 1, h: 0.58 };
     for (const height of [226, 500]) {
         const rect = fitPlacardRect(base, { width: 768, height });
         expect(rect.h).toBeCloseTo(height / 768);
         expect(rect.y - rect.h / 2).toBeCloseTo(base.y - base.h / 2);
-        expect(rect.z - rect.h * 0.028).toBeCloseTo(-0.025);
+        expect(rect.z - rect.h * LABEL_DEPTH).toBeCloseTo(-0.025);
         expect([rect.x, rect.w]).toEqual([base.x, base.w]);
     }
 });
