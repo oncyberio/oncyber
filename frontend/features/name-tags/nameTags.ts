@@ -7,6 +7,8 @@ import {
     cameraViewMatrix,
     distance,
     float as tslFloat,
+    dFdx,
+    dFdy,
     fwidth,
     length,
     max,
@@ -65,6 +67,12 @@ const PHOTO_TILES = PHOTO_COLUMNS * PHOTO_COLUMNS;
 /** A tag is the chip, the picture and up to this many glyphs. */
 const MAX_GLYPHS = 30;
 const UPLOAD_MS = 80;
+/**
+ * Scripts whose letters join or reorder (Arabic, Hebrew, Indic, Thai, ...):
+ * a name in one is drawn as one shaped run, not letter by letter.
+ */
+const COMPLEX_SCRIPT =
+    /[\u0590-\u08ff\u0900-\u0dff\u0e00-\u0eff\u0f00-\u109f\u1780-\u17ff\ufb1d-\ufdff\ufe70-\ufeff]/;
 /** Metres a tag is drawn toward the camera; see positionNode. */
 const DEPTH_BIAS = 0.3;
 /** How far the rim moves the chip's fill toward white, and its extra opacity. */
@@ -81,6 +89,9 @@ function hexColor(hex: string) {
 type Photo = { index: number; url: string; lastUsed: number };
 
 type Shown = {
+    name: string;
+    /** The glyph atlas generation `text` was laid out in. */
+    generation: number;
     text: TagText;
     photo: Photo | null;
     x: number;
@@ -117,7 +128,8 @@ export function createNameTags(
 
     // Glyphs: coverage drawn by the browser, turned into distance.
     const scratch = document.createElement("canvas");
-    scratch.width = GLYPH_PX * 3 + 2 * BUFFER;
+    // Wide enough for a whole shaped name (see COMPLEX_SCRIPT).
+    scratch.width = Math.ceil(GLYPH_PX * (T.maxNameEm + 1)) + 2 * BUFFER;
     scratch.height = ROW_PX;
     const scratchContext = scratch.getContext("2d", {
         willReadFrequently: true,
@@ -211,7 +223,8 @@ export function createNameTags(
             height: h / GLYPH_PX,
         };
         shelfX += w + 1;
-        dirty = true;
+        // A new glyph is drawn this frame: upload it with this frame.
+        urgent = true;
         return glyph;
     }
 
@@ -223,7 +236,28 @@ export function createNameTags(
     function textFor(name: string): TagText | null {
         const cached = texts.get(name);
         if (cached) return cached;
-        const fitted = Array.from(fitName(Array.from(name), measure));
+        const fittedName = fitName(Array.from(name), measure);
+        if (COMPLEX_SCRIPT.test(fittedName)) {
+            // The browser shapes the whole run, joining and ordering it.
+            const key = `\u0001${fittedName}`;
+            let run = glyphs.get(key);
+            if (!run) {
+                const made = rasterGlyph(fittedName);
+                if (!made) {
+                    resetGlyphs();
+                    return null;
+                }
+                run = made;
+                glyphs.set(key, run);
+            }
+            const text = {
+                glyphs: [{ glyph: run, x: 0 }],
+                width: measure(fittedName),
+            };
+            texts.set(name, text);
+            return text;
+        }
+        const fitted = Array.from(fittedName);
         const placed: TagText["glyphs"] = [];
         let prefix = "";
         for (const char of fitted.slice(0, MAX_GLYPHS)) {
@@ -268,6 +302,8 @@ export function createNameTags(
     );
     let disposed = false;
     let dirty = true;
+    /** New glyphs or a picture tile changing hands: upload without waiting. */
+    let urgent = true;
     let lastUpload = 0;
 
     const paintPhoto = (photo: Photo, image: HTMLImageElement | null) => {
@@ -319,6 +355,8 @@ export function createNameTags(
         photo = { index, url, lastUsed: now };
         photos.set(url, photo);
         paintPhoto(photo, null);
+        // The tile may still hold someone else's picture on the GPU.
+        urgent = true;
         const image = new Image();
         image.crossOrigin = "anonymous";
         image.decoding = "async";
@@ -431,11 +469,17 @@ export function createNameTags(
             const d = length(max(q, vec2(0)))
                 .add(min(max(q.x, q.y), 0))
                 .sub(radius);
-            const aa = max(fwidth(d), 0.0001);
-            const inside = smoothstep(aa.mul(0.5), aa.mul(-0.5), d);
+            // One screen pixel, whatever the edge's direction.
+            const aa = max(length(vec2(dFdx(d), dFdy(d))), 0.0001);
+            // smoothstep needs ascending edges on every backend.
+            const inside = smoothstep(aa.mul(-0.5), aa.mul(0.5), d).oneMinus();
             // A steady 1.5 px rim just inside the edge: thinner rims
             // alias away on some edges at small sizes.
-            const ring = smoothstep(aa.mul(2), aa.mul(1.5), d.negate());
+            const ring = smoothstep(
+                aa.mul(1.5),
+                aa.mul(2),
+                d.negate()
+            ).oneMinus();
             const chipRgb = mix(
                 vec3(fill.color.r, fill.color.g, fill.color.b),
                 vec3(rim.color.r, rim.color.g, rim.color.b),
@@ -446,7 +490,8 @@ export function createNameTags(
                 tslFloat(Math.min(1, fill.alpha + RIM_ALPHA)),
                 ring
             ).mul(inside);
-            const shadow = smoothstep(rect.z, 0, max(d, 0))
+            const shadow = smoothstep(0, rect.z, max(d, 0))
+                .oneMinus()
                 .mul(0.32)
                 .mul(inside.oneMinus());
             const chipAlpha = chipBody.add(shadow);
@@ -465,10 +510,10 @@ export function createNameTags(
             const r = length(centred);
             const ra = max(fwidth(r), 0.0001);
             const photoAlpha = smoothstep(
-                tslFloat(0.5),
                 tslFloat(0.5).sub(ra),
+                tslFloat(0.5),
                 r
-            );
+            ).oneMinus();
 
             const isChip = kind.lessThan(0.5);
             const isGlyph = kind.lessThan(1.5);
@@ -563,6 +608,8 @@ export function createNameTags(
                 ? photoFor(photoUrl, performance.now())
                 : null;
             shown.push({
+                name: tagName(name),
+                generation,
                 text,
                 photo,
                 x,
@@ -597,7 +644,18 @@ export function createNameTags(
             let n = 0;
             for (const tag of shown) {
                 if (tag.depth <= 0) continue;
-                const em = emMetres(tag.depth, pixelsPerUnit);
+                // The glyph atlas started over after this tag was laid out.
+                if (tag.generation !== generation) {
+                    const text = textFor(tag.name);
+                    if (!text) continue;
+                    tag.text = text;
+                    tag.generation = generation;
+                }
+                // Sized at the depth it is drawn at (see DEPTH_BIAS).
+                const em = emMetres(
+                    Math.max(tag.depth - DEPTH_BIAS, 0.05),
+                    pixelsPerUnit
+                );
                 const photo = tag.photo
                     ? {
                           u:
@@ -629,8 +687,8 @@ export function createNameTags(
                 styles.needsUpdate = true;
             }
             const now = performance.now();
-            if (dirty && now - lastUpload >= UPLOAD_MS) {
-                dirty = false;
+            if (urgent || (dirty && now - lastUpload >= UPLOAD_MS)) {
+                dirty = urgent = false;
                 lastUpload = now;
                 glyphTexture.needsUpdate = true;
                 photoTexture.needsUpdate = true;

@@ -58,6 +58,8 @@ export const lobbyTokens = {
         ink: base.color.ink,
         fill: "#14161bb8",
         border: base.color.line.soft,
+        /** The pill's 1.5 px rim as the DOM draws it (speech bubbles). */
+        rim: "#ffffff4d",
         shadow: "0 1px 6px #00000052",
         photoFill: "#2a2d35",
         /** Text height in world metres, before the screen clamp below. */
