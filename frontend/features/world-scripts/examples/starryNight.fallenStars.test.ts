@@ -55,7 +55,19 @@ describe("Starry Night's script, Fallen stars", () => {
         }
         expect(partsOf(ops, "star-0").length).toBeGreaterThan(20);
         expect(hud(ops, "score")).toBe("Stars 0/7");
-        expect(hud(ops, "goal")).toMatch(/Catch them/);
+        expect(hud(ops, "goal")).toMatch(/Follow them down to the house/);
+        // One star shows at a time: the first, nearest where a visitor starts.
+        const showing = (id: string) =>
+            [...of(ops, "add"), ...of(ops, "set")]
+                .filter((item) => item.id === id && "visible" in item.props)
+                .pop()?.props.visible;
+        expect(showing("star-0")).toBe(true);
+        for (let i = 1; i < 7; i++) expect(showing("star-" + i)).toBe(false);
+        // And a signpost says where the road goes.
+        expect(added(ops, /^signpost$/)[0]).toMatchObject({ shape: "model" });
+        expect(added(ops, /^signpost\.words$/)[0]).toMatchObject({
+            text: "To the house",
+        });
     });
 
     test("walking up to a star catches it and lights the next lantern", () => {
@@ -75,6 +87,8 @@ describe("Starry Night's script, Fallen stars", () => {
         expect(lit).toContain('"glow":true');
         expect(lit).toContain('"place"');
         expect(partsOf(ops, "lantern-1")).toEqual([]);
+        // The next star shows, further down the road.
+        expect(set("star-1")).toMatchObject({ visible: true });
         expect(of(ops, "sound")[0]).toMatchObject({ name: "coin" });
     });
 
@@ -83,6 +97,14 @@ describe("Starry Night's script, Fallen stars", () => {
         const [x, y, z] = stars(script.ops())[0].position;
         script.tick(1 / 60, [x, y - 8, z]);
         expect(hud(script.ops(), "score")).toBe("Stars 0/7");
+    });
+
+    test("a star further down cannot be caught before its turn", () => {
+        const script = runScript(SOURCE);
+        const [x, y, z] = stars(script.ops())[3].position;
+        script.tick(1 / 60, [x, y - 2.2, z]);
+        expect(hud(script.ops(), "score")).toBe("Stars 0/7");
+        expect(script.errors()).toEqual([]);
     });
 
     test("all seven light the way, and R scatters them again", () => {

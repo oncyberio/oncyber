@@ -1,6 +1,8 @@
 // name: Fallen stars
 // Starry Night. Seven stars have fallen along the way down to the house.
-// Catch one and a lantern lights; catch them all and the way is lit.
+// They show one at a time, each further down the road: catch one and the
+// lantern beside it lights, and the next star appears. All seven light the
+// way.
 //
 // Written for the space built on thestarrynight_skydome: the points below
 // are that world's ground, from where a visitor starts to the first house.
@@ -169,6 +171,33 @@ const stars = FALLEN.map((p, i) => {
     return star;
 });
 
+// A signpost where a visitor starts, pointing down the road.
+const sign = world.build({ id: "signpost", position: [-2.4, -5.5, -6.4] });
+sign.prism([0, 0], 0.12, 0, TALL * 0.8, {
+    color: "#5a3b22",
+    colors: ["#5a3b22", "#6a4628", "#4a2f1c", "#75502e"],
+    under: DARK,
+    fine: 0.08,
+    flow: Math.PI / 2,
+})
+    .box([-0.95, TALL * 0.55, -0.06], [0.95, TALL * 0.78, 0.06], {
+        color: "#e9e4b4",
+        colors: ["#e9e4b4", "#f1edc6", "#d9dba6", "#e2d79a"],
+        under: "#8b7446",
+        fine: 0.07,
+    })
+    .line([-0.95, TALL * 0.55, 0.07], [0.95, TALL * 0.55, 0.07], [0, 0, 1], {
+        color: DARK,
+        width: 0.05,
+    });
+sign.add({
+    id: "signpost.words",
+    text: "To the house",
+    size: [1, 0.42, 1],
+    position: [0, TALL * 0.665, 0.12],
+    textColor: DARK,
+});
+
 function light(i) {
     if (lanterns[i]) drawLantern(lanterns[i], true);
 }
@@ -179,7 +208,7 @@ function show() {
         "goal",
         game.done
             ? "The way is lit. The house at the bottom of the road is open."
-            : "Stars fell along the road. Catch them to light the way down to the house.",
+            : "A star fell on the road ahead. Follow them down to the house.",
         "top"
     );
     ui.hud(
@@ -189,36 +218,42 @@ function show() {
     );
 }
 
-// A change to this script while someone plays keeps what they caught.
-for (const i of game.caught) {
-    stars[i].visible = false;
-    light(game.caught.indexOf(i));
+// The stars are caught in order down the road: only the next one shows.
+function place() {
+    stars.forEach((star, i) => {
+        star.visible = !game.done && i === game.caught.length;
+    });
 }
+
+// A change to this script while someone plays keeps what they caught.
+for (const i of game.caught) light(i);
+place();
 show();
 
 world.onUpdate((dt, time) => {
+    const i = game.caught.length;
+    const star = stars[i];
+    if (!star || game.done) return;
     const me = world.player.position;
-    stars.forEach((star, i) => {
-        if (!star.visible) return;
-        star.rotation.y += dt * 1.6;
-        star.position.y = star.data.home + Math.sin(time * 1.8 + i) * 0.3;
-        // Feet to star: within reach on the ground, and not from a floor
-        // above or below.
-        const dx = star.position.x - me.x,
-            dz = star.position.z - me.z;
-        if (dx * dx + dz * dz > REACH * REACH) return;
-        if (Math.abs(star.position.y - me.y) > TALL * 1.4) return;
-        star.visible = false;
-        light(game.caught.length);
-        game.caught.push(i);
-        sound.play("coin", 0.7);
-        if (game.caught.length === stars.length) {
-            game.done = true;
-            ui.banner("The way is lit", 4);
-            sound.play("win", 0.8);
-        } else ui.toast("A lantern lights", 2);
-        show();
-    });
+    star.rotation.y += dt * 1.6;
+    star.position.y = star.data.home + Math.sin(time * 1.8 + i) * 0.3;
+    // Feet to star: within reach on the ground, and not from a floor above
+    // or below.
+    const dx = star.position.x - me.x,
+        dz = star.position.z - me.z;
+    if (dx * dx + dz * dz > REACH * REACH) return;
+    if (Math.abs(star.position.y - me.y) > TALL * 1.4) return;
+    // Each star lights the lantern beside it.
+    light(i);
+    game.caught.push(i);
+    sound.play("coin", 0.7);
+    if (game.caught.length === stars.length) {
+        game.done = true;
+        ui.banner("The way is lit", 4);
+        sound.play("win", 0.8);
+    } else ui.toast("The lantern lights. Another star, further down", 2.5);
+    place();
+    show();
 });
 
 input.onKeyDown((e) => {
