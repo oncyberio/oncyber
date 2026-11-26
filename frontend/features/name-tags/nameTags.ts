@@ -67,6 +67,9 @@ const MAX_GLYPHS = 30;
 const UPLOAD_MS = 80;
 /** Metres a tag is drawn toward the camera; see positionNode. */
 const DEPTH_BIAS = 0.3;
+/** How far the rim moves the chip's fill toward white, and its extra opacity. */
+const RIM_MIX = 0.38;
+const RIM_ALPHA = 0.2;
 
 function hexColor(hex: string) {
     const value = hex.replace("#", "");
@@ -430,15 +433,17 @@ export function createNameTags(
                 .sub(radius);
             const aa = max(fwidth(d), 0.0001);
             const inside = smoothstep(aa.mul(0.5), aa.mul(-0.5), d);
-            const ring = smoothstep(aa, aa.mul(0.5), abs(d.add(aa.mul(0.5))));
+            // A steady 1.5 px rim just inside the edge: thinner rims
+            // alias away on some edges at small sizes.
+            const ring = smoothstep(aa.mul(2), aa.mul(1.5), d.negate());
             const chipRgb = mix(
                 vec3(fill.color.r, fill.color.g, fill.color.b),
                 vec3(rim.color.r, rim.color.g, rim.color.b),
-                ring.mul(rim.alpha * 3).min(1)
+                ring.mul(RIM_MIX)
             );
             const chipBody = mix(
                 tslFloat(fill.alpha),
-                tslFloat(Math.min(1, fill.alpha + rim.alpha)),
+                tslFloat(Math.min(1, fill.alpha + RIM_ALPHA)),
                 ring
             ).mul(inside);
             const shadow = smoothstep(rect.z, 0, max(d, 0))
