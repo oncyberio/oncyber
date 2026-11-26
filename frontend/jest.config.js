@@ -28,6 +28,8 @@ module.exports = {
         // `import.meta.url` worker bundling does not parse under CommonJS.
         "^\\./destinationWarmupWorkerFactory$":
             "<rootDir>/features/lobby/destinationWarmupWorkerFactory.jest.ts",
+        "^\\./starfieldWorkerFactory$":
+            "<rootDir>/utils/starfield/starfieldWorkerFactory.jest.ts",
     },
     transformIgnorePatterns: ["/node_modules/(?!three/|@pixiv/)"],
     // Build output is never a test, whatever folder a build was sent to

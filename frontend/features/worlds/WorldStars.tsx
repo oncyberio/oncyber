@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { baseTokens } from "@styles/tokens";
 import { isLobbyDestination } from "@utils/lobbyDestinationBridge";
+import { sayLoadStage } from "@utils/loadTimings";
+import { startStarfield } from "@utils/starfield/startStarfield";
 import { WORLD_COVER_OPACITY, worldCover } from "./worldStars";
 
 const FADE_MS = baseTokens.motion.enter * 2;
 
 /**
  * The star field over a framed world while it loads, drawn by the page
- * (./worldStars.ts says why). The same stars the world draws
- * (`drawStarfield`), so the hand-over to the world reads as one effect.
+ * (./worldStars.ts says why), by the clock and off the page's main thread
+ * where the browser allows (utils/starfield). The same stars the world
+ * draws, so the hand-over to the world reads as one effect.
  */
 export function WorldStars({
     phase,
@@ -17,7 +20,7 @@ export function WorldStars({
     phase: string;
     gated: boolean;
 }) {
-    const canvas = useRef<HTMLCanvasElement>(null);
+    const stars = useRef<HTMLDivElement>(null);
     // Read after mount: the server render cannot know about the trip or
     // what the visitor asked of motion.
     const [seen, setSeen] = useState({ onTrip: false, reducedMotion: false });
@@ -42,41 +45,30 @@ export function WorldStars({
 
     const drawing = mounted && cover !== "plain";
     useEffect(() => {
-        if (!drawing) return;
-        let ended = false;
-        let frame = 0;
-        let draw: (() => void) | undefined;
-        const start = () => {
-            if (ended || !canvas.current) return;
-            void import("@components/_3DExhibit-v2/ui/LoaderVideoContainer")
-                .then(({ drawStarfield }) => {
-                    if (ended || !canvas.current) return;
-                    draw = drawStarfield(
-                        canvas.current,
-                        window.innerWidth,
-                        window.innerHeight
-                    );
-                    if (!frame) paint();
-                })
-                .catch(() => {});
-        };
-        const paint = () => {
-            frame = 0;
-            if (ended || document.hidden || !draw) return;
-            draw();
-            frame = requestAnimationFrame(paint);
-        };
-        const shown = () => {
-            if (!document.hidden && !frame) paint();
-        };
-        start();
-        window.addEventListener("resize", start);
-        document.addEventListener("visibilitychange", shown);
+        const holder = stars.current;
+        if (!drawing || !holder) return;
+        // A canvas of its own each time: one handed to a worker cannot be
+        // taken back (utils/starfield/startStarfield).
+        const canvas = document.createElement("canvas");
+        Object.assign(canvas.style, {
+            position: "absolute",
+            inset: "0",
+            width: "100%",
+            height: "100%",
+            display: "block",
+        });
+        holder.append(canvas);
+        const running = startStarfield(canvas);
         return () => {
-            ended = true;
-            cancelAnimationFrame(frame);
-            window.removeEventListener("resize", start);
-            document.removeEventListener("visibilitychange", shown);
+            canvas.remove();
+            void running
+                .stop()
+                .then((paced) =>
+                    sayLoadStage(
+                        "page",
+                        `stars drawn on the ${paced.thread}'s thread: ${paced.frames} frames, longest wait ${paced.worstGap} ms, ${paced.hitches} over 50 ms`
+                    )
+                );
         };
     }, [drawing]);
 
@@ -96,16 +88,7 @@ export function WorldStars({
                 transition: `opacity ${FADE_MS}ms ${baseTokens.motion.ease}`,
             }}
         >
-            <canvas
-                ref={canvas}
-                style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    display: cover === "plain" ? "none" : "block",
-                }}
-            />
+            <div ref={stars} style={{ position: "absolute", inset: 0 }} />
         </div>
     );
 }

@@ -58,52 +58,34 @@ export function beginSpaceEntrance(
     });
     let ended = false,
         ready = false,
-        black = false,
-        frame = 0;
+        black = false;
     let finishTimer: ReturnType<typeof setTimeout>;
     let slowTimer: ReturnType<typeof setTimeout>;
-    let draw: (() => void) | undefined;
+    let stars: { stop(): Promise<unknown> } | undefined;
     let tunnel: HTMLCanvasElement | undefined;
-    const paint = () => {
-        frame = 0;
-        if (ended || document.hidden || reduced || !draw) return;
-        draw();
-        frame = requestAnimationFrame(paint);
-    };
-    const visibility = () => {
-        cancelAnimationFrame(frame);
-        frame = 0;
-        if (!document.hidden) paint();
-    };
-    const resize = () => {
-        if (tunnel) void startTunnel().catch(() => {});
-    };
+    // The stars move by the clock and, where the browser allows, are drawn
+    // off this thread (utils/starfield): a route is changing under this
+    // overlay, which is when the page's own thread is busiest.
     const tunnelModule = reduced
         ? null
-        : import("@components/_3DExhibit-v2/ui/LoaderVideoContainer").catch(
-              () => null
-          );
+        : import("@utils/starfield/startStarfield").catch(() => null);
     async function startTunnel() {
         const module = await tunnelModule;
         if (!module) return;
-        const { drawStarfield } = module;
-        if (ended || ready || reduced) return;
-        if (!tunnel) {
-            tunnel = document.createElement("canvas");
-            Object.assign(tunnel.style, {
-                position: "absolute",
-                inset: "0",
-                width: "100%",
-                height: "100%",
-                opacity: "1",
-            });
-            overlay.append(tunnel);
-            animate(tunnel, [{ opacity: 0 }, { opacity: 1 }], {
-                duration: 160,
-            });
-        }
-        draw = drawStarfield(tunnel, innerWidth, innerHeight);
-        if (!frame) paint();
+        if (ended || ready || reduced || tunnel) return;
+        tunnel = document.createElement("canvas");
+        Object.assign(tunnel.style, {
+            position: "absolute",
+            inset: "0",
+            width: "100%",
+            height: "100%",
+            opacity: "1",
+        });
+        overlay.append(tunnel);
+        animate(tunnel, [{ opacity: 0 }, { opacity: 1 }], {
+            duration: 160,
+        });
+        stars = module.startStarfield(tunnel);
     }
     const remove = () => {
         if (ended) return;
@@ -111,15 +93,13 @@ export function beginSpaceEntrance(
         clearTimeout(blackTimer);
         clearTimeout(finishTimer);
         clearTimeout(slowTimer);
-        cancelAnimationFrame(frame);
         animations.forEach((animation) => animation.cancel());
-        document.removeEventListener("visibilitychange", visibility);
-        window.removeEventListener("resize", resize);
         window.removeEventListener("popstate", cancel);
         window.removeEventListener("keydown", keydown, true);
         overlay.remove();
         if (active === handle) active = null;
-        draw = undefined;
+        void stars?.stop();
+        stars = undefined;
         tunnel = undefined;
     };
     const reveal = () => {
@@ -177,8 +157,6 @@ export function beginSpaceEntrance(
         });
         overlay.append(label);
     }, 5000);
-    document.addEventListener("visibilitychange", visibility);
-    window.addEventListener("resize", resize);
     window.addEventListener("popstate", cancel);
     window.addEventListener("keydown", keydown, true);
     return handle;
