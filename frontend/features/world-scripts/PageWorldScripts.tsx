@@ -30,6 +30,9 @@ export interface PageScriptSpace {
     worldStyle?: WorldStyle;
     info?: { headline?: string };
     exhibitId?: string;
+    /** Who may change its scripts: nobody else is asked about (./access). */
+    owner?: string;
+    editors?: string[];
 }
 
 export default function PageWorldScripts({
@@ -44,7 +47,7 @@ export default function PageWorldScripts({
     heard: MutableRefObject<RemoteRuntime | null>;
 }) {
     const state = useWorldScripts();
-    useScriptAccess(space.id);
+    useScriptAccess(space);
 
     useEffect(() => {
         const saved = savedScript(space);

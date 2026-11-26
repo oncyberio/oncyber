@@ -38,6 +38,9 @@ type LayerExperience = {
     worldStyle?: WorldStyle;
     info?: { headline?: string };
     exhibitId?: string;
+    /** Who may change its scripts: nobody else is asked about (./access). */
+    owner?: string;
+    editors?: string[];
 };
 
 export default function WorldScriptLayer({
@@ -54,7 +57,7 @@ function Layer({ experience }: { experience: LayerExperience }) {
     const shown = useWorldScriptScreen();
     // In a frame, who may change the script is the page's to ask: the
     // session is there.
-    useScriptAccess(worldDocument() ? "" : experience.id);
+    useScriptAccess(worldDocument() ? null : experience);
 
     useEffect(() => {
         const saved = savedScript(experience);
