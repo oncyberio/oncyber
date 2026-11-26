@@ -109,6 +109,17 @@ world.onUpdate((dt) => {
 });
 input.onKeyDown((e) => { if (e.code === "KeyR" && game.over) world.restart(); });`;
 
+/**
+ * The same reference for someone writing a script by hand, or a coding
+ * agent writing one in a file (`pnpm world script reference`): everything
+ * the brief says about the script itself, without the part about how the
+ * model must word its answer. Cut from the brief, so the two cannot differ.
+ */
+const REFERENCE_STARTS = "The script body runs once at start.";
+export const WORLD_SCRIPT_REFERENCE = WORLD_SCRIPT_BRIEF.slice(
+    WORLD_SCRIPT_BRIEF.indexOf(REFERENCE_STARTS)
+);
+
 /** The model's answer, read defensively. */
 export interface WorldScriptAnswer {
     say: string;

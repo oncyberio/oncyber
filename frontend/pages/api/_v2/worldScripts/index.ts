@@ -6,6 +6,7 @@
 import { api } from "@utils/rpc/server";
 import { access, generate } from "./generate";
 import { save } from "./save";
+import { get, reference } from "./read";
 
 const WorldScriptsService = {
     cors: true,
@@ -13,6 +14,8 @@ const WorldScriptsService = {
     access,
     generate,
     save,
+    get,
+    reference,
 };
 
 export default api(WorldScriptsService);

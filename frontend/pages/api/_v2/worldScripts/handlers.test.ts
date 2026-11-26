@@ -64,6 +64,7 @@ jest.mock("@api/social/isMod", () => ({ ADMINS: ["site-admin"] }));
 
 import { access, generate } from "./generate";
 import { save } from "./save";
+import { get, reference } from "./read";
 
 const env = process.env as Record<string, string | undefined>;
 // Named in two pieces: a build writes a NEXT_PUBLIC_ variable's value in
@@ -97,6 +98,8 @@ const as = (userId: string) => ({
     save: (input: object) => (save as any).call({ userId }, input),
     generate: (input: object) => (generate as any).call({ userId }, input),
     access: () => (access as any).call({ userId }, { experienceId: "space-1" }),
+    get: () => (get as any).call({ userId }, { experienceId: "space-1" }),
+    reference: () => (reference as any).call({ userId }, {}),
 });
 
 /** The model, answering with a script (or as told). */
@@ -268,6 +271,63 @@ describe("saving a space's script", () => {
         ).toMatchObject({ ok: true, scripts: null, style });
         expect(space().worldStyle).toEqual(style);
         expect(space().worldScripts).toHaveLength(1);
+    });
+});
+
+describe("a script written outside the sidebar", () => {
+    test("the reference is the model's own, without how the model must answer", async () => {
+        const told = await as("anyone").reference();
+        expect(told.ok).toBe(true);
+        expect(told.reference).toMatch(/^The script body runs once at start\./);
+        expect(told.reference).toContain("world.add(spec)");
+        expect(told.reference).not.toContain("Answer with ONE JSON object");
+        // what a script is handed, and how long it may be
+        expect(told.names).toEqual(
+            expect.arrayContaining(["world", "input", "ui", "sound", "keep"])
+        );
+        expect(told.maxSourceBytes).toBeGreaterThan(1000);
+    });
+
+    test("a space's admin reads its saved script, and what the next save builds on", async () => {
+        expect(await as("owner").get()).toEqual({
+            ok: true,
+            scripts: [],
+            style: null,
+            savedAt: 0,
+        });
+        const saved = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script("ui.toast('hi', 2);")],
+            base: 0,
+        });
+        const read = await as("editor").get();
+        expect(read).toMatchObject({
+            ok: true,
+            scripts: [script("ui.toast('hi', 2);")],
+            savedAt: saved.scripts[0].updatedAt,
+        });
+        // The next save from there lands; one from before it does not.
+        expect(
+            await as("editor").save({
+                experienceId: "space-1",
+                scripts: [script("ui.toast('two', 2);")],
+                base: read.savedAt,
+            })
+        ).toMatchObject({ ok: true });
+        expect(
+            await as("owner").save({
+                experienceId: "space-1",
+                scripts: [script("ui.toast('late', 2);")],
+                base: read.savedAt,
+            })
+        ).toMatchObject({ ok: false, conflict: true });
+    });
+
+    test("nobody else reads it here, and nothing answers with the flag off", async () => {
+        expect(await as("stranger").get()).toMatchObject({ ok: false });
+        env[FLAG] = "";
+        expect(await as("owner").get()).toMatchObject({ ok: false });
+        expect(await as("owner").reference()).toMatchObject({ ok: false });
     });
 });
 
