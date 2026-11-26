@@ -54,6 +54,7 @@ export class RefreshArtworkCommand extends AbstractCommand {
                   curatorNotes: item?.curatorNotes || "",
                   hasBorder: !!currentData.hasBorder,
                   borderColor: currentData.borderColor || null,
+                  ...(currentData.frame ? { frame: currentData.frame } : {}),
                   scale: currentData.scale || null,
               };
 

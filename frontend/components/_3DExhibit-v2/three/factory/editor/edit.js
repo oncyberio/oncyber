@@ -1542,10 +1542,13 @@ export class Editor extends Group {
       *  @property {EDIT_ACTIONS["EDITOR_CHANGE_BORDER"]} type
       *  @property {string} artworkId
       *  @property {string} color
+      *  @property {import("@3factory/border/galleryFrame").ArtworkFrame | null} [frame]
+      *  The frame style: null for the flat border, undefined to keep the
+      *  current style (a "-borderless" colour always removes the frame).
       *
       * @param { EDITOR_CHANGE_BORDER } opts
       **/
-    async handleChangeBorder({ artworkId, color }) {
+    async handleChangeBorder({ artworkId, color, frame = undefined }) {
         // throw new Error("No yet implemented")
         const artwork = this.artworkContainer.artworks.find((obj) => obj.userData.id === artworkId)
 
@@ -1557,10 +1560,18 @@ export class Editor extends Group {
 
         }
 
+        if (frame !== undefined || color?.endsWith?.("-borderless")) {
+
+            artwork.frame = frame ?? null
+        }
+
         artwork.borderColor = color;
 
+        const { frame: _previousFrame, ...userData } = artwork.userData
+
         artwork.userData = {
-            ...artwork.userData,
+            ...userData,
+            ...(artwork.frame ? { frame: artwork.frame } : {}),
             borderColor: color,
             hasBorder: artwork.hasBorder,
         };
@@ -1568,6 +1579,7 @@ export class Editor extends Group {
         return {
             borderColor: color,
             hasBorder: artwork.hasBorder,
+            frame: artwork.frame,
         }
     }
 
