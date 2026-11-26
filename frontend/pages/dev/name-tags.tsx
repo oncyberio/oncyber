@@ -126,3 +126,9 @@ export default function NameTagsFixture() {
     }, [router.isReady, router.query]);
     return <div ref={ref} style={{ position: "fixed", inset: 0 }} />;
 }
+
+export function getServerSideProps() {
+    return process.env.NODE_ENV === "development"
+        ? { props: {} }
+        : { notFound: true };
+}
