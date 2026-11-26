@@ -90,6 +90,7 @@ export default function WorldFrameView({
     onLink,
     onFile,
     onSignIn,
+    onAvatarPicker,
     onScript,
     controls,
 }: {
@@ -122,6 +123,8 @@ export default function WorldFrameView({
     onFile(message: unknown): void;
     /** The world asks for the sign-in dialog. */
     onSignIn(): void;
+    /** The world asks for the page's avatar picker (features/avatar-picker). */
+    onAvatarPicker(): void;
     /** What the world's script runtime says (features/world-scripts). */
     onScript(kind: string, data: unknown): void;
     /** The world asks for a link to be opened in a new tab. */
@@ -153,6 +156,7 @@ export default function WorldFrameView({
         onLink,
         onFile,
         onSignIn,
+        onAvatarPicker,
         onScript,
     });
     handlers.current = {
@@ -167,6 +171,7 @@ export default function WorldFrameView({
         onLink,
         onFile,
         onSignIn,
+        onAvatarPicker,
         onScript,
     };
     // Which of the world's documents the page is talking to. A document
@@ -320,6 +325,8 @@ export default function WorldFrameView({
                 return handlers.current.onScript(kind, event.data);
             if (kind === "download") return handlers.current.onFile(event.data);
             if (kind === "sign-in") return handlers.current.onSignIn();
+            if (kind === "avatar-picker")
+                return handlers.current.onAvatarPicker();
             if (kind === "open-link")
                 return handlers.current.onLink(event.data.href);
             if (kind === "pointer-lock")

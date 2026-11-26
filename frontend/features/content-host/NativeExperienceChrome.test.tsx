@@ -44,6 +44,22 @@ jest.mock("@features/landing-carousel/components/Header", () => ({
 jest.mock("@components/_3DExhibit-v2/context/MultiplayerProvider", () => ({
     useMultiplayer: jest.fn(),
 }));
+// The space's avatar state: what it is asked to wear.
+const mockWear = jest.fn();
+jest.mock("@components/context/VrmContext", () => ({
+    useVrm: () => ({ wearVrm: mockWear }),
+}));
+// The page around the space, when it runs in the site's frame; null when
+// it does not.
+let mockFramed: {
+    send: jest.Mock;
+    listen: (handler: (kind: string, data: any) => void) => () => void;
+    say: (kind: string, data: any) => void;
+} | null = null;
+jest.mock("@features/worlds/worldDocument", () => ({
+    ...jest.requireActual("@features/worlds/worldDocument"),
+    worldDocument: () => mockFramed,
+}));
 jest.mock("@components/_3DExhibit-v2/hooks/useWorld", () => ({
     useWorld: jest.fn(),
 }));
@@ -320,6 +336,51 @@ test("solo voice explains its availability without connecting or requesting a mi
     expect(button("Explore spaces")).toBeNull();
     click("Settings");
     expect(panel.currentTab).toBe("settings");
+});
+
+describe("in the site's frame, the avatar picker is the page's", () => {
+    beforeEach(() => {
+        const heard = new Set<(kind: string, data: any) => void>();
+        mockFramed = {
+            send: jest.fn(),
+            listen: (handler) => {
+                heard.add(handler);
+                return () => void heard.delete(handler);
+            },
+            say: (kind, data) =>
+                heard.forEach((handler) => handler(kind, data)),
+        };
+        mockWear.mockClear();
+    });
+    afterEach(() => {
+        mockFramed = null;
+    });
+
+    test("Avatars asks the page for its picker and draws none here", () => {
+        render();
+        click("Avatars");
+        expect(mockFramed.send).toHaveBeenCalledWith("avatar-picker");
+        expect(button("Avatars").getAttribute("aria-pressed")).not.toBe("true");
+    });
+
+    test("the avatar chosen there is worn here; nothing else is", () => {
+        render();
+        act(() =>
+            mockFramed.say("avatar", {
+                avatarUrl: "https://cdn.example/robot.vrm",
+                avatarId: "robot",
+                avatarName: "Robot",
+            })
+        );
+        expect(mockWear).toHaveBeenCalledWith({
+            id: "robot",
+            name: "Robot",
+            url: "https://cdn.example/robot.vrm",
+        });
+        act(() => mockFramed.say("avatar", { avatarUrl: "javascript:1" }));
+        act(() => mockFramed.say("identity", { avatarUrl: "/a.vrm" }));
+        expect(mockWear).toHaveBeenCalledTimes(1);
+    });
 });
 
 test("More keeps the full avatar settings: uploads, size and profile", () => {

@@ -103,6 +103,21 @@ jest.mock("@features/games/roomVoice", () => ({
     },
 }));
 
+// The page's avatar picker (features/avatar-picker): whether it was asked
+// for, and a way to choose in it.
+const mockPicker = { open: jest.fn(), chosen: (_avatar: object) => {} };
+jest.mock("@features/avatar-picker/usePageAvatarPicker", () => ({
+    usePageAvatarPicker: (onChosen: (avatar: object) => void) => {
+        mockPicker.chosen = onChosen;
+        return {
+            isOpen: false,
+            open: mockPicker.open,
+            close: jest.fn(),
+            picker: null,
+        };
+    },
+}));
+
 const mockIsMod = jest.fn();
 jest.mock("@api/social/_api", () => ({
     __esModule: true,
@@ -182,6 +197,7 @@ beforeEach(async () => {
     mockPush.mockReset();
     mockReplace.mockReset();
     mockSheetOpen.mockReset().mockReturnValue(() => {});
+    mockPicker.open.mockReset();
     window.history.replaceState(null, "", "/spaces/abc?coords=1x2x3x0");
     (globalThis as any).fetch = jest.fn(async () => ({
         ok: true,
@@ -289,6 +305,31 @@ test("signing in after the world started starts it again as that visitor", async
     listen();
     hello();
     expect(sent[0].message).toMatchObject({ guest: false, name: "ada" });
+});
+
+test("a world that asks for the avatar picker gets the page's, and is told the choice", () => {
+    hello();
+    fromWorld({ type: "oncyber:game:avatar-picker" });
+    expect(mockPicker.open).toHaveBeenCalledTimes(1);
+    const first = element();
+    act(() =>
+        mockPicker.chosen({
+            id: "robot",
+            name: "Robot",
+            url: "/avatars/robot.vrm",
+        })
+    );
+    expect(sent[sent.length - 1]).toEqual({
+        message: {
+            type: "oncyber:game:avatar",
+            avatarUrl: "/avatars/robot.vrm",
+            avatarId: "robot",
+            avatarName: "Robot",
+        },
+        target: "https://worlds.example",
+    });
+    // The world wears it and runs on: the frame is the same one.
+    expect(element()).toBe(first);
 });
 
 test("a setting the world saves is kept by the page too, and the world runs on", async () => {

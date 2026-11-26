@@ -2,6 +2,13 @@ import { passwordRefusalMessage } from "@components/_3DExhibit-v2/utils/gating";
 import { goToExperience } from "@utils/experienceNavigation";
 import { requestLobbyPartyTravel } from "@utils/lobbyDestinationBridge";
 import React, { useEffect, useRef, useState } from "react";
+import { useVrm } from "@components/context/VrmContext";
+import { worldDocument } from "@features/worlds/worldDocument";
+import {
+    AVATAR_KIND,
+    AVATAR_PICKER_KIND,
+    readAvatarMessage,
+} from "@features/avatar-picker/pageAvatar";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
@@ -296,9 +303,25 @@ export default function NativeExperienceChrome({
     const micOn =
         voice?.voiceState?.type === "enabled" &&
         !voice.voiceState.state.isMuted;
+    // The avatar the visitor chose in the page's picker: worn here.
+    const { wearVrm } = useVrm();
+    useEffect(
+        () =>
+            worldDocument()?.listen((kind, data) => {
+                if (kind !== AVATAR_KIND) return;
+                const avatar = readAvatarMessage(data, window.location.origin);
+                if (avatar) wearVrm(avatar);
+            }),
+        []
+    );
     const toggleTab = (panel: Exclude<SpacePanel, "">) => {
         closePhoneChat();
         document.exitPointerLock?.();
+        // In the site's frame the avatar picker is the page's: it holds
+        // the account whose avatars are listed and where the choice is
+        // saved. The page tells this space what was chosen (below).
+        const framed = panel === "avatars" ? worldDocument() : null;
+        if (framed) return framed.send(AVATAR_PICKER_KIND);
         dispatchSpacePanel({ type: "toggle", panel });
     };
     useEffect(() => {

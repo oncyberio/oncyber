@@ -102,6 +102,13 @@ export interface VrmContextState {
     onEdit: (id: string) => void;
     setActiveVrm: React.Dispatch<Vrm>;
     onSelectVrm: (vrmId: string, type: VrmType) => void;
+    /** Wears an avatar chosen in the page's picker (features/avatar-picker). */
+    wearVrm: (avatar: {
+        id: string;
+        name?: string;
+        url: string;
+        scale?: number;
+    }) => void;
     onDelete: (id: string) => Promise<void>;
     onSubmitUpload: (payload: Vrm) => void;
     onUploadVrm: (file: File) => Promise<void>;
@@ -776,6 +783,51 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
         []
     );
 
+    // An avatar chosen somewhere else: in the page's picker, when this
+    // space runs in the site's frame (features/avatar-picker). The page has
+    // saved the choice; here it is only worn, as a choice made in this
+    // space's own picker is once it is saved.
+    const wearVrm = useEventCallback(
+        async (avatar: {
+            id: string;
+            name?: string;
+            url: string;
+            scale?: number;
+        }) => {
+            if (!avatar?.id || !avatar.url) return;
+            // One of the visitor's own that this space knows comes with
+            // the rest of what is known of it (its saved size).
+            const known = [
+                ...DEFAULT_VRMS,
+                ...(uploadedVrms || []),
+                ...(ownedVrms || []),
+            ].find((vrm) => vrm?.id === avatar.id);
+            const vrm = (known || {
+                id: avatar.id,
+                name: avatar.name || "Avatar",
+                url: avatar.url,
+                ...(typeof avatar.scale === "number"
+                    ? { scale: avatar.scale }
+                    : {}),
+            }) as Vrm;
+            wantedVrmId.current = vrm.id;
+            setActiveVrm(vrm);
+            rememberTravelAvatar(userData, vrm as any);
+            try {
+                const room = MultiplayerService?.current?.roomService?.room;
+                if (room?.send)
+                    await room.send(
+                        "scale",
+                        vrm?.userId ? vrm?.scale : defaultScale
+                    );
+                fireEvent(vrm);
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        []
+    );
+
     const saveOwned = async (id: string, fileUrl: string) => {
         try {
             const file = await fetch(fileUrl).then((r) => r.blob());
@@ -994,6 +1046,7 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
         setUploadedVrms,
         onUploadVrm,
         onSelectVrm,
+        wearVrm,
         setActiveVrm,
         onSubmitEdit,
         onSubmitUpload,

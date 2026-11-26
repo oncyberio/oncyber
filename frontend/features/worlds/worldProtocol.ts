@@ -34,6 +34,8 @@ export const WORLD_TO_PAGE = {
     "open-link": "offer to open this address in a new tab (./worldLinks.ts)",
     download: "offer to save this file the world made (./worldLinks.ts)",
     "sign-in": "show the sign-in sheet",
+    "avatar-picker":
+        "show the page's avatar picker (features/avatar-picker/pageAvatar.ts)",
     "pointer-lock": "the pointer is, or is no longer, locked to the world",
     dock: "the buttons the world has for the page's dock (./worldDock.ts)",
     ask: "a question only the page can answer: rpc, api, moderator (./accountRelay.ts)",
@@ -44,6 +46,7 @@ export const PAGE_TO_WORLD = {
     identity: "who is visiting, in answer to hello (./worldVisitor.ts)",
     answer: "the answer to an ask, by its number",
     "dock-press": "the visitor pressed one of the world's dock buttons",
+    avatar: "the avatar the visitor chose in the page's picker: wear it",
 } as const;
 
 export type WorldKind = keyof typeof WORLD_TO_PAGE;

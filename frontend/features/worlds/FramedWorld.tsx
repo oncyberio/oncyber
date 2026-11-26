@@ -36,6 +36,8 @@ import {
 } from "./pageAuthority";
 import { usePageVisitor } from "./usePageVisitor";
 import { useWorldOffers } from "./useWorldOffers";
+import { usePageAvatarPicker } from "@features/avatar-picker/usePageAvatarPicker";
+import { AVATAR_KIND, avatarMessage } from "@features/avatar-picker/pageAvatar";
 import WorldFrameView, { type WorldControls } from "./WorldFrameView";
 
 export { WORLD_LOAD_TIMEOUT_MS } from "./WorldFrameView";
@@ -112,6 +114,7 @@ export default function FramedWorld({
         setFailed(false);
         setStalled(false);
         offers.clear();
+        avatars.close();
         setDock([]);
         setConnection(null);
         setAttempt((count) => count + 1);
@@ -202,6 +205,13 @@ export default function FramedWorld({
     };
     const authority = useRef<PageAuthority>(null);
     authority.current ||= createPageAuthority(spaceId, () => session.current);
+    // Changing avatar is the page's: the world asks for the picker, the
+    // page shows the lobby's, saves the choice and tells the world, which
+    // wears it and runs on (features/avatar-picker).
+    const avatars = usePageAvatarPicker((avatar) => {
+        world.current?.keepVisitor();
+        world.current?.send(AVATAR_KIND, avatarMessage(avatar));
+    });
     // An account call for the world. When it saved a setting (an avatar
     // chosen in the world), the page's own copy of the account follows, so
     // a world started later in this visit is handed the new one; the
@@ -304,12 +314,14 @@ export default function FramedWorld({
                 onStalled={setStalled}
                 onFile={offers.offerFile}
                 onSignIn={signIn}
+                onAvatarPicker={avatars.open}
                 onScript={(kind, data) =>
                     scriptRuntime.current?.receive(kind, data)
                 }
                 onLink={offers.offerLink}
                 controls={world}
             />
+            {avatars.picker}
             {scripted && (
                 <PageWorldScripts
                     key={attempt}

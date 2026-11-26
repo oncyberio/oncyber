@@ -223,6 +223,15 @@ default.
         for the page alone (a one-time sign-in code, an invitation) does
         not go into the frame's (`features/worlds/worldAddress.ts`).
 
+        Changing avatar is the page's too, for everything the site
+        frames, worlds and games alike (`features/avatar-picker/`). What
+        runs in a frame asks for the picker (`avatar-picker`); the page
+        shows the lobby's, with the visitor's own avatars read by the page,
+        saves the choice to the account and says what was chosen
+        (`avatar`); the frame wears it and runs on. A framed space's
+        Avatars button asks the page instead of drawing a picker of its
+        own.
+
     3. **Gated worlds.** _(Done.)_ Framed like any other: the page, which
        holds the session, says whether its visitor is let in, and the
        gate is the world's own interface as it is unframed.
@@ -449,13 +458,10 @@ The studio stays unframed until editing has its own plan.
     uses one that is not. The four relays (room, voice, live channels,
     world scripts) still each write their own question-and-answer
     plumbing; one shared link would replace four.
--   Settings a world saves through the page (an avatar chosen in the
-    world) are saved to the account but not to the page's own copy of it,
-    so a frame loaded again in the same visit is handed the earlier ones.
--   The page reads a space's live channels for the world with whatever
-    Firebase sign-in the visitor has, for any space the world names.
-    Whether that shows a world more than a signed-out visitor sees
-    depends on the Firestore rules, which are not in this repository.
+-   The other in-world settings panels (avatar size, uploads, quality,
+    camera) still draw inside the world and save through the page, whose
+    copy of the account follows each save. Moving them up to the page, as
+    the avatar picker was, is the same pattern.
 -   A world may go fullscreen (the in-world button). Fullscreen covers
     the page's own prompts; a game's frame is not allowed it.
 -   The world host is only checked to be another host. It must be
