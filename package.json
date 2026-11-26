@@ -17,6 +17,7 @@
         "world": "node scripts/world-cli.mjs",
         "check:fast": "pnpm -C frontend check:tokens && pnpm -C frontend test:changed && pnpm -C frontend check:types",
         "worlds:smoke": "node scripts/worlds/framed-smoke.mjs",
+        "games:build": "node scripts/games/build.mjs",
         "games:check": "node scripts/games/games.mjs check",
         "games:publish": "node scripts/games/games.mjs publish",
         "games:catalog": "node scripts/games/catalog.mjs",
