@@ -124,7 +124,7 @@ export default function WorldFrameView({
     /** The world asks for the sign-in dialog. */
     onSignIn(): void;
     /** The world asks for the page's avatar picker (features/avatar-picker). */
-    onAvatarPicker(): void;
+    onAvatarPicker(request: unknown): void;
     /** What the world's script runtime says (features/world-scripts). */
     onScript(kind: string, data: unknown): void;
     /** The world asks for a link to be opened in a new tab. */
@@ -326,7 +326,7 @@ export default function WorldFrameView({
             if (kind === "download") return handlers.current.onFile(event.data);
             if (kind === "sign-in") return handlers.current.onSignIn();
             if (kind === "avatar-picker")
-                return handlers.current.onAvatarPicker();
+                return handlers.current.onAvatarPicker(event.data);
             if (kind === "open-link")
                 return handlers.current.onLink(event.data.href);
             if (kind === "pointer-lock")

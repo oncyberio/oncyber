@@ -3,7 +3,8 @@
  *
  * What runs in a frame cannot reach the account, so it does not keep the
  * list of a visitor's avatars or save their choice. It asks the page for
- * the picker (`avatar-picker`), the page shows its own, saves the choice
+ * the picker (`avatar-picker`, saying which avatar it wears now if it
+ * likes), the page shows its own, saves the choice
  * to the account, and tells the frame what was chosen (`avatar`). The
  * frame's only job is to wear it. One picker, the lobby's, for everything
  * the site frames.
@@ -16,6 +17,18 @@ import type { TravelAvatar } from "@utils/travelAvatar";
 export const AVATAR_PICKER_KIND = "avatar-picker";
 /** What the page says when the visitor has chosen. */
 export const AVATAR_KIND = "avatar";
+
+/**
+ * The avatar a frame says it is wearing when it asks for the picker, so
+ * the picker opens on it. Optional: the page knows the saved avatar and
+ * the one chosen this visit, but not a default the frame picked itself.
+ */
+export function readPickerRequest(message: any): { wearing?: string } {
+    const wearing = message?.avatarId;
+    return typeof wearing === "string" && wearing && wearing.length <= 200
+        ? { wearing }
+        : {};
+}
 
 /** The `avatar` message for a choice: public presentation only. */
 export function avatarMessage(avatar: TravelAvatar) {

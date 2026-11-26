@@ -304,7 +304,7 @@ export default function NativeExperienceChrome({
         voice?.voiceState?.type === "enabled" &&
         !voice.voiceState.state.isMuted;
     // The avatar the visitor chose in the page's picker: worn here.
-    const { wearVrm } = useVrm();
+    const { wearVrm, activeVrm } = useVrm();
     useEffect(
         () =>
             worldDocument()?.listen((kind, data) => {
@@ -321,7 +321,11 @@ export default function NativeExperienceChrome({
         // the account whose avatars are listed and where the choice is
         // saved. The page tells this space what was chosen (below).
         const framed = panel === "avatars" ? worldDocument() : null;
-        if (framed) return framed.send(AVATAR_PICKER_KIND);
+        if (framed)
+            return framed.send(AVATAR_PICKER_KIND, {
+                // What this space has on now, so the picker opens on it.
+                avatarId: activeVrm?.id,
+            });
         dispatchSpacePanel({ type: "toggle", panel });
     };
     useEffect(() => {

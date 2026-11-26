@@ -21,9 +21,12 @@ import { settingsWithAvatar } from "./pageAvatar";
  * which tells the frame.
  */
 export default function PageAvatarPicker({
+    wearing,
     onChosen,
     onClose,
 }: {
+    /** The avatar the frame says it is wearing now, if it said. */
+    wearing?: string;
     onChosen(avatar: TravelAvatar): void;
     onClose(): void;
 }) {
@@ -48,9 +51,11 @@ export default function PageAvatarPicker({
             ),
         [owned.items]
     );
-    // What the visitor is wearing: this visit's choice, else the saved one.
+    // What the visitor is wearing: what the frame says, else this visit's
+    // choice, else the saved one.
     const [chosen, setChosen] = useState(
-        () => readTravelAvatar(userData)?.id || userData?.settings?.vrm
+        () =>
+            wearing || readTravelAvatar(userData)?.id || userData?.settings?.vrm
     );
     return (
         <AvatarCarousel

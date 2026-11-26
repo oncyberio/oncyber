@@ -1,4 +1,5 @@
 import {
+    readPickerRequest,
     avatarMessage,
     readAvatarMessage,
     settingsWithAvatar,
@@ -74,4 +75,12 @@ test("nothing is saved for the avatar already saved, or one held in a wallet", (
             }
         )
     ).toBeNull();
+});
+
+test("a frame may say what it is wearing when it asks for the picker", () => {
+    expect(readPickerRequest({ avatarId: "robot" })).toEqual({
+        wearing: "robot",
+    });
+    for (const message of [{}, null, { avatarId: 7 }, { avatarId: "" }])
+        expect(readPickerRequest(message)).toEqual({});
 });

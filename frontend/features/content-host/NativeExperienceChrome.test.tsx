@@ -47,7 +47,7 @@ jest.mock("@components/_3DExhibit-v2/context/MultiplayerProvider", () => ({
 // The space's avatar state: what it is asked to wear.
 const mockWear = jest.fn();
 jest.mock("@components/context/VrmContext", () => ({
-    useVrm: () => ({ wearVrm: mockWear }),
+    useVrm: () => ({ wearVrm: mockWear, activeVrm: { id: "square" } }),
 }));
 // The page around the space, when it runs in the site's frame; null when
 // it does not.
@@ -359,7 +359,10 @@ describe("in the site's frame, the avatar picker is the page's", () => {
     test("Avatars asks the page for its picker and draws none here", () => {
         render();
         click("Avatars");
-        expect(mockFramed.send).toHaveBeenCalledWith("avatar-picker");
+        // ... saying what it has on, so the picker opens on it.
+        expect(mockFramed.send).toHaveBeenCalledWith("avatar-picker", {
+            avatarId: "square",
+        });
         expect(button("Avatars").getAttribute("aria-pressed")).not.toBe("true");
     });
 
