@@ -88,7 +88,8 @@ pnpm world login                          # once: opens the browser to sign in
 pnpm world script reference               # everything a script may use
 pnpm world script pull <spaceId>          # -> ./<spaceId>.world-script.js
 pnpm world script check <file>            # does it parse as a script?
-pnpm world script push <spaceId>          # save it to the space
+pnpm world script push <spaceId>          # save it; open spaces add it to the running game
+pnpm world script push <spaceId> --rewind # save it; open spaces start the round again
 pnpm world script clear <spaceId>         # the space has no script
 ```
 
@@ -142,8 +143,10 @@ world:test`.
 `frontend/features/world-scripts/examples/starryNight.fallenStars.js` is a
 script written in a file against the reference and pushed with the command
 above, for the space built on the Starry Night world. Seven stars have
-fallen along the road from where a visitor starts down to the first house;
-catching one lights a lantern on the way, and all seven light the road.
+fallen along the road from where a visitor starts down to the first house.
+They show one at a time, each further down: catching one lights the
+lantern beside it and shows the next, and all seven light the road. A
+signpost where a visitor starts says where the road goes.
 
 Two things it had to get right, both learned from getting them wrong:
 
@@ -159,6 +162,13 @@ Two things it had to get right, both learned from getting them wrong:
     so everything is sized from one person height at the top of the
     script. The reference's "about 1.8 m tall" is a new world's default,
     not every world's.
+
+It was also the first script changed while its space was open (see
+"Spaces that are open follow a save"). The signpost, and each star
+lighting the lantern beside it, were pushed as an addition: what a visitor
+had caught still meant the same. Showing the stars one at a time was
+pushed with `--rewind`: under that rule the stars are caught in order, and
+a round where the fifth was caught before the first means nothing.
 
 It is here as a worked example, with a test beside it that runs it in the
 sandbox the way a visitor's browser does (it starts, a star is caught only
@@ -208,6 +218,47 @@ same way for every visitor, so this is also what decides whether a
 visitor on a slow phone gets the script at all.
 Undo goes back to the previous version (as a rewind) and the style it ran
 in; if that version does not run, it is still there to go back to.
+
+## Spaces that are open follow a save
+
+A space that is open when its script is saved picks the new one up
+without a page reload: a push from a terminal, an editor's change in the
+sidebar seen by everyone else in the room, a script taken away.
+
+-   **How they hear.** The save puts a short notice on the space's live
+    feed (`utils/liveSpace`, the feed editor actions already travel on):
+    when it was saved and how to land it, nothing of the script. Every
+    open space listens to that feed already, framed or not, signed in or
+    not. The notice is written as the server (`utils/worldScripts/announce`).
+-   **What they do.** The world reads the script the space runs now
+    (`worldScripts.current`, which anyone may ask: it is what the page
+    hands every visitor at load) and swaps it in as above: tried out of
+    sight, then in place between two frames. A script that does not run
+    leaves the old one running. The rules are `livePickup.ts`; the
+    listening is `liveScript.ts`.
+-   **Who decides how it lands.** Whoever saves, because only they know
+    what they changed. `add` (the default) keeps the game going: things
+    with the same id stay where they are, `keep()` values carry over,
+    visitors stay where they stand. `rewind` starts the round again. From
+    a terminal that is `--rewind`; the sidebar passes on the model's own
+    label (`content` adds, `logic` rewinds). **Add whenever the change can
+    simply be added**; rewind only when the old round's state would be
+    wrong under the new script.
+-   **What the world decides for itself.** A world already running the
+    saved source does nothing (the editor's own). A new style alone is
+    redrawn, nothing restarted. A space's first script just starts. If an
+    addition cannot take the old game over (it throws on the kept state),
+    the world starts a new round with it instead of staying on the old
+    script.
+-   **What a notice cannot do.** A browser may be able to write to the
+    feed, so a notice is only a reason to read: what happens is decided
+    from what the server then says the space has. A false notice costs a
+    read; at worst it turns an addition into a rewind at a real save.
+
+One thing is not carried across yet: in a framed world, the sidebar on the
+page does not hear that the world took a push. An editor who has it open
+and then saves is refused ("changed somewhere else"), which is right, and
+has to reload to build on the pushed script.
 
 ## The world's style
 
@@ -394,8 +445,6 @@ space's other updates refuse those fields
 
 ## Not yet
 
--   Live updates for everyone in the room (the change reaches others on their
-    next load).
 -   Shared state between visitors (multiplayer scores).
 -   Models or images from outside: scripts use shapes, surfaces and text
     made from code and built-in sounds, so they never make the page fetch

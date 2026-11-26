@@ -6,7 +6,7 @@
 import { api } from "@utils/rpc/server";
 import { access, generate } from "./generate";
 import { save } from "./save";
-import { get, reference } from "./read";
+import { current, get, reference } from "./read";
 import { grant, people, revoke } from "./people";
 
 const WorldScriptsService = {
@@ -17,6 +17,7 @@ const WorldScriptsService = {
     save,
     get,
     reference,
+    current,
     people,
     grant,
     revoke,

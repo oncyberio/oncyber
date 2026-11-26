@@ -195,6 +195,7 @@ test("pull, edit, push: the file is what is saved, built on what was pulled", as
                 },
             ],
             base: 7,
+            landing: "add",
         },
     ]);
     // The next push builds on this one.
@@ -341,12 +342,12 @@ test("a style travels with its script: pushed when its file is there, pulled whe
     assert.ok(
         w.said.some((line) => /warning: no stars\.js\.style\.json/.test(line))
     );
-    assert.match(w.said.at(-2), /Saved "Stars" to abc\.$/);
+    assert.match(w.said.at(-3), /Saved "Stars" to abc\.$/);
 
     w.files.set(stylePath("stars.js"), JSON.stringify(style));
     await w.run("push", "abc", "stars.js");
     assert.deepEqual(w.calls.at(-1)[1].style, style);
-    assert.match(w.said.at(-2), /with its style\.$/);
+    assert.match(w.said.at(-3), /with its style\.$/);
 
     await w.run("pull", "abc", "again.js");
     assert.deepEqual(JSON.parse(w.files.get(stylePath("again.js"))), style);
@@ -359,4 +360,15 @@ test("a style travels with its script: pushed when its file is there, pulled whe
         w.calls.slice(before).map(([method]) => method),
         ["reference"]
     );
+});
+
+test("a push says how open spaces take it: added, or a new round with --rewind", async () => {
+    const w = world();
+    w.files.set("stars.js", "// name: Stars\nui.clear();");
+    await w.run("push", "abc", "stars.js");
+    assert.equal(w.calls.at(-1)[1].landing, "add");
+    assert.ok(w.said.some((line) => /added to the running game/.test(line)));
+    await w.run("push", "abc", "stars.js", "--rewind");
+    assert.equal(w.calls.at(-1)[1].landing, "rewind");
+    assert.ok(w.said.some((line) => /the round starts again/.test(line)));
 });

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { proc, NoApi } from "@utils/rpc/server";
 import { db } from "@utils/firebaseAdmin";
 import { cleanStyle } from "@features/world-scripts/style";
+import { announceScript } from "@utils/worldScripts/announce";
 import {
     hasEarlyAccess,
     isSpaceAdmin,
@@ -51,9 +52,12 @@ export const save = proc({
         scripts: z.array(scriptSchema).max(1).optional(),
         /** The world's creative direction; checked by cleanStyle. */
         style: z.record(z.string(), z.unknown()).optional(),
+        // How spaces that are open take this save: added to the running
+        // game, or as a new round (features/world-scripts/livePickup.ts).
+        landing: z.enum(["add", "rewind"]).optional(),
         base: z.number().nonnegative().optional(),
     }),
-    async handler({ experienceId, scripts, style: rawStyle, base }) {
+    async handler({ experienceId, scripts, style: rawStyle, base, landing }) {
         const style = rawStyle ? cleanStyle(rawStyle) : null;
         if (rawStyle && !style)
             return { ok: false as const, error: "That style isn't valid." };
@@ -93,8 +97,18 @@ export const save = proc({
             return null;
         });
         if (refused) return { ok: false as const, ...refused };
+        // Spaces that are open follow: told when this was saved (the
+        // script's own time, or now for a script taken away or a style
+        // alone) and how to land it. Added unless the saver says rewind.
+        const saved = records as WorldScriptRecord[] | null;
+        const announced = await announceScript(
+            experienceId,
+            Math.max(now, Number(saved?.[0]?.updatedAt) || 0),
+            landing || "add"
+        );
         return {
             ok: true as const,
+            announced,
             // Set in the transaction, which the compiler does not follow.
             scripts: records as WorldScriptRecord[] | null,
             style,

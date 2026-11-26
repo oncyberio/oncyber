@@ -13,6 +13,7 @@ import WorldScriptsApi from "@api/worldScripts/_api";
 import type { WorldScriptRecord } from "./protocol";
 import { WORLD_SCRIPT_LIMITS, byteLength, firstLine } from "./basics";
 import type { SwapMode } from "./host";
+import type { Landing } from "./livePickup";
 import type { WorldScriptRuntime } from "./runtime";
 import { cleanStyle, WorldStyle } from "./style";
 import {
@@ -82,7 +83,13 @@ export function createController(
     }
 
     /** Saves the script, and with it a style that landed with it. */
-    async function save(patch: Partial<WorldScriptRecord>, style?: WorldStyle) {
+    async function save(
+        patch: Partial<WorldScriptRecord>,
+        style?: WorldStyle,
+        // How the other spaces that are open take it (./livePickup.ts): as
+        // this one did. A step back is a rewind, as it is here.
+        landing: Landing = "rewind"
+    ) {
         const current = getWorldScripts();
         const script: WorldScriptRecord = {
             id: current.script?.id || newId(),
@@ -103,6 +110,7 @@ export function createController(
                 // What this save builds on: refused if the space's script
                 // was changed somewhere else since.
                 base: base(),
+                landing,
                 ...(style ? { style } : {}),
             })
             .catch(failed);
@@ -347,7 +355,8 @@ export function createController(
                     name: answer.name,
                     enabled: true,
                 },
-                style
+                style,
+                mode === "keep" ? "add" : "rewind"
             );
             return;
         }

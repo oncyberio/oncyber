@@ -9,6 +9,7 @@ import { WORLD_SCRIPT_LIMITS } from "@features/world-scripts/basics";
 import { WORLD_SCRIPT_REFERENCE } from "@features/world-scripts/brief";
 import { SCRIPT_GLOBALS } from "@features/world-scripts/scriptApi";
 import { cleanStyle } from "@features/world-scripts/style";
+import { db } from "@utils/firebaseAdmin";
 
 const OFF = { ok: false as const, error: "World scripts are off here." };
 
@@ -65,6 +66,44 @@ export const get = proc({
                 })),
             style: cleanStyle(space.experience.worldStyle) || null,
             savedAt: scriptsSavedAt(space.experience),
+        };
+    },
+});
+
+/**
+ * The script a space runs now, for a world that is open and has heard of a
+ * save (features/world-scripts/livePickup.ts). Anyone may ask: it is what
+ * the space's page hands every visitor when it loads, gated or not, and
+ * nothing more (no ids, names or who saved it).
+ */
+export const current = proc({
+    auth: false,
+    schema: z.object({
+        experienceId: z.string().regex(/^[a-zA-Z0-9_-]{1,160}$/),
+    }),
+    async handler({ experienceId }) {
+        if (!worldScriptsEnabled()) return OFF;
+        // Only what is asked for is read: the document is large, and this
+        // is asked by every open space each time its script is saved.
+        const [document] = await db.getAll(
+            db.collection("exhibits").doc(experienceId),
+            { fieldMask: ["worldScripts", "worldStyle", "deleted"] }
+        );
+        const experience = document?.exists ? document.data() : null;
+        if (!experience || experience.deleted === true)
+            return { ok: false as const, error: "This space doesn't exist." };
+        const saved = Array.isArray(experience.worldScripts)
+            ? experience.worldScripts
+            : [];
+        const running = saved.find(
+            (script: any) =>
+                script?.enabled !== false && typeof script?.source === "string"
+        );
+        return {
+            ok: true as const,
+            source: (running?.source as string) || "",
+            style: cleanStyle(experience.worldStyle) || null,
+            savedAt: scriptsSavedAt(experience),
         };
     },
 });

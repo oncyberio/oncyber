@@ -12,7 +12,7 @@
  *   node scripts/world-cli.mjs script reference
  *   node scripts/world-cli.mjs script pull <exhibitId> [file]
  *   node scripts/world-cli.mjs script check <file>
- *   node scripts/world-cli.mjs script push <exhibitId> [file] [--name "..."]
+ *   node scripts/world-cli.mjs script push <exhibitId> [file] [--name "..."] [--rewind]
  *   node scripts/world-cli.mjs script clear <exhibitId>
  *   node scripts/world-cli.mjs script access [add|remove <who>]
  *
@@ -21,6 +21,13 @@
  * `<file>.base.json`, which records the save the file builds on; `push`
  * sends it, and the server refuses a push that builds on an older save
  * than the space now has (pull again and carry your change over).
+ *
+ * Spaces that are open pick a push up without reloading. How it lands in
+ * them is the pusher's to say, who knows what they changed: by default it
+ * is added to the running game (things with the same id stay where they
+ * are, `keep()` values carry over, visitors stay where they stand), which
+ * is right whenever the change can simply be added. `--rewind` starts the
+ * round again, for new rules or a new game.
  *
  * A space's style is the look its script's things are drawn in (a painted
  * world paints them). It is kept in `<file>.style.json`: `pull` writes it
@@ -107,9 +114,15 @@ export function checkSource(source, { names, maxSourceBytes }) {
 }
 
 /** What `worldScripts.save` is sent for this file. */
-export function saveRequest(exhibitId, source, base, { name, id, style } = {}) {
+export function saveRequest(
+    exhibitId,
+    source,
+    base,
+    { name, id, style, landing } = {}
+) {
     return {
         ...(style ? { style } : {}),
+        ...(landing ? { landing } : {}),
         experienceId: exhibitId,
         scripts: [
             {
@@ -145,6 +158,7 @@ export async function scriptCommand(args, rpc, io = {}) {
     const rest = [];
     for (let i = 0; i < args.length; i++) {
         if (args[i] === "--name") flags.name = args[++i];
+        else if (args[i] === "--rewind") flags.rewind = true;
         else rest.push(args[i]);
     }
     const [command, first, second] = rest;
@@ -274,6 +288,7 @@ export async function scriptCommand(args, rpc, io = {}) {
             name: flags.name || readName(source) || base.name,
             id: base.id,
             style,
+            landing: flags.rewind ? "rewind" : "add",
         });
         const answer = await rpc("save", request);
         if (!answer?.ok)
@@ -295,6 +310,13 @@ export async function scriptCommand(args, rpc, io = {}) {
         say(
             `Saved "${stored.name}" to ${exhibitId}` +
                 (style ? ", with its style." : ".")
+        );
+        say(
+            answer.announced === false
+                ? "Spaces that are open were not told: they have it on their next load."
+                : flags.rewind
+                ? "Spaces that are open pick it up now: the round starts again."
+                : "Spaces that are open pick it up now, added to the running game."
         );
         if (baseUrl) say(`See it: ${baseUrl}/spaces/${exhibitId}`);
         return;

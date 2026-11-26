@@ -41,6 +41,10 @@ jest.mock("@utils/firebaseAdmin", () => ({
             };
             return all;
         },
+        getAll: async (...refs: any[]) =>
+            refs
+                .filter((ref) => typeof ref?.path === "string")
+                .map((ref) => mockSnap(ref.path)),
         runTransaction(run: (transaction: any) => Promise<unknown>) {
             const result = mockQueue.then(() =>
                 run({
@@ -74,13 +78,17 @@ jest.mock("@utils/firebaseAdmin", () => ({
 jest.mock("@api/accounts/authenticate/utils/link", () => ({
     getAccountDoc: jest.fn(async (id: string) => ({ id, data: () => ({}) })),
 }));
+const mockAnnounce = jest.fn(async (..._said: unknown[]) => true);
+jest.mock("@utils/worldScripts/announce", () => ({
+    announceScript: (...said: unknown[]) => mockAnnounce(...said),
+}));
 jest.mock("@utils/siteAdmins", () => ({
     isSiteAdmin: (id: string) => String(id).toLowerCase() === "site-admin",
 }));
 
 import { access, generate } from "./generate";
 import { save } from "./save";
-import { get, reference } from "./read";
+import { current, get, reference } from "./read";
 import { grant, people, revoke } from "./people";
 import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
 
@@ -118,6 +126,7 @@ const as = (userId: string) => ({
     access: () => (access as any).call({ userId }, { experienceId: "space-1" }),
     get: () => (get as any).call({ userId }, { experienceId: "space-1" }),
     reference: () => (reference as any).call({ userId }, {}),
+    current: () => (current as any).call({}, { experienceId: "space-1" }),
     people: () => (people as any).call({ userId }, {}),
     grant: (who: string) => (grant as any).call({ userId }, { who }),
     revoke: (who: string) => (revoke as any).call({ userId }, { who }),
@@ -550,5 +559,78 @@ describe("who is in early access", () => {
             ok: false,
         });
         expect(await as("site-admin").people()).toMatchObject({ ok: false });
+    });
+});
+
+describe("open spaces follow a save", () => {
+    beforeEach(() => {
+        mockAnnounce.mockClear();
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner";
+    });
+    const saving = (extra: object = {}) =>
+        as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+            ...extra,
+        });
+
+    test("a save is announced, to be added unless the saver says rewind", async () => {
+        const saved = await saving();
+        expect(saved).toMatchObject({ ok: true, announced: true });
+        const [id, savedAt, landing] = mockAnnounce.mock.calls[0];
+        expect(id).toBe("space-1");
+        // The time the script was stored under: what a world compares.
+        expect(savedAt).toBe(saved.scripts[0].updatedAt);
+        expect(landing).toBe("add");
+
+        await saving({ landing: "rewind", base: saved.scripts[0].updatedAt });
+        expect(mockAnnounce.mock.calls[1][2]).toBe("rewind");
+        expect(mockAnnounce.mock.calls[1][1]).toBeGreaterThan(
+            savedAt as number
+        );
+    });
+
+    test("a refused save is not announced, and an unheard one is still saved", async () => {
+        expect(
+            await as("visitor").save({
+                experienceId: "space-1",
+                scripts: [script()],
+            })
+        ).toMatchObject({ ok: false });
+        expect(await saving({ base: 12345 })).toMatchObject({
+            ok: false,
+            conflict: true,
+        });
+        expect(mockAnnounce).not.toHaveBeenCalled();
+        mockAnnounce.mockResolvedValueOnce(false);
+        expect(await saving()).toMatchObject({ ok: true, announced: false });
+        expect(space().worldScripts).toHaveLength(1);
+    });
+
+    test("taking the script away is announced too", async () => {
+        await saving();
+        await as("owner").save({ experienceId: "space-1", scripts: [] });
+        expect(mockAnnounce).toHaveBeenCalledTimes(2);
+        expect(mockAnnounce.mock.calls[1][1]).toBeGreaterThan(0);
+    });
+
+    test("anyone may read the script a space runs now, and only that", async () => {
+        expect(await as("visitor").current()).toEqual({
+            ok: true,
+            source: "",
+            style: null,
+            savedAt: 0,
+        });
+        const saved = await saving({ style });
+        expect(await as("visitor").current()).toEqual({
+            ok: true,
+            source: "world.add({});",
+            style,
+            savedAt: saved.scripts[0].updatedAt,
+        });
+        mockDocs.set("exhibits/space-1", { ...space(), deleted: true });
+        expect(await as("visitor").current()).toMatchObject({ ok: false });
+        env[FLAG] = "";
+        expect(await as("visitor").current()).toMatchObject({ ok: false });
     });
 });

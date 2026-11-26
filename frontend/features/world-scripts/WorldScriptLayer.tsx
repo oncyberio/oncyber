@@ -15,13 +15,16 @@ import { baseTokens, lobbyTokens } from "@styles/tokens";
 import type { HudCorner, WorldScriptRecord } from "./protocol";
 import { createController } from "./controller";
 import { createLocalRuntime, type WorldScriptRuntime } from "./runtime";
+import { followSavedScript } from "./liveScript";
 import { serveRuntime } from "./runtimeRelay";
 import type { WorldStyle } from "./style";
 import {
+    getWorldScripts,
     offersAiSidebar,
     pageEvents,
-    savedScript,
+    rememberSaved,
     resetWorldScripts,
+    savedScript,
     setWorldScripts,
     setWorldScriptsController,
     useWorldScripts,
@@ -69,6 +72,58 @@ function Layer({ experience }: { experience: LayerExperience }) {
         });
         const page = worldDocument();
         let runtime: WorldScriptRuntime | null = null;
+        // What runs here now, whoever started it (this layer, the sidebar,
+        // the page around a framed world): a save is followed from it.
+        const ran = { source: saved.source };
+        const tracked = (made: WorldScriptRuntime): WorldScriptRuntime => ({
+            ...made,
+            async run(source, mode, style) {
+                const result = await made.run(source, mode, style);
+                if (result.ok) ran.source = source;
+                return result;
+            },
+            stop() {
+                made.stop();
+                ran.source = "";
+            },
+        });
+        // While the space is open it follows its saved script: a push from
+        // a terminal, or another editor's change, lands without a reload
+        // (./liveScript.ts).
+        const follow = () =>
+            followSavedScript(
+                experience.id,
+                {
+                    source: saved.source,
+                    style: saved.style,
+                    savedAt: Number(saved.script?.updatedAt) || 0,
+                },
+                runtime,
+                (landed) => {
+                    const script = landed.source
+                        ? {
+                              id: "script",
+                              name: "World script",
+                              enabled: true,
+                              ...(getWorldScripts().script || {}),
+                              source: landed.source,
+                              updatedAt: landed.savedAt,
+                          }
+                        : null;
+                    rememberSaved(
+                        experience.id,
+                        script ? [script] : [],
+                        landed.style
+                    );
+                    setWorldScripts({
+                        script,
+                        source: landed.source,
+                        ...(landed.style ? { style: landed.style } : {}),
+                    });
+                },
+                undefined,
+                () => ran.source
+            );
         if (page) {
             // The page drives this world's runtime and hears what it says.
             const served = serveRuntime(
@@ -77,26 +132,32 @@ function Layer({ experience }: { experience: LayerExperience }) {
                 () => runtime,
                 (open) => setWorldScripts({ panelOpen: open })
             );
-            runtime = createLocalRuntime(saved, {
-                ...served.events,
-                onStatus(status) {
-                    setWorldScripts({ status });
-                    served.events.onStatus(status);
-                },
-            });
+            runtime = tracked(
+                createLocalRuntime(saved, {
+                    ...served.events,
+                    onStatus(status) {
+                        setWorldScripts({ status });
+                        served.events.onStatus(status);
+                    },
+                })
+            );
+            const unfollow = follow();
             return () => {
+                unfollow();
                 served.dispose();
                 runtime?.dispose();
                 resetWorldScripts();
             };
         }
-        runtime = createLocalRuntime(saved, pageEvents());
+        runtime = tracked(createLocalRuntime(saved, pageEvents()));
+        const unfollow = follow();
         const controller = createController(experience, runtime);
         setWorldScriptsController(controller);
         // For trying scripts from the console while developing.
         if (process.env.NODE_ENV === "development")
             (window as any).oncyberWorldScripts = controller;
         return () => {
+            unfollow();
             controller.dispose();
             setWorldScriptsController(null);
             runtime?.dispose();
