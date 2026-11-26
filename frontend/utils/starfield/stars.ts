@@ -132,7 +132,7 @@ export function paintStars(
         context.strokeStyle = `hsla(200, 100%, ${light}%, ${(
             star.glow * 0.3
         ).toFixed(3)})`;
-        context.lineWidth = star.width * 0.7;
+        context.lineWidth = star.width * 0.5;
         context.beginPath();
         context.moveTo(star.tx, star.ty);
         context.lineTo(star.hx, star.hy);
@@ -140,7 +140,7 @@ export function paintStars(
         context.strokeStyle = `hsla(200, 100%, ${light}%, ${star.glow.toFixed(
             3
         )})`;
-        context.lineWidth = star.width * 2;
+        context.lineWidth = star.width * 1.2;
         context.beginPath();
         context.moveTo(mx, my);
         context.lineTo(star.hx, star.hy);
