@@ -1,7 +1,13 @@
 import Head from "next/head";
 import { GAMES } from "@features/games/catalog";
 import GameFieldHealth from "@features/games/GameFieldHealth";
-import { gamePause, type GamePause } from "@features/games/gameDisabled";
+import {
+    gameKillSwitch,
+    type GameKillSwitch,
+} from "@features/games/gameDisabled";
+import { gameChrome } from "@features/games/gameChrome";
+import { GameLink } from "@features/games/gameControls";
+import { GAME_BUILDS_DIR } from "@features/games/networkPolicy";
 import {
     readFieldHealth,
     type FieldHealth,
@@ -22,7 +28,7 @@ type GameStatus = {
         run: { backend: string; bootMs: number; frames: Frames } | null;
     } | null;
     health: FieldHealth | null;
-    pause: GamePause;
+    killSwitch: GameKillSwitch;
 };
 
 const mib = (bytes: number) => `${(bytes / 1048576).toFixed(1)} MiB`;
@@ -37,10 +43,10 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
         <main
             style={{
                 minHeight: "100vh",
-                background: "#0b0d12",
-                color: "#f2f3f1",
+                background: gameChrome.color.frame,
+                color: gameChrome.color.ink,
                 padding: "64px 24px",
-                font: "15px/1.5 system-ui, sans-serif",
+                font: `${gameChrome.weight.regular} ${gameChrome.size.body}px/1.5 ${gameChrome.family}`,
             }}
         >
             <Head>
@@ -48,9 +54,9 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
             </Head>
             <div style={{ maxWidth: 760, margin: "0 auto" }}>
                 <h1 style={{ fontWeight: 500, fontSize: 32 }}>Games</h1>
-                <p style={{ color: "#a8acaf" }}>
+                <p style={{ color: gameChrome.color.muted }}>
                     Hidden at launch. Each game is a static bundle in{" "}
-                    <code>public/games/&lt;id&gt;</code>. Run{" "}
+                    <code>{GAME_BUILDS_DIR}/&lt;id&gt;</code>. Run{" "}
                     <code>pnpm games:publish &lt;id&gt;</code> to build it,
                     check it in a browser and write a fixed release; a failed
                     check publishes nothing.
@@ -62,8 +68,8 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                             marginTop: 28,
                             padding: 24,
                             borderRadius: 18,
-                            background: "#15181f",
-                            border: "1px solid #ffffff18",
+                            background: gameChrome.color.panel,
+                            border: `1px solid ${gameChrome.color.line}`,
                         }}
                     >
                         <div
@@ -77,14 +83,16 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                             <h2 style={{ margin: 0, fontWeight: 500 }}>
                                 {game.title}
                             </h2>
-                            <a
-                                href={`/games/${game.id}`}
-                                style={{ color: "#ffd23f" }}
-                            >
+                            <GameLink href={`/games/${game.id}`}>
                                 Play →
-                            </a>
+                            </GameLink>
                         </div>
-                        <p style={{ margin: "8px 0", color: "#a8acaf" }}>
+                        <p
+                            style={{
+                                margin: "8px 0",
+                                color: gameChrome.color.muted,
+                            }}
+                        >
                             {game.release
                                 ? `Release ${game.release.release} · ${
                                       game.release.files.length
@@ -101,8 +109,8 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                         style={{
                                             color:
                                                 game.check.status === "passed"
-                                                    ? "#8be28b"
-                                                    : "#ffa59d",
+                                                    ? gameChrome.color.good
+                                                    : gameChrome.color.error,
                                         }}
                                     >
                                         {game.check.status}
@@ -118,7 +126,7 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                     <p
                                         style={{
                                             margin: "8px 0",
-                                            color: "#a8acaf",
+                                            color: gameChrome.color.muted,
                                         }}
                                     >
                                         {game.check.run.frames
@@ -130,7 +138,7 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                     <p
                                         key={i}
                                         style={{
-                                            color: "#ffa59d",
+                                            color: gameChrome.color.error,
                                             margin: "6px 0",
                                         }}
                                     >
@@ -143,7 +151,7 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                         <summary
                                             style={{
                                                 cursor: "pointer",
-                                                color: "#a8acaf",
+                                                color: gameChrome.color.muted,
                                             }}
                                         >
                                             {game.check.consoleErrors.length}{" "}
@@ -163,7 +171,7 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                                 )}
                             </>
                         ) : (
-                            <p style={{ color: "#a8acaf" }}>
+                            <p style={{ color: gameChrome.color.muted }}>
                                 Never checked. Run{" "}
                                 <code>pnpm games:check {game.id}</code>.
                             </p>
@@ -171,7 +179,7 @@ export default function GamesDev({ games }: { games: GameStatus[] }) {
                         <GameFieldHealth
                             health={game.health}
                             current={game.release?.release ?? null}
-                            pause={game.pause}
+                            killSwitch={game.killSwitch}
                         />
                     </section>
                 ))}
@@ -188,7 +196,7 @@ export async function getServerSideProps() {
         try {
             return JSON.parse(
                 await readFile(
-                    join(process.cwd(), "public/games", id, file),
+                    join(process.cwd(), GAME_BUILDS_DIR, id, file),
                     "utf8"
                 )
             );
@@ -204,7 +212,7 @@ export async function getServerSideProps() {
             release: await read(game.id, "release.json"),
             check: await read(game.id, "check.json"),
             health: health[game.id] ?? null,
-            pause: gamePause(game.id),
+            killSwitch: gameKillSwitch(game.id),
         }))
     );
     return { props: { games } };

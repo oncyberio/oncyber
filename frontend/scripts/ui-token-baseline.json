@@ -433,7 +433,6 @@
     "pages/destinations/[id]/index.js": 1,
     "pages/destinations/[id]/mint.js": 3,
     "pages/destinations/new.tsx": 1,
-    "pages/dev/games.tsx": 13,
     "pages/dev/lobby-arrival.tsx": 2,
     "pages/dev/lobby-chat.tsx": 3,
     "pages/dev/lobby-crowd.tsx": 10,
