@@ -19,6 +19,7 @@
  *
  * Usage:
  *   node scripts/world-cli.mjs login
+ *   node scripts/world-cli.mjs login --code [code]   (no browser here: world-login.mjs)
  *   node scripts/world-cli.mjs pull <exhibitId> [file]
  *   node scripts/world-cli.mjs push <exhibitId> [file]
  *   node scripts/world-cli.mjs snapshot <exhibitId> [label]
@@ -33,7 +34,7 @@
  * water/spawn) or the server will reject them on push.
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
@@ -41,6 +42,7 @@ import { spawn } from "node:child_process";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { scriptCommand } from "./world-script.mjs";
+import { loginLink, newLogin, pendingLogin } from "./world-login.mjs";
 
 const BASE_URL = process.env.ONCYBER_BASE_URL || "http://localhost:3000";
 
@@ -194,6 +196,54 @@ function openBrowser(url) {
 
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 
+const PENDING_LOGIN_PATH = join(homedir(), ".world-cli", "pending-login.json");
+
+/**
+ * `login --code`: for a terminal no browser can reach (world-login.mjs).
+ * With nothing after it, prints the link to open; with the code the page
+ * showed, finishes the sign-in.
+ */
+async function cmdLoginByCode(code) {
+    if (!code) {
+        const login = newLogin();
+        await mkdir(join(homedir(), ".world-cli"), { recursive: true });
+        await writeFile(
+            PENDING_LOGIN_PATH,
+            JSON.stringify({ ...login, baseUrl: BASE_URL }) + "\n",
+            { mode: 0o600 }
+        );
+        console.log("Open this link, sign in and approve:");
+        console.log(`  ${loginLink(BASE_URL, login.challenge)}`);
+        console.log("Then give the code it shows to: login --code <code>");
+        return;
+    }
+
+    let saved = null;
+    try {
+        saved = JSON.parse(readFileSync(PENDING_LOGIN_PATH, "utf-8"));
+    } catch {
+        // None started: said below.
+    }
+    const pending = pendingLogin(saved, BASE_URL);
+    if (pending.error) throw new Error(pending.error);
+
+    const res = await fetch(`${BASE_URL}/api/_v2/cli`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            type: "method",
+            method: "exchange",
+            params: [{ code, verifier: pending.verifier }],
+        }),
+    });
+    const data = await res.json();
+    if (data.type === "Error") throw new Error(`Login failed: ${data.error}`);
+
+    await saveCredentials(data.value.token, data.value.userId);
+    await rm(PENDING_LOGIN_PATH, { force: true });
+    console.log(`Logged in as ${data.value.userId}. Saved to ${CREDENTIALS_PATH}`);
+}
+
 async function cmdLogin() {
     const state = randomBytes(16).toString("hex");
 
@@ -261,7 +311,8 @@ async function cmdLogin() {
 async function main() {
     const [, , cmd, exhibitId, ...rest] = process.argv;
 
-    if (cmd === "login") return cmdLogin();
+    if (cmd === "login")
+        return exhibitId === "--code" ? cmdLoginByCode(rest[0]) : cmdLogin();
     // A space's world script, written in a file (./world-script.mjs).
     if (cmd === "script")
         return scriptCommand(

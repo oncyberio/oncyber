@@ -95,6 +95,21 @@ pnpm world script clear <spaceId>         # the space has no script
 `ONCYBER_BASE_URL` says which deployment (`http://localhost:3000` unless
 set).
 
+**Where no browser can reach the terminal** (a coding agent in the cloud, a
+machine over SSH), sign in with a code instead:
+
+```sh
+pnpm world login --code                   # prints a link
+pnpm world login --code <code>            # the code the link's page showed
+```
+
+The person opens the link, signs in and approves, and gives the code back
+to that terminal or agent. The code works once, for five minutes, and only
+together with a secret that never left the terminal that printed the link,
+so it can pass through a chat. The session it gives is the account's own,
+as with `login`: an agent signed in this way acts as that person until the
+session ends (30 days) or its machine is thrown away.
+
 -   **`reference`** prints what the model is given about the script
     itself, cut from the same text (`brief.ts`), so a script written by
     hand and one written by the model are written against one reference.
