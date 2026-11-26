@@ -36,3 +36,12 @@ export function worldCover(state: {
  * one part in a hundred.
  */
 export const WORLD_COVER_OPACITY = 0.988;
+
+/**
+ * Whether the page's verdict on a space's gate is anything but "come in".
+ * A space with no gate is given the same verdict as one the visitor
+ * passed: `success`.
+ */
+export function isGated(gate?: { type: string } | null) {
+    return !!gate && gate.type !== "success";
+}

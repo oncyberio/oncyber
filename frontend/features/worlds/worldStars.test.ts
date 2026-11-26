@@ -1,4 +1,4 @@
-import { WORLD_COVER_OPACITY, worldCover } from "./worldStars";
+import { WORLD_COVER_OPACITY, isGated, worldCover } from "./worldStars";
 
 const loading = {
     phase: "loading",
@@ -29,5 +29,13 @@ describe("what the page shows over a world while it loads", () => {
     test("the cover is never fully opaque, or the browser starves the frame", () => {
         expect(WORLD_COVER_OPACITY).toBeLessThan(1);
         expect(WORLD_COVER_OPACITY).toBeGreaterThan(0.98);
+    });
+
+    test("a space with no gate, or one the visitor passed, is not gated", () => {
+        // What the page hands over for every open space.
+        expect(isGated({ type: "success" })).toBe(false);
+        expect(isGated(undefined)).toBe(false);
+        expect(isGated({ type: "password" })).toBe(true);
+        expect(isGated({ type: "other-error" })).toBe(true);
     });
 });

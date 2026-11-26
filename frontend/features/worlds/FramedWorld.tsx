@@ -19,6 +19,7 @@ import {
 } from "@features/world-scripts/store";
 import type { RemoteRuntime } from "@features/world-scripts/runtimeRelay";
 import type { PageScriptSpace } from "@features/world-scripts/PageWorldScripts";
+import { isGated } from "./worldStars";
 import { readWorldLocation, worldSpaceId } from "./worldLocation";
 import {
     CONNECTION_ACTION,
@@ -319,7 +320,7 @@ export default function FramedWorld({
                     scriptRuntime.current?.receive(kind, data)
                 }
                 onLink={offers.offerLink}
-                gated={!!gate}
+                gated={isGated(gate)}
                 controls={world}
             />
             {avatars.picker}
