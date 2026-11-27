@@ -321,9 +321,13 @@ function flattenChest(
     const rest = restPositions(body.skeleton);
     const at = (name: string) =>
         rest[bones.indexOf(vrm.humanoid.getRawBoneNode(name))];
-    const low = at("chest")[1] - 0.03;
+    const low = at("chest")[1] - 0.07;
     const high = at("neck")[1] - 0.045;
     const position = body.geometry.attributes.position;
+    const skinIndex = body.geometry.attributes.skinIndex.array;
+    const skinWeight = body.geometry.attributes.skinWeight.array;
+    // The bones of the ribcage, bust included: only what they carry moves.
+    const ribs = bones.map((bone) => /Chest|Bust|Spine/.test(bone.name));
     // Which way the figure faces: its toes point there.
     const forward = Math.sign(at("leftToes")[2] - at("leftFoot")[2]) || 1;
     // The breastbone's profile: how far forward the middle of the chest
@@ -341,7 +345,7 @@ function flattenChest(
     if (samples.length < 4) return;
     const profileAt = fitQuadratic(samples);
     const moved: number[] = [];
-    const soft = 0.006;
+    const soft = 0.022;
     for (let v = 0; v < position.count; v++) {
         const y = position.getY(v);
         const x = position.getX(v);
@@ -354,7 +358,15 @@ function flattenChest(
         const h = Math.max(soft - Math.abs(z - limit), 0);
         const clamped = Math.min(z, limit) - (h * h) / (4 * soft);
         // Fade in at the top and bottom of the chest.
-        const edge = Math.min(inside, (y - low) / 0.03, (high - y) / 0.03);
+        let carried = 0;
+        for (let k = 0; k < 4; k++)
+            if (ribs[skinIndex[v * 4 + k]]) carried += skinWeight[v * 4 + k];
+        const edge = Math.min(
+            inside,
+            (y - low) / 0.05,
+            (high - y) / 0.03,
+            Math.max(0, carried * 2 - 1) * 2
+        );
         const nz = z + (clamped - z) * recipe.chest.flatten * Math.max(0, edge);
         if (Math.abs(nz - z) < 1e-5) continue;
         position.setZ(v, nz * forward);
@@ -437,31 +449,207 @@ function smoothNormals(geometry: THREE.BufferGeometry, which: Set<number>) {
     normal.needsUpdate = true;
 }
 
-/** Thicken the brows: each is a small strip of its own in the face mesh. */
-function reshapeBrows(recipe: VroidRecipe, meshes: THREE.SkinnedMesh[]) {
+/** The vertices each part of the face uses, by material name. */
+function faceParts(meshes: THREE.SkinnedMesh[]) {
+    const parts: { name: string; mesh: THREE.SkinnedMesh; own: number[] }[] =
+        [];
     for (const mesh of meshes) {
-        const material = mesh.material as THREE.Material;
-        if (!/FaceBrow/.test(material.name || "") || !mesh.geometry.index)
-            continue;
-        const position = mesh.geometry.attributes.position;
-        const used = new Set<number>();
+        const name = (mesh.material as THREE.Material).name || "";
         const index = mesh.geometry.index;
-        for (let i = 0; i < index.count; i++) used.add(index.getX(i));
-        for (const side of [1, -1]) {
-            const own = [...used].filter((v) => position.getX(v) * side > 0);
-            if (!own.length) continue;
-            let middle = 0;
-            for (const v of own) middle += position.getY(v) / own.length;
-            for (const v of own)
-                position.setY(
-                    v,
-                    middle +
-                        (position.getY(v) - middle) * recipe.brow.thickness +
-                        recipe.brow.lift
-                );
-        }
-        position.needsUpdate = true;
+        if (!index || !mesh.geometry.morphAttributes.position) continue;
+        const own = new Set<number>();
+        for (let i = 0; i < index.count; i++) own.add(index.getX(i));
+        parts.push({ name, mesh, own: [...own] });
     }
+    return parts;
+}
+
+type FaceParts = ReturnType<typeof faceParts>;
+
+/** Find the landmarks of a VRoid face on its left side, from its parts. */
+export function faceLandmarks(parts: FaceParts, forward: number) {
+    const of = (pattern: RegExp) => parts.find((p) => pattern.test(p.name));
+    const skin = of(/Face_00_SKIN/);
+    const iris = of(/EyeIris/);
+    const mouth = of(/FaceMouth/);
+    if (!skin || !iris) return null;
+    const position = skin.mesh.geometry.attributes.position;
+    const point = (v: number): V3 => [
+        position.getX(v),
+        position.getY(v),
+        position.getZ(v),
+    ];
+    const mean = (ids: number[]): V3 => {
+        const sum: V3 = [0, 0, 0];
+        for (const v of ids) {
+            const p = point(v);
+            for (let a = 0; a < 3; a++) sum[a] += p[a] / ids.length;
+        }
+        return sum;
+    };
+    const eye = mean(iris.own.filter((v) => position.getX(v) > 0));
+    let nose: V3 = [0, 0, -Infinity];
+    let chin: V3 = [0, Infinity, 0];
+    let widest = 0;
+    for (const v of skin.own) {
+        const p = point(v);
+        widest = Math.max(widest, Math.abs(p[0]));
+        if (Math.abs(p[0]) < 0.004 && p[2] * forward > nose[2] * forward)
+            nose = p;
+        if (Math.abs(p[0]) < 0.01 && p[1] < chin[1] && p[2] * forward > 0.02)
+            chin = p;
+    }
+    nose = [0, nose[1], nose[2]];
+    chin = [0, chin[1], chin[2]];
+    const ear = mean(skin.own.filter((v) => position.getX(v) > widest * 0.9));
+    const mouthAt: V3 = mouth
+        ? mean(mouth.own)
+        : [0, (nose[1] + chin[1]) / 2, nose[2]];
+    // The corner of the jaw: level with the mouth, under the ear.
+    const jaw: V3 = [
+        ear[0] * 0.72,
+        mouthAt[1] + (chin[1] - mouthAt[1]) * 0.1,
+        (ear[2] + nose[2]) / 2,
+    ];
+    return { eye, nose, chin, ear, jaw, mouth: [0, mouthAt[1], nose[2]] as V3 };
+}
+
+/** Apply the recipe's local changes to the face. */
+function sculptFace(recipe: VroidRecipe, parts: FaceParts, forward: number) {
+    const marks = faceLandmarks(parts, forward);
+    if (!marks || !parts.length) return marks;
+    const position = parts[0].mesh.geometry.attributes.position;
+    for (const feature of recipe.features) {
+        const base = marks[feature.at];
+        const offset = feature.offset || [0, 0, 0];
+        const scale = feature.scale || ONE;
+        const move = feature.move || [0, 0, 0];
+        const touched = new Set<number>();
+        for (const part of parts)
+            if (!feature.parts || feature.parts.test(part.name))
+                for (const v of part.own) touched.add(v);
+        // On the middle of the face once; elsewhere on both sides.
+        const sides = Math.abs(base[0] + offset[0]) < 1e-6 ? [1] : [1, -1];
+        for (const side of sides) {
+            const centre: V3 = [
+                (base[0] + offset[0]) * side,
+                base[1] + offset[1],
+                base[2] + offset[2] * forward,
+            ];
+            for (const v of touched) {
+                const d: V3 = [
+                    position.getX(v) - centre[0],
+                    position.getY(v) - centre[1],
+                    position.getZ(v) - centre[2],
+                ];
+                const t = Math.hypot(d[0], d[1], d[2]) / feature.radius;
+                if (t >= 1) continue;
+                const w = (1 - t * t) ** 2;
+                position.setXYZ(
+                    v,
+                    position.getX(v) +
+                        w * ((scale[0] - 1) * d[0] + move[0] * side),
+                    position.getY(v) + w * ((scale[1] - 1) * d[1] + move[1]),
+                    position.getZ(v) +
+                        w * ((scale[2] - 1) * d[2] + move[2] * forward)
+                );
+            }
+        }
+    }
+    position.needsUpdate = true;
+    return faceLandmarks(parts, forward);
+}
+
+/**
+ * Draw the brows: the base's brow strips are laid along the recipe's path
+ * at its thickness, kept on the face's surface, and filled in solid.
+ */
+function drawBrows(
+    recipe: VroidRecipe,
+    parts: FaceParts,
+    eyeY: number,
+    forward: number
+) {
+    const brow = parts.find((part) => /FaceBrow/.test(part.name));
+    if (!brow) return;
+    const geometry = brow.mesh.geometry;
+    const position = geometry.attributes.position;
+    const uv = geometry.attributes.uv;
+    const { path, width } = recipe.brow;
+    /** The path and its thickness at a fraction of the way along. */
+    const along = (t: number) => {
+        const f = Math.min(
+            path.length - 1 - 1e-6,
+            Math.max(0, t * (path.length - 1))
+        );
+        const i = Math.floor(f);
+        const u = f - i;
+        return {
+            x: path[i][0] + (path[i + 1][0] - path[i][0]) * u,
+            y: path[i][1] + (path[i + 1][1] - path[i][1]) * u,
+            thick: width[i] + (width[i + 1] - width[i]) * u,
+        };
+    };
+    for (const side of [1, -1]) {
+        const own = brow.own.filter((v) => position.getX(v) * side > 0);
+        if (!own.length) continue;
+        // Its columns run from the nose out; its rows from bottom to top.
+        const columns = new Map<number, number[]>();
+        for (const v of own) {
+            const key = Math.round(uv.getX(v) * 1000);
+            columns.set(key, [...(columns.get(key) || []), v]);
+        }
+        const ordered = [...columns.values()].sort(
+            (a, b) =>
+                Math.abs(position.getX(a[0])) - Math.abs(position.getX(b[0]))
+        );
+        // How the face's surface lies under the strip: depth at each
+        // column, and how it changes with height.
+        const surface = ordered.map((column) => {
+            // Bottom row first, by the strip's own layout: morphs may
+            // have moved the vertices past each other.
+            const rows = [...column].sort((a, b) => uv.getY(b) - uv.getY(a));
+            const low = rows[0];
+            const high = rows[rows.length - 1];
+            const dy = position.getY(high) - position.getY(low) || 1e-6;
+            return {
+                x: Math.abs(position.getX(low)),
+                y: position.getY(low),
+                z: position.getZ(low),
+                slope: (position.getZ(high) - position.getZ(low)) / dy,
+                rows,
+            };
+        });
+        const depthAt = (x: number, y: number) => {
+            let i = 0;
+            while (i + 2 < surface.length && surface[i + 1].x < x) i++;
+            const a = surface[i];
+            const b = surface[i + 1];
+            const t = (x - a.x) / (b.x - a.x || 1e-6);
+            const za = a.z + (y - a.y) * a.slope;
+            const zb = b.z + (y - b.y) * b.slope;
+            return za + (zb - za) * t;
+        };
+        surface.forEach((column, c) => {
+            const at = along(c / (surface.length - 1));
+            column.rows.forEach((v, r) => {
+                const across =
+                    column.rows.length === 1
+                        ? 0
+                        : r / (column.rows.length - 1) - 0.5;
+                const y = eyeY + at.y + across * at.thick;
+                // Just proud of the skin, so it never dips into it.
+                position.setXYZ(
+                    v,
+                    at.x * side,
+                    y,
+                    depthAt(at.x, y) + 0.0009 * forward
+                );
+            });
+        });
+    }
+    position.needsUpdate = true;
+    brow.mesh.userData.solid = true;
 }
 
 const colour = (hex: string) => {
@@ -520,10 +708,12 @@ function restyleMaterials(
                 waistY + 0.01,
                 positionGeometry.y
             );
+            // The torso's painted shading belongs to the base's bust: most
+            // of it goes too.
             const skinColour = mix(
                 rgbNode,
                 vec3(base[0], base[1], base[2]),
-                darkish.mul(top)
+                max(darkish, f32(/Body/.test(name) ? 0.8 : 0)).mul(top)
             ).mul(skinTint);
             const shaded = skinColour.mul(mix(shadeTint, SUN, lit()));
             const shorts = colour(p.underwear).mul(
@@ -546,7 +736,14 @@ function restyleMaterials(
         } else if (/FaceMouth/.test(name))
             rgbNode = rgbNode.mul(skinTint).mul(1.05);
         material.colorNode = rgbNode;
-        if (tex) material.opacityNode = tex.a.mul(source.opacity);
+        if (tex && !/FaceBrow/.test(name))
+            material.opacityNode = tex.a.mul(source.opacity);
+        if (/FaceBrow/.test(name)) {
+            // Drawn brows are solid shapes, not a texture's stroke.
+            material.transparent = false;
+            material.alphaTest = 0;
+            material.depthWrite = true;
+        }
         return material;
     };
     for (const mesh of meshes) {
@@ -571,7 +768,17 @@ export function restyleVroid(vrm: Vrm, recipe: VroidRecipe) {
     reshapeFace(vrm, recipe, meshes);
     flattenChest(vrm, recipe, meshes);
     bakeMorphs(recipe, meshes);
-    reshapeBrows(recipe, meshes);
+    const parts = faceParts(meshes);
+    // Which way the figure faces in the space its meshes are in: its
+    // toes point there.
+    const stance = restPositions(meshes[0].skeleton);
+    const bone = (name: string) =>
+        stance[
+            meshes[0].skeleton.bones.indexOf(vrm.humanoid.getRawBoneNode(name))
+        ];
+    const facing = Math.sign(bone("leftToes")[2] - bone("leftFoot")[2]) || 1;
+    const marks = sculptFace(recipe, parts, facing);
+    if (marks) drawBrows(recipe, parts, marks.eye[1], facing);
     // Stand it on the floor again, and find its new waist.
     let floor = Infinity;
     let top = -Infinity;
