@@ -198,9 +198,14 @@ describe("styling a figure", () => {
         const plain = styleFigure(await load(), PLAIN_STYLE);
         const vrm = await load();
         const figure = styleFigure(vrm, STAGEHAND_STYLE);
-        // Larger eyes, closer set, under lowered lids.
-        expect(figure.frames.eyeWidth).toBeGreaterThan(
-            plain.frames.eyeWidth * 1.1
+        const { eyes } = STAGEHAND_STYLE;
+        // Larger eyes, set closer, and not as tall for their width.
+        expect(figure.frames.eyeWidth).toBeCloseTo(
+            plain.frames.eyeWidth * eyes.size,
+            4
+        );
+        expect(Math.abs(figure.frames.corners.left.x)).toBeLessThan(
+            Math.abs(plain.frames.corners.left.x)
         );
         const tall = (frame: typeof figure.frames.eyes.left) =>
             Math.max(...frame.rim.map((p) => p[1])) -
@@ -208,11 +213,27 @@ describe("styling a figure", () => {
         expect(
             tall(figure.frames.eyes.left) / figure.frames.eyeWidth
         ).toBeLessThan(tall(plain.frames.eyes.left) / plain.frames.eyeWidth);
-        // His brows are his own line: four points, thick, then a tail.
+        // Seen from the front, the rim is the style's outline: its outer
+        // corner as far above the inner one as drawn, on both sides, and
+        // nothing of it higher than the outline goes.
+        const position = figure.meshes.face.geometry.attributes.position;
+        const landmarks = (vrm.scene.userData.figure as FigureInfo).landmarks;
+        for (const side of ["left", "right"] as const) {
+            const { loop, turn } = landmarks.eyes[side];
+            const width = figure.frames.corners[side].width;
+            const rise =
+                (position.getY(loop[turn]) - position.getY(loop[0])) / width;
+            expect(rise).toBeCloseTo(eyes.outline.upper.slice(-1)[0][1], 2);
+            const highest = Math.max(
+                ...loop.map((v) => position.getY(v) - position.getY(loop[0]))
+            );
+            expect(highest / width).toBeLessThan(0.36);
+        }
+        // His brows are his own line: thick to the corner, then a tail.
         const brow = figure.frames.brows.left;
-        expect(brow.knots).toHaveLength(4);
-        expect(brow.knots[1].width).toBeGreaterThan(0.008);
-        expect(brow.knots[3].width).toBeLessThan(0.002);
+        expect(brow.knots).toHaveLength(6);
+        expect(brow.knots[4].width).toBeGreaterThan(0.009);
+        expect(brow.knots[5].width).toBeLessThan(0.002);
         // A blink still brings the lids together: with it full on, the
         // upper and lower edges of the opening are the same line.
         const face = figure.meshes.face;
@@ -221,9 +242,7 @@ describe("styling a figure", () => {
             face.geometry.morphAttributes.position[
                 names.findIndex((n) => n.endsWith("EYE_Close"))
             ];
-        const position = face.geometry.attributes.position;
-        const rim = (vrm.scene.userData.figure as FigureInfo).landmarks.eyes
-            .left;
+        const rim = landmarks.eyes.left;
         const shut = rim.loop.map((v) => position.getY(v) + blink.getY(v));
         const open = rim.loop.map((v) => position.getY(v));
         const spread = (ys: number[]) => Math.max(...ys) - Math.min(...ys);

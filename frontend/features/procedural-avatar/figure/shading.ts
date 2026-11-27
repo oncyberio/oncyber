@@ -5,9 +5,13 @@ import {
     If,
     Loop,
     abs,
+    atan,
     attribute,
     cameraProjectionMatrix,
     clamp,
+    cross,
+    dFdx,
+    dFdy,
     dot,
     exp,
     float as f32,
@@ -66,6 +70,8 @@ export interface FigureFrames {
     /** Corner to corner of an eye, and of the mouth, seen from the front. */
     eyeWidth: number;
     mouthWidth: number;
+    /** Each eye's inner corner, and its own width. */
+    corners: Record<"left" | "right", { x: number; y: number; width: number }>;
     /** Middle of each cheek: [out from the middle of the face, y, z]. */
     cheek: V3;
     /** The tip of the nose. */
@@ -137,10 +143,15 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
         iris: uniform(linear(style.eyes.iris)),
         irisLight: uniform(linear(style.eyes.irisLight)),
         pupil: uniform(linear(style.eyes.pupil)),
+        eyeSpan: uniform(frames.eyeWidth),
         irisRadius: uniform(style.eyes.radius * frames.eyeWidth),
         pupilSize: uniform(style.eyes.pupilSize),
         glints: uniformArray(glints),
+        // Where light that entered the eye from the key's side comes out
+        // again, in the iris's own axes: across from it and below.
+        irisGlow: uniform(new THREE.Vector2(0.55 * frames.forwardZ, -0.83)),
         eyeShade: uniform(style.eyes.shade),
+        glintGlow: uniform(style.eyes.glow),
         lid: uniform(linear(style.lids.colour)),
         lidUpper: uniform(v3(style.lids.upper).multiplyScalar(eye)),
         lidLower: uniform(v3(style.lids.lower).multiplyScalar(eye)),
@@ -359,6 +370,8 @@ function lidInk(
     const at = (i: number) => u.rims.element(base.add(i));
     const inner = at(0);
     const outer = at(half);
+    // Drawn with a soft edge, as lashes are.
+    pixel = pixel.add(u.lidUpper.y.mul(0.14));
     // Which way each edge runs as it leaves and reaches the corners.
     const upperOut = normalize(at(1).sub(inner));
     const upperIn = normalize(outer.sub(at(half - 1)));
@@ -367,36 +380,50 @@ function lidInk(
     /** 1 past a corner along `way`, 0 before it: lines end square. */
     const past = (corner: Node, way: Node) =>
         saturate(dot(q.sub(corner), way).div(max(pixel, 1e-6)).add(0.5));
-    const band = (distance: Node, width: Node) =>
+    // How far a line reaches in over the eye: not at all at the corners,
+    // where it would hang down inside them.
+    const band = (distance: Node, width: Node, along: Node) =>
         cover(distance.mul(rim.outside), width, pixel).mul(
             over
                 ? saturate(
                       distance
                           .mul(rim.outside)
-                          .add(width.mul(over).add(min(width, 0.0004)))
+                          .add(
+                              width
+                                  .mul(over)
+                                  .add(min(width, 0.0004))
+                                  .mul(smoothstep(0, 0.12, along))
+                                  .mul(smoothstep(1, 0.88, along))
+                          )
                           .div(max(pixel, 1e-6))
                           .add(0.5)
                   )
                 : f32(1)
         );
-    const upper = band(rim.upper, alongEdge(u.lidUpper, rim.along))
+    const upper = band(rim.upper, alongEdge(u.lidUpper, rim.along), rim.along)
         .mul(past(inner, upperOut))
         .mul(f32(1).sub(past(outer, upperIn)));
-    const lower = band(rim.lower, alongEdge(u.lidLower, rim.alongLower))
+    // The lower lid is an edge more than a line: drawn fainter.
+    const lower = band(
+        rim.lower,
+        alongEdge(u.lidLower, rim.alongLower),
+        rim.alongLower
+    )
         .mul(past(outer, lowerOut))
-        .mul(f32(1).sub(past(inner, lowerIn)));
-    // The flick: a point drawn out from the end of the upper line.
+        .mul(f32(1).sub(past(inner, lowerIn)))
+        .mul(0.5);
+    // The flick: the upper line carried on past the corner, running out
+    // to a point.
     const up = vec2(upperIn.y.negate(), upperIn.x);
     const outward = up.mul(select(up.y.lessThan(0), f32(-1), f32(1)));
-    const wing = saturate(
-        f32(0.5).sub(
-            triangle(
-                q,
-                outer.sub(outward.mul(u.lidUpper.z.mul(over ? over : 0))),
-                outer.add(outward.mul(u.lidUpper.z)),
-                outer.add(upperIn.mul(u.wing.x)).add(outward.mul(u.wing.y))
-            ).div(max(pixel, 1e-6))
-        )
+    const from = outer.add(outward.mul(u.lidUpper.z.mul(0.5)));
+    const run = upperIn.mul(u.wing.x).add(outward.mul(u.wing.y));
+    const pf = q.sub(from);
+    const h = clamp(dot(pf, run).div(max(dot(run, run), 1e-12)), 0, 1);
+    const wing = cover(
+        length(pf.sub(run.mul(h))),
+        u.lidUpper.z.mul(0.5).mul(f32(1).sub(h)),
+        pixel
     ).mul(smoothstep(0, 0.0005, u.wing.x));
     // The fold above the lid.
     const fold = cover(abs(rim.upper.sub(u.crease.x)), u.crease.y, pixel)
@@ -406,30 +433,6 @@ function lidInk(
         .mul(rim.outside.mul(0.5).add(0.5))
         .mul(0.45);
     return max(max(upper, lower), max(wing, fold));
-}
-
-/** Distance to a triangle, negative inside it (after Inigo Quilez). */
-function triangle(p: Node, a: Node, b: Node, c: Node): Node {
-    const e0 = b.sub(a);
-    const e1 = c.sub(b);
-    const e2 = a.sub(c);
-    const v0 = p.sub(a);
-    const v1 = p.sub(b);
-    const v2 = p.sub(c);
-    const off = (v: Node, e: Node) =>
-        v.sub(e.mul(clamp(dot(v, e).div(max(dot(e, e), 1e-12)), 0, 1)));
-    const pq0 = off(v0, e0);
-    const pq1 = off(v1, e1);
-    const pq2 = off(v2, e2);
-    const s = select(
-        e0.x.mul(e2.y).sub(e0.y.mul(e2.x)).lessThan(0),
-        f32(-1),
-        f32(1)
-    );
-    const side = (v: Node, e: Node) => s.mul(v.x.mul(e.y).sub(v.y.mul(e.x)));
-    const nearest = min(min(dot(pq0, pq0), dot(pq1, pq1)), dot(pq2, pq2));
-    const within = min(min(side(v0, e0), side(v1, e1)), side(v2, e2));
-    return nearest.sqrt().mul(select(within.greaterThan(0), f32(-1), f32(1)));
 }
 
 /** A width that changes along an edge: at its start, middle and end. */
@@ -486,13 +489,34 @@ function faceColour(u: Uniforms) {
             const q = inFrame(u, p, which);
             If(length(q).lessThan(0.04), () => {
                 const rim = rimDistances(u, q, which);
-                // The socket: a soft warm shade towards the lids.
-                const socket = exp(min(rim.upper, rim.lower).div(-0.0045));
+                // The socket. Deepest by the inner corner, where the
+                // brow and the bridge of the nose shut the light out; a
+                // soft fold under the lower lid; a little all round.
+                const span = u.eyeSpan;
+                const corner = u.rims.element(which.mul(RIM_POINTS + 1));
+                const nook = smoothstep(
+                    span.mul(0.42),
+                    span.mul(0.04),
+                    length(
+                        q.sub(corner).sub(vec2(span.mul(-0.04), span.mul(0.1)))
+                    )
+                );
+                const fold = exp(rim.lower.div(span.mul(-0.07))).mul(
+                    smoothstep(span.mul(0.005), span.mul(0.03), rim.lower)
+                );
+                const around = exp(
+                    min(rim.upper, rim.lower).div(span.mul(-0.1))
+                );
                 albedo.assign(
                     mix(
                         albedo,
-                        albedo.mul(vec3(0.86, 0.72, 0.7)),
-                        socket.mul(0.5)
+                        albedo.mul(vec3(0.72, 0.56, 0.54)),
+                        saturate(
+                            nook
+                                .mul(0.65)
+                                .add(fold.mul(0.1))
+                                .add(around.mul(0.12))
+                        )
                     )
                 );
                 ink.assign(lidInk(u, q, which, rim, s.pixel, 0));
@@ -577,17 +601,33 @@ function faceColour(u: Uniforms) {
                 );
             })
             .Else(() => {
-                // The white of the eye, in the shadow of its lids.
+                // The white of the eye. It is a ball behind the lids,
+                // not paper: shaded under the upper lid and into both
+                // corners, a little warm where it meets the lower lid.
                 const q = inFrame(u, p, which);
                 const rim = rimDistances(u, q, which);
-                const lidShadow = exp(rim.upper.div(-0.0032)).mul(u.eyeShade);
-                const corners = exp(rim.lower.div(-0.0016)).mul(0.18);
-                const shade = saturate(lidShadow.add(corners));
-                colour.assign(
-                    mix(u.white, u.white.mul(vec3(0.5, 0.47, 0.56)), shade).mul(
-                        0.96
-                    )
+                const span = u.eyeSpan;
+                const lidShadow = smoothstep(span.mul(0.2), 0, rim.upper)
+                    .pow(1.25)
+                    .mul(u.eyeShade);
+                // The inner corner lies in the shadow of the brow and the
+                // nose, and takes the skin's colour with it.
+                const base = which.mul(RIM_POINTS + 1);
+                const inner = smoothstep(
+                    span.mul(0.42),
+                    span.mul(0.02),
+                    length(q.sub(u.rims.element(base)))
                 );
+                const outer = smoothstep(
+                    span.mul(0.16),
+                    0,
+                    length(q.sub(u.rims.element(base.add(RIM_POINTS / 2))))
+                );
+                const white = u.white
+                    .mul(mix(vec3(1), vec3(0.6, 0.58, 0.6), lidShadow))
+                    .mul(mix(vec3(1), vec3(0.72, 0.62, 0.63), inner.mul(0.9)))
+                    .mul(mix(vec3(1), vec3(0.8, 0.72, 0.72), outer.mul(0.5)));
+                colour.assign(white);
             });
         return colour;
     })();
@@ -658,6 +698,19 @@ function inkColour(u: Uniforms) {
         const at = uv();
         const pixel = length(fwidth(p)).mul(0.7).toVar();
         const out = vec4(0).toVar();
+        // Which way the viewer looks along the iris's own two axes, worked
+        // out from how its coordinates change across the screen.
+        const view = positionView;
+        const [vx, vy, ax, ay] = [dFdx(view), dFdy(view), dFdx(at), dFdy(at)];
+        const area = ax.x.mul(ay.y).sub(ax.y.mul(ay.x));
+        const safe = select(abs(area).greaterThan(1e-20), area, f32(1));
+        const alongX = normalize(vx.mul(ay.y).sub(vy.mul(ax.y)).div(safe));
+        const alongY = normalize(vy.mul(ax.x).sub(vx.mul(ay.x)).div(safe));
+        const facing = normalize(cross(alongX, alongY));
+        const eye = normalize(view.negate());
+        const slide = vec2(dot(eye, alongX), dot(eye, alongY))
+            .div(max(abs(dot(eye, facing)), 0.4))
+            .toVar();
         // 0 on the figure's left, 1 on its right.
         const right = select(
             p.x.mul(u.leftSign).greaterThan(0),
@@ -666,44 +719,88 @@ function inkColour(u: Uniforms) {
         );
 
         If(abs(part.sub(partId("iris"))).lessThan(0.5), () => {
-            const c = at.div(u.irisRadius).toVar();
-            const r = length(c);
             const edge = pixel.div(u.irisRadius);
-            // Darker at the rim, lighter in a bowl below the pupil.
-            const tint = mix(
-                u.irisLight,
-                u.iris,
-                smoothstep(0.25, 0.95, r)
-            ).toVar();
+            const flat = at.div(u.irisRadius).toVar();
+            const far = length(flat);
+            // The iris lies in the eye, under the clear front of it: seen
+            // from the side its middle slides away behind its rim.
+            const sunk = f32(1).sub(smoothstep(0.5, 1, far)).mul(0.22);
+            const c = flat.sub(slide.mul(sunk)).toVar();
+            const r = length(c);
+            const ring = smoothstep(u.pupilSize, 1, r);
+            // Lighter round the pupil, darker out to the rim.
+            const tint = mix(u.irisLight, u.iris, ring.pow(0.8)).toVar();
+            // Fine threads running out from the pupil.
+            const turn = atan(c.y, c.x);
+            const threads = sin(turn.mul(41))
+                .mul(sin(turn.mul(17).add(1.3)))
+                .mul(0.5)
+                .add(sin(turn.mul(97)).mul(0.25));
+            tint.mulAssign(
+                f32(1).add(
+                    threads
+                        .mul(0.16)
+                        .mul(smoothstep(0, 0.3, ring))
+                        .mul(smoothstep(1, 0.6, r))
+                )
+            );
+            // Light that came in at the top comes out below, across from
+            // the catchlight: a soft glow in the lower iris.
+            const glow = saturate(dot(c.div(max(r, 1e-4)), u.irisGlow))
+                .pow(1.5)
+                .mul(smoothstep(u.pupilSize, u.pupilSize.add(0.25), r))
+                .mul(smoothstep(1, 0.7, r));
+            tint.assign(mix(tint, u.irisLight.mul(1.6), glow.mul(0.45)));
+            // The dark ring where the iris ends.
+            tint.mulAssign(mix(f32(1), f32(0.4), smoothstep(0.7, 1, r)));
             tint.assign(
                 mix(
                     tint,
-                    u.irisLight.mul(1.25),
-                    smoothstep(0.1, -0.75, c.y)
-                        .mul(smoothstep(1, 0.5, r))
-                        .mul(0.55)
-                )
-            );
-            tint.assign(
-                mix(tint, u.iris.mul(0.45), smoothstep(0.8, 1, r).mul(0.8))
-            );
-            tint.assign(mix(tint, u.pupil, cover(r, u.pupilSize, edge)));
-            // The lid's shadow across the top.
-            tint.assign(
-                tint.mul(
-                    mix(
-                        f32(1),
-                        f32(0.45),
-                        smoothstep(0.05, 0.9, c.y).mul(u.eyeShade)
+                    u.pupil,
+                    f32(1).sub(
+                        smoothstep(
+                            u.pupilSize.sub(0.07),
+                            u.pupilSize.add(0.03),
+                            r
+                        )
                     )
                 )
             );
+            // The upper lid's shadow, where the lid is.
+            const q = inFrame(u, p, right);
+            const rim = rimDistances(u, q, right);
+            const lidShadow = smoothstep(u.eyeSpan.mul(0.2), 0, rim.upper)
+                .pow(1.4)
+                .mul(u.eyeShade);
+            tint.mulAssign(mix(f32(1), f32(0.35), lidShadow));
+            // The whole front of the eye is wet: a breath of sky on it.
+            tint.addAssign(
+                vec3(0.55, 0.62, 0.75).mul(
+                    smoothstep(-0.2, 0.9, flat.y)
+                        .mul(0.05)
+                        .mul(f32(1).sub(lidShadow))
+                )
+            );
+            // Catchlights, soft at the edge; the lid's shadow dims them.
             Loop(2, ({ i }: { i: Node }) => {
                 const g = u.glints.element(i);
-                const lit = cover(length(c.sub(g.xy)), g.z, edge);
-                tint.assign(mix(tint, vec3(1), lit));
+                const lit = smoothstep(
+                    g.z,
+                    g.z.mul(0.45),
+                    length(flat.sub(g.xy))
+                )
+                    .mul(smoothstep(0, 0.00001, g.z))
+                    .mul(mix(u.glintGlow, u.glintGlow.mul(0.5), lidShadow));
+                tint.assign(mix(tint, u.white, lit));
             });
-            out.assign(vec4(tint, cover(r, f32(1), edge)));
+            out.assign(
+                vec4(
+                    tint,
+                    f32(1).sub(
+                        smoothstep(f32(0.95).sub(edge), f32(1).add(edge), far)
+                    )
+                )
+            );
         })
             .ElseIf(abs(part.sub(partId("brow"))).lessThan(0.5), () => {
                 const first = right.mul(BROW_KNOTS);
@@ -741,10 +838,21 @@ function inkColour(u: Uniforms) {
                 // Cut square at the nose; it runs out at the temple.
                 const before = start.sub(at.x).mul(size.x);
                 const after = at.x.sub(end).mul(size.x);
-                const alpha = cover(acrossIt, halfWidth, pixel)
-                    .mul(saturate(f32(0.5).sub(before.div(pixel))))
-                    .mul(saturate(f32(0.5).sub(after.div(pixel))));
-                out.assign(vec4(u.brow, alpha));
+                // A brow is hair: its edge is not quite a line.
+                const soft = pixel.add(u.eyeSpan.mul(0.006));
+                const alpha = cover(acrossIt, halfWidth, soft)
+                    .mul(saturate(f32(0.5).sub(before.div(soft))))
+                    .mul(saturate(f32(0.5).sub(after.div(soft))));
+                // Its hairs run along it: faint streaks, a little wavy.
+                const hairs = sin(
+                    at.y
+                        .mul(size.y)
+                        .mul(5200)
+                        .add(sin(at.x.mul(37)).mul(2.5))
+                );
+                out.assign(
+                    vec4(u.brow.mul(f32(1).add(hairs.mul(0.14))), alpha)
+                );
             })
             .ElseIf(abs(part.sub(partId("lidLine"))).lessThan(0.5), () => {
                 // The lid's lines again, on a piece that lies over the

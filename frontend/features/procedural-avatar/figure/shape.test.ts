@@ -1,11 +1,13 @@
 import {
     RIM_POINTS,
+    eyeWarp,
     faceWarp,
     layBrow,
     measureBrow,
     openingFrame,
     resample,
     roundOff,
+    smoothCurve,
     warpGeometry,
     wearMorphs,
     type FaceMarks,
@@ -111,6 +113,109 @@ describe("lines of points", () => {
         // Nothing reaches the corner itself any more.
         for (const p of round)
             expect(Math.hypot(p[0] - 1, p[1]) > 0.1).toBe(true);
+    });
+});
+
+describe("an eye's own outline", () => {
+    // A rim as a figure has it: an ellipse 40 mm wide, level.
+    const rim: [number, number, number][] = [];
+    for (let i = 0; i < 16; i++) {
+        const angle = Math.PI - (i / 16) * Math.PI * 2;
+        rim.push([
+            0.045 + Math.cos(angle) * 0.02,
+            1.6 + Math.sin(angle) * 0.01,
+            -0.09,
+        ]);
+    }
+    // Flat on top, its outer corner raised.
+    const outline = {
+        upper: [
+            [0, 0],
+            [0.3, 0.28],
+            [1, 0.34],
+        ] as V2[],
+        lower: [
+            [0, 0],
+            [0.5, -0.12],
+            [1, 0.34],
+        ] as V2[],
+    };
+    const fit = {
+        rim,
+        turn: 8,
+        side: 1,
+        forwardZ: -1,
+        outline,
+        size: 1.2,
+        inset: [-0.1, 0.05] as V2,
+    };
+    const warp = eyeWarp(fit);
+    const inner = rim[0];
+    /** A point seen from the front, in the new eye's widths. */
+    const seen = (p: number[]): V2 => [
+        (p[0] - inner[0] - -0.1 * 0.04) / (0.04 * 1.2),
+        (p[1] - inner[1] - 0.05 * 0.04) / (0.04 * 1.2),
+    ];
+
+    it("draws a smooth curve through its points", () => {
+        const curve = smoothCurve(outline.upper, 8);
+        expect(curve[0]).toEqual([0, 0]);
+        expect(curve[8]).toEqual([0.3, 0.28]);
+        expect(curve[curve.length - 1]).toEqual([1, 0.34]);
+        // It turns the corner at a point gradually: just past it, it is
+        // still rising faster than the straight line to the next point.
+        expect(curve[12][1]).toBeGreaterThan(0.32);
+        const slope = (i: number) =>
+            (curve[i + 1][1] - curve[i][1]) / (curve[i + 1][0] - curve[i][0]);
+        // Straight lines between the points would turn by 0.85 there.
+        expect(Math.abs(slope(7) - slope(8))).toBeLessThan(0.3);
+    });
+
+    it("puts the corners where the style says, at the size it says", () => {
+        // To within a few microns: each vertex goes with all the rim,
+        // its own place counting for nearly everything.
+        const [ix, iy] = seen(warp(rim[0]));
+        const [ox, oy] = seen(warp(rim[8]));
+        expect(ix).toBeCloseTo(0, 3);
+        expect(iy).toBeCloseTo(0, 3);
+        expect(ox).toBeCloseTo(1, 3);
+        expect(oy).toBeCloseTo(0.34, 3);
+    });
+
+    it("lays every vertex of the rim on the outline", () => {
+        const upper = smoothCurve(outline.upper, 32);
+        const lower = smoothCurve(outline.lower, 32);
+        const off = (p: V2, curve: V2[]) =>
+            Math.min(...curve.map((c) => Math.hypot(c[0] - p[0], c[1] - p[1])));
+        for (let i = 0; i <= 8; i++)
+            expect(off(seen(warp(rim[i])), upper)).toBeLessThan(0.02);
+        for (let i = 8; i < 16; i++)
+            expect(off(seen(warp(rim[i])), lower)).toBeLessThan(0.02);
+        // The lower edge stays below the upper.
+        expect(warp(rim[12])[1]).toBeLessThan(warp(rim[4])[1]);
+    });
+
+    it("moves what is inside with the rim, and nothing far off or across the face", () => {
+        // The middle of the opening, a little behind it (the eye itself).
+        const middle = warp([0.045, 1.6, -0.085]);
+        expect(middle[1]).toBeGreaterThan(1.6);
+        expect(middle[2]).toBe(-0.085);
+        expect(warp([0.045, 1.7, -0.09])).toEqual([0.045, 1.7, -0.09]);
+        expect(warp([0.045, 1.6, 0.05])).toEqual([0.045, 1.6, 0.05]);
+        expect(warp([-0.045, 1.6, -0.09])).toEqual([-0.045, 1.6, -0.09]);
+        expect(warp([0, 1.6, -0.1])).toEqual([0, 1.6, -0.1]);
+    });
+
+    it("mirrors for the other eye", () => {
+        const other = eyeWarp({
+            ...fit,
+            rim: rim.map((p) => [-p[0], p[1], p[2]]),
+            side: -1,
+        });
+        const a = warp(rim[5]);
+        const b = other([-rim[5][0], rim[5][1], rim[5][2]]);
+        expect(b[0]).toBeCloseTo(-a[0], 9);
+        expect(b[1]).toBeCloseTo(a[1], 9);
     });
 });
 

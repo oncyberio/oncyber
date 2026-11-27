@@ -113,9 +113,10 @@ style and an outfit. The parts it is made from are shared.
     lips and underwear, sharp at any distance. A _style_
     (`figure/style.ts`) is what makes a figure a character: its colours,
     how its eyes, lids and brows are drawn (in eye widths, so the numbers
-    suit any figure), which expressions it wears at rest, and how its
-    face is reshaped. Reshaping carries every expression along, so a
-    restyled eye still blinks. The body's proportions stay the figure's
+    suit any figure), the outline of its eyes as measured off a character
+    sheet, which expressions it wears at rest, and how its face is
+    reshaped. Reshaping carries every expression along, so a restyled
+    eye still blinks. The body's proportions stay the figure's
     own. It has no hair or clothes yet. `/dev/figure-avatar` shows it
     locally (`style=plain` for the bare figure).
 -   **A described humanoid.** A sculpted character is not hand-placed

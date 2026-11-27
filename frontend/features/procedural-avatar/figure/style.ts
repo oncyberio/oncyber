@@ -44,8 +44,24 @@ export interface FigureStyle {
          * part of the iris's radius. They sit the same way in both eyes.
          */
         glints: [number, number, number][];
+        /** How bright the catchlights are: 1 is white, less is softer. */
+        glow: number;
         /** How deep the lid's shadow falls over the eye, 0–1. */
         shade: number;
+        /**
+         * The eye's own outline, where it is not the figure's: its upper
+         * edge and its lower, each from the inner corner at [0, 0] to the
+         * outer, as [out, up]. The figure's lids are moved onto it, and
+         * still open and shut.
+         */
+        outline?: { upper: [number, number][]; lower: [number, number][] };
+        /**
+         * With an outline: the eye's width as a multiple of the figure's
+         * own, and where its inner corner goes from where the figure has
+         * it, [outwards, up] in the figure's eye widths.
+         */
+        size?: number;
+        inset?: [number, number];
     };
     lids: {
         colour: string;
@@ -154,6 +170,7 @@ export const PLAIN_STYLE: FigureStyle = {
             [-0.36, 0.4, 0.26],
             [0.36, -0.4, 0.1],
         ],
+        glow: 0.95,
         shade: 0.45,
     },
     lids: {
@@ -199,32 +216,61 @@ export const STAGEHAND_STYLE: FigureStyle = {
         sheen: 0.2,
     },
     eyes: {
-        white: "#f6f1ee",
-        iris: "#2a1714",
-        irisLight: "#4c2b21",
-        pupil: "#120a09",
-        radius: 0.215,
-        pupilSize: 0.45,
-        at: [0.4, 0.12],
-        glints: [[-0.3, 0.42, 0.09]],
-        shade: 0.55,
+        // The white takes on the skin round it; the catchlights are
+        // dim, as under a brow.
+        white: "#f5dbd3",
+        iris: "#2e1915",
+        irisLight: "#5e382c",
+        pupil: "#1a110e",
+        radius: 0.23,
+        pupilSize: 0.5,
+        at: [0.34, 0.17],
+        glints: [
+            [0.28, 0.26, 0.2],
+            [-0.3, 0.2, 0.11],
+        ],
+        glow: 0.3,
+        shade: 0.9,
+        // Nearly flat on top, shallow below, its outer corner well up.
+        outline: {
+            upper: [
+                [0, 0],
+                [0.1, 0.16],
+                [0.33, 0.3],
+                [0.56, 0.325],
+                [1, 0.335],
+            ],
+            lower: [
+                [0, 0],
+                [0.26, -0.08],
+                [0.49, -0.116],
+                [0.72, -0.046],
+                [0.9, 0.09],
+                [1, 0.335],
+            ],
+        },
+        size: 1.2,
+        inset: [-0.12, 0],
     },
     lids: {
-        colour: "#1a1213",
-        upper: [0.04, 0.06, 0.066],
-        lower: [0.004, 0.006, 0.014],
-        wing: [0.07, 0.035],
+        colour: "#4a2117",
+        upper: [0.03, 0.07, 0.07],
+        lower: [0.012, 0.016, 0.02],
+        wing: [0.15, 0.04],
         crease: [0, 0],
     },
     brows: {
-        colour: "#1d1517",
+        colour: "#2c1e1f",
+        // Low over the eye: its lower edge meets the lid above the iris.
         path: [
             [-0.31, 0.27],
-            [0.37, 0.53],
-            [0.83, 0.76],
-            [1.2, 0.74],
+            [0.04, 0.34],
+            [0.33, 0.455],
+            [0.6, 0.62],
+            [0.85, 0.79],
+            [1.26, 0.84],
         ],
-        width: [0.19, 0.23, 0.25, 0.02],
+        width: [0.16, 0.16, 0.2, 0.23, 0.25, 0.02],
     },
     mouth: {
         line: "#6e3328",
@@ -239,23 +285,9 @@ export const STAGEHAND_STYLE: FigureStyle = {
         hem: 0.8,
     },
     shape: {
-        // Lids lowered and slanted towards the nose; a set mouth.
-        morphs: {
-            MTH_Close: 1,
-            EYE_Angry: 2,
-            EYE_Close: 0.25,
-            MTH_Sorrow: 0.7,
-        },
+        // A set mouth.
+        morphs: { MTH_Close: 1, MTH_Sorrow: 0.7 },
         features: [
-            {
-                // Larger and closer set, tilted up at the outside.
-                name: "eyes",
-                at: "eye",
-                radius: 0.05,
-                scale: [1.3, 1.3, 1],
-                move: [-0.004, 0, 0],
-                turn: 10,
-            },
             {
                 // A real nose: broader, and standing further off the face.
                 name: "nose",

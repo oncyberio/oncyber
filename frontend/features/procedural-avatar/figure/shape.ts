@@ -384,6 +384,162 @@ export function warpGeometry(geometry: ShapeGeometry, warp: (p: V3) => V3) {
     }
 }
 
+/** A smooth curve through a few points, as many (Catmull-Rom). */
+export function smoothCurve(points: V2[], perSpan = 8): V2[] {
+    if (points.length < 3) return points.slice();
+    const out: V2[] = [];
+    const at = (i: number) =>
+        points[Math.min(points.length - 1, Math.max(0, i))];
+    for (let i = 0; i < points.length - 1; i++) {
+        const [a, b, c, d] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
+        for (let step = 0; step < perSpan; step++) {
+            const t = step / perSpan;
+            const blend = (k: number) =>
+                0.5 *
+                (2 * b[k] +
+                    (c[k] - a[k]) * t +
+                    (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t * t +
+                    (3 * b[k] - a[k] - 3 * c[k] + d[k]) * t * t * t);
+            out.push([blend(0), blend(1)]);
+        }
+    }
+    out.push(points[points.length - 1]);
+    return out;
+}
+
+/** How far along a line of points each of them is, 0 to 1. */
+function alongLine(points: V2[]): number[] {
+    const run = [0];
+    for (let i = 1; i < points.length; i++)
+        run.push(
+            run[i - 1] +
+                Math.hypot(
+                    points[i][0] - points[i - 1][0],
+                    points[i][1] - points[i - 1][1]
+                )
+        );
+    const total = run[run.length - 1] || 1;
+    return run.map((r) => r / total);
+}
+
+/** The point a part of the way along a line of points. */
+function pointAlong(points: V2[], part: number[], t: number): V2 {
+    let i = 1;
+    while (i < points.length - 1 && part[i] < t) i++;
+    const span = part[i] - part[i - 1] || 1;
+    const k = Math.min(1, Math.max(0, (t - part[i - 1]) / span));
+    return [
+        points[i - 1][0] + (points[i][0] - points[i - 1][0]) * k,
+        points[i - 1][1] + (points[i][1] - points[i - 1][1]) * k,
+    ];
+}
+
+/** An eye's outline, as a style draws it. */
+export interface EyeOutline {
+    /**
+     * Its upper edge and its lower, each from the inner corner at [0, 0]
+     * to the outer: [out, up] in eye widths, seen from the front.
+     */
+    upper: V2[];
+    lower: V2[];
+}
+
+export interface EyeFit {
+    /** The places of the rim's vertices, in the rim's own order. */
+    rim: V3[];
+    /** Where in `rim` the outer corner is. */
+    turn: number;
+    /** The sign of x on this eye's side of the face. */
+    side: number;
+    forwardZ: number;
+    outline: EyeOutline;
+    /** The new eye's width, as a multiple of the one it has. */
+    size: number;
+    /** Where the inner corner goes: [outwards, up] in the width it has. */
+    inset: V2;
+}
+
+const smoothstep = (from: number, to: number, x: number) => {
+    const t = Math.min(1, Math.max(0, (x - from) / (to - from)));
+    return t * t * (3 - 2 * t);
+};
+
+/**
+ * The reshaping that puts an eye's rim on an outline. Each vertex of the
+ * rim goes to the same part of the way along its edge of the outline;
+ * what lies inside and round the rim, at any depth, goes with the nearest
+ * of them, and it fades out over the width of the eye. Seen from the
+ * front, the rim then is the outline exactly.
+ */
+export function eyeWarp(fit: EyeFit): (p: V3) => V3 {
+    const { rim, turn, side } = fit;
+    const inner = rim[0];
+    const width = Math.abs(rim[turn][0] - inner[0]) || 1;
+    // The rim seen from the front: [out from the inner corner, up].
+    const flat = rim.map(
+        (p): V2 => [(p[0] - inner[0]) * side, p[1] - inner[1]]
+    );
+    const target = flat.map((): V2 => [0, 0]);
+    const place = (edge: number[], curve: V2[]) => {
+        const now = edge.map((i) => flat[i]);
+        const part = alongLine(now);
+        const smooth = smoothCurve(curve);
+        const curvePart = alongLine(smooth);
+        edge.forEach((i, k) => {
+            const at = pointAlong(smooth, curvePart, part[k]);
+            target[i] = [
+                at[0] * width * fit.size + fit.inset[0] * width,
+                at[1] * width * fit.size + fit.inset[1] * width,
+            ];
+        });
+    };
+    const upper = Array.from({ length: turn + 1 }, (_, i) => i);
+    const lower = [
+        0,
+        ...Array.from(
+            { length: rim.length - turn },
+            (_, i) => rim.length - 1 - i
+        ),
+    ];
+    place(lower, fit.outline.lower);
+    place(upper, fit.outline.upper);
+    const move = flat.map(
+        (p, i): V2 => [target[i][0] - p[0], target[i][1] - p[1]]
+    );
+    const depth = rim.reduce((sum, p) => sum + p[2], 0) / rim.length;
+    const soft = (0.02 * width) ** 2;
+    return (p) => {
+        const out = p[0] * side;
+        const deep = Math.abs(p[2] - depth);
+        if (out < 0.002 || deep > 0.06) return p;
+        const x = (p[0] - inner[0]) * side;
+        const y = p[1] - inner[1];
+        let nearest = Infinity;
+        let total = 0;
+        let dx = 0;
+        let dy = 0;
+        for (let i = 0; i < flat.length; i++) {
+            const d2 = (flat[i][0] - x) ** 2 + (flat[i][1] - y) ** 2;
+            if (d2 < nearest) nearest = d2;
+            const weight = 1 / (d2 + soft) ** 2;
+            total += weight;
+            dx += move[i][0] * weight;
+            dy += move[i][1] * weight;
+        }
+        const reach =
+            (1 - smoothstep(0.3 * width, width, Math.sqrt(nearest))) *
+            (1 - smoothstep(0.03, 0.06, deep)) *
+            // Nothing crosses the middle of the face.
+            smoothstep(0.002, 0.014, out);
+        if (reach <= 0) return p;
+        return [
+            p[0] + (dx / total) * reach * side,
+            p[1] + (dy / total) * reach,
+            p[2],
+        ];
+    };
+}
+
 /** How far forward the skin is at a place seen from the front. */
 export function depthFinder(
     position: Float32Array,

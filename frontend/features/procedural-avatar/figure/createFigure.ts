@@ -8,6 +8,7 @@ import {
 import { createFigureMaterials, type FigureFrames } from "./shading";
 import {
     depthFinder,
+    eyeWarp,
     faceMarks,
     faceWarp,
     layBrow,
@@ -103,6 +104,29 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         const warp = faceWarp(style.shape.features, marks, forwardZ);
         for (const shape of shapes) warpGeometry(shape, warp);
     }
+
+    // The eyes' own outline: each rim is moved onto it.
+    const { outline } = style.eyes;
+    if (outline)
+        for (const [rim, side] of [
+            [eyes.left, leftSign],
+            [eyes.right, -leftSign],
+        ] as const) {
+            const warp = eyeWarp({
+                rim: rim.loop.map((v) => [
+                    facePosition.getX(v),
+                    facePosition.getY(v),
+                    facePosition.getZ(v),
+                ]),
+                turn: rim.turn,
+                side,
+                forwardZ,
+                outline,
+                size: style.eyes.size ?? 1,
+                inset: style.eyes.inset ?? [0, 0],
+            });
+            for (const shape of shapes) warpGeometry(shape, warp);
+        }
 
     // Measure the face as it now is.
     const frameOf = (rim: typeof mouth) =>
@@ -239,6 +263,7 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         brows,
         eyeWidth,
         mouthWidth,
+        corners,
         cheek: [
             eyeOut + 0.007,
             eyeLine - 0.032,
