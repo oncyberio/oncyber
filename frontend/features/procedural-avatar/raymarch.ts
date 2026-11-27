@@ -72,6 +72,23 @@ function local(d: Node, m: readonly number[]): Node {
     );
 }
 
+/**
+ * Distance to an ellipse-sectioned lock from the offset `q` off its axis:
+ * `r` wide, `r * flat` thick along `out`. The same estimate the kernel
+ * makes, from the ellipse's implicit function and its gradient.
+ */
+function ribbonDistance(q: Node, out: Node, r: Node, flat: number): Node {
+    const o = dot(q, out).toVar();
+    const rest = q.sub(out.mul(o)).toVar();
+    const wide2 = dot(rest, rest).toVar();
+    const r2 = r.mul(r).toVar();
+    const thin2 = r2.mul(flat * flat).toVar();
+    const o2 = o.mul(o).toVar();
+    const k0 = sqrt(wide2.div(r2).add(o2.div(thin2))).toVar();
+    const k1 = sqrt(wide2.div(r2.mul(r2)).add(o2.div(thin2.mul(thin2))));
+    return k0.mul(k0.sub(1)).div(k1.add(1e-4));
+}
+
 /** Rebuild a kernel shape as shader code evaluating it at `p`. */
 export function emit(shape: Shape, p: Node): Node {
     if (shape instanceof Field) {
@@ -126,10 +143,12 @@ export function emit(shape: Shape, p: Node): Node {
             const h = clamp(dot(pa, v3(ba)).div(l2), 0, 1).toVar();
             const q = pa.sub(v3(ba).mul(h)).toVar();
             const out = normalize(mix(v3(desc.out), v3(desc.outEnd), h));
-            const wide = q.add(out.mul(dot(q, out).mul(1 / desc.flat - 1)));
-            return length(wide)
-                .sub(mix(f32(desc.ra), f32(desc.rb), h))
-                .mul(desc.flat);
+            return ribbonDistance(
+                q,
+                out,
+                mix(f32(desc.ra), f32(desc.rb), h),
+                desc.flat
+            );
         }
         case "roundBox": {
             const q = abs(local(p.sub(v3(desc.c)).toVar(), desc.basis))
@@ -178,6 +197,8 @@ export function emit(shape: Shape, p: Node): Node {
 const KEY = vec3(-0.4, 0.62, 0.675);
 const FILL = vec3(0.78, 0.22, 0.58);
 const BACK = vec3(0.3, 0.5, -0.81);
+// The sheet is lit evenly from every side: a second, weaker key behind.
+const REAR = vec3(0.32, 0.55, -0.77);
 const SUN = vec3(1.0, 0.95, 0.9);
 const SKY = vec3(0.72, 0.76, 0.9);
 const BOUNCE = vec3(0.95, 0.72, 0.62);
@@ -319,6 +340,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
         const best = f32(1e3).toVar();
         const tangent = vec3(0, -1, 0).toVar();
         const coord = f32(0).toVar();
+        const run = f32(0.5).toVar();
         for (const seg of sculpt.hair.segments) {
             const ba: Vec3 = [
                 seg.b[0] - seg.a[0],
@@ -330,10 +352,12 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const k = clamp(dot(pa, v3(ba)).div(l * l), 0, 1).toVar();
             const q = pa.sub(v3(ba).mul(k)).toVar();
             const out = normalize(mix(v3(seg.out), v3(seg.outEnd), k));
-            const wide = q.add(out.mul(dot(q, out).mul(1 / seg.flat - 1)));
-            const d = length(wide)
-                .sub(mix(f32(seg.ra), f32(seg.rb), k))
-                .mul(seg.flat);
+            const d = ribbonDistance(
+                q,
+                out,
+                mix(f32(seg.ra), f32(seg.rb), k),
+                seg.flat
+            );
             If(d.lessThan(best), () => {
                 best.assign(d);
                 // The lock's direction turns smoothly along the piece.
@@ -345,14 +369,24 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                         .div(HAIR_STRAND)
                         .add(seg.lock * 37.7)
                 );
+                run.assign(mix(f32(seg.va), f32(seg.vb), k));
             });
         }
         // The undercoat is combed straight down.
         If(emit(sculpt.hair.cap, p).lessThan(best.sub(0.0005)), () => {
             tangent.assign(normalize(cross(n, cross(n, vec3(0, 1, 0)))));
             coord.assign(atan(p.x, p.z).mul(0.085 / HAIR_STRAND));
+            run.assign(0.9);
         });
-        return vec4(tangent, coord);
+        // Packed into four numbers: the lock's direction (its z only by
+        // sign, folded into the last), the strand coordinate, and how far
+        // along the lock the point is.
+        return vec4(
+            tangent.x,
+            tangent.y,
+            coord,
+            run.add(tangent.z.lessThan(0).select(2, 0))
+        );
     }).setLayout({
         name: "hairInfo",
         type: "vec4",
@@ -465,7 +499,10 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
         const is = (name: SculptMaterial) =>
             abs(material.sub(order.indexOf(name))).lessThan(0.5);
 
-        const ndl = dot(n, KEY).toVar();
+        // The rear key casts no shadows of its own.
+        const rear = saturate(dot(n, REAR)).mul(0.9).toVar();
+        const ndl = max(dot(n, KEY), rear).toVar();
+        shadow.assign(max(shadow, smoothstep(0, 0.4, rear)));
         const sky = n.y.mul(0.5).add(0.5).toVar();
         const bounce = saturate(f32(0.3).sub(n.y.mul(0.7))).toVar();
         const fill = saturate(dot(n, FILL).mul(0.5).add(0.5)).toVar();
@@ -489,7 +526,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 ndl.mul(0.5).add(0.5).add(grain)
             ).mul(mix(0.45, 1, shadow));
             const tint = shadeOf.div(base);
-            const light = mix(tint.mul(0.86), SUN, lit)
+            const light = mix(tint.mul(0.95), SUN, lit)
                 .add(SKY.mul(sky).mul(0.1))
                 .add(BOUNCE.mul(bounce).mul(0.08));
             return base.mul(light).mul(mix(tint, vec3(1), open));
@@ -519,12 +556,20 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 );
             const flush = max(
                 max(
-                    pow(blob(face.cheek, [0.03, 0.02, 0.04]), 1.3).mul(0.75),
+                    pow(blob(face.cheek, [0.03, 0.02, 0.04]), 1.3),
                     blob(face.noseTip, [0.014, 0.014, 0.02]).mul(0.5)
                 ),
                 blob(face.ear, [0.03, 0.035, 0.03]).mul(0.45)
             );
-            let albedo: Node = base.mul(mix(vec3(1), tintTo("blush"), flush));
+            // The neck stands in the shade of the jaw.
+            const neck = smoothstep(
+                face.chinY + 0.006,
+                face.chinY - 0.008,
+                pos.y
+            ).mul(smoothstep(0.12, 0.09, hx));
+            let albedo: Node = base
+                .mul(mix(vec3(1), tintTo("blush"), flush))
+                .mul(mix(vec3(1), tintTo("skinShade"), neck.mul(0.8)));
             // Lips: barely tinted, with a firm line between them that
             // turns down at the corners.
             const mouth = face.mouth;
@@ -545,16 +590,38 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const lipLine = f32(1)
                 .sub(
                     smoothstep(
-                        0.0004,
-                        0.0011,
+                        0.0006,
+                        0.0013,
                         abs(pos.y.sub(f32(mouth.y).sub(sag)))
                     )
                 )
                 .mul(onMouth)
                 .mul(smoothstep(w + 0.0012, w - 0.002, hx));
             albedo = albedo
-                .mul(mix(vec3(1), tintTo("lip"), lipMask.mul(0.7)))
-                .mul(mix(vec3(1), tintTo("lipLine"), lipLine.mul(0.85)));
+                .mul(mix(vec3(1), tintTo("lip"), lipMask.mul(0.15)))
+                .mul(mix(vec3(1), tintTo("lipLine"), lipLine))
+                // The shadows a drawn face keeps: under the lower lip and
+                // under the tip of the nose.
+                .mul(
+                    mix(
+                        vec3(1),
+                        tintTo("skinShade"),
+                        max(
+                            blob(
+                                [0, mouth.y - 0.0125, mouth.z],
+                                [0.013, 0.0042, 0.02]
+                            ).mul(0.4),
+                            blob(
+                                [
+                                    0,
+                                    face.noseTip[1] - 0.0085,
+                                    face.noseTip[2] - 0.008,
+                                ],
+                                [0.0095, 0.0042, 0.012]
+                            ).mul(0.75)
+                        )
+                    )
+                );
             // Brows: a thick tapered stroke through the brow's points.
             const pts = face.brow.path;
             let browD: Node = f32(1);
@@ -575,7 +642,12 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                     length(pa.sub(vec2(ba[0], ba[1]).mul(k))).sub(halfWidth)
                 );
             }
-            const brow = smoothstep(0.0005, -0.0003, browD).mul(facing);
+            // Only where the face looks forwards: the stroke is projected
+            // from the front and would smear back along the temple.
+            const brow = smoothstep(0.0005, -0.0003, browD)
+                .mul(smoothstep(pts[0][0] - 0.0028, pts[0][0] - 0.0014, hx))
+                .mul(facing)
+                .mul(smoothstep(0.3, 0.55, n.z));
             albedo = mix(albedo, C("brow"), brow);
             // Lash lines: the rims of the lids, the upper one thick.
             const el = vec3(
@@ -589,30 +661,47 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 abs(length(el).sub(face.lidRadius))
             )
                 .mul(smoothstep(0.6, 0.76, el.z.div(face.lidRadius)))
-                .mul(smoothstep(0.027, 0.022, length(vec2(el.x, el.y))));
-            const upper = smoothstep(
-                0.0034,
-                0.0018,
-                abs(dot(el, v3(face.upperLid.normal)))
-            )
+                .mul(smoothstep(0.025, 0.021, length(vec2(el.x, el.y))));
+            // The upper lash line is a heavy band on the lid above its
+            // edge, thinner towards the nose; the lower lid is only a
+            // thin line round the bottom of the eye's outline.
+            const across = dot(el, v3(face.upperLid.across)).toVar();
+            const aboveEdge = dot(el, v3(face.upperLid.normal)).negate();
+            const band = mix(
+                f32(0.0038),
+                f32(0.005),
+                smoothstep(-0.016, 0.004, across)
+            );
+            const upper = smoothstep(band, band.sub(0.0012), abs(aboveEdge))
                 .mul(onLid)
                 .mul(smoothstep(-0.002, 0.002, el.y.add(el.x.mul(0.2))));
-            const lower = smoothstep(
-                0.0011,
-                0.0004,
-                abs(dot(el, v3(face.lowerLid.normal)))
-            )
-                .mul(onLid)
-                .mul(smoothstep(0.002, -0.002, el.y))
-                .mul(0.55);
+            const rise = vec2(
+                -face.upperLid.across[1],
+                face.upperLid.across[0]
+            );
+            const below = dot(vec2(el.x, el.y), rise);
+            const rim = length(
+                vec2(across.div(face.opening.rx), below.div(face.opening.ry))
+            );
+            const lower = smoothstep(0.07, 0.02, abs(rim.sub(0.97)))
+                .mul(smoothstep(0.001, -0.002, below))
+                .mul(smoothstep(0.012, 0.02, el.z))
+                .mul(0.45);
             albedo = mix(albedo, C("lash"), max(upper, lower));
 
             // Soft wrap light, shadows that turn red at their edges, and
             // a warm rim.
-            const wrap = vec3(0.5, 0.3, 0.22);
+            const wrap = vec3(0.65, 0.44, 0.34);
             const lit = saturate(vec3(ndl).add(wrap).div(wrap.add(1)));
+            // A drawn face is barely shaded: cast shadows only tint it.
+            // The neck, though, sits in the shadow of the jaw.
+            const cast = mix(
+                f32(0.75),
+                f32(0.22),
+                smoothstep(face.chinY - 0.012, face.chinY + 0.012, pos.y)
+            );
             const scattered = pow(
-                vec3(shadow.mul(0.7).add(0.3)),
+                vec3(shadow.mul(cast).add(f32(1).sub(cast))),
                 vec3(1.0, 1.4, 1.8)
             );
             const shadeTint = tintTo("skinShade");
@@ -624,7 +713,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             colour.assign(
                 albedo
                     .mul(light)
-                    .mul(mix(vec3(0.7, 0.42, 0.36), vec3(1), open))
+                    .mul(mix(vec3(0.82, 0.6, 0.54), vec3(1), open))
                     .add(
                         pow(nh, 50)
                             .mul(0.09)
@@ -668,8 +757,8 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const fibres = mx_noise_float(
                 vec3(dir.x.mul(7), dir.y.mul(7), r.mul(1.5))
             );
-            const tone = smoothstep(0.5, 0.95, r)
-                .mul(0.35)
+            const tone = smoothstep(0.6, 0.95, r)
+                .mul(0.2)
                 .add(fibres.mul(0.2))
                 .add(
                     smoothstep(0.1, -0.9, dir.y)
@@ -677,17 +766,30 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                         .mul(smoothstep(0.5, 0.85, r))
                 );
             const iris = mix(C("iris"), C("irisLight"), saturate(tone)).mul(
-                f32(1).sub(smoothstep(0.8, 1, r).mul(0.75))
+                f32(1).sub(smoothstep(0.82, 1, r).mul(0.6))
+            );
+            // The lid lays a soft shadow across the top of the eye.
+            const underLid = smoothstep(
+                0,
+                0.0055,
+                dot(
+                    vec3(
+                        hx.sub(face.eye[0]),
+                        pos.y.sub(face.eye[1]),
+                        pos.z.sub(face.eye[2])
+                    ),
+                    v3(face.upperLid.normal)
+                )
             );
             const albedo = mix(
-                mix(iris, vec3(0.012, 0.009, 0.008), smoothstep(0.56, 0.5, r)),
-                C("white").mul(f32(1).sub(smoothstep(1, 3.5, r).mul(0.22))),
+                mix(iris, vec3(0.01, 0.007, 0.006), smoothstep(0.62, 0.55, r)),
+                C("white").mul(f32(1).sub(smoothstep(1, 3.5, r).mul(0.16))),
                 smoothstep(0.97, 1.04, r)
-            );
+            ).mul(mix(0.62, 1, underLid));
             colour.assign(
                 albedo
-                    .mul(mix(0.5, 1, shadow).mul(mix(0.42, 1, open)).mul(0.96))
-                    .add(pow(nh, 260).mul(1.3).mul(shadow))
+                    .mul(mix(0.7, 1, shadow).mul(mix(0.7, 1, open)).mul(0.98))
+                    .add(pow(nh, 260).mul(0.9).mul(shadow))
                     .add(
                         pow(saturate(dot(n, normalize(FILL.sub(rd)))), 160).mul(
                             0.25
@@ -699,8 +801,13 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
         // --- Hair: strands drawn along each lock, lit along their length.
         If(is("hair"), () => {
             const info = hairInfo(pos, n).toVar();
-            const tangent = info.xyz;
-            const c = info.w;
+            const back = info.w.greaterThan(1.5);
+            const run = info.w.sub(back.select(2, 0)).toVar();
+            const tz = sqrt(
+                max(f32(1).sub(info.x.mul(info.x)).sub(info.y.mul(info.y)), 0)
+            );
+            const tangent = vec3(info.x, info.y, back.select(tz.negate(), tz));
+            const c = info.z;
             // Strands half a millimetre wide gathered into ribbons of a
             // few millimetres.
             const fine = mx_noise_float(vec2(c.mul(1.9), 0.5));
@@ -726,15 +833,26 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const tl = dot(tangent, KEY);
             const diffuse = mix(
                 sqrt(max(f32(1).sub(tl.mul(tl)), 0)),
-                saturate(dot(nn, KEY).mul(0.6).add(0.4)),
+                saturate(
+                    max(dot(nn, KEY), dot(nn, REAR).mul(0.9)).mul(0.6).add(0.4)
+                ),
                 0.6
             ).mul(mix(0.4, 1, shadow));
-            const base = C("hair").mul(strand.mul(0.12).add(1));
+            // Darker at the root, lighter towards the tip; and across every
+            // lock, a third of the way along, a streaky band of light: the
+            // locks line up, so the bands join into a ring round the head.
+            const base = C("hair")
+                .mul(strand.mul(0.12).add(1))
+                .mul(mix(0.82, 1.3, run));
             const sheen = C("hairSheen");
             const glossy = strand.mul(0.3).add(0.7);
+            const along = run.add(fine.mul(0.07));
+            const band = smoothstep(0.12, 0.3, along).mul(
+                smoothstep(0.58, 0.36, along)
+            );
             // Locks lie close together; do not let that blacken them.
             const air = mix(0.4, 1, open);
-            const facingLight = saturate(dot(n, KEY).mul(0.8).add(0.4));
+            const facingLight = saturate(ndl.mul(0.8).add(0.4));
             colour.assign(
                 base
                     .mul(
@@ -746,10 +864,19 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                     .mul(air)
                     .add(
                         sheen
-                            .mul(lobeAt(-0.1, 5))
+                            .mul(band)
+                            .mul(glossy)
+                            .mul(pow(facingLight, 1.5))
+                            .mul(0.34)
+                            .mul(mix(0.5, 1, shadow))
+                            .mul(air)
+                    )
+                    .add(
+                        sheen
+                            .mul(lobeAt(-0.1, 8))
                             .mul(glossy)
                             .mul(facingLight)
-                            .mul(0.75)
+                            .mul(0.4)
                             .mul(mix(0.45, 1, shadow))
                             .mul(air)
                     )
@@ -758,7 +885,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                             .mul(lobeAt(0.1, 50))
                             .mul(glossy)
                             .mul(facingLight)
-                            .mul(0.2)
+                            .mul(0.14)
                             .mul(shadow)
                             .mul(air)
                     )
@@ -840,7 +967,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 base
                     .mul(SUN.mul(lit).mul(0.9).add(SKY.mul(sky).mul(0.3)))
                     .mul(mix(0.35, 1, open))
-                    .add(pow(nh, 46).mul(0.42).mul(shadow))
+                    .add(pow(nh, 46).mul(0.22).mul(shadow))
                     .add(pow(nh, 8).mul(0.05))
                     .add(mirror.mul(fresnel).mul(0.5).mul(open))
             );

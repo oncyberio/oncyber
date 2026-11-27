@@ -113,9 +113,14 @@ describe("shapes for sculpted hair and mirrored bodies", () => {
         expect(ribbon.eval(0.02, 0, 0.05)).toBeCloseTo(0, 6);
         expect(ribbon.eval(0, 0.01, 0.05)).toBeCloseTo(0, 6);
         expect(ribbon.eval(0, 0, 0.05)).toBeLessThan(0);
-        // Never further than the true distance, so tracing cannot overshoot.
-        expect(ribbon.eval(0.05, 0, 0.05)).toBeLessThanOrEqual(0.03 + 1e-9);
-        expect(ribbon.eval(0, 0.05, 0.05)).toBeLessThanOrEqual(0.04 + 1e-9);
+        // Away from it, the true gap along either axis: shadows and
+        // occlusion rely on that.
+        expect(ribbon.eval(0.05, 0, 0.05)).toBeCloseTo(0.03, 6);
+        expect(ribbon.eval(0, 0.05, 0.05)).toBeCloseTo(0.04, 6);
+        // Off the axes it is an estimate, within a few millimetres.
+        const d = ribbon.eval(0.03, 0.03, 0.05);
+        expect(d).toBeGreaterThan(0.02);
+        expect(d).toBeLessThan(0.035);
     });
 
     it("twists a ribbon from one end to the other", () => {

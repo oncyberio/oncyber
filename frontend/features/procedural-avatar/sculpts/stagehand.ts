@@ -40,16 +40,32 @@ const h = (x: number, y: number, z: number): Vec3 => [x, EYE_Y + y, Z0 + z];
 
 // The eyeball is far larger than a real one, so what shows of it between
 // the lids is nearly flat, as drawn eyes are.
-const EYE: Vec3 = h(0.036, -0.002, 0.049);
+// Its centre is the middle of the line between the eye's corners; the
+// upper lid's edge is that line, tilted up steeply towards the temple.
+const EYE: Vec3 = h(0.0365, 0.00125, 0.0565);
 const EYE_RADIUS = 0.034;
 const LID_RADIUS = 0.0353;
-const UPPER_LID = 6;
+const UPPER_LID = 0;
 const LOWER_LID = -17;
-const EYE_TILT = 12;
+const EYE_TILT = 20.7;
 /** The opening the eye shows through; nothing of it exists outside this. */
-const SOCKET: Vec3 = h(0.036, -0.0035, 0.086);
+const SOCKET: Vec3 = h(0.0365, -0.002, 0.09);
 const SOCKET_REACH = 0.026;
 const MOUTH_Y = -0.0662;
+
+/** The eye's outline seen from the front: an ellipse on the corner line. */
+const EYE_OPENING = { x: 0.0365, y: 0.00125, rx: 0.0182, ry: 0.0118 };
+
+/**
+ * The almond the eye shows through, cut into the face; `grow` widens it.
+ * The eyeball is kept to the same shape, so none of it shows anywhere else.
+ */
+const opening = (grow: number) =>
+    ellipsoid(
+        h(EYE_OPENING.x, EYE_OPENING.y, 0.1),
+        [EYE_OPENING.rx + grow, EYE_OPENING.ry + grow, 0.02 + grow],
+        euler(0, 0, (EYE_TILT * Math.PI) / 180)
+    );
 
 /** The plane an eyelid's edge lies in (see `lidFrame` in the skin field). */
 function lid(upper: boolean) {
@@ -82,18 +98,18 @@ function surfaceZ(shape: Shape, x: number, y: number) {
 /** Skull, face, jaw: the left half, before features. */
 function headBase(): Field {
     const out = field();
-    out.add(ellipsoid(h(0, 0.04, 0.005), [0.073, 0.08, 0.098]));
+    out.add(ellipsoid(h(0, 0.04, 0.005), [0.0672, 0.08, 0.098]));
     // The face: an egg cut to a straight jawline that runs from under the
     // ear to a small flat chin, and flat underneath so the chin stands
     // clear of the neck.
     const mask = field()
-        .add(ellipsoid(h(0, -0.018, 0.034), [0.0665, 0.086, 0.071]))
-        .clip(halfSpace(h(0.0185, -0.099, 0), [0.82, -0.57, 0.0]), 0.014)
+        .add(ellipsoid(h(0, 0.0, 0.034), [0.0608, 0.104, 0.071]))
+        .clip(halfSpace(h(0.0185, -0.099, 0), [0.81, -0.587, 0.0]), 0.012)
         .clip(halfSpace(h(0, -0.1, 0.078), [0, -0.8, -0.6]), 0.008);
     out.add(mask, 0.03);
     out.add(ellipsoid(h(0, -0.084, 0.0765), [0.019, 0.0155, 0.0165]), 0.014);
     // Cheekbone, the muzzle the mouth sits on, and the brow ridge.
-    out.add(ellipsoid(h(0.04, -0.026, 0.066), [0.022, 0.022, 0.02]), 0.03);
+    out.add(ellipsoid(h(0.035, -0.027, 0.066), [0.02, 0.021, 0.02]), 0.03);
     out.add(ellipsoid(h(0, -0.06, 0.079), [0.027, 0.024, 0.019]), 0.02);
     out.add(
         capsule(h(0.008, 0.017, 0.0935), h(0.05, 0.0245, 0.078), 0.009),
@@ -107,29 +123,25 @@ function head(): { shape: Shape; mouthZ: number } {
     const out = field().add(base);
     // Nose: a straight bridge to a defined tip, small wings.
     out.add(
-        roundCone(h(0, 0.008, 0.097), h(0, -0.034, 0.1105), 0.0062, 0.0058),
+        roundCone(h(0, 0.008, 0.097), h(0, -0.034, 0.1105), 0.0058, 0.0056),
         0.012
     );
     out.add(sphere(h(0, -0.0405, 0.1125), 0.0068), 0.006);
-    out.add(sphere(h(0.0078, -0.0455, 0.1035), 0.0052), 0.006);
-    out.carve(
-        ellipsoid(h(0.0046, -0.0498, 0.1075), [0.0022, 0.0016, 0.0035]),
-        0.002
-    );
+    out.add(sphere(h(0.007, -0.0452, 0.103), 0.0046), 0.008);
     // Mouth: thin lips pressed into a slight frown.
     const mouthZ = surfaceZ(base, 0, EYE_Y + MOUTH_Y) - Z0 - 0.0022;
     out.add(
         ellipsoid(
-            h(0.0065, MOUTH_Y + 0.0034, mouthZ - 0.0004),
-            [0.0115, 0.0034, 0.005],
+            h(0.0065, MOUTH_Y + 0.0028, mouthZ - 0.0022),
+            [0.0115, 0.0028, 0.004],
             euler(0, 0, -0.12)
         ),
         0.004
     );
     out.add(
         ellipsoid(
-            h(0, MOUTH_Y - 0.0046, mouthZ - 0.0012),
-            [0.0125, 0.0046, 0.0052]
+            h(0, MOUTH_Y - 0.0046, mouthZ - 0.0024),
+            [0.0125, 0.0046, 0.0046]
         ),
         0.004
     );
@@ -150,14 +162,7 @@ function head(): { shape: Shape; mouthZ: number } {
         0.012
     );
     // Eye: a deep socket, then lids as a shell round the eyeball.
-    out.carve(
-        ellipsoid(
-            h(0.036, -0.003, 0.098),
-            [0.0205, 0.0102, 0.022],
-            euler(0, 0, (EYE_TILT * Math.PI) / 180)
-        ),
-        0.004
-    );
+    out.carve(opening(0), 0.004);
     // Only the upper lid has any body; the lower edge is the socket's own.
     out.add(
         field()
@@ -166,28 +171,39 @@ function head(): { shape: Shape; mouthZ: number } {
             .clip(sphere(SOCKET, SOCKET_REACH), 0.004),
         0.003
     );
-    // Ear: a tilted disc standing well off the head, bowl scooped out.
-    const ear = h(0.079, -0.007, -0.01);
-    const turn = mulBasis(euler(0, -0.7, 0), euler(-0.16, 0, 0));
+    // Ear: a flat disc standing well off the head, its front edge on the
+    // skull, with the bowl scooped out of its outer face and a lobe.
+    const earTop = h(0.078, 0.01, -0.013);
+    const earBottom = h(0.075, -0.022, -0.008);
+    const earAxis = norm(sub(earBottom, earTop));
+    const lean: Vec3 = [Math.cos(0.72), 0, Math.sin(0.72)];
+    const k = dot(lean, earAxis);
+    const earOut = norm([
+        lean[0] - earAxis[0] * k,
+        lean[1] - earAxis[1] * k,
+        lean[2] - earAxis[2] * k,
+    ]);
+    const outward = (p: Vec3, d: number): Vec3 => [
+        p[0] + earOut[0] * d,
+        p[1] + earOut[1] * d,
+        p[2] + earOut[2] * d,
+    ];
     out.add(
         field()
-            .add(ellipsoid(ear, [0.0066, 0.031, 0.0195], turn))
-            .add(
-                sphere(
-                    [ear[0] - 0.004, ear[1] - 0.025, ear[2] + 0.006],
-                    0.0074
-                ),
-                0.006
-            )
+            .add(ribbonCone(earTop, earBottom, 0.021, 0.014, earOut, 0.25))
+            .add(sphere(h(0.072, -0.032, -0.004), 0.0072), 0.006)
             .carve(
-                ellipsoid(
-                    [ear[0] + 0.0056, ear[1] + 0.001, ear[2] + 0.003],
-                    [0.0048, 0.0185, 0.0092],
-                    turn
+                ribbonCone(
+                    outward(earTop, 0.0062),
+                    outward(earBottom, 0.0062),
+                    0.012,
+                    0.007,
+                    earOut,
+                    0.45
                 ),
                 0.003
             ),
-        0.007
+        0.006
     );
     return { shape: out, mouthZ };
 }
@@ -631,6 +647,8 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
                 // so strands drawn along the lock run through the joints.
                 sa: norm(cross(through(i), outs[i])),
                 sb: norm(cross(through(i + 1), outs[i + 1])),
+                va: i / pieces,
+                vb: (i + 1) / pieces,
                 lock: id,
                 blend,
             });
@@ -692,67 +710,155 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
         const q = points[points.length - 2];
         const out = norm([p[0], 0, p[2]]);
         return [
-            p[0] + (p[0] - q[0]) * 0.7 + out[0] * kick,
-            p[1] + (p[1] - q[1]) * 0.45 + kick,
-            p[2] + (p[2] - q[2]) * 0.7 + out[2] * kick,
+            p[0] + (p[0] - q[0]) * 0.6 + out[0] * kick,
+            p[1] + (p[1] - q[1]) * 0.3 + kick * 0.9,
+            p[2] + (p[2] - q[2]) * 0.6 + out[2] * kick,
         ];
     };
-    const widths = [0.012, 0.019, 0.02, 0.019, 0.016, 0.0055];
-    const shingle = { pieces: 7, flat: 0.55, blend: 0.0025 };
-    const LIFT = 0.006;
-    // The top: locks lift across the parting and sweep out over the sides
-    // and back, side by side, each ending in a flick at its own height.
-    for (const s of [1, -1])
-        for (let i = 0; i < 7; i++) {
-            const root = 0.066 - 0.019 * i;
-            const reach = 0.75 + 0.15 * ((i * 2 + (s > 0 ? 0 : 1)) % 3);
+    // Each lock is a leaf: narrow at the root, widest a third of the way
+    // along, drawn in to a soft point. Two layers at different heights off
+    // the head overlap like roof tiles.
+    const leaf = [0.006, 0.019, 0.023, 0.023, 0.02, 0.013, 0.0015];
+    const shingle = { pieces: 6, flat: 0.34, blend: 0.0025 };
+    /** Carry a lock on along its own line, lifting a little: a soft point. */
+    const point = (points: Vec3[]): Vec3 => {
+        const p = points[points.length - 1];
+        const q = points[points.length - 2];
+        const out = norm([p[0], 0, p[2]]);
+        return [
+            p[0] + (p[0] - q[0]) * 0.5 + out[0] * 0.003,
+            p[1] + (p[1] - q[1]) * 0.5,
+            p[2] + (p[2] - q[2]) * 0.5 + out[2] * 0.003,
+        ];
+    };
+    /** A point of the hair's body: `a` down from the top, at depth `z`. */
+    const side = (s: number, a: number, z: number, lift: number) => {
+        const k = Math.sqrt(Math.max(0.15, 1 - (z / coreRadii[2]) ** 2));
+        return onCore(
+            [
+                s * coreRadii[0] * k * Math.sin(a),
+                coreCentre[1] + coreRadii[1] * k * Math.cos(a),
+                z,
+            ],
+            lift
+        );
+    };
+    /** A point of the back of it: `down` from the top, `round` from behind. */
+    const rear = (down: number, round: number, lift: number) =>
+        onCore(
+            [
+                coreRadii[0] * Math.sin(down) * Math.sin(round),
+                coreCentre[1] + coreRadii[1] * Math.cos(down),
+                -coreRadii[2] * Math.sin(down) * Math.cos(round),
+            ],
+            lift
+        );
+    for (const s of [1, -1]) {
+        // The top layer: locks lift across the parting and sweep out over
+        // the sides and back, lying flat, each ending at its own height.
+        for (let i = 0; i < 6; i++) {
+            const root = 0.036 - 0.019 * i;
+            const end = 1.0 + 0.2 * ((i * 2 + (s > 0 ? 0 : 1)) % 3);
             const points: Vec3[] = [];
             for (let j = 0; j < 5; j++) {
                 const u = j / 4;
-                const a = -0.14 + 2 * u * reach;
-                const z =
-                    root -
-                    (0.019 + 0.011 * i) * u +
-                    0.006 * Math.sin(u * 5 + i * 1.3 + (s > 0 ? 0 : 2));
-                const k = Math.sqrt(
-                    Math.max(0.15, 1 - (z / coreRadii[2]) ** 2)
-                );
                 points.push(
-                    onCore(
-                        [
-                            s * coreRadii[0] * k * Math.sin(a),
-                            coreCentre[1] + coreRadii[1] * k * Math.cos(a),
-                            z,
-                        ],
-                        j === 0 ? -0.008 : LIFT + (j === 4 ? 0.004 : 0)
+                    side(
+                        s,
+                        -0.12 + (end + 0.12) * u,
+                        root -
+                            (0.016 + 0.01 * i) * u +
+                            0.007 * Math.sin(u * 4.4 + 0.6),
+                        j === 0 ? -0.004 : i % 2 ? 0.008 : 0.003
                     )
                 );
             }
-            points.push(flick(points, 0.008));
-            lock(points, widths, shingle);
+            points.push(point(points));
+            lock(points, leaf, shingle);
         }
+        // The layer under it: from beneath the top locks down over the
+        // temples to the top of the ear.
+        for (let i = 0; i < 3; i++) {
+            const root = 0.03 - 0.032 * i;
+            const points: Vec3[] = [];
+            for (let j = 0; j < 4; j++) {
+                const u = j / 3;
+                points.push(
+                    side(
+                        s,
+                        0.75 + (0.9 + 0.1 * (i % 2)) * u,
+                        root - 0.016 * u,
+                        j === 0 ? -0.004 : 0.001
+                    )
+                );
+            }
+            points.push(point(points));
+            lock(points, leaf, shingle);
+        }
+        // Flicks: the ends that leave the head and kick out and up, where
+        // the character sheet shows them, lower on his right than his left.
+        const drop = s > 0 ? 0 : 0.02;
+        for (let i = 0; i < 3; i++) {
+            const z = 0.022 - 0.036 * i;
+            const start = 0.95 + 0.22 * i + drop * 4;
+            const a = side(s, start, z, 0.002);
+            const b2 = side(s, start + 0.28, z - 0.008, 0.005);
+            const out = norm([b2[0], 0, b2[2]]);
+            const reach = 0.014 + 0.003 * i;
+            lock(
+                [
+                    a,
+                    b2,
+                    [
+                        b2[0] + out[0] * reach,
+                        b2[1] - 0.006,
+                        b2[2] + out[2] * reach - 0.004,
+                    ],
+                    [
+                        b2[0] + out[0] * reach * 2,
+                        b2[1] + 0.004,
+                        b2[2] + out[2] * reach * 2 - 0.01,
+                    ],
+                ],
+                [0.008, 0.015, 0.012, 0.0012],
+                { pieces: 5, flat: 0.45, blend: 0.003 }
+            );
+        }
+    }
     // The crown: locks turning out of a whorl and down the back of the
-    // head, drifting to his right, ending above the nape in flicks.
+    // head, drifting to his right; and a shorter layer under them that
+    // ends above the nape.
     for (let j = 0; j < 7; j++) {
-        const from = ((-78 + 26 * j) * Math.PI) / 180;
+        const from = ((-84 + 28 * j) * Math.PI) / 180;
         const points: Vec3[] = [];
         for (let m = 0; m < 5; m++) {
             const u = m / 4;
-            const down = 0.22 + 2.0 * u;
-            const round = from - 0.3 * u;
             points.push(
-                onCore(
-                    [
-                        coreRadii[0] * Math.sin(down) * Math.sin(round),
-                        coreCentre[1] + coreRadii[1] * Math.cos(down),
-                        -coreRadii[2] * Math.sin(down) * Math.cos(round),
-                    ],
-                    m === 0 ? -0.008 : LIFT + (m === 4 ? 0.004 : 0)
+                rear(
+                    0.2 + (1.2 + 0.12 * (j % 3)) * u,
+                    from - 0.3 * u + 0.09 * Math.sin(u * 4.4),
+                    m === 0 ? -0.004 : j % 2 ? 0.008 : 0.003
                 )
             );
         }
-        points.push(flick(points, 0.009));
-        lock(points, widths, shingle);
+        points.push(point(points));
+        lock(points, leaf, shingle);
+    }
+    for (let j = 0; j < 5; j++) {
+        const from = ((-72 + 36 * j) * Math.PI) / 180;
+        const points: Vec3[] = [];
+        for (let m = 0; m < 4; m++) {
+            const u = m / 3;
+            points.push(
+                rear(
+                    1.0 + (0.95 + 0.1 * (j % 2)) * u,
+                    from - 0.15 - 0.2 * u,
+                    m === 0 ? -0.004 : 0.001
+                )
+            );
+        }
+        points.push(point(points));
+        lock(points, leaf, shingle);
     }
 
     // The curl in front of his right ear.
@@ -766,33 +872,34 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
         [0.01, 0.012, 0.009, 0.002],
         { pieces: 4 }
     );
-    // The fringe: a curtain down each side of the forehead, standing off
-    // it, and one thin strand between the brows.
+    // The fringe: a curtain down each side of the forehead, following
+    // its edge to the temple, and one thin strand between the brows.
+    const curtain = { flat: 0.4 };
     lock(
         [
-            [0.012, 0.092, 0.098],
-            [0.04, 0.088, 0.119],
-            [0.06, 0.05, 0.127],
-            [0.0655, 0.012, 0.117],
-            [0.062, -0.014, 0.104],
+            [0.04, 0.106, 0.084],
+            [0.056, 0.086, 0.108],
+            [0.0645, 0.05, 0.113],
+            [0.068, 0.016, 0.099],
+            [0.0665, -0.014, 0.083],
         ],
-        [0.008, 0.011, 0.009, 0.0055, 0.0012],
-        { flat: 0.6 }
+        [0.005, 0.0095, 0.0095, 0.0065, 0.0008],
+        curtain
     );
     lock(
         [
-            [-0.016, 0.092, 0.097],
-            [-0.042, 0.082, 0.112],
-            [-0.059, 0.046, 0.108],
-            [-0.0665, 0.014, 0.092],
-            [-0.066, -0.012, 0.078],
+            [-0.042, 0.104, 0.084],
+            [-0.057, 0.082, 0.105],
+            [-0.065, 0.046, 0.107],
+            [-0.0685, 0.014, 0.093],
+            [-0.067, -0.012, 0.078],
         ],
-        [0.008, 0.011, 0.009, 0.0055, 0.0012],
-        { flat: 0.6 }
+        [0.005, 0.0095, 0.0095, 0.0065, 0.0008],
+        curtain
     );
     lock(
         [
-            [-0.006, 0.092, 0.101],
+            [-0.006, 0.1, 0.086],
             [-0.0085, 0.06, 0.1125],
             [-0.0095, 0.028, 0.1125],
             [-0.009, 0.003, 0.1085],
@@ -899,9 +1006,7 @@ export function stagehandSculpt(): Sculpt {
             {
                 material: "eye",
                 shape: symmetric(
-                    field()
-                        .add(sphere(EYE, EYE_RADIUS))
-                        .clip(sphere(SOCKET, SOCKET_REACH))
+                    field().add(sphere(EYE, EYE_RADIUS)).clip(opening(0.0025))
                 ),
                 min: [-0.064, SOCKET[1] - 0.027, SOCKET[2] - 0.027],
                 max: [0.064, SOCKET[1] + 0.027, SOCKET[2] + 0.004],
@@ -960,24 +1065,28 @@ export function stagehandSculpt(): Sculpt {
             eye: EYE,
             eyeRadius: EYE_RADIUS,
             lidRadius: LID_RADIUS,
-            irisRadius: 0.0063,
-            gaze: [0, 0],
+            irisRadius: 0.0073,
+            gaze: [1, 6],
+            opening: {
+                rx: EYE_OPENING.rx,
+                ry: EYE_OPENING.ry,
+            },
             upperLid: { normal: upper.normal, across: upper.across },
             lowerLid: { normal: lower.normal, across: lower.across },
             brow: {
                 path: [
-                    [0.0105, EYE_Y + 0.0035],
-                    [0.032, EYE_Y + 0.0145],
-                    [0.052, EYE_Y + 0.0215],
-                    [0.0645, EYE_Y + 0.0185],
+                    [0.013, EYE_Y + 0.0065],
+                    [0.034, EYE_Y + 0.015],
+                    [0.0515, EYE_Y + 0.0215],
+                    [0.062, EYE_Y + 0.0188],
                 ],
-                width: [0.0088, 0.0078, 0.006, 0.0018],
+                width: [0.0078, 0.0076, 0.006, 0.0012],
                 frontZ: Z0 + 0.062,
             },
             mouth: { y: EYE_Y + MOUTH_Y, z: Z0 + mouthZ, halfWidth: 0.0175 },
             cheek: [0.04, EYE_Y - 0.036, Z0 + 0.075],
             noseTip: h(0, -0.0405, 0.1125),
-            ear: h(0.079, -0.007, -0.01),
+            ear: h(0.077, -0.006, -0.01),
             chinY: EYE_Y - 0.099,
         },
         badge: {
@@ -986,20 +1095,20 @@ export function stagehandSculpt(): Sculpt {
         },
         buckle: { centre: [0, 1.12, 0.106], half: [0.021, 0.017] },
         palette: {
-            skin: "#d88c6e",
+            skin: "#d58d70",
             skinShade: "#a45c49",
             blush: "#d06a52",
             lip: "#b96a55",
-            lipLine: "#6e3a30",
+            lipLine: "#5a2c25",
             brow: "#17110f",
             lash: "#120d0c",
-            iris: "#2a1a15",
-            irisLight: "#6b4532",
+            iris: "#24150f",
+            irisLight: "#583626",
             white: "#f3ece8",
-            hair: "#2b2327",
-            hairSheen: "#8a6658",
+            hair: "#231c1f",
+            hairSheen: "#9a705e",
             cotton: "#f1ecf1",
-            cottonShade: "#aaa7d6",
+            cottonShade: "#c7caee",
             tie: "#4d78d8",
             tieStripe: "#c6d6f6",
             wool: "#353240",

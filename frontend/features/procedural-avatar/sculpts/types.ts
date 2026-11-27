@@ -40,6 +40,9 @@ export interface SculptHairSegment {
     /** Across the lock, in its flat plane, at each end of the piece. */
     sa: Vec3;
     sb: Vec3;
+    /** How far along the lock each end is: 0 at the root, 1 at the tip. */
+    va: number;
+    vb: number;
     /** Which lock the piece belongs to. */
     lock: number;
     /** How softly it joins its neighbours. */
@@ -60,6 +63,8 @@ export interface SculptFace {
     irisRadius: number;
     /** Degrees the eyes look outwards and down. */
     gaze: [number, number];
+    /** Half-width and half-height of the eye's outline, along its tilt. */
+    opening: { rx: number; ry: number };
     upperLid: SculptLid;
     lowerLid: SculptLid;
     brow: {

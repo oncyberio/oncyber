@@ -119,7 +119,6 @@ export function ribbonCone(
     const by = b[1] - ay;
     const bz = b[2] - az;
     const l2 = bx * bx + by * by + bz * bz || 1e-9;
-    const grow = 1 / flat - 1;
     return {
         desc: { type: "ribbonCone", a, b, ra, rb, out, outEnd, flat },
         eval: (x, y, z) => {
@@ -128,9 +127,9 @@ export function ribbonCone(
             const pz = z - az;
             let h = (px * bx + py * by + pz * bz) / l2;
             h = h < 0 ? 0 : h > 1 ? 1 : h;
-            let qx = px - bx * h;
-            let qy = py - by * h;
-            let qz = pz - bz * h;
+            const qx = px - bx * h;
+            const qy = py - by * h;
+            const qz = pz - bz * h;
             let ox = out[0] + (outEnd[0] - out[0]) * h;
             let oy = out[1] + (outEnd[1] - out[1]) * h;
             let oz = out[2] + (outEnd[2] - out[2]) * h;
@@ -138,17 +137,23 @@ export function ribbonCone(
             ox /= ol;
             oy /= ol;
             oz /= ol;
-            // Stretch space along `out`, measure a round cone there, and
-            // scale the distance back so it stays an underestimate.
-            const o = (qx * ox + qy * oy + qz * oz) * grow;
-            qx += ox * o;
-            qy += oy * o;
-            qz += oz * o;
-            return (
-                (Math.sqrt(qx * qx + qy * qy + qz * qz) -
-                    (ra + (rb - ra) * h)) *
-                flat
+            // An ellipse across the lock, `r` wide and `r * flat` thick.
+            // Its distance is estimated from the implicit function and
+            // its gradient: exact on the surface and along both axes,
+            // close elsewhere, so shadows and occlusion see the true
+            // gap to a thin lock instead of a fraction of it.
+            const r = ra + (rb - ra) * h;
+            const thin = r * flat;
+            const o = qx * ox + qy * oy + qz * oz;
+            const rx = qx - ox * o;
+            const ry = qy - oy * o;
+            const rz = qz - oz * o;
+            const wide2 = rx * rx + ry * ry + rz * rz;
+            const k0 = Math.sqrt(wide2 / (r * r) + (o * o) / (thin * thin));
+            const k1 = Math.sqrt(
+                wide2 / (r * r * r * r) + (o * o) / (thin * thin * thin * thin)
             );
+            return k1 < 1e-9 ? -thin : (k0 * (k0 - 1)) / k1;
         },
     };
 }
