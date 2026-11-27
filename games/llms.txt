@@ -60,12 +60,12 @@ Know before you start:
     `pnpm games:publish <id>`, `oncyber publish`.
 -   The game's `vite.config.js` is `oncyberGame()` from `oncyber/vite`, which
     maps the SDK and the kits.
--   Publishing is not the end. The check ran on your machine; `oncyber
-    health` says how the game starts and runs on visitors' machines, for
-    each kind of device, and what that asks for, as findings like the
-    check's (`docs/games/field-health.md`, "Reading it back"). It exits 1
-    while the release on show has something to fix: fix it, publish again,
-    read it again.
+-   Publishing is not the end. The check ran on your machine;
+    `oncyber health` says how the game starts and runs on visitors'
+    machines, for each kind of device, and what that asks for, as findings
+    like the check's (`docs/games/field-health.md`, "Reading it back"). It
+    exits 1 while the release on show has something to fix: fix it,
+    publish again, read it again.
 -   A published game is unlisted: it runs at its link with the visitor's
     avatar, party, chat and voice, and is not shown in the lobby.
 
