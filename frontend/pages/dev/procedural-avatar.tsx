@@ -24,9 +24,10 @@ export default function ProceduralAvatarFixture() {
             typeof router.query[key] === "string"
                 ? (router.query[key] as string)
                 : "";
+        // Figure avatars have their own page: /dev/figure-avatar.
+        const generated = PROCEDURAL_AVATARS.filter((item) => !item.figure);
         const entry =
-            PROCEDURAL_AVATARS.find((item) => item.id === text("who")) ||
-            PROCEDURAL_AVATARS[0];
+            generated.find((item) => item.id === text("who")) || generated[0];
         const speed = Number(text("speed")) || 0;
         const animation = text("animation");
         const hidden = text("hide").split(",").filter(Boolean);

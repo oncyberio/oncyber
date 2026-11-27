@@ -30,6 +30,7 @@ import { createMotionInertia } from "../motionInertia";
 import { createProceduralRig } from "../proceduralRig";
 import {
     PROCEDURAL_AVATARS,
+    figureAvatarOf,
     proceduralAvatarId,
 } from "@features/procedural-avatar/catalogue";
 import * as THREE from "three/webgpu";
@@ -403,10 +404,51 @@ async function buildProceduralAvatar(id: string): Promise<ModernVRM> {
     return loadProceduralVrm(id);
 }
 
+/**
+ * A figure avatar is a figure file made into a character by a style, in
+ * the variation its URL names. It is built in its basic form: it blinks
+ * and has no morph targets, so the lobby can draw many as a crowd.
+ */
+async function buildFigureAvatar(
+    spec: NonNullable<ReturnType<typeof figureAvatarOf>>
+): Promise<ModernVRM> {
+    const [figures, vrm] = await Promise.all([
+        import("@features/procedural-avatar/figure"),
+        // Each avatar parses its own copy (styling changes it in place);
+        // the file's bytes are fetched once.
+        import("@features/procedural-avatar/figure/load").then(
+            ({ FIGURE_URLS }) => parseAvatarFile(FIGURE_URLS.male)
+        ),
+    ]);
+    const base = figures.FIGURE_STYLES[spec.style] || figures.STAGEHAND_STYLE;
+    const style = spec.look ? figures.variedLook(base, spec.look) : base;
+    vrm.scene.updateMatrixWorld(true);
+    const figure = figures.styleFigure(
+        vrm as unknown as Parameters<typeof figures.styleFigure>[0],
+        style,
+        { form: "basic" }
+    );
+    // Blink on a clock of its own, so a crowd doesn't blink as one.
+    const seed = (spec.look * 0.618) % 1;
+    let clock = 0;
+    const update = vrm.update.bind(vrm);
+    vrm.update = (delta: number) => {
+        clock += delta;
+        if (figure.face) figure.face.blink.value = figures.blinkAt(clock, seed);
+        update(delta);
+    };
+    return vrm;
+}
+
 async function parseAvatar(url: string): Promise<LobbyAvatar> {
     const generated = proceduralAvatarId(url);
+    const figure = figureAvatarOf(url);
     const [vrm, basics] = await Promise.all([
-        generated ? buildProceduralAvatar(generated) : parseAvatarFile(url),
+        figure
+            ? buildFigureAvatar(figure)
+            : generated
+            ? buildProceduralAvatar(generated)
+            : parseAvatarFile(url),
         getMotionClips(),
     ]);
 

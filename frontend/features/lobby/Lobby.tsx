@@ -1,6 +1,8 @@
 import { useProfilePhoto } from "./profilePhoto";
 import { rememberTravelAvatar } from "@utils/travelAvatar";
 import useOwnedLobbyAvatars, { ownedFirst } from "./useOwnedLobbyAvatars";
+import useRecordingCrowd from "./useRecordingCrowd";
+import { readWornAvatarId } from "./recordingCrowdOptions";
 import { warmAvatarThumbs } from "./avatarThumb";
 import useClickAway from "./useClickAway";
 import { flashWallets } from "./useFlashNfts";
@@ -294,7 +296,11 @@ export default function Lobby({
     const [emote, setEmote] = useState({ index: -1, nonce: 0 });
     useEffect(() => {
         let cancelled = false;
-        void resolveLobbyAvatar(userData)
+        // ?wear=id tries an avatar for this visit without saving it.
+        const worn = readWornAvatarId();
+        void resolveLobbyAvatar(
+            worn ? { ...userData, settings: { vrm: worn } } : userData
+        )
             .then((source) => {
                 if (!cancelled) setAvatar(source);
             })
@@ -736,10 +742,45 @@ export default function Lobby({
         if (!socialElement.current?.contains(document.activeElement))
             travelControls.current?.focus({ preventScroll: true });
     }, [travelling]);
-    const population = social.population ?? social.players.length;
+    // ?crowd=N stages people around you, seen by you only (see
+    // recordingCrowd.ts). They join once your own avatar is in, so their
+    // models don't queue ahead of yours.
+    const recording = useRecordingCrowd();
+    const staged = ready ? recording : null;
+    const population =
+        (social.population ?? social.players.length) +
+        (recording?.crowd.participants.length || 0);
     const participants = useMemo(
-        () => social.players.filter((player) => !player.isLocal),
-        [social.players]
+        () => [
+            ...social.players.filter((player) => !player.isLocal),
+            ...(staged?.crowd.participants || []),
+        ],
+        [social.players, staged]
+    );
+    const sampleParticipants = useMemo(
+        () =>
+            staged
+                ? (now?: number) => {
+                      const time = now ?? performance.now();
+                      return [
+                          ...social.sampleParticipants(time),
+                          ...staged.crowd.sample(time),
+                      ];
+                  }
+                : social.sampleParticipants,
+        [staged, social.sampleParticipants]
+    );
+    const recordingBudget = useMemo(
+        () =>
+            recording
+                ? {
+                      maxModels: 24,
+                      maxNativeAvatars: 16,
+                      maxLabels: recording.options.names ? 64 : 0,
+                      loadConcurrency: 4,
+                  }
+                : undefined,
+        [recording]
     );
     const sceneReady = useCallback(() => {
         setReady(true);
@@ -1100,7 +1141,8 @@ export default function Lobby({
                         participants={participants}
                         initializePose={social.initializePose}
                         advanceMovement={social.advanceMovement}
-                        sampleParticipants={social.sampleParticipants}
+                        sampleParticipants={sampleParticipants}
+                        renderBudget={recordingBudget}
                         consumeCorrection={social.consumeCorrection}
                         avatarPreview={avatarOpen}
                         onAvatarStatus={avatarStatus}

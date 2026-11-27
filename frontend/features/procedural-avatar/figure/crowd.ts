@@ -3,7 +3,8 @@ import {
     If,
     attribute,
     float as f32,
-    int,
+    // As i32: the browser build leaves a bare `int` unbound.
+    int as i32,
     mat4,
     normalLocal,
     positionLocal,
@@ -217,7 +218,7 @@ export function createFigureCrowd(
     const seconds = uniform(0);
     const materials = createFigureMaterials(figure.style, figure.frames, {
         looks,
-        row: int(instance.w.add(0.5)),
+        row: i32(instance.w.add(0.5)),
     });
 
     // A vertex's place in a pose: its bones' matrices from the table,
@@ -231,7 +232,7 @@ export function createFigureCrowd(
     const bone = (index: Node, row: Node): Node =>
         columns(
             ...[0, 1, 2, 3].map((k) =>
-                tableCell(table, int(index).mul(4).add(k), row)
+                tableCell(table, i32(index).mul(4).add(k), row)
             )
         );
     // A vertex has room for four bones and seldom uses them all: the
@@ -253,13 +254,13 @@ export function createFigureCrowd(
         const normals = source.hasAttribute("normal");
         const bones = bonesUsed(source);
         beforePosition(material, `figure-crowd-${bones}`, () => {
-            const matrix = posed(int(instance.x.add(0.5)), bones);
+            const matrix = posed(i32(instance.x.add(0.5)), bones);
             If(instance.z.greaterThan(0), () => {
                 matrix.assign(
                     matrix
                         .mul(f32(1).sub(instance.z))
                         .add(
-                            posed(int(instance.y.add(0.5)), bones).mul(
+                            posed(i32(instance.y.add(0.5)), bones).mul(
                                 instance.z
                             )
                         )

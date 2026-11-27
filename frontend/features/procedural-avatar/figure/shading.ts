@@ -18,7 +18,8 @@ import {
     floor,
     fract,
     fwidth,
-    int,
+    // As i32: the browser build leaves a bare `int` unbound.
+    int as i32,
     ivec2,
     length,
     max,
@@ -200,7 +201,7 @@ function shapeUniforms(style: FigureStyle, frames: FigureFrames) {
  */
 export function tableCell(table: Node, column: Node | number, row: Node): Node {
     const cell = table.load(
-        ivec2(typeof column === "number" ? int(column) : column, row)
+        ivec2(typeof column === "number" ? i32(column) : column, row)
     );
     cell.updateMatrix = false;
     cell.updateType = "none";
@@ -235,7 +236,7 @@ function lookNodes(looks: FigureLooks, row: Node) {
         // The catchlights follow one another in the table.
         glints: {
             element: (index: Node): Node =>
-                cell(int(firstGlint).add(index)).xyz,
+                cell(i32(firstGlint).add(index)).xyz,
         },
         eyeShade: number("eyeShade"),
         glintGlow: number("glintGlow"),
@@ -522,8 +523,8 @@ function faceColour(u: Uniforms) {
         // Which eye the point is nearer: 0 the left, 1 the right.
         const which = select(
             p.x.mul(u.leftSign).greaterThan(0),
-            int(0),
-            int(1)
+            i32(0),
+            i32(1)
         );
 
         If(part.lessThan(partId("skin") + 0.5), () => {
@@ -622,9 +623,9 @@ function faceColour(u: Uniforms) {
             });
 
             // Round the mouth.
-            const m = inFrame(u, p, int(2));
+            const m = inFrame(u, p, i32(2));
             If(length(m).lessThan(0.05), () => {
-                const rim = rimDistances(u, m, int(2));
+                const rim = rimDistances(u, m, i32(2));
                 const nearest = min(rim.upper, rim.lower);
                 const t = select(
                     rim.upper.lessThan(rim.lower),
@@ -679,7 +680,7 @@ function faceColour(u: Uniforms) {
                 // Inside the mouth: teeth, tongue, and the dark behind.
                 const inward = saturate(
                     u.centres
-                        .element(int(2))
+                        .element(i32(2))
                         .z.sub(p.z)
                         .mul(u.forwardZ)
                         .div(0.03)
@@ -824,8 +825,8 @@ function inkColour(u: Uniforms) {
         // 0 on the figure's left, 1 on its right.
         const right = select(
             p.x.mul(u.leftSign).greaterThan(0),
-            int(0),
-            int(1)
+            i32(0),
+            i32(1)
         );
 
         If(abs(part.sub(partId("iris"))).lessThan(0.5), () => {
@@ -1072,7 +1073,7 @@ export function createFigureMaterials(
     }
     const u: Uniforms = {
         ...shapeUniforms(style, frames),
-        ...lookNodes(looks, options.row ?? int(0)),
+        ...lookNodes(looks, options.row ?? i32(0)),
     };
     const body = new THREE.MeshBasicNodeMaterial();
     body.name = "figure-body";

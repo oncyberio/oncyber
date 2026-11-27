@@ -145,8 +145,7 @@ style and an outfit. The parts it is made from are shared.
     from a style's. A figure in a crowd is drawn by the same shaders
     from the same numbers as one by itself. The basic form's materials
     are also ones the lobby's own crowd takes
-    (`lobby/webgpu/crowdMaterial.ts`); the lobby does not offer figures
-    yet. `/dev/figure-avatar` shows both (`form=basic`, `crowd=60`), and
+    (`lobby/webgpu/crowdMaterial.ts`). `/dev/figure-avatar` shows both (`form=basic`, `crowd=60`), and
     `tasks/avatar-figure`'s `compare` draws them (`--form basic`,
     `--crowd 60`, and `--as-crowd` to check a crowd of one against the
     figure alone).
@@ -195,6 +194,14 @@ view)`): anything costing under a quarter of a pixel is left out, so a
     offered in the picker yet. `/dev/raymarched-avatar` shows either when
     running locally: `mode=mesh` (default, with `coarse`) or `mode=trace`
     (with `scale`), plus `naked=1`, `zoom=face` and `yaw`.
+
+The lobby offers a figure as the avatar "Figure" (the Stagehand's face, no
+hair or clothes yet), built in its basic form so the lobby can draw many as a
+crowd. Its URL names a variation of its look, `/avatars/procedural/figure?look=7`
+(`figureAvatarUrl` in `catalogue.ts`), so everyone who sees it builds the same
+one. To see many at once when running locally, open the lobby with
+`?crowd=40`: a staged crowd, seen by you only, wearing a dozen variations.
+`?wear=figure` wears it for that visit without saving it.
 
 Saved as your avatar, a generated character is used in the lobby. Gallery
 spaces don't build them yet and show the default avatar there.
