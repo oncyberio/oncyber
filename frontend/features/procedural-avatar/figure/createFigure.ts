@@ -166,6 +166,9 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
                 forwardZ,
                 centre
             );
+        const amount = head?.amount ?? 1;
+        const towards = (own: number, wanted: number) =>
+            own + (wanted - own) * amount;
         if (head?.levels) {
             const now = levelsNow();
             const want = head.levels;
@@ -179,13 +182,13 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
             const to = [
                 from[0],
                 from[1],
-                eyeLine - want.nose * unit,
-                eyeLine - want.mouth * unit,
-                eyeLine - want.chin * unit,
+                towards(now.nose, eyeLine - want.nose * unit),
+                towards(now.mouth, eyeLine - want.mouth * unit),
+                towards(now.chin, eyeLine - want.chin * unit),
             ];
             if (want.crown !== undefined) {
                 from.push(crownNow());
-                to.push(eyeLine + want.crown * unit);
+                to.push(towards(from[5], eyeLine + want.crown * unit));
             }
             const warp = levelsWarp(from, to);
             skinned.forEach((shape, i) =>
@@ -258,13 +261,19 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
             const bottom = levelsNow().chin;
             const count = Math.ceil((top - bottom) / step) + 1;
             const atEyes = (wanted(0) * unit) / (width(eyeLine) || 1);
+            // The outline runs down to its own chin; the face may end
+            // higher or lower, and is set against it part for part.
+            const reach =
+                head.outline[head.outline.length - 1][1] /
+                ((eyeLine - bottom) / unit);
             let widen = Array.from({ length: count }, (_, i) => {
                 const y = bottom + i * step;
                 const now = width(y);
                 if (now < 0.25 * unit) return NaN;
                 const down = (eyeLine - y) / unit;
-                const ratio = down < 0 ? atEyes : (wanted(down) * unit) / now;
-                return Math.min(1.5, Math.max(0.75, ratio));
+                const ratio =
+                    down < 0 ? atEyes : (wanted(down * reach) * unit) / now;
+                return towards(1, Math.min(1.5, Math.max(0.75, ratio)));
             });
             const known = widen
                 .map((w, i) => (Number.isNaN(w) ? -1 : i))

@@ -293,15 +293,23 @@ describe("styling a figure", () => {
                 if (a.getY(v) < 1.36) expect(apart).toBe(0);
                 else if (a.getY(v) < 1.43) expect(apart).toBeLessThan(0.0005);
             }
-        // The skull, which the body's mesh holds, did change.
-        expect(moved).toBeGreaterThan(0.005);
-        expect(moved).toBeLessThan(0.03);
+        // The skull, which the body's mesh holds, did change, a little.
+        expect(moved).toBeGreaterThan(0.001);
+        expect(moved).toBeLessThan(0.01);
     });
 
-    it("gives the Stagehand the head his style describes", async () => {
+    it("fits a head to the levels and outline a style gives", async () => {
         const plain = styleFigure(await load(), PLAIN_STYLE);
-        const figure = styleFigure(await load(), STAGEHAND_STYLE);
-        const { levels, outline } = STAGEHAND_STYLE.shape.head;
+        // His sheet's head, taken all the way.
+        const whole = {
+            ...STAGEHAND_STYLE,
+            shape: {
+                ...STAGEHAND_STYLE.shape,
+                head: { ...STAGEHAND_STYLE.shape.head, amount: 1 },
+            },
+        };
+        const figure = styleFigure(await load(), whole);
+        const { levels, outline } = whole.shape.head;
         const head = figure.head;
         expect(head.levels.nose).toBeCloseTo(levels.nose, 2);
         expect(head.levels.mouth).toBeCloseTo(levels.mouth, 2);
@@ -324,6 +332,31 @@ describe("styling a figure", () => {
                     Math.hypot(normal.getX(v), normal.getY(v), normal.getZ(v))
                 ).toBeCloseTo(1, 3);
         }
+    });
+
+    it("takes only as much of a head as the style asks for", async () => {
+        const none = styleFigure(await load(), {
+            ...STAGEHAND_STYLE,
+            shape: { ...STAGEHAND_STYLE.shape, head: undefined },
+        });
+        const some = styleFigure(await load(), STAGEHAND_STYLE);
+        const { amount, levels } = STAGEHAND_STYLE.shape.head;
+        // The Stagehand takes a little of his sheet's head, not all.
+        expect(amount).toBeGreaterThan(0);
+        expect(amount).toBeLessThan(0.35);
+        for (const level of ["nose", "mouth", "chin", "crown"] as const) {
+            const own = none.head.levels[level];
+            expect(some.head.levels[level]).toBeCloseTo(
+                own + (levels[level] - own) * amount,
+                2
+            );
+        }
+        // His eyes are where they were, and as large.
+        expect(some.frames.eyeWidth).toBeCloseTo(none.frames.eyeWidth, 5);
+        expect(some.frames.corners.left.x).toBeCloseTo(
+            none.frames.corners.left.x,
+            5
+        );
     });
 
     it("keeps the skin closed when the head is reshaped", async () => {

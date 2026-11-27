@@ -164,6 +164,12 @@ export interface FigureShape {
      */
     head?: {
         /**
+         * How far to take the head from the figure's own towards what
+         * follows, 0 to 1: all the way if left out. A little of a
+         * character's own head goes a long way.
+         */
+        amount?: number;
+        /**
          * How far below the inner corners of the eyes the bottom of the
          * nose, the line of the mouth and the bottom of the chin are;
          * and how far above them the top of the skull is. The face
@@ -328,24 +334,26 @@ export const STAGEHAND_STYLE: FigureStyle = {
         morphs: { MTH_Close: 1, MTH_Sorrow: 0.7 },
         // Round ears, hollowed, as on his sheet.
         ears: { round: 0.9, cup: 0.3 },
-        // His head is not the figure's rounded one. Under the eyes his
-        // face is long, with the nose, mouth and chin well down it; it is
-        // narrow at the temples, and its jaw runs straight down to a
-        // corner and across to a broad chin.
+        // His head, as measured off his sheet: under the eyes his face
+        // is long, with the nose, mouth and chin well down it, and its
+        // jaw runs straight down to a corner and across to a broad chin.
+        // The figure takes a fifth of that: a little less round than it
+        // comes, and still the figure's own head.
         head: {
-            levels: { nose: 1.37, mouth: 1.67, chin: 2.62, crown: 3.1 },
+            amount: 0.2,
+            levels: { nose: 1.45, mouth: 1.79, chin: 2.75, crown: 3.1 },
             outline: [
-                [1.85, 0],
-                [1.84, 0.48],
-                [1.7, 0.95],
-                [1.54, 1.43],
-                [1.37, 1.72],
-                [1.28, 1.87],
-                [1.07, 2.07],
-                [0.77, 2.31],
-                [0.51, 2.49],
-                [0.27, 2.59],
-                [0, 2.62],
+                [1.8, 0],
+                [1.79, 0.5],
+                [1.68, 1],
+                [1.53, 1.5],
+                [1.36, 1.8],
+                [1.28, 1.96],
+                [1.07, 2.17],
+                [0.77, 2.42],
+                [0.51, 2.61],
+                [0.27, 2.72],
+                [0, 2.75],
             ],
         },
         features: [
@@ -363,6 +371,16 @@ export const STAGEHAND_STYLE: FigureStyle = {
                 at: "mouth",
                 radius: 0.04,
                 scale: [0.75, 1, 1],
+            },
+            {
+                // A little more chin: broader at its tip, and a touch
+                // longer. Centred low, so that the mouth stays as it is.
+                name: "chin",
+                at: "chin",
+                offset: [0, -0.018, 0],
+                radius: 0.034,
+                scale: [1.32, 1, 1.06],
+                move: [0, -0.0022, 0],
             },
         ],
     },
