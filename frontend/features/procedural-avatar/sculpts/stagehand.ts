@@ -41,20 +41,21 @@ const h = (x: number, y: number, z: number): Vec3 => [x, EYE_Y + y, Z0 + z];
 // The eyeball is far larger than a real one, so what shows of it between
 // the lids is nearly flat, as drawn eyes are.
 // Its centre is the middle of the line between the eye's corners; the
-// upper lid's edge is that line, tilted up steeply towards the temple.
-const EYE: Vec3 = h(0.0365, 0.00125, 0.0565);
+// upper lid's edge is that line, tilted up a little towards the temple.
+const EYE: Vec3 = h(0.0363, 0.0015, 0.0565);
 const EYE_RADIUS = 0.034;
 const LID_RADIUS = 0.0353;
 const UPPER_LID = 0;
 const LOWER_LID = -17;
-const EYE_TILT = 20.7;
-/** The opening the eye shows through; nothing of it exists outside this. */
-const SOCKET: Vec3 = h(0.0365, -0.002, 0.09);
-const SOCKET_REACH = 0.026;
+const EYE_TILT = 15;
+/** About where the eye's opening is, for the box its layer is traced in. */
+const SOCKET: Vec3 = h(0.0363, -0.003, 0.09);
 const MOUTH_Y = -0.0662;
 
 /** The eye's outline seen from the front: an ellipse on the corner line. */
-const EYE_OPENING = { x: 0.0365, y: 0.00125, rx: 0.0182, ry: 0.0118 };
+// The lid closes its upper half: what shows is a D lying on its back, a
+// flat top and a deep round bottom.
+const EYE_OPENING = { x: 0.0363, y: 0.0015, rx: 0.019, ry: 0.0142 };
 
 /**
  * The almond the eye shows through, cut into the face; `grow` widens it.
@@ -121,13 +122,27 @@ function headBase(): Field {
 function head(): { shape: Shape; mouthZ: number } {
     const base = headBase();
     const out = field().add(base);
-    // Nose: a straight bridge to a defined tip, small wings.
+    // Nose: a wedge, straight down the bridge.
+    // It widens to a rounded tip over a broad base, and is cut flat
+    // underneath, the cut rising back to the lip.
     out.add(
-        roundCone(h(0, 0.008, 0.097), h(0, -0.034, 0.1105), 0.0058, 0.0056),
-        0.012
+        field()
+            .add(
+                roundCone(
+                    h(0, 0.006, 0.0965),
+                    h(0, -0.036, 0.1105),
+                    0.0052,
+                    0.0066
+                )
+            )
+            .add(sphere(h(0, -0.0408, 0.1122), 0.0074), 0.006)
+            .add(
+                ellipsoid(h(0, -0.0432, 0.1035), [0.0102, 0.0066, 0.0095]),
+                0.007
+            )
+            .clip(halfSpace(h(0, -0.0488, 0.108), [0, -0.96, 0.28]), 0.0035),
+        0.011
     );
-    out.add(sphere(h(0, -0.0405, 0.1125), 0.0068), 0.006);
-    out.add(sphere(h(0.007, -0.0452, 0.103), 0.0046), 0.008);
     // Mouth: thin lips pressed into a slight frown.
     const mouthZ = surfaceZ(base, 0, EYE_Y + MOUTH_Y) - Z0 - 0.0022;
     out.add(
@@ -162,13 +177,14 @@ function head(): { shape: Shape; mouthZ: number } {
         0.012
     );
     // Eye: a deep socket, then lids as a shell round the eyeball.
-    out.carve(opening(0), 0.004);
-    // Only the upper lid has any body; the lower edge is the socket's own.
-    out.add(
+    // Only the part of the outline below the lid's edge is opened: above
+    // it the face is left whole, so the lid is simply the brow's own skin
+    // coming down to a straight edge over the eye.
+    const edge = lid(true).normal;
+    out.carve(
         field()
-            .add(sphere(EYE, LID_RADIUS))
-            .clip(halfSpace(EYE, lid(true).normal), 0.0008)
-            .clip(sphere(SOCKET, SOCKET_REACH), 0.004),
+            .add(opening(0))
+            .clip(halfSpace(EYE, [-edge[0], -edge[1], -edge[2]]), 0.0015),
         0.003
     );
     // Ear: a flat disc standing well off the head, its front edge on the
@@ -183,26 +199,67 @@ function head(): { shape: Shape; mouthZ: number } {
         lean[1] - earAxis[1] * k,
         lean[2] - earAxis[2] * k,
     ]);
-    const outward = (p: Vec3, d: number): Vec3 => [
-        p[0] + earOut[0] * d,
-        p[1] + earOut[1] * d,
-        p[2] + earOut[2] * d,
+    // Towards the face, across the ear.
+    const earFront = (() => {
+        const c = cross(earAxis, earOut);
+        return c[2] > 0 ? c : ([-c[0], -c[1], -c[2]] as Vec3);
+    })();
+    const earLength = Math.hypot(
+        earBottom[0] - earTop[0],
+        earBottom[1] - earTop[1],
+        earBottom[2] - earTop[2]
+    );
+    /** A point of the ear: `t` down it, `f` towards the face, `o` out of it. */
+    const E = (t: number, f: number, o: number): Vec3 => [
+        earTop[0] +
+            earAxis[0] * t * earLength +
+            earFront[0] * f +
+            earOut[0] * o,
+        earTop[1] +
+            earAxis[1] * t * earLength +
+            earFront[1] * f +
+            earOut[1] * o,
+        earTop[2] +
+            earAxis[2] * t * earLength +
+            earFront[2] * f +
+            earOut[2] * o,
     ];
     out.add(
         field()
             .add(ribbonCone(earTop, earBottom, 0.021, 0.014, earOut, 0.25))
             .add(sphere(h(0.072, -0.032, -0.004), 0.0072), 0.006)
+            // Hollow the face of it, leaving the rolled rim...
             .carve(
                 ribbonCone(
-                    outward(earTop, 0.0062),
-                    outward(earBottom, 0.0062),
-                    0.012,
-                    0.007,
+                    E(0.04, 0.0015, 0.0064),
+                    E(0.92, 0.002, 0.0064),
+                    0.0162,
+                    0.0092,
                     earOut,
-                    0.45
+                    0.5
+                ),
+                0.0028
+            )
+            // ...then the ridge inside it that forks towards the top,
+            .add(
+                capsule(
+                    E(0.22, -0.003, 0.0018),
+                    E(0.74, 0.004, 0.0018),
+                    0.0036
                 ),
                 0.003
-            ),
+            )
+            .add(
+                capsule(
+                    E(0.22, -0.003, 0.0018),
+                    E(0.06, 0.007, 0.0018),
+                    0.0028
+                ),
+                0.003
+            )
+            // the bowl in front of the ridge, and the flap over the canal.
+            .carve(sphere(E(0.62, 0.0095, 0.0042), 0.0058), 0.003)
+            .add(sphere(E(0.6, 0.0165, 0.0036), 0.0036), 0.003),
         0.006
     );
     return { shape: out, mouthZ };
@@ -861,17 +918,6 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
         lock(points, leaf, shingle);
     }
 
-    // The curl in front of his right ear.
-    lock(
-        [
-            [-0.085, 0.03, 0.02],
-            [-0.106, 0.008, 0.016],
-            [-0.116, -0.012, 0.012],
-            [-0.104, -0.026, 0.012],
-        ],
-        [0.01, 0.012, 0.009, 0.002],
-        { pieces: 4 }
-    );
     // The fringe: a curtain down each side of the forehead, following
     // its edge to the temple, and one thin strand between the brows.
     const curtain = { flat: 0.4 };
@@ -909,14 +955,14 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
     );
     // The ragged lower edge: points in front of the ear, behind it, and
     // along the nape.
-    const spike = { pieces: 2, flat: 0.6 };
+    const spike = { pieces: 2, flat: 0.32 };
     both(
         [
             [0.067, 0.03, 0.03],
             [0.0685, 0.004, 0.03],
             [0.067, -0.022, 0.026],
         ],
-        [0.01, 0.007, 0.0012],
+        [0.009, 0.006, 0.0008],
         spike
     );
     both(
@@ -941,7 +987,7 @@ function hair(): { cap: Shape; segments: SculptHairSegment[]; shape: Shape } {
                 [x * 0.96, y, z],
                 [x * 0.86, tipY, z + 0.01],
             ],
-            [0.016, 0.013, 0.0015],
+            [0.013, 0.01, 0.001],
             spike
         );
 
@@ -987,6 +1033,12 @@ function norm(v: readonly number[]): Vec3 {
     return [v[0] / l, v[1] / l, v[2] / l];
 }
 
+/** Up out of the open eye, square to the lid's edge. */
+const above: Vec3 = (() => {
+    const n = lid(true).normal;
+    return [-n[0], -n[1], -n[2]];
+})();
+
 export function stagehandSculpt(): Sculpt {
     const { shape: headShape, mouthZ } = head();
     const hairParts = hair();
@@ -1006,7 +1058,13 @@ export function stagehandSculpt(): Sculpt {
             {
                 material: "eye",
                 shape: symmetric(
-                    field().add(sphere(EYE, EYE_RADIUS)).clip(opening(0.0025))
+                    field()
+                        .add(sphere(EYE, EYE_RADIUS))
+                        .clip(opening(0.0025))
+                        // Nothing of it above the lid's edge.
+                        .clip(
+                            halfSpace([EYE[0], EYE[1] + 0.0012, EYE[2]], above)
+                        )
                 ),
                 min: [-0.064, SOCKET[1] - 0.027, SOCKET[2] - 0.027],
                 max: [0.064, SOCKET[1] + 0.027, SOCKET[2] + 0.004],
@@ -1065,8 +1123,8 @@ export function stagehandSculpt(): Sculpt {
             eye: EYE,
             eyeRadius: EYE_RADIUS,
             lidRadius: LID_RADIUS,
-            irisRadius: 0.0073,
-            gaze: [1, 6],
+            irisRadius: 0.0077,
+            gaze: [-9, 6.5],
             opening: {
                 rx: EYE_OPENING.rx,
                 ry: EYE_OPENING.ry,
@@ -1075,12 +1133,12 @@ export function stagehandSculpt(): Sculpt {
             lowerLid: { normal: lower.normal, across: lower.across },
             brow: {
                 path: [
-                    [0.013, EYE_Y + 0.0065],
-                    [0.034, EYE_Y + 0.015],
-                    [0.0515, EYE_Y + 0.0215],
-                    [0.062, EYE_Y + 0.0188],
+                    [0.0128, EYE_Y + 0.004],
+                    [0.036, EYE_Y + 0.0125],
+                    [0.053, EYE_Y + 0.0206],
+                    [0.063, EYE_Y + 0.0188],
                 ],
-                width: [0.0078, 0.0076, 0.006, 0.0012],
+                width: [0.0088, 0.008, 0.006, 0.0012],
                 frontZ: Z0 + 0.062,
             },
             mouth: { y: EYE_Y + MOUTH_Y, z: Z0 + mouthZ, halfWidth: 0.0175 },
@@ -1102,9 +1160,9 @@ export function stagehandSculpt(): Sculpt {
             lipLine: "#5a2c25",
             brow: "#17110f",
             lash: "#120d0c",
-            iris: "#24150f",
-            irisLight: "#583626",
-            white: "#f3ece8",
+            iris: "#2e1b16",
+            irisLight: "#6a4434",
+            white: "#f7f2ef",
             hair: "#231c1f",
             hairSheen: "#9a705e",
             cotton: "#f1ecf1",

@@ -611,14 +611,25 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                                 [0, mouth.y - 0.0125, mouth.z],
                                 [0.013, 0.0042, 0.02]
                             ).mul(0.4),
-                            blob(
-                                [
-                                    0,
-                                    face.noseTip[1] - 0.0085,
-                                    face.noseTip[2] - 0.008,
-                                ],
-                                [0.0095, 0.0042, 0.012]
-                            ).mul(0.75)
+                            smoothstep(-0.3, -0.85, n.y)
+                                .mul(0.5)
+                                .mul(
+                                    smoothstep(
+                                        0.018,
+                                        0.01,
+                                        length(
+                                            vec3(
+                                                hx,
+                                                pos.y.sub(
+                                                    face.noseTip[1] - 0.006
+                                                ),
+                                                pos.z.sub(
+                                                    face.noseTip[2] - 0.008
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
                         )
                     )
                 );
@@ -647,7 +658,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const brow = smoothstep(0.0005, -0.0003, browD)
                 .mul(smoothstep(pts[0][0] - 0.0028, pts[0][0] - 0.0014, hx))
                 .mul(facing)
-                .mul(smoothstep(0.3, 0.55, n.z));
+                .mul(smoothstep(0.02, 0.25, n.z));
             albedo = mix(albedo, C("brow"), brow);
             // Lash lines: the rims of the lids, the upper one thick.
             const el = vec3(
@@ -655,26 +666,38 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 pos.y.sub(face.eye[1]),
                 pos.z.sub(face.eye[2])
             ).toVar();
-            const onLid = smoothstep(
-                0.004,
-                0.0015,
-                abs(length(el).sub(face.lidRadius))
-            )
-                .mul(smoothstep(0.6, 0.76, el.z.div(face.lidRadius)))
-                .mul(smoothstep(0.025, 0.021, length(vec2(el.x, el.y))));
-            // The upper lash line is a heavy band on the lid above its
-            // edge, thinner towards the nose; the lower lid is only a
-            // thin line round the bottom of the eye's outline.
+            // The lash line is a thin dark line along the lid's edge,
+            // a little heavier towards the temple; the lower lid is a
+            // fainter line round the bottom of the eye's outline.
             const across = dot(el, v3(face.upperLid.across)).toVar();
             const aboveEdge = dot(el, v3(face.upperLid.normal)).negate();
             const band = mix(
-                f32(0.0038),
-                f32(0.005),
-                smoothstep(-0.016, 0.004, across)
+                f32(0.0013),
+                f32(0.0024),
+                smoothstep(-0.014, 0.014, across)
             );
-            const upper = smoothstep(band, band.sub(0.0012), abs(aboveEdge))
-                .mul(onLid)
-                .mul(smoothstep(-0.002, 0.002, el.y.add(el.x.mul(0.2))));
+            // Only on skin that faces forwards: not down the wall of the
+            // opening, nor round onto the temple.
+            const front = smoothstep(0.012, 0.02, el.z).mul(
+                smoothstep(0.35, 0.6, n.z)
+            );
+            const upper = smoothstep(band, band.sub(0.0007), abs(aboveEdge))
+                .mul(front)
+                // From the inner corner to a short wing past the outer one.
+                .mul(
+                    smoothstep(
+                        face.opening.rx + 0.0022,
+                        face.opening.rx,
+                        across
+                    )
+                )
+                .mul(
+                    smoothstep(
+                        -face.opening.rx - 0.0015,
+                        -face.opening.rx + 0.001,
+                        across
+                    )
+                );
             const rise = vec2(
                 -face.upperLid.across[1],
                 face.upperLid.across[0]
@@ -683,10 +706,10 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             const rim = length(
                 vec2(across.div(face.opening.rx), below.div(face.opening.ry))
             );
-            const lower = smoothstep(0.07, 0.02, abs(rim.sub(0.97)))
+            const lower = smoothstep(0.06, 0.02, abs(rim.sub(0.93)))
                 .mul(smoothstep(0.001, -0.002, below))
-                .mul(smoothstep(0.012, 0.02, el.z))
-                .mul(0.45);
+                .mul(front)
+                .mul(0.32);
             albedo = mix(albedo, C("lash"), max(upper, lower));
 
             // Soft wrap light, shadows that turn red at their edges, and
@@ -697,7 +720,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
             // The neck, though, sits in the shadow of the jaw.
             const cast = mix(
                 f32(0.75),
-                f32(0.22),
+                f32(0.1),
                 smoothstep(face.chinY - 0.012, face.chinY + 0.012, pos.y)
             );
             const scattered = pow(
@@ -782,13 +805,13 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
                 )
             );
             const albedo = mix(
-                mix(iris, vec3(0.01, 0.007, 0.006), smoothstep(0.62, 0.55, r)),
+                mix(iris, vec3(0.012, 0.008, 0.007), smoothstep(0.52, 0.42, r)),
                 C("white").mul(f32(1).sub(smoothstep(1, 3.5, r).mul(0.16))),
                 smoothstep(0.97, 1.04, r)
-            ).mul(mix(0.62, 1, underLid));
+            ).mul(mix(0.78, 1, underLid));
             colour.assign(
                 albedo
-                    .mul(mix(0.7, 1, shadow).mul(mix(0.7, 1, open)).mul(0.98))
+                    .mul(mix(0.85, 1, shadow).mul(mix(0.8, 1, open)))
                     .add(pow(nh, 260).mul(0.9).mul(shadow))
                     .add(
                         pow(saturate(dot(n, normalize(FILL.sub(rd)))), 160).mul(
