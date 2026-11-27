@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "garden",
-  "checkedAt": "2026-11-26T00:45:43.930Z",
+  "checkedAt": "2026-11-27T14:07:17.068Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
@@ -22,7 +22,7 @@
         "why": "The garden matches the lobby's camera, crouch and empty hands itself (the process stage checks the handoff); it does not use the avatar kit's arrival pose yet."
       }
     ],
-    "ms": 29032,
+    "ms": 35093,
     "query": "&webgl",
     "facts": {
       "others": {
@@ -68,7 +68,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 21,
+        "hostFrames": 22,
         "hostArrival": "",
         "hostParty": 0,
         "hostPartyArrived": 0,
@@ -82,15 +82,15 @@
     "release": "605b1f2e2784604c",
     "files": 8,
     "verified": 8,
-    "bootMs": 4260,
-    "ms": 4416
+    "bootMs": 4497,
+    "ms": 4668
   },
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1566,
+    "firstFrameMs": 2364,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 1535,
+    "gameFirstFrameMs": 2306,
     "progress": {
       "messages": 4,
       "labels": [
@@ -113,7 +113,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 5825,
+    "ms": 6150,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -130,9 +130,9 @@
         "progress",
         "saved",
         "pose",
+        "health",
         "first-frame",
-        "ready",
-        "health"
+        "ready"
       ]
     }
   },
@@ -450,7 +450,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 0,
+    "ms": 1,
     "options": {},
     "drops": []
   },
@@ -460,6 +460,99 @@
       "message": "4 of 4 menu screen(s) use no UI kit classes: #hud, #details, #menu, #match. See docs/games/ui-kit.md."
     }
   ],
+  "scene": {
+    "version": 1,
+    "start": {
+      "bytes": 1303650,
+      "files": 4,
+      "largest": [
+        {
+          "path": "assets/index-SZibrTxn.js",
+          "bytes": 1043677
+        },
+        {
+          "path": "motion.json",
+          "bytes": 211080
+        },
+        {
+          "path": "ui.html",
+          "bytes": 47693
+        }
+      ],
+      "hereMs": 2364,
+      "downloadMs": 1159,
+      "estimatedMs": 3523,
+      "budgetMs": 5000,
+      "referenceMbit": 9
+    },
+    "frame": {
+      "api": "webgpu",
+      "frames": 4,
+      "triangles": {
+        "usual": 241073,
+        "heavy": 548658,
+        "peak": 548658
+      },
+      "calls": {
+        "usual": 259,
+        "heavy": 880,
+        "peak": 880
+      },
+      "passes": [
+        {
+          "screen": true,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 232698,
+          "calls": 209
+        },
+        {
+          "screen": false,
+          "triangles": 41630,
+          "calls": 230
+        },
+        {
+          "screen": true,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 232698,
+          "calls": 209
+        },
+        {
+          "screen": false,
+          "triangles": 41630,
+          "calls": 230
+        }
+      ],
+      "sceneDraws": 2,
+      "textures": {
+        "count": 20,
+        "bytes": 117294449,
+        "largest": {
+          "width": 2048,
+          "height": 2048
+        }
+      }
+    },
+    "phoneCanvas": {
+      "width": 824,
+      "height": 1678,
+      "layoutWidth": 412,
+      "layoutHeight": 839,
+      "devicePixelRatio": 2.625,
+      "pixelRatio": 2
+    },
+    "notes": [
+      "only 4 frames drew anything, so the frame numbers say little (a graphics device lost in this browser does that: PW_CHANNEL=chrome uses a real one)",
+      "63 draw(s) could not be sized (indirect or bundled), so the triangle counts are low"
+    ]
+  },
   "ui": {
     "screens": [
       {
@@ -486,8 +579,8 @@
   },
   "results": [],
   "consoleErrors": [
-    "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42683/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
-    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
+    "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:42915/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
+    "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
   ],
   "contract": {
     "listed": true,
@@ -548,36 +641,36 @@
           "buttons": []
         },
         "consoleErrors": [
-          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:42683/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
+          "[garden] Error: Device was destroyed.\n    at m (http://127.0.0.1:42915/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: Device was destroyed.\nReason: destroyed"
         ],
         "run": {
           "version": 1,
           "status": "failed",
           "backend": "webgpu",
-          "bootMs": 1536,
+          "bootMs": 1516,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1536
+              "ms": 1516
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 522,
+              "ms": 519,
               "error": "NO_TOUCH_CONTROL:forward"
             },
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 3006
+              "ms": 3009
             }
           ],
           "frames": {
             "count": 180,
             "medianMs": 16.7,
-            "p95Ms": 16.7,
+            "p95Ms": 16.8,
             "worstMs": 16.8
           },
           "inspect": {
@@ -639,19 +732,19 @@
         "scope": "scenario",
         "findings": [],
         "consoleErrors": [
-          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42683/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
+          "[garden] Error: A valid external Instance reference no longer exists.\n    at m (http://127.0.0.1:42915/game-builds/garden/assets/index-SZibrTxn.js:21:18622)",
           "THREE.WebGPURenderer: WebGPU Device Lost:\n\nMessage: A valid external Instance reference no longer exists.\nReason: unknown"
         ],
         "run": {
           "version": 1,
           "status": "passed",
           "backend": "webgpu",
-          "bootMs": 1544,
+          "bootMs": 1501,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 1544
+              "ms": 1501
             },
             {
               "stage": "scenario",
@@ -731,25 +824,25 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 7605,
+    "ms": 9532,
     "keys": 1,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 1495,
+        "ms": 2106,
         "requests": 4
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 1443,
+        "ms": 1946,
         "requests": 3
       },
       {
         "run": "old saves (1 of 1)",
         "booted": true,
-        "ms": 1372,
+        "ms": 1853,
         "outcomes": {
           "save": "migrated"
         },
@@ -758,7 +851,7 @@
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 1473,
+        "ms": 1610,
         "outcomes": {
           "save": "reset"
         },
@@ -767,7 +860,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 1683,
+        "ms": 1818,
         "outcomes": {
           "save": "reset"
         },
@@ -812,17 +905,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgpu",
-    "bootMs": 1449,
+    "bootMs": 2205,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 1449
+        "ms": 2205
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 916
+        "ms": 932
       },
       {
         "stage": "lifecycle",
@@ -837,7 +930,7 @@
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 1511,
+        "ms": 1507,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -846,21 +939,21 @@
           "audioVolume": 1,
           "audioDucked": false,
           "audioSuspended": false,
-          "audioGain": 0.957,
-          "audioInput": 0.0479,
-          "audioLevel": 0.0457
+          "audioGain": 0.952,
+          "audioInput": 0.05,
+          "audioLevel": 0.0473
         }
       },
       {
         "stage": "results",
         "status": "passed",
-        "ms": 2
+        "ms": 3
       }
     ],
     "frames": {
       "count": 180,
       "medianMs": 16.7,
-      "p95Ms": 16.7,
+      "p95Ms": 16.8,
       "worstMs": 16.8
     },
     "inspect": {
@@ -1007,17 +1100,17 @@
         }
       },
       {
-        "at": 3.9,
+        "at": 3.8,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 4.2,
+        "at": 4.1,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 5.2,
+        "at": 5.1,
         "event": "facts",
         "facts": {
           "booted": true,
@@ -1044,11 +1137,11 @@
           "avatarEmote": "",
           "offers": 0,
           "playerX": -0.1,
-          "playerZ": 11.4,
+          "playerZ": 11.5,
           "screen": "arrival",
           "position": [
             -0.1,
-            11.44
+            11.53
           ],
           "arrival": {
             "distance": 4.8,
@@ -1067,10 +1160,10 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 1,
-          "audioInput": 0.0517,
-          "audioLevel": 0.0517,
+          "audioInput": 0.0418,
+          "audioLevel": 0.0418,
           "hostPhase": "entered",
-          "hostFrames": 213,
+          "hostFrames": 206,
           "hostArrival": "",
           "hostParty": 0,
           "hostPartyArrived": 0,
