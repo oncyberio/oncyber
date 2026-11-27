@@ -1,5 +1,6 @@
 import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import type { StyledFigure } from "./createFigure";
 import { OUTFIT_FILES, outfitUrl } from "./outfitFiles";
 import { createClothMaterial } from "./shading";
@@ -18,7 +19,9 @@ const loaded = new Map<string, Promise<LoadedOutfit>>();
 function outfitFile(id: string) {
     let pending = loaded.get(id);
     if (!pending) {
-        pending = new GLTFLoader().loadAsync(outfitUrl(id)).then((gltf) => {
+        // Outfits are packed with meshopt (tasks/avatar-figure/clothes).
+        const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+        pending = loader.loadAsync(outfitUrl(id)).then((gltf) => {
             let found: LoadedOutfit | undefined;
             gltf.scene.traverse((object) => {
                 const mesh = object as THREE.Mesh;

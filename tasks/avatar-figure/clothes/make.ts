@@ -10,7 +10,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { MeshoptSimplifier } from "meshoptimizer";
+import { MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 import { meshField } from "../../../frontend/features/procedural-avatar/kernel/mesher";
 import {
     TriangleTree,
@@ -258,6 +258,7 @@ const toLinear = (c: number) =>
     c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 
 await MeshoptSimplifier.ready;
+await MeshoptEncoder.ready;
 const only = process.argv[2];
 const time = clock();
 const figure = await loadFigure(FIGURE);
@@ -348,12 +349,16 @@ for (const outfit of [stagehandOutfit(figure, body)]) {
         .digest("hex");
     writeFileSync(
         path.join(OUT, `${outfit.id}.glb`),
-        writeGlb(pieces, {
-            name: outfit.id,
-            bones: figure.bones,
-            hides,
-            figure: figureHash.slice(0, 16),
-        })
+        writeGlb(
+            pieces,
+            {
+                name: outfit.id,
+                bones: figure.bones,
+                hides,
+                figure: figureHash.slice(0, 16),
+            },
+            MeshoptEncoder
+        )
     );
     console.log(
         `${outfit.id}: ${pieces.reduce(

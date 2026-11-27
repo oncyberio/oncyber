@@ -4,6 +4,10 @@
  * cloth bands at 8 bits); four bones and weights a vertex as bytes. What
  * the wearer needs to put it on rides in the mesh's extras: the bone
  * names the joints count in, and the body triangles it covers.
+ *
+ * Given meshopt's encoder, the buffers are packed with it
+ * (EXT_meshopt_compression): about a third of the size, unpacked by the
+ * loader's meshopt decoder.
  */
 export interface Piece {
     name: string;
@@ -32,9 +36,25 @@ export function runs(values: number[]) {
     return out;
 }
 
+/** What writeGlb needs of meshopt's encoder (`MeshoptEncoder`). */
+export interface Encoder {
+    reorderMesh(
+        indices: Uint32Array,
+        triangles: boolean,
+        optsize: boolean
+    ): [Uint32Array, number];
+    encodeGltfBuffer(
+        source: Uint8Array,
+        count: number,
+        size: number,
+        mode: "ATTRIBUTES" | "TRIANGLES"
+    ): Uint8Array;
+}
+
 export function writeGlb(
     pieces: Piece[],
-    extras: { name: string; bones: string[]; hides: number[]; figure: string }
+    extras: { name: string; bones: string[]; hides: number[]; figure: string },
+    encoder?: Encoder
 ) {
     const count = pieces.reduce((n, p) => n + p.positions.length / 3, 0);
     const positions = new Float32Array(count * 3);
@@ -71,19 +91,78 @@ export function writeGlb(
         base += n;
     }
     const wide = count > 65535;
-    const index = wide ? Uint32Array.from(indices) : Uint16Array.from(indices);
-    const arrays = [positions, normals, colours, joints, weights, index];
+    let vertexArrays = [positions, normals, colours, joints, weights];
+    // Rewritten in place by the reorder.
+    const order = Uint32Array.from(indices);
+    if (encoder) {
+        // Floats with their low bits dropped pack far smaller: positions
+        // to about a tenth of a millimetre, normals to a few hundredths.
+        trim(positions, 10);
+        trim(normals, 13);
+        // Vertices in the order the triangles use them: smaller packed.
+        const [remap] = encoder.reorderMesh(order, true, false);
+        vertexArrays = vertexArrays.map((a) => {
+            const width = a.length / count;
+            const out = new (a.constructor as new (n: number) => typeof a)(
+                a.length
+            );
+            for (let v = 0; v < count; v++)
+                for (let k = 0; k < width; k++)
+                    out[remap[v] * width + k] = a[v * width + k];
+            return out;
+        });
+    }
+    const index = wide ? order : Uint16Array.from(order);
+    const arrays = [...vertexArrays, index];
     const chunks = arrays.map(
         (a) => new Uint8Array(a.buffer, a.byteOffset, a.byteLength)
     );
+    const strides = arrays.map((a, i) =>
+        i < vertexArrays.length ? a.byteLength / count : a.BYTES_PER_ELEMENT
+    );
     const views: Json[] = [];
+    const stored: Uint8Array[] = [];
     let length = 0;
-    for (const chunk of chunks) {
-        views.push({ buffer: 0, byteOffset: length, byteLength: chunk.length });
-        length += Math.ceil(chunk.length / 4) * 4;
-    }
+    let raw = 0;
+    chunks.forEach((chunk, i) => {
+        const attribute = i < vertexArrays.length;
+        const view: Json = {
+            buffer: 0,
+            byteOffset: 0,
+            byteLength: chunk.length,
+        };
+        if (attribute) view.byteStride = strides[i];
+        let data = chunk;
+        if (encoder) {
+            const mode = attribute ? "ATTRIBUTES" : "TRIANGLES";
+            const n = attribute ? count : index.length;
+            data = encoder.encodeGltfBuffer(chunk, n, strides[i], mode);
+            // The view stands in the empty fallback buffer; the packed
+            // bytes sit in the real one.
+            view.buffer = 1;
+            view.byteOffset = raw;
+            raw += Math.ceil(chunk.length / 4) * 4;
+            view.extensions = {
+                EXT_meshopt_compression: {
+                    buffer: 0,
+                    byteOffset: length,
+                    byteLength: data.length,
+                    byteStride: strides[i],
+                    mode,
+                    count: n,
+                },
+            };
+        } else view.byteOffset = length;
+        views.push(view);
+        stored.push(data);
+        length += Math.ceil(data.length / 4) * 4;
+    });
     const bin = new Uint8Array(length);
-    chunks.forEach((chunk, i) => bin.set(chunk, views[i].byteOffset));
+    let at = 0;
+    for (const data of stored) {
+        bin.set(data, at);
+        at += Math.ceil(data.length / 4) * 4;
+    }
     const min = [Infinity, Infinity, Infinity];
     const max = [-Infinity, -Infinity, -Infinity];
     for (let i = 0; i < count; i++)
@@ -91,7 +170,7 @@ export function writeGlb(
             min[k] = Math.min(min[k], positions[i * 3 + k]);
             max[k] = Math.max(max[k], positions[i * 3 + k]);
         }
-    const json = {
+    const json: Json = {
         asset: { version: "2.0", generator: "tasks/avatar-figure clothes" },
         scene: 0,
         scenes: [{ nodes: [0] }],
@@ -154,6 +233,14 @@ export function writeGlb(
         bufferViews: views,
         buffers: [{ byteLength: length }],
     };
+    if (encoder) {
+        json.buffers.push({
+            byteLength: raw,
+            extensions: { EXT_meshopt_compression: { fallback: true } },
+        });
+        json.extensionsUsed = ["EXT_meshopt_compression"];
+        json.extensionsRequired = ["EXT_meshopt_compression"];
+    }
     let text = Buffer.from(JSON.stringify(json));
     if (text.length % 4)
         text = Buffer.concat([text, Buffer.alloc(4 - (text.length % 4), " ")]);
@@ -172,4 +259,17 @@ export function writeGlb(
         ...chunk(0x4e4f534a, text),
         ...chunk(0x004e4942, bin),
     ]);
+}
+
+/** Zero the lowest `bits` of each float's mantissa, rounding to nearest. */
+function trim(values: Float32Array, bits: number) {
+    const words = new Uint32Array(
+        values.buffer,
+        values.byteOffset,
+        values.length
+    );
+    const half = 1 << (bits - 1);
+    const mask = ~((1 << bits) - 1) >>> 0;
+    for (let i = 0; i < words.length; i++)
+        words[i] = ((words[i] + half) & mask) >>> 0;
 }

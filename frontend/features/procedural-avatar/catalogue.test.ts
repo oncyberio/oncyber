@@ -121,3 +121,13 @@ test("a figure wears the default outfit unless its URL names another", () => {
         DEFAULT_OUTFIT
     );
 });
+
+test("the Usher wears its own cut and the wide-striped tie", () => {
+    expect(figureAvatarOf("/avatars/procedural/usher")).toEqual({
+        id: "usher",
+        style: "usher",
+        look: 0,
+        hair: "short",
+        outfit: "stagehand-wide",
+    });
+});

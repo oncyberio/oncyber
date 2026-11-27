@@ -41,10 +41,11 @@ export const PROCEDURAL_AVATARS: ProceduralAvatarEntry[] = [
         id: "usher",
         name: "Usher",
         url: `${PATH}usher`,
-        image: "/lobby/avatars/figure.png",
+        image: "/lobby/avatars/usher.png",
         description:
             "The Stagehand's colleague: brown hair, a boldly striped tie.",
         figure: "usher",
+        hair: "short",
         outfit: "stagehand-wide",
     },
     {
