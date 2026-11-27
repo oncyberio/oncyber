@@ -202,18 +202,42 @@ export function* generateSteps(
         spec.skin,
         [coarse, detail],
         studio
-            ? { tint: faceTinter(skin, spec.facePaint, spec.skin.base, roots) }
+            ? {
+                  tint: faceTinter(
+                      skin,
+                      spec.facePaint,
+                      spec.skin.base,
+                      roots,
+                      false
+                  ),
+              }
             : undefined
     );
     yield lap("skin");
     const skinSurface: StudioSurface = { surface: "skin", scatter: 1 };
+    const over = (colour: string): Colour3 => shadowOf(spec.skin.base, colour);
+    const headSurface: StudioSurface = {
+        surface: "skin",
+        scatter: 1,
+        lips: {
+            joint: [...rig.body.head] as Colour3,
+            origin: [...HEAD_ORIGIN] as Colour3,
+            scale: rig.body.headScale,
+            y: skin.face.mouthY,
+            z: skin.face.mouthZ,
+            width: skin.face.mouthWidth,
+            fullness: skin.face.lips,
+            tint: over(spec.facePaint.lip),
+            line: over(spec.facePaint.lipLine),
+        },
+    };
     add("Body", skinMeshes.body, body, surface(plain, skinSurface));
     add(
         "Head",
         skinMeshes.head,
         body,
         studio
-            ? { kind: "studio", options: skinSurface }
+            ? { kind: "studio", options: headSurface }
             : {
                   kind: "textured",
                   repeat: false,
@@ -230,7 +254,15 @@ export function* generateSteps(
             "Eyes",
             buildFaceDetails(skin, spec.eyes, spec.brows, "eyes", true),
             rigid(head),
-            { kind: "studio", options: { surface: "eye" } }
+            {
+                kind: "studio",
+                options: {
+                    surface: "eye",
+                    iris: rgb(spec.eyes.iris),
+                    irisLight: rgb(spec.eyes.irisLight),
+                    white: rgb(spec.eyes.white),
+                },
+            }
         );
         add(
             "Brows",

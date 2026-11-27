@@ -714,27 +714,32 @@ export function growSweptSculpt(g: Groom, style: QuiffStyle): GrownHair {
     }
     // The fringe: three locks off the front of the parting, down over the
     // forehead and aside.
-    for (let i = 0; i < 3; i++) {
-        const side = i === 1 ? 1 : -1;
-        const x0 = part - 0.012 + i * 0.012;
-        const root = over(x0, 0.07, 0.002);
-        const drop = [0.03, 0.05, 0.036][i];
-        const sway = side * [0.03, 0.016, 0.012][i];
+    const fringe: [number, number, number][] = [
+        // Offset along the hairline, how far it drops, how far it sways.
+        [-0.034, 0.05, -0.02],
+        [-0.016, 0.082, -0.012],
+        [0.0, 0.07, 0.014],
+        [0.016, 0.052, 0.022],
+        [0.03, 0.04, 0.026],
+    ];
+    for (const [dx, drop, sway] of fringe) {
+        const x0 = part - 0.012 + dx;
+        const root = over(x0, 0.066, 0.002);
         const guide: P3[] = [
             root,
-            g.clear([x0 + sway * 0.2, root[1] + 0.014, root[2] + 0.018], 0.014),
+            g.clear([x0 + sway * 0.15, root[1] + 0.012, root[2] + 0.02], 0.014),
             g.clear(
-                [x0 + sway * 0.6, root[1] - drop * 0.3, root[2] + 0.03],
-                0.016
+                [x0 + sway * 0.5, root[1] - drop * 0.3, root[2] + 0.034],
+                0.015
             ),
-            g.clear([x0 + sway, root[1] - drop, root[2] + 0.022], 0.01),
             g.clear(
-                [x0 + sway * 1.5, root[1] - drop * 1.25, root[2] + 0.012],
-                0.007
+                [x0 + sway * 0.85, root[1] - drop * 0.75, root[2] + 0.03],
+                0.01
             ),
+            g.clear([x0 + sway * 1.2, root[1] - drop, root[2] + 0.022], 0.006),
         ];
         g.lock(guide, {
-            ...shape(g.range(0.0065, 0.0085), 0.72, 0, 5),
+            ...shape(g.range(0.0075, 0.0095), 0.7, 0, 5),
             belly: 0.3,
         });
     }

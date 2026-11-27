@@ -53,7 +53,9 @@ export function faceTinter(
     skin: SkinField,
     paint: FacePaint,
     skinBase: string,
-    hair?: { line: Hairline; colour: string }
+    hair?: { line: Hairline; colour: string },
+    /** Leave the lips out, for a look that draws them in its shader. */
+    paintLips = true
 ) {
     const face = skin.face;
     const base = rgb(skinBase);
@@ -181,6 +183,7 @@ export function faceTinter(
 
         // Lips: colour from the sculpted lip shapes, darker along the parting.
         if (
+            paintLips &&
             Math.abs(y - my) < 0.016 &&
             x < face.mouthWidth + 0.006 &&
             z > 0.05

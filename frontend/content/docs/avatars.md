@@ -92,6 +92,16 @@ style and an outfit. The parts it is made from are shared.
         strands drawn in the shader. This look costs more: about 730,000
         triangles and several seconds to build, and other visitors see it
         as a full avatar, not a crowd instance.
+-   **The traced reference.** A character can also be sculpted whole as
+    distance fields (`sculpts/`): head, hair laid lock by lock as flat
+    ribbons over a hair volume, clothes and accessories, each placed from
+    measurements of its character sheet, in a T-pose. `raymarch.ts` turns
+    those shapes into a shader that traces them per pixel, with soft
+    shadows, occlusion and every painted feature drawn in the shader. It
+    is the reference a wearable avatar is matched against, not something
+    to put in a space: every pixel pays for the whole sculpt. Look at it
+    at `/dev/raymarched-avatar` when running locally (`zoom=face`, `yaw`,
+    `scale`).
 
 Saved as your avatar, a generated character is used in the lobby. Gallery
 spaces don't build them yet and show the default avatar there.

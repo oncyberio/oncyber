@@ -91,3 +91,54 @@ test("keep leaves an open edge where another part takes over", () => {
     for (let i = 1; i < upper.positions.length; i += 3)
         expect(upper.positions[i]).toBeGreaterThan(-0.011);
 });
+
+describe("shapes for sculpted hair and mirrored bodies", () => {
+    const {
+        ribbonCone,
+        symmetric,
+        torus,
+        sphere: ball,
+    } = jest.requireActual("./sdf") as typeof import("./sdf");
+
+    it("flattens a ribbon along its thin direction only", () => {
+        const ribbon = ribbonCone(
+            [0, 0, 0],
+            [0, 0, 0.1],
+            0.02,
+            0.02,
+            [0, 1, 0],
+            0.5
+        );
+        // Full width across, half of it through.
+        expect(ribbon.eval(0.02, 0, 0.05)).toBeCloseTo(0, 6);
+        expect(ribbon.eval(0, 0.01, 0.05)).toBeCloseTo(0, 6);
+        expect(ribbon.eval(0, 0, 0.05)).toBeLessThan(0);
+        // Never further than the true distance, so tracing cannot overshoot.
+        expect(ribbon.eval(0.05, 0, 0.05)).toBeLessThanOrEqual(0.03 + 1e-9);
+        expect(ribbon.eval(0, 0.05, 0.05)).toBeLessThanOrEqual(0.04 + 1e-9);
+    });
+
+    it("twists a ribbon from one end to the other", () => {
+        const ribbon = ribbonCone(
+            [0, 0, 0],
+            [0, 0, 0.1],
+            0.02,
+            0.02,
+            [0, 1, 0],
+            0.5,
+            [1, 0, 0]
+        );
+        expect(ribbon.eval(0, 0.01, 0)).toBeCloseTo(0, 6);
+        expect(ribbon.eval(0.01, 0, 0.1)).toBeCloseTo(0, 6);
+    });
+
+    it("mirrors a left half and rings a torus", () => {
+        const pair = symmetric(ball([0.1, 0, 0], 0.02));
+        expect(pair.eval(-0.1, 0, 0)).toBeCloseTo(-0.02, 9);
+        expect(pair.eval(0.1, 0, 0)).toBeCloseTo(-0.02, 9);
+        const ring = torus([0, 0, 0], 0.1, 0.01);
+        expect(ring.eval(0.1, 0, 0)).toBeCloseTo(-0.01, 9);
+        expect(ring.eval(0, 0, 0)).toBeCloseTo(0.09, 9);
+        expect(ring.desc).toBeDefined();
+    });
+});

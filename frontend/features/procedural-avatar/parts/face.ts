@@ -150,8 +150,17 @@ function eyeball(
             if (studio) {
                 // The shader lights the eye and adds its wet highlight; it
                 // needs the true surface and the lid's shadow on its own.
+                // Position on the iris plane, in iris radii: the shader
+                // draws pupil, iris and white from it at any zoom.
+                const r = ring.angle / irisAngle;
                 out.auxNext = [lidShadow, 1, 0, 1];
-                out.vertex(p, dir, ring.colour(az));
+                out.vertex(
+                    p,
+                    dir,
+                    [1, 1, 1],
+                    r * Math.cos(az),
+                    r * Math.sin(az)
+                );
                 continue;
             }
             // Nearly flat normals: the eye is lit evenly, like a painted one.

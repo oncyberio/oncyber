@@ -47,7 +47,24 @@ import {
 export type Colour3 = [number, number, number];
 
 export type StudioSurface =
-    | { surface: "skin"; scatter: number }
+    | {
+          surface: "skin";
+          scatter: number;
+          /** Lips, drawn per pixel on the head (reference head space). */
+          lips?: {
+              /** The head joint and scale that place the reference head. */
+              joint: Colour3;
+              origin: Colour3;
+              scale: number;
+              y: number;
+              z: number;
+              width: number;
+              fullness: number;
+              /** Colour of the lips and of the line between them, over skin. */
+              tint: Colour3;
+              line: Colour3;
+          };
+      }
     | {
           surface: "cloth";
           /** Colour the cloth takes in shade, as a multiplier. */
@@ -62,7 +79,7 @@ export type StudioSurface =
           stripes?: { colour: Colour3; paired: boolean };
       }
     | { surface: "hair"; sheen: Colour3; glint: number }
-    | { surface: "eye" }
+    | { surface: "eye"; iris: Colour3; irisLight: Colour3; white: Colour3 }
     | {
           surface: "gloss";
           /** Highlight strength and tightness, and how much sky it mirrors. */
@@ -106,8 +123,58 @@ function inputs() {
     };
 }
 
-function skin(scatter: number) {
+function skin(options: Extract<StudioSurface, { surface: "skin" }>) {
     const s = inputs();
+    const scatter = options.scatter;
+    let albedo = s.albedo;
+    if (options.lips) {
+        // Painted with maths, per pixel: two lobes for the upper lip, one
+        // for the lower, and the line where they meet, turned down a little
+        // at the corners.
+        const l = options.lips;
+        const h = positionGeometry
+            .sub(vec3(...l.joint))
+            .div(l.scale)
+            .add(vec3(...l.origin));
+        const x = h.x.abs();
+        const w = l.width / 0.0165;
+        const lobe = (cx: number, cy: number, rx: number, ry: number) => {
+            const dx = x.sub(cx).div(rx);
+            const dy = h.y.sub(cy).div(ry);
+            return f32(1).sub(
+                smoothstep(0.7, 1.08, dx.mul(dx).add(dy.mul(dy)))
+            );
+        };
+        const upper = lobe(
+            0.005 * w,
+            l.y + 0.0031 * l.fullness,
+            0.0102 * w,
+            0.0036 * l.fullness
+        );
+        const lower = lobe(
+            0,
+            l.y - 0.0038 * l.fullness,
+            0.0118 * w,
+            0.0044 * l.fullness
+        );
+        const front = smoothstep(l.z - 0.022, l.z - 0.012, h.z);
+        const corner = smoothstep(l.width + 0.0015, l.width - 0.0035, x);
+        const mask = max(upper, lower.mul(0.85)).mul(front).mul(corner);
+        const sag = x.div(l.width).mul(x.div(l.width)).mul(0.0011);
+        const line = f32(1)
+            .sub(
+                smoothstep(
+                    0.00028,
+                    0.00085,
+                    h.y.sub(f32(l.y - 0.0002).sub(sag)).abs()
+                )
+            )
+            .mul(front)
+            .mul(smoothstep(l.width + 0.001, l.width - 0.0015, x));
+        albedo = albedo
+            .mul(mix(vec3(1), vec3(...l.tint), mask))
+            .mul(mix(vec3(1), vec3(...l.line), line.mul(0.85)));
+    }
     // Red travels furthest under skin, blue least: three wraps.
     const wrap = vec3(0.6, 0.3, 0.2).mul(scatter);
     const lit = saturate(vec3(s.ndl).add(wrap).div(wrap.add(1)));
@@ -134,7 +201,7 @@ function skin(scatter: number) {
         .mul(saturate(s.ndl.mul(3).add(0.4)))
         .mul(s.open);
     const rim = s.fresnel.mul(s.back).mul(RIM_COLOUR).mul(0.42).mul(s.open);
-    return s.albedo.mul(light.add(through)).add(shine).add(rim);
+    return albedo.mul(light.add(through)).add(shine).add(rim);
 }
 
 function cloth(options: Extract<StudioSurface, { surface: "cloth" }>) {
@@ -221,8 +288,34 @@ function hair(options: Extract<StudioSurface, { surface: "hair" }>) {
         .add(s.fresnel.mul(s.back).mul(sheen).mul(0.14).mul(s.open));
 }
 
-function eye() {
+function eye(options: Extract<StudioSurface, { surface: "eye" }>) {
     const s = inputs();
+    // The iris is drawn, not modelled: distance from the pupil's centre in
+    // iris radii comes in through the UVs.
+    const at = uv();
+    const r = at.length();
+    const dir = at.div(max(r, 0.001));
+    // Fibres run outwards from the pupil; a lighter crescent sits low.
+    const fibres = mx_noise_float(vec3(dir.x.mul(7), dir.y.mul(7), r.mul(1.5)));
+    const tone = smoothstep(0.42, 0.95, r)
+        .mul(0.45)
+        .add(fibres.mul(0.22))
+        .add(
+            smoothstep(0.1, -0.9, dir.y).mul(0.4).mul(smoothstep(0.45, 0.8, r))
+        );
+    const iris = mix(
+        vec3(...options.iris),
+        vec3(...options.irisLight),
+        saturate(tone)
+    )
+        // The dark ring where iris meets white.
+        .mul(f32(1).sub(smoothstep(0.78, 1, r).mul(0.8)));
+    const pupil = smoothstep(0.46, 0.41, r);
+    const coloured = mix(iris, vec3(0.012, 0.009, 0.008), pupil);
+    const white = vec3(...options.white).mul(
+        f32(1).sub(smoothstep(1, 4.5, r).mul(0.3))
+    );
+    const albedo = mix(coloured, white, smoothstep(0.985, 1.03, r));
     // Evenly lit, like a painted eye, with a wet highlight on top.
     const light = saturate(s.ndl.mul(0.25).add(0.75)).mul(0.92);
     const nh = saturate(dot(s.N, s.H));
@@ -230,7 +323,7 @@ function eye() {
     const glint = pow(nh, 320)
         .mul(1.4)
         .add(pow(saturate(dot(s.N, fillH)), 200).mul(0.35));
-    return s.albedo.mul(light).mul(mix(0.6, 1, s.open)).add(glint);
+    return albedo.mul(light).mul(mix(0.55, 1, s.open)).add(glint);
 }
 
 function gloss(options: Extract<StudioSurface, { surface: "gloss" }>) {
@@ -261,13 +354,13 @@ export function createStudioMaterial(options: StudioSurface): THREE.Material {
     const material = new THREE.MeshBasicNodeMaterial();
     material.colorNode =
         options.surface === "skin"
-            ? skin(options.scatter)
+            ? skin(options)
             : options.surface === "cloth"
             ? cloth(options)
             : options.surface === "hair"
             ? hair(options)
             : options.surface === "eye"
-            ? eye()
+            ? eye(options)
             : gloss(options);
     return material;
 }

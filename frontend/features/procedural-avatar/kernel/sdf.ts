@@ -8,7 +8,33 @@
  * there; the mesher relies on that to stay fast with a hundred primitives.
  */
 
+/**
+ * What a shape is made of, for the shapes simple enough to be rebuilt
+ * elsewhere (a shader that traces the same surface per pixel).
+ */
+export type ShapeDesc =
+    | { type: "sphere"; c: Vec3; r: number }
+    | { type: "ellipsoid"; c: Vec3; r: Vec3; basis: Basis }
+    | { type: "roundCone"; a: Vec3; b: Vec3; ra: number; rb: number }
+    | {
+          type: "ribbonCone";
+          a: Vec3;
+          b: Vec3;
+          ra: number;
+          rb: number;
+          out: Vec3;
+          outEnd: Vec3;
+          flat: number;
+      }
+    | { type: "halfSpace"; p: Vec3; n: Vec3 }
+    | { type: "roundBox"; c: Vec3; half: Vec3; radius: number; basis: Basis }
+    | { type: "torus"; c: Vec3; major: number; minor: number; basis: Basis }
+    | { type: "symmetric"; source: Shape }
+    | { type: "offset"; source: Shape; amount: number }
+    | { type: "place"; source: Shape; from: Vec3; to: Vec3; scale: number };
+
 export interface Shape {
+    desc?: ShapeDesc;
     eval(x: number, y: number, z: number): number;
     /** A cheaper equivalent inside the ball of radius `r` around a point. */
     prune?(x: number, y: number, z: number, r: number): Shape;
@@ -21,6 +47,10 @@ const shape = (fn: (x: number, y: number, z: number) => number): Shape => ({
 });
 
 export function sphere(c: Vec3, r: number): Shape {
+    return { ...sphereRaw(c, r), desc: { type: "sphere", c, r } };
+}
+
+function sphereRaw(c: Vec3, r: number): Shape {
     const [cx, cy, cz] = c;
     return shape((x, y, z) => {
         const dx = x - cx;
@@ -32,6 +62,13 @@ export function sphere(c: Vec3, r: number): Shape {
 
 /** Round cone between two points; equal radii make a capsule. */
 export function roundCone(a: Vec3, b: Vec3, ra: number, rb: number): Shape {
+    return {
+        ...roundConeRaw(a, b, ra, rb),
+        desc: { type: "roundCone", a, b, ra, rb },
+    };
+}
+
+function roundConeRaw(a: Vec3, b: Vec3, ra: number, rb: number): Shape {
     const [ax, ay, az] = a;
     const bx = b[0] - ax;
     const by = b[1] - ay;
@@ -61,6 +98,60 @@ export function roundCone(a: Vec3, b: Vec3, ra: number, rb: number): Shape {
 }
 
 export const capsule = (a: Vec3, b: Vec3, r: number) => roundCone(a, b, r, r);
+
+/**
+ * A round cone pressed flat: `out` (a unit vector square to the axis) is the
+ * direction it is thin in, and `flat` its thickness as a fraction of its
+ * width. Give `outEnd` to have it twist from `out` at `a` to `outEnd` at
+ * `b`. A lock of hair lying on a head is a chain of these.
+ */
+export function ribbonCone(
+    a: Vec3,
+    b: Vec3,
+    ra: number,
+    rb: number,
+    out: Vec3,
+    flat: number,
+    outEnd: Vec3 = out
+): Shape {
+    const [ax, ay, az] = a;
+    const bx = b[0] - ax;
+    const by = b[1] - ay;
+    const bz = b[2] - az;
+    const l2 = bx * bx + by * by + bz * bz || 1e-9;
+    const grow = 1 / flat - 1;
+    return {
+        desc: { type: "ribbonCone", a, b, ra, rb, out, outEnd, flat },
+        eval: (x, y, z) => {
+            const px = x - ax;
+            const py = y - ay;
+            const pz = z - az;
+            let h = (px * bx + py * by + pz * bz) / l2;
+            h = h < 0 ? 0 : h > 1 ? 1 : h;
+            let qx = px - bx * h;
+            let qy = py - by * h;
+            let qz = pz - bz * h;
+            let ox = out[0] + (outEnd[0] - out[0]) * h;
+            let oy = out[1] + (outEnd[1] - out[1]) * h;
+            let oz = out[2] + (outEnd[2] - out[2]) * h;
+            const ol = Math.sqrt(ox * ox + oy * oy + oz * oz) || 1;
+            ox /= ol;
+            oy /= ol;
+            oz /= ol;
+            // Stretch space along `out`, measure a round cone there, and
+            // scale the distance back so it stays an underestimate.
+            const o = (qx * ox + qy * oy + qz * oz) * grow;
+            qx += ox * o;
+            qy += oy * o;
+            qz += oz * o;
+            return (
+                (Math.sqrt(qx * qx + qy * qy + qz * qz) -
+                    (ra + (rb - ra) * h)) *
+                flat
+            );
+        },
+    };
+}
 
 /** A 3x3 rotation, row-major, mapping local axes to world. */
 export type Basis = readonly [
@@ -123,6 +214,13 @@ export function rotate(m: Basis, v: Vec3): [number, number, number] {
  * usual first-order estimate: right at the surface, approximate far away.
  */
 export function ellipsoid(c: Vec3, r: Vec3, basis: Basis = IDENTITY): Shape {
+    return {
+        ...ellipsoidRaw(c, r, basis),
+        desc: { type: "ellipsoid", c, r, basis },
+    };
+}
+
+function ellipsoidRaw(c: Vec3, r: Vec3, basis: Basis): Shape {
     const [cx, cy, cz] = c;
     const ix = 1 / r[0];
     const iy = 1 / r[1];
@@ -153,6 +251,13 @@ export function roundBox(
     radius = 0,
     basis: Basis = IDENTITY
 ): Shape {
+    return {
+        ...roundBoxRaw(c, half, radius, basis),
+        desc: { type: "roundBox", c, half, radius, basis },
+    };
+}
+
+function roundBoxRaw(c: Vec3, half: Vec3, radius: number, basis: Basis): Shape {
     const [cx, cy, cz] = c;
     const hx = half[0] - radius;
     const hy = half[1] - radius;
@@ -185,20 +290,27 @@ export function torus(
 ): Shape {
     const [cx, cy, cz] = c;
     const m = basis;
-    return shape((x, y, z) => {
-        const dx = x - cx;
-        const dy = y - cy;
-        const dz = z - cz;
-        const lx = m[0] * dx + m[3] * dy + m[6] * dz;
-        const ly = m[1] * dx + m[4] * dy + m[7] * dz;
-        const lz = m[2] * dx + m[5] * dy + m[8] * dz;
-        const q = Math.sqrt(lx * lx + lz * lz) - major;
-        return Math.sqrt(q * q + ly * ly) - minor;
-    });
+    return {
+        desc: { type: "torus", c, major, minor, basis },
+        eval: (x, y, z) => {
+            const dx = x - cx;
+            const dy = y - cy;
+            const dz = z - cz;
+            const lx = m[0] * dx + m[3] * dy + m[6] * dz;
+            const ly = m[1] * dx + m[4] * dy + m[7] * dz;
+            const lz = m[2] * dx + m[5] * dy + m[8] * dz;
+            const q = Math.sqrt(lx * lx + lz * lz) - major;
+            return Math.sqrt(q * q + ly * ly) - minor;
+        },
+    };
 }
 
 /** Half-space: negative behind the plane through `p` with normal `n`. */
 export function halfSpace(p: Vec3, n: Vec3): Shape {
+    return { ...halfSpaceRaw(p, n), desc: { type: "halfSpace", p, n } };
+}
+
+function halfSpaceRaw(p: Vec3, n: Vec3): Shape {
     const l = Math.hypot(n[0], n[1], n[2]) || 1;
     const nx = n[0] / l;
     const ny = n[1] / l;
@@ -230,6 +342,7 @@ export function stretch(source: Shape, c: Vec3, s: Vec3): Shape {
 /** Grow (positive) or shrink a shape by a constant offset. */
 export function offset(source: Shape, amount: number): Shape {
     return {
+        desc: { type: "offset", source, amount },
         eval: (x, y, z) => source.eval(x, y, z) - amount,
         prune: source.prune
             ? (x, y, z, r) =>
@@ -268,6 +381,7 @@ export function displace(
 export function place(source: Shape, from: Vec3, to: Vec3, scale = 1): Shape {
     const inv = 1 / scale;
     return {
+        desc: { type: "place", source, from, to, scale },
         eval: (x, y, z) =>
             source.eval(
                 from[0] + (x - to[0]) * inv,
@@ -316,7 +430,18 @@ const ADD = 0;
 const CARVE = 1;
 const CLIP = 2;
 
-interface Step {
+/**
+ * A shape authored for the left half (x >= 0) and reflected to the right,
+ * so both sides are one evaluation.
+ */
+export function symmetric(source: Shape): Shape {
+    return {
+        desc: { type: "symmetric", source },
+        eval: (x, y, z) => source.eval(x < 0 ? -x : x, y, z),
+    };
+}
+
+export interface Step {
     kind: number;
     k: number;
     shape: Shape;
@@ -327,7 +452,8 @@ const PRUNE_SLACK = 1.35;
 const PRUNE_PAD = 0.002;
 
 export class Field implements Shape {
-    private steps: Step[] = [];
+    /** The steps in order; `kind` is 0 add, 1 carve, 2 clip. */
+    readonly steps: Step[] = [];
     /** Bounds of the value over the region this field was pruned for. */
     lo = -Infinity;
     hi = Infinity;

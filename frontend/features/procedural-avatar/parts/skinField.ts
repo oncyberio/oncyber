@@ -56,6 +56,13 @@ export interface FaceSpec {
     ear: Vec3;
     /** Size of the hollow the eye sits in; 1 is the reference. */
     socket: number;
+    /** Width of the skull and face relative to the reference head. */
+    width: number;
+    /**
+     * A clean jawline: the underside of the jaw is cut flat, rising towards
+     * the ear by this much per unit of depth. 0 leaves the jaw rounded.
+     */
+    jawLine: number;
     /** How much of a lower lid there is: 0 none, 1 the reference rim. */
     lowerLid_rim: number;
 }
@@ -83,6 +90,8 @@ export const FACE: FaceSpec = {
     crownY: 1.683,
     ear: [0.0735, 1.548, -0.012],
     socket: 1,
+    width: 1,
+    jawLine: 0,
     lowerLid_rim: 1,
 };
 
@@ -358,7 +367,7 @@ function leg(rig: Rig, side: "left" | "right", build: Build, out: Field) {
     out.add(group, 0.008);
 }
 
-function torso(rig: Rig, build: Build, out: Field) {
+function torso(rig: Rig, build: Build, out: Field, neckTop: number) {
     const b = rig.body;
     const hy = b.hips[1];
     const uy = b.upperChest[1];
@@ -430,7 +439,7 @@ function torso(rig: Rig, build: Build, out: Field) {
     out.add(
         roundCone(
             [0, sy - 0.033, -0.016],
-            [0, b.head[1] + 0.018, 0],
+            [0, b.head[1] + neckTop, 0],
             build.neck + 0.0095,
             build.neck
         ),
@@ -441,11 +450,16 @@ function torso(rig: Rig, build: Build, out: Field) {
 /** Skull, mid-face, jaw and cheeks, before any features. */
 function headBase(face: FaceSpec): Field {
     const out = field();
-    out.add(ellipsoid([0, 1.598, -0.011], [0.0765, 0.0865, 0.094]));
+    out.add(
+        ellipsoid([0, 1.598, -0.011], [0.0765 * face.width, 0.0865, 0.094])
+    );
     // The face: an egg under the skull, narrowed towards the chin by a wedge.
     const bottom = face.chinY - face.chin + 0.003;
     const lower = field().add(
-        ellipsoid([0, 1.546, 0.019], [face.jawCone, 1.546 - bottom, 0.063])
+        ellipsoid(
+            [0, 1.546, 0.019],
+            [face.jawCone * face.width, 1.546 - bottom, 0.063]
+        )
     );
     for (const s of [1, -1])
         lower.clip(
@@ -454,6 +468,16 @@ function headBase(face: FaceSpec): Field {
                 [0.76 * s, -0.65, 0]
             ),
             0.032
+        );
+    if (face.jawLine > 0)
+        // Under the jaw: a flat plane from the chin back up to the ear, so
+        // the chin stands clear of the neck.
+        lower.clip(
+            halfSpace(
+                [0, face.chinY - face.chin + 0.001, 0.05],
+                [0, -1, -face.jawLine]
+            ),
+            0.006
         );
     out.add(lower, 0.03);
     out.add(sphere([0, face.chinY, 0.053], face.chin), 0.02);
@@ -696,7 +720,18 @@ export function skinField(
     face: FaceSpec = FACE
 ): SkinField {
     const body = field();
-    torso(rig, build, body);
+    // The neck runs up to just under the chin, wherever this face puts it.
+    const resolved = resolveFace(face);
+    torso(
+        rig,
+        build,
+        body,
+        Math.max(
+            0.018,
+            (resolved.chinY - resolved.chin - HEAD_ORIGIN[1] - 0.004) *
+                rig.body.headScale
+        )
+    );
     leg(rig, "left", build, body);
     leg(rig, "right", build, body);
     const arms = field();
