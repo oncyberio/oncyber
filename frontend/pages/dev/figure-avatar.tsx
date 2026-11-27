@@ -30,8 +30,10 @@ const CALM = ["stand", "easy", "look"];
  * mouth, and has no other expression), `expression` (one to hold, such as
  * `happy` or `aa`; the basic form has `aa` only), `stance` (`stand`,
  * `wave`, ...), `crowd` (a number: that many of the character drawn as
- * one, each a little different), `yaw` (degrees, stops the turntable),
- * `zoom=face`, `renderer=webgl`.
+ * one, each a little different, and each with as much of its mesh as its
+ * size on screen can show: `pixels` says to within how much of a pixel, a
+ * quarter unless given, 0 for every figure whole), `yaw` (degrees, stops
+ * the turntable), `zoom=face`, `renderer=webgl`.
  */
 export default function FigureAvatarFixture() {
     const ref = useRef<HTMLDivElement>(null);
@@ -49,6 +51,7 @@ export default function FigureAvatarFixture() {
             Math.max(0, Math.floor(Number(text("crowd")) || 0))
         );
         const form = many || text("form") === "basic" ? "basic" : "full";
+        const pixels = Number(text("pixels")) || 0;
         const fixed = text("yaw") !== "";
         const yaw = THREE.MathUtils.degToRad(Number(text("yaw")) || 0);
         const renderer = new THREE.WebGPURenderer({
@@ -165,7 +168,6 @@ export default function FigureAvatarFixture() {
             if (crowd) {
                 // Each drifts between two ways of standing at its own
                 // pace, and now and then says something.
-                crowd.update(now);
                 for (let i = 0; i < many; i++) {
                     const from = calm[i % calm.length];
                     const to = calm[(i + 1) % calm.length];
@@ -182,6 +184,20 @@ export default function FigureAvatarFixture() {
                                 : 0,
                     });
                 }
+                // Each as fine as its size on screen can show.
+                camera.updateMatrixWorld();
+                crowd.update(now, {
+                    camera,
+                    height: renderer.domElement.height,
+                    pixels: text("pixels") === "" ? undefined : pixels,
+                });
+                const { figures, triangles, draws } = crowd.drawn;
+                state.__figureAvatar = {
+                    ...(state.__figureAvatar as object),
+                    figures,
+                    triangles,
+                    draws,
+                };
             } else if (loaded?.figure.face) {
                 const { blink, talk } = loaded.figure.face;
                 blink.value = blinkAt(now);

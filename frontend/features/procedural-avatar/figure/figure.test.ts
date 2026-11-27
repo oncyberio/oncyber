@@ -278,7 +278,7 @@ describe("styling a figure", () => {
     it("draws it with three materials and leaves its triangles alone", async () => {
         const vrm = await load();
         const figure = styleFigure(vrm, PLAIN_STYLE);
-        expect(figure.triangles).toBe(11092);
+        expect(figure.triangles).toBe(10868);
         const { body, face, ink } = figure.meshes;
         expect(body.material).toBe(figure.materials.body);
         expect(face.material).toBe(figure.materials.face);

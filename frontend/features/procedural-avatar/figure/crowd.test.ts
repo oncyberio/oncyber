@@ -424,7 +424,7 @@ describe("a crowd", () => {
         const poses = createFigurePoses(figure, 2);
         const crowd = createFigureCrowd(figure, { capacity: 40, poses });
         expect(crowd.object.children).toHaveLength(3);
-        expect(crowd.trianglesEach).toBe(11092);
+        expect(crowd.trianglesEach).toBe(10868);
         for (const key of ["body", "face", "ink"] as const) {
             const mesh = crowd.meshes[key];
             expect(mesh.isInstancedMesh).toBe(true);
@@ -461,6 +461,7 @@ describe("a crowd", () => {
             false
         );
         crowd.count = 40;
+        crowd.update(0);
         expect(crowd.meshes.ink.count).toBe(40);
         expect(() => (crowd.count = 41)).toThrow(RangeError);
         crowd.dispose();
@@ -504,12 +505,27 @@ describe("a crowd", () => {
             seed: 0.5,
             talk: 2,
         });
+        // What is kept for it: where it stands, pose and look, face.
+        // (Its mouth cannot be more than open.)
+        expect(Array.from(crowd.get(1))).toEqual([
+            ...matrix.toArray(),
+            2,
+            3,
+            0.25,
+            1,
+            0.5,
+            1,
+        ]);
+        // Nothing shows until the crowd is told to show it.
         const own = crowd.meshes.body.geometry.getAttribute("figureInstance");
         const face = crowd.meshes.body.geometry.getAttribute("figureFace");
+        expect(own.getX(1)).toBe(0);
+        crowd.count = 3;
+        crowd.update(0);
+        expect(crowd.meshes.ink.count).toBe(3);
         expect([own.getX(1), own.getY(1), own.getZ(1), own.getW(1)]).toEqual([
             2, 3, 0.25, 1,
         ]);
-        // Its mouth cannot be more than open.
         expect([face.getX(1), face.getY(1)]).toEqual([0.5, 1]);
         expect(
             Array.from(crowd.meshes.body.instanceMatrix.array.slice(16, 32))
@@ -521,13 +537,89 @@ describe("a crowd", () => {
         expect(own.getX(0)).toBe(0);
         // One thing at a time leaves the rest.
         crowd.set(1, { pose: 1 });
+        crowd.update(0);
         expect([own.getX(1), own.getY(1), own.getZ(1), own.getW(1)]).toEqual([
             1, 1, 0, 1,
         ]);
+        expect(crowd.drawn).toEqual({
+            figures: 3,
+            triangles: 3 * 10868,
+            draws: 3,
+        });
         expect(() => crowd.set(3, {})).toThrow(RangeError);
         expect(() => crowd.set(0, { look: 2 })).toThrow(RangeError);
         expect(() => crowd.set(0, { pose: 4 })).toThrow(RangeError);
         expect(() => crowd.set(0, { pose: [0, 9, 0.5] })).toThrow(RangeError);
+    });
+
+    it("draws each figure with as much of its mesh as the view can show", async () => {
+        const { figure } = await basic();
+        const poses = createFigurePoses(figure, 1);
+        const crowd = createFigureCrowd(figure, { capacity: 4, poses });
+        // One at arm's length, one across a room, one down the street.
+        const far = [1, 12, 60];
+        far.forEach((z, i) =>
+            crowd.set(i, {
+                matrix: new THREE.Matrix4().makeTranslation(0, 0, -z),
+                look: i,
+            })
+        );
+        crowd.count = 3;
+        const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 500);
+        camera.position.set(0, 0.9, 0);
+        camera.updateMatrixWorld(true);
+        const view = { camera, height: 1080 };
+        crowd.update(0, view);
+        const levels = crowd.levels;
+        expect(levels).toHaveLength(3);
+        // The near one whole; the further, the less.
+        expect(levels[0]).toEqual({ level: 0, figures: 1, triangles: 10868 });
+        expect(levels[1].triangles).toBeLessThan(10868 * 0.85);
+        expect(levels[2].triangles).toBeLessThan(levels[1].triangles * 0.6);
+        expect(crowd.drawn).toEqual({
+            figures: 3,
+            triangles: levels.reduce((sum, level) => sum + level.triangles, 0),
+            draws: 9,
+        });
+        // Each size on screen has its own three meshes, over the same
+        // vertices, and holds the figures that are that size.
+        expect(crowd.object.children).toHaveLength(9);
+        const coarsest = crowd.object.children.find((mesh) =>
+            mesh.name.endsWith(`body-${levels[2].level}`)
+        ) as THREE.InstancedMesh;
+        expect(coarsest.count).toBe(1);
+        expect(coarsest.geometry.getAttribute("position")).toBe(
+            figure.meshes.body.geometry.getAttribute("position")
+        );
+        expect(coarsest.geometry.index.count).toBeLessThan(
+            figure.meshes.body.geometry.index.count / 2
+        );
+        expect(coarsest.material).toBe(crowd.meshes.body.material);
+        expect(coarsest.instanceMatrix.array[14]).toBe(-60);
+        expect(coarsest.geometry.getAttribute("figureInstance").getW(0)).toBe(
+            2
+        );
+        // A view that allows nothing, or no view, draws them all whole.
+        for (const none of [{ ...view, pixels: 0 }, undefined]) {
+            crowd.update(0, none);
+            expect(crowd.drawn.draws).toBe(3);
+            expect(crowd.drawn.triangles).toBe(3 * 10868);
+            expect(coarsest.visible).toBe(false);
+        }
+        // One that allows more draws less.
+        crowd.update(0, { ...view, pixels: 1 });
+        expect(crowd.drawn.triangles).toBeLessThan(
+            levels.reduce((sum, level) => sum + level.triangles, 0)
+        );
+        // A figure twice the size is as fine as one half as far.
+        crowd.set(1, {
+            matrix: new THREE.Matrix4()
+                .makeTranslation(0, 0, -12)
+                .scale(new THREE.Vector3(2, 2, 2)),
+        });
+        crowd.update(0, view);
+        expect(crowd.levels[1].level).toBeLessThan(levels[1].level);
+        crowd.dispose();
     });
 
     it("takes its poses from the figure as it stands", async () => {

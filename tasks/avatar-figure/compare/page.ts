@@ -399,8 +399,6 @@ async function crowd() {
         });
     }
     made.count = count;
-    // A time at which some of them are mid-blink.
-    made.update(Number(params.get("time")) || 0);
     scene.add(made.object);
     // Seen from in front and above, so that every row shows.
     const width = across * 0.72 + 0.4;
@@ -411,11 +409,22 @@ async function crowd() {
     const middle = new THREE.Vector3(0, 0.8, (-(deep - 1) * 0.95) / 2);
     camera.position.set(0, middle.y + distance * 0.42, distance * 0.9);
     camera.lookAt(middle);
+    camera.updateMatrixWorld(true);
+    // At a time when some of them are mid-blink, each as fine as its
+    // size in this picture can show: off by no more than `pixels` of a
+    // pixel (none, and every figure is drawn whole).
+    const pixels = params.get("pixels");
+    made.update(Number(params.get("time")) || 0, {
+        camera,
+        height: innerHeight,
+        pixels: pixels === null ? undefined : Number(pixels),
+    });
     const counted = await draw(renderer, scene, camera);
     return {
         style: style.id,
         figures: count,
         trianglesEach: made.trianglesEach,
+        levels: made.levels,
         ...counted,
     };
 }
@@ -458,6 +467,7 @@ async function figure() {
         if (held.blink) throw new Error("A crowd blinks when it likes");
         one.set(0, { pose: 0, look: 0, seed: 0, talk: held.aa ?? 0 });
         one.count = 1;
+        one.update(0);
         scene.add(one.object);
     } else scene.add(vrm.scene);
     vrm.scene.updateMatrixWorld(true);
@@ -533,12 +543,17 @@ async function figure() {
         target.z + Math.cos(turn) * distance
     );
     camera.lookAt(target);
+    // Thinned for a view that can show nothing under `detail`
+    // millimetres, if asked.
+    const triangles = styled.setDetail(
+        (Number(params.get("detail")) || 0) / 1000
+    );
     const counted = await draw(renderer, scene, camera);
     return {
         style: style.id,
         form,
         ...counted,
-        triangles: styled.triangles,
+        triangles,
         hair,
         // The head in eye widths: its levels, and half its width at
         // each half an eye width below the eyes.

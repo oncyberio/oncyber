@@ -45,7 +45,11 @@
  * it blinks and opens its mouth, and has no other expression) instead of
  * the full one. `--crowd 60` also writes `crowd.png`: that many of the
  * character drawn as one, each in a stance and a look of its own, and
- * says how many draws it took. `--as-crowd` draws the views with the
+ * says how many draws it took. Each figure of the crowd is drawn with as
+ * much of its mesh as its size in the picture can show, to within
+ * `--pixels` of a pixel (a quarter unless given; 0 draws them all whole).
+ * `--detail 2` draws the views with the figure thinned for a view that
+ * can show nothing under that many millimetres. `--as-crowd` draws the views with the
  * figure as a crowd of one instead of by itself: a check that a figure
  * of a crowd is drawn as one alone is, the pictures being the same.
  *
@@ -88,6 +92,8 @@ const { values } = parseArgs({
         stance: { type: "string" },
         crowd: { type: "string" },
         "as-crowd": { type: "boolean", default: false },
+        detail: { type: "string" },
+        pixels: { type: "string" },
         views: { type: "string" },
         region: { type: "string" },
         hair: { type: "string" },
@@ -210,6 +216,7 @@ const styleQuery = () => {
     if (values.expression) query.set("expression", values.expression);
     if (values.form !== "full") query.set("form", values.form);
     if (values.stance) query.set("stance", values.stance);
+    if (values.detail) query.set("detail", values.detail);
     if (values["as-crowd"]) {
         query.set("form", "basic");
         query.set("as", "crowd");
@@ -312,11 +319,19 @@ try {
         query.set("crowd", values.crowd);
         // Late enough that some of them are caught blinking.
         query.set("time", "2.95");
+        if (values.pixels) query.set("pixels", values.pixels);
         const drawn = await shoot("crowd", query, [1600, 1000]);
         console.log(
             `  crowd.png: ${drawn.figures} figures of ${drawn.trianglesEach} ` +
                 `triangles, ${drawn.drawnTriangles} triangles in ` +
-                `${drawn.drawCalls} draws`
+                `${drawn.drawCalls} draws (` +
+                drawn.levels
+                    .map(
+                        (level: Result) =>
+                            `${level.figures} at ${level.triangles}`
+                    )
+                    .join(", ") +
+                ")"
         );
     }
 

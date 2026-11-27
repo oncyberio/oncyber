@@ -9,8 +9,9 @@
  * morphs) and writes frontend/public/models/figure_male.vrm:
  *
  * - keeps the skin, the whites of the eyes, the inside of the mouth, and
- *   the flat pieces the irises, lid lines, lashes and brows sit on; leaves
- *   out the clothes, the hair and every image;
+ *   the flat pieces the irises, lid lines and brows sit on; leaves out
+ *   the clothes, the hair, the lashes (a figure's are drawn as part of
+ *   its lid lines) and every image;
  * - joins them into three primitives (body, face, the face's ink), each
  *   vertex saying which part it belongs to;
  * - cuts the ears' few flat facets finer and smooths them, since they
@@ -23,7 +24,11 @@
  *   poses, blinks and talks like the model it came from. A morph that is
  *   exactly the sum of others is left out, and what drove it is given
  *   its parts;
- * - stands the bare feet on the floor.
+ * - stands the bare feet on the floor;
+ * - works out, for every vertex, when a view can do without it (see
+ *   figure/detail.ts): what its going would cost in what is drawn, at
+ *   rest, in every expression and with every joint bent, so that a figure
+ *   small on screen can be drawn with a part of its triangles.
  *
  * The body and its proportions are not touched. The output depends only
  * on the input: run it twice, get the same file.
@@ -48,12 +53,18 @@ import {
     weld,
 } from "../../frontend/features/procedural-avatar/figure/bake.ts";
 import {
+    coarser,
+    collapseOrder,
+} from "../../frontend/features/procedural-avatar/figure/detail.ts";
+import {
     BAKE_ATTRIBUTE,
+    DETAIL_ATTRIBUTE,
     FIGURE_COMPOSITES,
     FIGURE_FORMAT,
     FIGURE_MATERIALS,
     PART_ATTRIBUTE,
     SKY_DIRECTION,
+    encodeCost,
     encodeRound,
     encodeThin,
     morphName,
@@ -177,9 +188,17 @@ const KEEP: { material: RegExp; primitive: Primitive; part: FigurePart }[] = [
     { material: /_FaceMouth_/, primitive: "face", part: "mouth" },
     { material: /_EyeIris_/, primitive: "ink", part: "iris" },
     { material: /_FaceEyeline_/, primitive: "ink", part: "lidLine" },
-    { material: /_FaceEyelash_/, primitive: "ink", part: "lash" },
     { material: /_FaceBrow_/, primitive: "ink", part: "brow" },
 ];
+
+/**
+ * What a difference in what a vertex carries is worth as a change of
+ * shade, 1 being black to white, when working out which vertices a view
+ * can do without: facing a radian another way, and a whole step of each
+ * thing stored on the skin (how open, how lit from above, how round, how
+ * thin). Set by drawing the figure coarser and looking at what changed.
+ */
+const DETAIL_SHADE = { turned: 0.5, bake: [0.5, 0.35, 0.15, 0.1] };
 
 /** Triangles of one part, still pointing at the base's vertices. */
 interface Piece {
@@ -663,7 +682,6 @@ function build(sourcePath: string) {
         "mouth",
         "iris",
         "lidLine",
-        "lash",
         "brow",
     ];
     const made = (["body", "face", "ink"] as Primitive[]).map((primitive) => {
@@ -1134,12 +1152,13 @@ function build(sourcePath: string) {
         }
     }
 
-    // Write it out.
-    const writer = new GlbWriter();
     const targetNames: string[] =
         json.meshes
             .flatMap((m: Json) => m.primitives)
             .find((p: Json) => p.extras?.targetNames)?.extras.targetNames || [];
+
+    // Write it out.
+    const writer = new GlbWriter();
     // Expressions that are exactly the sum of others are left out: what
     // drives them is given their parts instead.
     const shortNames = targetNames.map(morphName);
@@ -1177,6 +1196,202 @@ function build(sourcePath: string) {
         `  ${Object.keys(composites).length} of ${targetNames.length} ` +
             `expressions are sums of others and are left out`
     );
+
+    // When a view can do without each vertex. Worked out on the figure as
+    // it rests here; a character reshapes it a little, and its ears a
+    // lot, so what an ear's vertices cost is counted three times over.
+    const detail = (() => {
+        // The bones: each one's parent among them, and where it turns.
+        const joints: number[] = json.skins[0].joints;
+        const nodeParent = new Map<number, number>();
+        json.nodes.forEach((n: Json, i: number) =>
+            (n.children || []).forEach((c: number) => nodeParent.set(c, i))
+        );
+        const jointAt = new Map(joints.map((node, i) => [node, i]));
+        const parent = joints.map((node) => {
+            for (
+                let up = nodeParent.get(node);
+                up !== undefined;
+                up = nodeParent.get(up)
+            )
+                if (jointAt.has(up)) return jointAt.get(up);
+            return -1;
+        });
+        const hipsNode = boneNode("hips");
+        const lowered = (node: number) => {
+            for (
+                let at: number | undefined = node;
+                at !== undefined;
+                at = nodeParent.get(at)
+            )
+                if (at === hipsNode) return true;
+            return false;
+        };
+        const pivot = joints.flatMap((node) => {
+            const at = worldOf(node);
+            if (lowered(node)) at[1] -= floor;
+            return at;
+        });
+
+        // Edges one triangle uses, and the vertices on them.
+        const onEdge = made.map((m) => {
+            const uses = new Map<number, number>();
+            const count = m.origin.length;
+            for (let t = 0; t < m.indices.length; t += 3)
+                for (let k = 0; k < 3; k++) {
+                    const a = m.indices[t + k];
+                    const b = m.indices[t + ((k + 1) % 3)];
+                    const key = a < b ? a * count + b : b * count + a;
+                    uses.set(key, (uses.get(key) || 0) + 1);
+                }
+            const on = new Set<number>();
+            for (const [key, n] of uses)
+                if (n === 1) {
+                    on.add(Math.floor(key / count));
+                    on.add(key % count);
+                }
+            return on;
+        });
+        // Where two such vertices sit in one place, two pieces of skin
+        // meet (the neck, between the toes): both stay, or a gap opens.
+        const place = (m: (typeof made)[number], v: number) =>
+            [0, 1, 2]
+                .map((k) => Math.round(m.position[v * 3 + k] * 1e5))
+                .join(",");
+        const met = new Map<string, number>();
+        made.forEach((m, i) => {
+            if (m.primitive === "ink") return;
+            for (const v of onEdge[i])
+                met.set(place(m, v), (met.get(place(m, v)) || 0) + 1);
+        });
+        const earVertices = new Set([
+            ...landmarks.ears.left.all,
+            ...landmarks.ears.right.all,
+        ]);
+        return made.map((m, i) => {
+            const count = m.origin.length;
+            const locked = new Uint8Array(count);
+            const least = new Float32Array(count);
+            const doubt = new Float32Array(count).fill(1);
+            for (const v of onEdge[i]) {
+                // The ink's pieces keep their outlines: what is drawn
+                // on them ends where they do.
+                if (m.primitive === "ink" || met.get(place(m, v)) > 1)
+                    locked[v] = 1;
+            }
+            if (m.primitive === "face") {
+                for (const rim of [
+                    landmarks.eyes.left,
+                    landmarks.eyes.right,
+                    landmarks.mouth,
+                ])
+                    for (const v of rim.loop) locked[v] = 1;
+                for (const v of earVertices) doubt[v] = 3;
+            }
+            for (let v = 0; v < count; v++) {
+                const part = m.origin[v].piece.part;
+                // A brow is laid anew along each character's own line:
+                // nothing measured here holds for it.
+                if (part === "brow") locked[v] = 1;
+                // The eye is layers a hair apart, and the iris is drawn
+                // from how its piece lies to the viewer: they hold their
+                // shape until an eye is a few pixels across.
+                if (part === "iris" || part === "eyeWhite") least[v] = 0.002;
+                if (part === "lidLine") least[v] = 0.0005;
+            }
+            const weights = new Float32Array(count * 4);
+            for (let v = 0; v < count; v++) {
+                let total = 0;
+                for (let k = 0; k < 4; k++) total += m.weights[v * 4 + k];
+                for (let k = 0; k < 4; k++)
+                    weights[v * 4 + k] = m.weights[v * 4 + k] / (total || 1);
+            }
+            // The expressions the file keeps, as it keeps them.
+            const morphs = (m.pieces[0]?.targets.length ? kept : []).map(
+                (t) => {
+                    const moves = new Float32Array(count * 3);
+                    m.origin.forEach((o, v) => {
+                        const d = o.piece.targets[t];
+                        if (
+                            Math.hypot(
+                                d[o.vertex * 3],
+                                d[o.vertex * 3 + 1],
+                                d[o.vertex * 3 + 2]
+                            ) < 2e-6
+                        )
+                            return;
+                        for (let k = 0; k < 3; k++)
+                            moves[v * 3 + k] = d[o.vertex * 3 + k];
+                    });
+                    return moves;
+                }
+            );
+            // What is stored on the skin is drawn as light: how open it
+            // is counts most, how thin the flesh least.
+            const fields =
+                m.primitive === "ink"
+                    ? []
+                    : DETAIL_SHADE.bake.map((shade, k) => ({
+                          data: Float32Array.from(
+                              { length: count },
+                              (_, v) => m.bake[v * 4 + k] / 255
+                          ),
+                          width: 1,
+                          shade,
+                      }));
+            const tally: Record<string, number> = {};
+            const order = collapseOrder(
+                {
+                    position: m.position,
+                    indices: m.indices,
+                    normal: m.primitive === "ink" ? undefined : m.normal,
+                    turned: DETAIL_SHADE.turned,
+                    fields,
+                    morphs,
+                    skin: { joints: m.joints, weights, parent, pivot },
+                    locked,
+                    least,
+                    doubt,
+                },
+                tally
+            );
+            const stored = new Uint16Array(count * 2);
+            let stay = 0;
+            for (let v = 0; v < count; v++) {
+                stored[v * 2] = order.parent[v];
+                stored[v * 2 + 1] = encodeCost(order.cost[v]);
+                if (order.cost[v] === Infinity) stay++;
+            }
+            say(
+                `  ${m.primitive}: ${count - stay} of ${count} vertices can ` +
+                    `go; what set their costs: ${Object.entries(tally)
+                        .map(([what, n]) => `${what} ${n}`)
+                        .join(", ")}`
+            );
+            return { order, stored };
+        });
+    })();
+    {
+        const left = (tolerance: number) =>
+            made.reduce(
+                (sum, m, i) =>
+                    sum +
+                    coarser(
+                        m.indices,
+                        detail[i].order.parent,
+                        (v) => detail[i].order.cost[v] <= tolerance
+                    ).length /
+                        3,
+                0
+            );
+        say(
+            "  triangles a view needs, by what it can show: " +
+                [0.25, 0.5, 1, 2, 4, 8, 16, 32]
+                    .map((mm) => `${left(mm / 1000)} at ${mm} mm`)
+                    .join(", ")
+        );
+    }
+
     const primitiveJson = (m: (typeof made)[number], material: number) => {
         const count = m.origin.length;
         // Weights as 16 bits that still add up to one.
@@ -1221,6 +1436,11 @@ function build(sourcePath: string) {
             attributes.TEXCOORD_0 = writer.accessor(m.coords, "VEC2", {
                 target: 34962,
             });
+        attributes[DETAIL_ATTRIBUTE] = writer.accessor(
+            detail[made.indexOf(m)].stored,
+            "VEC2",
+            { target: 34962 }
+        );
         const out: Json = {
             attributes,
             indices: writer.accessor(Uint16Array.from(m.indices), "SCALAR", {

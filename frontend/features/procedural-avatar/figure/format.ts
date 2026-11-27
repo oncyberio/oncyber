@@ -17,10 +17,13 @@
  * - the body's skin;
  * - the face: its skin, the whites of the eyes and the inside of the mouth;
  * - the face's ink: flat pieces lying just off the face that the irises,
- *   lid lines, lashes and brows are drawn on, blended over what is behind.
+ *   lid lines and brows are drawn on, blended over what is behind.
+ *
+ * Each vertex also says when a view can do without it (see detail.ts), so
+ * that a figure too far off to show its whole mesh is drawn with less.
  */
 
-export const FIGURE_FORMAT = 3;
+export const FIGURE_FORMAT = 4;
 
 /** What a triangle is. A primitive holds several, told apart by this. */
 export const FIGURE_PARTS = [
@@ -31,6 +34,8 @@ export const FIGURE_PARTS = [
     "eyeWhite",
     "iris",
     "lidLine",
+    // Lashes: no longer in a figure (nothing was drawn on them). Their
+    // place is kept, so that the numbers after it stay what they were.
     "lash",
     "brow",
 ] as const;
@@ -65,6 +70,49 @@ export const BAKE_ATTRIBUTE = "_BAKE";
  * over 255, the rest spare. The body has none: it is all skin.
  */
 export const PART_ATTRIBUTE = "_PART";
+
+/**
+ * When a view can do without a vertex: two 16-bit numbers. The first is
+ * the vertex it is folded into when it goes; the second what its going
+ * costs, as `encodeCost` writes it. A vertex that never goes names itself
+ * and costs `NEVER`.
+ */
+export const DETAIL_ATTRIBUTE = "_DETAIL";
+
+/** The cost of a vertex that stays whatever the view. */
+export const NEVER = 65535;
+/** The least cost told apart, metres: a tenth of a micron. */
+const LEAST_COST = 1e-7;
+/** Steps to each doubling of cost. */
+const COST_STEPS = 2048;
+
+/**
+ * A cost in metres as 16 bits: evenly spaced by ratio, a doubling every
+ * 2048 steps, from a tenth of a micron up. Rounded up, so that a vertex
+ * never goes for less than it costs.
+ */
+export const encodeCost = (metres: number) =>
+    !(metres < Infinity)
+        ? NEVER
+        : metres <= LEAST_COST
+        ? 0
+        : Math.min(
+              NEVER - 1,
+              Math.ceil(COST_STEPS * Math.log2(metres / LEAST_COST))
+          );
+export const decodeCost = (stored: number) =>
+    stored >= NEVER ? Infinity : LEAST_COST * 2 ** (stored / COST_STEPS);
+/**
+ * The most a vertex may cost, as stored, to go for a view that can show
+ * nothing smaller than `metres`; -1 if none may.
+ */
+export const affordable = (metres: number) =>
+    metres < LEAST_COST
+        ? -1
+        : Math.min(
+              NEVER - 1,
+              Math.floor(COST_STEPS * Math.log2(metres / LEAST_COST))
+          );
 
 /** Where the light the `sky` channel measures comes from: [up, forward]. */
 export const SKY_DIRECTION: [number, number] = [0.94, 0.34];

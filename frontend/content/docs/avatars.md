@@ -105,7 +105,7 @@ style and an outfit. The parts it is made from are shared.
     built by `tasks/avatar-figure` from a public-domain base model. It
     keeps that model's skin, skeleton, weights and all 54 of its face
     expressions, and none of its images: about 11,000 triangles in three
-    draw calls, 549 kB. Twelve of the expressions are exact sums of
+    draw calls, 550 kB. Twelve of the expressions are exact sums of
     others (a blink is each eye's own); the file holds their parts, and
     what drives them is given those. What a texture would have held is stored on the
     vertices (how open each point is to the light, what stands between it
@@ -150,6 +150,20 @@ style and an outfit. The parts it is made from are shared.
     `tasks/avatar-figure`'s `compare` draws them (`--form basic`,
     `--crowd 60`, and `--as-crowd` to check a crowd of one against the
     figure alone).
+-   **Detail by size on screen.** A figure is about 10,900 triangles,
+    all of which show when it fills the screen. Smaller, most of them are
+    under a pixel. The figure's file says for every vertex what a view
+    would lose by drawing the figure without it, in metres
+    (`figure/detail.ts`; worked out when the file is built, from how far
+    the surface, its shading, every expression and every bent joint would
+    end up from where the whole mesh puts them). `figure.setDetail`
+    draws a figure with only what a view can show, and a crowd does it
+    for each of its figures from who is looking (`crowd.update(time,
+view)`): anything costing under a quarter of a pixel is left out, so a
+    figure half the screen high keeps nearly all of its mesh and one a
+    tenth as high about a third. The coarser meshes are other lists of
+    triangles over the same vertices, so nothing else is stored or
+    loaded for them.
 -   **From a picture to a character.** A style is fitted to a picture of
     the character with `tasks/avatar-figure`'s `compare` command. It
     draws the styled figure from fixed views and sets it beside the

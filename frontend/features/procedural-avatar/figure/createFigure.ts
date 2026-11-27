@@ -6,6 +6,7 @@ import {
     partId,
     type FigureInfo,
 } from "./format";
+import { createFigureLevels, levelFor } from "./levels";
 import {
     BROW_SHADOW_REACH,
     FACE_MOTION,
@@ -632,6 +633,7 @@ export function styleFigure(
     // Drawn after the face it lies on.
     ink.renderOrder = 1;
     const count = (mesh: THREE.Mesh) => mesh.geometry.index.count / 3;
+    const levels = createFigureLevels({ body, face, ink });
     return {
         form,
         style,
@@ -648,7 +650,24 @@ export function styleFigure(
          * its expressions are played through the VRM it was loaded as.
          */
         face: motion,
+        /** Triangles in the whole figure. */
         triangles: count(body) + count(face) + count(ink),
+        /** Its meshes at the detail a view can show: see levels.ts. */
+        levels,
+        /**
+         * Draw the figure for a view that can show nothing smaller than
+         * `tolerance` metres (a part of a pixel's size at the figure: see
+         * `pixelSize`), leaving out what would not show; 0 draws all of
+         * it. Says how many triangles it is then drawn with.
+         */
+        setDetail(tolerance: number) {
+            const level = levelFor(tolerance);
+            for (const [key, mesh] of Object.entries({ body, face, ink }))
+                mesh.geometry.setIndex(
+                    levels.index(key as "body" | "face" | "ink", level)
+                );
+            return levels.triangles(level);
+        },
         dispose() {
             materials.dispose();
         },

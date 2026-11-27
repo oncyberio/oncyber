@@ -6,13 +6,21 @@ export {
     type StyledFigure,
 } from "./createFigure";
 export {
+    DETAIL_PIXELS,
     createFigureCrowd,
     createFigurePoses,
     type CrowdFigure,
+    type CrowdView,
     type FigureCrowd,
     type FigureCrowdOptions,
     type FigurePoses,
 } from "./crowd";
+export {
+    levelFor,
+    levelTolerance,
+    pixelSize,
+    type FigureLevels,
+} from "./levels";
 export { FIGURE_URLS, loadFigure } from "./load";
 export { createFigureLooks, type FigureLooks } from "./looks";
 export { blinkAt } from "./shading";
