@@ -100,18 +100,26 @@ style and an outfit. The parts it is made from are shared.
     shadows, occlusion and every painted feature drawn in the shader. It
     is the reference a wearable avatar is matched against, not something
     to put in a space: every pixel pays for the whole sculpt.
--   **A character from a VRoid base.** `vroid/restyle.ts` takes a loaded
-    VRoid base model (the bare body in `public/models/fem_vroid.vrm`) and
-    turns it into the character a recipe (`vroid/recipe.ts`) describes,
-    keeping its triangles, skin weights and face morphs: proportions
-    change through its own skeleton (each bone scales the part it carries
-    and its children move with it), the chest can be flattened, the face
-    lengthened below the eyes, an expression baked in as the resting face,
-    and the materials replaced by soft-shaded ones tinted to the recipe's
-    palette. About 19,000 triangles. It has no hair or clothes of its own
-    yet. `/dev/vroid-avatar` shows it locally (`plain=1` for the base).
+-   **A figure, and a style.** A _figure_ (`figure/`) is a ready-made bare
+    humanoid that characters are made from: `public/models/figure_male.vrm`,
+    built by `tasks/avatar-figure` from a public-domain base model. It
+    keeps that model's skin, skeleton, weights and all 54 of its face
+    expressions, and none of its images: about 10,000 triangles in three
+    draw calls, 665 kB. What a texture would have held is stored on the
+    vertices (how open each point is to the light, what stands between it
+    and the light from above, how sharply the surface turns, how thin the
+    flesh is), and the rest is drawn per pixel by `figure/shading.ts`:
+    soft-lit skin whose shadows start warm, irises, lid lines, brows,
+    lips and underwear, sharp at any distance. A _style_
+    (`figure/style.ts`) is what makes a figure a character: its colours,
+    how its eyes, lids and brows are drawn (in eye widths, so the numbers
+    suit any figure), which expressions it wears at rest, and how its
+    face is reshaped. Reshaping carries every expression along, so a
+    restyled eye still blinks. The body's proportions stay the figure's
+    own. It has no hair or clothes yet. `/dev/figure-avatar` shows it
+    locally (`style=plain` for the bare figure).
 -   **A described humanoid.** A sculpted character is not hand-placed
-    shapes but a description (`humanoid/spec.ts`): where its joints are,
+    shapes but a description (`humanoid/description.ts`): where its joints are,
     how thick its torso and limbs are, what underwear it wears, its
     palette, and its own head, hair and outfit. `buildHumanoid` makes the
     body from those numbers, complete under the clothes, in the T-pose

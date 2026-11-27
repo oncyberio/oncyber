@@ -16,10 +16,12 @@ holder. The license column is read from each file's embedded VRM metadata
 The following models are dedicated to the public domain (CC0) by their author
 and may be reused freely. `Seed-san.vrm` (VirtualCast, Inc.) is under the
 VRM Public License 1.0 and allows redistribution and modification, with
-credit:
+credit. `figure_male.vrm` is that author's `Base_Male` cut down to its skin
+and face, with no images, by `tasks/avatar-figure`:
 
 | File | Title | Author (from metadata) | Declared license |
 | --- | --- | --- | --- |
+| `figure_male.vrm` | Base_Male | VRoidプロジェクト | CC0; commercial use: Allow |
 | `Summer_L1.vrm` | summer.jpg | NeonGlitch86 | CC0; commercial use: Allow |
 | `Summer_Unlit_1.vrm` | summer.jpg | NeonGlitch86 | CC0; commercial use: Allow |
 | `big.vrm` | summer.jpg | NeonGlitch86 | CC0; commercial use: Allow |
