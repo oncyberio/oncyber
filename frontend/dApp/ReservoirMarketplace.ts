@@ -1,7 +1,6 @@
 import { fetchArtworkHistory } from "@utils/artworks/history/client";
 import { nodeEnv } from "@env";
 import { Asset } from "@uitypes/Asset";
-import { ethers } from "ethers";
 import { delay, Failure, param, Result, Success } from "@utils/js";
 import { EthereumConnection, isEthAbort } from "./connect";
 import {
@@ -201,7 +200,7 @@ export class ReservoirMarketplace
 
             const client = await this.getClient();
 
-            const signer = this.getSigner(wallet);
+            const signer = await this.getSigner(wallet);
 
             let param: Partial<_Data1>;
 
@@ -279,7 +278,7 @@ export class ReservoirMarketplace
         try {
             const client = await this.getClient();
 
-            const signer = this.getSigner(wallet);
+            const signer = await this.getSigner(wallet);
 
             const bid = {
                 weiPrice: String(ethToWei(ethAmount)),
@@ -348,7 +347,13 @@ export class ReservoirMarketplace
         }
     }
 
-    getSigner(wallet: EthereumConnection) {
+    /**
+     * The Ethereum library is fetched here, when a purchase is being
+     * signed: imported at the top it was loaded with every world, for
+     * every visitor, to stand ready for this one step.
+     */
+    async getSigner(wallet: EthereumConnection) {
+        const { ethers } = await import("ethers");
         const provider = new ethers.providers.Web3Provider(wallet.eth);
         return provider.getSigner();
     }

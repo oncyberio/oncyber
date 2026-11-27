@@ -19,6 +19,8 @@ avatar, friends and voice as they travel between spaces.
 | `multiplayer/`                  | Colyseus rooms and the shared-world service: presence, chat, voice signaling, TURN credentials | `npm --prefix multiplayer ci` |
 | `cloud-functions/functions/`    | Firebase functions: 3D asset and avatar optimization, IPFS uploads                             | its own `npm ci`              |
 | `cloud-functions/artist-index/` | Firebase functions: artist search index                                                        | its own `npm ci`              |
+| `games/`                        | Games (plain three.js) and their lifecycle runtime, hidden at launch; see `docs/games.md`      | per game (`npm ci`)           |
+| `games/cli/`                    | The `oncyber` command: build, check and publish a game outside this repository                 | none (`npm pack` to install)  |
 | `scripts/`                      | Maintenance and content tools (gallery CDN, museum media, world CLI)                           | per script                    |
 | `tasks/`                        | Standalone asset tools (VRM resize, texture compression, FBX to VRM animation, camera splines) | per tool                      |
 | `docs/`                         | Architecture notes, brand guide, measurements and plans                                        |                               |
@@ -54,6 +56,9 @@ with a sample space (`local-dev/fixtures/`), the lobby server and the app. The
 emulators run on Java 21; when it's missing, the first run downloads a
 private copy into `local-dev/.java/`. See [local-dev/README.md](local-dev/README.md).
 Use it for anything that doesn't need real uploads, wallets or NFT lookups.
+To debug a real space there, copy it in: `pnpm world spaces` lists yours
+and `pnpm world import <link>` puts a copy in the local stack
+([local-dev/README.md](local-dev/README.md#real-spaces)).
 
 ## Set up with your own services
 
@@ -99,18 +104,45 @@ From the repository root:
 ```sh
 pnpm -C frontend test path/to/changed.test.ts   # Jest
 pnpm -C frontend check:types                    # type check, fails only on new errors
+pnpm -C frontend check:tokens                   # interface colours come from the design tokens
 pnpm -C frontend build                          # production build (needs NEXT_PUBLIC_FIREBASE_*)
 pnpm -C frontend find:unused                    # files and packages nothing uses (knip)
 npm --prefix multiplayer test                   # multiplayer (mocha)
+pnpm games:cli:test                             # the oncyber command (games/cli)
 pnpm format:all                                 # Prettier
 ```
+
+### The fast loop
+
+For each change, before you push (about half a minute):
+
+```sh
+pnpm check:fast     # design tokens, the tests related to what changed, types
+```
+
+`check:types` keeps what it learned between runs, so a repeat takes about
+ten seconds instead of a minute (`TYPECHECK_FRESH=1` starts from nothing).
+`pnpm -C frontend test:changed` runs only the tests a change can affect;
+the whole suite is under a minute and CI runs it on every pull request.
+
+To try a change to worlds in a browser, don't build here: push, let the
+preview build, and run the two-minute check against it.
+
+```sh
+pnpm worlds:smoke --base https://<the preview's address>
+```
+
+Keep the slow things for when they are needed: a production build on your
+machine, or a full framed-against-unframed comparison, only for a change to
+how the engine or the frame itself loads, and before a merge.
 
 The Next.js build ignores type errors, so run `check:types` separately. The
 frontend has a few hundred known type errors; `frontend/scripts/type-baseline.json`
 records them and the check fails only when a change adds one. Lower the
 baseline with `pnpm -C frontend check:types:update` when you fix some.
 
-CI runs the frontend tests, the type ratchet, the lobby world tests and the
+CI runs the frontend tests, the type ratchet, the design-token check, the
+lobby world tests and the
 security regression tests on every pull request (`.github/workflows/`).
 Runs on a first pull request from a fork wait until a maintainer approves
 them, and so does its Vercel preview; see
@@ -137,18 +169,60 @@ them, and so does its Vercel preview; see
 -   **Content host.** Outside experiences run in a sandboxed frame and talk to
     the page through the message bridge in `features/content-host/`. See
     [docs/content-host.md](docs/content-host.md).
+-   **Framed worlds.** With `NEXT_PUBLIC_WORLD_ORIGIN` set, a space's page
+    on the site frames the same address on the world host, and the world
+    speaks the games contract to it (`features/worlds/`). Unset, worlds run
+    in the page. The plan and its slices:
+    [docs/plans/framed-worlds.md](docs/plans/framed-worlds.md).
+-   **World scripts.** AI-written scripts on top of a native space run in an
+    opaque sandboxed frame and change the scene only through checked
+    messages (`features/world-scripts/`). Off unless
+    `NEXT_PUBLIC_WORLD_SCRIPTS=1`. See [docs/world-scripts.md](docs/world-scripts.md).
 -   **Wallets.** `dApp/connect.tsx` returns a connection per chain. An Ethereum
     connection carries an ethers provider (`getEthersProvider(connection)`);
     sign and send through it.
--   **UI.** Follow [docs/brand/README.md](docs/brand/README.md) and use the
-    tokens in `frontend/styles/tokens/` (browse them at `/dev/tokens`).
-    Every state a visitor can reach is styled, including open menus and
-    lists: no native `<select>` popups or unstyled browser controls in the
-    interface. Menus follow the brand guide's menu rows (a check on the
-    current choice, arrow keys, Escape, focus return).
+-   **UI.** Build every interface on the design system; see
+    [Interface](#interface) below.
 
 TypeScript is not strict (`strict: false`), and JavaScript and TypeScript
 files sit side by side. New files should be TypeScript.
+
+## Interface
+
+Every interface change is built on Oncyber's design system. This is a rule,
+not a preference, and it applies to coding agents as much as to people:
+don't invent a look, and don't bring one from another product.
+
+-   **Take values from the tokens.** Colours, type, radii, spacing, motion and
+    focus rings come from `frontend/styles/tokens/`
+    ([docs/brand/tokens.md](docs/brand/tokens.md); browse them at
+    `/dev/tokens`). Don't write a hex colour, a font stack or a duration in
+    place.
+-   **Use the shared primitives before writing a control.** Buttons are
+    `ActionButton` and the action styles in `frontend/styles/brand/`; panels
+    and controls over 3D use the lobby set; the Studio uses its own. Pick the
+    set for the surface you are on (the table in `tokens.md`).
+-   **Follow the brand guide** for layout, wording and tone:
+    [docs/brand/README.md](docs/brand/README.md).
+-   **Style every state a visitor can reach,** including open menus and
+    lists: no native `<select>` popups or unstyled browser controls in the
+    interface. Menus follow the brand guide's menu rows (a check on the
+    current choice, arrow keys, Escape, focus return).
+-   **A game's menus use the games UI kit** (`games/kits/ui/`,
+    [docs/games/ui-kit.md](docs/games/ui-kit.md)), which carries the same
+    tokens into the sandboxed frame. The game's world keeps its own look.
+-   **If the system lacks what you need, add it to the system.** Put the new
+    value or primitive in the tokens, then use it. Don't work around it in
+    the feature.
+
+`pnpm -C frontend check:tokens` enforces the first point: it fails when a
+file under `features/`, `components/`, `ui/` or `pages/` gains a colour
+written in place (a new file may have none). Older files are recorded in
+`scripts/ui-token-baseline.json`; lower it with `check:tokens:update` when
+you move one onto the tokens. A line that truly needs its own colour (a 3D
+material, a partner's mark) says why in a comment: `tokens-ok: <why>`. A
+file that is nothing but such colours (paint for a 3D scene) says so once,
+where it opens: `tokens-ok-file: <why>`.
 
 ## Making a change
 
@@ -161,6 +235,27 @@ files sit side by side. New files should be TypeScript.
    steps to run it locally) so a reviewer can try it.
 5. Fill in `.github/pull_request_template.md`: what changed, how you checked
    it, any setup or data migration it needs.
+
+### Corrections
+
+A correction from a person is not done until it exists as a docs line, an
+SDK helper and a check. Fixing the one game they were looking at is the
+start: write the rule where the next agent will read it (for games,
+[docs/games/good-game.md](docs/games/good-game.md)), put the right behaviour
+in a helper so it is the easy path (`games/runtime/src/`, or a kit in
+`games/kits/`), and add a check
+that fails without it (`pnpm games:check`). Then prove the check on the game
+that was corrected.
+
+### Building a game
+
+Start from [games/llms.txt](games/llms.txt): what a game must do, what is
+optional (lobby arrival, avatars, animations, walking, parties, voice,
+results, saved data, menus) and the SDK helper for each. Then the rules page
+above and the brief (`pnpm games:new <id>`). Done is `pnpm games:check <id>`
+passing. When the SDK gains or changes a helper, update `games/llms.txt` in
+the same change; `pnpm games:test` fails when it names something that isn't
+there.
 
 Formatting is Prettier: four spaces, 80 columns. Format the files you change,
 not the whole repository.

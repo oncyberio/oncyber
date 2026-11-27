@@ -8,11 +8,16 @@ Generic content exposes only capabilities it actually implements.
 
 ## Open or attach content
 
-This is early, experimental plumbing, not a publishing flow yet. There is no
-launcher page and no Studio screen for it. The only way in today is attaching a
-page to a space you own or edit with `POST /api/content/register`, described
-below, and the attached page doesn't get the visitor's identity, avatar or
-multiplayer room yet.
+Public, published AWE worlds open at `/awe/:id` using their original AWE ID
+or supported slug. The provider resolves IDs first, preserves case, and checks
+anonymous access on each visit. The page uses the shared content host and
+forwards only the path segment. It needs no Oncyber space registration.
+Top-level custom links still resolve to Oncyber spaces. Creators continue to
+edit and publish on awe.box.
+
+To attach a web page to a space you own or edit, use
+`POST /api/content/register`. The guest receives no Oncyber account, avatar
+or multiplayer room from either entry point.
 
 Attaching persists the descriptor on an
 existing experience, so `/spaces/:id` and its custom slug use the same player:
@@ -27,11 +32,24 @@ existing experience, so `/spaces/:id` and its custom slug use the same player:
 ```
 
 Runtime kinds are `cyber` (also the default when absent), `web`, and
-`awe-app`. `awe-app` serves awe.box `/play/` experiences; the code is in place
-but not live yet. Records with any other kind are treated as unsupported. `engine` is descriptive; host code never imports
+`awe-app`. To attach a public AWE world, register
+`{"kind":"awe-app","url":"https://awe.box/play/WORLD_ID"}` on an existing space.
+The provider must serve its anonymous player for `embed=oncyber`. The host
+preserves an explicit public draft selection and waits for the player's
+`ready` message before revealing the space. Any `web` integration can opt
+into the same handshake with `"readyOn":"message"`. Other web pages enter on
+document load. Records with any other kind are treated as unsupported. `engine` is descriptive; host code never imports
 the engine. Arbitrary same-origin documents, credential-bearing URLs,
 `javascript:`, `data:`, and non-HTTPS sources are rejected. Separate loopback
 HTTP origins, including `*.localhost`, are accepted only in development.
+
+To move the player off awe.box, deploy the compatible guest player on a separate
+Oncyber-operated origin and set `NEXT_PUBLIC_AWE_PLAYER_ORIGIN` at frontend build
+time. Stored AWE links still identify the world. At launch only the world ID,
+draft selector and embed flag go to the configured origin. With the setting
+empty, legacy links keep their original host. Other providers use their own URLs.
+This routes visits. World data, external assets and multiplayer services need
+their own preservation and restore checks before retiring the old deployment.
 
 `POST /api/content/register` takes `{experienceId,runtime}`. It requires an
 exact same-origin request and an authenticated owner/editor checked inside a

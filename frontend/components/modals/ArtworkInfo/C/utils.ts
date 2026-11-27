@@ -1,10 +1,10 @@
-import moment from "moment";
+import { relativeTime } from "@utils/relativeTime";
 
 export function timeLeft(date: Date) {
     if (Date.now() > date.getTime()) {
         return "Expired";
     }
-    return moment(date).fromNow(true);
+    return relativeTime(date);
 }
 
 export function formatUser(user) {

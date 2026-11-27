@@ -1,0 +1,18 @@
+{
+  "name": "@oncyber-games/garden",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 14730",
+    "build": "vite build && node scripts/build-ui.mjs && node ../../scripts/games/build-record.mjs garden",
+    "test": "node --experimental-strip-types --test test/*.test.js"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "esbuild": "^0.25.0"
+  }
+}

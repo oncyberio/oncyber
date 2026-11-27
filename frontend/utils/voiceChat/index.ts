@@ -1,14 +1,19 @@
 import { AgoraVoiceChatProvider } from "./AgoraVoiceChatProvider";
 import { VoiceChatProvider } from "./VoiceChatProvider";
+import { RelayedVoiceProvider } from "@features/worlds/relayedVoice";
+import { worldDocument } from "@features/worlds/worldDocument";
 
 class VoiceChat {
     instance: VoiceChatProvider;
 
     get() {
-        console.log("test deployement");
         if (this.instance == null) {
-            let instance = new AgoraVoiceChatProvider();
-            this.instance = instance;
+            // In the site's frame the page holds the microphone and plays
+            // every voice; the world's voice service is a relay to it.
+            const framed = worldDocument();
+            this.instance = (framed
+                ? new RelayedVoiceProvider(framed)
+                : new AgoraVoiceChatProvider()) as unknown as VoiceChatProvider;
         }
 
         return this.instance;

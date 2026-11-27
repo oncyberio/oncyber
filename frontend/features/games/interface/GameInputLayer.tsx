@@ -1,0 +1,164 @@
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+    createGameInputHost,
+    focusGameChat,
+    type GameKeyIntent,
+} from "../contract/gameInput";
+import { readGameMessage } from "../contract/gameContract";
+import { holdGamePause } from "../contract/gamePause";
+import { soundStore } from "../contract/gameAudio";
+import { gameChrome } from "./gameChrome";
+import { ActionButton, GameScrim, moveMenuFocus } from "./gameControls";
+
+/**
+ * Keys and focus for a game page (docs/games/keys-focus.md): the page owns
+ * Escape (this world menu), Enter (chat) and M (sound), and the game gets
+ * no input while the menu is open or the visitor types in the page. The
+ * open menu also holds the page's pause (docs/games/loading-and-pausing.md).
+ */
+export default function GameInputLayer({
+    game,
+    title,
+    frame,
+    send,
+    fromGame,
+    onLeave,
+    onChat,
+}: {
+    game: string;
+    title: string;
+    frame: RefObject<HTMLIFrameElement>;
+    send: (message: object) => void;
+    fromGame: (event: MessageEvent) => boolean;
+    onLeave: () => void;
+    /** Enter: open the page's chat, when it is closed. */
+    onChat?: () => void;
+}) {
+    const [menu, setMenu] = useState(false);
+    const [muted, setMuted] = useState(false);
+    const intent = useRef<(intent: GameKeyIntent) => void>(() => {});
+    const host = useMemo(
+        () =>
+            createGameInputHost({
+                game,
+                send,
+                // Only when nothing else on the page took the focus.
+                focusGame: () => {
+                    const active = document.activeElement;
+                    if (!active || active === document.body)
+                        frame.current?.focus();
+                },
+                intent: (next) => intent.current(next),
+            }),
+        [game]
+    );
+    // Sound is the page's one setting (gameAudio.ts): Cmd+M and the menu's
+    // button change it, and the game hears it on the sound channel.
+    const applyMuted = (next: boolean) =>
+        void soundStore().set({ muted: next });
+    intent.current = (next) => {
+        if (next === "menu") setMenu((open) => !open);
+        else if (next === "mute") applyMuted(!soundStore().get().muted);
+        else if (!menu) {
+            onChat?.();
+            focusGameChat(document);
+        }
+    };
+
+    useEffect(() => {
+        // A build from before the sound channel still hears `muted`.
+        const mirror = (tell: boolean) => {
+            const { muted } = soundStore().get();
+            setMuted(muted);
+            host.setMuted(muted, tell);
+        };
+        mirror(false);
+        const unsubscribe = soundStore().subscribe(() => mirror(true));
+        const receive = (event: MessageEvent) => {
+            if (!fromGame(event)) return;
+            const data = event.data;
+            const kind = readGameMessage(data?.type, game)?.kind;
+            if (host.receive(kind, data)) return;
+            // The game just loaded: tell it where things stand.
+            if (kind === "ready") host.sync();
+        };
+        window.addEventListener("message", receive);
+        const stops = [host.watch(document)];
+        // Inside the lobby, its chat is the page's chat too.
+        try {
+            if (window.parent !== window && window.parent.document)
+                stops.push(host.watch(window.parent.document, { keys: false }));
+        } catch {
+            /* another origin's page: nothing to watch */
+        }
+        return () => {
+            window.removeEventListener("message", receive);
+            unsubscribe();
+            stops.forEach((stop) => stop());
+        };
+    }, [host]);
+
+    useEffect(() => {
+        if (!menu) return;
+        host.hold("menu");
+        // The menu also pauses a solo game under it (gamePause.ts).
+        const resume = holdGamePause();
+        document.exitPointerLock?.();
+        return () => {
+            resume();
+            host.release("menu");
+        };
+    }, [menu, host]);
+
+    if (!menu) return null;
+    return (
+        <GameScrim
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${title} menu`}
+            style={{ backdropFilter: `blur(${gameChrome.blur}px)` }}
+            onClick={(event) => {
+                if (event.target === event.currentTarget) setMenu(false);
+            }}
+        >
+            <div
+                // Up and Down move between the actions, as in any menu.
+                onKeyDown={moveMenuFocus}
+                style={{ display: "grid", gap: 10, minWidth: 240 }}
+            >
+                <p
+                    style={{
+                        margin: "0 0 6px",
+                        font: gameChrome.font.title,
+                        opacity: 0.7,
+                    }}
+                >
+                    {title}
+                </p>
+                <ActionButton
+                    autoFocus
+                    $variant="white"
+                    onClick={() => setMenu(false)}
+                >
+                    Resume
+                </ActionButton>
+                <ActionButton
+                    aria-pressed={!muted}
+                    onClick={() => applyMuted(!muted)}
+                >
+                    Sound: {muted ? "Off" : "On"}
+                </ActionButton>
+                <ActionButton onClick={onLeave}>Back to lobby</ActionButton>
+                <p
+                    style={{
+                        margin: "6px 0 0",
+                        font: gameChrome.font.note,
+                        opacity: 0.6,
+                    }}
+                >
+                    Esc menu · Enter chat · M sound
+                </p>
+            </div>
+        </GameScrim>
+    );
+}

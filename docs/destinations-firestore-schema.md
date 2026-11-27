@@ -55,6 +55,37 @@
 | `created_at` | `timestamp` | Yes | Composite (see indexes) | Auto-set on creation |
 | `updated_at` | `timestamp` | Yes | No | Auto-set on creation and update |
 
+## How tall avatars stand (`params.avatarSize`)
+
+A destination says how tall avatars stand in it, in its own units: a size
+from 0 to 1 across the 1 to 4.5 units an avatar can stand
+(`components/_3DExhibit-v2/three/utils/avatarHeight.ts`). A space may set
+its own and wins. A destination that sets none stands avatars with their
+eyes at its `params.user_height`.
+
+**The height has to fit the world's doors.** A destination is rarely
+modelled at one unit to the metre, and the eye height a builder chose for
+the camera does not say how big the houses are. Measure what a person
+stands next to (doors first, then windowsills, furniture, lamps) and set
+the height so an avatar is about three quarters of a typical door.
+
+```sh
+pnpm world destination avatar-height <slug>            # what it is now, and why
+pnpm world destination avatar-height <slug> <height>   # in the world's units
+pnpm world destination avatar-height <slug> unset
+```
+
+The destination's owner may set it, and so may Oncyber's site admins
+(`destinations.setAvatarHeight`, which writes that one number and nothing
+else of the settings). Every space built on the destination follows on its
+next load, on every deployment that reads this database.
+
+Worked case, the Starry Night dome (`thestarrynight_skydome`): its eye
+height of 2.3 stood avatars 2.47 units tall, about half the height of its
+doors. Its 83 doors have a median height of 5.3 units, its easel is 4.4
+tall and a street lamp 11.7: about 2.3 times life size. Avatars stand 4.0
+there.
+
 ## Required composite indexes
 
 See `firestore.indexes.json` for the full configuration. Key composites:

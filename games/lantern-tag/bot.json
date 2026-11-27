@@ -1,0 +1,24 @@
+{
+    "version": 1,
+    "query": "round=20",
+    "arrival": [
+        { "hold": "up", "ms": 900 },
+        { "press": "interact" },
+        { "until": { "screen": "menu" }, "timeoutMs": 10000 },
+        { "press": "interact" },
+        { "until": { "screen": "match" }, "timeoutMs": 15000 }
+    ],
+    "play": [
+        {
+            "repeat": [
+                { "hold": "up", "ms": 1500 },
+                { "hold": "right", "ms": 1500 },
+                { "hold": "down", "ms": 1500 },
+                { "hold": "left", "ms": 1500 }
+            ],
+            "until": { "screen": "results" },
+            "timeoutMs": 300000
+        }
+    ],
+    "leave": [{ "press": "interact" }]
+}

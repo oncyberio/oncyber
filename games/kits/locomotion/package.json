@@ -1,0 +1,16 @@
+{
+    "name": "@oncyber/kit-locomotion",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "description": "Optional kit: walk, run, jump and a third-person camera that feel like the Oncyber lobby, plus the arrival helper. TypeScript source, no dependencies; games bundle it.",
+    "exports": {
+        ".": "./src/index.ts",
+        "./constants": "./src/constants.ts",
+        "./three": "./src/three.ts",
+        "./controls": "./src/controls.ts"
+    },
+    "scripts": {
+        "test": "node --experimental-strip-types --test test/*.test.mjs"
+    }
+}

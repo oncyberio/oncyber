@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+        />
+        <meta name="theme-color" content="#0b1020" />
+        <title>Lantern Tag — Oncyber</title>
+      <script type="module" crossorigin src="./assets/index-Bx45tV89.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-BFgPY9PX.css">
+    </head>
+    <body class="oui">
+        <canvas
+            id="stage"
+            tabindex="0"
+            aria-label="Lantern Tag. Walk with W A S D or the arrow keys, Shift to run, Space to jump, drag to look around. Walk up to a lit lantern to catch it. E starts a round."
+        ></canvas>
+
+        <div id="boot" class="screen show">
+            <div class="oui-panel card oui-stack">
+                <h1 class="oui-title">Lantern Tag</h1>
+                <p class="oui-text" id="boot-text">Lighting the lanterns…</p>
+            </div>
+        </div>
+
+        <div id="title" class="screen">
+            <div class="oui-panel card oui-stack" data-hud="title-card">
+                <span class="oui-label">A night-time courtyard</span>
+                <h1 class="oui-title">Lantern Tag</h1>
+                <p class="oui-text">
+                    Lanterns light up around the courtyard. Walk to one to catch
+                    it before it fades. A round lasts 90 seconds.
+                </p>
+                <div class="oui-actions">
+                    <button class="oui-button" id="title-lobby" hidden>
+                        Lobby
+                    </button>
+                    <button class="oui-button oui-button--white" id="title-go">
+                        Step into the courtyard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="hud" class="layer">
+            <div class="oui-panel chip" id="score" data-hud="score">
+                <span class="oui-label">Lanterns</span>
+                <b id="score-value">0</b>
+                <span class="oui-label">Time</span>
+                <b id="time-value">1:30</b>
+            </div>
+            <div class="oui-panel" id="board" data-hud="board"></div>
+            <p
+                class="oui-panel chip oui-text--small"
+                id="notice"
+                data-hud="notice"
+                role="status"
+            ></p>
+            <div class="row" id="arrival-row" data-hud="arrival-row">
+                <button class="oui-button" id="lobby">Lobby</button>
+                <button class="oui-button" id="avatar" hidden>Avatar</button>
+                <button class="oui-button oui-button--white" id="start">
+                    Start a round
+                </button>
+            </div>
+            <div class="row" id="match-row" data-hud="match-row">
+                <button class="oui-button" id="leave-round">Leave round</button>
+            </div>
+            <p class="oui-panel chip oui-text--small" id="hint" data-hud="hint">
+                Walk up to a lit lantern to catch it
+            </p>
+        </div>
+
+        <div id="menu" class="screen">
+            <div class="oui-panel card oui-stack" data-hud="menu-card">
+                <h2 class="oui-title">Start a round</h2>
+                <p class="oui-text--small" id="menu-text"></p>
+                <div class="oui-list" id="options"></div>
+                <div class="oui-actions">
+                    <button class="oui-button" id="menu-back">Back</button>
+                    <button class="oui-button oui-button--white" id="menu-go">
+                        Start
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="results" class="screen">
+            <div class="oui-panel card oui-stack" data-hud="results-card">
+                <span class="oui-label">Round over</span>
+                <h2 class="oui-title" id="results-title"></h2>
+                <div class="oui-stack--tight" id="results-board"></div>
+                <div class="oui-actions">
+                    <button class="oui-button" id="results-lobby">Lobby</button>
+                    <button
+                        class="oui-button oui-button--white"
+                        id="results-done"
+                    >
+                        Back to the courtyard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

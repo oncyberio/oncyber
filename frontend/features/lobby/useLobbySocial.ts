@@ -1,3 +1,4 @@
+import { guestId, guestName } from "@utils/guestIdentity";
 import {
     LobbyFlash,
     readLobbyFlash,
@@ -28,23 +29,14 @@ export type {
     LobbyStage,
 } from "./LobbyConnection";
 
-// Per-page identity, matching the existing multiplayer guest lifecycle. Do
-// not persist this in localStorage: duplicate IDs evict each other's tabs.
 const EMPTY_PLAYERS = [];
-let guestId: string;
-function getGuestId() {
-    if (!guestId)
-        guestId = `Anon-${
-            globalThis.crypto?.randomUUID?.() ||
-            Math.random().toString(36).slice(2)
-        }`;
-    return guestId;
-}
+// A guest's id is the page's own (utils/guestIdentity): the same one a
+// space joins its room with, so a guest keeps their name on the way.
+const getGuestId = guestId;
 
 /** The name other people see for you: your username, or a guest name. */
 export function lobbyDisplayName(userId?: string, username?: string) {
-    const id = userId || getGuestId();
-    return username || `Guest ${id.slice(-4).toUpperCase()}`;
+    return username || guestName(userId || getGuestId());
 }
 
 export default function useLobbySocial({

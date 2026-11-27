@@ -14,6 +14,7 @@ import {
 
 } from '@3constants'
 
+import { shownName } from "@utils/guestIdentity";
 import { drawIcon } from "@components/_3DExhibit-v2/three/utils/draw";
 
 class UsernameGenerator {
@@ -25,9 +26,8 @@ class UsernameGenerator {
 
     get( username, avatar, walletId, textOnly = false ) {
 
-        if (username && username.startsWith("Anon-")) {
-            username = 'Anon'
-        }
+        // A guest named by their id (an older page) reads as a guest.
+        if (username) username = shownName(username)
 
         if (username && username == walletId) {
 

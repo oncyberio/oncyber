@@ -40,3 +40,9 @@ if (!admin.apps.length) {
 export const db = admin.firestore();
 export const auth = admin.auth;
 export const fire = admin.firestore;
+// Cloud Storage, for game releases (features/games/publish/releaseBucket.ts). A
+// function, so the storage library loads only where a bucket is used.
+export const storage = () => admin.storage();
+// The Realtime Database, for what the server says on a space's live feed
+// (utils/worldScripts/announce.ts). A function, for the same reason.
+export const realtime = () => admin.database();

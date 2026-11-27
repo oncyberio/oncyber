@@ -44,6 +44,22 @@ jest.mock("@features/landing-carousel/components/Header", () => ({
 jest.mock("@components/_3DExhibit-v2/context/MultiplayerProvider", () => ({
     useMultiplayer: jest.fn(),
 }));
+// The space's avatar state: what it is asked to wear.
+const mockWear = jest.fn();
+jest.mock("@components/context/VrmContext", () => ({
+    useVrm: () => ({ wearVrm: mockWear, activeVrm: { id: "square" } }),
+}));
+// The page around the space, when it runs in the site's frame; null when
+// it does not.
+let mockFramed: {
+    send: jest.Mock;
+    listen: (handler: (kind: string, data: any) => void) => () => void;
+    say: (kind: string, data: any) => void;
+} | null = null;
+jest.mock("@features/worlds/worldDocument", () => ({
+    ...jest.requireActual("@features/worlds/worldDocument"),
+    worldDocument: () => mockFramed,
+}));
 jest.mock("@components/_3DExhibit-v2/hooks/useWorld", () => ({
     useWorld: jest.fn(),
 }));
@@ -60,9 +76,15 @@ jest.mock("next/dynamic", () => {
     const loaders: Array<() => Promise<any>> = [];
     const dynamic = (loader: () => Promise<any>) => {
         loaders.push(loader);
-        return ({ voiceService }: any) => (
-            <div data-voice-debug="" data-service={voiceService?.name} />
-        );
+        // Other lazy parts (the site's header) are given no voice service
+        // and draw nothing here.
+        return (props: any) =>
+            "voiceService" in props ? (
+                <div
+                    data-voice-debug=""
+                    data-service={props.voiceService?.name}
+                />
+            ) : null;
     };
     return Object.assign(dynamic, { loaders });
 });
@@ -219,6 +241,31 @@ test("microphone stays off until the visitor invokes the native voice action", (
     expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
 });
 
+test("the microphone's shortcut is Cmd or Ctrl with M; M on its own is the world's", () => {
+    render();
+    const m = (options: KeyboardEventInit = {}, target?: EventTarget) =>
+        key("m", { code: "KeyM", ...options }, target);
+    m();
+    m({ shiftKey: true });
+    expect(social.voice.toggleMuted).not.toHaveBeenCalled();
+
+    expect(m({ metaKey: true }).defaultPrevented).toBe(true);
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(1);
+    m({ ctrlKey: true });
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
+
+    // not a held key, not with Alt, and not while the visitor types
+    m({ ctrlKey: true, repeat: true });
+    m({ ctrlKey: true, altKey: true });
+    const input = document.createElement("input");
+    container.append(input);
+    m({ metaKey: true }, input);
+    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(2);
+
+    const voice = button("Enable microphone");
+    expect(voice.getAttribute("aria-keyshortcuts")).toBe("Meta+M Control+M");
+});
+
 test("restricted native voice preserves moderator permission and lets a pending request be cancelled", () => {
     social.voice.voiceState = { type: "disabled" };
     social.chat.admins = [];
@@ -289,6 +336,54 @@ test("solo voice explains its availability without connecting or requesting a mi
     expect(button("Explore spaces")).toBeNull();
     click("Settings");
     expect(panel.currentTab).toBe("settings");
+});
+
+describe("in the site's frame, the avatar picker is the page's", () => {
+    beforeEach(() => {
+        const heard = new Set<(kind: string, data: any) => void>();
+        mockFramed = {
+            send: jest.fn(),
+            listen: (handler) => {
+                heard.add(handler);
+                return () => void heard.delete(handler);
+            },
+            say: (kind, data) =>
+                heard.forEach((handler) => handler(kind, data)),
+        };
+        mockWear.mockClear();
+    });
+    afterEach(() => {
+        mockFramed = null;
+    });
+
+    test("Avatars asks the page for its picker and draws none here", () => {
+        render();
+        click("Avatars");
+        // ... saying what it has on, so the picker opens on it.
+        expect(mockFramed.send).toHaveBeenCalledWith("avatar-picker", {
+            avatarId: "square",
+        });
+        expect(button("Avatars").getAttribute("aria-pressed")).not.toBe("true");
+    });
+
+    test("the avatar chosen there is worn here; nothing else is", () => {
+        render();
+        act(() =>
+            mockFramed.say("avatar", {
+                avatarUrl: "https://cdn.example/robot.vrm",
+                avatarId: "robot",
+                avatarName: "Robot",
+            })
+        );
+        expect(mockWear).toHaveBeenCalledWith({
+            id: "robot",
+            name: "Robot",
+            url: "https://cdn.example/robot.vrm",
+        });
+        act(() => mockFramed.say("avatar", { avatarUrl: "javascript:1" }));
+        act(() => mockFramed.say("identity", { avatarUrl: "/a.vrm" }));
+        expect(mockWear).toHaveBeenCalledTimes(1);
+    });
 });
 
 test("More keeps the full avatar settings: uploads, size and profile", () => {
@@ -532,6 +627,10 @@ test("photo, chat, feedback and moderator requests preserve their native actions
     click("More");
     click("Requests to speak");
     expect(panel.currentTab).toBe("voiceRequests");
+    // Admin controls live in More, so a closed panel can be opened again.
+    click("More");
+    click("Moderate people");
+    expect(panel.currentTab).toBe("users");
     click("More");
     click("Send feedback");
     expect(panel.currentTab).toBe("feedback");
@@ -592,21 +691,6 @@ test("mobile keeps photo while omitting duplicate discovery and unavailable desk
     expect(button("Space controls")).toBeNull();
     expect(button("Share screen or audio")).toBeNull();
     expect(button("Requests to speak")).toBeNull();
-});
-
-test("the M shortcut only handles an unmodified non-editing native voice gesture", () => {
-    render();
-    key("m", { ctrlKey: true });
-    key("m", { metaKey: true });
-    key("m", { altKey: true });
-    key("m", { repeat: true });
-    key("m", { isComposing: true });
-    const input = document.createElement("input");
-    container.append(input);
-    key("m", {}, input);
-    expect(social.voice.toggleMuted).not.toHaveBeenCalled();
-    key("m");
-    expect(social.voice.toggleMuted).toHaveBeenCalledTimes(1);
 });
 
 test("animation cards preserve native indexes and return focus after selection", () => {
@@ -950,8 +1034,9 @@ describe("the voice level readout", () => {
         }
         // Declared once, at module level: the chunk is only fetched when
         // the stand-in above would render. (The others are the avatar
-        // picker, the people panel and the shell's world info sidebar.)
-        expect(mockLoaders).toHaveLength(4);
+        // picker, the people panel, and the shell's world info sidebar and
+        // site header.)
+        expect(mockLoaders).toHaveLength(5);
     });
 
     test.each(["?voiceDebug", "?voiceDebug=0.42", "?x=1&voiceDebug=-58"])(

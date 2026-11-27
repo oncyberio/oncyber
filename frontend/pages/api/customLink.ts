@@ -2,6 +2,8 @@ import { auth } from "../../utils/middlewares/authMiddleware";
 import { db } from "../../utils/firebaseAdmin";
 import { corsMiddleware } from "../../utils/middlewares/corsMiddleware";
 import { firestore } from "firebase-admin";
+import { isReservedLink } from "../../utils/reservedLinks";
+import { publishedGameHoldsLink } from "@features/games/gameSlugServer";
 
 export default async (req, res) => {
     await corsMiddleware(req, res);
@@ -28,6 +30,19 @@ export default async (req, res) => {
         // TODO: For now we don't handle yet concurrent customLink edits very well
 
         const isRemove = customLink === null || customLink == "";
+
+        // One space of names (features/games/gameSlug.ts): the site's own
+        // pages and games, and the games published on it, hold theirs.
+        if (
+            !isRemove &&
+            (isReservedLink(customLink) ||
+                (await publishedGameHoldsLink(customLink)))
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "This link already exists.",
+            });
+        }
 
         //
         const exhibitRef = db.collection("exhibits").doc(exhibitId);

@@ -1,0 +1,392 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import * as THREE from "three";
+import {
+    createAvatarKit,
+    createAvatar,
+    createNameTag,
+    loadVRM,
+} from "../src/index.ts";
+
+const file = (path) => new URL(path, import.meta.url);
+const bytes = () => {
+    const b = readFileSync(file("./fixtures/square.vrm"));
+    return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+};
+const locomotion = JSON.parse(
+    readFileSync(file("../motion/locomotion.json"), "utf8")
+);
+const emotes = JSON.parse(readFileSync(file("../motion/emotes.json"), "utf8"));
+
+// A canvas good enough for sprites in Node.
+const canvas = (width, height) => ({
+    width,
+    height,
+    getContext: () =>
+        new Proxy(
+            { measureText: (s) => ({ width: s.length * 28 }) },
+            { get: (t, k) => t[k] ?? (() => {}), set: () => true }
+        ),
+});
+const footY = (avatar) =>
+    avatar.vrm.humanoid
+        .getRawBoneNode("leftFoot")
+        .getWorldPosition(new THREE.Vector3()).y;
+const hipsY = (avatar) =>
+    avatar.vrm.humanoid
+        .getRawBoneNode("hips")
+        .getWorldPosition(new THREE.Vector3()).y;
+const settle = (avatar, crouch = 0, frames = 40) => {
+    for (let i = 0; i < frames; i++) avatar.drive(1 / 30, crouch);
+    avatar.root.updateMatrixWorld(true);
+};
+
+test("the kit's motion files are the lobby's", () => {
+    execFileSync(process.execPath, [
+        file("../scripts/sync-motion.mjs").pathname,
+        "--check",
+    ]);
+});
+
+test("an Oncyber avatar loads, is scaled to the game's height and plays lobby clips", async () => {
+    const avatar = createAvatar({ height: 1.75 });
+    assert.equal(avatar.kind, "stand-in");
+    avatar.addClips(locomotion); // before the avatar arrives
+    avatar.attach(await loadVRM(bytes()));
+    assert.equal(avatar.kind, "vrm");
+    avatar.root.updateMatrixWorld(true);
+    const size = new THREE.Box3().setFromObject(avatar.holder);
+    assert.ok(
+        Math.abs(size.max.y - size.min.y - 1.75) < 0.02 &&
+            Math.abs(size.min.y) < 0.02
+    );
+    for (const name of ["IDLE", "WALK", "RUN", "JUMP", "WAVING"])
+        assert.ok(avatar.hasClip(name), name);
+    const arm = avatar.vrm.humanoid.getNormalizedBoneNode("leftUpperArm");
+    settle(avatar);
+    assert.equal(avatar.playing, "IDLE");
+    assert.ok(
+        arm.quaternion.angleTo(new THREE.Quaternion()) > 0.5,
+        "idle lowers the arms from the T-pose"
+    );
+    const idleHips = hipsY(avatar);
+    assert.ok(
+        idleHips > 0.6 && idleHips < 1.2,
+        `hips stay at hip height (${idleHips})`
+    );
+    avatar.motion = { speed: 4.5 };
+    settle(avatar);
+    assert.equal(avatar.playing, "RUN");
+    avatar.motion = { emote: "HIPHOP" };
+    settle(avatar);
+    assert.equal(
+        avatar.playing,
+        "IDLE",
+        "an emote that isn't loaded leaves the avatar standing"
+    );
+    avatar.addClips(emotes);
+    settle(avatar);
+    assert.equal(avatar.playing, "HIPHOP");
+    avatar.rest();
+    assert.ok(arm.quaternion.angleTo(new THREE.Quaternion()) < 1e-6);
+    avatar.manual = true;
+    avatar.drive(1 / 30);
+    assert.ok(
+        arm.quaternion.angleTo(new THREE.Quaternion()) < 1e-6,
+        "a game posing the rig itself is left alone"
+    );
+    avatar.dispose();
+});
+
+test("the crouch lowers the hips and keeps the feet on the floor", async () => {
+    const avatar = createAvatar({ height: 1.75 });
+    avatar.attach(await loadVRM(bytes()));
+    avatar.addClips(locomotion);
+    settle(avatar);
+    const standing = { hips: hipsY(avatar), foot: footY(avatar) };
+    settle(avatar, 1);
+    assert.ok(standing.hips - hipsY(avatar) > 0.25, "hips come down");
+    assert.ok(
+        Math.abs(footY(avatar) - standing.foot) < 0.04,
+        `feet stay put (${footY(avatar)} vs ${standing.foot})`
+    );
+    settle(avatar, 0);
+    assert.ok(
+        Math.abs(hipsY(avatar) - standing.hips) < 0.03,
+        "and stands back up"
+    );
+});
+
+test("name tag: shows the name, and the talking indicator only while talking", () => {
+    const tag = createNameTag("Ada", { canvas });
+    const [label, icon] = tag.object.children;
+    assert.equal(tag.name, "Ada");
+    assert.ok(label.scale.x > label.scale.y);
+    assert.equal(icon.visible, false);
+    tag.setTalking(true);
+    assert.equal(icon.visible, true);
+    const before = icon.scale.x;
+    tag.update(0.1);
+    assert.notEqual(icon.scale.x, before, "it pulses");
+    tag.setTalking(false);
+    assert.equal(icon.visible, false);
+    tag.setName("A much longer name than before");
+    assert.equal(tag.name, "A much longer name than ");
+    tag.dispose();
+});
+
+function kitFor(overrides = {}) {
+    let clock = 10;
+    const asked = [];
+    const kit = createAvatarKit({
+        services: {
+            identity: { avatar: "/me.vrm" },
+            avatar: async (ref) => {
+                asked.push(ref);
+                if (ref.includes("broken")) throw new Error("AVATAR_HTTP_404");
+                return bytes();
+            },
+        },
+        motion: async () => locomotion,
+        emotes: async () => emotes,
+        canvas,
+        now: () => clock,
+        onError() {},
+        ...overrides,
+    });
+    const scene = new THREE.Scene();
+    scene.add(kit.self.root, kit.group);
+    const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 100);
+    camera.position.set(0, 2.3, 4.8);
+    camera.lookAt(0, 1.25, 0);
+    // Stand-in for a renderer: three calls onBeforeRender on each mesh it draws.
+    const render = () =>
+        scene.traverseVisible((o) => o.isMesh && o.onBeforeRender());
+    const frame = (seconds = 1 / 30) => {
+        clock += seconds;
+        kit.update(seconds, camera);
+        scene.updateMatrixWorld(true);
+        render();
+    };
+    return { kit, scene, camera, frame, asked, tick: (s) => (clock += s) };
+}
+const idle = () => new Promise((r) => setTimeout(r, 30));
+
+test("kit: the visitor and another player are drawn as their avatars", async () => {
+    const { kit, frame, asked } = kitFor();
+    assert.equal(await kit.loadSelf(), true);
+    kit.setPeers([
+        {
+            id: "p2",
+            name: "Player 2",
+            vrm: "/p2.vrm",
+            x: 1.5,
+            y: 0,
+            z: 0,
+            h: 0,
+            a: 0,
+            talking: true,
+        },
+        {
+            id: "p3",
+            name: "Player 3",
+            vrm: "/broken.vrm",
+            x: -1.5,
+            y: 0,
+            z: 0,
+            h: 0,
+            a: 1,
+        },
+        { id: "", name: "nobody" },
+    ]);
+    assert.equal(kit.others.size, 2);
+    await idle();
+    for (let i = 0; i < 20; i++) frame();
+    const facts = kit.inspect();
+    assert.deepEqual(asked.sort(), ["/broken.vrm", "/me.vrm", "/p2.vrm"]);
+    assert.equal(facts.avatarSelf, "vrm");
+    assert.equal(facts.avatarSelfInFrame, true);
+    assert.equal(facts.avatarOthers, 2);
+    assert.equal(
+        facts.avatarOthersDrawn,
+        2,
+        "a player whose avatar fails still appears, as a stand-in"
+    );
+    assert.equal(facts.avatarOthersVrm, 1);
+    assert.equal(facts.avatarTalking, 1);
+    const p2 = kit.others.get("p2");
+    assert.equal(p2.tag.name, "Player 2");
+    assert.ok(Math.abs(p2.avatar.root.position.x - 1.5) < 1e-6);
+    assert.equal(kit.others.get("p3").avatar.playing, "WALK");
+    // Someone leaves.
+    kit.setPeers([
+        {
+            id: "p2",
+            name: "Player 2",
+            vrm: "/p2.vrm",
+            x: 1.5,
+            y: 0,
+            z: 0,
+            h: 0,
+            a: 8 + 6,
+        },
+    ]);
+    for (let i = 0; i < 12; i++) frame();
+    await idle(); // the emote clips load the first time someone plays one
+    for (let i = 0; i < 30; i++) frame();
+    assert.equal(kit.inspect().avatarOthers, 1);
+    assert.equal(p2.avatar.playing, "HIPHOP", "another player's emote plays");
+    kit.dispose();
+    assert.equal(kit.group.parent, null);
+});
+
+test("kit: wear() swaps the visitor's avatar in place, clips and all", async () => {
+    const { kit, frame, asked } = kitFor();
+    assert.equal(await kit.loadSelf(), true);
+    kit.self.root.position.set(3, 0, -2);
+    kit.self.motion = { speed: 1 };
+    for (let i = 0; i < 20; i++) frame();
+    const first = kit.self.vrm;
+    assert.equal(kit.self.playing, "WALK");
+    assert.equal(kit.inspect().avatarSelfChanges, 0);
+
+    // The visitor chose another avatar in the page's picker.
+    assert.equal(await kit.wear("/second.vrm"), true);
+    // (Compared with ===: a failed assertion would print the whole scene.)
+    assert.ok(kit.self.vrm !== first, "a new body");
+    assert.ok(first.scene.parent === null, "the old one left the scene");
+    assert.equal(kit.self.kind, "vrm");
+    assert.deepEqual(
+        kit.self.root.position.toArray(),
+        [3, 0, -2],
+        "where the old one stood"
+    );
+    for (let i = 0; i < 20; i++) frame();
+    assert.equal(kit.self.playing, "WALK", "doing what the old one did");
+    const facts = kit.inspect();
+    assert.equal(facts.avatarSelf, "vrm");
+    assert.equal(facts.avatarSelfInFrame, true, "the new one is drawn");
+    assert.equal(facts.avatarSelfChanges, 1);
+    // An emote learnt before the change still plays after it.
+    kit.emote("HIPHOP");
+    await idle();
+    assert.equal(await kit.wear("/third.vrm"), true);
+    for (let i = 0; i < 30; i++) frame();
+    assert.equal(kit.self.playing, "HIPHOP");
+
+    // The same avatar again is nothing to do; one that fails leaves the
+    // visitor as they were; of two choices in a row the last one wins.
+    assert.equal(await kit.wear("/third.vrm"), true);
+    assert.equal(kit.inspect().avatarSelfChanges, 2);
+    const worn = kit.self.vrm;
+    assert.equal(await kit.wear("/broken.vrm"), false);
+    assert.ok(kit.self.vrm === worn, "still wearing the last one");
+    assert.equal(await kit.wear(""), false);
+    const [early, late] = await Promise.all([
+        kit.wear("/fourth.vrm"),
+        kit.wear("/fifth.vrm"),
+    ]);
+    assert.deepEqual([early, late], [false, true]);
+    assert.equal(kit.inspect().avatarSelfChanges, 3);
+    assert.deepEqual(asked, [
+        "/me.vrm",
+        "/second.vrm",
+        "/third.vrm",
+        "/broken.vrm",
+        "/fourth.vrm",
+        "/fifth.vrm",
+    ]);
+    kit.dispose();
+});
+
+test("kit: another player who changes avatar is redrawn as the new one", async () => {
+    const { kit, frame, asked } = kitFor();
+    const peer = (vrm) => [
+        { id: "p2", name: "Player 2", vrm, x: 1, y: 0, z: 0, h: 0, a: 0 },
+    ];
+    kit.setPeers(peer("/p2.vrm"));
+    await idle();
+    for (let i = 0; i < 10; i++) frame();
+    const p2 = kit.others.get("p2");
+    const first = p2.avatar.vrm;
+    assert.ok(first);
+    // The same avatar announced again is not fetched again.
+    kit.setPeers(peer("/p2.vrm"));
+    await idle();
+    assert.deepEqual(asked, ["/p2.vrm"]);
+    kit.setPeers(peer("/p2-new.vrm"));
+    await idle();
+    for (let i = 0; i < 10; i++) frame();
+    assert.deepEqual(asked, ["/p2.vrm", "/p2-new.vrm"]);
+    assert.ok(p2.avatar.vrm !== first, "a new body");
+    assert.ok(first.scene.parent === null, "the old one left the scene");
+    assert.equal(kit.inspect().avatarOthersVrm, 1);
+    kit.dispose();
+});
+
+test("kit: arrival frame, then standing after entered; emotes ride the pose", async () => {
+    const { kit, frame, camera } = kitFor();
+    await kit.loadSelf();
+    kit.arrival.stage({
+        cameraOffset: { x: 0, y: 2, z: -4 },
+        cameraTargetOffset: { x: 0, y: 1.2, z: 0 },
+        avatarRotation: 0,
+        avatarHeight: 1.8,
+        fov: 55,
+    });
+    for (let i = 0; i < 5; i++) frame();
+    let facts = kit.inspect();
+    assert.equal(facts.avatarArrival, "crouched");
+    assert.equal(facts.avatarFacingCamera, true);
+    assert.equal(facts.avatarHandsEmpty, true);
+    assert.equal(facts.avatarSelfInFrame, true);
+    kit.self.root.rotation.y = Math.PI;
+    assert.equal(
+        kit.inspect().avatarFacingCamera,
+        false,
+        "back to the camera is not the arrival pose"
+    );
+    kit.self.root.rotation.y = 0;
+    camera.position.set(0, 2, -30);
+    camera.lookAt(0, 2, -60);
+    frame();
+    assert.equal(
+        kit.inspect().avatarSelfInFrame,
+        false,
+        "behind the camera is not in the frame"
+    );
+    kit.arrival.enter();
+    for (let i = 0; i < 30; i++) frame();
+    facts = kit.inspect();
+    assert.equal(facts.avatarArrival, "standing");
+    kit.emote("MOONWALK");
+    await idle();
+    for (let i = 0; i < 30; i++) frame();
+    assert.equal(kit.self.playing, "MOONWALK");
+    assert.equal(kit.inspect().avatarEmote, "MOONWALK");
+    assert.deepEqual(kit.pose({ x: 1, y: 0, z: 2 }, 0.5), {
+        x: 1,
+        y: 0,
+        z: 2,
+        h: 0.5,
+        a: 15,
+    });
+    kit.emote("");
+    assert.equal(kit.pose({ x: 0, y: 0, z: 0 }, 0).a, 0);
+    kit.dispose();
+});
+
+test("kit: no avatar service or no avatar leaves a stand-in, not a crash", async () => {
+    const { kit, frame } = kitFor({ services: { identity: {} } });
+    assert.equal(await kit.loadSelf(), false);
+    kit.setPeers([{ id: "p2", vrm: "/p2.vrm", x: 0, y: 0, z: -2, h: 0, a: 0 }]);
+    await idle();
+    for (let i = 0; i < 12; i++) frame();
+    const facts = kit.inspect();
+    assert.equal(facts.avatarSelf, "stand-in");
+    assert.equal(facts.avatarOthersDrawn, 1);
+    assert.equal(facts.avatarOthersVrm, 0);
+    kit.dispose();
+});

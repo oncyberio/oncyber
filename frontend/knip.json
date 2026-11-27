@@ -8,7 +8,7 @@
         "glslifyloader/*.js"
     ],
     "project": ["**/*.{js,jsx,ts,tsx,mjs,cjs}"],
-    "ignore": ["public/**"],
+    "ignore": ["public/**", "features/world-scripts/examples/*.js"],
     "next": true,
     "jest": true,
     "ignoreDependencies": [

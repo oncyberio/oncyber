@@ -18,6 +18,17 @@ const firebaseConfig = {
 
 export const firebaseApp = initializeApp(firebaseConfig);
 
+let signedOut: ReturnType<typeof initializeApp> | undefined;
+/**
+ * The same project as a second app that nobody ever signs in to. What is
+ * read through it is read as a signed-out visitor reads it, whatever
+ * sign-in the page holds (utils/liveSpace: a framed world's reads of a
+ * space the page did not open).
+ */
+export function signedOutFirebaseApp() {
+    return (signedOut ||= initializeApp(firebaseConfig, "signed-out"));
+}
+
 /** `host:port` as an emulator connect call wants it. */
 export function splitEmulatorHost(value: string): [string, number] {
     const at = value.lastIndexOf(":");
@@ -33,11 +44,14 @@ const connected = new Set<string>();
  */
 export function connectEmulator(
     service: keyof typeof firebaseEmulators,
-    connect: (host: string, port: number) => void
+    connect: (host: string, port: number) => void,
+    /** Which app's service this is, when it is not the main app's. */
+    app = ""
 ) {
     const value = firebaseEmulators[service];
-    if (!value || connected.has(service)) return;
-    connected.add(service);
+    const key = `${app}:${service}`;
+    if (!value || connected.has(key)) return;
+    connected.add(key);
     const [host, port] = splitEmulatorHost(value);
     connect(host, port);
 }

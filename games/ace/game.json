@@ -1,0 +1,382 @@
+{
+  "name": "ACE! Tennis",
+  "avatar": "vrm",
+  "listing": {
+    "tagline": "an arcade tennis match",
+    "description": "Charge it up, time it right, hear the crowd go wild. Play the house solo, or bring a party for 1 v 1, doubles or a tournament.",
+    "players": {
+      "min": 1,
+      "max": 8
+    },
+    "tags": [
+      "sports",
+      "arcade",
+      "party"
+    ]
+  },
+  "page": {
+    "socialRoom": "oncyber-ace-social-v1",
+    "crowdLabel": "at the courts",
+    "controls": {
+      "top": 14
+    }
+  },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
+  "format": "match",
+  "devices": [
+    "desktop",
+    "phone",
+    "gamepad"
+  ],
+  "avatars": {
+    "others": "avatar",
+    "arrival": "pose"
+  },
+  "arrival": {
+    "walkable": true
+  },
+  "locomotion": "lobby",
+  "party": {
+    "sizes": [
+      1,
+      8
+    ],
+    "formats": [
+      {
+        "id": "singles",
+        "label": "1 v 1",
+        "sizes": [
+          2
+        ]
+      },
+      {
+        "id": "doubles",
+        "label": "2 v 2",
+        "sizes": [
+          4
+        ]
+      },
+      {
+        "id": "tournament",
+        "label": "Tournament",
+        "sizes": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "id": "solo",
+        "label": "Solo vs CPU",
+        "sizes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ],
+    "solo": "solo",
+    "play": "singles",
+    "late": "A member who arrives while two others are mid-match is offered Watch (a courtside view of the live match) and Solo vs CPU. The party menu redraws its formats for the new count.",
+    "dropped": "The CPU takes a dropped player's side and the match goes on with the score kept. If the dropped player was running the match, the other takes it over and the point is replayed from the serve. Coming back while the match lasts (a reconnect, or Rejoin your match after a reload) returns their side to them.",
+    "extra": "A match seats two. Anyone else in the room can watch the live match or play solo against the CPU.",
+    "note": "1 v 1 is played between the two members. Doubles and tournaments show the seeded draw; playing them through is not built yet."
+  },
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game.js",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "avatar",
+      "results",
+      "storage",
+      "travel"
+    ],
+    "assets": [],
+    "input": {
+      "up": {
+        "keyboard": [
+          "KeyW",
+          "ArrowUp"
+        ],
+        "touch": "stick-up",
+        "gamepad": [
+          "left-stick-up",
+          "dpad-up"
+        ]
+      },
+      "down": {
+        "keyboard": [
+          "KeyS",
+          "ArrowDown"
+        ],
+        "touch": "stick-down",
+        "gamepad": [
+          "left-stick-down",
+          "dpad-down"
+        ]
+      },
+      "left": {
+        "keyboard": [
+          "KeyA",
+          "ArrowLeft"
+        ],
+        "touch": "stick-left",
+        "gamepad": [
+          "left-stick-left",
+          "dpad-left"
+        ]
+      },
+      "right": {
+        "keyboard": [
+          "KeyD",
+          "ArrowRight"
+        ],
+        "touch": "stick-right",
+        "gamepad": [
+          "left-stick-right",
+          "dpad-right"
+        ]
+      },
+      "flat": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "button:Hit",
+        "gamepad": "button-a"
+      },
+      "topspin": {
+        "keyboard": [
+          "KeyK"
+        ],
+        "touch": "button:Top",
+        "gamepad": "button-x"
+      },
+      "slice": {
+        "keyboard": [
+          "KeyH"
+        ],
+        "touch": "button:Cut",
+        "gamepad": "button-b"
+      },
+      "lob": {
+        "keyboard": [
+          "KeyU"
+        ],
+        "touch": "button:Lob",
+        "gamepad": "button-y"
+      },
+      "drop": {
+        "touch": "button:Drop",
+        "gamepad": [
+          "left-bumper",
+          "right-bumper"
+        ]
+      },
+      "confirm": {
+        "keyboard": [
+          "Space",
+          "KeyJ"
+        ],
+        "touch": "button:OK",
+        "gamepad": "button-a"
+      },
+      "back": {
+        "keyboard": [
+          "Backspace",
+          "KeyK"
+        ],
+        "gamepad": "button-b"
+      },
+      "pause": {
+        "keyboard": [
+          "KeyP"
+        ],
+        "touch": "button:Pause",
+        "gamepad": "button-start"
+      },
+      "run": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "button:Run",
+        "gamepad": [
+          "right-trigger",
+          "left-stick-press"
+        ]
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "button:Jump",
+        "gamepad": "button-x"
+      },
+      "lookX": {
+        "touch": "drag"
+      },
+      "lookY": {
+        "touch": "drag"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ]
+      },
+      "dance": {
+        "keyboard": [
+          "KeyB"
+        ]
+      },
+      "sit": {
+        "keyboard": [
+          "KeyV"
+        ]
+      }
+    }
+  },
+  "keysCheck": {
+    "start": [
+      "Space",
+      "Space"
+    ],
+    "ready": {
+      "screen": "playing"
+    },
+    "move": "KeyD"
+  },
+  "departure": "matched",
+  "results": {
+    "match": "autoplay&games=1&difficulty=rookie&slow=3",
+    "timeoutSeconds": 240
+  },
+  "saved": {
+    "settings": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 256,
+      "sample": {
+        "difficulty": "rookie",
+        "games": 3
+      },
+      "old": [
+        {
+          "stateVersion": 0,
+          "value": "{\"difficulty\":\"ace\",\"games\":1}",
+          "expect": "migrated"
+        }
+      ]
+    },
+    "format": {
+      "scope": "party",
+      "stateVersion": 1,
+      "maxBytes": 128,
+      "sample": {
+        "format": "singles"
+      }
+    },
+    "tally": {
+      "scope": "game",
+      "stateVersion": 1,
+      "maxBytes": 64,
+      "sample": {
+        "matches": 1
+      }
+    }
+  },
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.jpg"
+      ],
+      "note": "A capture of the game."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "package": "@pixiv/three-vrm",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseFile": "licenses/three-vrm-MIT.txt"
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "files": [
+        "assets/basis_transcoder-*.js",
+        "assets/basis_transcoder-*.wasm"
+      ],
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures."
+    },
+    {
+      "title": "Space Grotesk",
+      "kind": "font",
+      "files": [
+        "assets/SpaceGrotesk-*.woff2"
+      ],
+      "author": "The Space Grotesk Project Authors",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Space Mono",
+      "kind": "font",
+      "files": [
+        "assets/SpaceMono-*.woff2"
+      ],
+      "author": "The Space Mono Project Authors",
+      "source": "https://github.com/googlefonts/spacemono",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+      "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Lobby locomotion and emote clips",
+      "kind": "motion",
+      "files": [
+        "assets/locomotion-*.json",
+        "assets/emotes-*.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "Bundled from Oncyber's avatar kit (games/kits/avatar/motion): a copy of frontend/public/lobby/native-avatar-motion.json and four emotes (hip hop, moonwalk, praying, sitting) from native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence; nothing in the repository records where the emotes came from."
+    }
+  ]
+}

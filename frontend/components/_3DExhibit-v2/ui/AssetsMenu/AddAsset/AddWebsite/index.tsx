@@ -1,7 +1,7 @@
 import { nodeEnv } from "@env";
 import axios from "axios";
 import styled from "styled-components";
-import { database } from "@utils/firebase";
+import { liveSpace } from "@utils/liveSpace";
 import { useAssetsContext } from "@components/context/AssetsContext";
 import { useSnackbar } from "@components/Snackbar";
 import { useAssetsMenuContext } from "../../context/useAssetsMenuContext";
@@ -20,15 +20,6 @@ import ButtonArea from "./buttonsArea";
 import { useWorld } from "@components/_3DExhibit-v2/hooks/useWorld";
 import { EDITION_ACTIONS } from "@components/_3DExhibit-v2/three/constants";
 import IconImg from "@ui/components/IconImg";
-import {
-    onValue,
-    query,
-    ref,
-    orderByKey,
-    limitToLast,
-    set,
-    push,
-} from "firebase/database";
 
 export async function updatePreview(q: string): Promise<any> {
     q = q?.trim();
@@ -147,7 +138,7 @@ export function AddWebsite() {
                 timestamp: new Date().getTime() + 1000 * 10,
             };
 
-            push(ref(database, "/exhibits/" + exhibit.id), realtimeEvent);
+            liveSpace().sendEvent(exhibit.id, realtimeEvent);
 
             // database.ref("/exhibits/" + exhibit.id).push(realtimeEvent);
 

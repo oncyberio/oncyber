@@ -32,11 +32,13 @@ import useDiscovery from "../landing-carousel/hooks/useDiscovery";
 import useDestinationPreviews from "../landing-carousel/hooks/useDestinationPreviews";
 import type { LobbyDestination } from "./sceneTypes";
 import { warmDestination } from "./destinationWarmup";
+import { useGameCards } from "@features/games/interface/gameCards";
 import { CARD_WARM_DWELL_MS } from "./destinationWarmupSource";
 
 export default function LobbyExplorePanel({
     cards,
     groupName,
+    partyTrips,
     active = true,
     context = "lobby",
     onClose,
@@ -44,6 +46,8 @@ export default function LobbyExplorePanel({
 }: {
     cards: LandingCard[];
     groupName?: string;
+    /** Trip ids of the visitor's groups, to offer a party already in a game. */
+    partyTrips?: string[];
     active?: boolean;
     /** Where the panel lives; spaces also offer a way into the lobby. */
     context?: "lobby" | "space";
@@ -80,14 +84,20 @@ export default function LobbyExplorePanel({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [context]);
     const resolvedCards = useDestinationPreviews(discovery.cards, true);
+    // Games are hidden at launch: listed on the development server only,
+    // and never inside a group's or a filtered feed.
+    const showGames =
+        !groupName && !filters.chain && !filters.owner && !filters.collection;
+    const games = useGameCards(filters.q, showGames, active, partyTrips);
     const destinations = useMemo(
         () => [
+            ...games,
             ...resolvedCards.filter(
                 (card) =>
                     card.href?.startsWith("/") && !/^\/[\\/]/.test(card.href)
             ),
         ],
-        [resolvedCards]
+        [resolvedCards, games]
     );
     const [menuOpen, setMenuOpen] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);

@@ -1,8 +1,7 @@
-import dynamic from "next/dynamic";
 import ImmersiveViewportStyle from "./ImmersiveViewportStyle";
 import React, { useEffect, useId, useRef, useState } from "react";
 import styled from "styled-components";
-import Header from "@features/landing-carousel/components/Header";
+import dynamic from "next/dynamic";
 import Icon from "@features/landing-carousel/components/Icon";
 import ConnectionStatus, {
     type ConnectionStatusProps,
@@ -13,8 +12,17 @@ import ExperienceControlIcon, {
 } from "@ui/components/ExperienceControlIcon";
 import { brandFoundation } from "@styles/brand";
 import { goToLobby, goToPreviousExperience } from "@utils/experienceNavigation";
+import { useIsWorldDocument } from "@features/worlds/worldDocument";
+import { useWorldDock } from "@features/worlds/useWorldDock";
+import { isTypingTarget } from "@features/games/contract/gameInput";
 import { experienceControl } from "./experienceChrome";
 import PointerLockHint, { usePointerLocked } from "./PointerLockHint";
+// The site's header, with its account menu. It is drawn by the page: in a
+// framed world it is never rendered, and so never fetched.
+const Header = dynamic(
+    () => import("@features/landing-carousel/components/Header")
+);
+
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
 const SpaceInfoSidebar = dynamic(
     () => import("@features/space-info/SpaceInfoSidebar"),
@@ -32,9 +40,17 @@ export interface ExperienceShellAction {
     /** Keep the dock item mounted while it animates out of view. */
     concealed?: boolean;
     badge?: number | string;
+    /**
+     * A key (`KeyboardEvent.code`) that, with Cmd or Ctrl held, presses this
+     * action. Only ever with the modifier: a key on its own is the world's.
+     */
+    shortcut?: string;
     onClick(): void;
     buttonRef?: React.Ref<HTMLButtonElement>;
 }
+
+/** The key of a shortcut as people read it: `KeyM` is M. */
+const shortcutKey = (code: string) => code.replace(/^(Key|Digit)/, "");
 
 /**
  * Why the last dock action did not go through, said just above the dock
@@ -43,6 +59,8 @@ export interface ExperienceShellAction {
 export interface ExperienceShellNotice {
     message: React.ReactNode;
     onRetry?(): void;
+    /** What the notice's button says when it is not a retry. */
+    actionLabel?: string;
 }
 
 export interface ExperienceShellChat {
@@ -159,6 +177,40 @@ export default function ExperienceShell({
 }: ExperienceShellProps) {
     const locked = usePointerLocked();
     const [infoOpen, setInfoOpen] = useState(false);
+    // The dock's shortcuts: Cmd or Ctrl with an action's key. Never a key
+    // on its own, and never while the visitor types.
+    const shortcuts = useRef(actions);
+    shortcuts.current = actions;
+    const [mac, setMac] = useState(false);
+    useEffect(() => {
+        setMac(/Mac|iPhone|iPad/.test(navigator.platform));
+        const key = (event: KeyboardEvent) => {
+            if (
+                !(event.metaKey || event.ctrlKey) ||
+                event.altKey ||
+                event.repeat ||
+                event.isComposing ||
+                event.defaultPrevented ||
+                isTypingTarget(event.target)
+            )
+                return;
+            const action = shortcuts.current.find(
+                (candidate) => candidate.shortcut === event.code
+            );
+            if (!action || action.disabled || action.concealed) return;
+            event.preventDefault();
+            action.onClick();
+        };
+        window.addEventListener("keydown", key);
+        return () => window.removeEventListener("keydown", key);
+    }, []);
+    // Inside the site's frame the page draws the header, the title and
+    // Back; the world keeps only its own controls (features/worlds).
+    const framedWorld = useIsWorldDocument();
+    // ... and the dock: its buttons are drawn by the page, in this place,
+    // and a press comes back here. The world's own stays laid out, unseen,
+    // so what opens from a button still opens beside it.
+    useWorldDock(framedWorld ? actions : null, connection);
     return (
         <Shell
             data-experience-chrome
@@ -166,7 +218,7 @@ export default function ExperienceShell({
             data-pointer-locked={locked || undefined}
         >
             <ImmersiveViewportStyle />
-            {showHeader && (
+            {showHeader && !framedWorld && (
                 <Header
                     menu={null}
                     search={null}
@@ -175,7 +227,10 @@ export default function ExperienceShell({
                     onConnected={onConnected}
                 />
             )}
-            <div className="experience-place">
+            <div
+                className="experience-place"
+                style={framedWorld ? { display: "none" } : undefined}
+            >
                 <button
                     type="button"
                     className="experience-back"
@@ -245,6 +300,7 @@ export default function ExperienceShell({
                     <InlineError
                         message={notice.message}
                         onRetry={notice.onRetry}
+                        retryLabel={notice.actionLabel}
                     />
                 </div>
             )}
@@ -253,6 +309,8 @@ export default function ExperienceShell({
                     className="experience-dock"
                     role="toolbar"
                     aria-label="World actions"
+                    aria-hidden={framedWorld || undefined}
+                    style={framedWorld ? { visibility: "hidden" } : undefined}
                 >
                     {actions.map((action) => (
                         <div
@@ -266,11 +324,28 @@ export default function ExperienceShell({
                                 aria-hidden="true"
                             >
                                 {action.label}
+                                {/* On a Mac the key shown is Control:
+                                    with Command, some letters are the
+                                    system's own (⌘M puts the window
+                                    away) and never reach the page. */}
+                                {action.shortcut &&
+                                    ` · ${mac ? "⌃" : "Ctrl+"}${shortcutKey(
+                                        action.shortcut
+                                    )}`}
                             </span>
                             <button
                                 type="button"
                                 ref={action.buttonRef}
                                 aria-label={action.label}
+                                aria-keyshortcuts={
+                                    action.shortcut
+                                        ? `Meta+${shortcutKey(
+                                              action.shortcut
+                                          )} Control+${shortcutKey(
+                                              action.shortcut
+                                          )}`
+                                        : undefined
+                                }
                                 aria-pressed={
                                     action.expanded == null
                                         ? action.active

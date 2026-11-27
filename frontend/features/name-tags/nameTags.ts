@@ -197,6 +197,9 @@ export function createNameTags(
         }
         if (shelfY + ROW_PX > GLYPH_ATLAS) return null;
         ctx.clearRect(0, 0, w, h);
+        // Ink for measuring a glyph's shape into the distance field; the
+        // tag's colour is the material's, from the tokens.
+        // tokens-ok: a mask's ink, not an interface colour
         ctx.fillStyle = "#fff";
         ctx.fillText(char, BUFFER + left, BUFFER + ascent);
         const pixels = ctx.getImageData(0, 0, w, h).data;

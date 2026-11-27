@@ -1,8 +1,8 @@
 /** @jest-environment jsdom */
 import { beginSpaceEntrance, finishSpaceEntrance } from "./spaceEntrance";
-const mockDraw = jest.fn();
-jest.mock("@components/_3DExhibit-v2/ui/LoaderVideoContainer", () => ({
-    drawStarfield: () => mockDraw,
+const mockStop = jest.fn(async () => ({}));
+jest.mock("@utils/starfield/startStarfield", () => ({
+    startStarfield: () => ({ stop: mockStop }),
 }));
 let source: HTMLAnchorElement;
 beforeEach(() => {
@@ -79,15 +79,20 @@ const flushImports = async () => {
 test("starts the tunnel at black while the destination is still loading", async () => {
     beginSpaceEntrance(source, { title: "World" }, jest.fn());
     await flushImports();
-    const overlay = document.querySelector<HTMLElement>("[data-space-entrance]");
+    const overlay = document.querySelector<HTMLElement>(
+        "[data-space-entrance]"
+    );
     expect(overlay.querySelector("canvas")).toBeNull();
     jest.advanceTimersByTime(160);
     await flushImports();
     expect(overlay.dataset.spaceEntrance).toBe("loading");
     expect(overlay.querySelector("canvas")).not.toBeNull();
+    expect(mockStop).not.toHaveBeenCalled();
     finishSpaceEntrance();
     jest.advanceTimersByTime(160);
     expect(document.querySelector("[data-space-entrance]")).toBeNull();
+    // The stars are stopped with the overlay, not left drawing.
+    expect(mockStop).toHaveBeenCalledTimes(1);
     expect(jest.getTimerCount()).toBe(0);
 });
 test("cancelling during tunnel import does not attach a late canvas", async () => {

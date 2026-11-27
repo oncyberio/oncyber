@@ -1,0 +1,18 @@
+{
+    "name": "@oncyber-games/lantern-tag",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite --host 127.0.0.1 --port 14740",
+        "build": "vite build && node ../../scripts/games/build-record.mjs lantern-tag",
+        "test": "node --test test/*.test.js"
+    },
+    "dependencies": {
+        "@pixiv/three-vrm": "3.5.5",
+        "three": "0.180.0"
+    },
+    "devDependencies": {
+        "vite": "^6.0.0"
+    }
+}

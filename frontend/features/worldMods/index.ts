@@ -1,6 +1,6 @@
-import type { WorldMod, WorldModContext } from "./types";
+import type { WorldMod, WorldModContext, WorldSceneContext } from "./types";
 
-export type { WorldMod, WorldModContext } from "./types";
+export type { WorldMod, WorldModContext, WorldSceneContext } from "./types";
 
 /**
  * Worlds with custom code, by slug (lower case). Each one is its own chunk,
@@ -16,14 +16,11 @@ export function hasWorldMod(slug: string | null | undefined) {
     return typeof slug === "string" && slug.toLowerCase() in WORLD_MODS;
 }
 
-/**
- * Runs the world's mod, if it has one. Never rejects: a failing mod logs and
- * leaves the world as the engine made it.
- */
-export async function applyWorldMod(
+/** Loads the world's mod, if it has one, and runs one of its hooks. */
+async function run(
     slug: string | null | undefined,
-    context: Omit<WorldModContext, "slug">,
-    mods: typeof WORLD_MODS = WORLD_MODS
+    mods: typeof WORLD_MODS,
+    hook: (mod: WorldMod, slug: string) => unknown
 ): Promise<void> {
     if (typeof slug !== "string") return;
     const key = slug.toLowerCase();
@@ -31,8 +28,36 @@ export async function applyWorldMod(
     if (!load) return;
     try {
         const { default: mod } = await load();
-        await mod.onBackground?.({ ...context, slug: key });
+        await hook(mod, key);
     } catch (error) {
         console.warn(`World mod for ${key} failed`, error);
     }
+}
+
+/**
+ * Runs the world's mod on its sky, if it has one. Never rejects: a failing
+ * mod logs and leaves the world as the engine made it.
+ */
+export function applyWorldMod(
+    slug: string | null | undefined,
+    context: Omit<WorldModContext, "slug">,
+    mods: typeof WORLD_MODS = WORLD_MODS
+): Promise<void> {
+    return run(slug, mods, (mod, key) =>
+        mod.onBackground?.({ ...context, slug: key })
+    );
+}
+
+/**
+ * Runs the world's mod on its model and colliders, if it has one, before
+ * the world is shown. Never rejects, as `applyWorldMod`.
+ */
+export function applyWorldScene(
+    slug: string | null | undefined,
+    context: Omit<WorldSceneContext, "slug">,
+    mods: typeof WORLD_MODS = WORLD_MODS
+): Promise<void> {
+    return run(slug, mods, (mod, key) =>
+        mod.onScene?.({ ...context, slug: key })
+    );
 }

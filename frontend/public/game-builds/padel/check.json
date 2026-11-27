@@ -1,0 +1,1556 @@
+{
+  "version": 1,
+  "game": "padel",
+  "checkedAt": "2026-11-27T14:02:26.751Z",
+  "status": "passed",
+  "scope": "scenario",
+  "files": {
+    "count": 23,
+    "bytes": 3805480,
+    "largest": {
+      "path": "assets/index-D90QHjjH.js",
+      "bytes": 1142197
+    }
+  },
+  "avatars": {
+    "status": "passed",
+    "party": 2,
+    "findings": [],
+    "skipped": [],
+    "ms": 16600,
+    "facts": {
+      "arrival": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -7.2,
+          11.8
+        ],
+        "arrival": {
+          "distance": 3.96,
+          "height": 1.98,
+          "fov": 50,
+          "avatarHeight": 1.78,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        },
+        "menu": "",
+        "cameFrom": "lobby",
+        "standing": false,
+        "walked": false,
+        "partySize": 2,
+        "formats": "doubles",
+        "difficulty": "practice",
+        "graphics": "high",
+        "cameraView": "broadcast",
+        "phase": "",
+        "paused": false,
+        "server": -1,
+        "score": "",
+        "rally": 0,
+        "pointsPlayed": 0,
+        "pointPlayed": false,
+        "matchesStarted": 0,
+        "winner": -1,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "muted": false,
+        "inputHeld": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 0,
+        "avatarOthersVrm": 0,
+        "avatarArrival": "crouched",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 2,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      },
+      "entered": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -7.2,
+          11.8
+        ],
+        "arrival": {
+          "distance": 3.96,
+          "height": 1.98,
+          "fov": 50,
+          "avatarHeight": 1.78,
+          "facingCamera": true,
+          "crouched": false,
+          "handsEmpty": true
+        },
+        "menu": "",
+        "cameFrom": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "formats": "doubles",
+        "difficulty": "practice",
+        "graphics": "high",
+        "cameraView": "broadcast",
+        "phase": "",
+        "paused": false,
+        "server": -1,
+        "score": "",
+        "rally": 0,
+        "pointsPlayed": 0,
+        "pointPlayed": false,
+        "matchesStarted": 0,
+        "winner": -1,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "muted": false,
+        "inputHeld": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 10,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      },
+      "others": {
+        "booted": true,
+        "screen": "arrival",
+        "position": [
+          -7.2,
+          11.8
+        ],
+        "arrival": {
+          "distance": 3.96,
+          "height": 1.98,
+          "fov": 50,
+          "avatarHeight": 1.78,
+          "facingCamera": true,
+          "crouched": false,
+          "handsEmpty": true
+        },
+        "menu": "",
+        "cameFrom": "lobby",
+        "standing": true,
+        "walked": false,
+        "partySize": 2,
+        "formats": "doubles",
+        "difficulty": "practice",
+        "graphics": "high",
+        "cameraView": "broadcast",
+        "phase": "",
+        "paused": false,
+        "server": -1,
+        "score": "",
+        "rally": 0,
+        "pointsPlayed": 0,
+        "pointPlayed": false,
+        "matchesStarted": 0,
+        "winner": -1,
+        "matchOpen": false,
+        "resultsSent": 0,
+        "muted": false,
+        "inputHeld": false,
+        "avatarSelf": "vrm",
+        "avatarSelfInFrame": true,
+        "avatarOthers": 1,
+        "avatarOthersDrawn": 1,
+        "avatarOthersVrm": 1,
+        "avatarArrival": "standing",
+        "avatarFacingCamera": true,
+        "avatarHandsEmpty": true,
+        "avatarTalking": 1,
+        "avatarEmote": "",
+        "avatarSelfChanges": 0,
+        "audioState": "suspended",
+        "audioRouted": false,
+        "audioBypass": 0,
+        "audioMuted": false,
+        "audioVolume": 1,
+        "audioDucked": false,
+        "audioSuspended": false,
+        "audioGain": 1,
+        "audioInput": 0,
+        "audioLevel": 0,
+        "hostPhase": "entered",
+        "hostFrames": 15,
+        "hostArrival": "lobby",
+        "hostParty": 2,
+        "hostPartyArrived": 2,
+        "hostInputPaused": false
+      }
+    }
+  },
+  "hosted": {
+    "status": "passed",
+    "backend": "local",
+    "release": "202fa8a2258b2647",
+    "files": 23,
+    "verified": 23,
+    "bootMs": 5235,
+    "ms": 5460
+  },
+  "findings": [],
+  "loading": {
+    "status": "passed",
+    "firstFrameMs": 3013,
+    "firstFrameBudgetMs": 5000,
+    "gameFirstFrameMs": 1010,
+    "progress": {
+      "messages": 4,
+      "labels": [
+        "Preparing your court",
+        "Getting your racket ready",
+        "Opening court 01",
+        "Ready"
+      ]
+    },
+    "resize": [
+      {
+        "width": 900,
+        "height": 620,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 520,
+        "height": 700,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "blank": false,
+        "redrawn": true,
+        "announced": true
+      }
+    ],
+    "pause": {
+      "mode": "solo",
+      "menu": "held",
+      "hidden": "held"
+    },
+    "notes": []
+  },
+  "social": {
+    "stage": "social",
+    "status": "passed",
+    "ms": 18018,
+    "facts": {
+      "chatCarried": true,
+      "chatDelivered": true,
+      "voiceRestored": {
+        "ada": "live",
+        "ben": "muted"
+      },
+      "talking": true,
+      "spatial": true,
+      "gameIsolated": true,
+      "gameSent": [
+        "audio",
+        "hello",
+        "saved",
+        "progress",
+        "first-frame",
+        "ready",
+        "pose",
+        "arrival-ready"
+      ]
+    }
+  },
+  "safeArea": {
+    "status": "passed",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 24,
+            "y": 658,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 1210.3,
+            "y": 687,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "club-card",
+            "x": 1006,
+            "y": 67,
+            "width": 250,
+            "height": 271
+          },
+          {
+            "id": "setup-card",
+            "x": 440,
+            "y": 137,
+            "width": 400,
+            "height": 447
+          },
+          {
+            "id": "settings-card",
+            "x": 440,
+            "y": 217.5,
+            "width": 400,
+            "height": 286
+          },
+          {
+            "id": "match-bar",
+            "x": 1077.7,
+            "y": 67,
+            "width": 178.3,
+            "height": 40
+          },
+          {
+            "id": "score",
+            "x": 28,
+            "y": 67,
+            "width": 220,
+            "height": 104
+          },
+          {
+            "id": "instructions",
+            "x": 28,
+            "y": 583,
+            "width": 408.3,
+            "height": 63
+          },
+          {
+            "id": "shot-panel",
+            "x": 942,
+            "y": 497,
+            "width": 310,
+            "height": 149
+          },
+          {
+            "id": "pause-card",
+            "x": 440,
+            "y": 155,
+            "width": 400,
+            "height": 411
+          },
+          {
+            "id": "results-card",
+            "x": 440,
+            "y": 216,
+            "width": 400,
+            "height": 289
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 782,
+            "width": 280,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 320.3,
+            "y": 811,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "club-card",
+            "x": 116,
+            "y": 67,
+            "width": 250,
+            "height": 261.6
+          },
+          {
+            "id": "setup-card",
+            "x": 16,
+            "y": 194.2,
+            "width": 358,
+            "height": 456.5
+          },
+          {
+            "id": "settings-card",
+            "x": 16,
+            "y": 283.7,
+            "width": 358,
+            "height": 277.5
+          },
+          {
+            "id": "match-bar",
+            "x": 187.7,
+            "y": 67,
+            "width": 178.3,
+            "height": 39.5
+          },
+          {
+            "id": "score",
+            "x": 28,
+            "y": 67,
+            "width": 180,
+            "height": 103
+          },
+          {
+            "id": "instructions",
+            "x": 28,
+            "y": 545,
+            "width": 358,
+            "height": 75
+          },
+          {
+            "id": "shot-panel",
+            "x": 92,
+            "y": 621,
+            "width": 270,
+            "height": 149
+          },
+          {
+            "id": "pause-card",
+            "x": 16,
+            "y": 221.9,
+            "width": 358,
+            "height": 401.2
+          },
+          {
+            "id": "results-card",
+            "x": 16,
+            "y": 282.7,
+            "width": 358,
+            "height": 279.6
+          },
+          {
+            "id": "control-stick",
+            "x": 16,
+            "y": 626,
+            "width": 148,
+            "height": 148
+          },
+          {
+            "id": "control-confirm",
+            "x": 310,
+            "y": 710,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-run",
+            "x": 236,
+            "y": 710,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-jump",
+            "x": 310,
+            "y": 636,
+            "width": 64,
+            "height": 64
+          }
+        ],
+        "overlaps": [],
+        "outside": []
+      },
+      {
+        "name": "phone-landscape",
+        "width": 844,
+        "height": 390,
+        "insets": {
+          "top": 55,
+          "right": 0,
+          "bottom": 62,
+          "left": 0
+        },
+        "overlays": [
+          {
+            "id": "controls",
+            "x": 20,
+            "y": 14,
+            "width": 373.8,
+            "height": 41
+          },
+          {
+            "id": "party-chat",
+            "x": 16,
+            "y": 328,
+            "width": 340,
+            "height": 42
+          },
+          {
+            "edge": "bottom",
+            "id": "credits",
+            "x": 774.3,
+            "y": 357,
+            "width": 57.7,
+            "height": 23
+          }
+        ],
+        "hud": [
+          {
+            "id": "club-card",
+            "x": 570,
+            "y": 67,
+            "width": 250,
+            "height": 269.6
+          },
+          {
+            "id": "setup-card",
+            "x": 222,
+            "y": 71,
+            "width": 400,
+            "height": 249
+          },
+          {
+            "id": "settings-card",
+            "x": 222,
+            "y": 71,
+            "width": 400,
+            "height": 249
+          },
+          {
+            "id": "match-bar",
+            "x": 641.7,
+            "y": 67,
+            "width": 178.3,
+            "height": 39.5
+          },
+          {
+            "id": "score",
+            "x": 28,
+            "y": 67,
+            "width": 220,
+            "height": 104
+          },
+          {
+            "id": "instructions",
+            "x": 28,
+            "y": 253,
+            "width": 405.1,
+            "height": 63
+          },
+          {
+            "id": "shot-panel",
+            "x": 506,
+            "y": 167,
+            "width": 310,
+            "height": 149
+          },
+          {
+            "id": "pause-card",
+            "x": 222,
+            "y": 71,
+            "width": 400,
+            "height": 249
+          },
+          {
+            "id": "results-card",
+            "x": 222,
+            "y": 71,
+            "width": 400,
+            "height": 249
+          },
+          {
+            "id": "control-stick",
+            "x": 16,
+            "y": 172,
+            "width": 148,
+            "height": 148
+          },
+          {
+            "id": "control-confirm",
+            "x": 764,
+            "y": 256,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-run",
+            "x": 690,
+            "y": 256,
+            "width": 64,
+            "height": 64
+          },
+          {
+            "id": "control-jump",
+            "x": 616,
+            "y": 256,
+            "width": 64,
+            "height": 64
+          }
+        ],
+        "overlaps": [],
+        "outside": [
+          "club-card"
+        ]
+      }
+    ],
+    "findings": []
+  },
+  "party": {
+    "status": "passed",
+    "ms": 0,
+    "options": {},
+    "drops": []
+  },
+  "warnings": [
+    {
+      "code": "SCENE_FIRST_FRAME_WAIT",
+      "message": "2.5 MiB arrive before the first frame: about 2.3 s on a 9 Mbit/s connection, plus 3.0 s here, against a budget of 5.0 s. The largest: assets/index-D90QHjjH.js (1.1 MiB), assets/tennis-motion-B3dyzj4F.json (0.9 MiB), avatars/square-catalogue.vrm (0.2 MiB). Load after the first frame what the first frame does not show. Of 100 visits that open an Oncyber world, 33 wait long enough to start it."
+    },
+    {
+      "code": "SCENE_TRIANGLES_PHONE",
+      "message": "a frame draws 105,104 triangles. Oncyber worlds over 100,000 run under 30 frames a second 13.8% of the time on phones, against 6% under it. Draw fewer on a phone: simpler models, or a shorter view."
+    },
+    {
+      "code": "SCENE_DRAWN_AGAIN",
+      "message": "a frame draws the scene 2 times (47,272 triangles to a texture, 57,828 triangles to a texture): a mirror, water or shadows draw it again. Oncyber worlds with a reflection run under 30 frames a second 20.8% of the time on phones, against 4.5% without (desktops: 14.8% against 10.3%). Leave the extra pass out on a phone, or draw fewer things into it."
+    }
+  ],
+  "scene": {
+    "version": 1,
+    "start": {
+      "bytes": 2642415,
+      "files": 9,
+      "largest": [
+        {
+          "path": "assets/index-D90QHjjH.js",
+          "bytes": 1142197
+        },
+        {
+          "path": "assets/tennis-motion-B3dyzj4F.json",
+          "bytes": 903297
+        },
+        {
+          "path": "avatars/square-catalogue.vrm",
+          "bytes": 255160
+        }
+      ],
+      "hereMs": 3013,
+      "downloadMs": 2349,
+      "estimatedMs": 5362,
+      "budgetMs": 5000,
+      "referenceMbit": 9
+    },
+    "frame": {
+      "api": "webgl2",
+      "frames": 954,
+      "triangles": {
+        "usual": 105102,
+        "heavy": 105104,
+        "peak": 105826
+      },
+      "calls": {
+        "usual": 120,
+        "heavy": 121,
+        "peak": 126
+      },
+      "passes": [
+        {
+          "screen": false,
+          "triangles": 47272,
+          "calls": 41
+        },
+        {
+          "screen": false,
+          "triangles": 57828,
+          "calls": 76
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": true,
+          "triangles": 1,
+          "calls": 1
+        }
+      ],
+      "sceneDraws": 2,
+      "textures": {
+        "count": 29,
+        "bytes": 72619820,
+        "largest": {
+          "width": 2048,
+          "height": 2048
+        }
+      }
+    },
+    "phoneCanvas": {
+      "width": 824,
+      "height": 1678,
+      "layoutWidth": 412,
+      "layoutHeight": 839,
+      "devicePixelRatio": 2.625,
+      "pixelRatio": 2
+    },
+    "notes": []
+  },
+  "ui": {
+    "screens": [
+      {
+        "name": "#club-card",
+        "controls": 3,
+        "kit": true
+      },
+      {
+        "name": "#setup",
+        "controls": 4,
+        "kit": true
+      },
+      {
+        "name": "#visit-settings",
+        "controls": 3,
+        "kit": true
+      },
+      {
+        "name": "#match-bar",
+        "controls": 2,
+        "kit": true
+      },
+      {
+        "name": "#pause-screen",
+        "controls": 4,
+        "kit": true
+      },
+      {
+        "name": "#results",
+        "controls": 3,
+        "kit": true
+      }
+    ]
+  },
+  "results": [
+    {
+      "match": "96ec6764c8a8d5600e62f080",
+      "format": "doubles",
+      "durationSeconds": 18.5,
+      "teams": [
+        {
+          "score": 0,
+          "players": [
+            {
+              "id": "self",
+              "name": "Check",
+              "kind": "self"
+            },
+            {
+              "id": "npc-leo-practice",
+              "name": "Leo",
+              "kind": "cpu"
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "players": [
+            {
+              "id": "npc-noa-practice",
+              "name": "Noa",
+              "kind": "cpu"
+            },
+            {
+              "id": "npc-mika-practice",
+              "name": "Mika",
+              "kind": "cpu"
+            }
+          ]
+        }
+      ],
+      "winner": 1
+    }
+  ],
+  "consoleErrors": [
+    "Permissions policy violation: focus-without-user-activation is not allowed in this document."
+  ],
+  "contract": {
+    "listed": true,
+    "prefix": "oncyber:game:",
+    "version": 3,
+    "visit": {
+      "arrival": "lobby",
+      "party": 2
+    },
+    "warnings": []
+  },
+  "devices": {
+    "declared": [
+      "desktop",
+      "gamepad"
+    ],
+    "notes": [
+      {
+        "code": "TOUCH_CUSTOM",
+        "message": "2 action(s) name touch controls the runtime does not draw (lookX, lookY); the game's UI page must provide them"
+      }
+    ],
+    "profiles": {
+      "desktop": {
+        "status": "passed",
+        "input": "keyboard",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "claimed": true
+      },
+      "phone": {
+        "status": "failed",
+        "input": "touch",
+        "viewport": "412 x 839",
+        "emulates": "Pixel 7",
+        "scope": "scenario",
+        "findings": [
+          {
+            "code": "STAGE_SCENARIO",
+            "message": "TOUCH_CONTROL_HIDDEN:confirm"
+          }
+        ],
+        "controls": {
+          "stick": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ],
+          "buttons": [
+            "hit",
+            "lob",
+            "power",
+            "confirm",
+            "pause",
+            "run",
+            "jump"
+          ]
+        },
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "failed",
+          "backend": "webgl2",
+          "bootMs": 3747,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 3747
+            },
+            {
+              "stage": "scenario",
+              "status": "failed",
+              "ms": 55141,
+              "error": "TOUCH_CONTROL_HIDDEN:confirm"
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 132211
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 733.2,
+            "p95Ms": 866.6,
+            "worstMs": 950.1
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "match",
+            "position": [
+              2.25,
+              8.2
+            ],
+            "arrival": null,
+            "menu": "",
+            "cameFrom": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 2,
+            "formats": "doubles",
+            "difficulty": "practice",
+            "graphics": "high",
+            "cameraView": "broadcast",
+            "phase": "serve",
+            "paused": false,
+            "server": 0,
+            "score": "0-0",
+            "rally": 0,
+            "pointsPlayed": 0,
+            "pointPlayed": false,
+            "matchesStarted": 1,
+            "winner": -1,
+            "matchOpen": true,
+            "resultsSent": 0,
+            "muted": false,
+            "inputHeld": false,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": false,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "avatarSelfChanges": 0,
+            "audioState": "running",
+            "audioRouted": true,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0.0026,
+            "audioLevel": 0.0026,
+            "hostPhase": "entered",
+            "hostFrames": 271,
+            "hostArrival": "lobby",
+            "hostParty": 2,
+            "hostPartyArrived": 2,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": false
+      },
+      "gamepad": {
+        "status": "passed",
+        "input": "gamepad",
+        "viewport": "1280 x 720",
+        "scope": "scenario",
+        "findings": [],
+        "consoleErrors": [],
+        "run": {
+          "version": 1,
+          "status": "passed",
+          "backend": "webgl2",
+          "bootMs": 3999,
+          "stages": [
+            {
+              "stage": "boot",
+              "status": "passed",
+              "ms": 3999
+            },
+            {
+              "stage": "scenario",
+              "status": "passed",
+              "ms": 380067
+            },
+            {
+              "stage": "lifecycle",
+              "status": "passed",
+              "ms": 0
+            },
+            {
+              "stage": "frames",
+              "status": "passed",
+              "ms": 87875
+            }
+          ],
+          "frames": {
+            "count": 180,
+            "medianMs": 483.3,
+            "p95Ms": 566.6,
+            "worstMs": 700.1
+          },
+          "inspect": {
+            "booted": true,
+            "screen": "match",
+            "position": [
+              2.252875053178121,
+              2.99528494796854
+            ],
+            "arrival": null,
+            "menu": "",
+            "cameFrom": "lobby",
+            "standing": true,
+            "walked": true,
+            "partySize": 2,
+            "formats": "doubles",
+            "difficulty": "practice",
+            "graphics": "high",
+            "cameraView": "broadcast",
+            "phase": "rally",
+            "paused": false,
+            "server": 2,
+            "score": "0-3",
+            "rally": 7,
+            "pointsPlayed": 3,
+            "pointPlayed": true,
+            "matchesStarted": 1,
+            "winner": -1,
+            "matchOpen": true,
+            "resultsSent": 0,
+            "muted": false,
+            "inputHeld": false,
+            "avatarSelf": "vrm",
+            "avatarSelfInFrame": false,
+            "avatarOthers": 0,
+            "avatarOthersDrawn": 0,
+            "avatarOthersVrm": 0,
+            "avatarArrival": "standing",
+            "avatarFacingCamera": false,
+            "avatarHandsEmpty": false,
+            "avatarTalking": 0,
+            "avatarEmote": "",
+            "avatarSelfChanges": 0,
+            "audioState": "suspended",
+            "audioRouted": false,
+            "audioBypass": 0,
+            "audioMuted": false,
+            "audioVolume": 1,
+            "audioDucked": false,
+            "audioSuspended": false,
+            "audioGain": 1,
+            "audioInput": 0,
+            "audioLevel": 0,
+            "hostPhase": "entered",
+            "hostFrames": 952,
+            "hostArrival": "lobby",
+            "hostParty": 2,
+            "hostPartyArrived": 2,
+            "hostInputPaused": false
+          }
+        },
+        "claimed": true
+      }
+    }
+  },
+  "saved": {
+    "status": "passed",
+    "ms": 6280,
+    "keys": 1,
+    "runs": [
+      {
+        "run": "first visit",
+        "booted": true,
+        "ms": 1841,
+        "requests": 3
+      },
+      {
+        "run": "reload",
+        "booted": true,
+        "ms": 1298,
+        "requests": 2
+      },
+      {
+        "run": "unreadable version 0 saves",
+        "booted": true,
+        "ms": 1534,
+        "outcomes": {
+          "settings": "reset"
+        },
+        "requests": 1
+      },
+      {
+        "run": "saves from a future version",
+        "booted": true,
+        "ms": 1202,
+        "outcomes": {
+          "settings": "reset"
+        },
+        "requests": 1
+      }
+    ]
+  },
+  "listing": {
+    "thumbnail": "thumbnail.jpg",
+    "thumbnailTaken": false,
+    "players": {
+      "min": 1,
+      "max": 1
+    },
+    "partySizes": [],
+    "devices": [
+      "desktop",
+      "gamepad"
+    ],
+    "tags": [
+      "sports",
+      "club"
+    ]
+  },
+  "health": {
+    "reporting": true,
+    "errorRecorded": true,
+    "paused": true
+  },
+  "credits": {
+    "thirdParty": 9,
+    "own": 1,
+    "warnings": [
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Lobby locomotion and emote clips: LicenseRef-Oncyber-Lobby-Motion is outside the allow list and nobody has confirmed it. The avatar kit's copies of frontend/public/lobby/native-avatar-motion.json and four clips of native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence, and nothing in the repository records where the emotes came from."
+      },
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "Tennis motion capture: LicenseRef-Rokoko-Free-Asset-Terms is outside the allow list and nobody has confirmed it. The publisher's page allows personal and commercial use in games; these are its own terms, not an open licence, and no copy of them is kept."
+      },
+      {
+        "code": "RIGHTS_UNCONFIRMED",
+        "message": "OC Square avatar: LicenseRef-Oncyber-Permission is outside the allow list and nobody has confirmed it. The avatar's embedded metadata says redistribution prohibited, commercial use disallowed. Oncyber is understood to use it with the creator's permission; no written grant is in the repository."
+      }
+    ]
+  },
+  "run": {
+    "version": 1,
+    "status": "passed",
+    "backend": "webgl2",
+    "bootMs": 3898,
+    "stages": [
+      {
+        "stage": "boot",
+        "status": "passed",
+        "ms": 3898
+      },
+      {
+        "stage": "scenario",
+        "status": "passed",
+        "ms": 404426
+      },
+      {
+        "stage": "lifecycle",
+        "status": "passed",
+        "ms": 0
+      },
+      {
+        "stage": "frames",
+        "status": "passed",
+        "ms": 92016
+      },
+      {
+        "stage": "sound",
+        "status": "passed",
+        "ms": 16438,
+        "facts": {
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 0.999,
+          "audioInput": 0.0038,
+          "audioLevel": 0.0038
+        }
+      },
+      {
+        "stage": "departure",
+        "status": "passed",
+        "ms": 9407,
+        "departure": {
+          "answerMs": 1256.7,
+          "frameMs": 516.633,
+          "lobbyFrame": "projected",
+          "view": {
+            "cameraOffset": {
+              "x": 0,
+              "y": 2.249,
+              "z": 4.833
+            },
+            "cameraTargetOffset": {
+              "x": 0,
+              "y": 1.192,
+              "z": 0
+            },
+            "avatarRotation": -0.001,
+            "avatarHeight": 1.78,
+            "fov": 57.514
+          },
+          "gameAvatar": {
+            "x": 0.5,
+            "top": 0.389,
+            "bottom": 0.711,
+            "height": 0.322,
+            "width": 0.056
+          },
+          "lobbyAvatar": {
+            "x": 0.5,
+            "top": 0.391,
+            "bottom": 0.704,
+            "height": 0.312
+          },
+          "frames": [
+            {
+              "ms": 76,
+              "phase": "playing",
+              "lit": 0.987
+            },
+            {
+              "ms": 7931,
+              "phase": "leaving",
+              "lit": 0.005
+            },
+            {
+              "ms": 8788,
+              "phase": "last",
+              "lit": 0.005
+            },
+            {
+              "ms": 9318,
+              "phase": "held",
+              "lit": 0.005
+            }
+          ]
+        }
+      },
+      {
+        "stage": "results",
+        "status": "passed",
+        "ms": 21714
+      }
+    ],
+    "frames": {
+      "count": 180,
+      "medianMs": 500,
+      "p95Ms": 600,
+      "worstMs": 666.5
+    },
+    "inspect": {
+      "booted": true,
+      "screen": "match",
+      "position": [
+        2.252875053178121,
+        2.99528494796854
+      ],
+      "arrival": null,
+      "menu": "",
+      "cameFrom": "lobby",
+      "standing": true,
+      "walked": true,
+      "partySize": 2,
+      "formats": "doubles",
+      "difficulty": "practice",
+      "graphics": "high",
+      "cameraView": "broadcast",
+      "phase": "rally",
+      "paused": false,
+      "server": 2,
+      "score": "0-3",
+      "rally": 7,
+      "pointsPlayed": 3,
+      "pointPlayed": true,
+      "matchesStarted": 1,
+      "winner": -1,
+      "matchOpen": true,
+      "resultsSent": 0,
+      "muted": false,
+      "inputHeld": false,
+      "avatarSelf": "vrm",
+      "avatarSelfInFrame": false,
+      "avatarOthers": 0,
+      "avatarOthersDrawn": 0,
+      "avatarOthersVrm": 0,
+      "avatarArrival": "standing",
+      "avatarFacingCamera": false,
+      "avatarHandsEmpty": false,
+      "avatarTalking": 0,
+      "avatarEmote": "",
+      "avatarSelfChanges": 0,
+      "audioState": "suspended",
+      "audioRouted": false,
+      "audioBypass": 0,
+      "audioMuted": false,
+      "audioVolume": 1,
+      "audioDucked": false,
+      "audioSuspended": false,
+      "audioGain": 1,
+      "audioInput": 0,
+      "audioLevel": 0,
+      "hostPhase": "entered",
+      "hostFrames": 952,
+      "hostArrival": "lobby",
+      "hostParty": 2,
+      "hostPartyArrived": 2,
+      "hostInputPaused": false
+    }
+  },
+  "keys": {
+    "status": "passed",
+    "scanned": 23,
+    "warnings": [],
+    "steps": [
+      {
+        "step": "play",
+        "delivered": 2,
+        "moved": true
+      },
+      {
+        "step": "typing",
+        "chat": 18,
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "menu",
+        "delivered": 0,
+        "moved": false
+      },
+      {
+        "step": "resumed",
+        "delivered": 2,
+        "moved": true
+      }
+    ]
+  },
+  "locomotion": {
+    "status": "passed",
+    "seconds": 2.05,
+    "wallSeconds": 2.083,
+    "metres": 5.764,
+    "lobbyMetres": 5.764,
+    "tolerance": 0.05
+  },
+  "process": {
+    "status": "passed",
+    "checks": [
+      {
+        "id": "brief",
+        "rule": "The brief was written first",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "offer",
+        "rule": "Respect the party",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "solo",
+        "rule": "Keep a solo path",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "bot",
+        "rule": "Ship a bot",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "arrival",
+        "rule": "Arrive like a world",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "handoff",
+        "rule": "Match the handoff",
+        "status": "passed",
+        "findings": []
+      },
+      {
+        "id": "video",
+        "rule": "Leave a recording for review",
+        "status": "skipped",
+        "note": "recording is off; run the check with --video",
+        "findings": []
+      }
+    ],
+    "findings": [],
+    "video": null,
+    "log": [
+      {
+        "at": 1.9,
+        "event": "revealed",
+        "answered": true,
+        "screen": "arrival",
+        "arrival": {
+          "distance": 5.28,
+          "height": 2.09,
+          "fov": 58,
+          "avatarHeight": 1.78,
+          "facingCamera": true,
+          "crouched": true,
+          "handsEmpty": true
+        }
+      },
+      {
+        "at": 6,
+        "event": "arrival",
+        "status": "passed"
+      },
+      {
+        "at": 50.7,
+        "event": "play",
+        "status": "passed"
+      },
+      {
+        "at": 52.7,
+        "event": "leave",
+        "status": "passed"
+      },
+      {
+        "at": 53.7,
+        "event": "facts",
+        "facts": {
+          "booted": true,
+          "screen": "arrival",
+          "position": [
+            -2.345095889668739,
+            7.694888686244546
+          ],
+          "arrival": {
+            "distance": 4.86,
+            "height": 2.1,
+            "fov": 58,
+            "avatarHeight": 1.78,
+            "facingCamera": false,
+            "crouched": false,
+            "handsEmpty": true
+          },
+          "menu": "",
+          "cameFrom": "lobby",
+          "standing": true,
+          "walked": true,
+          "partySize": 1,
+          "formats": "doubles",
+          "difficulty": "practice",
+          "graphics": "high",
+          "cameraView": "broadcast",
+          "phase": "",
+          "paused": false,
+          "server": -1,
+          "score": "",
+          "rally": 0,
+          "pointsPlayed": 2,
+          "pointPlayed": true,
+          "matchesStarted": 1,
+          "winner": -1,
+          "matchOpen": false,
+          "resultsSent": 1,
+          "muted": false,
+          "inputHeld": false,
+          "avatarSelf": "vrm",
+          "avatarSelfInFrame": true,
+          "avatarOthers": 0,
+          "avatarOthersDrawn": 0,
+          "avatarOthersVrm": 0,
+          "avatarArrival": "standing",
+          "avatarFacingCamera": false,
+          "avatarHandsEmpty": true,
+          "avatarTalking": 0,
+          "avatarEmote": "",
+          "avatarSelfChanges": 0,
+          "audioState": "running",
+          "audioRouted": true,
+          "audioBypass": 0,
+          "audioMuted": false,
+          "audioVolume": 1,
+          "audioDucked": false,
+          "audioSuspended": false,
+          "audioGain": 1,
+          "audioInput": 0.004,
+          "audioLevel": 0.004,
+          "hostPhase": "entered",
+          "hostFrames": 1323,
+          "hostArrival": "lobby",
+          "hostParty": 0,
+          "hostPartyArrived": 0,
+          "hostInputPaused": false
+        }
+      }
+    ]
+  },
+  "network": {
+    "hosts": [
+      "cyber.mypinata.cloud"
+    ],
+    "requested": []
+  }
+}

@@ -94,7 +94,7 @@ import root from '../../root';
 import { getEmoteShortcutIndex } from "@features/lobby/emoteShortcuts";
 import { getCurrentSpaceVoiceRange } from '../../utils/spaceutils';
 import { PseudoAudioController } from '../artwork/controllers/pseudoaudiocontroller';
-import { StreamAudioPlayer } from '../artwork/controllers/players';
+import { voiceAudioPlayer } from '../artwork/controllers/players';
 
 
 import GLTF from '@3gltf'
@@ -1482,7 +1482,7 @@ export default class InstancePlayer extends Group {
 
             this.voice = new PseudoAudioController({
                 mesh: this,
-                audioPlayer: new StreamAudioPlayer(stream),
+                audioPlayer: voiceAudioPlayer(stream),
                 volume: this.voiceRange,
                 rolloffFactor: VOICE_ROLLOFF_FACTOR
             })

@@ -116,15 +116,34 @@ class Capsule {
 
 			}
 
+			t2 = Math.max( 0, Math.min( 1, t2 ) );
+			t1 = Math.max( 0, Math.min( 1, t1 ) );
+
 		} else {
 
-			t1 = ( d * a + e * c ) / divisor;
-			t2 = ( t1 * a - d ) / c;
+			// The closest points of two segments: where the lines pass
+			// closest, held to the first segment, then the nearest point of
+			// the second to that, and back once if that had to be held too.
+			//
+			// three's own version reads `( d * a + e * c )` here. The sign of
+			// `d * a` is wrong, which only shows when the two are neither at
+			// right angles nor parallel: a capsule standing upright over a
+			// sloping edge, as on terrain. It then looked metres away from
+			// the edge under its feet, found no floor on the ridge between
+			// two ground triangles, and the visitor dropped and popped back
+			// up as they walked over it.
+			t1 = Math.max( 0, Math.min( 1, ( e * c - d * a ) / divisor ) );
+
+			const along = ( t1 * a - d ) / c;
+			t2 = Math.max( 0, Math.min( 1, along ) );
+
+			if ( t2 !== along ) {
+
+				t1 = Math.max( 0, Math.min( 1, ( t2 * a + e ) / b ) );
+
+			}
 
 		}
-
-		t2 = Math.max( 0, Math.min( 1, t2 ) );
-		t1 = Math.max( 0, Math.min( 1, t1 ) );
 
 		const point1 = r.multiplyScalar( t1 ).add( line1.start );
 		const point2 = s.multiplyScalar( t2 ).add( line2.start );

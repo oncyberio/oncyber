@@ -52,7 +52,15 @@ export async function formatAvatar(userData, dispatch, exhibit = null) {
     // Migration returns our Pinata gateway URL. Re-uploading that URL on each
     // visit would download, pin, and rewrite the same profile picture again.
     if (userData?.avatar && !isCloudinary && !isManagedPinataUrl(avatarImg)) {
-        // Preserve migration for profile images hosted elsewhere.
+        // Preserve migration for profile images hosted elsewhere. It saves
+        // to the account, so a visitor with none here (a framed world's,
+        // features/worlds) takes the default without asking.
+        if (!userData.walletId)
+            return formatAvatar(
+                { ...userData, avatar: null },
+                dispatch,
+                exhibit
+            );
         const contract =
             userData?.avatarContractAddress ||
             userData?.walletId?.toLowerCase();

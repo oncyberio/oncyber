@@ -1,0 +1,33 @@
+{
+    "ace": {
+        "settings": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 256
+        },
+        "format": {
+            "scope": "party",
+            "stateVersion": 1,
+            "maxBytes": 128
+        },
+        "tally": {
+            "scope": "game",
+            "stateVersion": 1,
+            "maxBytes": 64
+        }
+    },
+    "garden": {
+        "save": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 262144
+        }
+    },
+    "padel": {
+        "settings": {
+            "scope": "visitor",
+            "stateVersion": 1,
+            "maxBytes": 256
+        }
+    }
+}

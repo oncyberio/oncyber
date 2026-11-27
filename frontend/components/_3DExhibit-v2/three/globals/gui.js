@@ -6,12 +6,14 @@ import {
 
 } from '@3constants'
 
-import DAT from 'dat.gui'
+import { debugPanel, NO_PANEL } from './debugPanel.js'
+
+const DAT = debugPanel()
 
 let datgui, datgui2;
 
 
-if( DEBUG ){
+if( DEBUG && DAT ){
 
 	let datGuiImage = require('@3utils/dat.gui.image.js').default
 
@@ -79,7 +81,8 @@ if( DEBUG ){
 
 else{
 
-	datgui = ''
+	// Debug asked for where the panel was not fetched first: its calls do nothing.
+	datgui = DEBUG ? NO_PANEL : ''
 }
 
 export default datgui;

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+        />
+        <meta name="theme-color" content="#2f7bff" />
+        <title>ACE! Tennis — Oncyber</title>
+      <script type="module" crossorigin src="./assets/index-DDQvoBVq.js"></script>
+      <link rel="stylesheet" crossorigin href="./assets/index-DfKGbgoh.css">
+    </head>
+    <body>
+        <canvas
+            id="stage"
+            tabindex="0"
+            aria-label="ACE! Tennis. Move with WASD or arrows. J or Space for a regular shot, K for topspin, H for a cut, U for a lob, H and K together for a drop shot. Press early to charge."
+        ></canvas>
+        <div id="flash" aria-hidden="true"></div>
+        <div id="vignette" aria-hidden="true"></div>
+
+        <div id="boot" class="screen show">
+            <div class="logo small">
+                <span class="logo-a">A</span><span class="logo-c">C</span
+                ><span class="logo-e">E</span
+                ><span class="logo-bang"><i></i></span>
+            </div>
+            <div class="boot-bar"><i id="boot-fill"></i></div>
+            <p id="boot-text">Rolling out the court…</p>
+        </div>
+
+        <div id="title" class="screen">
+            <button
+                id="lobby"
+                data-hud="title-lobby"
+                class="chip corner"
+                hidden
+                aria-label="Back to lobby"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="M19 12H5m6-6-6 6 6 6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.6"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+                Lobby
+            </button>
+            <div class="logo" data-hud="title-logo">
+                <span class="logo-a">A</span><span class="logo-c">C</span
+                ><span class="logo-e">E</span
+                ><span class="logo-bang"><i></i></span>
+            </div>
+            <p class="tagline">TENNIS CLUB</p>
+            <nav class="menu" id="main-menu" data-hud="title-menu">
+                <button class="pill big" data-action="play">Play match</button>
+                <button class="pill" data-action="howto">How to play</button>
+                <button class="pill" data-action="sound">
+                    Sound: <b id="sound-label">On</b>
+                </button>
+            </nav>
+            <p class="press-hint">
+                <span class="key">Space</span> select ·
+                <span class="key">↑↓</span> move
+            </p>
+            <p id="club-tally" class="press-hint" hidden></p>
+        </div>
+
+        <div id="arrive" class="screen">
+            <nav class="menu row" id="arrive-menu" data-hud="arrive-menu">
+                <button class="pill big focus" data-action="play">
+                    Play match
+                </button>
+                <button class="pill" data-action="howto">How to play</button>
+                <button class="pill" data-action="lobby">Lobby</button>
+            </nav>
+            <p class="press-hint">
+                <span class="key">J</span> play ·
+                <span class="key">WASD</span> walk ·
+                <span class="key">Shift</span> run ·
+                <span class="key">Space</span> jump · drag to look
+            </p>
+        </div>
+        <!-- Menus that are about Oncyber, not the court, use the UI kit
+             (games/kits/ui): who you came with, and the match setup. -->
+        <div id="party" class="screen">
+            <div class="oui oui-panel ace-sheet" data-hud="party-card">
+                <div class="oui-stack oui-stack--tight">
+                    <h2 class="oui-title" id="party-title">Your party</h2>
+                    <p class="oui-text" id="party-names"></p>
+                </div>
+                <div
+                    class="oui-list"
+                    id="party-formats"
+                    role="group"
+                    aria-label="Format"
+                ></div>
+                <div class="oui-stack oui-stack--tight" id="party-lineup" hidden></div>
+                <p
+                    class="oui-text oui-text--small"
+                    id="party-note"
+                    hidden
+                ></p>
+                <div class="oui-actions">
+                    <button class="oui-button" data-action="back">Back</button>
+                </div>
+            </div>
+        </div>
+        <div id="setup" class="screen">
+            <div class="oui oui-panel ace-sheet" data-hud="setup-card">
+                <h2 class="oui-title">Match setup</h2>
+                <div class="oui-stack oui-stack--tight field">
+                    <span class="oui-label" id="label-difficulty">Opponent</span>
+                    <div
+                        class="oui-segmented choice"
+                        id="opt-difficulty"
+                        role="group"
+                        aria-labelledby="label-difficulty"
+                    >
+                        <button data-value="rookie">Rookie</button>
+                        <button data-value="pro">Pro</button>
+                        <button data-value="ace">Ace</button>
+                    </div>
+                </div>
+                <div class="oui-stack oui-stack--tight field">
+                    <span class="oui-label" id="label-games">Length</span>
+                    <div
+                        class="oui-segmented choice"
+                        id="opt-games"
+                        role="group"
+                        aria-labelledby="label-games"
+                    >
+                        <button data-value="1">1 game</button>
+                        <button data-value="2">Best of 3</button>
+                        <button data-value="3">Best of 5</button>
+                    </div>
+                </div>
+                <div class="oui-list__item" id="foe-card">
+                    <div class="foe-face" id="foe-face"></div>
+                    <span class="oui-list__body">
+                        <span id="foe-name">Marta</span>
+                        <span class="oui-list__meta" id="foe-blurb"
+                            >Steady from the baseline.</span
+                        >
+                    </span>
+                </div>
+                <div class="oui-actions">
+                    <button class="oui-button" data-action="back">Back</button>
+                    <button
+                        class="oui-button oui-button--white go"
+                        data-action="start"
+                    >
+                        Let's play
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="howto" class="screen">
+            <div class="card wide" data-hud="howto-card">
+                <h2>How to play</h2>
+                <div class="howto-grid">
+                    <div class="tip">
+                        <div class="keys">
+                            <span class="key">W</span><span class="key">A</span
+                            ><span class="key">S</span
+                            ><span class="key">D</span>
+                        </div>
+                        <b>Move</b>
+                        <p>
+                            Run to the ball. You'll get a little help lining up.
+                        </p>
+                    </div>
+                    <div class="tip green">
+                        <div class="keys">
+                            <span class="key">J</span
+                            ><span class="key wide">Space</span>
+                        </div>
+                        <b>Regular</b>
+                        <p>Fast and flat. Your go-to shot.</p>
+                    </div>
+                    <div class="tip red">
+                        <div class="keys"><span class="key">K</span></div>
+                        <b>Topspin</b>
+                        <p>Arcs high, dives late and kicks up.</p>
+                    </div>
+                    <div class="tip blue">
+                        <div class="keys"><span class="key">H</span></div>
+                        <b>Cut</b>
+                        <p>Low and skidding. Great for changing pace.</p>
+                    </div>
+                    <div class="tip yellow">
+                        <div class="keys"><span class="key">U</span></div>
+                        <b>Lob</b>
+                        <p>High over the net player's head.</p>
+                    </div>
+                    <div class="tip pink">
+                        <div class="keys">
+                            <span class="key">H</span
+                            ><span class="key">K</span>
+                        </div>
+                        <b>Drop shot</b>
+                        <p>Press both. Just over the net, barely bounces.</p>
+                    </div>
+                </div>
+                <div class="howto-tips">
+                    <p>
+                        <b>Press early to charge.</b> Hit the button as the ball
+                        comes. The longer you charge, the harder you hit. A full
+                        charge plus clean contact is a <em>PERFECT</em> shot.
+                    </p>
+                    <p>
+                        <b>Aim while you swing.</b> Hold a direction as you hit:
+                        left or right picks the side, up hits deep, down plays
+                        short.
+                    </p>
+                    <p>
+                        <b>Serve:</b> hold a shot button to toss. The gauge
+                        over your head fills as the ball rises. Let go when
+                        it's full for a rocket.
+                    </p>
+                </div>
+                <div class="row">
+                    <button class="pill big" data-action="back">Got it!</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="hud" class="screen hud">
+            <div class="scoreboard" id="scoreboard" data-hud="scoreboard">
+                <div class="sb-row" data-who="0">
+                    <span class="sb-serve"></span
+                    ><span class="sb-face" id="sb-face-0"></span
+                    ><span class="sb-name" id="sb-name-0">You</span>
+                    <span class="sb-games" id="sb-games-0">0</span
+                    ><span class="sb-points" id="sb-points-0">0</span>
+                </div>
+                <div class="sb-row" data-who="1">
+                    <span class="sb-serve"></span
+                    ><span class="sb-face" id="sb-face-1"></span
+                    ><span class="sb-name" id="sb-name-1">CPU</span>
+                    <span class="sb-games" id="sb-games-1">0</span
+                    ><span class="sb-points" id="sb-points-1">0</span>
+                </div>
+            </div>
+            <button
+                id="pause-btn"
+                class="chip round"
+                aria-label="Pause"
+                data-hud="pause"
+            >
+                <svg
+                    viewBox="0 0 20 20"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                >
+                    <rect
+                        x="5"
+                        y="4"
+                        width="3.4"
+                        height="12"
+                        rx="1.2"
+                        fill="currentColor"
+                    />
+                    <rect
+                        x="11.6"
+                        y="4"
+                        width="3.4"
+                        height="12"
+                        rx="1.2"
+                        fill="currentColor"
+                    />
+                </svg>
+            </button>
+            <div class="rally" id="rally" data-hud="rally">
+                <b id="rally-count">0</b><span>rally</span>
+            </div>
+            <div class="serve-gauge" id="serveGauge" aria-hidden="true">
+                <i class="sg-fill"></i>
+            </div>
+            <div class="hint" id="hint" data-hud="hint"></div>
+            <div class="banner" id="banner" data-hud="banner"></div>
+            <div class="callout" id="callout"></div>
+            <div class="grade" id="grade"></div>
+        </div>
+
+        <div id="vs" class="screen">
+            <div class="vs-side left">
+                <div class="vs-face" id="vs-face-0"></div>
+                <b id="vs-name-0">You</b>
+            </div>
+            <div class="vs-mark">VS</div>
+            <div class="vs-side right">
+                <div class="vs-face" id="vs-face-1"></div>
+                <b id="vs-name-1">Marta</b><span id="vs-tag">Pro</span>
+            </div>
+        </div>
+
+        <div id="pause" class="screen">
+            <div class="card" data-hud="pause-card">
+                <h2>Paused</h2>
+                <nav class="menu" id="pause-menu">
+                    <button class="pill big" data-action="resume">
+                        Resume
+                    </button>
+                    <button class="pill" data-action="restart">
+                        Restart match
+                    </button>
+                    <button class="pill" data-action="howto">
+                        How to play
+                    </button>
+                    <button class="pill" data-action="sound">
+                        Sound: <b class="sound-label">On</b>
+                    </button>
+                    <button class="pill ghost" data-action="quit">
+                        Quit to title
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <div id="results" class="screen">
+            <div class="card" data-hud="results-card">
+                <h2 id="result-title">You win!</h2>
+                <p class="result-score" id="result-score">2 – 1</p>
+                <div class="stats" id="stats"></div>
+                <p class="result-note" id="result-note"></p>
+                <nav class="menu row" id="results-menu">
+                    <button class="pill big go" data-action="rematch">
+                        Rematch
+                    </button>
+                    <button class="pill" data-action="menu">Title</button>
+                </nav>
+            </div>
+        </div>
+
+    </body>
+</html>

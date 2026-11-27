@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { applyWorldMod, hasWorldMod } from "./index";
+import { applyWorldMod, applyWorldScene, hasWorldMod } from "./index";
 import { STARRY_NIGHT_STROKES } from "./worlds/thestarrynight_skydome/strokeFile";
 
 beforeEach(() => {
@@ -57,9 +57,70 @@ describe("applyWorldMod", () => {
         expect(console.warn).toHaveBeenCalledTimes(2);
     });
 
+    test("a mod with no hook for the sky is left alone", async () => {
+        await expect(
+            applyWorldMod("c", context, {
+                c: async () => ({ default: { onScene: jest.fn() } }),
+            })
+        ).resolves.toBeUndefined();
+        expect(console.warn).not.toHaveBeenCalled();
+    });
+
     test("the Starry Night stroke file is served from its world's folder", () => {
         expect(STARRY_NIGHT_STROKES.url).toMatch(
             /^\/world-mods\/thestarrynight_skydome\/starry-night-sky\.[0-9a-f]{12}\.bin$/
         );
+    });
+});
+
+describe("applyWorldScene", () => {
+    const context = {
+        scene: null,
+        colliders: [],
+        portalIds: [],
+        mobile: false,
+        onDispose: () => {},
+    };
+
+    test("runs the world's scene hook, and only that one", async () => {
+        const onScene = jest.fn();
+        const onBackground = jest.fn();
+        await applyWorldScene("My_World", context, {
+            my_world: async () => ({ default: { onScene, onBackground } }),
+        });
+        expect(onScene).toHaveBeenCalledWith({ ...context, slug: "my_world" });
+        expect(onBackground).not.toHaveBeenCalled();
+    });
+
+    test("waits for the hook, so the world is changed before it is used", async () => {
+        const order: string[] = [];
+        await applyWorldScene("a", context, {
+            a: async () => ({
+                default: {
+                    onScene: async () => {
+                        await new Promise((resolve) => setTimeout(resolve, 5));
+                        order.push("mod");
+                    },
+                },
+            }),
+        });
+        order.push("loader");
+        expect(order).toEqual(["mod", "loader"]);
+    });
+
+    test("never rejects when a mod fails", async () => {
+        await expect(
+            applyWorldScene("a", context, {
+                a: async () => ({
+                    default: {
+                        onScene: () => {
+                            throw new Error("boom");
+                        },
+                    },
+                }),
+            })
+        ).resolves.toBeUndefined();
+        await applyWorldScene("elsewhere", context, {});
+        expect(console.warn).toHaveBeenCalledTimes(1);
     });
 });

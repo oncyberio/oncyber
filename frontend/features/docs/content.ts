@@ -167,6 +167,13 @@ export function llmsText(origin: string, featured: FeaturedSpace[] = []) {
                   "",
               ]
             : []),
+        "## Building a game",
+        "",
+        `Asked to make a game for Oncyber? Read ${origin}/games/llms.txt first:`,
+        "what a game must do, what is optional (lobby arrival, avatars,",
+        "animations, walking, parties, voice, results, saved data, menus) and",
+        "the SDK helper for each.",
+        "",
         "## Everything in one file",
         "",
         `- [All docs](${origin}/llms-full.txt): every page below, in full`,

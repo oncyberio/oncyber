@@ -1,9 +1,10 @@
 import useModal from "@components/modals/useModal";
+import { worldDocument } from "@features/worlds/worldDocument";
 
 import { createContext, useContext, useState } from "react";
 
 interface HomeContextState {
-    toggleAuth: () => void;
+    toggleAuth: (open?: unknown) => void;
     isAuthShowing: boolean;
     openedMenu: "" | "search" | "menu" | "filter";
     handleToggle: (type: any) => void;
@@ -35,7 +36,15 @@ export default function HomeProvider({
 
     const [filterTab, setFilterTab] = useState<FilterType | "">("");
 
-    const { toggle: toggleAuth, isShowing: isAuthShowing } = useModal();
+    const { toggle: toggleSignIn, isShowing: isAuthShowing } = useModal();
+    // In the site's frame, signing in is the page's: the world asks for it.
+    // Whatever a caller passes goes through as it always has: `true` opens,
+    // and a button that hands over its click event opens too.
+    const toggleAuth = (open?: unknown) => {
+        const framed = worldDocument();
+        if (!framed) toggleSignIn(open as boolean | undefined);
+        else if (open !== false) framed.send("sign-in");
+    };
 
     function handleToggle(type) {
         setFilterTab("");

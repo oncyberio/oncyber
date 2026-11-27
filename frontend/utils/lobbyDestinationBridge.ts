@@ -17,6 +17,8 @@ import {
 } from "@features/lobby/lobbyPortalPreview";
 // Visitors read the trip error in the lobby: raw exception text becomes a sentence.
 import { lobbyErrorMessage } from "@features/lobby/lobbyErrors";
+import { WORLD_FRAME } from "@features/worlds/worldFrame";
+import { isWorldDocument } from "@features/worlds/worldDocument";
 
 type EntryHandler = (options: LobbyDestinationEntryOptions) => Promise<void>;
 type RevealHandler = (options: LobbyDestinationEntryOptions) => Promise<void>;
@@ -46,6 +48,8 @@ type Bridge = {
     dispose?: () => void;
     release: Array<() => void>;
     entryWaiters: Set<(error?: Error) => void>;
+    /** Set on a page that frames the world: the journey is the world's. */
+    relay?: { frame(): Window | null | undefined; origin: string };
 };
 let bridge: Bridge | null = null;
 const heldListeners = new WeakSet<object>();
@@ -74,15 +78,20 @@ export function initializeLobbyDestinationBridge(): Bridge | null {
         LOBBY_ATTEMPT_PARAM
     );
     if (!attempt || !/^[a-z0-9-]{20,80}$/i.test(attempt)) return null;
+    // The lobby is this document's parent, on this origin. For a world in
+    // the site's frame (features/worlds) it is two frames up: the page that
+    // frames the world passes the protocol both ways (relayLobbyDestination
+    // below), so the world speaks it to the page, on the site's origin.
+    let origin = window.location.origin;
     try {
-        if (window.parent.location.origin !== window.location.origin)
-            return null;
+        if (window.parent.location.origin !== origin) return null;
     } catch {
-        return null;
+        if (!WORLD_FRAME || !isWorldDocument()) return null;
+        origin = WORLD_FRAME.site;
     }
     bridge = {
         attempt,
-        origin: window.location.origin,
+        origin,
         prepared: false,
         entered: false,
         admitted: false,
@@ -139,6 +148,43 @@ export function initializeLobbyDestinationBridge(): Bridge | null {
         });
         muted.clear();
     });
+    // In a framed world the lobby cannot listen for Enter on this window
+    // (it opens the party chat while that chat covers the space), so the
+    // world hands the key to the page, which is where the lobby listens.
+    if (origin !== window.location.origin) {
+        const toPartyChat = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (
+                event.key !== "Enter" ||
+                event.repeat ||
+                event.isComposing ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey ||
+                event.shiftKey ||
+                !session.entered ||
+                !document.documentElement.hasAttribute(
+                    "data-party-chat-open"
+                ) ||
+                target?.closest?.(
+                    "input, textarea, select, button, a, [contenteditable='true']"
+                )
+            )
+                return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            document.exitPointerLock?.();
+            window.parent.postMessage(
+                {
+                    protocol: LOBBY_DESTINATION_PROTOCOL,
+                    attempt: session.attempt,
+                    type: "relay:enter-key",
+                },
+                session.origin
+            );
+        };
+        window.addEventListener("keydown", toPartyChat, true);
+    }
     window.addEventListener("message", async (event) => {
         if (
             event.source !== window.parent ||
@@ -147,6 +193,22 @@ export function initializeLobbyDestinationBridge(): Bridge | null {
             event.data.attempt !== session.attempt
         )
             return;
+        // A page that frames the world passes every command down to it.
+        if (session.relay) {
+            if (event.data.type === "dispose") session.failed = true;
+            session.relay
+                .frame()
+                ?.postMessage(event.data, session.relay.origin);
+            return;
+        }
+        // From the page around a framed world, not from the lobby itself.
+        if (
+            typeof event.data.type === "string" &&
+            event.data.type.startsWith("relay:")
+        ) {
+            followRelay(event.data);
+            return;
+        }
         const command: LobbyHostMessage = event.data;
         if (command.type === "dispose") {
             if (session.failed) return;
@@ -300,6 +362,9 @@ function send(
 ) {
     const session = initializeLobbyDestinationBridge();
     if (!session) return;
+    // On a page that frames the world, the world speaks for the journey;
+    // the page itself only says when the world could not be loaded at all.
+    if (session.relay && type !== "error") return;
     window.parent.postMessage(
         {
             protocol: LOBBY_DESTINATION_PROTOCOL,
@@ -309,6 +374,142 @@ function send(
         },
         session.origin
     );
+}
+
+/**
+ * What the page around a framed world tells it that the lobby used to set
+ * or read directly on the destination's own document: whether the party
+ * chat covers the space, the loading budget, and a request to go back.
+ */
+function followRelay(message: any) {
+    const root = document.documentElement;
+    if (message.type === "relay:party-chat")
+        root.toggleAttribute("data-party-chat-open", message.open === true);
+    else if (message.type === "relay:loading") {
+        for (const name of LOADING_ATTRIBUTES) {
+            const value = message.values?.[name];
+            if (typeof value === "string" && value.length <= 80)
+                root.setAttribute(name, value);
+            else root.removeAttribute(name);
+        }
+    } else if (message.type === "relay:back") requestLobbyDestinationBack();
+}
+export const LOADING_ATTRIBUTES = [
+    "data-lobby-loading-attempt",
+    "data-lobby-loading-phase",
+    "data-lobby-loading-start",
+    "data-lobby-loading-reduced-motion",
+] as const;
+
+/**
+ * For the page that frames a world (features/worlds): hands the journey to
+ * the world in `frame`. The lobby's commands go down to it and its answers
+ * go up, unchanged; this page follows along, and stays held (inert, silent)
+ * until the world has been revealed. What the lobby sets or reads directly
+ * on this document is passed on too. Returns a function that ends it.
+ */
+export function relayLobbyDestination(
+    frame: () => Window | null | undefined,
+    origin: string
+): () => void {
+    const session = initializeLobbyDestinationBridge();
+    if (!session) return () => {};
+    session.relay = { frame, origin };
+    const down = (type: string, values: object = {}) =>
+        frame()?.postMessage(
+            {
+                protocol: LOBBY_DESTINATION_PROTOCOL,
+                attempt: session.attempt,
+                type,
+                ...values,
+            },
+            origin
+        );
+    const up = (event: MessageEvent) => {
+        if (
+            event.source !== frame() ||
+            event.origin !== origin ||
+            event.data?.protocol !== LOBBY_DESTINATION_PROTOCOL ||
+            event.data.attempt !== session.attempt
+        )
+            return;
+        const type = event.data.type;
+        // Enter, pressed in the world while the party chat covers it: the
+        // lobby listens for it on this window.
+        if (type === "relay:enter-key") {
+            window.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                    key: "Enter",
+                    code: "Enter",
+                    bubbles: true,
+                    cancelable: true,
+                })
+            );
+            return;
+        }
+        if (type === "revealed" || type === "error") {
+            if (type === "error") session.failed = true;
+            else session.entered = true;
+            session.release.splice(0).forEach((release) => release());
+            settleEntryWaiters(
+                session,
+                type === "error" ? entryCancelled() : undefined
+            );
+        }
+        window.parent.postMessage(event.data, session.origin);
+    };
+    window.addEventListener("message", up);
+
+    // The party chat flag, set on this document by the lobby.
+    const root = document.documentElement;
+    const chat = () =>
+        down("relay:party-chat", {
+            open: root.hasAttribute("data-party-chat-open"),
+        });
+    const watchRoot = new MutationObserver(chat);
+    watchRoot.observe(root, {
+        attributes: true,
+        attributeFilter: ["data-party-chat-open"],
+    });
+    // The loading budget, on the lobby's frame element for this page.
+    let lobbyFrame: Element | null = null;
+    try {
+        lobbyFrame = window.frameElement;
+    } catch {
+        lobbyFrame = null;
+    }
+    const loading = () =>
+        down("relay:loading", {
+            values: Object.fromEntries(
+                LOADING_ATTRIBUTES.map((name) => [
+                    name,
+                    lobbyFrame?.getAttribute(name) ?? null,
+                ])
+            ),
+        });
+    const watchFrame = new MutationObserver(loading);
+    if (lobbyFrame)
+        watchFrame.observe(lobbyFrame, {
+            attributes: true,
+            attributeFilter: [...LOADING_ATTRIBUTES],
+        });
+    // The world may not be listening yet; say again once it has greeted.
+    const greet = () => {
+        chat();
+        loading();
+    };
+    greet();
+    const greeting = setInterval(greet, 1000);
+    const settled = setTimeout(() => clearInterval(greeting), 20_000);
+
+    return () => {
+        window.removeEventListener("message", up);
+        watchRoot.disconnect();
+        watchFrame.disconnect();
+        clearInterval(greeting);
+        clearTimeout(settled);
+        if (session.relay?.frame === frame) session.relay = undefined;
+    };
 }
 function currentExperienceHref() {
     return publicExperienceHref(
@@ -511,6 +712,18 @@ function leaveForLobby(
     const session = bridge;
     if (!session?.entered || session.failed || typeof window === "undefined")
         return false;
+    // The world in this page's frame departs, and says so itself.
+    if (session.relay) {
+        session.relay.frame()?.postMessage(
+            {
+                protocol: LOBBY_DESTINATION_PROTOCOL,
+                attempt: session.attempt,
+                type: "relay:back",
+            },
+            session.relay.origin
+        );
+        return true;
+    }
     if (session.departure) return true;
     const departure = {};
     session.departure = departure;

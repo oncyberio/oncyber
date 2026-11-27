@@ -14,6 +14,10 @@ Name any key it needs beyond `dev:local`.
 List the relevant checks and their results. Include screenshots for visual
 changes. Say which browser you tried it in, or that you didn't.
 
+For interface changes: confirm they use the design tokens and shared
+components (`AGENTS.md`, "Interface"), and that `pnpm -C frontend check:tokens`
+passes.
+
 ## Configuration or migrations
 
 Note any required setup, data changes, or rollout steps. Do not include

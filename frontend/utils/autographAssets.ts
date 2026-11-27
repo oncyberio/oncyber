@@ -1,7 +1,7 @@
-// Only getAddress: importing "ethers" put all of it (providers, contracts,
-// wallets) on every page through UserContext. @ethersproject/address is the
+// Only getAddress, and only when an address is being checked: imported at
+// the top, it and the big-number code under it (about 25 KB gzipped) were
+// part of every page through UserContext. @ethersproject/address is the
 // package ethers itself re-exports it from (same 5.8.0 release).
-import { getAddress } from "@ethersproject/address";
 import { IPFS, ipfsCID, isIPFS } from "./urlUtils";
 
 interface AutographCustomData {
@@ -37,6 +37,7 @@ export async function getAutographWalletId(walletId: string) {
         if (response.ok) {
             autographId = walletId;
         } else {
+            const { getAddress } = await import("@ethersproject/address");
             let checksumAddr = getAddress(walletId);
 
             response = await fetch(

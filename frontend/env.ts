@@ -1,5 +1,6 @@
 const ETH_RPC =
-    process.env.NEXT_PUBLIC_ETH_MAINNET_RPC || "https://ethereum-rpc.publicnode.com";
+    process.env.NEXT_PUBLIC_ETH_MAINNET_RPC ||
+    "https://ethereum-rpc.publicnode.com";
 
 // Firebase browser config always comes from the environment, so a fork never
 // talks to Oncyber's projects by accident. next.config.js fails production
@@ -25,6 +26,7 @@ export const firebaseEmulators = {
 };
 
 export const nodeEnv = {
+    AWE_PLAYER_ORIGIN: process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN,
     POLAR_SAMA: "/api/proxyv2?url=",
     DEV_FORCED_OWNERSHIP_WALLET:
         process.env.NODE_ENV === "development"
@@ -63,7 +65,8 @@ export const nodeEnv = {
     SHAPE_RPC:
         process.env.NEXT_PUBLIC_SHAPE_RPC || "https://mainnet.shape.network",
     ETH_RPC,
-    POLYGON_RPC: process.env.NEXT_PUBLIC_POLYGON_RPC || "https://polygon-rpc.com",
+    POLYGON_RPC:
+        process.env.NEXT_PUBLIC_POLYGON_RPC || "https://polygon-rpc.com",
 
     ETH_BALANCE_CHECKER_RPC: ETH_RPC,
     ALCHEMY_API_KEY: process.env.NEXT_PUBLIC_ALCHEMY_API_KEY,
@@ -100,6 +103,43 @@ export const nodeEnv = {
     YOUTUBE_API_KEY_GET: process.env.NEXT_PUBLIC_YOUTUBE_API_KEY,
     // Server-only: never expose a Pinata JWT with a NEXT_PUBLIC_ prefix.
     PINATA_JWT_KEY: process.env.PINATA_JWT_KEY,
+    // The origin native worlds are served from, in a frame, when it is a
+    // second host of this app (docs/plans/framed-worlds.md). Unset: worlds
+    // run in the page. Read through WORLD_FRAME in features/worlds.
+    WORLD_ORIGIN: process.env.NEXT_PUBLIC_WORLD_ORIGIN,
+    // "1" turns world scripts on: AI-written scripts on top of a native
+    // space, in a sandboxed frame (docs/world-scripts.md). Read through
+    // WORLD_SCRIPTS_ENABLED in features/world-scripts/store.ts and
+    // worldScriptsEnabled() in utils/worldScripts/server.ts.
+    WORLD_SCRIPTS: process.env.NEXT_PUBLIC_WORLD_SCRIPTS,
+    // Server-only, for the AI sidebar of world scripts: the model's key,
+    // the accounts in early access (a comma list of ids), and how many
+    // requests one account may make in a day. Read in
+    // utils/worldScripts/server.ts.
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    WORLD_SCRIPTS_AI_ALLOWLIST: process.env.WORLD_SCRIPTS_AI_ALLOWLIST,
+    WORLD_SCRIPTS_AI_DAILY_LIMIT: process.env.WORLD_SCRIPTS_AI_DAILY_LIMIT,
+    // Server-only. "1" shows games before launch: their pages, static
+    // builds, saved data and releases (features/games/gamesPreview.ts).
+    GAMES_PREVIEW: process.env.GAMES_PREVIEW,
+    // "1" says each load stage in the browser console as it happens; on by
+    // itself on a Vercel preview (next.config.js). Read in
+    // utils/loadTimings.ts.
+    LOAD_STAGES: process.env.NEXT_PUBLIC_LOAD_STAGES,
+    // Server-only. Who may publish a game from outside the repository
+    // (docs/games/publishing.md): unset is off (open on the development
+    // server), "open", or a comma list of account ids. Read through
+    // publishingGate() in features/games/publish/publishedGames.ts.
+    GAMES_PUBLISHING: process.env.GAMES_PUBLISHING,
+    // Server-only. Upload mode `storage` of that publishing: releases kept
+    // in a private Firebase Storage bucket, for a host with no disk. Unset
+    // uses the bucket where there is no local releases folder; "on" uses
+    // it even where there is one; "off" never. Read through
+    // releaseBucketConfig() in features/games/publish/releaseBucket.ts.
+    GAMES_PUBLISHING_STORAGE: process.env.GAMES_PUBLISHING_STORAGE,
+    // Server-only. The bucket for it; unset is the Firebase project's
+    // bucket (NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).
+    GAMES_STORAGE_BUCKET: process.env.GAMES_STORAGE_BUCKET,
     ONESIGNAL_APP_ID:
         process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
             ? "d6060c2b-bd28-4af2-9887-a8e1738ab4dc"

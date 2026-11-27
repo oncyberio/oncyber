@@ -6,7 +6,7 @@ import { NButton } from "@ui/components/NButton";
 import styled from "styled-components";
 import Profile from "./Profile";
 import LinkAccount from "./LinkAccount";
-import { stepIcon } from "@features/studio/StudioMenu/SpaceSettings";
+import { stepIcon } from "@features/studio/StudioMenu/SpaceSettings/stepIcon";
 import {
     DARK_DIALOG_CONTENT,
     darkDialogColors,

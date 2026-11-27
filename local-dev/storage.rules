@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// The bucket holds published games' releases (docs/games/publishing.md),
+// written and read by the site's server alone. These rules are for the
+// Firebase client SDKs, which get nothing; the server does not go through
+// them.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

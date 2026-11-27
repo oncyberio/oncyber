@@ -1,0 +1,454 @@
+@font-face {
+  font-family: Anton;
+  src: url("../public/fonts/Anton-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+:root {
+  font-family: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color: #f5f6f2;
+  background: #122332;
+  font-synthesis: none;
+  --blue: #2567ff;
+  --red: #f15b57;
+  --paper: #f3f3ec;
+  --ink: #15202c;
+  /* Where the Oncyber page's own controls and chat end (--oncyber-safe-*,
+     set by watchSafeArea in hud.js; 0 standalone). docs/games/safe-area.md */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--oncyber-safe-top, 0px));
+  --safe-right: max(
+    env(safe-area-inset-right, 0px),
+    var(--oncyber-safe-right, 0px)
+  );
+  --safe-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--oncyber-safe-bottom, 0px)
+  );
+  --safe-left: max(
+    env(safe-area-inset-left, 0px),
+    var(--oncyber-safe-left, 0px)
+  );
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+/* Leaving for the lobby: the last frame is the avatar alone on black. */
+body.leaving > :not(#court):not(script) {
+  visibility: hidden;
+  pointer-events: none;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+}
+button:focus-visible {
+  outline: 2px solid #9fc4ff;
+  outline-offset: 4px;
+}
+[hidden] {
+  display: none !important;
+}
+#court {
+  display: block;
+  width: 100vw;
+  height: 100svh;
+  outline: none;
+}
+.shade {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    #09203050,
+    transparent 25%,
+    transparent 70%,
+    #07152570
+  );
+}
+kbd {
+  font: 9px system-ui, sans-serif;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 3px 5px;
+  white-space: nowrap;
+}
+.score {
+  position: fixed;
+  left: max(28px, calc(var(--safe-left) + 12px));
+  top: max(28px, calc(var(--safe-top) + 12px));
+  width: 220px;
+  border-radius: 12px;
+  background: #102132e8;
+  overflow: hidden;
+  border: 1px solid #ffffff20;
+  box-shadow: 0 8px 24px #06172526;
+}
+.score-meta {
+  font-size: 8px;
+  letter-spacing: 0.9px;
+  display: flex;
+  justify-content: space-between;
+  color: #b5c4d2;
+  padding: 11px 12px;
+  background: #ffffff06;
+}
+.score-row {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+  border-top: 1px solid #ffffff0e;
+  font-size: 12px;
+}
+.score-row i {
+  width: 5px;
+  height: 5px;
+  border-radius: 100%;
+  background: white;
+  visibility: hidden;
+}
+.score-row i.serving {
+  visibility: visible;
+}
+.score-row span {
+  flex: 1;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.score-row b {
+  font-size: 22px;
+  font-weight: 500;
+  color: #7aabff;
+}
+.score-row.rival b {
+  color: #ff8d82;
+}
+.player-label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 4px 8px;
+  background: #2567ff;
+  color: white;
+  font-size: 9px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.partner-label {
+  background: #1246adc9;
+}
+.rival-label {
+  background: #a83d35bd;
+}
+.announcement {
+  position: fixed;
+  left: 50%;
+  top: max(29%, calc(var(--safe-top) + 70px));
+  transform: translate(-50%, -50%);
+  text-align: center;
+  text-shadow: 0 3px 18px #102132b0;
+  pointer-events: none;
+}
+.announcement span {
+  font-size: 10px;
+  letter-spacing: 3px;
+}
+.announcement strong {
+  display: block;
+  font-family: Anton;
+  font-size: 57px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.announcement small {
+  font-size: 13px;
+}
+.feedback {
+  position: fixed;
+  top: max(24%, calc(var(--safe-top) + 40px));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 2px 12px #091d35;
+}
+.feedback strong {
+  display: block;
+  font-family: Anton;
+  letter-spacing: 1px;
+  font-size: 31px;
+}
+.feedback span {
+  font-size: 11px;
+}
+.feedback[data-quality="perfect"] {
+  color: #b8d4ff;
+}
+.feedback[data-quality="late"],
+.feedback[data-quality="early"] {
+  color: #ffc1b2;
+}
+.instructions {
+  position: fixed;
+  left: max(28px, calc(var(--safe-left) + 12px));
+  bottom: max(30px, calc(var(--safe-bottom) + 12px));
+  text-shadow: 0 1px 9px #071728;
+  max-width: 48vw;
+}
+.instructions p {
+  font-size: 14px;
+  margin-bottom: 13px;
+}
+.instructions > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+  color: #e2e8ed;
+}
+.instructions kbd {
+  font-size: 9px;
+}
+.shot-panel {
+  position: fixed;
+  right: max(28px, calc(var(--safe-right) + 12px));
+  bottom: max(25px, calc(var(--safe-bottom) + 12px));
+  width: 310px;
+  background: #102132e8;
+  border: 1px solid #ffffff20;
+  border-radius: 15px;
+  padding: 17px 19px 15px;
+  box-shadow: 0 8px 24px #06172533;
+}
+.shot-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.shot-heading > span {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+}
+.shot-panel[data-smash="true"] .shot-heading > span {
+  color: #b8d4ff;
+}
+.shot-heading > b {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 500;
+}
+.shot-heading > b > span {
+  font-size: 12px;
+  color: #a4b5c4;
+  margin-left: 2px;
+}
+.power-button {
+  width: 100%;
+  display: block;
+  padding: 18px 0 12px;
+  background: none;
+}
+.power-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.shot-panel[data-committed="true"] .shot-heading > span {
+  color: #a8d1ff;
+}
+.meter {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: #ffffff20;
+  position: relative;
+}
+.meter > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  border-radius: 4px;
+  background: #90b7ff;
+}
+.sweet-zone {
+  position: absolute;
+  left: 48.5%;
+  width: 21.5%;
+  height: 14px;
+  top: -3px;
+  border: 1px solid #87afff;
+  background: #2567ff66;
+  border-radius: 3px;
+}
+.meter > em {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  height: 16px;
+  width: 2px;
+  background: white;
+  box-shadow: 0 0 6px #fff9;
+}
+.meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.7px;
+  margin-top: 11px;
+  color: #afc0d2;
+}
+.meter-labels > span:nth-child(2) {
+  color: #9ec0ff;
+}
+.meter-labels > span:last-child {
+  color: #ff9d93;
+}
+.shot-panel[data-risk="true"] .meter > i {
+  background: var(--red);
+}
+.shot-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #b8c7d5;
+  border-top: 1px solid #ffffff15;
+  padding-top: 12px;
+}
+.shot-footer kbd {
+  color: white;
+}
+.shot-footer i {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 100%;
+  background: #667887;
+  margin-left: auto;
+}
+.shot-footer i.ready {
+  background: #99bcff;
+  box-shadow: 0 0 9px #2567ff;
+}
+
+@media (max-width: 650px) {
+  .instructions > span {
+    flex-wrap: wrap;
+    font-size: 9px;
+    gap: 5px;
+  }
+  .score {
+    width: 180px;
+  }
+  .score-meta {
+    font-size: 7px;
+  }
+  .shot-panel {
+    width: 270px;
+  }
+  .instructions {
+    bottom: calc(max(18px, var(--safe-bottom) + 12px) + 150px);
+    max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 32px);
+  }
+  .instructions p {
+    font-size: 12px;
+  }
+  .announcement strong {
+    font-size: 42px;
+  }
+}
+
+/* ------------------------------------------------------------------ menus
+   The club card, match setup, settings, pause and results are Oncyber's UI
+   kit (games/kits/ui): only their place on screen is set here. A backdrop
+   fills the frame; the card inside it stays in the safe area. */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 12px) calc(var(--safe-right) + 12px)
+    calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 12px);
+  background: #07111cb3;
+}
+.padel-sheet {
+  width: min(400px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+}
+.padel-sheet kbd {
+  margin: 0 2px;
+}
+.padel-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oui-space-2) var(--oui-space-4);
+}
+.result-score {
+  font-family: Anton;
+  font-size: 56px;
+  line-height: 1.1;
+  margin: 0;
+}
+.club-card {
+  position: fixed;
+  z-index: 3;
+  right: max(24px, calc(var(--safe-right) + 12px));
+  top: max(24px, calc(var(--safe-top) + 12px));
+  width: min(250px, calc(100vw - var(--safe-left) - var(--safe-right) - 24px));
+}
+.match-bar {
+  position: fixed;
+  z-index: 3;
+  right: max(24px, calc(var(--safe-right) + 12px));
+  top: max(24px, calc(var(--safe-top) + 12px));
+  display: flex;
+  gap: var(--oui-space-2);
+}
+/* One reading of every screen for the checks (hud.js): lay the hidden ones
+   out without painting them. */
+body.hud-measure [data-hud][hidden],
+body.hud-measure #hud[hidden] {
+  display: block !important;
+  visibility: hidden;
+}
+body.hud-measure #match-bar[hidden] {
+  display: flex !important;
+}
+body.hud-measure .screen[hidden] {
+  display: grid !important;
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------- touch and gamepad
+   The on-screen stick and buttons are the runtime's, drawn from the
+   bindings in game.json (docs/games/devices.md); they keep to the safe area
+   themselves. Here: which buttons belong to which screen. */
+body.leaving .oncyber-controls {
+  display: none;
+}
+body.is-club .oncyber-controls [data-oncyber-action="hit"],
+body.is-club .oncyber-controls [data-oncyber-action="lob"],
+body.is-club .oncyber-controls [data-oncyber-action="power"],
+body.is-club .oncyber-controls [data-oncyber-action="pause"],
+body.is-club .oncyber-controls [data-oncyber-action="view"],
+body.is-match .oncyber-controls [data-oncyber-action="jump"],
+body.is-match .oncyber-controls [data-oncyber-action="confirm"],
+body.is-menu .oncyber-controls [data-oncyber-action]:not([data-oncyber-action="confirm"]) {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

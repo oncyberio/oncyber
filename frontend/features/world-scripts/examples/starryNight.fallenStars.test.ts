@@ -1,0 +1,128 @@
+import fs from "fs";
+import path from "path";
+import { WORLD_SCRIPT_LIMITS } from "../basics";
+import { cleanOps } from "../protocol";
+import { runScript } from "../scriptSandbox.jest";
+
+const SOURCE = fs.readFileSync(
+    path.join(__dirname, "starryNight.fallenStars.js"),
+    "utf-8"
+);
+
+const of = (ops: any[], op: string) => ops.filter((item) => item.op === op);
+const hud = (ops: any[], key: string) =>
+    of(ops, "hud")
+        .filter((item) => item.key === key)
+        .pop()?.text;
+
+/** What was added under ids like this, as { id, ...props }. */
+const added = (ops: any[], ids: RegExp) =>
+    of(ops, "add")
+        .filter((item) => ids.test(item.id))
+        .map((item) => ({ id: item.id, ...item.props }));
+const stars = (ops: any[]) => added(ops, /^star-\d+$/);
+/** The parts a built thing was last given in these requests. */
+const partsOf = (ops: any[], id: string): any[] =>
+    [...of(ops, "add"), ...of(ops, "set")]
+        .filter((item) => item.id === id && item.props?.parts)
+        .pop()?.props.parts || [];
+
+describe("Starry Night's script, Fallen stars", () => {
+    test("fits in a saved script and asks only for what the host takes", () => {
+        expect(Buffer.byteLength(SOURCE)).toBeLessThan(
+            WORLD_SCRIPT_LIMITS.maxSourceBytes
+        );
+        const script = runScript(SOURCE);
+        expect(script.errors()).toEqual([]);
+        const asked = script.ops();
+        const checked = cleanOps(asked);
+        expect(checked.dropped).toBe(0);
+        expect(checked.ops).toHaveLength(asked.length);
+    });
+
+    test("starts with seven stars, seven dark lanterns and the goal", () => {
+        const script = runScript(SOURCE);
+        const ops = script.ops();
+        expect(stars(ops)).toHaveLength(7);
+        // Built from parts, so a painted world paints them; none is lit.
+        const lanterns = added(ops, /^lantern-\d+$/);
+        expect(lanterns).toHaveLength(7);
+        expect(lanterns.every((thing) => thing.shape === "model")).toBe(true);
+        for (let i = 0; i < 7; i++) {
+            const parts = partsOf(ops, "lantern-" + i);
+            expect(parts.length).toBeGreaterThan(8);
+            expect(JSON.stringify(parts)).not.toContain('"glow":true');
+        }
+        expect(partsOf(ops, "star-0").length).toBeGreaterThan(20);
+        expect(hud(ops, "score")).toBe("Stars 0/7");
+        expect(hud(ops, "goal")).toMatch(/Follow them down to the house/);
+        // One star shows at a time: the first, nearest where a visitor starts.
+        const showing = (id: string) =>
+            [...of(ops, "add"), ...of(ops, "set")]
+                .filter((item) => item.id === id && "visible" in item.props)
+                .pop()?.props.visible;
+        expect(showing("star-0")).toBe(true);
+        for (let i = 1; i < 7; i++) expect(showing("star-" + i)).toBe(false);
+        // And a signpost says where the road goes.
+        expect(added(ops, /^signpost$/)[0]).toMatchObject({ shape: "model" });
+        expect(added(ops, /^signpost\.words$/)[0]).toMatchObject({
+            text: "To the house",
+        });
+    });
+
+    test("walking up to a star catches it and lights the next lantern", () => {
+        const script = runScript(SOURCE);
+        const [first] = stars(script.ops());
+        // Far away: nothing is caught.
+        expect(hud(script.tick(), "score")).toBeUndefined();
+        const [x, y, z] = first.position;
+        const ops = script.tick(1 / 60, [x, y - 2.2, z]);
+        expect(script.errors()).toEqual([]);
+        expect(hud(ops, "score")).toBe("Stars 1/7");
+        const set = (id: string) =>
+            of(ops, "set").find((item) => item.id === id)?.props;
+        expect(set("star-0")).toMatchObject({ visible: false });
+        // The first lantern is drawn again, lit, with its rings of light.
+        const lit = JSON.stringify(partsOf(ops, "lantern-0"));
+        expect(lit).toContain('"glow":true');
+        expect(lit).toContain('"place"');
+        expect(partsOf(ops, "lantern-1")).toEqual([]);
+        // The next star shows, further down the road.
+        expect(set("star-1")).toMatchObject({ visible: true });
+        expect(of(ops, "sound")[0]).toMatchObject({ name: "coin" });
+    });
+
+    test("a star on the road is not caught from the floor below", () => {
+        const script = runScript(SOURCE);
+        const [x, y, z] = stars(script.ops())[0].position;
+        script.tick(1 / 60, [x, y - 8, z]);
+        expect(hud(script.ops(), "score")).toBe("Stars 0/7");
+    });
+
+    test("a star further down cannot be caught before its turn", () => {
+        const script = runScript(SOURCE);
+        const [x, y, z] = stars(script.ops())[3].position;
+        script.tick(1 / 60, [x, y - 2.2, z]);
+        expect(hud(script.ops(), "score")).toBe("Stars 0/7");
+        expect(script.errors()).toEqual([]);
+    });
+
+    test("all seven light the way, and R scatters them again", () => {
+        const script = runScript(SOURCE);
+        let last: any[] = [];
+        for (const star of stars(script.ops())) {
+            const [x, y, z] = star.position;
+            last = script.tick(1 / 60, [x, y - 2.2, z]);
+        }
+        expect(hud(last, "score")).toBe("Stars 7/7");
+        expect(hud(last, "goal")).toMatch(/The way is lit/);
+        expect(of(last, "banner")[0]).toMatchObject({
+            text: "The way is lit",
+        });
+        script.send({ t: "key", down: true, key: "r", code: "KeyR" });
+        script.tick();
+        expect(script.posted.some((message) => message.t === "restart")).toBe(
+            true
+        );
+    });
+});

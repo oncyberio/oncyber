@@ -5,13 +5,13 @@ keep their own set on top of it. All values live in
 [`frontend/styles/tokens/`](../../frontend/styles/tokens/). A live reference of
 every value, with samples of the real primitives, is at `/dev/tokens`.
 
-| File         | Surface                                   | Character                                               |
-| ------------ | ----------------------------------------- | ------------------------------------------------------- |
-| `base.ts`    | Everything                                | Fonts, ink, accent blue + create red, hairlines, motion |
-| `action.ts`  | Action buttons on every surface           | One spec; blue, white and outline variants              |
-| `landing.ts` | 2D landing (`/`, `/landing-carousel`)     | Quiet canvas, paper cards, blue actions                 |
-| `lobby.ts`   | UI over the 3D lobby and visitor runtimes | Glass panels, dock controls, curved pickers             |
-| `studio.ts`  | Studio editor                             | Dense, flat neutral greys, no glass                     |
+| File         | Surface                                   | Character                                                                                       |
+| ------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `base.ts`    | Everything                                | Fonts, ink, accent blue + create red, hairlines, the backdrop of a framed game or world, motion |
+| `action.ts`  | Action buttons on every surface           | One spec; blue, white and outline variants                                                      |
+| `landing.ts` | 2D landing (`/`, `/landing-carousel`)     | Quiet canvas, paper cards, blue actions                                                         |
+| `lobby.ts`   | UI over the 3D lobby and visitor runtimes | Glass panels, dock controls, curved pickers                                                     |
+| `studio.ts`  | Studio editor                             | Dense, flat neutral greys, no glass                                                             |
 
 Import from `@styles/tokens`:
 

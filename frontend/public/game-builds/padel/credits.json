@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "game": "padel",
+  "name": "Glasshouse · Padel",
+  "own": 1,
+  "credits": [
+    {
+      "title": "OC Square avatar",
+      "kind": "model",
+      "author": "NeonGlitch86",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md",
+      "license": "LicenseRef-Oncyber-Permission",
+      "licenseName": "Oncyber Permission",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "avatars/square-catalogue.vrm"
+      ],
+      "note": "The three NPC players' body. Its embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse this file.",
+      "confirmed": false
+    },
+    {
+      "title": "Anton",
+      "kind": "font",
+      "author": "The Anton Project Authors",
+      "source": "https://github.com/googlefonts/AntonFont",
+      "license": "OFL-1.1",
+      "licenseName": "SIL Open Font License 1.1",
+      "licenseUrl": "https://openfontlicense.org/open-font-license-official-text/",
+      "licenseFile": "fonts/Anton-OFL.txt",
+      "files": [
+        "assets/Anton-Regular-DDTWnLuj.ttf",
+        "fonts/Anton-Regular.ttf"
+      ],
+      "note": null,
+      "confirmed": true
+    },
+    {
+      "title": "Space Grotesk",
+      "kind": "font",
+      "author": "The Space Grotesk Project Authors",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "license": "OFL-1.1",
+      "licenseName": "SIL Open Font License 1.1",
+      "licenseUrl": "https://openfontlicense.org/open-font-license-official-text/",
+      "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "files": [
+        "assets/SpaceGrotesk-Medium-Du45cukc.woff2",
+        "assets/SpaceGrotesk-Regular-CLcxnAOH.woff2"
+      ],
+      "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts).",
+      "confirmed": true
+    },
+    {
+      "title": "Space Mono",
+      "kind": "font",
+      "author": "The Space Mono Project Authors",
+      "source": "https://github.com/googlefonts/spacemono",
+      "license": "OFL-1.1",
+      "licenseName": "SIL Open Font License 1.1",
+      "licenseUrl": "https://openfontlicense.org/open-font-license-official-text/",
+      "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+      "files": [
+        "assets/SpaceMono-Regular-B6K0B1Cw.woff2"
+      ],
+      "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts).",
+      "confirmed": true
+    },
+    {
+      "title": "Lobby locomotion and emote clips",
+      "kind": "motion",
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "licenseName": "Oncyber Lobby Motion",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "assets/emotes-hP_wzozT.json",
+        "assets/locomotion-DBQJaU7P.json"
+      ],
+      "note": "Bundled from Oncyber's avatar kit (games/kits/avatar/motion): a copy of frontend/public/lobby/native-avatar-motion.json, used for walking the club and for the walk and run on court, and four emotes (hip hop, moonwalk, praying, sitting) from native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence; nothing in the repository records where the emotes came from.",
+      "confirmed": false
+    },
+    {
+      "title": "Tennis motion capture",
+      "kind": "motion",
+      "author": "Sam Lazarus for Rokoko",
+      "source": "https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations",
+      "license": "LicenseRef-Rokoko-Free-Asset-Terms",
+      "licenseName": "Rokoko Free Asset Terms",
+      "licenseUrl": null,
+      "licenseFile": null,
+      "files": [
+        "assets/tennis-motion-B3dyzj4F.json"
+      ],
+      "note": "Ready, forehand, backhand and serve cut from the pack's tennis clip, retrieved 2026-10-13. The publisher's page allows personal and commercial use in games.",
+      "confirmed": false
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseName": "Apache License 2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "files": [
+        "assets/basis_transcoder-VXdx5NbI.wasm",
+        "assets/basis_transcoder-o4Hde_L7.js"
+      ],
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures.",
+      "confirmed": true
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-vrm-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseName": "MIT License",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "licenseFile": "licenses/three-MIT.txt",
+      "files": [],
+      "note": null,
+      "confirmed": true
+    }
+  ]
+}

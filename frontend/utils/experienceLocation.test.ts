@@ -2,6 +2,7 @@
 import {
     createHostedExperienceLocation,
     publicExperienceHref,
+    publicPageHref,
     replaceExperienceLocation,
 } from "./experienceLocation";
 
@@ -47,4 +48,29 @@ test("coordinate updates replace one history entry without route events", () => 
     expect(window.history.length).toBe(length);
     expect(event).not.toHaveBeenCalled();
     window.removeEventListener("popstate", event);
+});
+
+describe("a page a visitor may be sent to without asking", () => {
+    const origin = "https://www.oncyber.com";
+    test("spaces, profiles, the lobby", () => {
+        for (const href of ["/", "/coco__bear", "/spaces/abc", "/@ada?tab=1"])
+            expect(publicPageHref(href, origin)).toBe(href);
+    });
+    test("never an address that acts when it is opened, or a file", () => {
+        for (const href of [
+            "/api/exhibit?type=CREATE_EXHIBIT",
+            "/API/exhibit",
+            "/api",
+            "/%61pi/exhibit",
+            "/_next/data/x.json",
+            "/cli-auth?code=1",
+            "/games/ace/index.html",
+            "//evil.example/",
+            "https://evil.example/",
+            "javascript:alert(1)",
+            7,
+            null,
+        ])
+            expect(publicPageHref(href, origin)).toBeNull();
+    });
 });

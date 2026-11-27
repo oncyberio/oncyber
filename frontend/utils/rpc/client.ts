@@ -1,4 +1,5 @@
 import { combineAbortSignals, param } from "@utils/js";
+import { relayedWorldRpc } from "@features/worlds/worldAccount";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
     decodeChecksum,
@@ -69,6 +70,10 @@ export async function invokeRemoteRpcMethod(
             cause: err,
         });
     };
+    // In the site's frame the page holds the session: the calls a world
+    // may make with it are made by the page (features/worlds/accountRelay).
+    const relayed = relayedWorldRpc(route, method);
+    if (relayed) return relayed(params, ctx);
     //
     console.log("rpc", route, method, params[0], ctx);
 

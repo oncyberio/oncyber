@@ -5,12 +5,12 @@ no Firebase account, no keys and no access to Oncyber's data.
 
 ## What it starts
 
-| Piece              | Where                                                               |
-| ------------------ | ------------------------------------------------------------------- |
-| The site           | http://localhost:13000                                              |
-| Firebase emulators | Auth `127.0.0.1:9099`, Firestore `:8085`, Realtime Database `:9000` |
-| Emulator data UI   | http://127.0.0.1:4000 (browse and edit every document)              |
-| Lobby server       | `127.0.0.1:2568`, installed into `multiplayer/` on first run        |
+| Piece              | Where                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| The site           | http://localhost:13000                                                               |
+| Firebase emulators | Auth `127.0.0.1:9099`, Firestore `:8085`, Realtime Database `:9000`, Storage `:9199` |
+| Emulator data UI   | http://127.0.0.1:4000 (browse and edit every document)                               |
+| Lobby server       | `127.0.0.1:2568`, installed into `multiplayer/` on first run                         |
 
 The emulators run as the project `demo-oncyber`. Firebase treats any project
 id starting with `demo-` as offline only, so nothing here can reach a real
@@ -53,6 +53,51 @@ emulator UI (http://127.0.0.1:4000/firestore) into `exhibits.json`.
 
 The engine loads some shared assets (sky, loading textures, default avatar
 parts) from IPFS, so the first visit needs an internet connection.
+
+The Storage emulator holds one thing: the releases of games published from
+outside the repository, when the server is started with
+`GAMES_PUBLISHING_STORAGE=on` ([docs/games/publishing.md](../docs/games/publishing.md)).
+Without it those go to `.games-releases/`. `storage.rules` gives the
+Firebase client SDKs nothing; only the site's server uses the bucket.
+
+## Real spaces
+
+The sample space is enough for most work. To debug a real space (a world
+that misbehaves, an outside experience attached to a space, a world
+script), copy it in. The stack must be running.
+
+```sh
+ONCYBER_BASE_URL=https://oncyber.io pnpm world login   # once: sign the terminal in to the real site
+pnpm world spaces                                      # your spaces there: name, link, id
+pnpm world import <link | id | address>                # a copy of one, here
+```
+
+`import` takes a space's link (`rayan`), its id, or its whole address
+(`https://oncyber.io/rayan`). It copies the space, its placed objects and
+portals, and the world it is built on, then prints where the copy opens:
+the same link on `localhost:13000`.
+
+-   **Only your own.** The site gives a copy to the space's owner and
+    editors, and to Oncyber's site admins. Anyone else is told there is no
+    such space.
+-   **The copy is yours to break.** The demo account owns it, so sign in as
+    demo@example.com to edit it in the Studio. Nothing done here reaches
+    the real space. Importing again replaces the copy.
+-   **Left off:** who owns and edits the real space, and its gate (a
+    password or tokens cannot be checked here, so the copy opens for
+    anyone). The command says what it left off.
+-   **Files stay where they are.** Models, images and video load from the
+    addresses the real space uses, so they need an internet connection. An
+    outside experience (`awe-app`, `web`) is framed from its own address,
+    as on the site. `pnpm world spaces` marks those spaces with what runs
+    them.
+-   **Where it writes.** To the Firestore emulator and nowhere else: the
+    project is `demo-oncyber`, which Firebase keeps offline.
+
+On a machine with no browser, sign in with `pnpm world login --code`
+([docs/world-scripts.md](../docs/world-scripts.md), "Writing one in a
+file"). `--from <site>` reads from another deployment, a preview for
+instance; the terminal must be signed in to that one.
 
 ## Commands
 

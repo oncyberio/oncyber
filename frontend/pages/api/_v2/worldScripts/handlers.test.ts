@@ -1,0 +1,636 @@
+/** @jest-environment node */
+
+// The procedures run as they are; only Firestore underneath is replaced, by
+// this in-memory one. Transactions run one after another, which is what
+// Firestore makes of transactions on the same document.
+const mockDocs = new Map<string, Record<string, any>>();
+let mockQueue: Promise<unknown> = Promise.resolve();
+let mockAuto = 0;
+const mockMerge = (path: string, data: Record<string, any>) => {
+    const next = { ...(mockDocs.get(path) || {}) };
+    for (const [key, value] of Object.entries(data))
+        next[key] =
+            value && typeof value === "object" && "mockAdd" in value
+                ? (Number(next[key]) || 0) + value.mockAdd
+                : value;
+    mockDocs.set(path, next);
+};
+const mockSnap = (path: string) => ({
+    exists: mockDocs.has(path),
+    data: () => mockDocs.get(path),
+    ref: { path },
+});
+const mockRef = (path: string) => ({
+    path,
+    get: async () => mockSnap(path),
+    set: async (data: Record<string, any>) => void mockDocs.set(path, data),
+    delete: async () => void mockDocs.delete(path),
+});
+jest.mock("@utils/firebaseAdmin", () => ({
+    db: {
+        collection: (name: string) => {
+            const all = {
+                doc: (id?: string) =>
+                    mockRef(`${name}/${id ?? `auto${++mockAuto}`}`),
+                limit: () => all,
+                get: async () => ({
+                    docs: [...mockDocs.keys()]
+                        .filter((path) => path.startsWith(`${name}/`))
+                        .map(mockSnap),
+                }),
+            };
+            return all;
+        },
+        getAll: async (...refs: any[]) =>
+            refs
+                .filter((ref) => typeof ref?.path === "string")
+                .map((ref) => mockSnap(ref.path)),
+        runTransaction(run: (transaction: any) => Promise<unknown>) {
+            const result = mockQueue.then(() =>
+                run({
+                    get: async (ref: { path: string }) => {
+                        // A read takes a moment: time for another request.
+                        await new Promise((resolve) => setTimeout(resolve, 1));
+                        return mockSnap(ref.path);
+                    },
+                    set: (ref: { path: string }, data: Record<string, any>) =>
+                        mockMerge(ref.path, data),
+                    update: (
+                        ref: { path: string },
+                        data: Record<string, any>
+                    ) => mockMerge(ref.path, data),
+                })
+            );
+            mockQueue = result.catch(() => undefined);
+            return result;
+        },
+        batch() {
+            const writes: Array<() => void> = [];
+            return {
+                set: (ref: { path: string }, data: Record<string, any>) =>
+                    void writes.push(() => mockMerge(ref.path, data)),
+                commit: async () => writes.forEach((write) => write()),
+            };
+        },
+    },
+    fire: { FieldValue: { increment: (by: number) => ({ mockAdd: by }) } },
+}));
+jest.mock("@api/accounts/authenticate/utils/link", () => ({
+    getAccountDoc: jest.fn(async (id: string) => ({ id, data: () => ({}) })),
+}));
+const mockAnnounce = jest.fn(async (..._said: unknown[]) => true);
+jest.mock("@utils/worldScripts/announce", () => ({
+    announceScript: (...said: unknown[]) => mockAnnounce(...said),
+}));
+jest.mock("@utils/siteAdmins", () => ({
+    isSiteAdmin: (id: string) => String(id).toLowerCase() === "site-admin",
+}));
+
+import { access, generate } from "./generate";
+import { save } from "./save";
+import { current, get, reference } from "./read";
+import { grant, people, revoke } from "./people";
+import { getAccountDoc } from "@api/accounts/authenticate/utils/link";
+
+const env = process.env as Record<string, string | undefined>;
+// Named in two pieces: a build writes a NEXT_PUBLIC_ variable's value in
+// place of its name wherever it is read, and every file under pages/ is
+// built, tests too. An assignment to it would not compile.
+const FLAG = ["NEXT_PUBLIC", "WORLD_SCRIPTS"].join("_");
+const before = { ...env };
+const day = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+const usage = (userId: string) => mockDocs.get(`aiUsageDaily/${userId}_${day}`);
+const ledger = () =>
+    [...mockDocs.entries()]
+        .filter(([path]) => path.startsWith("aiUsage/"))
+        .map(([, row]) => row);
+const space = () => mockDocs.get("exhibits/space-1");
+
+const script = (source = "world.add({});") => ({
+    id: "s1",
+    name: "Game",
+    source,
+    enabled: true,
+});
+const style = {
+    summary: "Neon.",
+    palette: ["#000000", "#ff00ff"],
+    look: "glow",
+    strokes: 0.5,
+    wobble: 0,
+    outline: false,
+};
+const as = (userId: string) => ({
+    save: (input: object) => (save as any).call({ userId }, input),
+    generate: (input: object) => (generate as any).call({ userId }, input),
+    access: () => (access as any).call({ userId }, { experienceId: "space-1" }),
+    get: () => (get as any).call({ userId }, { experienceId: "space-1" }),
+    reference: () => (reference as any).call({ userId }, {}),
+    current: () => (current as any).call({}, { experienceId: "space-1" }),
+    people: () => (people as any).call({ userId }, {}),
+    grant: (who: string) => (grant as any).call({ userId }, { who }),
+    revoke: (who: string) => (revoke as any).call({ userId }, { who }),
+});
+
+/** The model, answering with a script (or as told). */
+const model = jest.fn();
+const answers = (content = '{"say":"Done","name":"Game","source":"go()"}') =>
+    model.mockImplementation(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+            model: "test/model",
+            choices: [{ message: { content } }],
+            usage: { prompt_tokens: 10, completion_tokens: 5, cost: 0.01 },
+        }),
+    }));
+
+beforeEach(() => {
+    mockDocs.clear();
+    mockDocs.set("exhibits/space-1", {
+        owner: "Owner",
+        editors: ["editor"],
+        info: {},
+    });
+    env[FLAG] = "1";
+    env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner, editor";
+    env.WORLD_SCRIPTS_AI_DAILY_LIMIT = "3";
+    env.OPENROUTER_API_KEY = "key";
+    model.mockReset();
+    answers();
+    (global as any).fetch = model;
+});
+afterAll(() => {
+    for (const key of Object.keys(env)) if (!(key in before)) delete env[key];
+    Object.assign(env, before);
+});
+
+describe("saving a space's script", () => {
+    test("every procedure needs a session", () => {
+        for (const procedure of [save, generate, access])
+            expect((procedure as any)._RPC_OPTS.auth).toBe(true);
+    });
+
+    test("a space keeps one script, and what is sent is only what a script is", () => {
+        const schema = (save as any)._RPC_OPTS.schema;
+        const input = (scripts: object[]) => ({
+            experienceId: "space-1",
+            scripts,
+        });
+        expect(schema.safeParse(input([script()])).success).toBe(true);
+        expect(schema.safeParse(input([])).success).toBe(true);
+        expect(schema.safeParse(input([script(), script()])).success).toBe(
+            false
+        );
+        // What an older page still sends with a script is dropped, not kept.
+        const parsed = schema.parse(
+            input([{ ...script(), prompt: "make a game", updatedAt: 3 }])
+        );
+        expect(Object.keys(parsed.scripts[0]).sort()).toEqual([
+            "enabled",
+            "id",
+            "name",
+            "source",
+        ]);
+    });
+
+    test("an admin in early access saves it, stamped", async () => {
+        const result = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+            base: 0,
+        });
+        expect(result).toMatchObject({ ok: true });
+        expect(result.scripts[0].updatedAt).toBeGreaterThan(0);
+        expect(space()).toMatchObject({
+            worldScripts: result.scripts,
+            worldScriptsUpdatedBy: "owner",
+        });
+    });
+
+    test("it is off unless the flag is on", async () => {
+        env[FLAG] = "";
+        expect(
+            await as("owner").save({
+                experienceId: "space-1",
+                scripts: [script()],
+            })
+        ).toEqual({ ok: false, error: "World scripts are off here." });
+        expect(space().worldScripts).toBeUndefined();
+    });
+
+    test("nobody but the space's admins writes to it", async () => {
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "*";
+        const result = await as("visitor").save({
+            experienceId: "space-1",
+            scripts: [script("for(;;){}")],
+        });
+        expect(result).toEqual({
+            ok: false,
+            error: "Only this space's admins can change its scripts.",
+        });
+        expect(space().worldScripts).toBeUndefined();
+        expect(
+            await as("site-admin").save({
+                experienceId: "space-1",
+                scripts: [script()],
+            })
+        ).toMatchObject({ ok: true });
+    });
+
+    test("an admin outside early access puts no script or style on a space, but may take scripts away", async () => {
+        mockDocs.get("exhibits/space-1").worldScripts = [
+            { ...script(), updatedAt: 5 },
+        ];
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner";
+        const editor = as("editor");
+        for (const input of [{ scripts: [script("mine()")] }, { style }])
+            expect(
+                await editor.save({ experienceId: "space-1", ...input })
+            ).toEqual({
+                ok: false,
+                error: "World scripts are in early access for now.",
+            });
+        expect(space().worldScripts[0].source).toBe("world.add({});");
+        expect(space().worldStyle).toBeUndefined();
+        expect(
+            await editor.save({ experienceId: "space-1", scripts: [], base: 5 })
+        ).toMatchObject({ ok: true, scripts: [] });
+        expect(space().worldScripts).toEqual([]);
+    });
+
+    test("a save that builds on an older script than the space has is refused, not written over it", async () => {
+        const owner = as("owner");
+        const first = await owner.save({
+            experienceId: "space-1",
+            scripts: [script("first()")],
+            base: 0,
+        });
+        // Another tab, still on what it loaded.
+        const stale = await as("editor").save({
+            experienceId: "space-1",
+            scripts: [script("stale()")],
+            base: 0,
+        });
+        expect(stale).toMatchObject({ ok: false, conflict: true });
+        expect(space().worldScripts[0].source).toBe("first()");
+        const second = await owner.save({
+            experienceId: "space-1",
+            scripts: [script("second()")],
+            base: first.scripts[0].updatedAt,
+        });
+        expect(second).toMatchObject({ ok: true });
+        // Later than the one before it, even within one millisecond.
+        expect(second.scripts[0].updatedAt).toBeGreaterThan(
+            first.scripts[0].updatedAt
+        );
+    });
+
+    test("a style is checked, and saved without touching the script", async () => {
+        const owner = as("owner");
+        await owner.save({
+            experienceId: "space-1",
+            scripts: [script()],
+            base: 0,
+        });
+        expect(
+            await owner.save({ experienceId: "space-1", style: { look: 1 } })
+        ).toEqual({ ok: false, error: "That style isn't valid." });
+        expect(
+            await owner.save({ experienceId: "space-1", style })
+        ).toMatchObject({ ok: true, scripts: null, style });
+        expect(space().worldStyle).toEqual(style);
+        expect(space().worldScripts).toHaveLength(1);
+    });
+});
+
+describe("a script written outside the sidebar", () => {
+    test("the reference is the model's own, without how the model must answer", async () => {
+        const told = await as("anyone").reference();
+        expect(told.ok).toBe(true);
+        expect(told.reference).toMatch(/^The script body runs once at start\./);
+        expect(told.reference).toContain("world.add(spec)");
+        expect(told.reference).not.toContain("Answer with ONE JSON object");
+        // what a script is handed, and how long it may be
+        expect(told.names).toEqual(
+            expect.arrayContaining(["world", "input", "ui", "sound", "keep"])
+        );
+        expect(told.maxSourceBytes).toBeGreaterThan(1000);
+    });
+
+    test("a space's admin reads its saved script, and what the next save builds on", async () => {
+        expect(await as("owner").get()).toEqual({
+            ok: true,
+            scripts: [],
+            style: null,
+            savedAt: 0,
+        });
+        const saved = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script("ui.toast('hi', 2);")],
+            base: 0,
+        });
+        const read = await as("editor").get();
+        expect(read).toMatchObject({
+            ok: true,
+            scripts: [script("ui.toast('hi', 2);")],
+            savedAt: saved.scripts[0].updatedAt,
+        });
+        // The next save from there lands; one from before it does not.
+        expect(
+            await as("editor").save({
+                experienceId: "space-1",
+                scripts: [script("ui.toast('two', 2);")],
+                base: read.savedAt,
+            })
+        ).toMatchObject({ ok: true });
+        expect(
+            await as("owner").save({
+                experienceId: "space-1",
+                scripts: [script("ui.toast('late', 2);")],
+                base: read.savedAt,
+            })
+        ).toMatchObject({ ok: false, conflict: true });
+    });
+
+    test("nobody else reads it here, and nothing answers with the flag off", async () => {
+        expect(await as("stranger").get()).toMatchObject({ ok: false });
+        env[FLAG] = "";
+        expect(await as("owner").get()).toMatchObject({ ok: false });
+        expect(await as("owner").reference()).toMatchObject({ ok: false });
+    });
+});
+
+describe("asking the model", () => {
+    const ask = (userId: string, extra: object = {}) =>
+        as(userId).generate({
+            experienceId: "space-1",
+            request: "make a game",
+            ...extra,
+        });
+
+    test("who may: the space's admins who are in early access", async () => {
+        expect(await as("owner").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: true,
+            allowed: true,
+        });
+        expect(await as("visitor").access()).toMatchObject({
+            canEdit: false,
+            allowed: false,
+        });
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner";
+        expect(await as("editor").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: false,
+            allowed: false,
+        });
+        expect(await ask("visitor")).toMatchObject({ ok: false });
+        expect(await ask("editor")).toMatchObject({ ok: false });
+        expect(model).not.toHaveBeenCalled();
+        expect(ledger()).toEqual([]);
+    });
+
+    test("a request is counted, charged and answered", async () => {
+        expect(await ask("owner")).toMatchObject({
+            ok: true,
+            source: "go()",
+        });
+        expect(usage("owner")).toMatchObject({ requests: 1, costUsd: 0.01 });
+        expect(ledger()).toEqual([
+            expect.objectContaining({
+                userId: "owner",
+                experienceId: "space-1",
+                model: "test/model",
+                ok: true,
+                costUsd: 0.01,
+            }),
+        ]);
+    });
+
+    test("a call that fails or times out is counted all the same", async () => {
+        model.mockImplementation(async () => ({
+            ok: false,
+            status: 502,
+            json: async () => ({ error: { message: "upstream" } }),
+        }));
+        expect(await ask("owner")).toMatchObject({ ok: false });
+        model.mockImplementation(async () => {
+            throw new Error("socket hang up");
+        });
+        expect(await ask("owner")).toMatchObject({ ok: false });
+        expect(usage("owner").requests).toBe(2);
+        expect(ledger().map((row) => row.ok)).toEqual([false, false]);
+        // One left of three.
+        answers();
+        expect(await ask("owner")).toMatchObject({ ok: true });
+        expect(await ask("owner")).toEqual({
+            ok: false,
+            error: "That's today's limit. Try again tomorrow.",
+        });
+        expect(model).toHaveBeenCalledTimes(3);
+    });
+
+    test("requests made at once cannot all slip under the limit", async () => {
+        const results = await Promise.all(
+            Array.from({ length: 8 }, () => ask("owner"))
+        );
+        expect(results.filter((result) => result.ok)).toHaveLength(3);
+        expect(model).toHaveBeenCalledTimes(3);
+        expect(usage("owner").requests).toBe(3);
+    });
+
+    test("a request that builds on a script changed elsewhere is refused before it costs anything", async () => {
+        mockDocs.get("exhibits/space-1").worldScripts = [
+            { ...script(), updatedAt: 9 },
+        ];
+        expect(await ask("owner", { base: 4 })).toMatchObject({
+            ok: false,
+            error: expect.stringContaining("changed somewhere else"),
+        });
+        expect(model).not.toHaveBeenCalled();
+        expect(usage("owner")).toBeUndefined();
+        expect(await ask("owner", { base: 9 })).toMatchObject({ ok: true });
+    });
+
+    test("it is off unless the flag is on", async () => {
+        env[FLAG] = "";
+        expect(await ask("owner")).toEqual({
+            ok: false,
+            error: "World scripts are off here.",
+        });
+        expect(await as("owner").access()).toMatchObject({ canEdit: false });
+        expect(model).not.toHaveBeenCalled();
+    });
+});
+
+describe("who is in early access", () => {
+    beforeEach(() => {
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "";
+    });
+
+    test("a site admin is in without being listed anywhere", async () => {
+        expect(await as("site-admin").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: true,
+        });
+        expect(await as("owner").access()).toMatchObject({
+            canEdit: true,
+            earlyAccess: false,
+        });
+    });
+
+    test("a site admin adds someone, who may then save a script", async () => {
+        const refused = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+        });
+        expect(refused).toMatchObject({ ok: false });
+        expect(await as("site-admin").grant("@Owner")).toMatchObject({
+            ok: true,
+            person: { accountId: "Owner", addedBy: "site-admin" },
+        });
+        expect(await as("owner").access()).toMatchObject({
+            earlyAccess: true,
+        });
+        const saved = await as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+        });
+        expect(saved).toMatchObject({ ok: true });
+        expect(await as("site-admin").people()).toMatchObject({
+            ok: true,
+            people: [{ accountId: "Owner" }],
+            fromSettings: [],
+        });
+    });
+
+    test("taking someone out closes it again, and says when it does not", async () => {
+        await as("site-admin").grant("owner");
+        expect(await as("site-admin").revoke("owner")).toEqual({
+            ok: true,
+            removed: true,
+            still: "",
+        });
+        expect(await as("owner").access()).toMatchObject({
+            earlyAccess: false,
+        });
+        expect(await as("site-admin").revoke("owner")).toMatchObject({
+            removed: false,
+        });
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "editor";
+        expect(await as("site-admin").revoke("editor")).toMatchObject({
+            removed: false,
+            still: "listed in this deployment's settings",
+        });
+        expect(await as("site-admin").revoke("site-admin")).toMatchObject({
+            still: "a site admin",
+        });
+    });
+
+    test("nobody else may read or change the list", async () => {
+        for (const someone of ["owner", "editor", "visitor"]) {
+            expect(await as(someone).grant(someone)).toMatchObject({
+                ok: false,
+                error: expect.stringMatching(/site admins/),
+            });
+            expect(await as(someone).people()).toMatchObject({ ok: false });
+            expect(await as(someone).revoke("owner")).toMatchObject({
+                ok: false,
+            });
+        }
+        expect(
+            [...mockDocs.keys()].filter((path) =>
+                path.startsWith("worldScriptsAccess/")
+            )
+        ).toEqual([]);
+    });
+
+    test("a name no account goes by is refused, and with the flag off so is all of it", async () => {
+        (getAccountDoc as jest.Mock)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null);
+        expect(await as("site-admin").grant("nobody")).toEqual({
+            ok: false,
+            error: 'No account goes by "nobody".',
+        });
+        env[FLAG] = "";
+        expect(await as("site-admin").grant("owner")).toMatchObject({
+            ok: false,
+        });
+        expect(await as("site-admin").people()).toMatchObject({ ok: false });
+    });
+});
+
+describe("open spaces follow a save", () => {
+    beforeEach(() => {
+        mockAnnounce.mockClear();
+        env.WORLD_SCRIPTS_AI_ALLOWLIST = "owner";
+    });
+    const saving = (extra: object = {}) =>
+        as("owner").save({
+            experienceId: "space-1",
+            scripts: [script()],
+            ...extra,
+        });
+
+    test("a save is announced, to be added unless the saver says rewind", async () => {
+        const saved = await saving();
+        expect(saved).toMatchObject({ ok: true, announced: true });
+        const [id, savedAt, landing] = mockAnnounce.mock.calls[0];
+        expect(id).toBe("space-1");
+        // The time the script was stored under: what a world compares.
+        expect(savedAt).toBe(saved.scripts[0].updatedAt);
+        expect(landing).toBe("add");
+
+        await saving({ landing: "rewind", base: saved.scripts[0].updatedAt });
+        expect(mockAnnounce.mock.calls[1][2]).toBe("rewind");
+        expect(mockAnnounce.mock.calls[1][1]).toBeGreaterThan(
+            savedAt as number
+        );
+    });
+
+    test("a refused save is not announced, and an unheard one is still saved", async () => {
+        expect(
+            await as("visitor").save({
+                experienceId: "space-1",
+                scripts: [script()],
+            })
+        ).toMatchObject({ ok: false });
+        expect(await saving({ base: 12345 })).toMatchObject({
+            ok: false,
+            conflict: true,
+        });
+        expect(mockAnnounce).not.toHaveBeenCalled();
+        mockAnnounce.mockResolvedValueOnce(false);
+        expect(await saving()).toMatchObject({ ok: true, announced: false });
+        expect(space().worldScripts).toHaveLength(1);
+    });
+
+    test("taking the script away is announced too", async () => {
+        await saving();
+        await as("owner").save({ experienceId: "space-1", scripts: [] });
+        expect(mockAnnounce).toHaveBeenCalledTimes(2);
+        expect(mockAnnounce.mock.calls[1][1]).toBeGreaterThan(0);
+    });
+
+    test("anyone may read the script a space runs now, and only that", async () => {
+        expect(await as("visitor").current()).toEqual({
+            ok: true,
+            source: "",
+            style: null,
+            savedAt: 0,
+        });
+        const saved = await saving({ style });
+        expect(await as("visitor").current()).toEqual({
+            ok: true,
+            source: "world.add({});",
+            style,
+            savedAt: saved.scripts[0].updatedAt,
+        });
+        mockDocs.set("exhibits/space-1", { ...space(), deleted: true });
+        expect(await as("visitor").current()).toMatchObject({ ok: false });
+        env[FLAG] = "";
+        expect(await as("visitor").current()).toMatchObject({ ok: false });
+    });
+});

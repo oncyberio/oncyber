@@ -24,6 +24,7 @@ import {
     finalizeMint,
     finalizeDestination,
     updateRoomParameters,
+    setAvatarHeight,
 } from "./writeOperations";
 import {
     uploadDestinationFiles,
@@ -60,6 +61,7 @@ const DestinationService = {
     finalizeMint,
     finalizeDestination,
     updateRoomParameters,
+    setAvatarHeight,
     uploadDestinationFiles,
     uploadDestinationThumbnail,
     uploadDestinationMedia,

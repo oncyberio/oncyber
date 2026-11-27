@@ -6,6 +6,8 @@ import { AuthServerSidePropsLite } from "@utils/authServerSideProps";
 import ProviderButtons from "@components/modals/SignupProvider/ProviderButtons";
 import { ProviderButtonsWrapper } from "@components/modals/SignupProvider/ProviderButtonsWrapper";
 import CliService from "@api/cli/_api";
+import { readCliAuthRequest } from "@features/cli-auth/request";
+import { baseTokens } from "@styles/tokens";
 
 /**
  * The browser side of the CLI login flow (world-cli.mjs's `login` command;
@@ -14,19 +16,11 @@ import CliService from "@api/cli/_api";
  * `?state=&callback=`, a signed-in user clicks Authorize, and the browser
  * redirects to the CLI's own localhost callback with a single-use code —
  * no scoped-permissions UI, per the "just direct connect" call.
+ *
+ * A terminal the browser cannot reach (a coding agent in the cloud) opens
+ * it with `?challenge=` instead, and the page shows the code to carry over
+ * by hand (features/cli-auth/request.ts).
  */
-function isLoopbackCallback(raw: string): boolean {
-    try {
-        const url = new URL(raw);
-        return (
-            (url.protocol === "http:" || url.protocol === "https:") &&
-            ["localhost", "127.0.0.1", "::1"].includes(url.hostname)
-        );
-    } catch {
-        return false;
-    }
-}
-
 export default function CliAuth(props) {
     const { token, authenticated, user } = useContext(UserContext);
     const router = useRouter();
@@ -35,20 +29,27 @@ export default function CliAuth(props) {
 
     const requiresSignup = !(authenticated && user?.id && token);
 
-    const state =
-        typeof router.query.state === "string" ? router.query.state : "";
-    const callback =
-        typeof router.query.callback === "string" ? router.query.callback : "";
-    const callbackValid = callback.length > 0 && isLoopbackCallback(callback);
+    const request = readCliAuthRequest(router.query);
+    const [code, setCode] = useState("");
+    const [copied, setCopied] = useState(false);
 
     async function handleAuthorize() {
         setError(null);
         setAuthorizing(true);
         try {
+            if (request.kind === "code") {
+                const answer = await CliService.authorize({
+                    challenge: request.challenge,
+                });
+                setCode(answer.code);
+                setAuthorizing(false);
+                return;
+            }
+            if (request.kind !== "callback") return;
             const { code } = await CliService.authorize({});
-            const target = new URL(callback);
+            const target = new URL(request.callback);
             target.searchParams.set("code", code);
-            target.searchParams.set("state", state);
+            target.searchParams.set("state", request.state);
             window.location.href = target.toString();
         } catch (err) {
             setError(err?.message ?? "Failed to authorize");
@@ -56,17 +57,43 @@ export default function CliAuth(props) {
         }
     }
 
+    async function copyCode() {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+        } catch {
+            // No clipboard here: the code is on the page to select.
+        }
+    }
+
     return (
         <Container>
             <Card>
-                {!callbackValid ? (
+                {request.kind === "invalid" ? (
                     <>
                         <Title>Invalid request</Title>
                         <Body>
-                            This link is missing a valid localhost callback —
-                            refusing to redirect anywhere else with an
-                            authorization code.
+                            This link does not say which terminal is signing in.
+                            A sign-in is handed only to a terminal on this
+                            machine, or shown here as a code for the terminal
+                            that asked.
                         </Body>
+                    </>
+                ) : code ? (
+                    <>
+                        <Title>Give this code to your terminal</Title>
+                        <Body>
+                            Paste it where you started signing in: your
+                            terminal, or the coding agent that gave you this
+                            link. It works once, in the next five minutes, and
+                            only there.
+                        </Body>
+                        <Code data-cli-code>{code}</Code>
+                        <Buttons>
+                            <Primary onClick={copyCode}>
+                                {copied ? "Copied" : "Copy code"}
+                            </Primary>
+                        </Buttons>
                     </>
                 ) : requiresSignup ? (
                     <>
@@ -87,9 +114,16 @@ export default function CliAuth(props) {
                         <Body>
                             Signed in as <strong>{user?.id}</strong>. This lets
                             your terminal read and edit worlds you already have
-                            access to — the same access you have in the browser,
-                            nothing more.
+                            access to, and publish games under your account: the
+                            same access you have in the browser, nothing more.
                         </Body>
+                        {request.kind === "code" && (
+                            <Body>
+                                This signs in a terminal on another machine. Go
+                                on only if you started this yourself: if someone
+                                sent you this link, close the page.
+                            </Body>
+                        )}
                         {error && <ErrorText>{error}</ErrorText>}
                         <Buttons>
                             <Primary
@@ -147,6 +181,19 @@ const ErrorText = styled.p`
     font-size: 13px;
     color: #ff8080;
     margin: 0 0 16px;
+`;
+
+const Code = styled.code`
+    display: block;
+    margin: 0 0 20px;
+    padding: 12px;
+    border: 1px solid ${baseTokens.color.line.default};
+    border-radius: ${baseTokens.radius.inset}px;
+    font-family: ${baseTokens.font.mono};
+    font-size: 14px;
+    color: ${baseTokens.color.ink};
+    overflow-wrap: anywhere;
+    user-select: all;
 `;
 
 const Buttons = styled.div`

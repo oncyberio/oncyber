@@ -1,0 +1,377 @@
+{
+  "name": "Glasshouse · Padel",
+  "avatar": "vrm",
+  "listing": {
+    "tagline": "doubles padel with NPC partners",
+    "description": "Walk the club as your avatar, then play doubles on a glass court with an NPC partner against two NPC opponents.",
+    "players": {
+      "min": 1,
+      "max": 1
+    },
+    "tags": [
+      "sports",
+      "club"
+    ]
+  },
+  "page": {
+    "room": "oncyber-padel-club-v2",
+    "crowdLabel": "at the club",
+    "controls": {
+      "top": 14
+    }
+  },
+  "network": [
+    "cyber.mypinata.cloud"
+  ],
+  "format": "match",
+  "devices": [
+    "desktop",
+    "gamepad"
+  ],
+  "avatars": {
+    "others": "avatar",
+    "arrival": "pose"
+  },
+  "arrival": {
+    "walkable": true
+  },
+  "locomotion": "lobby",
+  "party": {
+    "sizes": [
+      1,
+      8
+    ],
+    "formats": [
+      {
+        "id": "doubles",
+        "label": "Doubles with NPCs",
+        "sizes": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    ],
+    "solo": "doubles",
+    "shared": "Padel is one visitor with an NPC partner against two NPCs: there is no match between people yet. Party members share the club, see each other walk it, and each plays their own match.",
+    "late": "Arrives in the club and starts their own match when they like.",
+    "dropped": "Nothing changes for the others: every match is local to its player.",
+    "extra": "No seats to run out of: each member plays their own match.",
+    "note": "NPC doubles only. Playing doubles between party members is not built."
+  },
+  "runtime": {
+    "profile": "portable-v1",
+    "version": "1",
+    "platforms": [
+      "web"
+    ],
+    "entries": {
+      "web": "index.html",
+      "game": "src/game.js",
+      "scenario": "scenario.json"
+    },
+    "capabilities": [
+      "avatar",
+      "results",
+      "storage",
+      "travel"
+    ],
+    "assets": [],
+    "input": {
+      "up": {
+        "keyboard": [
+          "KeyW"
+        ],
+        "touch": "stick-up",
+        "gamepad": [
+          "left-stick-up",
+          "dpad-up"
+        ]
+      },
+      "down": {
+        "keyboard": [
+          "KeyS"
+        ],
+        "touch": "stick-down",
+        "gamepad": [
+          "left-stick-down",
+          "dpad-down"
+        ]
+      },
+      "left": {
+        "keyboard": [
+          "KeyA"
+        ],
+        "touch": "stick-left",
+        "gamepad": [
+          "left-stick-left",
+          "dpad-left"
+        ]
+      },
+      "right": {
+        "keyboard": [
+          "KeyD"
+        ],
+        "touch": "stick-right",
+        "gamepad": [
+          "left-stick-right",
+          "dpad-right"
+        ]
+      },
+      "aimUp": {
+        "keyboard": [
+          "ArrowUp"
+        ],
+        "gamepad": "right-stick-up"
+      },
+      "aimDown": {
+        "keyboard": [
+          "ArrowDown"
+        ],
+        "gamepad": "right-stick-down"
+      },
+      "aimLeft": {
+        "keyboard": [
+          "ArrowLeft"
+        ],
+        "gamepad": "right-stick-left"
+      },
+      "aimRight": {
+        "keyboard": [
+          "ArrowRight"
+        ],
+        "gamepad": "right-stick-right"
+      },
+      "hit": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "button:Hit",
+        "gamepad": "button-a"
+      },
+      "lob": {
+        "keyboard": [
+          "KeyK"
+        ],
+        "touch": "button:Lob",
+        "gamepad": "button-y"
+      },
+      "power": {
+        "keyboard": [
+          "KeyF"
+        ],
+        "touch": "button:Power",
+        "gamepad": [
+          "button-x",
+          "right-bumper"
+        ]
+      },
+      "confirm": {
+        "keyboard": [
+          "KeyJ",
+          "Space"
+        ],
+        "touch": "button:OK",
+        "gamepad": "button-a"
+      },
+      "back": {
+        "keyboard": [
+          "Backspace"
+        ],
+        "gamepad": "button-b"
+      },
+      "pause": {
+        "keyboard": [
+          "KeyP"
+        ],
+        "touch": "button:Pause",
+        "gamepad": "button-start"
+      },
+      "view": {
+        "keyboard": [
+          "KeyC"
+        ],
+        "gamepad": "button-select"
+      },
+      "run": {
+        "keyboard": [
+          "ShiftLeft",
+          "ShiftRight"
+        ],
+        "touch": "button:Run",
+        "gamepad": [
+          "right-trigger",
+          "left-stick-press"
+        ]
+      },
+      "jump": {
+        "keyboard": [
+          "Space"
+        ],
+        "touch": "button:Jump",
+        "gamepad": "button-x"
+      },
+      "lookX": {
+        "touch": "drag"
+      },
+      "lookY": {
+        "touch": "drag"
+      },
+      "wave": {
+        "keyboard": [
+          "KeyG"
+        ]
+      },
+      "dance": {
+        "keyboard": [
+          "KeyB"
+        ]
+      },
+      "sit": {
+        "keyboard": [
+          "KeyV"
+        ]
+      }
+    }
+  },
+  "keysCheck": {
+    "start": [],
+    "ready": {
+      "screen": "arrival"
+    },
+    "move": "KeyW"
+  },
+  "departure": "matched",
+  "results": {
+    "match": "autoplay&points=2",
+    "timeoutSeconds": 300
+  },
+  "saved": {
+    "settings": {
+      "scope": "visitor",
+      "stateVersion": 1,
+      "maxBytes": 256,
+      "sample": {
+        "difficulty": "competitive",
+        "graphics": "balanced",
+        "camera": "courtside"
+      }
+    }
+  },
+  "credits": [
+    {
+      "origin": "own",
+      "files": [
+        "preview.svg"
+      ],
+      "note": "The game's drawn card."
+    },
+    {
+      "title": "three.js",
+      "kind": "library",
+      "package": "three",
+      "author": "three.js authors",
+      "source": "https://github.com/mrdoob/three.js",
+      "license": "MIT",
+      "licenseFile": "licenses/three-MIT.txt"
+    },
+    {
+      "title": "three-vrm",
+      "kind": "library",
+      "package": "@pixiv/three-vrm",
+      "author": "pixiv Inc.",
+      "source": "https://github.com/pixiv/three-vrm",
+      "license": "MIT",
+      "licenseFile": "licenses/three-vrm-MIT.txt"
+    },
+    {
+      "title": "Basis Universal transcoder",
+      "kind": "library",
+      "files": [
+        "assets/basis_transcoder-*.js",
+        "assets/basis_transcoder-*.wasm"
+      ],
+      "author": "Binomial LLC",
+      "source": "https://github.com/BinomialLLC/basis_universal",
+      "license": "Apache-2.0",
+      "licenseFile": "licenses/basis-universal-Apache-2.0.txt",
+      "note": "Shipped inside the three.js package; decodes compressed avatar textures."
+    },
+    {
+      "title": "Anton",
+      "kind": "font",
+      "files": [
+        "fonts/Anton-Regular.ttf",
+        "assets/Anton-Regular-*.ttf"
+      ],
+      "author": "The Anton Project Authors",
+      "source": "https://github.com/googlefonts/AntonFont",
+      "license": "OFL-1.1",
+      "licenseFile": "fonts/Anton-OFL.txt"
+    },
+    {
+      "title": "Space Grotesk",
+      "kind": "font",
+      "files": [
+        "assets/SpaceGrotesk-*.woff2"
+      ],
+      "author": "The Space Grotesk Project Authors",
+      "source": "https://github.com/floriankarsten/space-grotesk",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceGrotesk-OFL-1.1.txt",
+      "note": "Regular and Medium, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Space Mono",
+      "kind": "font",
+      "files": [
+        "assets/SpaceMono-*.woff2"
+      ],
+      "author": "The Space Mono Project Authors",
+      "source": "https://github.com/googlefonts/spacemono",
+      "license": "OFL-1.1",
+      "licenseFile": "licenses/SpaceMono-OFL-1.1.txt",
+      "note": "Regular, bundled from Oncyber's UI kit (games/kits/ui/fonts)."
+    },
+    {
+      "title": "Lobby locomotion and emote clips",
+      "kind": "motion",
+      "files": [
+        "assets/locomotion-*.json",
+        "assets/emotes-*.json"
+      ],
+      "author": "Not recorded; Oncyber's lobby motion set",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/lobby/locomotion/source-manifest.json",
+      "license": "LicenseRef-Oncyber-Lobby-Motion",
+      "note": "Bundled from Oncyber's avatar kit (games/kits/avatar/motion): a copy of frontend/public/lobby/native-avatar-motion.json, used for walking the club and for the walk and run on court, and four emotes (hip hop, moonwalk, praying, sitting) from native-avatar-emotes.json. The lobby's source manifests pin the locomotion clips by hash but record no author or licence; nothing in the repository records where the emotes came from."
+    },
+    {
+      "title": "Tennis motion capture",
+      "kind": "motion",
+      "files": [
+        "assets/tennis-motion-*.json"
+      ],
+      "author": "Sam Lazarus for Rokoko",
+      "source": "https://www.rokoko.com/resources/rokoko-mocap-12-free-sports-animations",
+      "license": "LicenseRef-Rokoko-Free-Asset-Terms",
+      "note": "Ready, forehand, backhand and serve cut from the pack's tennis clip, retrieved 2026-10-13. The publisher's page allows personal and commercial use in games."
+    },
+    {
+      "title": "OC Square avatar",
+      "kind": "model",
+      "files": [
+        "avatars/square-catalogue.vrm"
+      ],
+      "author": "NeonGlitch86",
+      "source": "https://github.com/oncyberio/oncyber/blob/main/frontend/public/models/LICENSE.md",
+      "license": "LicenseRef-Oncyber-Permission",
+      "note": "The three NPC players' body. Its embedded metadata prohibits redistribution and commercial use by others; nobody else may reuse this file."
+    }
+  ]
+}

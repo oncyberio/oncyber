@@ -1,3 +1,4 @@
+import { shownName } from "@utils/guestIdentity";
 import { lobbyTokens } from "@styles/tokens/lobby";
 
 /**
@@ -52,10 +53,14 @@ export type Quad = {
     r3: number;
 };
 
-/** How a name reads on its tag: guests' generated names read "Anon". */
+/**
+ * How a name reads on its tag. A guest whose page sent their id as their
+ * name (an older page) reads as the guest that id names, "Guest" and its
+ * last four characters, the same in the lobby and in a space
+ * (utils/guestIdentity).
+ */
 export function tagName(name: string) {
-    const trimmed = (name || "").trim() || "Guest";
-    return trimmed.startsWith("Anon-") ? "Anon" : trimmed;
+    return shownName((name || "").trim() || "Guest");
 }
 
 /**

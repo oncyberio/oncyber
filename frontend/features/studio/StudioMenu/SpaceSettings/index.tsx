@@ -40,32 +40,9 @@ import { UserContext } from "@components/context/UserContext";
 import Tooltip from "@ui/components/Tooltip";
 import { tx } from "@components/context/I18nContext";
 
-const IconBtn = styled.div<{ active: boolean; isLight: boolean }>`
-    width: 24px;
-    height: 24px;
-    background: transparent;
-    flex-shrink: 0;
+import { stepIcon } from "./stepIcon";
 
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    & > .icon {
-        filter: invert(1);
-        opacity: ${(props) => (props.active ? 1 : 0.65)};
-    }
-`;
-
-export function stepIcon(name: string) {
-    return ({ active, isLight }) => {
-        return (
-            <IconBtn isLight={isLight} className="btn-icon" active={active}>
-                <IconImg className="icon" name={name} size={16} />
-            </IconBtn>
-        );
-    };
-}
+export { stepIcon };
 
 const steps: [MultiformStep, ...MultiformStep[]] = [
     {

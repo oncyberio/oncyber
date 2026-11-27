@@ -1,3 +1,7 @@
+/*
+ * tokens-ok-file: a development fixture; the colours are paint for its 3D
+ * test scene (a sky, a floor, a post), and one test name has a "#" in it.
+ */
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import * as THREE from "three/webgpu";

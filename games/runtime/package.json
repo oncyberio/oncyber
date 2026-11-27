@@ -1,0 +1,39 @@
+{
+  "name": "@oncyber/game-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Oncyber game lifecycle: prepare, enter, update, suspend, restore, dispose, inspect. TypeScript source, no dependencies; games bundle it.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts",
+    "./check": "./src/check.ts",
+    "./contract": "./src/contract.ts",
+    "./manifest": "./src/manifest.ts",
+    "./page": "./src/page.ts",
+    "./voice": "./src/voice.ts",
+    "./keys": "./src/keys.ts",
+    "./keys-browser": "./src/keysBrowser.ts",
+    "./safe-area": "./src/safe-area.ts",
+    "./departure": "./src/departure.ts",
+    "./party": "./src/party.ts",
+    "./roster": "./src/roster.ts",
+    "./match": "./src/match.ts",
+    "./partyLink": "./src/partyLink.ts",
+    "./results": "./src/results.ts",
+    "./devices": "./src/devices.ts",
+    "./device-controls": "./src/deviceControls.ts",
+    "./device-check": "./src/deviceCheck.ts",
+    "./loading": "./src/loading.ts",
+    "./pausing": "./src/pausing.ts",
+    "./avatar": "./src/avatar.ts",
+    "./audio": "./src/audio.ts",
+    "./audio-browser": "./src/audio-browser.ts",
+    "./saved": "./src/saved.ts",
+    "./health": "./src/health.ts",
+    "./credits": "./src/credits.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
+  }
+}

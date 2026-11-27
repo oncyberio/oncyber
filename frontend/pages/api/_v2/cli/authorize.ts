@@ -2,6 +2,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { proc, NoApi } from "@utils/rpc/server";
 import { db } from "@utils/firebaseAdmin";
+import { CHALLENGE } from "@features/cli-auth/request";
 
 /**
  * Wrangler-style CLI authorization: a local CLI process can't hold your
@@ -20,6 +21,14 @@ import { db } from "@utils/firebaseAdmin";
  * editor/owner checks as a browser session would (`get.ts`, `update.ts`,
  * `snapshot.ts`) — least-privilege by reusing existing authorization, not by
  * a new scoping system.
+ *
+ * A terminal the browser cannot be redirected to (a coding agent in the
+ * cloud, a machine reached over SSH) has the person carry the code over by
+ * hand. Such a code passes through places a redirect on localhost never
+ * does (a chat, a clipboard), so it is bound to that terminal: the terminal
+ * makes a secret, sends only its SHA-256 here as `challenge`, and
+ * `exchange` takes the code only together with the secret. Seen by anyone
+ * else, the code is worth nothing.
  */
 
 const CODE_TTL_MS = 5 * 60 * 1000;
@@ -28,16 +37,22 @@ export const authorize = proc({
     auth: true,
     cors: true,
 
-    schema: z.object({}),
+    schema: z.object({
+        challenge: z.string().regex(CHALLENGE).optional(),
+    }),
 
-    async handler() {
+    async handler({ challenge }) {
         const code = crypto.randomBytes(24).toString("base64url");
 
-        await db.collection("cliAuthCodes").doc(code).set({
-            userId: this.userId,
-            createdAt: Date.now(),
-            used: false,
-        });
+        await db
+            .collection("cliAuthCodes")
+            .doc(code)
+            .set({
+                userId: this.userId,
+                createdAt: Date.now(),
+                used: false,
+                ...(challenge ? { challenge } : {}),
+            });
 
         return { code };
     },

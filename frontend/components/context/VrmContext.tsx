@@ -30,6 +30,7 @@ import VRMS from "@3/three/factory/player/vrms.json";
 import { Experience } from "@uitypes/experience";
 import { RoomParameters } from "@uitypes/roomParameters";
 import { checkUrlResponse, cloudinary } from "@utils/urlUtils";
+import { worldAvatarSize } from "@3utils/avatarHeight";
 
 const maxFileSize = 8;
 
@@ -101,6 +102,13 @@ export interface VrmContextState {
     onEdit: (id: string) => void;
     setActiveVrm: React.Dispatch<Vrm>;
     onSelectVrm: (vrmId: string, type: VrmType) => void;
+    /** Wears an avatar chosen in the page's picker (features/avatar-picker). */
+    wearVrm: (avatar: {
+        id: string;
+        name?: string;
+        url: string;
+        scale?: number;
+    }) => void;
     onDelete: (id: string) => Promise<void>;
     onSubmitUpload: (payload: Vrm) => void;
     onUploadVrm: (file: File) => Promise<void>;
@@ -547,9 +555,10 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
             if (_roomParams) setRoomParams(_roomParams);
 
             const default_vrm_scale =
-                _exhibit?.params?.avatarSize ||
-                _roomParams?.avatarSize ||
-                userData?.settings?.default_vrm_scale;
+                worldAvatarSize({
+                    exhibit: _exhibit,
+                    roomParameters: _roomParams,
+                }) ?? userData?.settings?.default_vrm_scale;
 
             //
             if (
@@ -579,14 +588,14 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
 
         let scale = null;
 
-        if (exhibit?.params?.avatarSize) {
-            if (typeof exhibit.params.avatarSize === "number") {
-                scale = exhibit.params.avatarSize;
-            }
-        } else if (roomParams?.avatarSize) {
-            if (typeof roomParams.avatarSize === "number") {
-                scale = roomParams.avatarSize;
-            }
+        // The world's size, when it has one, comes before the visitor's own.
+        const worldSize = worldAvatarSize({
+            exhibit,
+            roomParameters: roomParams,
+        });
+
+        if (worldSize != null) {
+            scale = worldSize;
         } else if (isCustomVrm) {
             if (typeof activeVrm?.scale === "number") {
                 scale = activeVrm.scale;
@@ -767,6 +776,51 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
                 }
 
                 fireEvent(selectedVrm);
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        []
+    );
+
+    // An avatar chosen somewhere else: in the page's picker, when this
+    // space runs in the site's frame (features/avatar-picker). The page has
+    // saved the choice; here it is only worn, as a choice made in this
+    // space's own picker is once it is saved.
+    const wearVrm = useEventCallback(
+        async (avatar: {
+            id: string;
+            name?: string;
+            url: string;
+            scale?: number;
+        }) => {
+            if (!avatar?.id || !avatar.url) return;
+            // One of the visitor's own that this space knows comes with
+            // the rest of what is known of it (its saved size).
+            const known = [
+                ...DEFAULT_VRMS,
+                ...(uploadedVrms || []),
+                ...(ownedVrms || []),
+            ].find((vrm) => vrm?.id === avatar.id);
+            const vrm = (known || {
+                id: avatar.id,
+                name: avatar.name || "Avatar",
+                url: avatar.url,
+                ...(typeof avatar.scale === "number"
+                    ? { scale: avatar.scale }
+                    : {}),
+            }) as Vrm;
+            wantedVrmId.current = vrm.id;
+            setActiveVrm(vrm);
+            rememberTravelAvatar(userData, vrm as any);
+            try {
+                const room = MultiplayerService?.current?.roomService?.room;
+                if (room?.send)
+                    await room.send(
+                        "scale",
+                        vrm?.userId ? vrm?.scale : defaultScale
+                    );
+                fireEvent(vrm);
             } catch (err) {
                 console.error(err);
             }
@@ -992,6 +1046,7 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
         setUploadedVrms,
         onUploadVrm,
         onSelectVrm,
+        wearVrm,
         setActiveVrm,
         onSubmitEdit,
         onSubmitUpload,

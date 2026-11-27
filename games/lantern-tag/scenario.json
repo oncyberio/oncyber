@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "enter": { "arrival": "lobby" },
+    "steps": [
+        {
+            "type": "waitUntil",
+            "key": "standing",
+            "equals": true,
+            "maxFrames": 180
+        },
+        { "type": "assert", "key": "booted", "equals": true },
+        { "type": "assert", "key": "screen", "equals": "arrival" },
+        { "type": "assert", "key": "came", "equals": "lobby" },
+        { "type": "assert", "key": "hostArrival", "equals": "lobby" },
+        { "type": "assert", "key": "partySize", "equals": 1 },
+        { "type": "assert", "key": "options", "equals": "solo" },
+        { "type": "action", "action": "up" },
+        { "type": "wait", "frames": 45 },
+        { "type": "action", "action": "up", "value": 0 },
+        { "type": "assert", "key": "walked", "equals": true },
+        { "type": "assert", "key": "screen", "equals": "arrival" },
+        { "type": "action", "action": "interact" },
+        { "type": "wait", "frames": 2 },
+        { "type": "action", "action": "interact", "value": 0 },
+        { "type": "assert", "key": "screen", "equals": "menu" },
+        { "type": "action", "action": "interact" },
+        { "type": "wait", "frames": 2 },
+        { "type": "action", "action": "interact", "value": 0 },
+        { "type": "assert", "key": "screen", "equals": "match" },
+        { "type": "assert", "key": "format", "equals": "solo" },
+        {
+            "type": "waitUntil",
+            "key": "lanternsLit",
+            "equals": true,
+            "maxFrames": 120
+        },
+        { "type": "assert", "key": "phase", "equals": "playing" },
+        { "type": "assert", "key": "score", "equals": 0 },
+        { "type": "wait", "frames": 30 },
+        { "type": "assert", "key": "screen", "equals": "match" }
+    ]
+}

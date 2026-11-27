@@ -1,0 +1,475 @@
+# World scripts
+
+A world script is a small JavaScript program that runs on top of a native
+space: a mini game, characters, effects, a quiz at each artwork. Creators
+describe what they want and an AI model writes it; they change it the same
+way while they're in the world, and the change lands without a reload.
+
+It is off unless `NEXT_PUBLIC_WORLD_SCRIPTS=1`. With it on, a space's saved
+script runs for every visitor; writing one with the AI is in early access.
+
+## Early access
+
+The AI sidebar is offered only to accounts in early access. Three things
+put an account there:
+
+-   **It is one of Oncyber's site admins.** They are always in.
+-   **A site admin added it.** The people added are kept in the database
+    (`worldScriptsAccess`, written by the server only), so letting someone
+    in changes no setting and needs no deploy:
+
+    ```sh
+    pnpm world script access                 # who is in
+    pnpm world script access add <who>       # an account id, wallet or username
+    pnpm world script access remove <who>
+    ```
+
+-   **The deployment's settings list it** (`WORLD_SCRIPTS_AI_ALLOWLIST`:
+    account ids or wallets; `*` opens it to every editor). This is for a
+    deployment with no site admin to ask, such as one of your own.
+
+An account that is not in early access sees no AI button, in the dock or
+in the studio, and the server refuses its requests whatever the page
+shows: asking the model, and putting a script or a style on a space. An
+admin of a space who is not in early access can still take its scripts
+away. Being in early access does not make someone an editor: both are
+checked.
+
+The page asks the server what an account may do (`access`) only when the
+answer could be yes: for the space's owner and its editors, who are on the
+space the page already has, and once per space for as long as the page
+lives (`features/world-scripts/access.ts`). Every other visitor is not
+asked about at all. A site admin may edit any space's scripts without
+being one of its editors, and the page cannot tell one from any other
+visitor: an admin adds `?scripts=1` to the space's address, which makes
+the page ask. Anyone can add it; the server's answer for anyone else is
+no, as it is on every request whatever the page shows.
+
+## Asking for a change
+
+A space's admins (its owner, its editors and site admins) who are in early
+access get an AI button in the space's dock (and in
+the studio toolbar). It opens a sidebar beside the world: say what to make
+("a coin hunt with a 60 second timer", then "add three characters who chase
+me") and watch each step as it happens:
+
+1. The model writes the whole script.
+2. The new version is tried out of sight, beside the running one.
+3. If it does not run, the model gets the error and fixes it, up to three
+   tries. The world keeps the old version meanwhile. Only a failure of the
+   script's own goes back to the model: when the world could not try it
+   (still loading, not answering, replaced by something newer) the sidebar
+   says so and stops, without spending another request.
+4. What runs is swapped into the world and saved.
+
+The sidebar is a conversation and a composer. Typing `undo`, `restart` or
+`stop` does that without a model call.
+
+Every change that runs is saved to the space (`exhibits/{id}.worldScripts`),
+so visitors get it the next time they load the space. Visitors already in
+the room keep the version they loaded; live updates for everyone are next.
+
+A save says which saved version it builds on. If the space's script was
+changed somewhere else since (another editor, another tab), the request is
+refused before the model is asked, and a save is refused rather than
+written over the other change; the sidebar says to reload.
+
+## Writing one in a file
+
+The sidebar is one way to make a space's script. The other is to write it
+in a file and push it: for a person who would rather write code, and for a
+coding agent working on a space from a terminal. Both go through the same
+checked procedure, `worldScripts.save`: the same rules about who may (the
+space's owner, an editor or a site admin, in early access), the same
+limits, the same one script to a space.
+
+```sh
+pnpm world login                          # once: opens the browser to sign in
+pnpm world script reference               # everything a script may use
+pnpm world script pull <spaceId>          # -> ./<spaceId>.world-script.js
+pnpm world script check <file>            # does it parse as a script?
+pnpm world script push <spaceId>          # save it; open spaces add it to the running game
+pnpm world script push <spaceId> --rewind # save it; open spaces start the round again
+pnpm world script clear <spaceId>         # the space has no script
+```
+
+`ONCYBER_BASE_URL` says which deployment (`http://localhost:3000` unless
+set).
+
+**Where no browser can reach the terminal** (a coding agent in the cloud, a
+machine over SSH), sign in with a code instead:
+
+```sh
+pnpm world login --code                   # prints a link
+pnpm world login --code <code>            # the code the link's page showed
+```
+
+The person opens the link, signs in and approves, and gives the code back
+to that terminal or agent. The code works once, for five minutes, and only
+together with a secret that never left the terminal that printed the link,
+so it can pass through a chat. The session it gives is the account's own,
+as with `login`: an agent signed in this way acts as that person until the
+session ends (30 days) or its machine is thrown away.
+
+-   **`reference`** prints what the model is given about the script
+    itself, cut from the same text (`brief.ts`), so a script written by
+    hand and one written by the model are written against one reference.
+-   **`pull`** writes the saved script as it is, or a starter when the space
+    has none, and beside it `<file>.base.json`: the save this file builds
+    on.
+-   **`check`** reads the file as the sandbox will, with the names a script
+    is handed, and stops on what cannot run: it is too long, it does not
+    parse. It warns about what a script is not given (the page, the
+    network, modules). It does not run the script.
+-   **A style goes with the script.** A space's style (its palette and
+    look, `worldStyle`) is what a script's things are drawn in: with none,
+    they are plain shapes in a painted world. It is kept in
+    `<file>.style.json` beside the script; `pull` writes it when the space
+    has one, `push` saves it when it is there and warns when it is not.
+-   **`push`** checks, then saves. The script's name is its first line when
+    that is `// name: ...`, else `--name`, else what it was called. A push
+    that builds on an older save than the space has now is refused (an
+    editor changed it in the sidebar meanwhile): pull into another file,
+    carry the change over, push that.
+
+Nothing tries a pushed script out of sight first, as the sidebar does
+before it lets a change land. A script that fails when it starts is
+stopped and visitors see the space without it, so open the space after a
+push. The command and its tests are `scripts/world-script.mjs`; `pnpm
+world:test`.
+
+### One written this way: Starry Night's "Fallen stars"
+
+`frontend/features/world-scripts/examples/starryNight.fallenStars.js` is a
+script written in a file against the reference and pushed with the command
+above, for the space built on the Starry Night world. Seven stars have
+fallen along the road from where a visitor starts down to the first house.
+They show one at a time, each further down: catching one lights the
+lantern beside it and shows the next, and all seven light the road. A
+signpost where a visitor starts says where the road goes.
+
+Two things it had to get right, both learned from getting them wrong:
+
+-   **It is painted like the world.** The lanterns and stars are built
+    from parts (`world.build`, below), which a painted world draws as
+    brush strokes with the same brush as the room in the house, in that
+    room's tones; and its style file gives the space a painted style. The
+    first version used plain shapes with a look and colours of its own and
+    no style, and stood in the painting like plastic.
+-   **It is sized for the people of that world.** Starry Night is about
+    2.3 times life size and its avatars stand 4 units
+    ([destinations-firestore-schema.md](destinations-firestore-schema.md)),
+    so everything is sized from one person height at the top of the
+    script. The reference's "about 1.8 m tall" is a new world's default,
+    not every world's.
+
+It was also the first script changed while its space was open (see
+"Spaces that are open follow a save"). The signpost, and each star
+lighting the lantern beside it, were pushed as an addition: what a visitor
+had caught still meant the same. Showing the stars one at a time was
+pushed with `--rewind`: under that rule the stars are caught in order, and
+a round where the fifth was caught before the first means nothing.
+
+It is here as a worked example, with a test beside it that runs it in the
+sandbox the way a visitor's browser does (it starts, a star is caught only
+from the ground beside it, the last one ends the round). A script in the
+repository does nothing by being here: it reaches a space only when someone
+who may edit that space pushes it.
+
+```sh
+pnpm world script push <the Starry Night space's id> \
+    frontend/features/world-scripts/examples/starryNight.fallenStars.js
+```
+
+A script places things at points of the world it was written for, so its
+positions (here the ground along that road) are that world's and mean
+nothing in another.
+
+## How a change lands
+
+The model labels each change:
+
+| Label     | For                                          | What happens                                                                                                    |
+| --------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `content` | More NPCs, colours, a new prop, text, sounds | The game keeps going: objects with the same id stay where they are, `keep()` values (score, timer) carry over.  |
+| `logic`   | New rules, scoring, win or lose, a new game  | The world rewinds: artworks go back, objects glide to their start, the player returns to where the round began. |
+
+Either way the new version starts beside the running one and runs a short
+trial (30 frames) without showing anything. Only if it started cleanly does
+the swap happen, between two frames. A version that fails to parse, throws
+while starting, or stops answering is refused and the old one keeps running.
+The trial's states and what ends it are in `trial.ts`
+([state machines](state-machines.md)). A trial that is replaced (a newer
+edit, a stop) ends at once; a script's own `world.restart()` waits for a
+version already on its way instead of replacing it.
+
+When a swap lands, objects the new version does not make are removed and
+HUD lines it does not show are hidden, whichever way it landed. An id made
+again as another shape is built anew (and counted against the limits like
+any new object). A script that stops for good (it kept failing, it hung)
+takes what it made with it: its objects, HUD lines, colliders and openings
+go, and artworks and doors return to where the space has them.
+
+The trial is counted in the world's frames, not in seconds: a slow device
+draws them slowly and a tab in the background draws none, and neither is
+the script's fault. What ends a trial early is silence while an answer is
+owed, 4 seconds of it (`silence.ts`). A space's saved script starts the
+same way for every visitor, so this is also what decides whether a
+visitor on a slow phone gets the script at all.
+Undo goes back to the previous version (as a rewind) and the style it ran
+in; if that version does not run, it is still there to go back to.
+
+## Spaces that are open follow a save
+
+A space that is open when its script is saved picks the new one up
+without a page reload: a push from a terminal, an editor's change in the
+sidebar seen by everyone else in the room, a script taken away.
+
+-   **How they hear.** Two ways, because one does not reach everyone.
+    The save puts a short notice on the space's live feed
+    (`utils/liveSpace`, the feed editor actions travel on): when it was
+    saved and how to land it, nothing of the script. A visitor whose
+    browser can read that feed hears at once. On Oncyber's own database
+    the feed refuses anyone who is not signed in, so every open world also
+    asks, about every twelve seconds while it is on show, when the script
+    was last saved (`/api/world-scripts/saved`: a GET the CDN answers
+    from one copy for a few seconds, reading two numbers of the space's
+    document). A guest follows a save within about twenty seconds; a
+    space with no script asks once a minute.
+-   **What they do.** The world reads the script the space runs now
+    (`worldScripts.current`, which anyone may ask: it is what the page
+    hands every visitor at load) and swaps it in as above: tried out of
+    sight, then in place between two frames. A script that does not run
+    leaves the old one running. The rules are `livePickup.ts`; the
+    listening is `liveScript.ts`.
+-   **Who decides how it lands.** Whoever saves, because only they know
+    what they changed. `add` (the default) keeps the game going: things
+    with the same id stay where they are, `keep()` values carry over,
+    visitors stay where they stand. `rewind` starts the round again. From
+    a terminal that is `--rewind`; the sidebar passes on the model's own
+    label (`content` adds, `logic` rewinds). **Add whenever the change can
+    simply be added**; rewind only when the old round's state would be
+    wrong under the new script.
+-   **What the world decides for itself.** A world already running the
+    saved source does nothing (the editor's own). A new style alone is
+    redrawn, nothing restarted. A space's first script just starts. If an
+    addition cannot take the old game over (it throws on the kept state),
+    the world starts a new round with it instead of staying on the old
+    script.
+-   **What a notice cannot do.** A browser may be able to write to the
+    feed, so a notice is only a reason to read: what happens is decided
+    from what the server then says the space has. A false notice costs a
+    read; at worst it turns an addition into a rewind at a real save.
+    What a world is told when it asks comes from the server and cannot be
+    forged.
+
+One thing is not carried across yet: in a framed world, the sidebar on the
+page does not hear that the world took a push. An editor who has it open
+and then saves is refused ("changed somewhere else"), which is right, and
+has to reload to build on the pushed script.
+
+## The world's style
+
+Each world has one creative direction, so what scripts make looks like it
+belongs there: in a Starry Night world, "add coins" gives painted, swaying
+gold coins, not yellow rings. The style is a short description, a palette,
+a default surface ("painted", "toon", "glossy", "matte", "metal", "glow",
+"flat"), and how much brushwork, sway and outline things get
+(`features/world-scripts/style.ts`).
+
+A world has no style until one is needed. The model writes it the first
+time a request makes things people see (not for a change of rules, scores
+or text), from the world's title, sky and fog colours and artwork names. It
+is saved on the space (`exhibits/{id}.worldStyle`), sent with every later
+request, and given to the script as `world.style`. Asking "make the style
+more neon" changes it, and everything already in the world is redrawn. A
+style the model writes comes with a script: the script is tried in it, and
+the world is redrawn and the style saved only if that script lands.
+
+Nothing is downloaded. Objects are made from code:
+
+-   Shapes: box, sphere, cylinder, cone, torus, plane, ring, capsule, star,
+    `lathe` (a profile spun around an axis: a coin, a vase, a mushroom) and
+    `extrude` (an outline given depth: a heart, a key). `thing.add(part)`
+    builds a character or prop from several.
+-   Surfaces: TSL node materials (`features/world-scripts/looks.ts`), the
+    same on WebGPU and WebGL2, with patterns (noise, stripes, swirl, dots,
+    gradient). Objects with the same look share one material.
+-   Custom shaders: a script can describe its own surface (colour, glow,
+    opacity, movement along the normal) as a tree of building blocks:
+    `["mix", "palette0", "palette1", ["fbm", ["mul", "position", 3]]]`.
+    The host checks the tree against a fixed list of blocks and inputs and
+    builds the material itself (`features/world-scripts/shaderGraph.ts`).
+
+Scripts cannot send shader source. Code on the GPU cannot be stopped the way
+a stuck worker can: one heavy loop in a fragment shader freezes the tab or
+the whole machine, and shader compilers are a larger surface than the checked
+messages. A tree of at most 96 known blocks with no loops has a bounded
+cost, and still covers water, fire, flowing paint, holograms and dissolves.
+
+## The sandbox
+
+Each version runs in a frame sandboxed with `allow-scripts` only, so its
+origin is opaque: no cookies, storage, account, wallet or page access. The
+frame's policy blocks every network request (`default-src 'none'`). Inside,
+the script runs in a Blob worker, on its own thread, so a stuck loop never
+freezes the world; a worker that hasn't answered for 2.5 s is stopped.
+The host talks to it over one transferred `MessagePort`.
+
+The frame's relay passes on only what was asked for: one answer to the
+start, one to each frame sent, one to each request for `keep()` values. A
+worker that posts without being asked does not reach the page and does not
+count as answering; one that keeps at it is stopped at once. The script
+cannot start a worker of its own (`Worker` is taken away inside the
+sandbox, with `fetch` and the rest), so nothing can keep answering for it
+while it loops.
+
+The script can only ask for things through checked messages
+(`features/world-scripts/protocol.ts`): add, move and restyle its own shapes
+and text (with a look or a shader graph), move or hide artworks while it runs (never saved), show HUD lines,
+toasts and a banner, play built-in sounds, and respawn the player (at most
+twice a second). Every value is clamped; ids, colours, sounds and corners
+come from fixed sets; at most 300 objects and 600 requests a frame, counted
+by the frame however many messages carry them, and a script that sends more
+than 120 messages between two frames is stopped. A limit a script runs
+into is said once in the sidebar. The host
+sends it the player and camera every frame, and keys and clicks.
+
+## What a script can use
+
+The script API is defined in two tables, and nowhere else:
+
+-   `features/world-scripts/scriptApi.ts`: every name a script can use
+    (`world.add`, `ui.hud`, `thing.remove`...), each marked with whether the
+    model's brief tells of it.
+-   `THING_PROPS` in `features/world-scripts/protocol.ts`: every property of
+    a thing, with the check it passes on the way in, what a change of it
+    means in the scene (placed, built again, drawn again), how the SDK sends
+    it (whenever it changes, or once), and whether the model is told of it.
+
+Made from them: the host's check of a thing's properties
+(`cleanThingProps`), the engine's lists of what to rebuild or redraw, the
+lists the SDK sends properties by, what the script's code is handed, and
+the brief's lists to choose from (shapes, patterns, sounds, corners). What
+cannot be made from a table is held to them by `scriptApi.test.ts`, in both
+directions: the SDK (`sdk.ts`), run for real, has exactly the names listed;
+the brief (`brief.ts`) tells of every name and property marked as offered
+and of none that is not; every request the SDK sends is one the host takes.
+To add to the API, add it to the table, to the SDK, and, when the model
+should use it, to the brief: the test says what is missing.
+
+### In the SDK, not yet offered to the model
+
+These work, are checked by the host like everything else and have tests
+(`sdk.test.ts`), but the brief does not mention them, so the model never
+writes them. They have not been tried with the model in a browser; offering
+one is a change to the brief and a flag in the table.
+
+-   `world.build(spec)`: a model made of parts (`poly`, `box`, `beam`,
+    `prism`, `line`, `place`, `clear`), drawn in the world's style
+    (`parts.ts`). A part needs a colour to be drawn.
+-   `world.solid(spec)`: boxes and one-sided walls a visitor cannot walk
+    through; and `solid: true` on a plain shape.
+-   `world.open(spec)`: a box-shaped hole in the world's own model, in what
+    is drawn and in what is walked into, for as long as the script keeps it.
+-   `world.avatar(spec)`: one of Oncyber's built-in avatars standing in the
+    world, with a name, a motion and `speak(text, seconds)`.
+-   `world.doors` and `world.door(id)`: the world's own doors, each with
+    where it is and `open` from 0 to 1; a door the space made a portal is
+    listed and cannot be swung.
+
+## The engine
+
+A script's things are drawn in the real scene, so the feature has to reach
+into the 3D engine, which has no interface for it. It does so in one file,
+`features/world-scripts/engine/facade.ts` (and `engine/worldUp.ts`, the one
+thing read before the engine's own modules may be loaded). Nothing else in
+the feature imports the engine or reads its globals; a test fails if
+something does.
+
+The engine is JavaScript reached through its singletons, and most of what
+the facade reads is optional by nature (no player yet, no world between two
+spaces), so a rename there would not fail to compile here: it would quietly
+give no artworks, no collisions, no teleport. `engine/facade.contract.test.ts`
+reads the engine's source and fails, by name, when something the facade
+relies on is gone. When it fails, the engine changed: fix the facade, then
+the list.
+
+`engineAdapter.ts` only puts the parts together. Each has its own file and
+test in `engine/`: the script's things (`things.ts`; how they are drawn in
+`thingLooks.ts`, `text.ts` and `geometry.ts`; what is more than a shape in
+`specials.ts`, `models.ts`, `avatars.ts`; glides in `glides.ts`), the
+space's artworks (`artworks.ts`), what is walked into (`collision.ts`,
+`openings.ts`, `doors.ts`), where the visitor stands (`view.ts`), and keys
+and clicks (`input.ts`).
+
+## In a framed world
+
+Where worlds are framed ([plans/framed-worlds.md](plans/framed-worlds.md)),
+world scripts are split along the same line as everything else: what needs
+the account is the page's, what needs the world is the world's.
+
+| Where                          | What                                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| The page (`PageWorldScripts`)  | who may edit, the AI button and sidebar, the calls to the model, the save, undo (`controller.ts`)       |
+| The world (`WorldScriptLayer`) | the sandbox, the engine it draws through, the HUD, and starting the space's saved script (`runtime.ts`) |
+
+The page's controller drives the world's runtime through messages
+(`runtimeRelay.ts`): run this source (in this style), give up on that run,
+restart, stop, draw in this style, what are your colours and artworks; the
+world answers whether a run worked, and whose fault it was if not, and
+reports its status. The page waits for a run's answer by silence, as the
+world waits for a script: 45 seconds of nothing while the page is on show.
+A page in the background has a world that draws no frames, and is waited
+out. A run the page gives up on is called off in the world, so it cannot
+land later unseen. The world never makes an account call and never
+sees the session. Each message names its space, so a world that has walked
+through a portal into another space is not driven by the page it left.
+
+The page takes the world's word only for what a world can know: whether a
+script ran and why not (shown in the sidebar, sent to the model to fix),
+and its colours and artwork names, cut to the sizes the model call accepts.
+
+## The model and its cost
+
+`pages/api/_v2/worldScripts` (`access`, `generate`, `save`). The server calls
+OpenRouter with `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` (default
+`anthropic/claude-sonnet-4.5`). Because one key pays for everything, only
+accounts in early access (`WORLD_SCRIPTS_AI_ALLOWLIST`) may ask, up to
+`WORLD_SCRIPTS_AI_DAILY_LIMIT` requests a day.
+
+A request is counted in `aiUsageDaily/{account}_{day}` before the model is
+called, in a transaction, so requests made at once cannot all pass under
+the limit; it stays counted when the call fails or times out. Every model
+call then writes a row to `aiUsage` (account, space, model, tokens, the
+cost OpenRouter reports, whether it worked) and adds its cost to the day.
+When credits come, `reserveAiRequest` holds the price before the call and
+`recordAiUsage` charges the reported cost after it
+(`utils/worldScripts/server.ts`); nothing else changes.
+
+`save` is the only way a space's scripts and style are written: the
+space's other updates refuse those fields
+(`utils/firestore/exhibitWrites.ts`).
+
+## Not yet
+
+-   Shared state between visitors (multiplayer scores).
+-   Models or images from outside: scripts use shapes, surfaces and text
+    made from code and built-in sounds, so they never make the page fetch
+    anything.
+
+## Checks
+
+```sh
+pnpm -C frontend test features/world-scripts utils/worldScripts pages/api/_v2/worldScripts
+```
+
+A saved script's record is `{ id, name, source, enabled, updatedAt }`, one
+to a space. `enabled: false` switches a script off for everyone without
+taking it away; nothing in the interface sets it, it is how a script is
+turned off by hand.
+
+The host and the SDK are tested without a browser: `scriptSandbox.jest.ts`
+runs the real SDK and a script in a context of their own, and
+`sdk.test.ts` fails when the model's brief names something the SDK does
+not have.

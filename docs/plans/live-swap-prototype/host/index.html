@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Live host</title>
+<style>body{margin:0;background:#111}iframe{border:0;width:960px;height:540px;display:block}</style></head>
+<body>
+<script>
+// The page that would be oncyber.com. The world runs in an opaque sandbox:
+// no same-origin access, no storage, no popups. Everything crosses by message.
+window.liveLog = [];
+let frame;
+window.addEventListener("message", (e) => {
+    if (frame && e.source === frame.contentWindow && e.data?.tag === "live") window.liveLog.push({ at: performance.now(), ...e.data });
+});
+window.mountFrame = (query) => {
+    frame?.remove();
+    frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.src = "http://127.0.0.1:8201/runtime.html?" + query;
+    document.body.appendChild(frame);
+};
+window.send = (msg) => frame.contentWindow.postMessage(msg, "*");
+</script>
+</body></html>

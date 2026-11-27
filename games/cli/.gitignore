@@ -1,0 +1,4 @@
+# Written by `npm pack` (scripts/prepack.mjs) and removed after it.
+sdk/
+*.tgz
+node_modules/

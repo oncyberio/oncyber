@@ -25,8 +25,8 @@ const glyph = {
     height: 1,
 };
 
-test("guest names read Anon and blanks read Guest", () => {
-    expect(tagName("Anon-1234")).toBe("Anon");
+test("a guest's id reads as their guest name, and blanks read Guest", () => {
+    expect(tagName("Anon-0b1c-1234")).toBe("Guest 1234");
     expect(tagName("  ")).toBe("Guest");
     expect(tagName("rayan")).toBe("rayan");
 });

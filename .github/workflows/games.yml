@@ -1,0 +1,77 @@
+name: Games checks
+# The games SDK, its kits, the `oncyber` command and the committed game
+# builds. These tests read the page's half of the contract in
+# frontend/features/games, the docs they keep true, and the match channel's
+# limits on the server, so those paths count too.
+#
+# Not here: `pnpm games:check <id>`, which plays each game in a browser. A
+# person runs it through `pnpm games:publish <id>`; the build drift test
+# below fails when a committed build was not rebuilt after its source.
+on:
+    pull_request:
+        paths:
+            [
+                "games/**",
+                "scripts/games/**",
+                "frontend/features/games/**",
+                "frontend/public/game-builds/**",
+                "frontend/content/docs/**",
+                "frontend/middleware.ts",
+                "docs/games.md",
+                "docs/games/**",
+                "multiplayer/src/rooms/cyber/match/**",
+                "package.json",
+                ".github/workflows/games.yml",
+            ]
+    push:
+        branches: [main]
+        paths:
+            [
+                "games/**",
+                "scripts/games/**",
+                "frontend/features/games/**",
+                "frontend/public/game-builds/**",
+                "frontend/content/docs/**",
+                "frontend/middleware.ts",
+                "docs/games.md",
+                "docs/games/**",
+                "multiplayer/src/rooms/cyber/match/**",
+                "package.json",
+                ".github/workflows/games.yml",
+            ]
+permissions:
+    contents: read
+concurrency:
+    group: games-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    test:
+        name: SDK, kits, check tools and build drift
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+            # Version comes from "packageManager" in the root package.json.
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+            # No `pnpm install`: these tests import no package of this
+            # repository (TypeScript is stripped by Node). Twelve of them
+            # run a small game in a real browser (the network policy, keys
+            # and pointer lock, sound, a hosted release), and for those the
+            # check uses the Playwright installed on the machine, as it does
+            # for a person: found through NODE_PATH. Without it the run
+            # fails rather than skip them (scripts/games/test/browser.mjs).
+            # The version is the one the committed builds were checked with.
+            - name: Playwright and Chromium, for the tests that run in a browser
+              run: |
+                  npm install --global playwright@1.63.0
+                  echo "NODE_PATH=$(npm root --global)" >> "$GITHUB_ENV"
+                  playwright install --with-deps chromium
+            # The runtime, the kits, the check's own rules, the docs they
+            # keep true, the two halves of the contract, and that every
+            # committed build was built from the source beside it.
+            - run: pnpm games:test
+            # The `oncyber` command: a game outside this repository.
+            - run: pnpm games:cli:test

@@ -3,7 +3,17 @@
 
 const fs = require("fs");
 const path = require("path");
-const { siteOrigin } = require("./utils/siteOrigin");
+const {
+    siteOrigin,
+    previewWorldOrigin,
+    trialPreview,
+    looksSameSite,
+} = require("./utils/siteOrigin");
+const {
+    GAME_BUILDS_DIR,
+    GAME_BUILDS_PATH,
+    gameNetworkHeaders,
+} = require("./features/games/publish/networkPolicy");
 const { PAGE_REDIRECTS } = require("./utils/reservedLinks");
 
 // Firebase config is env-only (see env.ts). Fail production builds early
@@ -92,6 +102,15 @@ const STATIC_REVALIDATED_SOURCES = [
 ];
 
 /** @type {import('next').NextConfig} */
+// The world host must be another site, not another name under this one.
+const worldOrigin =
+    process.env.NEXT_PUBLIC_WORLD_ORIGIN || previewWorldOrigin();
+if (worldOrigin && looksSameSite(siteOrigin(), worldOrigin))
+    console.warn(
+        `[worlds] NEXT_PUBLIC_WORLD_ORIGIN (${worldOrigin}) looks like the same site as ${siteOrigin()}. ` +
+            "Worlds are framed to keep them apart from the account: give the world host a domain of its own."
+    );
+
 const nextConfig = {
     // Lets a dev server run beside a production build (NEXT_DIST_DIR=.next-dev).
     distDir: process.env.NEXT_DIST_DIR || ".next",
@@ -99,6 +118,24 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_LICENSED_FONTS: hasLicensedFonts ? "1" : "",
         NEXT_PUBLIC_SITE_ORIGIN: siteOrigin(),
+        // Set in the environment, these are as set. A preview of the trial
+        // branch turns both on by itself (utils/siteOrigin.js).
+        NEXT_PUBLIC_WORLD_ORIGIN: worldOrigin,
+        NEXT_PUBLIC_WORLD_SCRIPTS:
+            process.env.NEXT_PUBLIC_WORLD_SCRIPTS ||
+            (trialPreview() ? "1" : ""),
+        // Every preview says its load stages in the console
+        // (utils/loadTimings.ts); production never does unless asked.
+        NEXT_PUBLIC_LOAD_STAGES:
+            process.env.NEXT_PUBLIC_LOAD_STAGES ||
+            (process.env.VERCEL_ENV === "preview" ? "1" : ""),
+        NEXT_PUBLIC_AWE_PLAYER_ORIGIN:
+            process.env.NEXT_PUBLIC_AWE_PLAYER_ORIGIN ||
+            (process.env.VERCEL_ENV === "preview" &&
+            process.env.VERCEL_GIT_COMMIT_REF ===
+                "feat/embedded-world-readiness"
+                ? "https://oo-git-feat-oncyber-guest-player-oncyber.vercel.app"
+                : ""),
     },
     experimental: {
         // The lobby imports shared TS from ../multiplayer (protocol, identity,
@@ -295,6 +332,19 @@ const nextConfig = {
         ])
             headers.push({ source, headers: NO_THIRD_PARTY_FRAMES });
 
+        // Games run in an opaque-origin sandboxed frame (features/games), so
+        // the browser fetches their modules and files in CORS mode. They are
+        // public static files with no credentials.
+        headers.push({
+            source: `${GAME_BUILDS_PATH}/:id/:path*`,
+            headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+        });
+        // A game reaches its own files and the hosts it declared, nothing
+        // else (features/games/publish/networkPolicy.js, docs/games/trust.md).
+        headers.push(
+            ...gameNetworkHeaders(path.join(__dirname, GAME_BUILDS_DIR), fs)
+        );
+
         // Browser caching for static files under public/ (Next already serves
         // /_next/static, where the engine and three.js chunks live, as
         // immutable). Without these, every file here is revalidated on each
@@ -396,6 +446,11 @@ const nextConfig = {
                 destination: "/api/docs/llms?full=1",
             },
             { source: "/docs.md", destination: "/api/docs/raw" },
+            // The games SDK's guide for agents (games/llms.txt).
+            {
+                source: "/games/llms.txt",
+                destination: "/api/docs/raw?slug=build-a-game",
+            },
             {
                 source: "/docs/:slug.md",
                 destination: "/api/docs/raw?slug=:slug",

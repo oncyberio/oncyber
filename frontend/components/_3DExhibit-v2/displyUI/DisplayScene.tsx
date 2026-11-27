@@ -9,6 +9,7 @@ import { type LobbyDestinationEntryOptions } from "@features/lobby/lobbyJourneyP
 import {
     isLobbyDestinationPreparing, registerLobbyDestinationEntry, publishLobbyDestinationLocation,
 } from "@utils/lobbyDestinationBridge";
+import { worldDocument } from "@features/worlds/worldDocument";
 import { registerExperienceDeparture } from "@utils/experienceNavigation";
 import SocialApi from "@api/social/_api";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
@@ -1008,7 +1009,7 @@ function Exhibit3DDisplay_Child(props) {
                     // loading cover is removed. Artworks remain independent.
                     finishWorldTravel(travel);
                     await revealFromLobby(options);
-                    publishLobbyDestinationLocation();
+                    publishLocation();
                 } catch (error) {
                     finishWorldTravel(travel);
                     nativeArrival.current?.dispose();
@@ -1301,14 +1302,14 @@ function Exhibit3DDisplay_Child(props) {
             if (coords) params.set("coords", formatLocation(coords.position, coords.rotation.y));
             const search = params.toString();
             const href = pathname + (search ? `?${search}` : "");
-            void router.replace(href, href, { shallow: true }).then(() => publishLobbyDestinationLocation()).catch(showError);
+            void router.replace(href, href, { shallow: true }).then(() => publishLocation(exhibit?.info?.headline)).catch(showError);
         } else if (scope === "location") {
             const { location } = opts;
 
             const url = new URL(window.location.href);
             url.searchParams.set("coords", location);
             replaceExperienceLocation(url.pathname + url.search + url.hash);
-            publishLobbyDestinationLocation();
+            publishLocation();
         }
     };
 
@@ -1581,6 +1582,15 @@ function Exhibit3DDisplay_Child(props) {
                 );
             }}
         </Scene3D>
+    );
+}
+
+/** This world's address, to whichever page hosts it: the lobby or the site's frame. */
+function publishLocation(title?: string) {
+    publishLobbyDestinationLocation();
+    worldDocument()?.location(
+        window.location.pathname + window.location.search + window.location.hash,
+        title
     );
 }
 

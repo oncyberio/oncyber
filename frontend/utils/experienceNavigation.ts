@@ -10,6 +10,7 @@ import {
     pendingLobbyReturn,
 } from "./lobbyReturnTransition";
 import { warmLobbyRoute } from "@features/lobby/lobbyRouteWarmup";
+import { worldDocument } from "@features/worlds/worldDocument";
 
 type Entry = { href: string; key?: string };
 const pathOf = (href: string) => href.split(/[?#]/)[0];
@@ -213,6 +214,9 @@ export function goToExperience(
     navigate: (href: string) => Promise<boolean>
 ) {
     if (pathOf(href) === window.location.pathname) return;
+    // A framed world cannot leave its frame: the page around it travels.
+    const framed = worldDocument();
+    if (framed) return framed.travel(href);
     departBeforeNavigation(async (view) => {
         // Unsupported/non-native sources keep their ordinary navigation behavior.
         if (!view) return navigate(href);
@@ -232,6 +236,8 @@ export function goToExperience(
 export function goToLobby(fallback: () => void) {
     // An entered destination already has a retained lobby and owns its return.
     if (requestLobbyDestinationBack()) return;
+    const framed = worldDocument();
+    if (framed) return framed.travel("/?lobby=1");
     if (pendingLobbyReturn()) return;
     const navigate = openLobby;
     if (!navigate) {
