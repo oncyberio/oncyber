@@ -8,6 +8,7 @@ import { updateExhibitKit } from "./updateExhibitKit";
 import { duplicate } from "./duplicate";
 import { get } from "./get";
 import { listMine } from "./listMine";
+import { exportSpace } from "./exportSpace";
 import {
     create as snapshotCreate,
     list as snapshotList,
@@ -29,6 +30,7 @@ const ExhibitService = {
     updateExhibitKit,
     get,
     listMine,
+    exportSpace,
     snapshotCreate,
     snapshotList,
     //...

@@ -25,6 +25,10 @@
  *   node scripts/world-cli.mjs snapshot <exhibitId> [label]
  *   node scripts/world-cli.mjs script <reference|pull|check|push|clear> ...
  *       the space's world script, written in a file (./world-script.mjs)
+ *   node scripts/world-cli.mjs spaces [--json]
+ *       the signed-in account's real spaces (./world-import.mjs)
+ *   node scripts/world-cli.mjs import <link|id|url> [--from <site>]
+ *       a copy of one of them in the local stack, to debug (./world-import.mjs)
  *
  * `file` defaults to `./<exhibitId>.world.json` — this is the file to hand
  *-edit (or have Claude edit) between a pull and a push. Its shape:
@@ -44,22 +48,29 @@ import { join } from "node:path";
 import { scriptCommand } from "./world-script.mjs";
 import { destinationCommand } from "./world-destination.mjs";
 import { loginLink, newLogin, pendingLogin } from "./world-login.mjs";
+import { importCommand, spacesCommand } from "./world-import.mjs";
 
 const BASE_URL = process.env.ONCYBER_BASE_URL || "http://localhost:3000";
 
 const CREDENTIALS_PATH = join(homedir(), ".world-cli", "credentials.json");
 
-function loadSavedToken() {
+function loadSaved() {
     try {
-        return JSON.parse(readFileSync(CREDENTIALS_PATH, "utf-8")).token;
+        return JSON.parse(readFileSync(CREDENTIALS_PATH, "utf-8"));
     } catch {
-        return undefined;
+        return {};
     }
 }
 
+function loadSavedToken() {
+    return loadSaved().token;
+}
+
+// The site is saved with the token: `spaces` and `import` read real spaces
+// from the site the terminal signed in to, not from the local one.
 async function saveCredentials(token, userId) {
     await mkdir(join(homedir(), ".world-cli"), { recursive: true });
-    await writeFile(CREDENTIALS_PATH, JSON.stringify({ token, userId }, null, 2) + "\n", {
+    await writeFile(CREDENTIALS_PATH, JSON.stringify({ token, userId, site: BASE_URL }, null, 2) + "\n", {
         mode: 0o600,
     });
 }
@@ -77,12 +88,12 @@ function shadowPath(file) {
     return file.replace(/(\.json)?$/, ".base.json");
 }
 
-async function rpcCall(method, params, { service = "exhibit", token = TOKEN } = {}) {
+async function rpcCall(method, params, { service = "exhibit", token = TOKEN, baseUrl = BASE_URL } = {}) {
     if (!token) {
         throw new Error(`Not logged in — run \`world-cli.mjs login\` first.`);
     }
 
-    const res = await fetch(`${BASE_URL}/api/_v2/${service}`, {
+    const res = await fetch(`${baseUrl}/api/_v2/${service}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "method", method, params: [params], token }),
@@ -309,6 +320,22 @@ async function cmdLogin() {
     console.log(`Logged in as ${data.value.userId}. Saved to ${CREDENTIALS_PATH}`);
 }
 
+/**
+ * The site real spaces are read from: `--from`, else ONCYBER_BASE_URL, else
+ * the one the saved login is for, else oncyber.io. A saved login only works
+ * on its own site, so a mismatch is said before the site refuses it.
+ */
+function realSite(args) {
+    const flag = args.includes("--from") ? args[args.indexOf("--from") + 1] : "";
+    const saved = process.env.ONCYBER_SESSION_TOKEN ? "" : loadSaved().site;
+    const site = (flag || process.env.ONCYBER_BASE_URL || saved || "https://oncyber.io").replace(/\/+$/, "");
+    if (saved && saved.replace(/\/+$/, "") !== site)
+        throw new Error(
+            `This terminal is signed in to ${saved}, not ${site}. Sign in there: ONCYBER_BASE_URL=${site} pnpm world login`
+        );
+    return site;
+}
+
 async function main() {
     const [, , cmd, exhibitId, ...rest] = process.argv;
 
@@ -328,9 +355,20 @@ async function main() {
             rpcCall(method, params, { service: "destinations" })
         );
 
+    // Real spaces, listed and copied into the local stack (./world-import.mjs).
+    if (cmd === "spaces" || cmd === "import") {
+        const args = process.argv.slice(3);
+        const site = realSite(args);
+        const rpc = (method, params) => rpcCall(method, params, { baseUrl: site });
+        const rest = args.filter((arg, i) => arg !== "--from" && args[i - 1] !== "--from");
+        return cmd === "spaces"
+            ? spacesCommand(rest, rpc, { site })
+            : importCommand(rest, rpc, { site });
+    }
+
     if (!cmd || !exhibitId) {
         console.error(
-            "Usage: world-cli.mjs <login|pull|push|snapshot|script|destination> [exhibitId] [file|label]"
+            "Usage: world-cli.mjs <login|spaces|import|pull|push|snapshot|script|destination> [exhibitId] [file|label]"
         );
         process.exit(1);
     }

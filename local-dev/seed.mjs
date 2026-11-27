@@ -26,7 +26,7 @@ const readJson = async (name) =>
     JSON.parse(await readFile(join(HERE, "fixtures", name), "utf8"));
 
 // The public API returns Firestore timestamps as {_seconds, _nanoseconds}.
-function revive(value) {
+export function revive(value) {
     if (Array.isArray(value)) return value.map(revive);
     if (!value || typeof value !== "object") return value;
     const keys = Object.keys(value);
@@ -43,7 +43,10 @@ function revive(value) {
     return Object.fromEntries(keys.map((k) => [k, revive(value[k])]));
 }
 
-function app() {
+/** The emulator's Firestore value types, for local-dev/import.mjs. */
+export const firestoreTypes = () => ({ Timestamp: admin.firestore.Timestamp });
+
+export function app() {
     if (!process.env.FIRESTORE_EMULATOR_HOST) {
         throw new Error(
             "FIRESTORE_EMULATOR_HOST is not set: refusing to seed anything but the local emulator."

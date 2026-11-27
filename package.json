@@ -15,7 +15,7 @@
         "check:frontend": "pnpm -C frontend check",
         "check": "pnpm check:frontend",
         "world": "node scripts/world-cli.mjs",
-        "world:test": "node --test scripts/world-script.test.mjs scripts/world-login.test.mjs scripts/world-destination.test.mjs",
+        "world:test": "node --test scripts/world-script.test.mjs scripts/world-login.test.mjs scripts/world-destination.test.mjs scripts/world-import.test.mjs",
         "check:fast": "pnpm -C frontend check:tokens && pnpm -C frontend test:changed && pnpm -C frontend check:types",
         "worlds:smoke": "node scripts/worlds/framed-smoke.mjs",
         "games:build": "node scripts/games/build.mjs",
