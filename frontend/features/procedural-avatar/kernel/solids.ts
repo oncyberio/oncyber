@@ -91,7 +91,7 @@ export function cylinder(
     to: Vec3,
     radius: number,
     colour: Rgb,
-    options: { endRadius?: number; segments?: number; capColour?: Rgb } = {}
+    options: { endRadius?: number; segments?: number } = {}
 ) {
     const segments = options.segments ?? 14;
     const r1 = options.endRadius ?? radius;
@@ -102,5 +102,4 @@ export function cylinder(
         () => colour,
         { caps: true }
     );
-    void options.capColour;
 }

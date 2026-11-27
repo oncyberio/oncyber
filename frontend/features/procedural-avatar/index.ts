@@ -1,5 +1,5 @@
 import * as THREE from "three/webgpu";
-import { CHARACTERS, CharacterSpec, RUNNER } from "./characters";
+import { CharacterSpec, RUNNER } from "./characters";
 import {
     AvatarData,
     GenerateOptions,
@@ -195,9 +195,4 @@ export async function generateAvatarInSlices(
         signal?.throwIfAborted();
         await new Promise((resolve) => setTimeout(resolve, 0));
     }
-}
-
-/** Look up a built-in character by id. */
-export function characterById(id: string): CharacterSpec | undefined {
-    return CHARACTERS[id];
 }

@@ -54,6 +54,8 @@ export interface ShirtStyle {
     open: number;
     /** A patch pocket on the left chest. */
     pocket: boolean;
+    /** How far the cloth pouches out over the waistband: 0 neat, 1 loose. */
+    blouse: number;
 }
 
 export interface ShirtParts {
@@ -145,7 +147,11 @@ export function buildShirt(
     smooth.add(
         ellipsoid(
             [0, waist.y + 0.075, waist.z + 0.004],
-            [waist.rx + 0.016 + ease, 0.085, waist.rz + 0.014 + ease]
+            [
+                waist.rx + 0.004 + (0.012 + ease) * style.blouse,
+                0.085,
+                waist.rz + 0.004 + (0.01 + ease) * style.blouse,
+            ]
         ),
         0.06
     );
@@ -189,7 +195,10 @@ export function buildShirt(
             arm.upper[2],
         ];
         smooth.add(
-            sphere([arm.upper[0], arm.upper[1] + 0.004, arm.upper[2]], 0.058),
+            sphere(
+                [arm.upper[0], arm.upper[1] + 0.002, arm.upper[2]],
+                0.046 + ease * 0.25
+            ),
             0.04
         );
         smooth.add(roundCone(sag(head, r0), sag(arm.elbow, r1), r0, r1), 0.045);
@@ -290,8 +299,8 @@ export function buildShirt(
     const neckline = roundCone(
         [0, sy - 0.004, -0.01],
         [0, sy + 0.14, 0.002],
-        neckR + 0.013,
-        neckR + 0.02
+        neckR + 0.004 + 0.009 * style.open,
+        neckR + 0.011 + 0.009 * style.open
     );
     garment.carve(neckline, 0.006);
     for (const arm of arms) {

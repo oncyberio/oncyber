@@ -93,7 +93,6 @@ function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
     const white = rgb(style.white);
     const irisAngle = style.irisRadius / R;
     const pupilAngle = irisAngle * 0.47;
-    const upper = lidFrame(face, s, true);
     const lidY = centre[1] + Math.sin((face.upperLid * Math.PI) / 180) * R;
     // Rings from the pupil outwards; a repeated angle makes a crisp edge.
     const rings: { angle: number; colour: (az: number) => Rgb }[] = [
@@ -211,7 +210,6 @@ function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
     };
     light(0.35, irisAngle * 0.5, style.irisRadius * 0.21, 1.6);
     light(Math.PI + 0.5, irisAngle * 0.62, style.irisRadius * 0.1, 1.2);
-    void upper;
 }
 
 /** Lash lines: tapered tubes laid along the lid edges. */

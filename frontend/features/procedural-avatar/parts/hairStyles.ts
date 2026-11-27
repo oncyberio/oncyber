@@ -59,9 +59,8 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
         return guide;
     };
 
-    const dbg = (globalThis as any).__hairDebug;
     // Under-layer: broad dark locks drawn straight back, for coverage.
-    for (const direction of dbg ? [] : scatter(150, g.random)) {
+    for (const direction of scatter(150, g.random)) {
         const root = g.cast(centre, direction, 0.001);
         if (hairlineDepth(line, root) < 0.002) continue;
         const up = smoothstep(1.6, 1.68, root[1]);
@@ -152,7 +151,7 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
         return rooted(first.concat(second.slice(1)));
     };
     for (const s of [1, -1]) {
-        for (let i = 0; i < (dbg ? 0 : 18); i++) {
+        for (let i = 0; i < 18; i++) {
             const guide = combed(
                 s,
                 (i + g.range(-0.3, 0.3)) / 17,
@@ -175,7 +174,7 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
     // Top layer: many fine strands over the same paths, lighter and looser,
     // some slipping free before they reach the tie.
     for (const s of [1, -1]) {
-        for (let i = 0; i < (dbg ? 0 : 46); i++) {
+        for (let i = 0; i < 46; i++) {
             const guide = combed(
                 s,
                 g.random(),
@@ -198,7 +197,7 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
             });
         }
     }
-    for (const direction of dbg ? [] : scatter(110, g.random)) {
+    for (const direction of scatter(110, g.random)) {
         const root = g.cast(centre, direction, 0.001);
         if (hairlineDepth(line, root) < 0.003) continue;
         const up = smoothstep(1.6, 1.68, root[1]);
@@ -226,7 +225,7 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
     }
 
     // The tail: a bundle hanging from the tie, fanning and waving a little.
-    for (let i = 0; i < (dbg ? 0 : 30); i++) {
+    for (let i = 0; i < 30; i++) {
         const length = g.range(style.tailLength[0], style.tailLength[1]);
         const steps = 9;
         const phase = g.range(0, 6.28);
@@ -503,7 +502,7 @@ export function growQuiff(g: Groom, style: QuiffStyle): GrownHair {
                 addv(
                     along,
                     side as P3,
-                    Math.sin(wave + t * 4.5) * 0.45 + swing * t
+                    Math.sin(wave + t * 4) * 0.3 + swing * t
                 )
             );
             // Up off the scalp, over, and back down, with the tip kicking out.

@@ -191,8 +191,8 @@ export function skirtSkin(rig: Rig, waist: Waist, hemY: number): SkinFn {
     const hipY = rig.body.upperLeg[1];
     return (x, y, _z, out) => {
         const fall = smoothstep(hipY + 0.02, hemY, y);
-        const legs = 0.82 * fall;
-        const l = smoothstep(-0.07, 0.07, x);
+        const legs = 0.78 * fall;
+        const l = smoothstep(-0.11, 0.11, x);
         const up = smoothstep(waist.y - 0.04, waist.y + 0.01, y) * 0.4;
         out.clear()
             .add(spine, up)

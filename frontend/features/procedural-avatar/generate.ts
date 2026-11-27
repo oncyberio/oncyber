@@ -177,7 +177,7 @@ export function* generateSteps(
     yield lap("face");
 
     const shirt = buildShirt(rig, skin.body, spec.waist, spec.shirt, detail);
-    add("Shirt", shirt.mesh, followBody(rig, { loose: 0.012 }));
+    add("Shirt", shirt.mesh, body);
     yield lap("shirt");
 
     if (spec.bottom.kind === "skirt")

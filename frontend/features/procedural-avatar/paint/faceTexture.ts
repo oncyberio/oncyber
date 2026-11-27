@@ -1,6 +1,5 @@
 import { localise, rgb } from "../kernel/build";
 import { smoothstep } from "../kernel/noise";
-import type { Vec3 } from "../kernel/sdf";
 import { FACE_UV } from "../parts/skin";
 import { SkinField, lidFrame, lipShapes } from "../parts/skinField";
 import { Hairline, hairlineDepth } from "../parts/hair";
@@ -317,5 +316,3 @@ export function paintFace(
     }
     return { data, width, height };
 }
-
-export type { Vec3 };
