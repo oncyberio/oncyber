@@ -18,7 +18,7 @@ import {
     torus,
 } from "../kernel/sdf";
 import { buildHumanoid } from "../humanoid/build";
-import type { BuildOptions, HumanoidSpec } from "../humanoid/spec";
+import type { BuildOptions, HumanoidSpec } from "../humanoid/description";
 import type { SculptHairSegment } from "./types";
 
 /**

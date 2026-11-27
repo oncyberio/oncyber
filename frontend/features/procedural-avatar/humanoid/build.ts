@@ -2,7 +2,7 @@ import { field, halfSpace, offset } from "../kernel/sdf";
 import { skinField } from "../parts/skinField";
 import { Rig } from "../rig";
 import type { Sculpt, SculptLayer } from "../sculpts/types";
-import type { BuildOptions, HumanoidSpec } from "./spec";
+import type { BuildOptions, HumanoidSpec } from "./description";
 
 /**
  * Build a described humanoid as a sculpt: its body from its measurements,

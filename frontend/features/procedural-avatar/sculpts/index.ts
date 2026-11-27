@@ -1,5 +1,5 @@
 import { stagehandSculpt } from "./stagehand";
-import type { BuildOptions } from "../humanoid/spec";
+import type { BuildOptions } from "../humanoid/description";
 import type { Sculpt } from "./types";
 
 export type { Sculpt } from "./types";
