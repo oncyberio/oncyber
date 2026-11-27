@@ -31,6 +31,7 @@ import {
 } from "./avatarAdapter";
 import { createLobbyLocomotion } from "../locomotion";
 import { LOBBY_GUEST_PORTRAIT } from "../lobbyIdentity";
+import { createFarMesh, drawFar, type FarMesh } from "./crowdDetail";
 
 export const CROWD_PAGE_CAPACITY = 256;
 const CAPACITY = CROWD_PAGE_CAPACITY;
@@ -74,17 +75,21 @@ interface Portrait {
     refs: number;
     loaded: boolean;
 }
-interface Page {
-    instances: Set<Instance>;
-    slots: Set<number>;
+/**
+ * The visitors of a page drawn at one detail: near ones with the whole
+ * mesh, far ones (when the avatar has a far mesh) with fewer triangles.
+ * Each band has its own per-visitor buffers; the geometry is shared.
+ */
+interface Band {
     meshes: THREE.InstancedMesh[];
     matrices: THREE.InstancedBufferAttribute;
     data: THREE.InstancedInterleavedBuffer;
-    a: THREE.InterleavedBufferAttribute;
-    b: THREE.InterleavedBufferAttribute;
-    blend: THREE.InterleavedBufferAttribute;
-    portrait: THREE.InterleavedBufferAttribute;
-    reveal: THREE.InterleavedBufferAttribute;
+}
+interface Page {
+    instances: Set<Instance>;
+    slots: Set<number>;
+    /** Near, then far if the avatar has a far mesh. */
+    bands: Band[];
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
     texture: THREE.CanvasTexture;
@@ -109,6 +114,8 @@ interface Model {
     pages: Page[];
     atlases: PartAtlas[];
     frameCount: number;
+    /** Its parts cut down for visitors far off; null to draw them whole. */
+    far: FarMesh | null;
     disposed: boolean;
 }
 interface Entry {
@@ -236,7 +243,8 @@ export function configureCrowdSkinning(
  */
 export function crowdRevealFront(amount: number, base: number, height: number) {
     if (!(amount < 0.9999)) return [REVEAL_DONE, 0];
-    const size = Number.isFinite(height) && height > 0 ? Math.max(0.6, height) : 1.8;
+    const size =
+        Number.isFinite(height) && height > 0 ? Math.max(0.6, height) : 1.8;
     const band = size * 0.22;
     return [base + amount * (size + band * 2) - band, band];
 }
@@ -263,9 +271,12 @@ export class LobbyAvatarCrowd {
     private projection = new THREE.Matrix4();
     private sphere = new THREE.Sphere();
     private worldScale = new THREE.Vector3();
+    private eye = new THREE.Vector3();
     readonly stats = {
         instances: 0,
         visible: 0,
+        /** Of those drawn, how many with the far mesh. */
+        far: 0,
         batches: 0,
         models: 0,
         textureBytes: 0,
@@ -372,11 +383,18 @@ export class LobbyAvatarCrowd {
             pages: [],
             atlases: [],
             frameCount: 0,
+            far: null,
             disposed: false,
         };
         onModel(model);
         try {
             if (model.disposed) throw cancelled();
+            // Fewer triangles for the far off: optional, so a failure here
+            // only means everyone is drawn whole.
+            model.far = await createFarMesh(
+                source.bakeParts.map((part) => part.geometry)
+            ).catch(() => null);
+            if (this.disposed || model.disposed) throw cancelled();
             await this.ensureClip(model, "IDLE");
             if (this.disposed) throw cancelled();
             // Start drawing idle immediately; warm a bounded motion set once per
@@ -480,14 +498,6 @@ export class LobbyAvatarCrowd {
     }
 
     private newPage(model: Model): Page {
-        // WebGPU guarantees eight vertex buffers. Pack all per-visitor fields
-        // together so avatar geometry and the portrait tile fit that baseline.
-        const data = new THREE.InstancedInterleavedBuffer(
-            new Float32Array(CAPACITY * INSTANCE_STRIDE),
-            INSTANCE_STRIDE
-        ).setUsage(THREE.DynamicDrawUsage);
-        const instanceAttribute = (size: number, offset: number) =>
-            new THREE.InterleavedBufferAttribute(data, size, offset);
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = PORTRAIT_TILE_SIZE;
         const context = canvas.getContext("2d");
@@ -503,17 +513,7 @@ export class LobbyAvatarCrowd {
         const page: Page = {
             instances: new Set(),
             slots: new Set(),
-            meshes: [],
-            matrices: new THREE.InstancedBufferAttribute(
-                new Float32Array(CAPACITY * 16),
-                16
-            ).setUsage(THREE.DynamicDrawUsage),
-            data,
-            a: instanceAttribute(3, 0),
-            b: instanceAttribute(3, 3),
-            blend: instanceAttribute(1, 6),
-            portrait: instanceAttribute(4, 7),
-            reveal: instanceAttribute(2, 11),
+            bands: [],
             canvas,
             context,
             texture,
@@ -525,7 +525,9 @@ export class LobbyAvatarCrowd {
             disposed: false,
         };
         try {
-            model.source.bakeParts.forEach((part, index) => {
+            // Each page copies the parts once; the far band draws the same
+            // vertices through its own, shorter index.
+            const shared = model.source.bakeParts.map((part) => {
                 const geometry = part.geometry.clone();
                 if (!geometry.getAttribute("skinIndex")) {
                     geometry.setAttribute(
@@ -546,57 +548,101 @@ export class LobbyAvatarCrowd {
                         new THREE.Float32BufferAttribute(weights, 4)
                     );
                 }
-                geometry.setAttribute("lobbyFrameA", page.a);
-                geometry.setAttribute("lobbyFrameB", page.b);
-                geometry.setAttribute("lobbyBlend", page.blend);
-                geometry.setAttribute("lobbyPortrait", page.portrait);
-                geometry.setAttribute("lobbyReveal", page.reveal);
-                const material = (
-                    part.isPfp
-                        ? new THREE.MeshBasicNodeMaterial({
-                              map: texture,
-                              side: THREE.DoubleSide,
-                          })
-                        : cloneNativeAvatarMaterial(part.material)
-                ) as THREE.NodeMaterial;
-                if (!material.isNodeMaterial)
-                    throw new Error(
-                        "Crowd avatar requires a modern node material"
-                    );
-                if (part.isPfp) {
-                    const portrait = attribute("lobbyPortrait", "vec4");
-                    material.colorNode = page.portraitNode.sample(
-                        portrait.xy.add(uv().mul(portrait.zw))
-                    );
-                }
-                configureCrowdSkinning(
-                    material,
-                    geometry,
-                    model.atlases[index],
-                    part.boneCount
-                );
-                configureCrowdReveal(material);
-                const mesh = new THREE.InstancedMesh(
-                    geometry,
-                    material,
-                    CAPACITY
-                );
-                mesh.name = "lobby-instanced-avatar";
-                mesh.instanceMatrix = page.matrices;
-                mesh.userData.lobbyPortraitPart = part.isPfp;
-                mesh.count = 0;
-                // Per-visitor CPU culling below; Three cannot bound baked animation.
-                mesh.frustumCulled = false;
-                mesh.userData.lobbyCrowd = true;
-                this.scene.add(mesh);
-                page.meshes.push(mesh);
+                return geometry;
             });
+            this.newBand(model, page, shared, false);
+            if (model.far) this.newBand(model, page, shared, true);
             model.pages.push(page);
             return page;
         } catch (error) {
             this.disposePage(page);
             throw error;
         }
+    }
+
+    private newBand(
+        model: Model,
+        page: Page,
+        shared: THREE.BufferGeometry[],
+        far: boolean
+    ) {
+        // WebGPU guarantees eight vertex buffers. Pack all per-visitor fields
+        // together so avatar geometry and the portrait tile fit that baseline.
+        const data = new THREE.InstancedInterleavedBuffer(
+            new Float32Array(CAPACITY * INSTANCE_STRIDE),
+            INSTANCE_STRIDE
+        ).setUsage(THREE.DynamicDrawUsage);
+        const instanceAttribute = (size: number, offset: number) =>
+            new THREE.InterleavedBufferAttribute(data, size, offset);
+        const band: Band = {
+            meshes: [],
+            matrices: new THREE.InstancedBufferAttribute(
+                new Float32Array(CAPACITY * 16),
+                16
+            ).setUsage(THREE.DynamicDrawUsage),
+            data,
+        };
+        const a = instanceAttribute(3, 0);
+        const b = instanceAttribute(3, 3);
+        const blend = instanceAttribute(1, 6);
+        const portrait = instanceAttribute(4, 7);
+        const reveal = instanceAttribute(2, 11);
+        // On the page before it is filled, so a failure disposes what it made.
+        page.bands.push(band);
+        model.source.bakeParts.forEach((part, index) => {
+            const base = shared[index];
+            let geometry = base;
+            if (far) {
+                geometry = new THREE.BufferGeometry();
+                for (const [name, attribute] of Object.entries(base.attributes))
+                    if (!name.startsWith("lobby"))
+                        geometry.setAttribute(name, attribute);
+                const cut = model.far?.parts[index];
+                geometry.setIndex(
+                    cut ? new THREE.BufferAttribute(cut.index, 1) : base.index
+                );
+            }
+            geometry.setAttribute("lobbyFrameA", a);
+            geometry.setAttribute("lobbyFrameB", b);
+            geometry.setAttribute("lobbyBlend", blend);
+            geometry.setAttribute("lobbyPortrait", portrait);
+            geometry.setAttribute("lobbyReveal", reveal);
+            const material = (
+                part.isPfp
+                    ? new THREE.MeshBasicNodeMaterial({
+                          map: page.texture,
+                          side: THREE.DoubleSide,
+                      })
+                    : cloneNativeAvatarMaterial(part.material)
+            ) as THREE.NodeMaterial;
+            if (!material.isNodeMaterial)
+                throw new Error("Crowd avatar requires a modern node material");
+            if (part.isPfp) {
+                const tile = attribute("lobbyPortrait", "vec4");
+                material.colorNode = page.portraitNode.sample(
+                    tile.xy.add(uv().mul(tile.zw))
+                );
+            }
+            configureCrowdSkinning(
+                material,
+                geometry,
+                model.atlases[index],
+                part.boneCount
+            );
+            configureCrowdReveal(material);
+            const mesh = new THREE.InstancedMesh(geometry, material, CAPACITY);
+            mesh.name = far
+                ? "lobby-instanced-avatar-far"
+                : "lobby-instanced-avatar";
+            mesh.instanceMatrix = band.matrices;
+            mesh.userData.lobbyPortraitPart = part.isPfp;
+            mesh.count = 0;
+            // Per-visitor CPU culling below; Three cannot bound baked animation.
+            mesh.frustumCulled = false;
+            mesh.userData.lobbyCrowd = true;
+            this.scene.add(mesh);
+            band.meshes.push(mesh);
+        });
     }
 
     private growPortraitAtlas(page: Page, slot: number) {
@@ -640,7 +686,7 @@ export class LobbyAvatarCrowd {
         next.minFilter = THREE.LinearMipmapLinearFilter;
         page.texture = next;
         page.portraitNode.value = next;
-        for (const mesh of page.meshes)
+        for (const mesh of page.bands.flatMap((band) => band.meshes))
             if (mesh.userData.lobbyPortraitPart)
                 (mesh.material as THREE.MeshBasicNodeMaterial).map = next;
         oldTexture.dispose();
@@ -939,9 +985,10 @@ export class LobbyAvatarCrowd {
     }
 
     /** Upload only transforms/frame indices. Bone textures are immutable between clip loads. */
-    flush(camera: THREE.Camera) {
+    flush(camera: THREE.Camera, viewHeight = 1080) {
         this.stats.instances =
             this.stats.visible =
+            this.stats.far =
             this.stats.batches =
             this.stats.models =
             this.stats.textureBytes =
@@ -959,6 +1006,10 @@ export class LobbyAvatarCrowd {
             this.coordinateSystem,
             camera.reversedDepth ?? false
         );
+        this.eye.setFromMatrixPosition(camera.matrixWorld);
+        const fov = (camera as THREE.PerspectiveCamera).isPerspectiveCamera
+            ? (camera as THREE.PerspectiveCamera).fov
+            : 0;
         for (const entry of this.entries.values()) {
             // Resolved models are attached by the create promise below.
             const model = entry.model;
@@ -972,16 +1023,19 @@ export class LobbyAvatarCrowd {
                 this.stats.crowdPages++;
                 this.stats.portraitBytes +=
                     page.canvas.width * page.canvas.height * 4;
-                let index = 0;
-                let transformChanged = false;
-                let animationChanged = false;
-                const values = page.data.array;
-                const matrices = page.matrices.array;
+                // Where each band has got to, and whether its buffers changed.
+                const filled = page.bands.map(() => ({
+                    index: 0,
+                    transformChanged: false,
+                    animationChanged: false,
+                }));
+                let values: Float32Array;
+                let fill: (typeof filled)[number];
                 const write = (offset: number, value: number) => {
                     value = Math.fround(value);
                     if (values[offset] === value) return;
                     values[offset] = value;
-                    animationChanged = true;
+                    fill.animationChanged = true;
                 };
                 const frames = (
                     clip: Clip,
@@ -1027,6 +1081,29 @@ export class LobbyAvatarCrowd {
                         !this.frustum.intersectsSphere(this.sphere)
                     )
                         continue;
+                    // The far mesh when its error is under a pixel or two.
+                    const far =
+                        page.bands.length > 1 &&
+                        drawFar(
+                            model.far.error *
+                                Math.max(
+                                    this.worldScale.x,
+                                    this.worldScale.y,
+                                    this.worldScale.z
+                                ),
+                            Math.max(
+                                0,
+                                this.sphere.center.distanceTo(this.eye) -
+                                    this.sphere.radius
+                            ),
+                            fov,
+                            viewHeight
+                        );
+                    const drawn = page.bands[far ? 1 : 0];
+                    fill = filled[far ? 1 : 0];
+                    values = drawn.data.array as Float32Array;
+                    const matrices = drawn.matrices.array;
+                    const index = fill.index;
                     const offset = index * INSTANCE_STRIDE;
                     const blending = instance.fade < FADE_SECONDS;
                     if (blending)
@@ -1070,24 +1147,30 @@ export class LobbyAvatarCrowd {
                         const target = index * 16 + element;
                         if (matrices[target] !== value) {
                             matrices[target] = value;
-                            transformChanged = true;
+                            fill.transformChanged = true;
                         }
                     }
-                    index++;
+                    fill.index++;
                 }
-                this.stats.visible += index;
-                if (index) this.stats.batches += page.meshes.length;
-                for (const mesh of page.meshes) {
-                    mesh.count = index;
-                }
-                if (transformChanged) {
-                    page.matrices.needsUpdate = true;
-                    this.stats.transformUploads++;
-                }
-                if (animationChanged) {
-                    page.data.needsUpdate = true;
-                    this.stats.animationUploads++;
-                }
+                page.bands.forEach((band, at) => {
+                    const { index, transformChanged, animationChanged } =
+                        filled[at];
+                    this.stats.visible += index;
+                    if (at) this.stats.far += index;
+                    if (index) this.stats.batches += band.meshes.length;
+                    for (const mesh of band.meshes) {
+                        mesh.count = index;
+                        mesh.visible = index > 0 || !at;
+                    }
+                    if (transformChanged) {
+                        band.matrices.needsUpdate = true;
+                        this.stats.transformUploads++;
+                    }
+                    if (animationChanged) {
+                        band.data.needsUpdate = true;
+                        this.stats.animationUploads++;
+                    }
+                });
             }
         }
     }
@@ -1100,7 +1183,7 @@ export class LobbyAvatarCrowd {
         page.portraitLoads.clear();
         page.portraits.clear();
         page.portraitSlots.clear();
-        for (const mesh of page.meshes) {
+        for (const mesh of page.bands.flatMap((band) => band.meshes)) {
             mesh.removeFromParent();
             mesh.geometry.dispose();
             (mesh.material as THREE.Material).dispose();

@@ -35,3 +35,5 @@ export {
 } from "./style";
 export { variedLook } from "./vary";
 export type { FigureInfo, FigureLandmarks, FigurePart } from "./format";
+export { HAIR_FILES, hairUrl, type HairFile } from "./hairFiles";
+export { wearHair } from "./wearHair";

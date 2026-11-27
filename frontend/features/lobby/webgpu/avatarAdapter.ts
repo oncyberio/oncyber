@@ -406,7 +406,7 @@ async function buildProceduralAvatar(id: string): Promise<ModernVRM> {
 
 /**
  * A figure avatar is a figure file made into a character by a style, in
- * the variation its URL names. It is built in its basic form: it blinks
+ * the variation and hair its URL names. It is built in its basic form: it blinks
  * and has no morph targets, so the lobby can draw many as a crowd.
  */
 async function buildFigureAvatar(
@@ -428,6 +428,8 @@ async function buildFigureAvatar(
         style,
         { form: "basic" }
     );
+    // Hair rides the head bone in one draw, so the crowd still bakes it.
+    await figures.wearHair(figure, spec.hair, style.brows.colour);
     // Blink on a clock of its own, so a crowd doesn't blink as one.
     const seed = (spec.look * 0.618) % 1;
     let clock = 0;

@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { DEFAULT_LOBBY_AVATAR_URL } from "@features/lobby/avatarSelection";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
+import { figureAvatarUrl } from "@features/procedural-avatar/catalogue";
 import { LOBBY_GUEST_PORTRAIT } from "@features/lobby/lobbyIdentity";
 import type { LobbyRenderStats } from "@features/lobby/sceneTypes";
 import {
@@ -39,12 +40,26 @@ export default function LobbyCrowdBenchmark() {
         : "auto";
     const motionPack = router.query.motionPack === "cc0" ? "cc0" : "default";
     const instanced = router.query.mode !== "native";
+    // ?avatar=figure measures the figure avatar; ?hair= picks its cut
+    // (or "none").
+    const figure = router.query.avatar === "figure";
     const avatarId =
-        typeof router.query.avatar === "string" &&
-        Object.hasOwn(catalogue, router.query.avatar)
-            ? router.query.avatar
+        figure ||
+        (typeof router.query.avatar === "string" &&
+            Object.hasOwn(catalogue, router.query.avatar))
+            ? String(router.query.avatar)
             : "square";
-    const avatarUrl = catalogue[avatarId]?.url || DEFAULT_LOBBY_AVATAR_URL;
+    const avatarUrl =
+        (figure &&
+            figureAvatarUrl(
+                "figure",
+                0,
+                typeof router.query.hair === "string"
+                    ? router.query.hair
+                    : undefined
+            )) ||
+        catalogue[avatarId]?.url ||
+        DEFAULT_LOBBY_AVATAR_URL;
     const [stats, setStats] = useState<LobbyRenderStats>(null);
     const [error, setError] = useState("");
     const [motion, setMotion] = useState(-1);
@@ -123,6 +138,9 @@ export default function LobbyCrowdBenchmark() {
         `?${new URLSearchParams({
             count: String(count),
             avatar: avatarId,
+            ...(figure && typeof router.query.hair === "string"
+                ? { hair: router.query.hair }
+                : {}),
             mode: instanced ? "instanced" : "native",
             renderer,
             detailBudget: budget,
@@ -167,8 +185,8 @@ export default function LobbyCrowdBenchmark() {
             >
                 <strong>Local synthetic avatar benchmark</strong>
                 <div>
-                    {catalogue[avatarId]?.name} · {count.toLocaleString()}{" "}
-                    synthetic visitors ·{" "}
+                    {figure ? "Figure" : catalogue[avatarId]?.name} ·{" "}
+                    {count.toLocaleString()} synthetic visitors ·{" "}
                     {instanced ? "GPU instances" : "native mixers"}
                 </div>
                 <div>
@@ -179,7 +197,8 @@ export default function LobbyCrowdBenchmark() {
                     {" · "}
                     <a
                         href={href({
-                            motionPack: motionPack === "cc0" ? "default" : "cc0",
+                            motionPack:
+                                motionPack === "cc0" ? "default" : "cc0",
                         })}
                     >
                         Compare{" "}
@@ -195,7 +214,8 @@ export default function LobbyCrowdBenchmark() {
                 <div>
                     Admitted {stats?.admitted ?? "—"} · pending{" "}
                     {stats?.pendingLoads ?? "—"} · rendered{" "}
-                    {stats?.visible ?? "—"} · frustum culled{" "}
+                    {stats?.visible ?? "—"} · far mesh {stats?.far ?? "—"} ·
+                    frustum culled{" "}
                     {stats ? Math.max(0, stats.instances - stats.visible) : "—"}
                 </div>
                 <div>

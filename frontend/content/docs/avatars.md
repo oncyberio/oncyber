@@ -195,11 +195,15 @@ view)`): anything costing under a quarter of a pixel is left out, so a
     running locally: `mode=mesh` (default, with `coarse`) or `mode=trace`
     (with `scale`), plus `naked=1`, `zoom=face` and `yaw`.
 
-The lobby offers a figure as the avatar "Figure" (the Stagehand's face, no
-hair or clothes yet), built in its basic form so the lobby can draw many as a
-crowd. Its URL names a variation of its look, `/avatars/procedural/figure?look=7`
-(`figureAvatarUrl` in `catalogue.ts`), so everyone who sees it builds the same
-one. To see many at once when running locally, open the lobby with
+The lobby offers a figure as the avatar "Figure" (the Stagehand's face, with
+hair, no clothes yet), built in its basic form so the lobby can draw many as a
+crowd. Its URL names a variation of its look and its hair,
+`/avatars/procedural/figure?look=7&hair=bob` (`figureAvatarUrl` in
+`catalogue.ts`), so everyone who sees it builds the same one. Hair is a small
+prebuilt file per cut (`figure/hairFiles.ts`), taken from another model by
+`tasks/avatar-figure`'s `npm run hair`: no images, one mesh on the head bone,
+tinted with the look's hair colour. The figure as drawn wears Sakurada's cut;
+its variations take the others. To see many at once when running locally, open the lobby with
 `?crowd=40`: a staged crowd, seen by you only, wearing a dozen variations.
 `?wear=figure` wears it for that visit without saving it.
 

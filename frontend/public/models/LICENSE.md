@@ -34,6 +34,16 @@ and face, with no images, by `tasks/avatar-figure`:
 | `testscale2.vrm` | summer.jpg | NeonGlitch86 | CC0; commercial use: Allow |
 | `Seed-san.vrm` | Seed-san | VirtualCast, Inc. | VRM Public License 1.0; redistribution allowed; commercial use: corporation |
 
+The hair in `hair/` is taken from other models and cut down by
+`tasks/avatar-figure` (`npm run hair`), with no images. Each keeps its
+model's terms:
+
+| File | Taken from | Author (from metadata) | Declared license |
+| --- | --- | --- | --- |
+| `hair/sakurada.glb` | `Sakurada Fumiriya.vrm` (VRoid Hub), sha256 `a36e91b8…44b283f3` | VRoidプロジェクト | Redistribution and modification allowed; commercial use allowed; credit not required |
+| `hair/bob.glb` | `AvatarSample_A.vrm`, sha256 `b86b0b8a…58ac346e` | VRoid | VRoid sample model; licence field "Other", no URL in the file |
+| `hair/short.glb` | `AvatarSample_C.vrm`, sha256 `395d5b04…1688045b8a` | VRoid | VRoid sample model; licence field "Other", no URL in the file |
+
 ## Used by Oncyber with permission
 
 All rights are reserved by their respective holders. Oncyber's own use is

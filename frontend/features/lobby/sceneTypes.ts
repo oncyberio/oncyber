@@ -45,6 +45,8 @@ export interface LobbyRenderStats {
     triangles: number;
     instances: number;
     visible: number;
+    /** Of those drawn, how many with their far mesh (fewer triangles). */
+    far?: number;
     batches: number;
     models: number;
     textureBytes: number;

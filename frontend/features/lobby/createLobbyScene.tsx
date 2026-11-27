@@ -110,7 +110,16 @@ export interface LobbySceneBackend {
     };
 }
 
-const LOOK_HEIGHT = 1.2;
+const LOOK_HEIGHT = 1.35;
+/**
+ * The follow camera sits close behind the visitor and over the right
+ * shoulder, so their avatar stands a little left of the middle with the
+ * room ahead of them in view: metres behind, metres right, and how far
+ * it looks down.
+ */
+const FOLLOW_DISTANCE = 3.3;
+const FOLLOW_SHOULDER = 0.55;
+const FOLLOW_PITCH = -0.2;
 /** Matches the local arrival (avatarRevealSeconds when landing in the lobby). */
 const REMOTE_ARRIVAL_REVEAL_SECONDS = 0.47;
 // Travellers walk back from the return line at this pace (m/s), at most this long.
@@ -231,7 +240,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 let avatarRevealSeconds = 0.28;
                 let setAvatarReveal: ((amount: number) => void) | undefined;
                 let yaw = 0;
-                let pitch = -0.28;
+                let pitch = FOLLOW_PITCH;
                 let targetYaw = yaw;
                 let targetPitch = pitch;
                 // Use the same origin as prediction, including on renderer recovery.
@@ -327,8 +336,8 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                 camera.rotation.set(pitch, yaw, 0, "YXZ");
                 camera.position.set(
                     position.x,
-                    LOOK_HEIGHT - Math.sin(pitch) * 5,
-                    position.z + Math.cos(pitch) * 5
+                    LOOK_HEIGHT - Math.sin(pitch) * FOLLOW_DISTANCE,
+                    position.z + Math.cos(pitch) * FOLLOW_DISTANCE
                 );
                 // MSAA alone resolves in linear HDR and still reads jagged on
                 // avatar outlines, so supersample on top of it: 2x on 1x
@@ -2215,7 +2224,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             // The final rear control pose; native return framing
                             // eases into it after the first prepared frame.
                             yaw = targetYaw = travelYaw + Math.PI;
-                            pitch = targetPitch = -0.28;
+                            pitch = targetPitch = FOLLOW_PITCH;
                         }
                         travelPhase = undefined;
                         emoteIndex = -1;
@@ -2297,7 +2306,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         emoteIndex = -1;
                         clearInput();
                         yaw = targetYaw = self.group.rotation.y;
-                        pitch = targetPitch = -0.28;
+                        pitch = targetPitch = FOLLOW_PITCH;
                         previousSource = undefined;
                         canvas.focus({ preventScroll: true });
                     }
@@ -2566,13 +2575,27 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         (portalCameraTarget - portalCameraMix) *
                         (reducedMotion.matches ? 1 : 1 - Math.exp(-7 * delta));
                     const distance =
-                        (5 + entrance * 1.5 - flashMix * 1.6) *
+                        // A photo keeps its own framing, 3.4 m off.
+                        (FOLLOW_DISTANCE +
+                            entrance * 1.5 +
+                            flashMix * (3.4 - FOLLOW_DISTANCE)) *
                         (1 - 0.3 * portalCameraMix);
                     const horizontalDistance = Math.cos(pitch) * distance;
+                    // Over the shoulder, except while the camera turns to
+                    // face the visitor for a photo or frames a portal.
+                    const shoulder =
+                        FOLLOW_SHOULDER *
+                        (1 - flashMix) *
+                        (1 - portalCameraMix) *
+                        (1 - entrance);
                     camera.position.set(
-                        displayPosition.x + Math.sin(yaw) * horizontalDistance,
+                        displayPosition.x +
+                            Math.sin(yaw) * horizontalDistance +
+                            Math.cos(yaw) * shoulder,
                         LOOK_HEIGHT - Math.sin(pitch) * distance,
-                        displayPosition.z + Math.cos(yaw) * horizontalDistance
+                        displayPosition.z +
+                            Math.cos(yaw) * horizontalDistance -
+                            Math.sin(yaw) * shoulder
                     );
                     camera.rotation.set(pitch, yaw, 0, "YXZ");
                     camera.updateMatrixWorld();
@@ -2860,18 +2883,24 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                         const radius =
                             arrivalCamera.radius +
                             (horizontalDistance - arrivalCamera.radius) * mix;
+                        // Ease onto the shoulder as the arrival settles.
+                        const side = shoulder * mix;
                         camera.position.set(
-                            displayPosition.x + Math.sin(orbit) * radius,
+                            displayPosition.x +
+                                Math.sin(orbit) * radius +
+                                Math.cos(orbit) * side,
                             arrivalCamera.height +
                                 (camera.position.y - arrivalCamera.height) *
                                     mix,
-                            displayPosition.z + Math.cos(orbit) * radius
+                            displayPosition.z +
+                                Math.cos(orbit) * radius -
+                                Math.sin(orbit) * side
                         );
                         travelCameraTarget.set(
-                            displayPosition.x,
+                            displayPosition.x + Math.cos(orbit) * side,
                             arrivalCamera.focusHeight +
                                 (LOOK_HEIGHT - arrivalCamera.focusHeight) * mix,
-                            displayPosition.z
+                            displayPosition.z - Math.sin(orbit) * side
                         );
                         camera.lookAt(travelCameraTarget);
                         camera.updateMatrixWorld();
@@ -3121,7 +3150,7 @@ export function createLobbyScene(backend: LobbySceneBackend) {
                             })),
                         });
                     }
-                    crowd.flush(camera);
+                    crowd.flush(camera, canvas.height);
                     updatePortal(performance.now());
                     if (
                         portalKey &&

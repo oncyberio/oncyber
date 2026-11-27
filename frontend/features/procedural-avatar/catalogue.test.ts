@@ -1,8 +1,10 @@
 /** @jest-environment node */
+import { DEFAULT_HAIR, HAIR_FILES } from "./figure/hairFiles";
 import {
     PROCEDURAL_AVATARS,
     figureAvatarOf,
     figureAvatarUrl,
+    figureHairFor,
     proceduralAvatarId,
 } from "./catalogue";
 import { CHARACTERS } from "./characters";
@@ -60,14 +62,47 @@ test("a figure avatar's URL carries its variation", () => {
         id: "figure",
         style: "stagehand",
         look: 7,
+        hair: figureHairFor(7),
     });
     expect(
         figureAvatarOf("https://oncyber.io/avatars/procedural/figure?look=3")
-    ).toEqual({ id: "figure", style: "stagehand", look: 3 });
+    ).toEqual({
+        id: "figure",
+        style: "stagehand",
+        look: 3,
+        hair: figureHairFor(3),
+    });
     for (const look of ["-1", "1.5", "x", "100000"])
         expect(
             figureAvatarOf(`/avatars/procedural/figure?look=${look}`)?.look
         ).toBe(0);
     expect(figureAvatarOf("/avatars/procedural/runner")).toBeNull();
     expect(figureAvatarOf("/models/pfp.vrm")).toBeNull();
+});
+
+test("a figure's hair: the owner's cut by default, others for variations", () => {
+    expect(figureAvatarOf("/avatars/procedural/figure")?.hair).toBe(
+        DEFAULT_HAIR
+    );
+    const crowd = new Set(
+        [1, 2, 3, 4, 5, 6].map(
+            (look) => figureAvatarOf(figureAvatarUrl("figure", look))?.hair
+        )
+    );
+    expect(crowd.has(DEFAULT_HAIR)).toBe(false);
+    expect(crowd.size).toBe(Object.keys(HAIR_FILES).length - 1);
+    for (const hair of crowd) expect(HAIR_FILES[hair]).toBeDefined();
+    expect(figureAvatarUrl("figure", 2, "bob")).toBe(
+        "/avatars/procedural/figure?look=2&hair=bob"
+    );
+    expect(figureAvatarOf(figureAvatarUrl("figure", 0, "none"))?.hair).toBe(
+        null
+    );
+    // An unknown cut is the look's own, never fetched by name.
+    expect(figureAvatarOf("/avatars/procedural/figure?hair=../x")?.hair).toBe(
+        DEFAULT_HAIR
+    );
+    expect(figureAvatarUrl("figure", 0, "../x")).toBe(
+        "/avatars/procedural/figure"
+    );
 });

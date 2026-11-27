@@ -6,7 +6,8 @@
     "type": "module",
     "scripts": {
         "build": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON build.ts",
-        "compare": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON compare.ts"
+        "compare": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON compare.ts",
+        "hair": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON hair.ts"
     },
     "engines": {
         "node": ">=22.18"

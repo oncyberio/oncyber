@@ -13,6 +13,7 @@ import {
     loadFigure,
     standFigure,
     variedLook,
+    wearHair,
     type FigureCrowd,
     type FigurePoses,
 } from "@features/procedural-avatar/figure";
@@ -29,7 +30,8 @@ const CALM = ["stand", "easy", "look"];
  * figure), `form=basic` (the form a world draws: it blinks and opens its
  * mouth, and has no other expression), `expression` (one to hold, such as
  * `happy` or `aa`; the basic form has `aa` only), `stance` (`stand`,
- * `wave`, ...), `crowd` (a number: that many of the character drawn as
+ * `wave`, ...), `hair` (a cut from `figure/hairFiles.ts`, worn in the
+ * style's brow colour unless `hairColour` is given), `crowd` (a number: that many of the character drawn as
  * one, each a little different, and each with as much of its mesh as its
  * size on screen can show: `pixels` says to within how much of a pixel, a
  * quarter unless given, 0 for every figure whole), `yaw` (degrees, stops
@@ -64,6 +66,11 @@ export default function FigureAvatarFixture() {
         host.append(renderer.domElement);
         const scene = new THREE.Scene();
         scene.background = new THREE.Color("#f5edf0");
+        // The figure lights itself; worn hair takes the scene's light, as in
+        // the lobby.
+        const key = new THREE.DirectionalLight("#ffffff", 1.6);
+        key.position.set(1, 2, 3);
+        scene.add(new THREE.HemisphereLight("#ffffff", "#8a7f86", 1.4), key);
         const camera = new THREE.PerspectiveCamera(16, 1, 0.05, 200);
         const face = text("zoom") === "face";
         // A crowd stands in rows, each row between the heads in front.
@@ -134,6 +141,14 @@ export default function FigureAvatarFixture() {
                     const stance = STANCES[text("stance")];
                     if (stance) standFigure(vrm, stance, facing);
                     scene.add(vrm.scene);
+                    if (text("hair"))
+                        void wearHair(
+                            figure,
+                            text("hair"),
+                            text("hairColour")
+                                ? `#${text("hairColour")}`
+                                : style.brows.colour
+                        );
                 }
                 state.__figureAvatar = {
                     status: "ready",

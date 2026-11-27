@@ -6,6 +6,8 @@
  * that nothing is ever fetched from; the lobby recognises the path and
  * builds the avatar instead.
  */
+import { DEFAULT_HAIR, HAIR_FILES } from "./figure/hairFiles";
+
 export interface ProceduralAvatarEntry {
     id: string;
     name: string;
@@ -28,7 +30,7 @@ export const PROCEDURAL_AVATARS: ProceduralAvatarEntry[] = [
         url: `${PATH}figure`,
         image: "/lobby/avatars/figure.png",
         description:
-            "The Stagehand's face on a bare figure. No hair or clothes yet.",
+            "The Stagehand's face on a bare figure, with hair. No clothes yet.",
         figure: "stagehand",
     },
     {
@@ -67,34 +69,57 @@ export function proceduralAvatarId(url: string | undefined | null) {
 export const FIGURE_LOOKS = 9999;
 
 /**
- * A figure avatar's URL, as a variation of its style: 0 is the style as
- * drawn, any other whole number a look a little different from it (see
- * `figure/vary.ts`). The URL is the whole description, so everyone who
- * sees the avatar builds the same one.
+ * The hair a figure wears when its URL names none: the style as drawn
+ * wears the default cut, and its variations take the other cuts in turn,
+ * so a crowd is mixed and the default stays its owner's.
  */
-export function figureAvatarUrl(id: string, look = 0) {
-    const entry = PROCEDURAL_AVATARS.find((item) => item.id === id);
-    if (!entry?.figure) return null;
-    const n = Math.floor(look);
-    return n > 0 && n <= FIGURE_LOOKS ? `${entry.url}?look=${n}` : entry.url;
+export function figureHairFor(look: number) {
+    if (!look) return DEFAULT_HAIR;
+    const others = Object.keys(HAIR_FILES).filter((id) => id !== DEFAULT_HAIR);
+    return others.length ? others[look % others.length] : DEFAULT_HAIR;
 }
 
 /**
- * What a URL says to build, if it stands for a figure avatar: the style
- * and the variation of it. Null for any other URL.
+ * A figure avatar's URL, as a variation of its style: 0 is the style as
+ * drawn, any other whole number a look a little different from it (see
+ * `figure/vary.ts`). `hair` names a cut (`figure/hairFiles.ts`), or
+ * "none"; left out, the look's own (`figureHairFor`). The URL is the whole
+ * description, so everyone who sees the avatar builds the same one.
+ */
+export function figureAvatarUrl(id: string, look = 0, hair?: string) {
+    const entry = PROCEDURAL_AVATARS.find((item) => item.id === id);
+    if (!entry?.figure) return null;
+    const n = Math.floor(look);
+    const query = new URLSearchParams();
+    if (n > 0 && n <= FIGURE_LOOKS) query.set("look", String(n));
+    if (hair && (hair === "none" || HAIR_FILES[hair])) query.set("hair", hair);
+    const text = query.toString();
+    return text ? `${entry.url}?${text}` : entry.url;
+}
+
+/**
+ * What a URL says to build, if it stands for a figure avatar: the style,
+ * the variation of it and the hair (null for none). Null for any other URL.
  */
 export function figureAvatarOf(url: string | undefined | null) {
     const id = proceduralAvatarId(url);
     const entry = id && PROCEDURAL_AVATARS.find((item) => item.id === id);
     if (!entry?.figure) return null;
     let look = 0;
+    let named: string | null = null;
     try {
-        const n = Number(
-            new URL(url, "https://oncyber.invalid").searchParams.get("look")
-        );
+        const query = new URL(url, "https://oncyber.invalid").searchParams;
+        const n = Number(query.get("look"));
         if (Number.isInteger(n) && n > 0 && n <= FIGURE_LOOKS) look = n;
+        named = query.get("hair");
     } catch {
         look = 0;
     }
-    return { id: entry.id, style: entry.figure, look };
+    const hair =
+        named === "none"
+            ? null
+            : named && HAIR_FILES[named]
+            ? named
+            : figureHairFor(look);
+    return { id: entry.id, style: entry.figure, look, hair };
 }
