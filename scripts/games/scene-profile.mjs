@@ -197,7 +197,8 @@ export function sceneWarnings({ start, frame, phoneCanvas }) {
                 FIELD.startedOfOpened
             } wait long enough to start it.`
         );
-    if (frame) {
+    // Too few frames to hold a budget against: the note says so instead.
+    if (frame && frame.frames >= MIN_FRAMES) {
         const heavy = frame.triangles.heavy;
         if (heavy > SCENE_BUDGETS.triangles)
             warn(
@@ -318,7 +319,7 @@ export function describeScene(profile, { warnings = true } = {}) {
     if (warnings)
         for (const warning of profile.warnings)
             lines.push(`warning ${warning.code}: ${warning.message}`);
-    if ((start || frame) && !profile.warnings.length)
+    if ((start || frame) && !profile.warnings.length && !profile.notes.length)
         lines.push("scene: within its budgets");
     return lines;
 }

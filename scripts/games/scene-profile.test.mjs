@@ -190,11 +190,13 @@ test("what could not be measured is said, not guessed", () => {
     assert.match(indirect.notes[0], /3 draw\(s\) could not be sized/);
 
     const lost = sceneProfile({
-        drawn: drawn(5000, { frames: 3 }),
+        drawn: drawn(900_000, { frames: 3 }),
         before: small,
         firstFrameMs: 1,
     });
     assert.match(lost.notes[0], /only 3 frames drew anything/);
+    assert.deepEqual(lost.warnings, []);
+    assert.ok(!describeScene(lost).includes("scene: within its budgets"));
 });
 
 test("the served log: each file once, up to a moment", () => {

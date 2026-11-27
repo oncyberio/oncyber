@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "padel",
-  "checkedAt": "2026-11-26T01:21:35.672Z",
+  "checkedAt": "2026-11-27T14:02:26.751Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 18916,
+    "ms": 16600,
     "facts": {
       "arrival": {
         "booted": true,
@@ -145,7 +145,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 11,
+        "hostFrames": 10,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -211,7 +211,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 16,
+        "hostFrames": 15,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -225,19 +225,20 @@
     "release": "202fa8a2258b2647",
     "files": 23,
     "verified": 23,
-    "bootMs": 5465,
-    "ms": 5689
+    "bootMs": 5235,
+    "ms": 5460
   },
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 2436,
+    "firstFrameMs": 3013,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 802,
+    "gameFirstFrameMs": 1010,
     "progress": {
-      "messages": 3,
+      "messages": 4,
       "labels": [
         "Preparing your court",
+        "Getting your racket ready",
         "Opening court 01",
         "Ready"
       ]
@@ -275,7 +276,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 13598,
+    "ms": 18018,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -674,7 +675,110 @@
     "options": {},
     "drops": []
   },
-  "warnings": [],
+  "warnings": [
+    {
+      "code": "SCENE_FIRST_FRAME_WAIT",
+      "message": "2.5 MiB arrive before the first frame: about 2.3 s on a 9 Mbit/s connection, plus 3.0 s here, against a budget of 5.0 s. The largest: assets/index-D90QHjjH.js (1.1 MiB), assets/tennis-motion-B3dyzj4F.json (0.9 MiB), avatars/square-catalogue.vrm (0.2 MiB). Load after the first frame what the first frame does not show. Of 100 visits that open an Oncyber world, 33 wait long enough to start it."
+    },
+    {
+      "code": "SCENE_TRIANGLES_PHONE",
+      "message": "a frame draws 105,104 triangles. Oncyber worlds over 100,000 run under 30 frames a second 13.8% of the time on phones, against 6% under it. Draw fewer on a phone: simpler models, or a shorter view."
+    },
+    {
+      "code": "SCENE_DRAWN_AGAIN",
+      "message": "a frame draws the scene 2 times (47,272 triangles to a texture, 57,828 triangles to a texture): a mirror, water or shadows draw it again. Oncyber worlds with a reflection run under 30 frames a second 20.8% of the time on phones, against 4.5% without (desktops: 14.8% against 10.3%). Leave the extra pass out on a phone, or draw fewer things into it."
+    }
+  ],
+  "scene": {
+    "version": 1,
+    "start": {
+      "bytes": 2642415,
+      "files": 9,
+      "largest": [
+        {
+          "path": "assets/index-D90QHjjH.js",
+          "bytes": 1142197
+        },
+        {
+          "path": "assets/tennis-motion-B3dyzj4F.json",
+          "bytes": 903297
+        },
+        {
+          "path": "avatars/square-catalogue.vrm",
+          "bytes": 255160
+        }
+      ],
+      "hereMs": 3013,
+      "downloadMs": 2349,
+      "estimatedMs": 5362,
+      "budgetMs": 5000,
+      "referenceMbit": 9
+    },
+    "frame": {
+      "api": "webgl2",
+      "frames": 954,
+      "triangles": {
+        "usual": 105102,
+        "heavy": 105104,
+        "peak": 105826
+      },
+      "calls": {
+        "usual": 120,
+        "heavy": 121,
+        "peak": 126
+      },
+      "passes": [
+        {
+          "screen": false,
+          "triangles": 47272,
+          "calls": 41
+        },
+        {
+          "screen": false,
+          "triangles": 57828,
+          "calls": 76
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": false,
+          "triangles": 1,
+          "calls": 1
+        },
+        {
+          "screen": true,
+          "triangles": 1,
+          "calls": 1
+        }
+      ],
+      "sceneDraws": 2,
+      "textures": {
+        "count": 29,
+        "bytes": 72619820,
+        "largest": {
+          "width": 2048,
+          "height": 2048
+        }
+      }
+    },
+    "phoneCanvas": {
+      "width": 824,
+      "height": 1678,
+      "layoutWidth": 412,
+      "layoutHeight": 839,
+      "devicePixelRatio": 2.625,
+      "pixelRatio": 2
+    },
+    "notes": []
+  },
   "ui": {
     "screens": [
       {
@@ -711,9 +815,9 @@
   },
   "results": [
     {
-      "match": "d1a26abcf9959bfb9d79c028",
+      "match": "96ec6764c8a8d5600e62f080",
       "format": "doubles",
-      "durationSeconds": 14.7,
+      "durationSeconds": 18.5,
       "teams": [
         {
           "score": 0,
@@ -815,30 +919,30 @@
           "version": 1,
           "status": "failed",
           "backend": "webgl2",
-          "bootMs": 3356,
+          "bootMs": 3747,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 3356
+              "ms": 3747
             },
             {
               "stage": "scenario",
               "status": "failed",
-              "ms": 43828,
+              "ms": 55141,
               "error": "TOUCH_CONTROL_HIDDEN:confirm"
             },
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 103852
+              "ms": 132211
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 583.2,
-            "p95Ms": 616.7,
-            "worstMs": 683.3
+            "medianMs": 733.2,
+            "p95Ms": 866.6,
+            "worstMs": 950.1
           },
           "inspect": {
             "booted": true,
@@ -889,8 +993,8 @@
             "audioDucked": false,
             "audioSuspended": false,
             "audioGain": 1,
-            "audioInput": 0.004,
-            "audioLevel": 0.004,
+            "audioInput": 0.0026,
+            "audioLevel": 0.0026,
             "hostPhase": "entered",
             "hostFrames": 271,
             "hostArrival": "lobby",
@@ -912,17 +1016,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2769,
+          "bootMs": 3999,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2769
+              "ms": 3999
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 298516
+              "ms": 380067
             },
             {
               "stage": "lifecycle",
@@ -932,14 +1036,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 71294
+              "ms": 87875
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 399.9,
-            "p95Ms": 416.8,
-            "worstMs": 450
+            "medianMs": 483.3,
+            "p95Ms": 566.6,
+            "worstMs": 700.1
           },
           "inspect": {
             "booted": true,
@@ -1006,25 +1110,25 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 5932,
+    "ms": 6280,
     "keys": 1,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 1747,
+        "ms": 1841,
         "requests": 3
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 1227,
+        "ms": 1298,
         "requests": 2
       },
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 1217,
+        "ms": 1534,
         "outcomes": {
           "settings": "reset"
         },
@@ -1033,7 +1137,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 1060,
+        "ms": 1202,
         "outcomes": {
           "settings": "reset"
         },
@@ -1043,7 +1147,7 @@
   },
   "listing": {
     "thumbnail": "thumbnail.jpg",
-    "thumbnailTaken": true,
+    "thumbnailTaken": false,
     "players": {
       "min": 1,
       "max": 1
@@ -1085,17 +1189,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 3097,
+    "bootMs": 3898,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 3097
+        "ms": 3898
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 301148
+        "ms": 404426
       },
       {
         "stage": "lifecycle",
@@ -1105,12 +1209,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 72188
+        "ms": 92016
       },
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 13265,
+        "ms": 16438,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -1119,18 +1223,18 @@
           "audioVolume": 1,
           "audioDucked": false,
           "audioSuspended": false,
-          "audioGain": 0.992,
-          "audioInput": 0.0031,
-          "audioLevel": 0.0031
+          "audioGain": 0.999,
+          "audioInput": 0.0038,
+          "audioLevel": 0.0038
         }
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 7068,
+        "ms": 9407,
         "departure": {
-          "answerMs": 985.4,
-          "frameMs": 397.2,
+          "answerMs": 1256.7,
+          "frameMs": 516.633,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
@@ -1148,11 +1252,11 @@
             "fov": 57.514
           },
           "gameAvatar": {
-            "x": 0.498,
+            "x": 0.5,
             "top": 0.389,
             "bottom": 0.711,
             "height": 0.322,
-            "width": 0.053
+            "width": 0.056
           },
           "lobbyAvatar": {
             "x": 0.5,
@@ -1162,22 +1266,22 @@
           },
           "frames": [
             {
-              "ms": 46,
+              "ms": 76,
               "phase": "playing",
               "lit": 0.987
             },
             {
-              "ms": 5928,
+              "ms": 7931,
               "phase": "leaving",
               "lit": 0.005
             },
             {
-              "ms": 6554,
+              "ms": 8788,
               "phase": "last",
               "lit": 0.005
             },
             {
-              "ms": 7001,
+              "ms": 9318,
               "phase": "held",
               "lit": 0.005
             }
@@ -1187,14 +1291,14 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 18341
+        "ms": 21714
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 400,
-      "p95Ms": 433.4,
-      "worstMs": 466.7
+      "medianMs": 500,
+      "p95Ms": 600,
+      "worstMs": 666.5
     },
     "inspect": {
       "booted": true,
@@ -1286,7 +1390,7 @@
   "locomotion": {
     "status": "passed",
     "seconds": 2.05,
-    "wallSeconds": 2.112,
+    "wallSeconds": 2.083,
     "metres": 5.764,
     "lobbyMetres": 5.764,
     "tolerance": 0.05
@@ -1357,29 +1461,29 @@
         }
       },
       {
-        "at": 6.1,
+        "at": 6,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 48.2,
+        "at": 50.7,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 50.2,
+        "at": 52.7,
         "event": "leave",
         "status": "passed"
       },
       {
-        "at": 51.3,
+        "at": 53.7,
         "event": "facts",
         "facts": {
           "booted": true,
           "screen": "arrival",
           "position": [
-            -2.34441380779499,
-            7.694527522201102
+            -2.345095889668739,
+            7.694888686244546
           ],
           "arrival": {
             "distance": 4.86,
@@ -1434,7 +1538,7 @@
           "audioInput": 0.004,
           "audioLevel": 0.004,
           "hostPhase": "entered",
-          "hostFrames": 1093,
+          "hostFrames": 1323,
           "hostArrival": "lobby",
           "hostParty": 0,
           "hostPartyArrived": 0,

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "game": "ace",
-  "checkedAt": "2026-11-26T01:01:12.343Z",
+  "checkedAt": "2026-11-27T13:37:55.343Z",
   "status": "passed",
   "scope": "scenario",
   "files": {
@@ -17,7 +17,7 @@
     "party": 2,
     "findings": [],
     "skipped": [],
-    "ms": 16584,
+    "ms": 19084,
     "facts": {
       "arrival": {
         "booted": true,
@@ -137,7 +137,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 20,
+        "hostFrames": 19,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -199,7 +199,7 @@
         "audioInput": 0,
         "audioLevel": 0,
         "hostPhase": "entered",
-        "hostFrames": 25,
+        "hostFrames": 24,
         "hostArrival": "lobby",
         "hostParty": 2,
         "hostPartyArrived": 2,
@@ -213,15 +213,15 @@
     "release": "50f6e76e7e54818b",
     "files": 18,
     "verified": 18,
-    "bootMs": 3987,
-    "ms": 4170
+    "bootMs": 4270,
+    "ms": 4476
   },
   "findings": [],
   "loading": {
     "status": "passed",
-    "firstFrameMs": 1440,
+    "firstFrameMs": 1603,
     "firstFrameBudgetMs": 5000,
-    "gameFirstFrameMs": 423,
+    "gameFirstFrameMs": 508,
     "progress": {
       "messages": 3,
       "labels": [
@@ -263,7 +263,7 @@
   "social": {
     "stage": "social",
     "status": "passed",
-    "ms": 14188,
+    "ms": 17703,
     "facts": {
       "chatCarried": true,
       "chatDelivered": true,
@@ -817,7 +817,7 @@
   },
   "party": {
     "status": "passed",
-    "ms": 60237,
+    "ms": 65112,
     "options": {
       "1": [
         "solo"
@@ -844,8 +844,8 @@
       {
         "dropped": "guest",
         "packetsPerSecond": {
-          "a": 4.6,
-          "b": 3.6
+          "a": 4.9,
+          "b": 4.1
         },
         "largestPacket": 206,
         "refused": 0,
@@ -860,8 +860,8 @@
       {
         "dropped": "host",
         "packetsPerSecond": {
-          "a": 4.9,
-          "b": 3.8
+          "a": 4.2,
+          "b": 3.3
         },
         "largestPacket": 206,
         "refused": 0,
@@ -879,8 +879,82 @@
     {
       "code": "UI_KIT_UNUSED",
       "message": "4 of 6 menu screen(s) use no UI kit classes: #title, #arrive, #pause, #results. See docs/games/ui-kit.md."
+    },
+    {
+      "code": "SCENE_TRIANGLES_PHONE",
+      "message": "a frame draws 294,354 triangles. Oncyber worlds over 100,000 run under 30 frames a second 13.8% of the time on phones, against 6% under it. Draw fewer on a phone: simpler models, or a shorter view."
     }
   ],
+  "scene": {
+    "version": 1,
+    "start": {
+      "bytes": 1115050,
+      "files": 3,
+      "largest": [
+        {
+          "path": "assets/index-DDQvoBVq.js",
+          "bytes": 1068671
+        },
+        {
+          "path": "assets/index-DfKGbgoh.css",
+          "bytes": 31713
+        },
+        {
+          "path": "index.html",
+          "bytes": 14666
+        }
+      ],
+      "hereMs": 1603,
+      "downloadMs": 991,
+      "estimatedMs": 2594,
+      "budgetMs": 5000,
+      "referenceMbit": 9
+    },
+    "frame": {
+      "api": "webgl2",
+      "frames": 562,
+      "triangles": {
+        "usual": 288114,
+        "heavy": 294354,
+        "peak": 574724
+      },
+      "calls": {
+        "usual": 444,
+        "heavy": 467,
+        "peak": 880
+      },
+      "passes": [
+        {
+          "screen": false,
+          "triangles": 8216,
+          "calls": 64
+        },
+        {
+          "screen": true,
+          "triangles": 286138,
+          "calls": 403
+        }
+      ],
+      "sceneDraws": 1,
+      "textures": {
+        "count": 33,
+        "bytes": 25275099,
+        "largest": {
+          "width": 2048,
+          "height": 2048
+        }
+      }
+    },
+    "phoneCanvas": {
+      "width": 824,
+      "height": 1678,
+      "layoutWidth": 412,
+      "layoutHeight": 839,
+      "devicePixelRatio": 2.625,
+      "pixelRatio": 2
+    },
+    "notes": []
+  },
   "ui": {
     "screens": [
       {
@@ -917,9 +991,9 @@
   },
   "results": [
     {
-      "match": "c68de58dcb25f86681864b0a",
+      "match": "b9cb042f6abf3cdfa780b75c",
       "format": "solo",
-      "durationSeconds": 68.4,
+      "durationSeconds": 64.5,
       "teams": [
         {
           "score": 1,
@@ -1007,17 +1081,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2669,
+          "bootMs": 2983,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2669
+              "ms": 2983
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 117645
+              "ms": 149162
             },
             {
               "stage": "lifecycle",
@@ -1027,14 +1101,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 57273
+              "ms": 68322
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 316.6,
-            "p95Ms": 400,
-            "worstMs": 516.7
+            "medianMs": 366.7,
+            "p95Ms": 449.9,
+            "worstMs": 483.3
           },
           "inspect": {
             "booted": true,
@@ -1081,8 +1155,8 @@
             "audioDucked": false,
             "audioSuspended": false,
             "audioGain": 1,
-            "audioInput": 0.0091,
-            "audioLevel": 0.0091,
+            "audioInput": 0.0104,
+            "audioLevel": 0.0104,
             "hostPhase": "entered",
             "hostFrames": 560,
             "hostArrival": "lobby",
@@ -1104,17 +1178,17 @@
           "version": 1,
           "status": "passed",
           "backend": "webgl2",
-          "bootMs": 2331,
+          "bootMs": 2713,
           "stages": [
             {
               "stage": "boot",
               "status": "passed",
-              "ms": 2331
+              "ms": 2713
             },
             {
               "stage": "scenario",
               "status": "passed",
-              "ms": 172978
+              "ms": 147239
             },
             {
               "stage": "lifecycle",
@@ -1124,14 +1198,14 @@
             {
               "stage": "frames",
               "status": "passed",
-              "ms": 59802
+              "ms": 68021
             }
           ],
           "frames": {
             "count": 180,
-            "medianMs": 333.3,
-            "p95Ms": 383.3,
-            "worstMs": 416.6
+            "medianMs": 366.7,
+            "p95Ms": 433.4,
+            "worstMs": 466.7
           },
           "inspect": {
             "booted": true,
@@ -1158,14 +1232,14 @@
             "length": 2,
             "phase": "serve",
             "server": 0,
-            "points": "0-0",
+            "points": "0-1",
             "games": "0-0",
             "rally": 0,
             "matchOpen": true,
             "resultsSent": 0,
             "muted": false,
             "position": [
-              0.9,
+              -0.9,
               0,
               12.235
             ],
@@ -1178,8 +1252,8 @@
             "audioDucked": false,
             "audioSuspended": false,
             "audioGain": 1,
-            "audioInput": 0.009,
-            "audioLevel": 0.009,
+            "audioInput": 0.0101,
+            "audioLevel": 0.0101,
             "hostPhase": "entered",
             "hostFrames": 560,
             "hostArrival": "lobby",
@@ -1194,34 +1268,35 @@
   },
   "saved": {
     "status": "passed",
-    "ms": 17253,
+    "ms": 20128,
     "keys": 3,
     "runs": [
       {
         "run": "first visit",
         "booted": true,
-        "ms": 2132,
+        "ms": 1844,
         "requests": 10
       },
       {
         "run": "reload",
         "booted": true,
-        "ms": 2059,
+        "ms": 2012,
         "requests": 5
       },
       {
         "run": "old saves (1 of 1)",
         "booted": true,
-        "ms": 1292,
+        "ms": 1793,
         "outcomes": {
-          "settings": "migrated"
+          "settings": "migrated",
+          "tally": "empty"
         },
         "requests": 3
       },
       {
         "run": "unreadable version 0 saves",
         "booted": true,
-        "ms": 1410,
+        "ms": 1899,
         "outcomes": {
           "settings": "reset",
           "tally": "reset",
@@ -1232,7 +1307,7 @@
       {
         "run": "saves from a future version",
         "booted": true,
-        "ms": 1205,
+        "ms": 2144,
         "outcomes": {
           "settings": "reset",
           "tally": "reset",
@@ -1244,7 +1319,7 @@
   },
   "listing": {
     "thumbnail": "thumbnail.jpg",
-    "thumbnailTaken": true,
+    "thumbnailTaken": false,
     "players": {
       "min": 1,
       "max": 8
@@ -1288,17 +1363,17 @@
     "version": 1,
     "status": "passed",
     "backend": "webgl2",
-    "bootMs": 2436,
+    "bootMs": 2656,
     "stages": [
       {
         "stage": "boot",
         "status": "passed",
-        "ms": 2436
+        "ms": 2656
       },
       {
         "stage": "scenario",
         "status": "passed",
-        "ms": 133385
+        "ms": 161857
       },
       {
         "stage": "lifecycle",
@@ -1308,12 +1383,12 @@
       {
         "stage": "frames",
         "status": "passed",
-        "ms": 59479
+        "ms": 76602
       },
       {
         "stage": "sound",
         "status": "passed",
-        "ms": 9049,
+        "ms": 11302,
         "facts": {
           "audioState": "running",
           "audioRouted": true,
@@ -1322,18 +1397,18 @@
           "audioVolume": 1,
           "audioDucked": false,
           "audioSuspended": false,
-          "audioGain": 0.977,
-          "audioInput": 0.0093,
-          "audioLevel": 0.0091
+          "audioGain": 0.991,
+          "audioInput": 0.01,
+          "audioLevel": 0.0099
         }
       },
       {
         "stage": "departure",
         "status": "passed",
-        "ms": 6794,
+        "ms": 9529,
         "departure": {
-          "answerMs": 1208.1,
-          "frameMs": 338.867,
+          "answerMs": 1779,
+          "frameMs": 486.1,
           "lobbyFrame": "projected",
           "view": {
             "cameraOffset": {
@@ -1347,7 +1422,7 @@
               "z": 0
             },
             "avatarRotation": 0,
-            "avatarHeight": 1.931,
+            "avatarHeight": 1.94,
             "fov": 58
           },
           "gameAvatar": {
@@ -1359,28 +1434,28 @@
           },
           "lobbyAvatar": {
             "x": 0.5,
-            "top": 0.358,
+            "top": 0.356,
             "bottom": 0.695,
-            "height": 0.338
+            "height": 0.339
           },
           "frames": [
             {
-              "ms": 53,
+              "ms": 81,
               "phase": "playing",
               "lit": 1
             },
             {
-              "ms": 5153,
+              "ms": 7401,
               "phase": "leaving",
               "lit": 0.015
             },
             {
-              "ms": 6087,
+              "ms": 8714,
               "phase": "last",
               "lit": 0.015
             },
             {
-              "ms": 6642,
+              "ms": 9305,
               "phase": "held",
               "lit": 0.015
             }
@@ -1390,14 +1465,14 @@
       {
         "stage": "results",
         "status": "passed",
-        "ms": 71542
+        "ms": 68084
       }
     ],
     "frames": {
       "count": 180,
-      "medianMs": 333.3,
-      "p95Ms": 366.7,
-      "worstMs": 400
+      "medianMs": 416.7,
+      "p95Ms": 499.9,
+      "worstMs": 633.3
     },
     "inspect": {
       "booted": true,
@@ -1444,8 +1519,8 @@
       "audioDucked": false,
       "audioSuspended": false,
       "audioGain": 1,
-      "audioInput": 0.0103,
-      "audioLevel": 0.0103,
+      "audioInput": 0.0094,
+      "audioLevel": 0.0094,
       "hostPhase": "entered",
       "hostFrames": 560,
       "hostArrival": "lobby",
@@ -1485,7 +1560,7 @@
   "locomotion": {
     "status": "passed",
     "seconds": 2.05,
-    "wallSeconds": 10.413,
+    "wallSeconds": 10.133,
     "metres": 5.764,
     "lobbyMetres": 5.764,
     "tolerance": 0.05
@@ -1541,7 +1616,7 @@
     "video": null,
     "log": [
       {
-        "at": 2.2,
+        "at": 2.5,
         "event": "revealed",
         "answered": true,
         "screen": "arrival",
@@ -1556,22 +1631,22 @@
         }
       },
       {
-        "at": 10.5,
+        "at": 10.7,
         "event": "arrival",
         "status": "passed"
       },
       {
-        "at": 150.7,
+        "at": 112.1,
         "event": "play",
         "status": "passed"
       },
       {
-        "at": 153.2,
+        "at": 114.7,
         "event": "leave",
         "status": "passed"
       },
       {
-        "at": 154.4,
+        "at": 116,
         "event": "facts",
         "facts": {
           "booted": true,
@@ -1599,7 +1674,7 @@
           "games": "0-0",
           "rally": 7,
           "matchOpen": false,
-          "resultsSent": 2,
+          "resultsSent": 1,
           "muted": false,
           "frozen": false,
           "audioState": "running",
@@ -1610,10 +1685,10 @@
           "audioDucked": false,
           "audioSuspended": false,
           "audioGain": 1,
-          "audioInput": 0.0085,
-          "audioLevel": 0.0085,
+          "audioInput": 0.01,
+          "audioLevel": 0.01,
           "hostPhase": "entered",
-          "hostFrames": 819,
+          "hostFrames": 538,
           "hostArrival": "lobby",
           "hostParty": 0,
           "hostPartyArrived": 0,
