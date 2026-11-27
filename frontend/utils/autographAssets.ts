@@ -22,6 +22,10 @@ export async function getAutographWalletId(walletId: string) {
         method: "HEAD",
     };
 
+    // Autograph accounts are Ethereum wallets. Accounts signed in another way
+    // (email, guests) have ids that aren't addresses: nothing to look up.
+    if (!/^0x[0-9a-fA-F]{40}$/.test(walletId ?? "")) return null;
+
     try {
         const key = walletId.toLowerCase();
 

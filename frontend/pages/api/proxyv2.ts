@@ -31,6 +31,10 @@ export default async function handler(req, res) {
     );
     return res.send(response.body);
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to fetch asset' });
+    // The asset's host is down, gone or refused: that's the upstream's
+    // failure, not ours. Cache the answer briefly so a space full of artworks
+    // from a dead host doesn't ask again for every visitor.
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600');
+    return res.status(502).json({ error: 'Failed to fetch asset' });
   }
 }

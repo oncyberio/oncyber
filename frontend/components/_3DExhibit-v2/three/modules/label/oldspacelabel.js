@@ -570,6 +570,9 @@ export class SpaceLabel extends LabelAbstract {
 
     update(){
 
+        // Skip frames that run while the space is torn down.
+        if (IS_FIRST_PERSON ? camera.current == null : Players.main == null) return;
+
         let distance = 0;
 
         if (IS_FIRST_PERSON) {

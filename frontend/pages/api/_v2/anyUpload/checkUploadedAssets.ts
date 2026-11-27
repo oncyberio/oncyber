@@ -20,7 +20,9 @@ export const checkUploadedAssets = proc({
         d_optimized_files: Asset["d_optimized_files"];
         exists?: boolean;
     } | null> {
-        //
+        // A hash is a document id; one with "/" (such as a URL) can't name one.
+        if (opts.fileHash.includes("/")) return null;
+
         let hashDBDoc = await db
             .collection("assets-upload-hash")
             .doc(opts.fileHash)

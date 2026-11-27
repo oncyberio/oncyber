@@ -13,7 +13,10 @@ export const getAssetsByHash = proc({
 
     // handler
     async handler({ hash }) {
-        // 
+        // A hash is a document id. Some callers pass an older asset's token id,
+        // which can be a URL; that can't name a document, so nothing is stored.
+        if (hash.includes("/")) return null;
+
         const contentDBRef = await db.collection("assets-upload-hash").doc(hash).get();
 
         if(!contentDBRef.exists) {

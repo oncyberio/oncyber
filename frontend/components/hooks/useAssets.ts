@@ -112,12 +112,22 @@ async function fetchAssets(
     repos: AssetRepository,
     page: number
 ): Promise<AssetsData> {
+    // Accounts signed in without a wallet (email, guests) have no chain to
+    // read: they own and created nothing on chain.
+    if (
+        (status === "owned" || status === "created") &&
+        !getAddrType(walletId)
+    ) {
+        return { assets: [], hasMore: false };
+    }
     try {
+        // Awaited, so a failed fetch lands in the catch below instead of
+        // escaping as an unhandled rejection.
         switch (status) {
             case "owned":
-                return fetchOwnedRepoAssets(walletId, repos, page);
+                return await fetchOwnedRepoAssets(walletId, repos, page);
             case "created":
-                return fetchCreatedAssets(walletId, repos, page);
+                return await fetchCreatedAssets(walletId, repos, page);
             case "delegated":
                 const result = await getSharedAssets(walletId, exhibitId);
                 if (result.error) {

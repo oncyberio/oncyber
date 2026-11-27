@@ -192,6 +192,10 @@ export class PortalLOD {
 
         if(portal.currentState !== STATES.CLOSE && portal.currentState !== STATES.EMPTY) return
 
+        // A frame can still run while the space is torn down (leaving for
+        // Studio or another space): there is no camera or space to measure.
+        if(Camera.current == null || CURRENT_SPACE.space == null) return
+
 
         const distance = portal.getDistanceToCameraSq(Camera.current.position, false)
 
