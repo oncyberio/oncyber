@@ -48,12 +48,27 @@ export function sheet(
             let nx = uy * vz - uz * vy;
             let ny = uz * vx - ux * vz;
             let nz = ux * vy - uy * vx;
-            const l = (Math.hypot(nx, ny, nz) || 1) * (flip ? -1 : 1);
+            const length = Math.hypot(nx, ny, nz);
+            if (length < 1e-12) {
+                // Where the sheet closes to a point there is no surface to
+                // measure; filled in from a neighbour below.
+                normals.push(null);
+                continue;
+            }
+            const l = length * (flip ? -1 : 1);
             nx /= l;
             ny /= l;
             nz /= l;
             normals.push([nx, ny, nz]);
         }
+    const fallback = normals.find((n) => n) || [0, 0, 1];
+    for (let k = 0; k < normals.length; k++)
+        if (!normals[k])
+            normals[k] =
+                normals[k - nu] ||
+                normals[k + nu] ||
+                normals[k - 1] ||
+                fallback;
     const half = thickness / 2;
     const top = out.count;
     points.forEach((pt, k) => {
@@ -123,10 +138,18 @@ export function sheet(
         let ox = ty * n[2] - tz * n[1];
         let oy = tz * n[0] - tx * n[2];
         let oz = tx * n[1] - ty * n[0];
-        const l = (Math.hypot(ox, oy, oz) || 1) * (flip ? -1 : 1);
-        ox /= l;
-        oy /= l;
-        oz /= l;
+        const length = Math.hypot(ox, oy, oz);
+        if (length < 1e-12) {
+            // A border that closes to a point: face the way the sheet does.
+            ox = n[0];
+            oy = n[1];
+            oz = n[2];
+        } else {
+            const l = length * (flip ? -1 : 1);
+            ox /= l;
+            oy /= l;
+            oz /= l;
+        }
         const pt = points[k];
         const edge: Rgb = [
             pt.colour[0] * 0.8,

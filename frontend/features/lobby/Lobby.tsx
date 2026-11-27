@@ -63,6 +63,7 @@ import { isLobbyTravelLive } from "../../../multiplayer/protocol/lobby-groups";
 import PartyPanel from "@features/social/PartyPanel";
 import { resolveLobbyAvatar } from "./avatarSelection";
 import VRMS from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
+import { PROCEDURAL_AVATARS } from "@features/procedural-avatar/catalogue";
 import { EMOTES } from "@components/_3DExhibit-v2/three/factory/player/instanceavatarvrm/constants";
 // Loaded on first open: it pulls in account, bookmark and guestbook code.
 const SpaceInfoSidebar = dynamic(
@@ -257,7 +258,8 @@ export default function Lobby({
         () =>
             ownedFirst(
                 ownedAvatars.items,
-                Object.values(VRMS).map((item) => ({
+                // Avatars generated in code lead the built-in catalogue.
+                [...PROCEDURAL_AVATARS, ...Object.values(VRMS)].map((item) => ({
                     id: item.id,
                     name: item.name,
                     url: item.url,

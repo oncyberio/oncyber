@@ -5,6 +5,7 @@ import {
     mixRgb,
     occlusion,
     rgb,
+    skyShade,
 } from "../kernel/build";
 import { meshField } from "../kernel/mesher";
 import { fbm, noise3, smoothstep } from "../kernel/noise";
@@ -305,6 +306,18 @@ export function buildShirt(
             arm.cuff[2] + arm.dLower[2] * 0.1,
         ];
         garment.carve(capsule(from, to, style.rolled ? 0.036 : 0.029), 0.003);
+        // End the sleeve in a clean cut, just inside its cuff band.
+        garment.clip(
+            halfSpace(
+                [
+                    arm.cuff[0] - arm.dLower[0] * 0.008,
+                    arm.cuff[1] - arm.dLower[1] * 0.008,
+                    arm.cuff[2] - arm.dLower[2] * 0.008,
+                ],
+                arm.dLower
+            ),
+            0.002
+        );
     }
     garment.clip(halfSpace([0, waist.y - 0.02, 0], [0, -1, 0]));
 
@@ -328,9 +341,15 @@ export function buildShirt(
                           round + (sy + 0.03 - p[1]) * 0.35
                       )
                 : 1;
-        const lit = mixRgb(shadow, cloth, smoothstep(0.25, 0.95, ao) * under);
+        const lit = mixRgb(shadow, cloth, smoothstep(0.3, 1, ao) * under);
+        const sky = skyShade(n, 0.3);
         const k = weave * (0.8 + 0.2 * under);
-        return [lit[0] * k, lit[1] * k, lit[2] * k];
+        // Shade leans towards the shadow colour rather than plain grey.
+        return [
+            lit[0] * k * (sky + (1 - sky) * shadow[0]),
+            lit[1] * k * (sky + (1 - sky) * shadow[1]),
+            lit[2] * k * (sky + (1 - sky) * shadow[2]),
+        ];
     };
 
     const mesh = new MeshBuilder();
@@ -351,7 +370,7 @@ export function buildShirt(
     // Cuffs: a firm band closing each sleeve.
     for (const arm of arms) {
         const r2 = style.rolled ? 0.041 + ease * 0.2 : 0.031 + ease * 0.12;
-        const length = style.rolled ? 0.034 : 0.05;
+        const length = style.rolled ? 0.042 : 0.05;
         const centre: Vec3 = [
             arm.cuff[0] - arm.dLower[0] * (length / 2 - 0.004),
             arm.cuff[1] -
@@ -360,7 +379,7 @@ export function buildShirt(
             arm.cuff[2] - arm.dLower[2] * (length / 2 - 0.004),
         ];
         band(mesh, centre, arm.dLower, {
-            radius: r2 + (style.rolled ? 0.0045 : 0.002),
+            radius: r2 + (style.rolled ? 0.0095 : 0.004),
             inner: style.rolled ? 0.034 : 0.028,
             length,
             colour: cloth,

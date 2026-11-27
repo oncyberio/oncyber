@@ -284,7 +284,8 @@ export function buildRadio(waist: Waist, beltY: number, style: RadioStyle) {
     const detail = rgb(style.detail);
     const angle = style.angle;
     const basis = euler(0, angle, 0);
-    const base = waistPoint(waist, angle, beltY + 0.028, 0.03);
+    // Slung low from the belt, clear of the shirt bloused above it.
+    const base = waistPoint(waist, angle, beltY - 0.03, 0.034);
     const at = (x: number, y: number, depth: number): P3 => [
         base[0] + basis[0] * x + basis[2] * depth,
         base[1] + y,
@@ -458,5 +459,181 @@ export function buildEarpiece(
         lead.push([x, y - 0.012 * slack, surface + (plug[2] - surface) * k]);
     }
     wire(lead, 0.0015);
+    return out;
+}
+
+export interface HeadphoneStyle {
+    shell: string;
+    cushion: string;
+    cable: string;
+    /** Angle round the waist of the player the cable runs to. */
+    player: number;
+}
+
+/**
+ * Headphones worn round the neck: a band behind it, a cup resting on each
+ * side of the chest, and a lead to a small player clipped to the belt.
+ */
+export function buildHeadphones(
+    shirt: Shape,
+    collarY: number,
+    shoulderY: number,
+    waist: Waist,
+    beltY: number,
+    style: HeadphoneStyle
+) {
+    const out = new MeshBuilder();
+    const shell = rgb(style.shell);
+    const cushion = rgb(style.cushion);
+    const sheen: Rgb = [shell[0] * 2.6, shell[1] * 2.6, shell[2] * 2.8];
+    const lit = (_t: number, angle: number): Rgb =>
+        Math.sin(angle) > 0.45 ? sheen : shell;
+    const cups: Vec3[] = [];
+    for (const s of [1, -1]) {
+        const centre = ontoFront(shirt, s * 0.07, shoulderY - 0.05, 0.02);
+        const axis: P3 = [0.5 * s, -0.12, 0.86];
+        const l = Math.hypot(axis[0], axis[1], axis[2]);
+        const a: P3 = [axis[0] / l, axis[1] / l, axis[2] / l];
+        const along = (d: number): P3 => [
+            centre[0] + a[0] * d,
+            centre[1] + a[1] * d,
+            centre[2] + a[2] * d,
+        ];
+        // Cushion against the chest, then the shell and its cap.
+        cylinder(out, along(-0.016), along(-0.002), 0.034, cushion, {
+            segments: 20,
+        });
+        cylinder(out, along(-0.004), along(0.012), 0.037, shell, {
+            segments: 20,
+            endRadius: 0.034,
+        });
+        cylinder(out, along(0.012), along(0.017), 0.027, sheen, {
+            segments: 20,
+            endRadius: 0.022,
+        });
+        cups.push(centre);
+        // The arm from the cup up to the band.
+        const top: P3 = [s * 0.072, collarY - 0.006, 0.012];
+        out.tube(
+            spline(
+                [
+                    along(0.004),
+                    [
+                        centre[0] + s * 0.012,
+                        centre[1] + 0.03,
+                        centre[2] - 0.008,
+                    ],
+                    top,
+                ],
+                8
+            ),
+            6,
+            () => 0.0042,
+            lit,
+            { caps: true }
+        );
+    }
+    // The band, lying round the back of the neck.
+    const band: P3[] = [];
+    for (let i = 0; i <= 16; i++) {
+        const angle = Math.PI * 0.5 + (Math.PI * i) / 16;
+        band.push([
+            Math.cos(angle - Math.PI / 2) * -0.072 * (i <= 8 ? 1 : 1),
+            collarY - 0.006 + 0.012 * Math.sin((Math.PI * i) / 16),
+            0.012 - Math.sin((Math.PI * i) / 16) * 0.105,
+        ]);
+    }
+    for (let i = 0; i <= 16; i++)
+        band[i][0] = 0.072 * Math.cos((Math.PI * i) / 16);
+    out.tube(spline(band, 26), 8, () => 0.0085, lit, {
+        flatten: 0.55,
+        caps: true,
+    });
+    // The player on the belt, and the lead down to it from the left cup.
+    const basis = euler(0, style.player, 0);
+    const puck = waistPoint(waist, style.player, beltY - 0.004, 0.02);
+    const face: P3 = [basis[2], 0, basis[8]];
+    cylinder(
+        out,
+        [puck[0] - face[0] * 0.006, puck[1], puck[2] - face[2] * 0.006],
+        [puck[0] + face[0] * 0.01, puck[1], puck[2] + face[2] * 0.01],
+        0.03,
+        shell,
+        { segments: 22, endRadius: 0.027 }
+    );
+    cylinder(
+        out,
+        [puck[0] + face[0] * 0.01, puck[1], puck[2] + face[2] * 0.01],
+        [puck[0] + face[0] * 0.013, puck[1], puck[2] + face[2] * 0.013],
+        0.017,
+        sheen,
+        { segments: 18, endRadius: 0.014 }
+    );
+    const from = cups[0];
+    const plug: Vec3 = [puck[0], puck[1] + 0.03, puck[2] + 0.004];
+    const lead: Vec3[] = [];
+    const steps = 26;
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const y = from[1] - 0.03 + (plug[1] - from[1] + 0.03) * t;
+        const slack = Math.sin(Math.PI * Math.pow(t, 0.8));
+        const x = from[0] + (plug[0] - from[0]) * t * t + 0.016 * slack;
+        const surface = ontoFront(shirt, x, y, 0.0045)[2];
+        const k = Math.pow(t, 6);
+        lead.push([x, y - 0.008 * slack, surface + (plug[2] - surface) * k]);
+    }
+    out.tube(lead, 5, () => 0.0016, lit, { caps: true });
+    return out;
+}
+
+/** A plain band ring: a torus round a finger, in the design pose. */
+export function buildRing(
+    from: Vec3,
+    to: Vec3,
+    radius: number,
+    colour: string
+) {
+    const out = new MeshBuilder();
+    const metal = rgb(colour);
+    const mid: P3 = [
+        from[0] + (to[0] - from[0]) * 0.42,
+        from[1] + (to[1] - from[1]) * 0.42,
+        from[2] + (to[2] - from[2]) * 0.42,
+    ];
+    const axis: P3 = [to[0] - from[0], to[1] - from[1], to[2] - from[2]];
+    const l = Math.hypot(axis[0], axis[1], axis[2]) || 1;
+    const t: P3 = [axis[0] / l, axis[1] / l, axis[2] / l];
+    const ref: P3 = Math.abs(t[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    let u: P3 = [
+        ref[1] * t[2] - ref[2] * t[1],
+        ref[2] * t[0] - ref[0] * t[2],
+        ref[0] * t[1] - ref[1] * t[0],
+    ];
+    const ul = Math.hypot(u[0], u[1], u[2]) || 1;
+    u = [u[0] / ul, u[1] / ul, u[2] / ul];
+    const v: P3 = [
+        t[1] * u[2] - t[2] * u[1],
+        t[2] * u[0] - t[0] * u[2],
+        t[0] * u[1] - t[1] * u[0],
+    ];
+    const ring: P3[] = [];
+    for (let i = 0; i <= 20; i++) {
+        const a = (i / 20) * Math.PI * 2;
+        ring.push([
+            mid[0] + (u[0] * Math.cos(a) + v[0] * Math.sin(a)) * radius,
+            mid[1] + (u[1] * Math.cos(a) + v[1] * Math.sin(a)) * radius,
+            mid[2] + (u[2] * Math.cos(a) + v[2] * Math.sin(a)) * radius,
+        ]);
+    }
+    out.tube(
+        ring,
+        6,
+        () => 0.0024,
+        (_s, angle) =>
+            Math.sin(angle) > 0.4
+                ? [metal[0] * 3, metal[1] * 3, metal[2] * 3.2]
+                : metal,
+        { flatten: 0.55, caps: false }
+    );
     return out;
 }

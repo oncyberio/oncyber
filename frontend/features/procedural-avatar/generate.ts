@@ -8,12 +8,15 @@ import {
     buildEarpiece,
     buildEarrings,
     buildGlasses,
+    buildHeadphones,
     buildRadio,
+    buildRing,
 } from "./parts/accessories";
+import { buildTrousers } from "./parts/trousers";
 import { buildBelt } from "./parts/belt";
 import { buildFaceDetails } from "./parts/face";
 import { Groom, hairCollider } from "./parts/hair";
-import { growPonytail } from "./parts/hairStyles";
+import { growHair } from "./parts/hairStyles";
 import { buildShirt } from "./parts/shirt";
 import { buildShoes } from "./parts/shoes";
 import { buildSkin } from "./parts/skin";
@@ -177,11 +180,18 @@ export function* generateSteps(
     add("Shirt", shirt.mesh, followBody(rig, { loose: 0.012 }));
     yield lap("shirt");
 
-    add(
-        "Skirt",
-        buildSkirt(spec.waist, spec.bottom),
-        skirtSkin(rig, spec.waist, spec.bottom.hemY)
-    );
+    if (spec.bottom.kind === "skirt")
+        add(
+            "Skirt",
+            buildSkirt(spec.waist, spec.bottom),
+            skirtSkin(rig, spec.waist, spec.bottom.hemY)
+        );
+    else
+        add(
+            "Trousers",
+            buildTrousers(rig, skin.body, spec.waist, spec.bottom, detail).mesh,
+            chest
+        );
     add("Belt", buildBelt(spec.waist, spec.belt), chest);
     add(
         "Tie",
@@ -203,8 +213,34 @@ export function* generateSteps(
         buildBadge(shirt.shape, shirt.anchors.pocket, spec.badge),
         chest
     );
+    const beltY = spec.waist.y - 0.006 - spec.belt.height / 2;
+    if (spec.headphones)
+        add(
+            "Headphones",
+            buildHeadphones(
+                shirt.shape,
+                shirt.anchors.collarY,
+                rig.body.upperArm[1],
+                spec.waist,
+                beltY,
+                spec.headphones
+            ),
+            chest
+        );
+    if (spec.ring) {
+        const finger = rig.finger("right", "Ring");
+        add(
+            "Ring",
+            buildRing(
+                finger.points[0],
+                finger.points[1],
+                finger.radius[0] + 0.0012,
+                spec.ring
+            ),
+            rigid(finger.bones[0])
+        );
+    }
     if (spec.radio) {
-        const beltY = spec.waist.y - 0.006 - spec.belt.height / 2;
         const radio = buildRadio(spec.waist, beltY, spec.radio);
         add("Radio", radio.mesh, rigid(rig.index.hips));
         add(
@@ -249,7 +285,7 @@ export function* generateSteps(
         spec.hair.palette,
         spec.hair.seed
     );
-    const grown = growPonytail(groom, spec.hair.style);
+    const grown = growHair(groom, spec.hair.style);
     let hairSkin: SkinFn = rigid(head);
     if (grown.tie && extra.spring) {
         // Hair hanging below the tie swings on its own bones.

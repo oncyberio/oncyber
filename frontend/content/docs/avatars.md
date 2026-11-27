@@ -1,6 +1,6 @@
 ---
 title: Avatars
-description: The 3D character you take everywhere in Oncyber: built-in avatars, your own VRM upload or a VRM you own as an NFT, and how the picker loads them.
+description: The 3D character you take everywhere in Oncyber: built-in avatars, avatars generated in code, your own VRM upload or a VRM you own as an NFT, and how the picker loads them.
 order: 5
 ---
 
@@ -41,5 +41,49 @@ retargeted onto each model, so any VRM can wave, dance or sit. When you travel,
 your avatar crouches, the destination loads, and you stand up in the new world
 with the same model and camera framing. Group travel keeps your friends around
 you on arrival.
+
+:::
+
+## Avatars generated in code
+
+Two lobby avatars, Runner and Stagehand, have no model file. Everything about
+them is built in the browser when they are first worn: body, face, hair,
+clothes and skeleton. They are in the lobby picker ahead of the catalogue, and
+you can look at one alone at `/dev/procedural-avatar` when running locally
+(`?who=stagehand`, `?speed=1.4` to walk, `?hide=Shirt,Skirt` to see the body
+under the clothes).
+
+To add a character, describe it in
+`frontend/features/procedural-avatar/characters.ts` and list it in
+`catalogue.ts`. A character is data: proportions, build, face, colours, a hair
+style and an outfit. The parts it is made from are shared.
+
+:::details How they are built
+
+-   **Sculpted, not modelled.** Soft parts (head, body, hands, shirt,
+    trousers, shoes) are described as distance fields: simple shapes blended
+    together (`kernel/sdf.ts`) and turned into a mesh by `kernel/mesher.ts`.
+    Crisp parts (pleated skirt, tie, collar, glasses) are swept surfaces.
+-   **A body with clothes on it.** The body is complete on its own; every
+    garment and accessory is a separate mesh over it, named
+    `<id>_Shirt`, `<id>_Skirt` and so on.
+-   **Hair is grown.** A groom (`parts/hair.ts`) traces hundreds of locks over
+    the skull, in layers, with stray hairs on top. A ponytail swings on its
+    own bones.
+-   **Sculpted relaxed, bound in a T-pose.** Surfaces are shaped with the arms
+    lowered, where shoulders and sleeves look right, then carried back to the
+    T-pose that Oncyber's motion clips expect (`rig.ts`).
+-   **It stands in for a VRM.** The skeleton uses the VRM humanoid bone names,
+    so the lobby animates it like any other avatar. A procedural avatar is
+    known by a path such as `/avatars/procedural/runner`; nothing is fetched
+    from it. The lobby loader (`avatarAdapter.ts`) recognises the path and
+    builds the avatar instead, in a web worker.
+-   **Colour is painted in.** Shading that would need custom shaders (folds,
+    the sheen on hair, polish on shoes) is baked into vertex colours and two
+    small generated textures, so these avatars use the same plain materials
+    as VRM avatars and can be drawn as a crowd.
+
+Saved as your avatar, a generated character is used in the lobby. Gallery
+spaces don't build them yet and show the default avatar there.
 
 :::

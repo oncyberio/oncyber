@@ -26,6 +26,8 @@ module.exports = {
         "^@api/(.*)$": "<rootDir>/pages/api/_v2/$1",
         "^@env$": "<rootDir>/env.ts",
         // `import.meta.url` worker bundling does not parse under CommonJS.
+        "^\\./workerFactory$":
+            "<rootDir>/features/procedural-avatar/workerFactory.jest.ts",
         "^\\./destinationWarmupWorkerFactory$":
             "<rootDir>/features/lobby/destinationWarmupWorkerFactory.jest.ts",
     },

@@ -152,6 +152,16 @@ jest.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
     },
 }));
 
+// Avatars generated in code are built for real, at a light density that
+// keeps this suite quick.
+jest.mock("@features/procedural-avatar/vrmAdapter", () => {
+    const actual = jest.requireActual("@features/procedural-avatar/vrmAdapter");
+    return {
+        ...actual,
+        loadProceduralVrm: (id: string) => actual.loadProceduralVrm(id, 0.3),
+    };
+});
+
 let adapter: typeof import("./avatarAdapter");
 let fetchMock: jest.Mock;
 const encoded = (value: unknown) =>
@@ -962,3 +972,54 @@ test("avatar replacement closes decoded bitmap sources, including retired profil
     expect(bitmap.close).toHaveBeenCalledTimes(1);
     expect(retiredBitmap.close).toHaveBeenCalledTimes(1);
 });
+
+test("an avatar generated in code loads with no model file, animates, and can be drawn as a crowd", async () => {
+    mockAvatarKind = "skinned";
+    const source = await adapter.resolveLobbyAvatar({
+        settings: { vrm: "runner", default_vrm_scale: 1.5 },
+    });
+    expect(source).toEqual({
+        id: "runner",
+        name: "Runner",
+        url: "/avatars/procedural/runner",
+        scale: 1.5,
+    });
+    // A travel round trip hands the path back as a full URL.
+    const avatar = await adapter.createAvatar(
+        `https://oncyber.test${source.url}`
+    );
+    expect(mockParses).toHaveLength(0);
+    expect(
+        fetchMock.mock.calls.filter(([url]) =>
+            String(url).includes("/avatars/procedural/")
+        )
+    ).toHaveLength(0);
+    // Sized like every lobby avatar, standing on the ground.
+    expect(avatar.height).toBeCloseTo(1.8);
+    const THREE = require("three/webgpu");
+    avatar.root.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(avatar.root);
+    expect(bounds.min.y).toBeCloseTo(0, 1);
+    // Body and clothes are separate meshes, and all of them can be instanced.
+    const names: string[] = [];
+    avatar.root.traverse((object) => {
+        if ((object as { isSkinnedMesh?: boolean }).isSkinnedMesh)
+            names.push(object.name);
+    });
+    expect(names).toEqual(
+        expect.arrayContaining([
+            "runner_Body",
+            "runner_Shirt",
+            "runner_Skirt",
+            "runner_Hair",
+        ])
+    );
+    expect(avatar.bakeParts).toHaveLength(names.length);
+    // Lobby motion moves its bones.
+    const hips = avatar.root.getObjectByName("hips");
+    const rest = hips.quaternion.clone();
+    avatar.update(0.016, "RUN");
+    avatar.update(0.5, "RUN");
+    expect(hips.quaternion.angleTo(rest)).toBeGreaterThan(0.01);
+    avatar.dispose();
+}, 60000);

@@ -5,6 +5,7 @@ import {
     mixRgb,
     occlusion,
     rgb,
+    skyShade,
 } from "../kernel/build";
 import { meshField } from "../kernel/mesher";
 import { fbm, smoothstep } from "../kernel/noise";
@@ -195,14 +196,15 @@ export function buildSkin(
         const mottle = 0.94 + 0.12 * fbm(p[0] * 38, p[1] * 38, p[2] * 38, 3);
         const lit = mixRgb(
             [
-                colour[0] * shade[0] * 1.6,
-                colour[1] * shade[1] * 1.6,
-                colour[2] * shade[2] * 1.6,
+                colour[0] * shade[0] * 1.7,
+                colour[1] * shade[1] * 1.7,
+                colour[2] * shade[2] * 1.7,
             ],
             colour,
-            smoothstep(0.05, 0.9, ao)
+            smoothstep(-0.25, 0.8, ao)
         );
-        return [lit[0] * mottle, lit[1] * mottle, lit[2] * mottle];
+        const k = mottle * skyShade(n, 0.16);
+        return [lit[0] * k, lit[1] * k, lit[2] * k];
     };
 
     const cell = 0.0105 / detail;

@@ -399,3 +399,211 @@ export function growPonytail(g: Groom, style: PonytailStyle): GrownHair {
     );
     return { tie };
 }
+
+export interface QuiffStyle {
+    kind: "quiff";
+    hairline: Hairline;
+    /** Where the parting sits, metres left of centre. */
+    part: number;
+    /** Length of the long hair on top, in metres. */
+    top: [number, number];
+    /** How high the top hair stands off the skull. */
+    lift: number;
+    /** Length of the short back and sides. */
+    sides: [number, number];
+    mess: number;
+}
+
+/**
+ * Short back and sides under a full, wavy top: thick locks that rise from
+ * the parting, sweep back and out with a wave, and a few that fall forward
+ * over the forehead.
+ */
+export function growQuiff(g: Groom, style: QuiffStyle): GrownHair {
+    const line = style.hairline;
+    const centre = line.centre;
+    g.scalp(centre, (p) => hairlineDepth(line, p) - 0.004);
+    const crownY = centre[1] + 0.06;
+    const isTop = (p: P3) =>
+        p[1] > centre[1] + 0.046 - 0.25 * Math.max(0, p[2]);
+
+    // Back and sides: short locks combed down and back, close to the head.
+    for (const direction of scatter(330, g.random)) {
+        const root = g.cast(centre, direction, 0.0008);
+        const depth = hairlineDepth(line, root);
+        if (depth < 0.001 || isTop(root)) continue;
+        let length =
+            g.range(style.sides[0], style.sides[1]) *
+            (0.6 + 0.4 * smoothstep(0, 0.03, depth));
+        // Cut round the ears.
+        const overEar =
+            Math.abs(root[0]) > 0.055 && root[2] > -0.045 && root[2] < 0.03;
+        if (overEar)
+            length = Math.max(0.006, Math.min(length, (root[1] - 1.585) * 0.9));
+        const n = g.normal(root);
+        // Down, and back round the head.
+        const aim: P3 = [root[0] * 0.2, -1, -0.55];
+        const d = unit(
+            addv(aim, n, -(aim[0] * n[0] + aim[1] * n[1] + aim[2] * n[2]))
+        );
+        const lift = g.range(0.0025, 0.0055);
+        const guide: P3[] = [g.settle(root, -0.001)];
+        for (let k = 1; k <= 3; k++)
+            guide.push(
+                g.settle(addv(root, d, (length * k) / 3), lift * (1 - 0.25 * k))
+            );
+        g.lock(guide, {
+            width: g.range(0.0035, 0.0055),
+            thickness: g.range(0.002, 0.003),
+            belly: 0.35,
+            root: 0.3,
+            tone: g.range(0.7, 1.4),
+            depth: 0.35,
+            samples: 7,
+            sides: 5,
+            ridges: 1,
+        });
+    }
+
+    // Top: long thick locks. Each rises, sweeps away from the parting and
+    // back, and rolls over at the end.
+    const sweepLock = (
+        root: P3,
+        heading: P3,
+        length: number,
+        rise: number,
+        options: {
+            width: number;
+            thickness: number;
+            flip: number;
+            tone: number;
+            depth: number;
+        }
+    ) => {
+        const steps = 8;
+        const guide: P3[] = [g.settle(root, -0.0015)];
+        let p: P3 = root;
+        const wave = g.range(0, 6.28);
+        const swing = g.range(-0.5, 0.5) * style.mess;
+        for (let k = 1; k <= steps; k++) {
+            const t = k / steps;
+            const n = g.normal(p);
+            // Along the head in the heading's direction, with a slow wave.
+            const side = [
+                n[1] * heading[2] - n[2] * heading[1],
+                n[2] * heading[0] - n[0] * heading[2],
+                n[0] * heading[1] - n[1] * heading[0],
+            ];
+            const along = addv(
+                heading,
+                n,
+                -(heading[0] * n[0] + heading[1] * n[1] + heading[2] * n[2])
+            );
+            const d = unit(
+                addv(
+                    along,
+                    side as P3,
+                    Math.sin(wave + t * 4.5) * 0.45 + swing * t
+                )
+            );
+            // Up off the scalp, over, and back down, with the tip kicking out.
+            const lift =
+                0.004 +
+                rise *
+                    Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.08)), 0.75) +
+                options.flip * t * t * t;
+            p = g.settle(addv(p, d, length / steps), lift);
+            guide.push(p);
+        }
+        g.lock(guide, {
+            width: options.width,
+            thickness: options.thickness,
+            belly: 0.42,
+            root: 0.15,
+            tone: options.tone,
+            depth: options.depth,
+            samples: 15,
+            sides: 8,
+            ridges: 4,
+        });
+    };
+    const top = scatter(520, g.random)
+        .map((direction) => g.cast(centre, direction, 0.0008))
+        .filter((p) => hairlineDepth(line, p) > 0.002 && isTop(p));
+    for (const root of top) {
+        const side = root[0] > style.part ? 1 : -1;
+        const front = smoothstep(0.0, 0.06, root[2]);
+        // Away from the parting, turning to the back of the head.
+        const heading = unit([
+            side * (0.8 - 0.15 * front),
+            0,
+            -0.5 + 0.55 * front + g.range(-0.2, 0.2),
+        ]);
+        sweepLock(
+            root,
+            heading,
+            g.range(style.top[0], style.top[1]) * (0.75 + 0.25 * front),
+            style.lift * g.range(0.55, 1.1) * (0.7 + 0.3 * front),
+            {
+                width: g.range(0.0075, 0.012),
+                thickness: g.range(0.0045, 0.0068),
+                flip: g.range(0, 0.016),
+                tone: g.range(0.75, 1.6),
+                depth: root[1] > crownY ? 0 : 0.2,
+            }
+        );
+    }
+    // The fringe: locks from the front of the parting that fall forward
+    // and curve aside over the forehead.
+    for (let i = 0; i < 7; i++) {
+        const side = i % 2 ? 1 : -1;
+        const root = g.cast(
+            centre,
+            [
+                style.part * 10 + side * g.range(0.02, 0.22),
+                0.74,
+                g.range(0.62, 0.72),
+            ],
+            0.0008
+        );
+        const drop = g.range(0.02, 0.05);
+        const sway = side * g.range(0.012, 0.03);
+        const guide: P3[] = [
+            g.settle(root, -0.0015),
+            g.clear(
+                [root[0] + sway * 0.2, root[1] + 0.012, root[2] + 0.014],
+                0.012
+            ),
+            g.clear(
+                [root[0] + sway * 0.6, root[1] - drop * 0.35, root[2] + 0.022],
+                0.012
+            ),
+            g.clear([root[0] + sway, root[1] - drop, root[2] + 0.012], 0.008),
+            g.clear(
+                [root[0] + sway * 1.5, root[1] - drop * 1.15, root[2] + 0.006],
+                0.008
+            ),
+        ];
+        g.lock(guide, {
+            width: g.range(0.004, 0.0075),
+            thickness: g.range(0.003, 0.0042),
+            belly: 0.4,
+            root: 0.45,
+            tone: g.range(0.8, 1.5),
+            samples: 12,
+            sides: 7,
+            ridges: 3,
+        });
+    }
+    g.strays(Math.round(36 * style.mess), [0.012, 0.035]);
+    return {};
+}
+
+export type AnyHairStyle = PonytailStyle | QuiffStyle;
+
+/** Grow whichever style a character wears. */
+export function growHair(g: Groom, style: AnyHairStyle): GrownHair {
+    return style.kind === "quiff"
+        ? growQuiff(g, style)
+        : growPonytail(g, style);
+}

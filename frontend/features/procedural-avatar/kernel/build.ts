@@ -28,6 +28,13 @@ export const scaleRgb = (a: Rgb, s: number): Rgb => [
     a[2] * s,
 ];
 
+/**
+ * Painted sky light: surfaces that face down sit in shade. Baked into
+ * colour, it gives folds and undersides their form under any lighting.
+ */
+export const skyShade = (n: Vec3, depth = 0.24) =>
+    1 - depth * (0.5 - 0.5 * n[1]) * (0.5 - 0.5 * n[1]) * 2;
+
 /** Geometry for one avatar part before it is bound to the skeleton. */
 export interface PartMesh {
     positions: number[];
@@ -250,7 +257,11 @@ export class MeshBuilder implements PartMesh {
         }
         for (let i = from; i < to; i++) {
             if (kept(i)) continue;
-            const l = Math.hypot(n[i * 3], n[i * 3 + 1], n[i * 3 + 2]) || 1;
+            const l = Math.hypot(n[i * 3], n[i * 3 + 1], n[i * 3 + 2]);
+            if (l < 1e-12) {
+                n[i * 3] = n[i * 3 + 1] = n[i * 3 + 2] = 0;
+                continue;
+            }
             n[i * 3] /= l;
             n[i * 3 + 1] /= l;
             n[i * 3 + 2] /= l;
@@ -330,6 +341,20 @@ export class MeshBuilder implements PartMesh {
             }
         }
         this.smooth(base, this.count, first);
+        // Where the tube closes to a point no face has any area; give those
+        // vertices the direction the tube runs in.
+        const normals = this.normals;
+        for (let v = base; v < this.count; v++) {
+            if (normals[v * 3] || normals[v * 3 + 1] || normals[v * 3 + 2])
+                continue;
+            // Ring vertices come first, then the two cap centres.
+            const ring = Math.floor((v - base) / sides);
+            const i = ring < n ? ring : v - base - n * sides === 0 ? 0 : n - 1;
+            const sign = i < n / 2 ? -1 : 1;
+            normals[v * 3] = frames[i].tangent[0] * sign;
+            normals[v * 3 + 1] = frames[i].tangent[1] * sign;
+            normals[v * 3 + 2] = frames[i].tangent[2] * sign;
+        }
         return base;
     }
 }

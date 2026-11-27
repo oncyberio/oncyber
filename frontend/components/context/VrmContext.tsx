@@ -1,4 +1,8 @@
 import { readTravelAvatar, rememberTravelAvatar } from "@utils/travelAvatar";
+import {
+    PROCEDURAL_AVATARS,
+    proceduralAvatarId,
+} from "@features/procedural-avatar/catalogue";
 import { adoptsOwnedAvatar } from "./ownedAvatarChoice";
 import { defaultAvatarId } from "@utils/defaultAvatar";
 import React, { useContext, useEffect, useRef, useState } from "react";
@@ -441,8 +445,16 @@ function VrmProvider_Child({ children, isSceneLoaded, vrmUrl }) {
         //
 
         try {
-            const travellingAvatar = readTravelAvatar(userData);
+            // Avatars generated in code are built by the lobby only. A
+            // space shows the visitor's default avatar in their place.
+            const travelling = readTravelAvatar(userData);
+            const travellingAvatar =
+                travelling && !proceduralAvatarId(travelling.url)
+                    ? travelling
+                    : null;
             let vrmId = travellingAvatar?.id || userData?.settings?.vrm;
+            if (PROCEDURAL_AVATARS.some((item) => item.id === vrmId))
+                vrmId = undefined;
 
             let customVrms, avatar;
 

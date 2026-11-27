@@ -1,6 +1,7 @@
 import { readTravelAvatar } from "@utils/travelAvatar";
 import catalogue from "@components/_3DExhibit-v2/three/factory/player/vrms.json";
 import { defaultAvatarId, pfpAvatarId } from "@utils/defaultAvatar";
+import { PROCEDURAL_AVATARS } from "@features/procedural-avatar/catalogue";
 
 export interface LobbyAvatarIdentity {
     settings?: { vrm?: string; default_vrm_scale?: number };
@@ -48,6 +49,14 @@ export async function resolveLobbyAvatar(
     const builtin = Object.values(catalogue).find((avatar) => avatar.id === id);
     if (builtin)
         return { id: builtin.id, name: builtin.name, url: builtin.url, scale };
+    const procedural = PROCEDURAL_AVATARS.find((avatar) => avatar.id === id);
+    if (procedural)
+        return {
+            id: procedural.id,
+            name: procedural.name,
+            url: procedural.url,
+            scale,
+        };
 
     // Only a custom selection needs the authenticated metadata API.
     if (identity?.walletId) {

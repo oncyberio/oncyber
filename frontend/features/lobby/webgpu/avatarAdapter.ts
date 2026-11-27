@@ -28,6 +28,10 @@ import {
 } from "../advancedMotion";
 import { createMotionInertia } from "../motionInertia";
 import { createProceduralRig } from "../proceduralRig";
+import {
+    PROCEDURAL_AVATARS,
+    proceduralAvatarId,
+} from "@features/procedural-avatar/catalogue";
 import * as THREE from "three/webgpu";
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { disposeAvatarGraph } from "./avatarResources";
@@ -213,6 +217,14 @@ export async function resolveLobbyAvatar(
     const builtin = Object.values(catalogue).find((avatar) => avatar.id === id);
     if (builtin)
         return { id: builtin.id, name: builtin.name, url: builtin.url, scale };
+    const generated = PROCEDURAL_AVATARS.find((avatar) => avatar.id === id);
+    if (generated)
+        return {
+            id: generated.id,
+            name: generated.name,
+            url: generated.url,
+            scale,
+        };
 
     // Custom metadata is resolved by avatarSelection.ts outside this renderer's
     // dependency layer. Callers pass that source URL into preloading/creation.
@@ -350,11 +362,9 @@ function retargetAnimation(
     return new THREE.AnimationClip("vrmAnimation", clip.duration, tracks);
 }
 
-async function parseAvatar(url: string): Promise<LobbyAvatar> {
-    const [data, basics] = await Promise.all([
-        avatarBytes(url),
-        getMotionClips(),
-    ]);
+/** Parse a GLB or VRM file into its VRM humanoid. */
+async function parseAvatarFile(url: string): Promise<ModernVRM> {
+    const data = await avatarBytes(url);
     const draco = new DRACOLoader().setDecoderPath("/draco/");
     const loader = (new GLTFLoader() as unknown as ModernAvatarLoader)
         .setCrossOrigin("anonymous")
@@ -368,18 +378,37 @@ async function parseAvatar(url: string): Promise<LobbyAvatar> {
         plugin.mtoonMaterialPlugin.extendMaterialParams = async () => {};
         return plugin;
     });
-    let vrm: ModernVRM;
     try {
         const base = new URL(".", new URL(url, window.location.href)).href;
         const gltf = await loader.parseAsync(data.slice(0), base);
-        vrm = gltf.userData.vrm;
+        const vrm = gltf.userData.vrm;
         if (!vrm?.humanoid?.getNormalizedBoneNode("hips")) {
             disposeAvatarGraph(gltf.scene);
             throw new Error("This model has no supported VRM humanoid");
         }
+        return vrm;
     } finally {
         draco.dispose();
     }
+}
+
+/**
+ * A procedural avatar has no file: it is generated in code and offers the
+ * same humanoid a VRM does. The generator loads only when one is worn.
+ */
+async function buildProceduralAvatar(id: string): Promise<ModernVRM> {
+    const { loadProceduralVrm } = await import(
+        "@features/procedural-avatar/vrmAdapter"
+    );
+    return loadProceduralVrm(id);
+}
+
+async function parseAvatar(url: string): Promise<LobbyAvatar> {
+    const generated = proceduralAvatarId(url);
+    const [vrm, basics] = await Promise.all([
+        generated ? buildProceduralAvatar(generated) : parseAvatarFile(url),
+        getMotionClips(),
+    ]);
 
     const root = new THREE.Group();
     root.name = "oncyber-lobby-avatar";

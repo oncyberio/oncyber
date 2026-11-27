@@ -2,6 +2,7 @@ import VrmApi from "@api/vrm/_api";
 
 import VRMS from "./vrms.json"
 import { defaultAvatarId } from "@utils/defaultAvatar";
+import { PROCEDURAL_AVATARS } from "@features/procedural-avatar/catalogue";
 
 /*
 * Get avatar metadata
@@ -15,6 +16,10 @@ export async function getAvatarMetadata({
 }) {
 
     let vrmId = userData?.settings?.vrm;
+
+    // Avatars generated in code are built by the lobby only; a space shows
+    // the default avatar in their place.
+    if (PROCEDURAL_AVATARS.some((item) => item.id === vrmId)) vrmId = undefined;
 
     // default vrms
     if (!vrmId) {
