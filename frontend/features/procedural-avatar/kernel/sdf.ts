@@ -443,6 +443,11 @@ export function symmetric(source: Shape): Shape {
     return {
         desc: { type: "symmetric", source },
         eval: (x, y, z) => source.eval(x < 0 ? -x : x, y, z),
+        // A block's mirror image lies within the same reach of its
+        // mirrored centre, so the left half's pruning serves both.
+        prune: source.prune
+            ? (x, y, z, r) => symmetric(source.prune(x < 0 ? -x : x, y, z, r))
+            : undefined,
     };
 }
 
