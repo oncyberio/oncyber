@@ -22,7 +22,12 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
     FIGURE_STYLES,
     STAGEHAND_STYLE,
+    STANCES,
+    createFigureCrowd,
+    createFigurePoses,
     loadFigure,
+    standFigure,
+    variedLook,
 } from "../../../frontend/features/procedural-avatar/figure/index.ts";
 import { EYE_VIEW, FACE_SPAN } from "./views.ts";
 
@@ -261,8 +266,8 @@ async function tryHair(
     return { triangles, fit };
 }
 
-/** A figure in a style, seen from one of the fixed views. */
-async function figure() {
+/** The style asked for, with any changes to try. */
+function askedStyle() {
     const style = JSON.parse(
         JSON.stringify(
             FIGURE_STYLES[params.get("style") || ""] || STAGEHAND_STYLE
@@ -279,6 +284,10 @@ async function figure() {
         for (const key of keys.slice(0, -1)) at = at[key];
         at[keys[keys.length - 1]] = JSON.parse(value);
     }
+    return style;
+}
+
+async function stage() {
     const renderer = new THREE.WebGPURenderer({
         antialias: true,
         forceWebGL: params.get("renderer") !== "webgpu",
@@ -291,16 +300,166 @@ async function figure() {
     await renderer.init();
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#f5edf0");
-    const { vrm, figure: styled } = await loadFigure("/figure.vrm", style);
-    scene.add(vrm.scene);
-    const expression = params.get("expression");
-    if (expression) {
-        for (const part of expression.split(",")) {
-            const [name, weight] = part.split(":");
-            vrm.expressionManager.setValue(name, Number(weight ?? 1));
+    return { renderer, scene };
+}
+
+/**
+ * Draw twice (the first draw compiles the materials), and count what the
+ * second took: the draws the browser was asked for, and the triangles in
+ * them.
+ */
+async function draw(
+    renderer: THREE.WebGPURenderer,
+    scene: THREE.Scene,
+    camera: THREE.Camera
+) {
+    let drawCalls = 0;
+    // The renderer draws once more to put the picture on the page.
+    const own = 1;
+    const gl = (renderer.backend as { gl?: WebGL2RenderingContext }).gl;
+    if (gl)
+        for (const name of [
+            "drawElements",
+            "drawElementsInstanced",
+            "drawArrays",
+            "drawArraysInstanced",
+        ] as const) {
+            const real = gl[name].bind(gl) as (...args: unknown[]) => void;
+            (gl as unknown as Record<string, unknown>)[name] = (
+                ...args: unknown[]
+            ) => {
+                drawCalls++;
+                real(...args);
+            };
         }
+    for (let frame = 0; frame < 2; frame++) {
+        drawCalls = 0;
+        renderer.render(scene, camera);
+        await new Promise((done) => setTimeout(done, 300));
+    }
+    let drawnTriangles = 0;
+    scene.traverseVisible((object) => {
+        const mesh = object as THREE.InstancedMesh;
+        if (!mesh.isMesh) return;
+        const { index, attributes } = mesh.geometry;
+        drawnTriangles +=
+            ((index || attributes.position).count / 3) *
+            (mesh.isInstancedMesh ? mesh.count : 1);
+    });
+    return { drawCalls: Math.max(0, drawCalls - own), drawnTriangles };
+}
+
+/**
+ * A crowd of one character: every figure in a stance and a look of its
+ * own, all of them drawn as three meshes.
+ */
+async function crowd() {
+    const style = askedStyle();
+    const count = Math.max(1, Number(params.get("crowd")) || 1);
+    const { renderer, scene } = await stage();
+    const { vrm, figure: styled } = await loadFigure("/figure.vrm", style, {
+        form: "basic",
+    });
+    const stances = Object.values(STANCES);
+    // The first few stances are ways of standing still.
+    const CALM = 3;
+    const poses = createFigurePoses(styled, stances.length);
+    stances.forEach((stance, row) => {
+        standFigure(vrm, stance, styled.frames.forwardZ);
+        poses.capture(row);
+    });
+    const made = createFigureCrowd(styled, { capacity: count, poses });
+    // Rows of them, each row set between the heads of the one in front.
+    const across = Math.ceil(Math.sqrt(count * 1.5));
+    const deep = Math.ceil(count / across);
+    const place = new THREE.Object3D();
+    for (let i = 0; i < count; i++) {
+        const [column, row] = [i % across, Math.floor(i / across)];
+        place.position.set(
+            (column - (across - 1) / 2 + (row % 2) * 0.5) * 0.72,
+            0,
+            -row * 0.95
+        );
+        place.rotation.y = Math.sin(i * 2.4) * 0.5;
+        place.updateMatrix();
+        // One figure as the style has it; the others a little different.
+        made.looks.set(i, i ? variedLook(style, i) : style);
+        // Standing ones are caught between two ways of standing; the
+        // rest are in one stance.
+        const stance = (i * 5) % stances.length;
+        made.set(i, {
+            matrix: place.matrix,
+            look: i,
+            pose:
+                stance < CALM && i
+                    ? [stance, (stance + 1) % CALM, (i * 0.37) % 1]
+                    : stance,
+            seed: (i * 0.618) % 1,
+            talk: i % 5 === 3 ? 0.7 : 0,
+        });
+    }
+    made.count = count;
+    // A time at which some of them are mid-blink.
+    made.update(Number(params.get("time")) || 0);
+    scene.add(made.object);
+    // Seen from in front and above, so that every row shows.
+    const width = across * 0.72 + 0.4;
+    const fov = 18;
+    const aspect = innerWidth / innerHeight;
+    const distance = width / 2 / Math.tan((fov * Math.PI) / 360) / aspect;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 200);
+    const middle = new THREE.Vector3(0, 0.8, (-(deep - 1) * 0.95) / 2);
+    camera.position.set(0, middle.y + distance * 0.42, distance * 0.9);
+    camera.lookAt(middle);
+    const counted = await draw(renderer, scene, camera);
+    return {
+        style: style.id,
+        figures: count,
+        trianglesEach: made.trianglesEach,
+        ...counted,
+    };
+}
+
+/** A figure in a style, seen from one of the fixed views. */
+async function figure() {
+    const style = askedStyle();
+    const { renderer, scene } = await stage();
+    const form = params.get("form") === "basic" ? "basic" : "full";
+    const { vrm, figure: styled } = await loadFigure("/figure.vrm", style, {
+        form,
+    });
+    const expression = params.get("expression");
+    const held: Record<string, number> = {};
+    for (const part of expression ? expression.split(",") : []) {
+        const [name, weight] = part.split(":");
+        held[name] = Number(weight ?? 1);
+    }
+    const stance = STANCES[params.get("stance") || ""];
+    if (stance) standFigure(vrm, stance, styled.frames.forwardZ);
+    if (styled.face) {
+        // The basic form moves its face two ways.
+        for (const name of Object.keys(held))
+            if (name !== "blink" && name !== "aa")
+                throw new Error(`The basic form has no expression ${name}`);
+        styled.face.blink.value = held.blink ?? 0;
+        styled.face.talk.value = held.aa ?? 0;
+    } else if (expression) {
+        for (const [name, weight] of Object.entries(held))
+            vrm.expressionManager.setValue(name, weight);
         vrm.expressionManager.update();
     }
+    if (params.get("as") === "crowd") {
+        // The same figure as a crowd of one, standing where it stands:
+        // the picture should not change.
+        const poses = createFigurePoses(styled, 1);
+        poses.capture(0);
+        const one = createFigureCrowd(styled, { capacity: 1, poses });
+        // Its eyes are open at the start of its time.
+        if (held.blink) throw new Error("A crowd blinks when it likes");
+        one.set(0, { pose: 0, look: 0, seed: 0, talk: held.aa ?? 0 });
+        one.count = 1;
+        scene.add(one.object);
+    } else scene.add(vrm.scene);
     vrm.scene.updateMatrixWorld(true);
     const hair = params.get("hair")
         ? await tryHair(vrm, scene, params.get("hair"))
@@ -374,13 +533,11 @@ async function figure() {
         target.z + Math.cos(turn) * distance
     );
     camera.lookAt(target);
-    // Twice: the first draw compiles the materials.
-    for (let frame = 0; frame < 2; frame++) {
-        renderer.render(scene, camera);
-        await new Promise((done) => setTimeout(done, 300));
-    }
+    const counted = await draw(renderer, scene, camera);
     return {
         style: style.id,
+        form,
+        ...counted,
         triangles: styled.triangles,
         hair,
         // The head in eye widths: its levels, and half its width at
@@ -398,7 +555,12 @@ async function figure() {
     };
 }
 
-(params.get("sheet") ? sheet(JSON.parse(params.get("sheet"))) : figure())
+(params.get("sheet")
+    ? sheet(JSON.parse(params.get("sheet")))
+    : params.get("crowd")
+    ? crowd()
+    : figure()
+)
     .then((result) => {
         state.__compare = { status: "ready", ...result };
     })

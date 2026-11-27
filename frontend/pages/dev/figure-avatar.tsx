@@ -6,17 +6,32 @@ import {
     FIGURE_STYLES,
     FIGURE_URLS,
     STAGEHAND_STYLE,
+    STANCES,
+    blinkAt,
+    createFigureCrowd,
+    createFigurePoses,
     loadFigure,
+    standFigure,
+    variedLook,
+    type FigureCrowd,
+    type FigurePoses,
 } from "@features/procedural-avatar/figure";
+
+/** Stances a standing figure drifts between. */
+const CALM = ["stand", "easy", "look"];
 
 /**
  * Local check for a figure (a bare, texture-free humanoid) and a style
  * that makes it a character, on a turntable. It blinks, to show that its
- * expressions still work.
+ * face still moves.
  *
  * Query: `style` (`stagehand`, the default, or `plain` for the bare
- * figure), `expression` (one to hold, such as `happy` or `aa`), `yaw`
- * (degrees, stops the turntable), `zoom=face`, `renderer=webgl`.
+ * figure), `form=basic` (the form a world draws: it blinks and opens its
+ * mouth, and has no other expression), `expression` (one to hold, such as
+ * `happy` or `aa`; the basic form has `aa` only), `stance` (`stand`,
+ * `wave`, ...), `crowd` (a number: that many of the character drawn as
+ * one, each a little different), `yaw` (degrees, stops the turntable),
+ * `zoom=face`, `renderer=webgl`.
  */
 export default function FigureAvatarFixture() {
     const ref = useRef<HTMLDivElement>(null);
@@ -29,6 +44,11 @@ export default function FigureAvatarFixture() {
                 ? (router.query[key] as string)
                 : "";
         const style = FIGURE_STYLES[text("style")] || STAGEHAND_STYLE;
+        const many = Math.min(
+            1024,
+            Math.max(0, Math.floor(Number(text("crowd")) || 0))
+        );
+        const form = many || text("form") === "basic" ? "basic" : "full";
         const fixed = text("yaw") !== "";
         const yaw = THREE.MathUtils.degToRad(Number(text("yaw")) || 0);
         const renderer = new THREE.WebGPURenderer({
@@ -41,10 +61,15 @@ export default function FigureAvatarFixture() {
         host.append(renderer.domElement);
         const scene = new THREE.Scene();
         scene.background = new THREE.Color("#f5edf0");
-        const camera = new THREE.PerspectiveCamera(16, 1, 0.05, 60);
+        const camera = new THREE.PerspectiveCamera(16, 1, 0.05, 200);
         const face = text("zoom") === "face";
-        const target = new THREE.Vector3(0, face ? 1.56 : 0.88, 0);
-        const distance = face ? 1.5 : 6.6;
+        // A crowd stands in rows, each row between the heads in front.
+        const across = Math.ceil(Math.sqrt(many * 1.5));
+        const deep = Math.ceil(many / Math.max(1, across));
+        const target = many
+            ? new THREE.Vector3(0, 0.8, (-(deep - 1) * 0.95) / 2)
+            : new THREE.Vector3(0, face ? 1.56 : 0.88, 0);
+        const distance = many ? 4 + across * 1.9 : face ? 1.5 : 6.6;
         const fit = () => {
             const width = Math.max(1, host.clientWidth);
             const height = Math.max(1, host.clientHeight);
@@ -59,18 +84,60 @@ export default function FigureAvatarFixture() {
         state.__figureAvatar = { status: "loading" };
         let disposed = false;
         let loaded: Awaited<ReturnType<typeof loadFigure>> | undefined;
-        void loadFigure(FIGURE_URLS.male, style)
+        let crowd: FigureCrowd | undefined;
+        let poses: FigurePoses | undefined;
+        void loadFigure(FIGURE_URLS.male, style, { form })
             .then((result) => {
                 if (disposed) {
                     result.figure.dispose();
                     return;
                 }
                 loaded = result;
-                scene.add(result.vrm.scene);
+                const { vrm, figure } = result;
+                const facing = figure.frames.forwardZ;
+                if (many) {
+                    const names = Object.keys(STANCES);
+                    poses = createFigurePoses(figure, names.length);
+                    names.forEach((name, row) => {
+                        standFigure(vrm, STANCES[name], facing);
+                        poses.capture(row);
+                    });
+                    crowd = createFigureCrowd(figure, {
+                        capacity: many,
+                        poses,
+                    });
+                    const place = new THREE.Object3D();
+                    for (let i = 0; i < many; i++) {
+                        const row = Math.floor(i / across);
+                        place.position.set(
+                            ((i % across) - (across - 1) / 2 + (row % 2) / 2) *
+                                0.72,
+                            0,
+                            -row * 0.95
+                        );
+                        place.rotation.y = Math.sin(i * 2.4) * 0.5;
+                        place.updateMatrix();
+                        // The first as the style has it.
+                        crowd.looks.set(i, i ? variedLook(style, i) : style);
+                        crowd.set(i, {
+                            matrix: place.matrix,
+                            look: i,
+                            seed: (i * 0.618) % 1,
+                        });
+                    }
+                    crowd.count = many;
+                    scene.add(crowd.object);
+                } else {
+                    const stance = STANCES[text("stance")];
+                    if (stance) standFigure(vrm, stance, facing);
+                    scene.add(vrm.scene);
+                }
                 state.__figureAvatar = {
                     status: "ready",
                     style: style.id,
-                    triangles: result.figure.triangles,
+                    form,
+                    figures: many || 1,
+                    triangles: figure.triangles * (many || 1),
                 };
             })
             .catch((error) => {
@@ -81,23 +148,47 @@ export default function FigureAvatarFixture() {
             });
         const held = text("expression");
         const clock = new THREE.Clock();
+        const calm = CALM.map((name) => Object.keys(STANCES).indexOf(name));
         renderer.setAnimationLoop(() => {
             const now = clock.getElapsedTime();
-            const angle = fixed ? yaw : now / 6;
+            const angle = fixed
+                ? yaw
+                : many
+                ? Math.sin(now / 5) * 0.5
+                : now / 6;
             camera.position.set(
                 target.x + Math.sin(angle) * distance,
-                target.y,
+                target.y + (many ? distance * 0.42 : 0),
                 target.z + Math.cos(angle) * distance
             );
             camera.lookAt(target);
-            const expressions = loaded?.vrm.expressionManager;
-            if (expressions) {
-                // A blink every few seconds, a fifth of a second long.
-                const sinceBlink = (now % 3.4) / 0.2;
-                expressions.setValue(
-                    "blink",
-                    sinceBlink < 1 ? Math.sin(sinceBlink * Math.PI) : 0
-                );
+            if (crowd) {
+                // Each drifts between two ways of standing at its own
+                // pace, and now and then says something.
+                crowd.update(now);
+                for (let i = 0; i < many; i++) {
+                    const from = calm[i % calm.length];
+                    const to = calm[(i + 1) % calm.length];
+                    crowd.set(i, {
+                        pose: [
+                            from,
+                            to,
+                            0.5 + 0.5 * Math.sin(now * (0.5 + (i % 7) / 9) + i),
+                        ],
+                        talk:
+                            i % 6 === 2
+                                ? Math.max(0, Math.sin(now * 9 + i)) *
+                                  Math.max(0, Math.sin(now * 0.7 + i))
+                                : 0,
+                    });
+                }
+            } else if (loaded?.figure.face) {
+                const { blink, talk } = loaded.figure.face;
+                blink.value = blinkAt(now);
+                talk.value = held === "aa" ? 1 : 0;
+            } else if (loaded) {
+                const expressions = loaded.vrm.expressionManager;
+                expressions.setValue("blink", blinkAt(now));
                 if (held) expressions.setValue(held, 1);
                 expressions.update();
             }
@@ -107,6 +198,8 @@ export default function FigureAvatarFixture() {
             disposed = true;
             renderer.setAnimationLoop(null);
             resize.disconnect();
+            crowd?.dispose();
+            poses?.dispose();
             if (loaded) {
                 loaded.figure.dispose();
                 VRMUtils.deepDispose(loaded.vrm.scene);

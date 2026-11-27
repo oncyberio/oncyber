@@ -222,6 +222,38 @@ export interface ShapeGeometry {
     normal?: Float32Array;
 }
 
+/** The morphs an expression is stored as: itself, or its parts. */
+function storedMorphs(
+    geometry: ShapeGeometry,
+    names: string[],
+    composites: Record<string, string[]>,
+    name: string
+): Float32Array[] {
+    const index = names.findIndex((n) => n.endsWith(name));
+    if (index >= 0) return [geometry.morphs[index]].filter(Boolean);
+    if (!composites[name])
+        throw new Error(`The figure has no expression called ${name}`);
+    return composites[name].flatMap((part) =>
+        storedMorphs(geometry, names, composites, part)
+    );
+}
+
+/**
+ * One expression as how far it moves each vertex, whether the figure
+ * stores it whole or as parts.
+ */
+export function expressionOf(
+    geometry: ShapeGeometry,
+    names: string[],
+    name: string,
+    composites: Record<string, string[]> = {}
+) {
+    const whole = new Float32Array(geometry.position.length);
+    for (const morph of storedMorphs(geometry, names, composites, name))
+        for (let i = 0; i < whole.length; i++) whole[i] += morph[i];
+    return whole;
+}
+
 /**
  * Make some of a figure's expressions its resting face, and keep the
  * others sensible on top of it:
@@ -241,14 +273,8 @@ export function wearMorphs(
     closing = /EYE_(Close|Joy)|ALL_Joy/
 ) {
     const { position } = geometry;
-    /** The morphs an expression is stored as: itself, or its parts. */
-    const stored = (name: string): Float32Array[] => {
-        const index = names.findIndex((n) => n.endsWith(name));
-        if (index >= 0) return [geometry.morphs[index]].filter(Boolean);
-        if (!composites[name])
-            throw new Error(`The figure has no expression called ${name}`);
-        return composites[name].flatMap(stored);
-    };
+    const stored = (name: string) =>
+        storedMorphs(geometry, names, composites, name);
     const baked = new Float32Array(position.length);
     // What of it moved the eyes.
     const lids = new Float32Array(position.length);

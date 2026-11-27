@@ -123,6 +123,33 @@ style and an outfit. The parts it is made from are shared.
     eye still blinks. The body's proportions stay the figure's
     own. It has no hair or clothes yet. `/dev/figure-avatar` shows it
     locally (`style=plain` for the bare figure).
+-   **Two forms of a figure.** `styleFigure` makes a figure in one of two
+    forms. The _full_ form keeps every expression, played as a VRM's
+    are: for a figure seen close, such as a visitor's own. The _basic_
+    form blinks and opens its mouth, each by one number (`figure.face`),
+    and does nothing else with its face. It carries no morph targets,
+    which saves about 1.1 MB of memory and 1.5 MB on the graphics card
+    for each figure, and it is the form a world draws. At rest the two
+    are the same character, vertex for vertex and pixel for pixel.
+-   **Looks, and crowds.** A style has two halves. Its _shape_ is what is
+    done to the mesh: worn expressions, features, head, ears, the
+    outline of the eyes, where the brows lie. Its _look_ is everything
+    drawn on the mesh: colours, how heavy the lines are, irises and
+    catchlights, underwear. A look is one row of a small table the
+    shaders read (`figure/looks.ts`), so figures that share a shape can
+    be drawn as one mesh, each with a look of its own.
+    `createFigureCrowd` (`figure/crowd.ts`) draws any number of one
+    character in three draw calls; each figure has its own place, pose
+    (a row of a table of poses taken from the figure itself), look, and
+    moment to blink. `variedLook` gives a look that differs a little
+    from a style's. A figure in a crowd is drawn by the same shaders
+    from the same numbers as one by itself. The basic form's materials
+    are also ones the lobby's own crowd takes
+    (`lobby/webgpu/crowdMaterial.ts`); the lobby does not offer figures
+    yet. `/dev/figure-avatar` shows both (`form=basic`, `crowd=60`), and
+    `tasks/avatar-figure`'s `compare` draws them (`--form basic`,
+    `--crowd 60`, and `--as-crowd` to check a crowd of one against the
+    figure alone).
 -   **From a picture to a character.** A style is fitted to a picture of
     the character with `tasks/avatar-figure`'s `compare` command. It
     draws the styled figure from fixed views and sets it beside the

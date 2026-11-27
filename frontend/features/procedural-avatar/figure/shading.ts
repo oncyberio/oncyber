@@ -19,6 +19,7 @@ import {
     fract,
     fwidth,
     int,
+    ivec2,
     length,
     max,
     min,
@@ -28,12 +29,14 @@ import {
     normalWorld,
     normalize,
     positionGeometry,
+    positionLocal,
     positionView,
     pow,
     saturate,
     select,
     sin,
     smoothstep,
+    texture,
     uniform,
     uniformArray,
     uv,
@@ -41,7 +44,9 @@ import {
     vec3,
     vec4,
 } from "three/tsl";
+import { markCrowdMaterial } from "../../lobby/webgpu/crowdMaterial";
 import { partId } from "./format";
+import { LOOK_CELLS, createFigureLooks, type FigureLooks } from "./looks";
 import {
     RIM_POINTS,
     type BrowLine,
@@ -52,11 +57,18 @@ import {
 import type { FigureStyle } from "./style";
 
 /**
- * How a figure is drawn. Nothing is looked up in an image: the skin is lit
- * from what is stored on its vertices, and every feature (irises, lid
+ * How a figure is drawn. Nothing is looked up in a picture: the skin is
+ * lit from what is stored on its vertices, and every feature (irises, lid
  * lines, brows, lips, underwear) is a shape worked out per pixel from
  * where the point is on the resting figure, so it stays sharp at any size
  * and follows the face as it moves.
+ *
+ * What a shader needs to know of a character comes two ways. Its shape
+ * (where its eyes, mouth, brows and ears are) is measured once on the
+ * figure and is the same for everything drawn with these materials. Its
+ * look (colours, line weights) is a row of a small table of numbers, see
+ * looks.ts, so that figures of one shape can be drawn together, each
+ * with a look of its own.
  *
  * The light is the same wherever the figure stands and whichever way it is
  * seen from: a broad key from over the viewer's left shoulder, a cool fill
@@ -113,8 +125,8 @@ const linear = (hex: string) => {
 };
 const v3 = (v: readonly number[]) => new THREE.Vector3(v[0], v[1], v[2]);
 
-/** A style and a figure's measurements as values a shader reads. */
-function figureUniforms(style: FigureStyle, frames: FigureFrames) {
+/** A figure's measurements as values a shader reads: its shape. */
+function shapeUniforms(style: FigureStyle, frames: FigureFrames) {
     const eyes = [frames.eyes.left, frames.eyes.right];
     const openings = [...eyes, frames.mouth];
     // Each rim, closed: its first point again at the end.
@@ -128,22 +140,8 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
             return new THREE.Vector3(k.along, k.up, k.width / 2);
         })
     );
-    const glints = [0, 1].map((i) => {
-        const g = style.eyes.glints[i];
-        return g
-            ? new THREE.Vector3(g[0] * frames.forwardZ, g[1], g[2])
-            : new THREE.Vector3(0, 0, 0);
-    });
-    const eye = frames.eyeWidth;
     const ears = [frames.ears?.left, frames.ears?.right];
-    const scatter = linear(style.skin.scatter);
-    scatter.divideScalar(Math.max(scatter.x, scatter.y, scatter.z, 1e-6));
     return {
-        tone: uniform(linear(style.skin.tone)),
-        scatter: uniform(scatter),
-        blush: uniform(linear(style.skin.blush)),
-        flush: uniform(style.skin.flush),
-        sheen: uniform(style.skin.sheen),
         cheek: uniform(v3(frames.cheek)),
         nose: uniform(v3(frames.nose)),
         leftSign: uniform(frames.leftSign),
@@ -153,34 +151,10 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
         across: uniformArray(openings.map((o) => v3(o.across))),
         ups: uniformArray(openings.map((o) => v3(o.up))),
         rims: uniformArray(rims),
-        white: uniform(linear(style.eyes.white)),
-        iris: uniform(linear(style.eyes.iris)),
-        irisLight: uniform(linear(style.eyes.irisLight)),
-        pupil: uniform(linear(style.eyes.pupil)),
         eyeSpan: uniform(frames.eyeWidth),
-        irisRadius: uniform(style.eyes.radius * frames.eyeWidth),
-        pupilSize: uniform(style.eyes.pupilSize),
-        glints: uniformArray(glints),
         // Where light that entered the eye from the key's side comes out
         // again, in the iris's own axes: across from it and below.
         irisGlow: uniform(new THREE.Vector2(0.55 * frames.forwardZ, -0.83)),
-        eyeShade: uniform(style.eyes.shade),
-        glintGlow: uniform(style.eyes.glow),
-        lid: uniform(linear(style.lids.colour)),
-        lidUpper: uniform(v3(style.lids.upper).multiplyScalar(eye)),
-        lidLower: uniform(v3(style.lids.lower).multiplyScalar(eye)),
-        wing: uniform(
-            new THREE.Vector2(
-                style.lids.wing[0] * eye,
-                style.lids.wing[1] * eye
-            )
-        ),
-        crease: uniform(
-            new THREE.Vector2(
-                style.lids.crease[0] * eye,
-                style.lids.crease[1] * eye
-            )
-        ),
         // Each ear's bowl; with no ears shaped, somewhere nothing is.
         earCentre: uniformArray(
             ears.map((e) => (e ? v3(e.centre) : new THREE.Vector3(0, -9, 0)))
@@ -199,8 +173,6 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
                 ? Math.min(1, (style.shape.ears?.cup ?? 0) / 0.3) * 0.5
                 : 0
         ),
-        brow: uniform(linear(style.brows.colour)),
-        browShadow: uniform(style.brows.shadow ?? 0.4),
         browKnots: uniformArray(knots),
         browCount: uniform(
             new THREE.Vector2(
@@ -216,20 +188,76 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
                 brows[1].height
             )
         ),
-        mouthLine: uniform(linear(style.mouth.line)),
-        mouthWidth: uniform(style.mouth.lineWidth * frames.mouthWidth),
         mouthSpan: uniform(frames.mouthWidth),
-        lip: uniform(linear(style.mouth.lip)),
-        lipTint: uniform(style.mouth.lipTint),
-        cloth: uniform(linear(style.underwear.colour)),
-        band: uniform(linear(style.underwear.band)),
-        waist: uniform(style.underwear.waist * frames.hips),
-        hem: uniform(style.underwear.hem * frames.hips),
         hipsZ: uniform(frames.hipsZ),
     };
 }
 
-type Uniforms = ReturnType<typeof figureUniforms>;
+/**
+ * One cell of a table kept in a texture, by its column and row: whole
+ * numbers, so nothing of how a texture is placed on a surface applies,
+ * and nothing about it changes from frame to frame.
+ */
+export function tableCell(table: Node, column: Node | number, row: Node): Node {
+    const cell = table.load(
+        ivec2(typeof column === "number" ? int(column) : column, row)
+    );
+    cell.updateMatrix = false;
+    cell.updateType = "none";
+    return cell;
+}
+
+/**
+ * A look as values a shader reads: one row of a table of looks. Each cell
+ * is fetched once wherever it is used, by its place in the table.
+ */
+function lookNodes(looks: FigureLooks, row: Node) {
+    const table = texture(looks.texture);
+    const cell = (column: Node | number): Node => tableCell(table, column, row);
+    const cells = LOOK_CELLS.map((_, column) => cell(column));
+    const triple = (name: (typeof LOOK_CELLS)[number][0]): Node =>
+        cells[LOOK_CELLS.findIndex((c) => c[0] === name)].xyz;
+    const number = (name: (typeof LOOK_CELLS)[number][1]): Node =>
+        cells[LOOK_CELLS.findIndex((c) => c[1] === name)].w;
+    const firstGlint = LOOK_CELLS.findIndex((c) => c[0] === "glint0");
+    return {
+        tone: triple("tone"),
+        scatter: triple("scatter"),
+        blush: triple("blush"),
+        flush: number("flush"),
+        sheen: number("sheen"),
+        white: triple("white"),
+        iris: triple("iris"),
+        irisLight: triple("irisLight"),
+        pupil: triple("pupil"),
+        irisRadius: number("irisRadius"),
+        pupilSize: number("pupilSize"),
+        // The catchlights follow one another in the table.
+        glints: {
+            element: (index: Node): Node =>
+                cell(int(firstGlint).add(index)).xyz,
+        },
+        eyeShade: number("eyeShade"),
+        glintGlow: number("glintGlow"),
+        lid: triple("lid"),
+        lidUpper: triple("lidUpper"),
+        lidLower: triple("lidLower"),
+        wing: vec2(number("wingLength"), number("wingLift")),
+        crease: vec2(number("creaseHeight"), number("creaseWidth")),
+        brow: triple("brow"),
+        browShadow: number("browShadow"),
+        mouthLine: triple("mouthLine"),
+        mouthWidth: number("mouthWidth"),
+        lip: triple("lip"),
+        lipTint: number("lipTint"),
+        cloth: triple("cloth"),
+        band: triple("band"),
+        waist: number("waist"),
+        hem: number("hem"),
+    };
+}
+
+type Uniforms = ReturnType<typeof shapeUniforms> & ReturnType<typeof lookNodes>;
 
 /** What the lighting needs to know about a pixel. */
 const surface = () => {
@@ -1014,12 +1042,38 @@ function inkColour(u: Uniforms) {
     })();
 }
 
+/** How the three materials come by what differs from figure to figure. */
+export interface FigureMaterialOptions {
+    /**
+     * The table of looks to draw from, where several figures share one.
+     * Left out, a table of its own is made, holding the style's look.
+     */
+    looks?: FigureLooks;
+    /**
+     * Which row of the table a figure is drawn with, as a whole number:
+     * the first if left out. Where many figures are drawn as one mesh, a
+     * value each instance has.
+     */
+    row?: Node;
+}
+
 /** The three materials a figure is drawn with. */
 export function createFigureMaterials(
     style: FigureStyle,
-    frames: FigureFrames
+    frames: FigureFrames,
+    options: FigureMaterialOptions = {}
 ) {
-    const u = figureUniforms(style, frames);
+    let { looks } = options;
+    let ownLooks = false;
+    if (!looks) {
+        looks = createFigureLooks(frames);
+        looks.set(0, style);
+        ownLooks = true;
+    }
+    const u: Uniforms = {
+        ...shapeUniforms(style, frames),
+        ...lookNodes(looks, options.row ?? int(0)),
+    };
     const body = new THREE.MeshBasicNodeMaterial();
     body.name = "figure-body";
     body.colorNode = bodyColour(u);
@@ -1049,5 +1103,88 @@ export function createFigureMaterials(
     ink.vertexNode = cameraProjectionMatrix.mul(
         vec4(positionView.mul(f32(1).sub(nearer.div(length(positionView)))), 1)
     );
-    return { body, face, ink, uniforms: u };
+    // Everything above is worked out from the resting figure and from
+    // where the surface ends up, however it got there: by its own bones,
+    // or posed by a crowd.
+    for (const material of [body, face, ink]) markCrowdMaterial(material);
+    return {
+        body,
+        face,
+        ink,
+        looks,
+        dispose() {
+            body.dispose();
+            face.dispose();
+            ink.dispose();
+            if (ownLooks) looks.dispose();
+        },
+    };
+}
+
+/**
+ * Run a step on a material's vertices before anything else moves them:
+ * before the mesh's own bones, and before any step added earlier. `name`
+ * tells the material apart from one without the step.
+ */
+export function beforePosition(
+    material: THREE.NodeMaterial,
+    name: string,
+    step: () => void
+) {
+    const base = material.setupPosition;
+    material.setupPosition = function (builder) {
+        step();
+        return base.call(this, builder);
+    };
+    const baseKey = material.customProgramCacheKey.bind(material);
+    material.customProgramCacheKey = () => `${name}-${baseKey()}`;
+}
+
+/** The names a figure in its basic form keeps its face's motion under. */
+export const FACE_MOTION = { blink: "faceBlink", talk: "faceTalk" } as const;
+
+/**
+ * Give a material of the basic form its face's motion: how far each
+ * vertex travels to shut the eyes and to open the mouth is stored on the
+ * mesh, and `blink` and `talk` say how much of each to take, 0 to 1.
+ */
+export function moveFace(
+    material: THREE.NodeMaterial,
+    face: { blink: Node; talk: Node }
+) {
+    beforePosition(material, "figure-face-motion", () => {
+        positionLocal.addAssign(
+            attribute(FACE_MOTION.blink, "vec3")
+                .mul(face.blink)
+                .add(attribute(FACE_MOTION.talk, "vec3").mul(face.talk))
+        );
+    });
+}
+
+/** How a blink goes, seconds: how often, how long shutting and opening. */
+const BLINK = { every: 3.7, shut: 0.07, open: 0.16 };
+
+/**
+ * How shut a figure's eyes are, 0 to 1, at a time in seconds. Each `seed`
+ * (0 to 1) blinks at a pace and a moment of its own.
+ */
+export function blinkAt(seconds: number, seed = 0) {
+    const cycle = BLINK.every * (0.75 + 0.5 * seed);
+    const into = (((seconds + seed * 20) % cycle) + cycle) % cycle;
+    const ease = (x: number) => {
+        const t = Math.min(1, Math.max(0, x));
+        return t * t * (3 - 2 * t);
+    };
+    return (
+        ease(into / BLINK.shut) * (1 - ease((into - BLINK.shut) / BLINK.open))
+    );
+}
+
+/** `blinkAt` in a shader: `seconds` and `seed` are values it reads. */
+export function blinkNode(seconds: Node, seed: Node): Node {
+    const cycle = seed.mul(0.5).add(0.75).mul(BLINK.every);
+    const into = seconds.add(seed.mul(20)).mod(cycle);
+    return smoothstep(0, BLINK.shut, into).mul(
+        f32(1).sub(smoothstep(BLINK.shut, BLINK.shut + BLINK.open, into))
+    );
 }

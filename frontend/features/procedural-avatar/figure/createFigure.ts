@@ -1,4 +1,5 @@
 import * as THREE from "three/webgpu";
+import { uniform } from "three/tsl";
 import {
     FIGURE_FORMAT,
     FIGURE_MATERIALS,
@@ -7,11 +8,14 @@ import {
 } from "./format";
 import {
     BROW_SHADOW_REACH,
+    FACE_MOTION,
     createFigureMaterials,
+    moveFace,
     type FigureFrames,
 } from "./shading";
 import {
     depthFinder,
+    expressionOf,
     eyeWarp,
     faceLevels,
     faceMarks,
@@ -36,7 +40,35 @@ import type { FigureStyle } from "./style";
 interface Vrm {
     scene: THREE.Object3D;
     humanoid: { getRawBoneNode(name: string): THREE.Object3D | null };
+    /** What plays the figure's expressions, where it has them. */
+    expressionManager?: unknown;
 }
+
+/**
+ * How much of its face a figure can move.
+ *
+ * - `full`: every expression the figure has (54: blinks, the mouth's
+ *   shapes for speech, moods, each eye and brow on its own), played as a
+ *   VRM's are. For a figure seen close: the visitor's own, a portrait.
+ * - `basic`: it blinks and opens its mouth, each by one number, and
+ *   nothing else. It carries no morph targets, so it costs less to make,
+ *   to keep and to draw, and many can be drawn as one mesh: for figures
+ *   in a world.
+ *
+ * Both are the same character, vertex for vertex, at rest.
+ */
+export type FigureForm = "full" | "basic";
+
+export interface StyleFigureOptions {
+    /** `full` if left out. */
+    form?: FigureForm;
+}
+
+/**
+ * The expressions the basic form keeps: each eye shut, which together are
+ * its blink, and an open mouth.
+ */
+const BASIC_MOTION = ["EYE_Close_L", "EYE_Close_R", "MTH_A"] as const;
 
 /** Where the brow's line runs on the figure's own strip, by default. */
 const OWN_BROW = [
@@ -57,9 +89,15 @@ const shapeOf = (mesh: THREE.Mesh): ShapeGeometry => ({
 /**
  * Make a loaded figure into a character: reshape its face, lay its brows
  * and replace its materials with ones that draw the style. The figure is
- * changed in place, so load one for each character.
+ * changed in place, so load one for each character. `options.form` says
+ * how much of its face it keeps able to move.
  */
-export function styleFigure(vrm: Vrm, style: FigureStyle) {
+export function styleFigure(
+    vrm: Vrm,
+    style: FigureStyle,
+    options: StyleFigureOptions = {}
+) {
+    const form: FigureForm = options.form ?? "full";
     const info = vrm.scene.userData.figure as FigureInfo | undefined;
     if (!info || info.format !== FIGURE_FORMAT)
         throw new Error("Not a figure this version can style");
@@ -74,14 +112,9 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
     });
     const { body, face, ink } = found;
     if (!body || !face || !ink) throw new Error("The figure is incomplete");
-    // Under the names the shaders read them by.
-    for (const mesh of [body, face, ink]) {
-        const { geometry } = mesh;
-        if (geometry.hasAttribute("_part"))
-            geometry.setAttribute("part", geometry.getAttribute("_part"));
-        if (geometry.hasAttribute("_bake"))
-            geometry.setAttribute("bake", geometry.getAttribute("_bake"));
-    }
+    for (const mesh of [body, face, ink]) packVertexData(mesh.geometry);
+    // The ink is drawn flat: which way its pieces face is never asked.
+    ink.geometry.deleteAttribute("normal");
 
     const facePosition = face.geometry.attributes.position;
     const facePart = face.geometry.getAttribute("part");
@@ -109,6 +142,19 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
     const shapes = [face, ink, body].map(shapeOf);
     for (const shape of shapes.slice(0, 2))
         wearMorphs(shape, names, style.shape.morphs, info.composites);
+    if (form === "basic")
+        // Of all its expressions the basic form keeps these, each as how
+        // far it moves every vertex; from here on only they are carried
+        // through the reshaping.
+        [face, ink].forEach((mesh, i) => {
+            const kept = BASIC_MOTION.map((name) =>
+                expressionOf(shapes[i], names, name, info.composites)
+            );
+            shapes[i].morphs = kept;
+            mesh.geometry.morphAttributes.position = kept.map(
+                (travel) => new THREE.BufferAttribute(travel, 3)
+            );
+        });
     const marksNow = () =>
         faceMarks(facePosition.array, isSkin, info.landmarks, forwardZ);
     /** An opening's first corner, and its width seen from the front. */
@@ -544,6 +590,40 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         hipsZ: hips ? restPlace(hips, vrm.scene, "z") : 0,
     };
     const materials = createFigureMaterials(style, measured);
+    // The basic form's face: its two motions leave the morph targets for
+    // a pair of plain vertex attributes, and nothing plays expressions.
+    let motion: FigureFace | null = null;
+    if (form === "basic") {
+        motion = { blink: uniform(0), talk: uniform(0) };
+        for (const mesh of [face, ink]) {
+            const { geometry } = mesh;
+            const [left, right, talk] = geometry.morphAttributes.position;
+            const travel = new THREE.InterleavedBuffer(
+                new Float32Array(talk.count * 6),
+                6
+            );
+            // A blink is both eyes shutting, as the full form plays it.
+            for (let i = 0; i < talk.count * 3; i++) {
+                const at = Math.floor(i / 3) * 6 + (i % 3);
+                travel.array[at] = left.array[i] + right.array[i];
+                travel.array[at + 3] = talk.array[i];
+            }
+            geometry.setAttribute(
+                FACE_MOTION.blink,
+                new THREE.InterleavedBufferAttribute(travel, 3, 0)
+            );
+            geometry.setAttribute(
+                FACE_MOTION.talk,
+                new THREE.InterleavedBufferAttribute(travel, 3, 3)
+            );
+            geometry.morphAttributes = {};
+            mesh.morphTargetInfluences = undefined;
+            mesh.morphTargetDictionary = undefined;
+        }
+        moveFace(materials.face, motion);
+        moveFace(materials.ink, motion);
+        vrm.expressionManager = undefined;
+    }
     for (const mesh of [body, face, ink])
         (mesh.material as THREE.Material).dispose();
     body.material = materials.body;
@@ -553,18 +633,64 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
     ink.renderOrder = 1;
     const count = (mesh: THREE.Mesh) => mesh.geometry.index.count / 3;
     return {
+        form,
+        style,
+        /** What the whole figure stands in: the scene it was loaded as. */
+        root: vrm.scene,
         frames: measured,
         marks: marksNow(),
         head: headNow,
         materials,
         meshes: { body, face, ink },
+        /**
+         * The basic form's face: how shut its eyes are and how open its
+         * mouth, each 0 to 1. Set their `value`. The full form has none:
+         * its expressions are played through the VRM it was loaded as.
+         */
+        face: motion,
         triangles: count(body) + count(face) + count(ink),
         dispose() {
-            materials.body.dispose();
-            materials.face.dispose();
-            materials.ink.dispose();
+            materials.dispose();
         },
     };
+}
+
+/** A figure made into a character. */
+export type StyledFigure = ReturnType<typeof styleFigure>;
+
+/** What moves a basic figure's face: values a shader reads. */
+export interface FigureFace {
+    blink: ReturnType<typeof uniform>;
+    talk: ReturnType<typeof uniform>;
+}
+
+/**
+ * Put what a figure's vertices know about themselves where the shaders
+ * read it: under the names `bake` and `part`, side by side in one buffer,
+ * so that it takes up one of the few vertex buffers a draw may use.
+ */
+function packVertexData(geometry: THREE.BufferGeometry) {
+    const bake = geometry.getAttribute("_bake");
+    const part = geometry.getAttribute("_part");
+    if (!bake && !part) return;
+    const kept = [bake, part].filter(Boolean);
+    const packed = new THREE.InterleavedBuffer(
+        new Uint8Array(kept[0].count * 4 * kept.length),
+        4 * kept.length
+    );
+    kept.forEach((attribute, at) => {
+        for (let v = 0; v < attribute.count; v++)
+            for (let k = 0; k < 4; k++)
+                packed.array[(v * kept.length + at) * 4 + k] = (
+                    attribute.array as Uint8Array
+                )[v * 4 + k];
+        geometry.setAttribute(
+            attribute === bake ? "bake" : "part",
+            new THREE.InterleavedBufferAttribute(packed, 4, at * 4, true)
+        );
+    });
+    geometry.deleteAttribute("_bake");
+    geometry.deleteAttribute("_part");
 }
 
 /** A figure's head, measured in eye widths. */

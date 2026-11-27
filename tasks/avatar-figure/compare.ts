@@ -38,7 +38,16 @@
  *
  * `--set eyes.radius=0.25` tries a change to the style without editing
  * it (repeatable; the value is JSON). `--expression happy` holds one.
- * `--views face,eye-right` draws only those.
+ * `--views face,eye-right` draws only those. `--stance wave` stands it
+ * in one of the stock stances instead of arms out.
+ *
+ * `--form basic` draws the figure's basic form (the one a world draws:
+ * it blinks and opens its mouth, and has no other expression) instead of
+ * the full one. `--crowd 60` also writes `crowd.png`: that many of the
+ * character drawn as one, each in a stance and a look of its own, and
+ * says how many draws it took. `--as-crowd` draws the views with the
+ * figure as a crowd of one instead of by itself: a check that a figure
+ * of a crowd is drawn as one alone is, the pictures being the same.
  *
  * `--hair other.vrm` tries another model's hair on: whatever of that model
  * is hair is made the size of this head and set on it, shaded plainly in
@@ -65,6 +74,8 @@ const ROOT = path.resolve(HERE, "../..");
 const FIGURE = path.join(ROOT, "frontend/public/models/figure_male.vrm");
 
 const EXPRESSIONS = ["blink", "aa", "happy", "Surprised", "angry", "sad"];
+/** What of them the basic form has. */
+const BASIC_EXPRESSIONS = ["blink", "aa"];
 
 const { values } = parseArgs({
     options: {
@@ -73,6 +84,10 @@ const { values } = parseArgs({
         eyes: { type: "string" },
         set: { type: "string", multiple: true, default: [] },
         expression: { type: "string" },
+        form: { type: "string", default: "full" },
+        stance: { type: "string" },
+        crowd: { type: "string" },
+        "as-crowd": { type: "boolean", default: false },
         views: { type: "string" },
         region: { type: "string" },
         hair: { type: "string" },
@@ -193,6 +208,12 @@ const styleQuery = () => {
     const query = new URLSearchParams({ style: values.style });
     for (const change of values.set) query.append("set", change);
     if (values.expression) query.set("expression", values.expression);
+    if (values.form !== "full") query.set("form", values.form);
+    if (values.stance) query.set("stance", values.stance);
+    if (values["as-crowd"]) {
+        query.set("form", "basic");
+        query.set("as", "crowd");
+    }
     if (hair) query.set("hair", values["hair-colour"]);
     query.set("span", String(faceSpan));
     return query;
@@ -240,7 +261,8 @@ try {
     }
     if (measured)
         console.log(
-            `  ${measured.style}: ${measured.triangles} triangles, eyes ` +
+            `  ${measured.style} (${measured.form}): ${measured.triangles} ` +
+                `triangles in ${measured.drawCalls} draws, eyes ` +
                 `${(measured.eyes.right.width * 1000).toFixed(1)} mm wide`
         );
     if (measured?.head) {
@@ -264,7 +286,13 @@ try {
         // A row of expressions, to see that the face still moves.
         const size = 420;
         const tiles: Tile[] = [];
-        for (const [i, expression] of EXPRESSIONS.entries()) {
+        // A crowd blinks by the clock, not when told to.
+        const expressions = values["as-crowd"]
+            ? ["aa"]
+            : values.form === "basic"
+            ? BASIC_EXPRESSIONS
+            : EXPRESSIONS;
+        for (const [i, expression] of expressions.entries()) {
             const query = styleQuery();
             query.set("view", "face");
             query.set("expression", expression);
@@ -275,8 +303,21 @@ try {
                 label: expression,
             });
         }
-        await layOut("expressions", size * EXPRESSIONS.length, size, tiles);
+        await layOut("expressions", size * expressions.length, size, tiles);
         console.log("  expressions.png");
+    }
+    if (values.crowd) {
+        // Many of the character at once, each a little different.
+        const query = styleQuery();
+        query.set("crowd", values.crowd);
+        // Late enough that some of them are caught blinking.
+        query.set("time", "2.95");
+        const drawn = await shoot("crowd", query, [1600, 1000]);
+        console.log(
+            `  crowd.png: ${drawn.figures} figures of ${drawn.trianglesEach} ` +
+                `triangles, ${drawn.drawnTriangles} triangles in ` +
+                `${drawn.drawCalls} draws`
+        );
     }
 
     if (reference && !values.eyes) {
