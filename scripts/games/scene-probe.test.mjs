@@ -145,7 +145,33 @@ test("a frame that draws nothing is not counted, and the heavy frame is the 95th
     const read = win.__oncyberScene.read();
     assert.equal(read.frames, 100);
     assert.deepEqual(read.triangles, { usual: 51, heavy: 96, peak: 100 });
-    assert.deepEqual(read.passes, [{ screen: true, triangles: 100, calls: 1 }]);
+    // The passes are a heavy frame's, not the one moment that drew most.
+    assert.deepEqual(read.passes, [{ screen: true, triangles: 96, calls: 1 }]);
+});
+
+test("two frames drawn in one are not what the passes describe", () => {
+    const win = fakeWindow();
+    installSceneProbe(win);
+    const gl = new win.WebGL2RenderingContext({});
+    const render = () => {
+        gl.bindFramebuffer(FRAMEBUFFER, {});
+        gl.drawArrays(TRIANGLES, 0, 3000);
+        gl.bindFramebuffer(FRAMEBUFFER, null);
+        gl.drawArrays(TRIANGLES, 0, 30000);
+    };
+    for (let i = 0; i < 100; i++) {
+        render();
+        // Now and then the game draws twice before the next frame.
+        if (i % 50 === 0) render();
+        win.nextFrame();
+    }
+    const read = win.__oncyberScene.read();
+    assert.equal(read.triangles.peak, 22000);
+    assert.equal(read.triangles.heavy, 11000);
+    assert.deepEqual(read.passes, [
+        { screen: false, triangles: 1000, calls: 1 },
+        { screen: true, triangles: 10000, calls: 1 },
+    ]);
 });
 
 test("the same framebuffer with another target is another pass", () => {

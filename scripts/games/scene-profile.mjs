@@ -49,6 +49,9 @@ export const FIELD = {
     startedOfOpened: 33,
 };
 
+/** Fewer rendered frames than this are too few to describe a game. */
+const MIN_FRAMES = 30;
+
 const MIB = 1024 * 1024;
 const mib = (bytes) =>
     bytes >= 10 * MIB
@@ -138,6 +141,12 @@ export function sceneProfile({
             sceneDraws: sceneDraws(drawn.passes),
             textures: drawn.textures,
         };
+        if (drawn.frames < MIN_FRAMES)
+            notes.push(
+                `only ${drawn.frames} frame${
+                    drawn.frames === 1 ? "" : "s"
+                } drew anything, so the frame numbers say little (a graphics device lost in this browser does that: PW_CHANNEL=chrome uses a real one)`
+            );
         if (drawn.unsized)
             notes.push(
                 `${drawn.unsized} draw(s) could not be sized (indirect or bundled), so the triangle counts are low`

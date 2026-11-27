@@ -12,8 +12,9 @@
 //   triangles  per frame, over every pass: usual (median), heavy (95th
 //              percentile) and peak
 //   calls      draw calls per frame, the same three
-//   passes     the heaviest frame's passes: where each drew (the screen or
-//              a texture), its triangles and calls
+//   passes     a heavy frame's passes (the frame at the 95th percentile,
+//              so not a moment when two frames were drawn at once): where
+//              each drew (the screen or a texture), its triangles and calls
 //   textures   live textures: how many, their estimated bytes on the card,
 //              the largest one's size
 //   canvas     the largest canvas drawn to: backing size and layout size
@@ -36,8 +37,7 @@ export function installSceneProbe(win) {
     const textureIds = new WeakMap();
     let nextTexture = 1,
         unsized = 0,
-        firstDrawAt = null,
-        peak = null;
+        firstDrawAt = null;
     const fresh = () => ({ triangles: 0, calls: 0, passes: [] });
     let frame = fresh();
     const forget =
@@ -396,22 +396,24 @@ export function installSceneProbe(win) {
         if (frame.calls) {
             if (firstDrawAt === null)
                 firstDrawAt = Math.round(win.performance?.now?.() ?? 0);
-            frames.push([frame.triangles, frame.calls]);
+            frames.push(frame);
             if (frames.length > MAX_FRAMES) frames.shift();
-            if (!peak || frame.triangles > peak.triangles) peak = frame;
         }
         frame = fresh();
         win.requestAnimationFrame?.(tick);
     };
     win.requestAnimationFrame?.(tick);
 
-    const spread = (column) => {
-        const sorted = frames.map((one) => one[column]).sort((a, b) => a - b);
-        const at = (q) =>
-            sorted.length
-                ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] // prettier-ignore
-                : 0;
-        return { usual: at(0.5), heavy: at(0.95), peak: at(1) };
+    const at = (sorted, q) =>
+        sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
+    const spread = (key) => {
+        const sorted = frames.map((one) => one[key]).sort((a, b) => a - b);
+        if (!sorted.length) return { usual: 0, heavy: 0, peak: 0 };
+        return {
+            usual: at(sorted, 0.5),
+            heavy: at(sorted, 0.95),
+            peak: sorted[sorted.length - 1],
+        };
     };
     win.__oncyberScene = {
         read() {
@@ -431,6 +433,12 @@ export function installSceneProbe(win) {
                 )
                     largest = { width: info.width, height: info.height };
             }
+            const heavy = frames.length
+                ? at(
+                      [...frames].sort((a, b) => a.triangles - b.triangles),
+                      0.95
+                  )
+                : null;
             let canvas = null;
             for (const one of canvases) {
                 if (canvas && one.width * one.height <= canvas.width * canvas.height) continue; // prettier-ignore
@@ -444,9 +452,9 @@ export function installSceneProbe(win) {
             return {
                 apis: [...apis],
                 frames: frames.length,
-                triangles: spread(0),
-                calls: spread(1),
-                passes: (peak?.passes ?? []).map((one) => ({ ...one })),
+                triangles: spread("triangles"),
+                calls: spread("calls"),
+                passes: (heavy?.passes ?? []).map((one) => ({ ...one })),
                 textures: {
                     count: [...textures.values()].filter((t) => t.width).length,
                     bytes: Math.round(bytes),

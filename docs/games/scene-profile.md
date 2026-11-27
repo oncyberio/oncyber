@@ -35,7 +35,7 @@ any device:
 | Bytes before the first frame | What the check's server sent before the game's `first-frame` (or its first draw), each file once        |
 | Wait for a first frame       | Those bytes at 9 Mbit/s, plus the time to the first frame in the check                                  |
 | Triangles and draw calls     | Counted on every WebGL and WebGPU draw call, per frame, over every pass: usual (median) and heavy (95%) |
-| Times the scene is drawn     | Passes in the heaviest frame that draw at least half of what the largest one does                       |
+| Times the scene is drawn     | Passes in a heavy frame that draw at least half of what the largest one does                            |
 | Textures                     | Live textures, their estimated bytes on the card, the largest one                                       |
 | The phone's canvas           | Its backing size against its layout size, on the phone visit of the device check                        |
 

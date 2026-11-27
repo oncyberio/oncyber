@@ -188,6 +188,13 @@ test("what could not be measured is said, not guessed", () => {
         firstFrameMs: 1,
     });
     assert.match(indirect.notes[0], /3 draw\(s\) could not be sized/);
+
+    const lost = sceneProfile({
+        drawn: drawn(5000, { frames: 3 }),
+        before: small,
+        firstFrameMs: 1,
+    });
+    assert.match(lost.notes[0], /only 3 frames drew anything/);
 });
 
 test("the served log: each file once, up to a moment", () => {
