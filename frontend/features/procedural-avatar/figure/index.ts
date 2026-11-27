@@ -37,3 +37,10 @@ export { variedLook } from "./vary";
 export type { FigureInfo, FigureLandmarks, FigurePart } from "./format";
 export { HAIR_FILES, hairUrl, type HairFile } from "./hairFiles";
 export { wearHair } from "./wearHair";
+export {
+    DEFAULT_OUTFIT,
+    OUTFIT_FILES,
+    outfitUrl,
+    type OutfitFile,
+} from "./outfitFiles";
+export { wearClothes } from "./wearClothes";

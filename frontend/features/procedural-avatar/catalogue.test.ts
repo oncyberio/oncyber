@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { DEFAULT_HAIR, HAIR_FILES } from "./figure/hairFiles";
+import { DEFAULT_OUTFIT } from "./figure/outfitFiles";
 import {
     PROCEDURAL_AVATARS,
     figureAvatarOf,
@@ -63,6 +64,7 @@ test("a figure avatar's URL carries its variation", () => {
         style: "stagehand",
         look: 7,
         hair: figureHairFor(7),
+        outfit: DEFAULT_OUTFIT,
     });
     expect(
         figureAvatarOf("https://oncyber.io/avatars/procedural/figure?look=3")
@@ -71,6 +73,7 @@ test("a figure avatar's URL carries its variation", () => {
         style: "stagehand",
         look: 3,
         hair: figureHairFor(3),
+        outfit: DEFAULT_OUTFIT,
     });
     for (const look of ["-1", "1.5", "x", "100000"])
         expect(
@@ -104,5 +107,17 @@ test("a figure's hair: the owner's cut by default, others for variations", () =>
     );
     expect(figureAvatarUrl("figure", 0, "../x")).toBe(
         "/avatars/procedural/figure"
+    );
+});
+
+test("a figure wears the default outfit unless its URL names another", () => {
+    expect(figureAvatarOf("/avatars/procedural/figure")?.outfit).toBe(
+        DEFAULT_OUTFIT
+    );
+    expect(
+        figureAvatarOf(figureAvatarUrl("figure", 0, undefined, "none"))?.outfit
+    ).toBeNull();
+    expect(figureAvatarOf("/avatars/procedural/figure?outfit=x")?.outfit).toBe(
+        DEFAULT_OUTFIT
     );
 });

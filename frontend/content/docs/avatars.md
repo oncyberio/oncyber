@@ -195,15 +195,20 @@ view)`): anything costing under a quarter of a pixel is left out, so a
     running locally: `mode=mesh` (default, with `coarse`) or `mode=trace`
     (with `scale`), plus `naked=1`, `zoom=face` and `yaw`.
 
-The lobby offers a figure as the avatar "Figure" (the Stagehand's face, with
-hair, no clothes yet), built in its basic form so the lobby can draw many as a
-crowd. Its URL names a variation of its look and its hair,
-`/avatars/procedural/figure?look=7&hair=bob` (`figureAvatarUrl` in
-`catalogue.ts`), so everyone who sees it builds the same one. Hair is a small
-prebuilt file per cut (`figure/hairFiles.ts`), taken from another model by
-`tasks/avatar-figure`'s `npm run hair`: no images, one mesh on the head bone,
-tinted with the look's hair colour. The figure as drawn wears Sakurada's cut;
-its variations take the others. To see many at once when running locally, open the lobby with
+The lobby offers a figure as the avatar "Figure" (the Stagehand: shirt and
+tie, wide trousers, headphones round the neck), built in its basic form so
+the lobby can draw many as a crowd. Its URL names a variation of its look,
+its hair and its outfit, `/avatars/procedural/figure?look=7&hair=bob`
+(`figureAvatarUrl` in `catalogue.ts`), so everyone who sees it builds the same
+one. Hair and outfits are small prebuilt files (`figure/hairFiles.ts`,
+`figure/outfitFiles.ts`) made by `tasks/avatar-figure`: `npm run hair` takes a
+cut from another model; `npm run clothes` cuts every garment of an outfit to
+the figure's own body (a distance field of its skin, blurred the way cloth
+lies over it), binds it to the body's bones and merges the outfit into one
+mesh, listing the body triangles it covers so the wearer leaves them out. No
+images: colour and creases are in the mesh. The figure as drawn wears
+Sakurada's cut; its variations take the others.
+To see many at once when running locally, open the lobby with
 `?crowd=40`: a staged crowd, seen by you only, wearing a dozen variations.
 `?wear=figure` wears it for that visit without saving it.
 

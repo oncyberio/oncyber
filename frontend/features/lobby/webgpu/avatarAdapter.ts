@@ -428,8 +428,12 @@ async function buildFigureAvatar(
         style,
         { form: "basic" }
     );
-    // Hair rides the head bone in one draw, so the crowd still bakes it.
-    await figures.wearHair(figure, spec.hair, style.brows.colour);
+    // Hair rides the head bone and the clothes the body's bones, one draw
+    // each, so the crowd still bakes them.
+    await Promise.all([
+        figures.wearHair(figure, spec.hair, style.brows.colour),
+        figures.wearClothes(figure, spec.outfit),
+    ]);
     // Blink on a clock of its own, so a crowd doesn't blink as one.
     const seed = (spec.look * 0.618) % 1;
     let clock = 0;

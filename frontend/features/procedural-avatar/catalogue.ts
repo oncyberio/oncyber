@@ -7,6 +7,7 @@
  * builds the avatar instead.
  */
 import { DEFAULT_HAIR, HAIR_FILES } from "./figure/hairFiles";
+import { DEFAULT_OUTFIT, OUTFIT_FILES } from "./figure/outfitFiles";
 
 export interface ProceduralAvatarEntry {
     id: string;
@@ -30,7 +31,7 @@ export const PROCEDURAL_AVATARS: ProceduralAvatarEntry[] = [
         url: `${PATH}figure`,
         image: "/lobby/avatars/figure.png",
         description:
-            "The Stagehand's face on a bare figure, with hair. No clothes yet.",
+            "The Stagehand: shirt and tie, wide trousers, headphones round the neck.",
         figure: "stagehand",
     },
     {
@@ -82,24 +83,33 @@ export function figureHairFor(look: number) {
 /**
  * A figure avatar's URL, as a variation of its style: 0 is the style as
  * drawn, any other whole number a look a little different from it (see
- * `figure/vary.ts`). `hair` names a cut (`figure/hairFiles.ts`), or
- * "none"; left out, the look's own (`figureHairFor`). The URL is the whole
+ * `figure/vary.ts`). `hair` names a cut (`figure/hairFiles.ts`) and
+ * `outfit` the clothes (`figure/outfitFiles.ts`), either "none"; left
+ * out, the look's own hair and the default outfit. The URL is the whole
  * description, so everyone who sees the avatar builds the same one.
  */
-export function figureAvatarUrl(id: string, look = 0, hair?: string) {
+export function figureAvatarUrl(
+    id: string,
+    look = 0,
+    hair?: string,
+    outfit?: string
+) {
     const entry = PROCEDURAL_AVATARS.find((item) => item.id === id);
     if (!entry?.figure) return null;
     const n = Math.floor(look);
     const query = new URLSearchParams();
     if (n > 0 && n <= FIGURE_LOOKS) query.set("look", String(n));
     if (hair && (hair === "none" || HAIR_FILES[hair])) query.set("hair", hair);
+    if (outfit && (outfit === "none" || OUTFIT_FILES[outfit]))
+        query.set("outfit", outfit);
     const text = query.toString();
     return text ? `${entry.url}?${text}` : entry.url;
 }
 
 /**
  * What a URL says to build, if it stands for a figure avatar: the style,
- * the variation of it and the hair (null for none). Null for any other URL.
+ * the variation of it, the hair and the outfit (each null for none). Null
+ * for any other URL.
  */
 export function figureAvatarOf(url: string | undefined | null) {
     const id = proceduralAvatarId(url);
@@ -107,11 +117,13 @@ export function figureAvatarOf(url: string | undefined | null) {
     if (!entry?.figure) return null;
     let look = 0;
     let named: string | null = null;
+    let dressed: string | null = null;
     try {
         const query = new URL(url, "https://oncyber.invalid").searchParams;
         const n = Number(query.get("look"));
         if (Number.isInteger(n) && n > 0 && n <= FIGURE_LOOKS) look = n;
         named = query.get("hair");
+        dressed = query.get("outfit");
     } catch {
         look = 0;
     }
@@ -121,5 +133,11 @@ export function figureAvatarOf(url: string | undefined | null) {
             : named && HAIR_FILES[named]
             ? named
             : figureHairFor(look);
-    return { id: entry.id, style: entry.figure, look, hair };
+    const outfit =
+        dressed === "none"
+            ? null
+            : dressed && OUTFIT_FILES[dressed]
+            ? dressed
+            : DEFAULT_OUTFIT;
+    return { id: entry.id, style: entry.figure, look, hair, outfit };
 }

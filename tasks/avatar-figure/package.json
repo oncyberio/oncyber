@@ -2,12 +2,13 @@
     "name": "avatar-figure",
     "version": "1.0.0",
     "private": true,
-    "description": "Builds a figure (a bare, texture-free humanoid that characters are made from) out of a base model, and sets a styled figure beside a picture of its character",
+    "description": "Builds a figure (a bare, texture-free humanoid that characters are made from) out of a base model, the hair and clothes it wears, and sets a styled figure beside a picture of its character",
     "type": "module",
     "scripts": {
         "build": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON build.ts",
         "compare": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON compare.ts",
-        "hair": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON hair.ts"
+        "hair": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON hair.ts",
+        "clothes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON clothes.ts"
     },
     "engines": {
         "node": ">=22.18"
