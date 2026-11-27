@@ -26,6 +26,11 @@ oncyber link my-game --clear # give the name up; /games/my-game stays
 oncyber unpublish my-game    # take it down
 ```
 
+The check also prints the scene profile, and `publish` repeats its
+warnings after the link: what the build makes a visitor wait for and draw,
+with what to change ([scene-profile.md](scene-profile.md)). They do not stop
+a publish.
+
 `ONCYBER_BASE_URL` chooses the site (default `https://oncyber.io`;
 `http://localhost:13000` for a development server). `ONCYBER_SESSION_TOKEN`
 stands in for a saved login.

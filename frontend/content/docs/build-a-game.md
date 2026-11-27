@@ -66,6 +66,12 @@ Know before you start:
     `pnpm games:publish <id>`, `oncyber publish`.
 -   The game's `vite.config.js` is `oncyberGame()` from `oncyber/vite`, which
     maps the SDK and the kits.
+-   A passing check also prints a scene profile: what arrives before the
+    first frame, the triangles and draw calls a frame draws, how many times
+    it draws the scene, its textures, the phone's canvas. A number over its
+    budget is a `warning SCENE_...` line that says what to change
+    (`docs/games/scene-profile.md`). Warnings do not block a publish; work
+    them down anyway, because each budget is where real visits get slow.
 -   Publishing is not the end. The check ran on your machine;
     `oncyber health` says how the game starts and runs on visitors'
     machines, for each kind of device, and what that asks for, as findings

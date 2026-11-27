@@ -44,6 +44,7 @@ import { listingStage } from "./listing.mjs";
 import { networkStage, REPORT_PATH } from "./networkCheck.mjs";
 import { checkHealth, healthHarness } from "./health-stage.mjs";
 import { checkCredits } from "./credits.mjs";
+import { SCENE_PROBE, describeScene, readScene, sceneProfile, servedLog } from "./scene-profile.mjs";
 import { hostedReleaseStage } from "./releases/stage.mjs";
 import { publishRelease, releaseTarget } from "./releases/publish.mjs";
 import { RELEASE_REPORTS } from "./releases/storage.mjs";
@@ -79,6 +80,8 @@ const contract = contractFindings({ root, id, manifest, source, ...(outside ? { 
 const results = resultsPlan(manifest);
 // The hosts the game declared: written into the build, enforced and watched below.
 let network;
+// What the check's server sent and when: what arrives before the first frame (scene-profile.mjs).
+const served = servedLog();
 
 function fail(message) {
     console.error(`games: ${message}`);
@@ -187,7 +190,9 @@ function serve() {
             return res.end();
         }
         res.writeHead(200, { "content-type": TYPES[extname(path)] ?? "application/octet-stream", "access-control-allow-origin": "*", ...network.headers });
-        res.end(readFileSync(path));
+        const bytes = readFileSync(path);
+        served.add(relative(out, path).split(sep).join("/"), bytes.length);
+        res.end(bytes);
     });
     return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
 }
@@ -212,7 +217,7 @@ async function check() {
     // Every browser the check opens is watched for requests to hosts the game didn't declare (docs/games/trust.md).
     const launch = async () => network.patrol(await chromium.launch({ headless: !headed, channel: process.env.PW_CHANNEL || undefined, args: ["--enable-unsafe-webgpu", "--ignore-gpu-blocklist"] }));
     const browser = await launch();
-    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null, health = { findings: [], summary: null };
+    let report = null, gameError = null, readyAt = null, greeted = null, social = null, keys = null, safeArea = null, reported = null, devices = null, loading = null, locomotion = null, ui = { screens: [], warnings: [] }, listing = null, health = { findings: [], summary: null }, drawn = null, firstFrame = null;
     const started = Date.now();
     try {
         const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -222,6 +227,8 @@ async function check() {
             pageErrors.push(String(e.message).slice(0, 500));
         });
         network.watch(page, server.address().port);
+        // Counts what the game draws, from before it loads (scene-profile.mjs).
+        await page.addInitScript(SCENE_PROBE);
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
         // Software rendering (no GPU) can need longer: GAMES_CHECK_TIMEOUT_S.
         const deadline = Date.now() + (Number(process.env.GAMES_CHECK_TIMEOUT_S) || 180) * 1000;
@@ -234,6 +241,9 @@ async function check() {
             await page.waitForTimeout(5000);
             report = { status: "passed", backend: "unknown", bootMs: Math.round(readyAt), stages: [{ stage: "boot", status: "passed", ms: Math.round(readyAt) }], frames: null, inspect: null, bootOnly: true };
         }
+        // The scene profile's reading, before the stages below resize and pause the game.
+        drawn = await readScene(page);
+        firstFrame = await page.evaluate(() => ({ at: window.__loading?.firstFrame?.at ?? null, origin: performance.timeOrigin })).catch(() => null);
         greeted = await page.evaluate(() => window.__contract ?? null);
         ui = await scanUiKit(page);
         mkdirSync(join(source, ".check"), { recursive: true });
@@ -284,6 +294,10 @@ async function check() {
         await browser.close();
         server.close();
     }
+    // The scene profile (docs/games/scene-profile.md): what arrives before the first frame and what a frame draws, with a warning for each number over its budget.
+    const firstFrameMs = firstFrame?.at ?? (drawn?.firstDrawAt != null && firstFrame ? Math.round(drawn.timeOrigin + drawn.firstDrawAt - firstFrame.origin) : null);
+    const scene = sceneProfile({ drawn, phone: devices?.report?.profiles?.phone?.drawn ?? null, before: firstFrameMs == null ? null : served.before(firstFrame.origin + firstFrameMs), firstFrameMs, budgetMs: manifest.loading?.firstFrameBudgetMs });
+    if (devices?.report?.profiles?.phone) delete devices.report.profiles.phone.drawn;
     const entry = enterFindings({ id, contract: greeted, visit: contract.visit, report });
     scan.findings.push(...entry.findings);
     const warnings = [...contract.warnings, ...entry.warnings];
@@ -328,8 +342,9 @@ async function check() {
         social,
         safeArea,
         party: { status: party.status, ms: party.ms, ...party.detail },
-        // Advice that never blocks: menu screens that don't use the UI kit.
-        warnings: ui.warnings,
+        // Advice that never blocks: menu screens that don't use the UI kit, and what the scene costs.
+        warnings: [...ui.warnings, ...scene.warnings],
+        scene: { ...scene, warnings: undefined },
         ui: { screens: ui.screens },
         // Console errors are reported, not blocking: games load avatars and
         // other files from the network, which a check can't vouch for.
@@ -360,6 +375,7 @@ async function check() {
     console.log(`${id}: ${result.status}` + (f ? ` · ${report.backend} · boot ${report.bootMs} ms · frames median ${f.medianMs} ms, p95 ${f.p95Ms} ms` : report ? ` · boot only, ready in ${report.bootMs} ms` : ""));
     if (loading) console.log(`  loading: ${loading.status}` + (loading.firstFrameMs != null ? ` · first frame ${loading.firstFrameMs} ms (budget ${loading.firstFrameBudgetMs} ms) · pause ${loading.pause.mode}: menu ${loading.pause.menu}, hidden ${loading.pause.hidden}` : ""));
     for (const note of loading?.notes ?? []) console.log(`  loading: ${note}`);
+    for (const line of describeScene(scene, { warnings: false })) console.log(`  ${line}`);
     for (const line of describeSafeArea(safeArea)) console.log(`  ${line}`);
     if (saved.keys) console.log(`  saved data: ${saved.status} · ${saved.keys} key(s), ${saved.runs.length} boots`);
     console.log(`  ${describeProcess(result.process)}`);

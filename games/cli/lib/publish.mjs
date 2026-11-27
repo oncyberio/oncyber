@@ -111,6 +111,23 @@ export function readCheck({ reports }, release) {
 }
 
 /**
+ * What the last check advised and did not block on: the scene profile's
+ * numbers over budget (docs/games/scene-profile.md), menus off the UI kit.
+ */
+export function readAdvice({ reports }) {
+    try {
+        const report = JSON.parse(
+            readFileSync(join(reports, "check.json"), "utf8")
+        );
+        return (report.warnings ?? []).filter(
+            (one) => one && typeof one.code === "string"
+        );
+    } catch {
+        return [];
+    }
+}
+
+/**
  * Why the site would not take a file at `path`, or null: the contract's
  * rule for a release's paths, said before anything is sent.
  */

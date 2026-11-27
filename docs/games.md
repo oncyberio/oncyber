@@ -540,6 +540,10 @@ lifecycle stages and frame times from real visits reach `/dev/games`; and
 `GAMES_DISABLED` pauses a game or one release. Rules, what is collected and
 why: [games/field-health.md](games/field-health.md).
 
+Before any visit, the check's scene profile says what a build makes a
+visitor wait for and draw, and warns where Oncyber's own numbers say visits
+get slow: [games/scene-profile.md](games/scene-profile.md).
+
 ## Not built yet
 
 -   Live editing (the swap in `plans/live-swap-prototype/`) inside this host.

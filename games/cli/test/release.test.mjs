@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { describeRelease, readCheck } from "../lib/publish.mjs";
+import { describeRelease, readAdvice, readCheck } from "../lib/publish.mjs";
 import { readProject } from "../lib/project.mjs";
 import { standinReleaseId } from "./standin.mjs";
 
@@ -158,6 +158,29 @@ test("the game is the current folder; its id is package.json's, else the folder'
             JSON.stringify({ oncyber: { id: "No" } })
         );
         assert.throws(() => readProject(game), /not a game id/);
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test("what the check advised is read back for the publish to repeat", () => {
+    const dir = mkdtempSync(join(tmpdir(), "oncyber-cli-"));
+    try {
+        // Never checked, or a report from before there was advice: nothing.
+        assert.deepEqual(readAdvice({ reports: dir }), []);
+        writeFileSync(join(dir, "check.json"), JSON.stringify({}));
+        assert.deepEqual(readAdvice({ reports: dir }), []);
+        const warnings = [
+            {
+                code: "SCENE_TRIANGLES_PHONE",
+                message: "a frame draws 240,000 triangles.",
+            },
+        ];
+        writeFileSync(
+            join(dir, "check.json"),
+            JSON.stringify({ status: "passed", warnings: [...warnings, null] })
+        );
+        assert.deepEqual(readAdvice({ reports: dir }), warnings);
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }

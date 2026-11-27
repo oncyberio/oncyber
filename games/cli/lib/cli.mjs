@@ -19,6 +19,7 @@ import {
     linkGame,
     listGames,
     publishGame,
+    readAdvice,
     unpublishGame,
 } from "./publish.mjs";
 import { PLAYWRIGHT_MISSING, hasPlaywright, npmRun, runCheck } from "./run.mjs";
@@ -121,6 +122,16 @@ const commands = {
             })`
         );
         console.log(published.link);
+        const advice = readAdvice(project);
+        if (advice.length) {
+            console.log(
+                `It is live as it is. ${advice.length} thing${
+                    advice.length === 1 ? "" : "s"
+                } the check measured would make it start or run better; fix and publish again:`
+            );
+            for (const one of advice)
+                console.log(`  ${one.code}: ${one.message}`);
+        }
         console.log(
             `Once people have played: \`oncyber health ${project.id}\` says how it starts and runs for them, by device.`
         );

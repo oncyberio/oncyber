@@ -222,6 +222,12 @@ nothing more is required: if a person finds something the check let through,
 the fix is a new check (see "Corrections" in [AGENTS.md](../../AGENTS.md)),
 not a longer list here.
 
+A passing check also prints the scene profile: what arrives before the
+first frame, what a frame draws, and a `warning SCENE_...` line for each
+number over its budget, with what to change
+([scene-profile.md](scene-profile.md)). Warnings never fail the check. Work
+them down all the same: each budget is where real visits get slow.
+
 The stages, in the order they run. `pnpm games:score <id>` prints them as
 passed, failed or skipped from the last report (`check.json`). A stage a
 game has not asked for (no `departure`, `locomotion` or `saved` in

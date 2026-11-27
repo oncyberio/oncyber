@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SCENE_PROBE, readScene } from "./scene-profile.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const PHONE = "Pixel 7";
@@ -212,6 +213,8 @@ async function runProfile({
             : { viewport: { width: 1280, height: 720 } }
     );
     if (!phone) await context.addInitScript(FAKE_PAD);
+    // What the phone's canvas is drawn at (scene-profile.mjs).
+    else await context.addInitScript(SCENE_PROBE);
     const page = await context.newPage();
     const errors = [],
         pageErrors = [],
@@ -315,7 +318,8 @@ async function runProfile({
     let report = null,
         gameError = null,
         readyAt = null,
-        controls = null;
+        controls = null,
+        drawn = null;
     const started = Date.now();
     try {
         // The check page of games.mjs, staging the scenario's visit for ?check=<profile>.
@@ -364,6 +368,7 @@ async function runProfile({
             path: join(source, `.check/screenshot-${profile}.png`),
         });
         await touch.clear().catch(() => {});
+        if (phone) drawn = await readScene(page);
     } finally {
         await context.close();
     }
@@ -497,6 +502,7 @@ async function runProfile({
                 : undefined,
         consoleErrors: [...pageErrors, ...errors].slice(0, 10),
         run: report,
+        ...(drawn ? { drawn } : {}),
     };
 }
 
