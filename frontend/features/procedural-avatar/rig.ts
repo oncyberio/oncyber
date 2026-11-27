@@ -378,15 +378,26 @@ export class Rig {
         toes: number;
     }[];
 
-    constructor(readonly body: Proportions = BODY, extraBones: BoneDef[] = []) {
+    /**
+     * `pose` sets the pose shapes are authored in: by default the arms
+     * hang lowered and a little bent; `{ armDrop: 0, elbowBend: 0 }` is the
+     * T-pose itself, where the skin matrices are all identity.
+     */
+    constructor(
+        readonly body: Proportions = BODY,
+        extraBones: BoneDef[] = [],
+        pose: { armDrop?: number; elbowBend?: number } = {}
+    ) {
+        const armDrop = pose.armDrop ?? ARM_DROP;
+        const elbowBend = pose.elbowBend ?? ELBOW_BEND;
         this.bones = buildBones(body);
         this.bones.push(...extraBones);
         const BODY = body;
         this.bones.forEach((bone, i) => (this.index[bone.name] = i));
         const rad = Math.PI / 180;
         for (const [side, s] of SIDES) {
-            this.pose[`${side}UpperArm`] = [2, -ARM_DROP * s * rad];
-            this.pose[`${side}LowerArm`] = [1, -ELBOW_BEND * s * rad];
+            this.pose[`${side}UpperArm`] = [2, -armDrop * s * rad];
+            this.pose[`${side}LowerArm`] = [1, -elbowBend * s * rad];
         }
         this.bones.forEach((bone, i) => {
             const parent = bone.parent === null ? -1 : this.index[bone.parent];

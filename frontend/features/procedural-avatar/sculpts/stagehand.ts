@@ -17,7 +17,9 @@ import {
     symmetric,
     torus,
 } from "../kernel/sdf";
-import type { Sculpt, SculptHairSegment } from "./types";
+import { buildHumanoid } from "../humanoid/build";
+import type { BuildOptions, HumanoidSpec } from "../humanoid/spec";
+import type { SculptHairSegment } from "./types";
 
 /**
  * The Stagehand, sculpted whole in a T-pose: every shape is placed from
@@ -38,52 +40,57 @@ const Z0 = 0.005;
  */
 const h = (x: number, y: number, z: number): Vec3 => [x, EYE_Y + y, Z0 + z];
 
-// The eyeball is far larger than a real one, so what shows of it between
-// the lids is nearly flat, as drawn eyes are.
-// Its centre is the middle of the line between the eye's corners; the
-// upper lid's edge is that line, tilted up a little towards the temple.
-const EYE: Vec3 = h(0.0363, 0.0015, 0.0565);
-const EYE_RADIUS = 0.034;
-const LID_RADIUS = 0.0353;
-const UPPER_LID = 0;
-const LOWER_LID = -17;
-const EYE_TILT = 15;
-/** About where the eye's opening is, for the box its layer is traced in. */
-const SOCKET: Vec3 = h(0.0363, -0.003, 0.09);
-const MOUTH_Y = -0.0662;
-
-/** The eye's outline seen from the front: an ellipse on the corner line. */
-// The lid closes its upper half: what shows is a D lying on its back, a
-// flat top and a deep round bottom.
-const EYE_OPENING = { x: 0.0363, y: 0.0015, rx: 0.019, ry: 0.0142 };
+// The eye is drawn, not modelled: a flat white surface set just behind an
+// almond cut in the face, with iris, pupil and lid shadow drawn on it.
+const EYE_SHAPE = {
+    /** The middle of the line between its corners, from the eye line. */
+    x: 0.0363,
+    y: 0.0015,
+    /** Degrees the outer corner sits above the inner one. */
+    tilt: 14,
+    halfWidth: 0.0178,
+    /** How far the upper edge bows above that line, and the lower drops. */
+    rise: 0.003,
+    drop: 0.0128,
+    /** How far behind the lid's edge the surface of the eye lies. */
+    recess: 0.0032,
+    /** The iris, along that line towards the temple, and up from it. */
+    iris: { u: -0.005, v: -0.0036, radius: 0.0077 },
+};
+const EYE_ACROSS: [number, number] = [
+    Math.cos((EYE_SHAPE.tilt * Math.PI) / 180),
+    Math.sin((EYE_SHAPE.tilt * Math.PI) / 180),
+];
+/** An arc through both corners that bows out by `sagitta` in the middle. */
+const eyeArc = (sagitta: number) => {
+    const w = EYE_SHAPE.halfWidth;
+    const radius = (w * w + sagitta * sagitta) / (2 * sagitta);
+    return { radius, offset: radius - sagitta };
+};
+const EYE_UPPER = eyeArc(EYE_SHAPE.rise);
+const EYE_LOWER = eyeArc(EYE_SHAPE.drop);
 
 /**
- * The almond the eye shows through, cut into the face; `grow` widens it.
- * The eyeball is kept to the same shape, so none of it shows anywhere else.
+ * The almond the eye shows through: what lies inside both arcs. `z` is the
+ * depth of the skin there; `grow` widens it.
  */
-const opening = (grow: number) =>
-    ellipsoid(
-        h(EYE_OPENING.x, EYE_OPENING.y, 0.1),
-        [EYE_OPENING.rx + grow, EYE_OPENING.ry + grow, 0.02 + grow],
-        euler(0, 0, (EYE_TILT * Math.PI) / 180)
-    );
-
-/** The plane an eyelid's edge lies in (see `lidFrame` in the skin field). */
-function lid(upper: boolean) {
-    const tilt = euler(0, 0, (EYE_TILT * Math.PI) / 180);
-    const a = ((upper ? UPPER_LID : LOWER_LID) * Math.PI) / 180;
-    const turn = (v: Vec3): Vec3 => [
-        tilt[0] * v[0] + tilt[1] * v[1] + tilt[2] * v[2],
-        tilt[3] * v[0] + tilt[4] * v[1] + tilt[5] * v[2],
-        tilt[6] * v[0] + tilt[7] * v[1] + tilt[8] * v[2],
-    ];
-    const sign = upper ? 1 : -1;
-    return {
-        centre: EYE,
-        across: turn([1, 0, 0]),
-        normal: turn([0, -Math.cos(a) * sign, Math.sin(a) * sign]),
-    };
+function eyeOutline(z: number, grow: number): Field {
+    const ex = EYE_SHAPE.x;
+    const ey = EYE_Y + EYE_SHAPE.y;
+    const [ax, ay] = EYE_ACROSS;
+    // "Up" in the eye's own tilt is (-ay, ax).
+    const disc = (offset: number, radius: number) =>
+        ellipsoid(
+            [ex + ay * offset, ey - ax * offset, z],
+            // Deep, so the outline is the same at whatever depth the
+            // skin crosses it.
+            [radius + grow, radius + grow, 0.05]
+        );
+    return field()
+        .add(disc(-EYE_LOWER.offset, EYE_LOWER.radius))
+        .clip(disc(EYE_UPPER.offset, EYE_UPPER.radius));
 }
+const MOUTH_Y = -0.0662;
 
 /** Where a ray down the z axis first meets a shape. */
 function surfaceZ(shape: Shape, x: number, y: number) {
@@ -119,7 +126,30 @@ function headBase(): Field {
     return out;
 }
 
-function head(): { shape: Shape; mouthZ: number } {
+/** Where the flat of the eye sits, fitted to the face it is cut into. */
+function eyePlacement(base: Shape) {
+    const w = EYE_SHAPE.halfWidth;
+    const ex = EYE_SHAPE.x;
+    const ey = EYE_Y + EYE_SHAPE.y;
+    const [ax, ay] = EYE_ACROSS;
+    // The skin falls away towards the temple; the eye turns with it.
+    const inner = surfaceZ(base, ex - ax * w, ey - ay * w);
+    const outer = surfaceZ(base, ex + ax * w, ey + ay * w);
+    const skinZ = (inner + outer) / 2;
+    const turn = Math.atan2(inner - outer, 2 * w * ax);
+    // Whichever way round `euler` turns, the eye faces a little outwards.
+    const basis =
+        rotate(euler(0, turn, 0), [0, 0, 1])[0] > 0
+            ? euler(0, turn, 0)
+            : euler(0, -turn, 0);
+    return {
+        skinZ,
+        basis,
+        centre: [ex, ey, skinZ - EYE_SHAPE.recess] as Vec3,
+    };
+}
+
+function head() {
     const base = headBase();
     const out = field().add(base);
     // Nose: a wedge, straight down the bridge.
@@ -177,16 +207,10 @@ function head(): { shape: Shape; mouthZ: number } {
         0.012
     );
     // Eye: a deep socket, then lids as a shell round the eyeball.
-    // Only the part of the outline below the lid's edge is opened: above
-    // it the face is left whole, so the lid is simply the brow's own skin
-    // coming down to a straight edge over the eye.
-    const edge = lid(true).normal;
-    out.carve(
-        field()
-            .add(opening(0))
-            .clip(halfSpace(EYE, [-edge[0], -edge[1], -edge[2]]), 0.0015),
-        0.003
-    );
+    // Eye: the almond is cut out of the face; the eye itself is another
+    // layer set just behind it.
+    const eye = eyePlacement(base);
+    out.carve(eyeOutline(eye.skinZ, 0), 0.0025);
     // Ear: a flat disc standing well off the head, its front edge on the
     // skull, with the bowl scooped out of its outer face and a lobe.
     const earTop = h(0.078, 0.01, -0.013);
@@ -262,63 +286,12 @@ function head(): { shape: Shape; mouthZ: number } {
             .add(sphere(E(0.6, 0.0165, 0.0036), 0.0036), 0.003),
         0.006
     );
-    return { shape: out, mouthZ };
+    return { shape: out, mouthZ, eye };
 }
 
 const ARM_Y = 1.399;
 
-/** A flat, open hand in the T-pose: the left one. */
-function hand(): Field {
-    const out = field();
-    out.add(
-        roundCone([0.63, ARM_Y, 0.003], [0.71, ARM_Y, 0.003], 0.026, 0.0265)
-    );
-    out.add(
-        roundBox([0.752, ARM_Y, 0.004], [0.046, 0.0125, 0.039], 0.011),
-        0.012
-    );
-    const fingers = field();
-    const lengths = [0.073, 0.081, 0.075, 0.058];
-    const radii = [0.0092, 0.0095, 0.009, 0.008];
-    for (let i = 0; i < 4; i++) {
-        const z = 0.0325 - 0.0193 * i;
-        const from: Vec3 = [0.79, ARM_Y + 0.0005, z];
-        const to: Vec3 = [0.795 + lengths[i], ARM_Y - 0.003, z * 1.04];
-        fingers.add(roundCone(from, to, radii[i], radii[i] * 0.8), 0.0016);
-    }
-    out.add(fingers, 0.007);
-    out.add(
-        roundCone(
-            [0.72, ARM_Y - 0.003, 0.034],
-            [0.766, ARM_Y - 0.005, 0.064],
-            0.0125,
-            0.0105
-        ),
-        0.008
-    );
-    out.add(
-        roundCone(
-            [0.766, ARM_Y - 0.005, 0.064],
-            [0.794, ARM_Y - 0.006, 0.073],
-            0.0105,
-            0.0088
-        ),
-        0.002
-    );
-    return out;
-}
-
 const NECK = 0.041;
-
-function skin(headShape: Shape): Shape {
-    const out = field().add(headShape);
-    out.add(
-        roundCone([0, 1.44, -0.014], h(0, -0.078, 0.01), NECK + 0.004, NECK),
-        0.008
-    );
-    out.add(hand());
-    return symmetric(out);
-}
 
 function shirt(): Shape {
     const out = field();
@@ -464,7 +437,7 @@ function socks(): Shape {
 }
 
 /** Everything black and smooth: belt, shoes, headphones, player, ring. */
-function black(): { shape: Shape; asymmetric: Shape } {
+function black(ring: Vec3): { shape: Shape; asymmetric: Shape } {
     const out = field();
     // Belt.
     out.add(
@@ -544,9 +517,7 @@ function black(): { shape: Shape; asymmetric: Shape } {
         lone.add(capsule(cable[i], cable[i + 1], 0.0028), 0.002);
     lone.add(ellipsoid([0.133, 1.082, 0.113], [0.028, 0.028, 0.012]), 0.002);
     lone.add(roundBox([0.089, 1.379, 0.106], [0.0055, 0.011, 0.004], 0.002));
-    lone.add(
-        torus([-0.812, ARM_Y, -0.0061], 0.0098, 0.003, euler(0, 0, Math.PI / 2))
-    );
+    lone.add(torus(ring, 0.0098, 0.003, euler(0, 0, Math.PI / 2)));
     return { shape: symmetric(out), asymmetric: lone };
 }
 
@@ -1033,149 +1004,221 @@ function norm(v: readonly number[]): Vec3 {
     return [v[0] / l, v[1] / l, v[2] / l];
 }
 
-/** Up out of the open eye, square to the lid's edge. */
-const above: Vec3 = (() => {
-    const n = lid(true).normal;
-    return [-n[0], -n[1], -n[2]];
-})();
-
-export function stagehandSculpt(): Sculpt {
-    const { shape: headShape, mouthZ } = head();
-    const hairParts = hair();
-    const blackParts = black();
-    const upper = lid(true);
-    const lower = lid(false);
-    return {
-        id: "stagehand",
-        height: 1.79,
-        layers: [
-            {
-                material: "skin",
-                shape: skin(headShape),
-                min: [-0.9, 1.37, -0.11],
-                max: [0.9, 1.765, 0.135],
-            },
-            {
+/**
+ * The Stagehand as a described humanoid: his body in numbers read off the
+ * character sheet, and his own head, hair and school uniform.
+ */
+export const STAGEHAND: HumanoidSpec = {
+    id: "stagehand",
+    name: "Stagehand",
+    height: 1.79,
+    proportions: {
+        hips: [0, 1.0, 0],
+        spine: [0, 1.08, 0.002],
+        chest: [0, 1.18, 0.002],
+        upperChest: [0, 1.29, 0],
+        neck: [0, 1.445, -0.012],
+        head: [0, 1.535, 0],
+        shoulder: [0.026, 1.42, -0.008],
+        upperArm: [0.175, 1.412, -0.006],
+        lowerArm: [0.43, 1.404, -0.002],
+        hand: [0.672, ARM_Y, 0.003],
+        upperLeg: [0.088, 0.95, 0],
+        lowerLeg: [0.115, 0.52, 0],
+        // Barefoot, the sole of this foot rests on the floor.
+        foot: [0.137, 0.0726, -0.028],
+        toes: [0.137, 0.02, 0.09],
+        handLength: 0.2,
+        handScale: 1.1,
+        headScale: 1,
+    },
+    build: {
+        hips: [0.138, 0.098],
+        waist: [0.116, 0.088],
+        chest: [0.148, 0.098],
+        bust: 0.1,
+        seat: 0.9,
+        neck: 0.039,
+        arm: 1,
+        thigh: 1,
+        calf: 1.05,
+        foot: 1.1,
+    },
+    underwear: { waist: 1.045, hem: 0.86 },
+    palette: {
+        skin: "#d58d70",
+        skinShade: "#a45c49",
+        blush: "#d06a52",
+        lip: "#b96a55",
+        lipLine: "#5a2c25",
+        brow: "#17110f",
+        lash: "#120d0c",
+        iris: "#2e1b16",
+        irisLight: "#6a4434",
+        white: "#f7f2ef",
+        hair: "#231c1f",
+        hairSheen: "#9a705e",
+        cotton: "#f1ecf1",
+        cottonShade: "#c7caee",
+        tie: "#4d78d8",
+        tieStripe: "#c6d6f6",
+        wool: "#353240",
+        woolShade: "#1d1c26",
+        black: "#1c1b1e",
+        knit: "#f4eff1",
+        metal: "#8f939c",
+        card: "#f6f3f0",
+        cardInk: "#7fa9e6",
+        underwear: "#3d4a66",
+        underwearBand: "#232c40",
+    },
+    head() {
+        const { shape, mouthZ, eye } = head();
+        return {
+            shape: symmetric(shape),
+            eye: {
                 material: "eye",
+                // A thin flat slab, kept to the almond it shows through.
                 shape: symmetric(
                     field()
-                        .add(sphere(EYE, EYE_RADIUS))
-                        .clip(opening(0.0025))
-                        // Nothing of it above the lid's edge.
-                        .clip(
-                            halfSpace([EYE[0], EYE[1] + 0.0012, EYE[2]], above)
+                        .add(
+                            roundBox(
+                                [
+                                    eye.centre[0],
+                                    eye.centre[1],
+                                    eye.centre[2] - 0.003,
+                                ],
+                                [0.03, 0.03, 0.003],
+                                0.0005,
+                                eye.basis
+                            )
                         )
+                        .clip(eyeOutline(eye.skinZ, 0.0025))
                 ),
-                min: [-0.064, SOCKET[1] - 0.027, SOCKET[2] - 0.027],
-                max: [0.064, SOCKET[1] + 0.027, SOCKET[2] + 0.004],
+                min: [
+                    -eye.centre[0] - 0.028,
+                    eye.centre[1] - 0.024,
+                    eye.centre[2] - 0.022,
+                ],
+                max: [
+                    eye.centre[0] + 0.028,
+                    eye.centre[1] + 0.016,
+                    eye.centre[2] + 0.012,
+                ],
             },
-            {
+            face: {
+                eye: {
+                    centre: eye.centre,
+                    across: EYE_ACROSS,
+                    halfWidth: EYE_SHAPE.halfWidth,
+                    upper: EYE_UPPER,
+                    lower: EYE_LOWER,
+                    iris: EYE_SHAPE.iris,
+                },
+                brow: {
+                    path: [
+                        [0.0128, EYE_Y + 0.004],
+                        [0.036, EYE_Y + 0.0125],
+                        [0.053, EYE_Y + 0.0206],
+                        [0.063, EYE_Y + 0.0188],
+                    ],
+                    width: [0.0088, 0.008, 0.006, 0.0012],
+                    frontZ: Z0 + 0.062,
+                },
+                mouth: {
+                    y: EYE_Y + MOUTH_Y,
+                    z: Z0 + mouthZ,
+                    halfWidth: 0.0175,
+                },
+                cheek: [0.04, EYE_Y - 0.036, Z0 + 0.075],
+                noseTip: h(0, -0.0405, 0.1125),
+                ear: h(0.077, -0.006, -0.01),
+                chinY: EYE_Y - 0.099,
+            },
+        };
+    },
+    hair() {
+        const parts = hair();
+        return {
+            layer: {
                 material: "hair",
-                shape: hairParts.shape,
+                shape: parts.shape,
                 min: [-0.135, 1.545, -0.135],
                 max: [0.135, 1.8, 0.145],
             },
-            {
-                material: "cotton",
-                shape: shirt(),
-                min: [-0.7, 1.1, -0.115],
-                max: [0.7, 1.53, 0.118],
+            cap: parts.cap,
+            segments: parts.segments,
+        };
+    },
+    outfit(rig) {
+        // The ring sits near the root of his right ring finger.
+        const finger = rig.finger("right", "Ring").points;
+        const ring: Vec3 = [
+            finger[0][0] + (finger[1][0] - finger[0][0]) * 0.45,
+            finger[0][1] + (finger[1][1] - finger[0][1]) * 0.45,
+            finger[0][2] + (finger[1][2] - finger[0][2]) * 0.45,
+        ];
+        const blackParts = black(ring);
+        return {
+            layers: [
+                {
+                    material: "cotton",
+                    shape: shirt(),
+                    min: [-0.7, 1.1, -0.115],
+                    max: [0.7, 1.53, 0.118],
+                },
+                {
+                    material: "tie",
+                    shape: tie(),
+                    min: [-0.04, 1.075, 0.07],
+                    max: [0.04, 1.495, 0.13],
+                },
+                {
+                    material: "wool",
+                    shape: trousers(),
+                    min: [-0.26, 0.205, -0.14],
+                    max: [0.26, 1.115, 0.11],
+                },
+                {
+                    material: "knit",
+                    shape: socks(),
+                    min: [-0.18, 0.06, -0.07],
+                    max: [0.18, 0.29, 0.015],
+                },
+                {
+                    material: "black",
+                    shape: blackParts.shape,
+                    min: [-0.235, -0.002, -0.125],
+                    max: [0.235, 1.555, 0.24],
+                },
+                {
+                    material: "black",
+                    shape: blackParts.asymmetric,
+                    min: [-0.86, 1.05, -0.04],
+                    max: [0.165, 1.42, 0.13],
+                },
+                {
+                    material: "badge",
+                    shape: badge(),
+                    min: [0.055, 1.305, 0.095],
+                    max: [0.13, 1.373, 0.115],
+                },
+            ],
+            // Dressed, only the neck and the hands show.
+            uncovered: symmetric(
+                field()
+                    .add(roundBox([0, 1.5, 0], [0.075, 0.07, 0.09], 0.01))
+                    .add(halfSpace([0.656, 0, 0], [-1, 0, 0]))
+            ),
+            badge: {
+                centre: [0.093, 1.339, 0.1045],
+                half: [0.033, 0.03],
             },
-            {
-                material: "tie",
-                shape: tie(),
-                min: [-0.04, 1.075, 0.07],
-                max: [0.04, 1.495, 0.13],
-            },
-            {
-                material: "wool",
-                shape: trousers(),
-                min: [-0.26, 0.205, -0.14],
-                max: [0.26, 1.115, 0.11],
-            },
-            {
-                material: "knit",
-                shape: socks(),
-                min: [-0.18, 0.06, -0.07],
-                max: [0.18, 0.29, 0.015],
-            },
-            {
-                material: "black",
-                shape: blackParts.shape,
-                min: [-0.235, -0.002, -0.125],
-                max: [0.235, 1.555, 0.24],
-            },
-            {
-                material: "black",
-                shape: blackParts.asymmetric,
-                min: [-0.83, 1.05, -0.02],
-                max: [0.165, 1.42, 0.13],
-            },
-            {
-                material: "badge",
-                shape: badge(),
-                min: [0.055, 1.305, 0.095],
-                max: [0.13, 1.373, 0.115],
-            },
-        ],
-        hair: { cap: hairParts.cap, segments: hairParts.segments },
-        face: {
-            eye: EYE,
-            eyeRadius: EYE_RADIUS,
-            lidRadius: LID_RADIUS,
-            irisRadius: 0.0077,
-            gaze: [-9, 6.5],
-            opening: {
-                rx: EYE_OPENING.rx,
-                ry: EYE_OPENING.ry,
-            },
-            upperLid: { normal: upper.normal, across: upper.across },
-            lowerLid: { normal: lower.normal, across: lower.across },
-            brow: {
-                path: [
-                    [0.0128, EYE_Y + 0.004],
-                    [0.036, EYE_Y + 0.0125],
-                    [0.053, EYE_Y + 0.0206],
-                    [0.063, EYE_Y + 0.0188],
-                ],
-                width: [0.0088, 0.008, 0.006, 0.0012],
-                frontZ: Z0 + 0.062,
-            },
-            mouth: { y: EYE_Y + MOUTH_Y, z: Z0 + mouthZ, halfWidth: 0.0175 },
-            cheek: [0.04, EYE_Y - 0.036, Z0 + 0.075],
-            noseTip: h(0, -0.0405, 0.1125),
-            ear: h(0.077, -0.006, -0.01),
-            chinY: EYE_Y - 0.099,
-        },
-        badge: {
-            centre: [0.093, 1.339, 0.1045],
-            half: [0.033, 0.03],
-        },
-        buckle: { centre: [0, 1.12, 0.106], half: [0.021, 0.017] },
-        palette: {
-            skin: "#d58d70",
-            skinShade: "#a45c49",
-            blush: "#d06a52",
-            lip: "#b96a55",
-            lipLine: "#5a2c25",
-            brow: "#17110f",
-            lash: "#120d0c",
-            iris: "#2e1b16",
-            irisLight: "#6a4434",
-            white: "#f7f2ef",
-            hair: "#231c1f",
-            hairSheen: "#9a705e",
-            cotton: "#f1ecf1",
-            cottonShade: "#c7caee",
-            tie: "#4d78d8",
-            tieStripe: "#c6d6f6",
-            wool: "#353240",
-            woolShade: "#1d1c26",
-            black: "#1c1b1e",
-            knit: "#f4eff1",
-            metal: "#8f939c",
-            card: "#f6f3f0",
-            cardInk: "#7fa9e6",
-        },
-    };
-}
+            buckle: { centre: [0, 1.12, 0.106], half: [0.021, 0.017] },
+        };
+    },
+};
+
+/** The Stagehand as a sculpt: dressed, or in his underwear. */
+export const stagehandSculpt = (options?: BuildOptions) =>
+    buildHumanoid(STAGEHAND, options);

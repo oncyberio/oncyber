@@ -36,6 +36,7 @@ export const SCULPT_CELL: Record<SculptMaterial, number> = {
     knit: 0.004,
     black: 0.004,
     badge: 0.003,
+    underwear: 0.004,
 };
 
 /** One layer of a sculpt as triangles, with what shading needs per vertex. */
@@ -279,7 +280,7 @@ export function createMeshedAvatar(
         group,
         triangles,
         /** Where the face is, for framing a camera. */
-        focus: [0, sculpt.face.eye[1], 0] as Vec3,
+        focus: [0, sculpt.face.eye.centre[1], 0] as Vec3,
         dispose() {
             group.traverse((object) => {
                 const mesh = object as THREE.Mesh;

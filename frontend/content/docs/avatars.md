@@ -100,6 +100,15 @@ style and an outfit. The parts it is made from are shared.
     shadows, occlusion and every painted feature drawn in the shader. It
     is the reference a wearable avatar is matched against, not something
     to put in a space: every pixel pays for the whole sculpt.
+-   **A described humanoid.** A sculpted character is not hand-placed
+    shapes but a description (`humanoid/spec.ts`): where its joints are,
+    how thick its torso and limbs are, what underwear it wears, its
+    palette, and its own head, hair and outfit. `buildHumanoid` makes the
+    body from those numbers, complete under the clothes, in the T-pose
+    avatars are animated from; dressed, only the parts that show are
+    kept. The body is data today; the head, hair and outfit are still
+    builders per character (`sculpts/stagehand.ts`) and are to move into
+    the description too.
 -   **The sculpt as meshes.** `meshSculpt.ts` cuts the same sculpt into
     ordinary triangles, once, when the avatar is built, at whatever
     density is asked for. What the tracer finds per pixel by sampling the
@@ -109,7 +118,7 @@ style and an outfit. The parts it is made from are shared.
     This is the route to an avatar that can be worn; it is not rigged or
     offered in the picker yet. `/dev/raymarched-avatar` shows either when
     running locally: `mode=mesh` (default, with `coarse`) or `mode=trace`
-    (with `scale`), plus `zoom=face` and `yaw`.
+    (with `scale`), plus `naked=1`, `zoom=face` and `yaw`.
 
 Saved as your avatar, a generated character is used in the lobby. Gallery
 spaces don't build them yet and show the default avatar there.

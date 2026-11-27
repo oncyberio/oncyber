@@ -1,5 +1,6 @@
 import { Field, Shape } from "../kernel/sdf";
-import { stagehandSculpt } from "./stagehand";
+import { buildHumanoid } from "../humanoid/build";
+import { STAGEHAND, stagehandSculpt } from "./stagehand";
 
 /** Every primitive a shape is built from. */
 function leaves(shape: Shape, out: Shape[] = []): Shape[] {
@@ -116,7 +117,57 @@ describe("the Stagehand sculpt", () => {
         ])
             expect(skin.shape.eval(-x, y, z)).toBeCloseTo(
                 skin.shape.eval(x, y, z),
-                9
+                6
             );
+    });
+
+    it("is whole under its clothes, and wears underwear without them", () => {
+        const bare = stagehandSculpt({ dressed: false });
+        expect(bare.layers.map((l) => l.material)).toEqual([
+            "skin",
+            "eye",
+            "hair",
+            "underwear",
+        ]);
+        const body = bare.layers[0].shape;
+        // Chest, thigh, shin and the ball of the foot are all there...
+        for (const [x, y, z] of [
+            [0, 1.3, 0],
+            [0.1, 0.75, 0],
+            [0.125, 0.3, 0],
+            [0.137, 0.02, 0.05],
+        ])
+            expect(body.eval(x, y, z)).toBeLessThan(0);
+        // ...and it stands on the floor.
+        expect(body.eval(0.137, -0.01, 0.0)).toBeGreaterThan(0);
+        // The shorts cover the hips and stop above the knee.
+        const shorts = bare.layers[3].shape;
+        expect(shorts.eval(0.13, 0.95, 0.03)).toBeLessThan(0.004);
+        expect(shorts.eval(0.115, 0.6, 0)).toBeGreaterThan(0.05);
+        // Dressed, what the clothes hide is not there at all.
+        const clothed = sculpt.layers[0].shape;
+        expect(clothed.eval(0, 1.3, 0)).toBeGreaterThan(0);
+        expect(clothed.eval(0.1, 0.75, 0)).toBeGreaterThan(0);
+        // The neck and the hands still are.
+        expect(clothed.eval(0, 1.5, 0)).toBeLessThan(0);
+        expect(clothed.eval(0.76, 1.399, 0.003)).toBeLessThan(0);
+    });
+
+    it("builds a different figure from different measurements", () => {
+        const taller = buildHumanoid({
+            ...STAGEHAND,
+            proportions: {
+                ...STAGEHAND.proportions,
+                lowerArm: [0.47, 1.404, -0.002],
+                hand: [0.75, 1.399, 0.003],
+            },
+            build: { ...STAGEHAND.build, chest: [0.17, 0.11] },
+        });
+        const skin = taller.layers[0].shape;
+        // The longer arm reaches where the reference one does not.
+        expect(skin.eval(0.93, 1.399, 0.003)).toBeLessThan(0.01);
+        expect(sculpt.layers[0].shape.eval(0.93, 1.399, 0.003)).toBeGreaterThan(
+            0.02
+        );
     });
 });

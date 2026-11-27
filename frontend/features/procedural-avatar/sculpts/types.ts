@@ -10,7 +10,8 @@ export type SculptMaterial =
     | "wool"
     | "knit"
     | "black"
-    | "badge";
+    | "badge"
+    | "underwear";
 
 /** One surface of a sculpt, with a box that is known to contain it. */
 export interface SculptLayer {
@@ -49,24 +50,24 @@ export interface SculptHairSegment {
     blend: number;
 }
 
-/** The plane an eyelid's edge lies in, through the centre of the eye. */
-export interface SculptLid {
-    normal: Vec3;
-    across: Vec3;
-}
-
 /** Where the painted features of the face go (left side; x is mirrored). */
 export interface SculptFace {
-    eye: Vec3;
-    eyeRadius: number;
-    lidRadius: number;
-    irisRadius: number;
-    /** Degrees the eyes look outwards and down. */
-    gaze: [number, number];
-    /** Half-width and half-height of the eye's outline, along its tilt. */
-    opening: { rx: number; ry: number };
-    upperLid: SculptLid;
-    lowerLid: SculptLid;
+    /** The drawn eye. */
+    eye: {
+        /** The middle of the line between its corners, on its surface. */
+        centre: Vec3;
+        /** Along that line towards the temple, seen from the front. */
+        across: [number, number];
+        halfWidth: number;
+        /**
+         * Its upper and lower edges: arcs through both corners, each a
+         * circle of `radius` whose centre is `offset` from the middle.
+         */
+        upper: { radius: number; offset: number };
+        lower: { radius: number; offset: number };
+        /** Along `across`, and up from the line; then its radius. */
+        iris: { u: number; v: number; radius: number };
+    };
     brow: {
         /** Points of the brow seen from the front, nose to temple. */
         path: [number, number][];
@@ -92,6 +93,8 @@ export interface Sculpt {
     layers: SculptLayer[];
     hair: { cap: Shape; segments: SculptHairSegment[] };
     face: SculptFace;
+    /** Heights of the underwear's waistband and hem. */
+    underwear: { waist: number; hem: number };
     badge: { centre: Vec3; half: [number, number] };
     buckle: { centre: Vec3; half: [number, number] };
     palette: Record<
@@ -117,7 +120,9 @@ export interface Sculpt {
         | "knit"
         | "metal"
         | "card"
-        | "cardInk",
+        | "cardInk"
+        | "underwear"
+        | "underwearBand",
         string
     >;
 }

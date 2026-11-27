@@ -489,7 +489,7 @@ export function createRaymarchedAvatar(sculpt: Sculpt) {
     return {
         mesh,
         /** Where the face is, for framing a camera. */
-        focus: [0, sculpt.face.eye[1], 0] as Vec3,
+        focus: [0, sculpt.face.eye.centre[1], 0] as Vec3,
         dispose() {
             mesh.geometry.dispose();
             material.dispose();

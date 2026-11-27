@@ -64,6 +64,7 @@ export const MATERIAL_ORDER: SculptMaterial[] = [
     "knit",
     "black",
     "badge",
+    "underwear",
 ];
 
 export interface SurfaceContext {
@@ -119,6 +120,16 @@ export function surfaceColour(sculpt: Sculpt, ctx: SurfaceContext): Node {
     const hx = abs(pos.x).toVar();
     const colour = vec3(0).toVar();
 
+    /** A point in the eye's own frame: along its corner line, and up. */
+    const eyeFrame = () => {
+        const e = face.eye;
+        const d = vec2(hx.sub(e.centre[0]), pos.y.sub(e.centre[1]));
+        return vec2(
+            dot(d, vec2(e.across[0], e.across[1])),
+            dot(d, vec2(-e.across[1], e.across[0]))
+        ).toVar();
+    };
+
     /** A broad two-tone: lit colour over a tinted shadow colour. */
     const twoTone = (base: Node, shadeOf: Node, soft: number, grain: Node) => {
         const lit = smoothstep(
@@ -163,11 +174,10 @@ export function surfaceColour(sculpt: Sculpt, ctx: SurfaceContext): Node {
             blob(face.ear, [0.03, 0.035, 0.03]).mul(0.45)
         );
         // The neck stands in the shade of the jaw.
-        const neck = smoothstep(
-            face.chinY + 0.006,
-            face.chinY - 0.008,
-            pos.y
-        ).mul(smoothstep(0.12, 0.09, hx));
+        const neck = smoothstep(face.chinY + 0.006, face.chinY - 0.008, pos.y)
+            .mul(smoothstep(0.09, 0.06, hx))
+            // Only the neck: it fades out onto the collarbones.
+            .mul(smoothstep(face.chinY - 0.135, face.chinY - 0.03, pos.y));
         let albedo: Node = base
             .mul(mix(vec3(1), tintTo("blush"), flush))
             .mul(mix(vec3(1), tintTo("skinShade"), neck.mul(0.8)));
@@ -255,47 +265,42 @@ export function surfaceColour(sculpt: Sculpt, ctx: SurfaceContext): Node {
             .mul(facing)
             .mul(smoothstep(0.02, 0.25, pn.z));
         albedo = mix(albedo, C("brow"), brow);
-        // Lash lines: the rims of the lids, the upper one thick.
-        const el = vec3(
-            hx.sub(face.eye[0]),
-            pos.y.sub(face.eye[1]),
-            pos.z.sub(face.eye[2])
-        ).toVar();
-        // The lash line is a thin dark line along the lid's edge,
-        // a little heavier towards the temple; the lower lid is a
-        // fainter line round the bottom of the eye's outline.
-        const across = dot(el, v3(face.upperLid.across)).toVar();
-        const aboveEdge = dot(el, v3(face.upperLid.normal)).negate();
-        const band = mix(
-            f32(0.0013),
-            f32(0.0024),
-            smoothstep(-0.014, 0.014, across)
-        );
-        // Only on skin that faces forwards: not down the wall of the
-        // opening, nor round onto the temple.
-        const front = smoothstep(0.012, 0.02, el.z).mul(
-            smoothstep(0.35, 0.6, pn.z)
-        );
-        const upper = smoothstep(band, band.sub(0.0007), abs(aboveEdge))
-            .mul(front)
-            // From the inner corner to a short wing past the outer one.
-            .mul(smoothstep(face.opening.rx + 0.0022, face.opening.rx, across))
-            .mul(
-                smoothstep(
-                    -face.opening.rx - 0.0015,
-                    -face.opening.rx + 0.001,
-                    across
+        // Lash lines along the eye's two edges: the upper one dark and
+        // heavier towards the temple, with a short wing past the corner;
+        // the lower one faint.
+        const eyeUv = eyeFrame();
+        const eyeEdge = (arc: { radius: number; offset: number }, up: number) =>
+            abs(
+                length(vec2(eyeUv.x, eyeUv.y.add(arc.offset * up))).sub(
+                    arc.radius
                 )
             );
-        const rise = vec2(-face.upperLid.across[1], face.upperLid.across[0]);
-        const below = dot(vec2(el.x, el.y), rise);
-        const rim = length(
-            vec2(across.div(face.opening.rx), below.div(face.opening.ry))
+        // Only on skin that faces forwards, round the eye.
+        const front = smoothstep(
+            face.eye.centre[2] - 0.006,
+            face.eye.centre[2] - 0.002,
+            pos.z
+        ).mul(smoothstep(0.35, 0.6, pn.z));
+        const band = mix(
+            f32(0.0016),
+            f32(0.0028),
+            smoothstep(-0.012, 0.014, eyeUv.x)
         );
-        const lower = smoothstep(0.06, 0.02, abs(rim.sub(0.93)))
-            .mul(smoothstep(0.001, -0.002, below))
+        const eyeW = face.eye.halfWidth;
+        const upper = smoothstep(
+            band,
+            band.sub(0.0006),
+            eyeEdge(face.eye.upper, 1)
+        )
             .mul(front)
-            .mul(0.32);
+            .mul(smoothstep(-0.004, -0.001, eyeUv.y))
+            .mul(smoothstep(eyeW + 0.004, eyeW + 0.0015, eyeUv.x))
+            .mul(smoothstep(-eyeW - 0.001, -eyeW + 0.001, eyeUv.x));
+        const lower = smoothstep(0.0009, 0.0003, eyeEdge(face.eye.lower, -1))
+            .mul(front)
+            .mul(smoothstep(0.001, -0.002, eyeUv.y))
+            .mul(smoothstep(eyeW, eyeW - 0.003, abs(eyeUv.x)))
+            .mul(0.4);
         albedo = mix(albedo, C("lash"), max(upper, lower));
 
         // Soft wrap light, shadows that turn red at their edges, and
@@ -340,70 +345,50 @@ export function surfaceColour(sculpt: Sculpt, ctx: SurfaceContext): Node {
         );
     });
 
-    // --- Eyes: iris and pupil drawn round the line of sight.
+    // --- Eyes: drawn flat, like the eyes of a drawing.
     when("eye", () => {
-        const yaw = (face.gaze[0] * Math.PI) / 180;
-        const pitch = (face.gaze[1] * Math.PI) / 180;
-        const gaze = vec3(
-            Math.sin(yaw) * Math.cos(pitch),
-            -Math.sin(pitch),
-            Math.cos(yaw) * Math.cos(pitch)
-        );
-        const ev = normalize(
-            vec3(
-                hx.sub(face.eye[0]),
-                pos.y.sub(face.eye[1]),
-                pos.z.sub(face.eye[2])
-            )
-        ).toVar();
-        const cosA = dot(ev, gaze);
-        const off = ev.sub(gaze.mul(cosA)).toVar();
-        const r = length(off)
-            .mul(face.eyeRadius / face.irisRadius)
-            .add(smoothstep(0.1, -0.1, cosA).mul(10))
-            .toVar();
+        const uv = eyeFrame();
+        const iris = face.eye.iris;
+        const off = vec2(uv.x.sub(iris.u), uv.y.sub(iris.v)).toVar();
+        const r = length(off).div(iris.radius).toVar();
         const dir = off.div(max(length(off), 0.0001));
         const fibres = mx_noise_float(
             vec3(dir.x.mul(7), dir.y.mul(7), r.mul(1.5))
         );
-        const tone = smoothstep(0.6, 0.95, r)
+        // Darker under the lid, lighter towards the bottom.
+        const tone = smoothstep(0.55, 0.95, r)
             .mul(0.2)
-            .add(fibres.mul(0.2))
+            .add(fibres.mul(0.16))
             .add(
-                smoothstep(0.1, -0.9, dir.y)
-                    .mul(0.45)
-                    .mul(smoothstep(0.5, 0.85, r))
+                smoothstep(0.3, -0.9, dir.y)
+                    .mul(0.5)
+                    .mul(smoothstep(0.35, 0.85, r))
             );
-        const iris = mix(C("iris"), C("irisLight"), saturate(tone)).mul(
-            f32(1).sub(smoothstep(0.82, 1, r).mul(0.6))
-        );
+        const coloured = mix(
+            C("iris"),
+            C("irisLight"),
+            saturate(tone.mul(0.7))
+        ).mul(f32(1).sub(smoothstep(0.84, 1, r).mul(0.55)));
         // The lid lays a soft shadow across the top of the eye.
-        const underLid = smoothstep(
-            0,
-            0.0055,
-            dot(
-                vec3(
-                    hx.sub(face.eye[0]),
-                    pos.y.sub(face.eye[1]),
-                    pos.z.sub(face.eye[2])
-                ),
-                v3(face.upperLid.normal)
-            )
-        );
+        const top = sqrt(
+            max(f32(face.eye.upper.radius ** 2).sub(uv.x.mul(uv.x)), 0)
+        ).sub(face.eye.upper.offset);
+        const underLid = smoothstep(0, 0.0045, top.sub(uv.y));
         const albedo = mix(
-            mix(iris, vec3(0.012, 0.008, 0.007), smoothstep(0.52, 0.42, r)),
-            C("white").mul(f32(1).sub(smoothstep(1, 3.5, r).mul(0.16))),
-            smoothstep(0.97, 1.04, r)
-        ).mul(mix(0.78, 1, underLid));
+            mix(coloured, vec3(0.012, 0.008, 0.007), smoothstep(0.5, 0.4, r)),
+            C("white"),
+            smoothstep(0.97, 1.03, r)
+        ).mul(mix(0.72, 1, underLid));
+        // One soft glint, up and towards the light.
+        const glint = smoothstep(
+            0.0013,
+            0.0006,
+            length(vec2(off.x.add(pos.x.sign().mul(0.0022)), off.y.sub(0.003)))
+        ).mul(underLid);
         colour.assign(
             albedo
-                .mul(mix(0.85, 1, shadow).mul(mix(0.8, 1, open)))
-                .add(pow(nh, 260).mul(0.9).mul(shadow))
-                .add(
-                    pow(saturate(dot(n, normalize(FILL.sub(rd)))), 160).mul(
-                        0.25
-                    )
-                )
+                .mul(mix(0.9, 1, shadow).mul(mix(0.85, 1, open)))
+                .add(glint.mul(0.55))
         );
     });
 
@@ -611,6 +596,19 @@ export function surfaceColour(sculpt: Sculpt, ctx: SurfaceContext): Node {
             mix(C("card").mul(0.8), card, facingOut)
                 .mul(mix(0.55, 1, shadow).mul(mix(0.6, 1, open)))
                 .add(pow(nh, 30).mul(0.1))
+        );
+    });
+
+    // --- Underwear: soft jersey with a darker waistband.
+    when("underwear", () => {
+        const band = smoothstep(
+            sculpt.underwear.waist - 0.03,
+            sculpt.underwear.waist - 0.026,
+            pos.y
+        );
+        const cloth = mix(C("underwear"), C("underwearBand"), band);
+        colour.assign(
+            twoTone(cloth, cloth.mul(0.55), 0.34, f32(0)).add(fresnel.mul(0.05))
         );
     });
 

@@ -15,7 +15,8 @@ import { SCULPTS } from "@features/procedural-avatar/sculpts";
  * from its distance fields: the fidelity reference, and heavy, so `scale`
  * (default 0.5 when tracing) is the fraction of the screen's pixels drawn.
  *
- * Query: `who` (sculpt id), `mode`, `coarse`, `scale`, `yaw` and `pitch`
+ * Query: `who` (sculpt id), `naked=1` (the figure in its underwear),
+ * `mode`, `coarse`, `scale`, `yaw` and `pitch`
  * (degrees, stops the turntable), `zoom` (`face`, `bust` or `feet`),
  * `renderer=webgl`.
  */
@@ -51,7 +52,7 @@ export default function RaymarchedAvatarFixture() {
         host.append(renderer.domElement);
         const scene = new THREE.Scene();
         scene.background = new THREE.Color("#f5edf0");
-        const sculpt = build();
+        const sculpt = build({ dressed: text("naked") !== "1" });
         const started = performance.now();
         const figure = traced
             ? createRaymarchedAvatar(sculpt)
