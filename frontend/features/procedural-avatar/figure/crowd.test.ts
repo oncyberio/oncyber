@@ -6,7 +6,7 @@ import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { supportsNativeAvatarMaterial } from "../../lobby/webgpu/avatarMaterials";
 import { styleFigure } from "./createFigure";
-import { createFigureCrowd, createFigurePoses } from "./crowd";
+import { bonesUsed, createFigureCrowd, createFigurePoses } from "./crowd";
 import { morphName, type FigureInfo } from "./format";
 import { LOOK_CELLS, LOOK_SIZE, createFigureLooks, lookOf } from "./looks";
 import { FACE_MOTION, blinkAt } from "./shading";
@@ -464,6 +464,24 @@ describe("a crowd", () => {
         expect(crowd.meshes.ink.count).toBe(40);
         expect(() => (crowd.count = 41)).toThrow(RangeError);
         crowd.dispose();
+    });
+
+    it("fetches only the bones a mesh uses", async () => {
+        const { figure } = await basic();
+        // The face and what is drawn on it hang on the head alone.
+        expect(bonesUsed(figure.meshes.face.geometry)).toBe(1);
+        expect(bonesUsed(figure.meshes.ink.geometry)).toBe(1);
+        expect(bonesUsed(figure.meshes.body.geometry)).toBe(4);
+        const weights = new THREE.BufferAttribute(
+            new Float32Array([1, 0, 0, 0, 0.5, 0, 0.5, 0, 1, 0, 0, 0]),
+            4
+        );
+        const some = new THREE.BufferGeometry();
+        some.setAttribute("skinWeight", weights);
+        expect(bonesUsed(some)).toBe(3);
+        // With one bone used, a weight is all of the vertex.
+        const face = figure.meshes.face.geometry.getAttribute("skinWeight");
+        for (let v = 0; v < face.count; v++) expect(face.getX(v)).toBe(1);
     });
 
     it("gives each figure its place, pose, look and face", async () => {

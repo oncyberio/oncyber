@@ -210,12 +210,18 @@ export function createFigureCrowd(
                 tableCell(table, int(index).mul(4).add(k), row)
             )
         );
-    const posed = (row: Node): Node =>
-        bone(indices.x, row)
-            .mul(weights.x)
-            .add(bone(indices.y, row).mul(weights.y))
-            .add(bone(indices.z, row).mul(weights.z))
-            .add(bone(indices.w, row).mul(weights.w));
+    // A vertex has room for four bones and seldom uses them all: the
+    // face hangs on one, the body on two or so. A bone that is never
+    // used is not fetched at all, and one a vertex does not use is
+    // passed over, which changes nothing in the sum.
+    const posed = (row: Node, bones: number): Node => {
+        const matrix = bone(indices.x, row).mul(weights.x).toVar();
+        for (const slot of (["y", "z", "w"] as const).slice(0, bones - 1))
+            If(weights[slot].greaterThan(0), () => {
+                matrix.addAssign(bone(indices[slot], row).mul(weights[slot]));
+            });
+        return matrix;
+    };
 
     const make = (key: "body" | "face" | "ink") => {
         const source = figure.meshes[key].geometry;
@@ -228,13 +234,18 @@ export function createFigureCrowd(
         geometry.setAttribute("figureFace", ownFace);
         const material = materials[key];
         const normals = geometry.hasAttribute("normal");
-        beforePosition(material, "figure-crowd", () => {
-            const matrix = posed(int(instance.x.add(0.5))).toVar();
+        const bones = bonesUsed(geometry);
+        beforePosition(material, `figure-crowd-${bones}`, () => {
+            const matrix = posed(int(instance.x.add(0.5)), bones);
             If(instance.z.greaterThan(0), () => {
                 matrix.assign(
                     matrix
                         .mul(f32(1).sub(instance.z))
-                        .add(posed(int(instance.y.add(0.5))).mul(instance.z))
+                        .add(
+                            posed(int(instance.y.add(0.5)), bones).mul(
+                                instance.z
+                            )
+                        )
                 );
             });
             positionLocal.assign(matrix.mul(vec4(positionLocal, 1)).xyz);
@@ -341,3 +352,19 @@ export function createFigureCrowd(
 
 /** A crowd of one character. */
 export type FigureCrowd = ReturnType<typeof createFigureCrowd>;
+
+/**
+ * How many of the four bones a vertex has room for a mesh uses anywhere:
+ * the last place any of its vertices has a weight in.
+ */
+export function bonesUsed(geometry: THREE.BufferGeometry) {
+    const weights = geometry.getAttribute("skinWeight");
+    let used = 1;
+    for (let v = 0; v < weights.count && used < 4; v++)
+        for (let k = 3; k >= used; k--)
+            if (weights.getComponent(v, k) > 0) {
+                used = k + 1;
+                break;
+            }
+    return used;
+}
