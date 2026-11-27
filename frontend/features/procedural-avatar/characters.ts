@@ -1,0 +1,184 @@
+import { BODY, Proportions } from "./rig";
+import { BUILD, Build, FACE, FaceSpec } from "./parts/skinField";
+import type { SkinPalette } from "./parts/skin";
+import type { BrowStyle, EyeStyle } from "./parts/face";
+import type { FacePaint } from "./paint/faceTexture";
+import type { HairPalette } from "./parts/hair";
+import type { HairStyle } from "./parts/hairStyles";
+import type { ShirtStyle, Waist } from "./parts/shirt";
+import type { SkirtStyle } from "./parts/skirt";
+import type { BeltStyle } from "./parts/belt";
+import type { TieStyle } from "./parts/tie";
+import type { SockStyle } from "./parts/socks";
+import type { ShoeStyle } from "./parts/shoes";
+import type { BadgeStyle, GlassesStyle, RadioStyle } from "./parts/accessories";
+
+/** Everything that makes one procedural character. */
+export interface CharacterSpec {
+    id: string;
+    name: string;
+    proportions: Proportions;
+    build: Build;
+    face: FaceSpec;
+    skin: SkinPalette;
+    eyes: EyeStyle;
+    brows: BrowStyle;
+    facePaint: FacePaint;
+    hair: { palette: HairPalette; style: HairStyle; seed: number };
+    waist: Waist;
+    shirt: ShirtStyle;
+    bottom: SkirtStyle;
+    belt: BeltStyle;
+    tie: TieStyle;
+    socks: SockStyle;
+    shoes: ShoeStyle;
+    badge: BadgeStyle;
+    glasses?: GlassesStyle;
+    earrings?: { colour: string; size: number };
+    /** A belt radio with an earpiece worn loose round the collar. */
+    radio?: RadioStyle;
+}
+
+export const RUNNER: CharacterSpec = {
+    id: "runner",
+    name: "Runner",
+    proportions: { ...BODY, headScale: 1.2 },
+    build: { ...BUILD, waist: [0.114, 0.084] },
+    face: FACE,
+    skin: {
+        base: "#f0cfbe",
+        shade: "#c08a7a",
+        flush: "#eda39c",
+        underTop: "#d9d6d2",
+        underBottom: "#2c3140",
+    },
+    eyes: {
+        iris: "#3a2620",
+        irisLight: "#6b4634",
+        pupil: "#0c0908",
+        white: "#f3ece6",
+        irisRadius: 0.0086,
+        gaze: [5, 1],
+        lash: "#17110f",
+        lashWidth: 0.0016,
+        lashWing: 0.0042,
+    },
+    brows: {
+        colour: "#231b19",
+        path: [
+            [0.0115, 1.5755],
+            [0.022, 1.579],
+            [0.035, 1.581],
+            [0.0465, 1.5795],
+            [0.0545, 1.5755],
+        ],
+        width: [0.0034, 0.003, 0.001],
+    },
+    facePaint: {
+        lip: "#c97a76",
+        lipLine: "#7d4543",
+        blush: "#f0a3a2",
+        blushStrength: 0.62,
+        hatch: 0.5,
+        eyeShade: "#dcaa9f",
+        eyeShadeStrength: 0.34,
+        freckle: "#b97e68",
+        freckles: 0.22,
+    },
+    hair: {
+        palette: { base: "#1d1a1b", sheen: "#6d7385", tip: "#3a2c28" },
+        seed: 7,
+        style: {
+            kind: "ponytail",
+            hairline: {
+                centre: [0, 1.6, -0.012],
+                front: [0, 1.633, 0.078],
+                slope: 0.82,
+                napeY: 1.5,
+                temples: 0.006,
+            },
+            tie: [0, -0.66, -0.75],
+            part: 0.004,
+            tailLength: [0.15, 0.25],
+            mess: 1,
+            band: "#d5d9dc",
+        },
+    },
+    waist: { y: 1.0, rx: 0.142, rz: 0.11, z: -0.002 },
+    shirt: {
+        cloth: "#f3f0ea",
+        shadow: "#b4b2b8",
+        button: "#e4dfd6",
+        ease: 0.04,
+        sleeve: 0.56,
+        rolled: true,
+        folds: 1,
+        open: 1,
+        pocket: true,
+    },
+    bottom: {
+        kind: "skirt",
+        cloth: "#2c303d",
+        shadow: "#15171f",
+        edge: "#565c6e",
+        lining: "#121217",
+        hemY: 0.625,
+        hem: [0.268, 0.232],
+        pleats: 22,
+        depth: 0.023,
+    },
+    belt: {
+        leather: "#1b1a1c",
+        buckle: "#8d9199",
+        loops: "#2c303d",
+        height: 0.028,
+    },
+    tie: {
+        colour: "#8ea7dc",
+        stripe: "#eef1f8",
+        back: "#1b1c22",
+        length: 0.46,
+        width: 0.036,
+        loosen: 0.022,
+        skew: 0.03,
+        paired: true,
+    },
+    socks: {
+        colour: "#f4f2ec",
+        shadow: "#aeb0b8",
+        top: 0.345,
+        slouch: 1,
+        ribs: 26,
+        thickness: 0.004,
+    },
+    shoes: {
+        leather: "#19181a",
+        shine: "#8c93a6",
+        sole: "#171617",
+        lace: "#121113",
+        sole_height: 0.03,
+        chunk: 1,
+        size: 1,
+    },
+    badge: {
+        card: "#f4f3ef",
+        holder: "#dfe3e6",
+        ink: "#5a5d66",
+        accent: "#7e9bd6",
+        clip: "#8d9199",
+        photo: false,
+    },
+    glasses: { frame: "#b9bcc4", radius: 0.0265, wire: 0.00085, drop: 0.004 },
+    earrings: { colour: "#c8a04a", size: 0.0105 },
+    radio: {
+        body: "#1c1c1f",
+        detail: "#2e2f34",
+        cable: "#151517",
+        angle: -0.95,
+    },
+};
+
+/** The built-in procedural characters, by id. */
+export const CHARACTERS: Record<string, CharacterSpec> = {
+    [RUNNER.id]: RUNNER,
+};
