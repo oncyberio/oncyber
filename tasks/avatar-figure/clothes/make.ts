@@ -20,6 +20,7 @@ import { bodyField } from "./bodyField";
 import { loadFigure, type Figure } from "./figure";
 import { stagehandOutfit, type Garment } from "./outfits";
 import { writeGlb, type Piece } from "./glb";
+import { CLOTH_KINDS } from "../../../frontend/features/procedural-avatar/figure/outfitFiles";
 
 declare const process: { argv: string[]; env: Record<string, string> };
 
@@ -204,6 +205,7 @@ function uncovered(piece: Piece, others: Garment["shape"][], depth = 0.002) {
         positions: pick(piece.positions, 3),
         normals: pick(piece.normals, 3),
         colours: pick(piece.colours, 3),
+        kinds: pick(piece.kinds, 1),
         joints: pick(piece.joints, 4),
         weights: pick(piece.weights, 4),
         indices,
@@ -229,15 +231,17 @@ for (const outfit of [stagehandOutfit(figure, body)]) {
         const skin = bind(mesh.positions, figure, garment.side);
         const count = mesh.positions.length / 3;
         const colours = new Float32Array(count * 3);
+        const kinds = new Float32Array(count);
         for (let v = 0; v < count; v++) {
-            const c = garment.colour([
+            const p: [number, number, number] = [
                 mesh.positions[v * 3],
                 mesh.positions[v * 3 + 1],
                 mesh.positions[v * 3 + 2],
-            ]);
-            colours.set(c.map(toLinear), v * 3);
+            ];
+            colours.set(garment.colour(p).map(toLinear), v * 3);
+            kinds[v] = CLOTH_KINDS[garment.finish?.(p) ?? "plain"];
         }
-        pieces.push({ name: garment.name, ...mesh, ...skin, colours });
+        pieces.push({ name: garment.name, ...mesh, ...skin, colours, kinds });
         console.log(
             `${outfit.id} ${garment.name}: ${mesh.before} → ${
                 mesh.indices.length / 3

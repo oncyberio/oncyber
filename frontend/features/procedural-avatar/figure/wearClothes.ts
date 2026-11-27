@@ -2,6 +2,7 @@ import * as THREE from "three/webgpu";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { StyledFigure } from "./createFigure";
 import { OUTFIT_FILES, outfitUrl } from "./outfitFiles";
+import { createClothMaterial } from "./shading";
 
 interface LoadedOutfit {
     geometry: THREE.BufferGeometry;
@@ -50,7 +51,8 @@ export async function wearClothes(
     if (!id || !OUTFIT_FILES[id]) return null;
     const body = figure.meshes.body;
     const skeleton = body.skeleton;
-    const file = await outfitFile(id);
+    const outfit = OUTFIT_FILES[id];
+    const file = await outfitFile(outfit.file);
     const geometry = file.geometry.clone();
     // The file counts joints in the body skeleton's own order; map by name
     // in case the order ever differs.
@@ -67,8 +69,7 @@ export async function wearClothes(
             new THREE.Uint16BufferAttribute(out, 4)
         );
     }
-    const material = new THREE.MeshLambertMaterial({ vertexColors: true });
-    material.name = "FigureClothes";
+    const material = createClothMaterial(outfit.stripes);
     const mesh = new THREE.SkinnedMesh(geometry, material);
     mesh.name = `Clothes_${id}`;
     mesh.frustumCulled = false;

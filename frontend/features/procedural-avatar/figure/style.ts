@@ -386,8 +386,36 @@ export const STAGEHAND_STYLE: FigureStyle = {
     },
 };
 
+/**
+ * The Stagehand's colleague from the same sheet: the same face and build,
+ * a touch fairer, with brown hair and brows a little heavier. Made from
+ * the Stagehand by changing a few numbers, as later characters can be.
+ */
+export const USHER_STYLE: FigureStyle = {
+    ...STAGEHAND_STYLE,
+    id: "usher",
+    name: "Usher",
+    skin: { ...STAGEHAND_STYLE.skin, tone: "#d08c6b" },
+    eyes: {
+        ...STAGEHAND_STYLE.eyes,
+        iris: "#331c14",
+        irisLight: "#6b4130",
+    },
+    lids: { ...STAGEHAND_STYLE.lids, colour: "#552a1b" },
+    brows: {
+        ...STAGEHAND_STYLE.brows,
+        colour: "#7a4a2a",
+        width: [0.18, 0.18, 0.22, 0.25, 0.26, 0.02],
+    },
+    shape: {
+        ...STAGEHAND_STYLE.shape,
+        ears: { round: 1, cup: 0.35 },
+    },
+};
+
 /** The styles there are, by id. */
 export const FIGURE_STYLES: Record<string, FigureStyle> = {
     [PLAIN_STYLE.id]: PLAIN_STYLE,
     [STAGEHAND_STYLE.id]: STAGEHAND_STYLE,
+    [USHER_STYLE.id]: USHER_STYLE,
 };

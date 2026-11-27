@@ -26,6 +26,7 @@ import {
     noise3,
 } from "../../../frontend/features/procedural-avatar/kernel/noise";
 import type { BodyField } from "./bodyField";
+import type { CLOTH_KINDS } from "../../../frontend/features/procedural-avatar/figure/outfitFiles";
 import type { Figure, V3 } from "./figure";
 
 export type Rgb = [number, number, number];
@@ -41,6 +42,11 @@ export interface Garment {
     triangles: number;
     /** Its colour at a point of its surface, sRGB 0..1. */
     colour(p: V3): Rgb;
+    /**
+     * What kind of cloth it is at a point: plain, striped or polished
+     * (see CLOTH_KINDS in figure/shading.ts). Plain unless given.
+     */
+    finish?(p: V3): keyof typeof CLOTH_KINDS;
     /** Take skin only from this side of the body (-1 left, 1 right). */
     side?(p: V3): -1 | 1 | 0;
 }
@@ -145,13 +151,13 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         const elbow = Math.exp(-(((ax - Math.abs(elbowL[0])) / 0.08) ** 2));
         const wrist = smooth(cuffStart - 0.14, cuffStart - 0.02, ax);
         const twist = Math.sin(
-            ax / 0.026 + angle * 1.2 + noise3(x * 14, y * 14, z * 14) * 2.2
+            ax / 0.03 + angle * 1.2 + noise3(x * 14, y * 14, z * 14) * 2.2
         );
         const sleeve =
             a *
             (1 - cuffBand) *
             twist *
-            (0.0012 + 0.0024 * elbow + 0.003 * wrist);
+            (0.002 + 0.0035 * elbow + 0.004 * wrist);
         // A droop under the sleeve, the cloth hanging from the arm.
         const under =
             a *
@@ -165,7 +171,17 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             Math.sin(x * 34 + fbm(x * 5, y * 5, z * 5) * 3) *
             smooth(waistTop + 0.22, waistTop + 0.03, y) *
             smooth(waistTop - 0.005, waistTop + 0.02, y) *
-            0.0028;
+            0.0038;
+        // Diagonal pulls from under the arms to the waist.
+        const pull =
+            (1 - a) *
+            smooth(0.05, 0.13, ax) *
+            Math.sin(
+                (ax * 0.8 + y * 0.6) / 0.016 + noise3(x * 8, y * 8, z * 8)
+            ) *
+            smooth(waistTop + 0.02, waistTop + 0.12, y) *
+            smooth(shoulderL[1] - 0.05, shoulderL[1] - 0.15, y) *
+            0.0025;
         // The placket down the front, and its seams.
         const front = smooth(-0.02, -0.06, z);
         const placket =
@@ -180,7 +196,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
                 Math.exp(-(((ax - cuff) / 0.003) ** 2)) * 0.6) *
             0.0015;
         const grain = fbm(x * 18, y * 18, z * 18) * 0.001;
-        return sleeve + under + drape + placket + cuffEdge + grain;
+        return sleeve + under + drape + pull + placket + cuffEdge + grain;
     }
     const shirtBody = field()
         .add(grow(shirtDrape, shirtEase))
@@ -363,19 +379,19 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             front *
             Math.exp(-((lx / 0.007) ** 2)) *
             smooth(waistTop, waistTop - 0.12, y) *
-            0.004;
+            0.005;
         // Pleats from the waistband, falling into the crease.
         const pleat =
             front *
             smooth(crotch - 0.05, waistTop - 0.03, y) *
-            (Math.exp(-(((lx + side * 0.035) / 0.006) ** 2)) * 0.004 -
-                Math.exp(-(((lx + side * 0.045) / 0.008) ** 2)) * 0.002);
+            (Math.exp(-(((lx + side * 0.035) / 0.006) ** 2)) * 0.006 -
+                Math.exp(-(((lx + side * 0.045) / 0.008) ** 2)) * 0.003);
         // Long soft folds round the leg, and a break above the hem.
         const angle = Math.atan2(z - legZ(y), lx);
         const folds =
             smooth(crotch, hem + 0.1, y) *
             Math.sin(angle * 5 + fbm(x * 4, y * 2, z * 4) * 4) *
-            0.004;
+            0.006;
         const grain = fbm(x * 25, y * 25, z * 25) * 0.0012;
         return crease + pleat + folds + grain;
     }
@@ -438,6 +454,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
                 Math.abs(p[1] - (beltTop - 0.016)) < 0.021;
             return buckle ? hex("#6f6a66") : hex("#141416");
         },
+        finish: () => "polished",
     };
 
     // --- Tie, badge, headphones ---------------------------------------------
@@ -492,13 +509,9 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         ],
         cell: 0.0014,
         triangles: 1400,
-        colour: (p) => {
-            // Wide pale stripes, on the slant.
-            const u = (p[0] * 0.7 + p[1] * 0.7) / 0.028;
-            const f = u - Math.floor(u);
-            const stripe = smooth(0.0, 0.04, f) * smooth(0.42, 0.38, f);
-            return mix(hex("#4f86de"), hex("#e9edf6"), stripe);
-        },
+        // Pale stripes on the slant, drawn per pixel by the cloth shader.
+        colour: () => hex("#4f86de"),
+        finish: () => "striped",
     };
 
     // An ID card on the left of the chest, on a clip.
@@ -536,13 +549,14 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         triangles: 160,
         colour: (p) =>
             p[1] > badgeY + 0.022 ? hex("#9a9ca3") : hex("#f6f6f4"),
+        finish: () => "polished",
     };
 
     // Headphones resting round the neck: the band behind, a cup on each
     // collarbone, a cable down to a player on the belt.
-    const cupY = neck[1] - 0.055;
+    const cupY = neck[1] - 0.047;
     const cups = ([-1, 1] as const).map((s) => {
-        const cx = s * 0.075;
+        const cx = s * 0.07;
         const cz =
             surfaceAlong(shirtBody, [cx, cupY, neck[2]], [0, 0, -1])[2] - 0.016;
         return [cx, cupY, cz] as V3;
@@ -550,9 +564,9 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
     const phones = field();
     for (const [cx, cy, cz] of cups) {
         const turn = euler(Math.PI / 2 - 0.35, 0, Math.sign(cx) * 0.25);
-        phones.add(torus([cx, cy, cz], 0.022, 0.011, turn));
+        phones.add(torus([cx, cy, cz], 0.018, 0.009, turn));
         phones.add(
-            roundBox([cx, cy, cz + 0.004], [0.026, 0.026, 0.009], 0.009, turn),
+            roundBox([cx, cy, cz + 0.004], [0.021, 0.021, 0.008], 0.008, turn),
             0.004
         );
     }
@@ -619,6 +633,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             );
             return near ? hex("#2a2a2e") : hex("#121214");
         },
+        finish: () => "polished",
     };
 
     // --- Socks -------------------------------------------------------------
@@ -712,6 +727,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         cell: 0.0035,
         triangles: 2000,
         colour: (p) => (p[1] < 0.021 ? hex("#221c18") : hex("#141010")),
+        finish: (p) => (p[1] < 0.021 ? "plain" : "polished"),
         side: (p) => (p[0] < 0 ? -1 : 1),
     };
 

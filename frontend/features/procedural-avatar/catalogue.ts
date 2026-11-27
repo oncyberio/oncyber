@@ -20,6 +20,9 @@ export interface ProceduralAvatarEntry {
      * than generated whole: the style's id.
      */
     figure?: string;
+    /** A figure's own hair and outfit, unless its URL names others. */
+    hair?: string;
+    outfit?: string;
 }
 
 const PATH = "/avatars/procedural/";
@@ -33,6 +36,16 @@ export const PROCEDURAL_AVATARS: ProceduralAvatarEntry[] = [
         description:
             "The Stagehand: shirt and tie, wide trousers, headphones round the neck.",
         figure: "stagehand",
+    },
+    {
+        id: "usher",
+        name: "Usher",
+        url: `${PATH}usher`,
+        image: "/lobby/avatars/figure.png",
+        description:
+            "The Stagehand's colleague: brown hair, a boldly striped tie.",
+        figure: "usher",
+        outfit: "stagehand-wide",
     },
     {
         id: "runner",
@@ -74,8 +87,8 @@ export const FIGURE_LOOKS = 9999;
  * wears the default cut, and its variations take the other cuts in turn,
  * so a crowd is mixed and the default stays its owner's.
  */
-export function figureHairFor(look: number) {
-    if (!look) return DEFAULT_HAIR;
+export function figureHairFor(look: number, own = DEFAULT_HAIR) {
+    if (!look) return own;
     const others = Object.keys(HAIR_FILES).filter((id) => id !== DEFAULT_HAIR);
     return others.length ? others[look % others.length] : DEFAULT_HAIR;
 }
@@ -132,12 +145,12 @@ export function figureAvatarOf(url: string | undefined | null) {
             ? null
             : named && HAIR_FILES[named]
             ? named
-            : figureHairFor(look);
+            : figureHairFor(look, entry.hair);
     const outfit =
         dressed === "none"
             ? null
             : dressed && OUTFIT_FILES[dressed]
             ? dressed
-            : DEFAULT_OUTFIT;
+            : entry.outfit || DEFAULT_OUTFIT;
     return { id: entry.id, style: entry.figure, look, hair, outfit };
 }

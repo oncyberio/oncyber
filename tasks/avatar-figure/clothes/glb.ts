@@ -11,6 +11,8 @@ export interface Piece {
     normals: Float32Array;
     /** Linear RGB. */
     colours: Float32Array;
+    /** What kind of cloth, 0..1: the colour's alpha. */
+    kinds: Float32Array;
     indices: Uint32Array;
     joints: Uint16Array;
     weights: Float32Array;
@@ -52,7 +54,7 @@ export function writeGlb(
                 colours[o * 4 + k] = Math.round(
                     Math.min(1, Math.max(0, p.colours[v * 3 + k])) * 65535
                 );
-            colours[o * 4 + 3] = 65535;
+            colours[o * 4 + 3] = Math.round(p.kinds[v] * 65535);
             // Bytes that still sum to 255.
             const w = [0, 1, 2, 3].map((k) =>
                 Math.round(p.weights[v * 4 + k] * 255)

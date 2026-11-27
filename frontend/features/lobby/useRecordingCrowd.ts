@@ -16,15 +16,18 @@ import {
  * How many variations of a figure avatar a crowd wears. Each is a model
  * of its own to build, so a few go a long way: the crowd repeats them.
  */
-export const CROWD_FIGURE_LOOKS = 12;
+export const CROWD_FIGURE_LOOKS = 6;
 
 /**
  * The avatars a staged crowd wears. `crowdAvatars` names catalogue or
- * procedural avatars; a figure avatar among them stands for a dozen of
- * its variations. Without it, the crowd wears figures.
+ * procedural avatars; a figure avatar among them stands for a few of its
+ * variations. Without it, the crowd wears the figures: the Stagehand and
+ * the Usher.
  */
 export function crowdWardrobe(options: RecordingCrowdOptions): CrowdAvatar[] {
-    const ids = options.avatarIds.length ? options.avatarIds : ["figure"];
+    const ids = options.avatarIds.length
+        ? options.avatarIds
+        : ["figure", "usher"];
     const catalogue = Object.values(VRMS) as {
         id: string;
         url: string;
@@ -34,8 +37,9 @@ export function crowdWardrobe(options: RecordingCrowdOptions): CrowdAvatar[] {
     for (const id of ids) {
         const procedural = PROCEDURAL_AVATARS.find((item) => item.id === id);
         if (procedural?.figure) {
-            // Variation 0 is the avatar as drawn: that one is yours.
-            for (let look = 1; look <= CROWD_FIGURE_LOOKS; look++)
+            // The Stagehand as drawn is yours; others come as drawn too.
+            const first = id === "figure" ? 1 : 0;
+            for (let look = first; look < first + CROWD_FIGURE_LOOKS; look++)
                 avatars.push({
                     url: figureAvatarUrl(id, look),
                     image: procedural.image,

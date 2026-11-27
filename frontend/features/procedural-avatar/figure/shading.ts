@@ -47,6 +47,8 @@ import {
 } from "three/tsl";
 import { markCrowdMaterial } from "../../lobby/webgpu/crowdMaterial";
 import { partId } from "./format";
+export { CLOTH_KINDS } from "./outfitFiles";
+import type { ClothStripes } from "./outfitFiles";
 import { LOOK_CELLS, createFigureLooks, type FigureLooks } from "./looks";
 import {
     RIM_POINTS,
@@ -1188,4 +1190,58 @@ export function blinkNode(seconds: Node, seed: Node): Node {
     return smoothstep(0, BLINK.shut, into).mul(
         f32(1).sub(smoothstep(BLINK.shut, BLINK.shut + BLINK.open, into))
     );
+}
+
+/**
+ * The material clothes are drawn with: lit by the same lights as the
+ * figure's skin (they are fixed to the view, not taken from the scene),
+ * so a dressed figure looks one piece wherever it stands. Colour and
+ * creases come from the vertices.
+ */
+export function createClothMaterial(
+    stripes: ClothStripes = { colour: "#e9edf6", period: 0.028, width: 0.4 }
+) {
+    const material = new THREE.MeshBasicNodeMaterial();
+    material.name = "figure-cloth";
+    const stripeColour = uniform(linear(stripes.colour));
+    const period = uniform(stripes.period);
+    const width = uniform(stripes.width);
+    material.colorNode = Fn(() => {
+        const c = attribute("color", "vec4");
+        const s = surface();
+        const kind = c.w;
+        const albedo = c.xyz.toVar();
+        // Stripes: by where the point is on the resting figure.
+        const striped = smoothstep(0.85, 0.8, kind).mul(
+            smoothstep(0.6, 0.65, kind)
+        );
+        const p = positionGeometry;
+        const u = p.x.mul(0.7).add(p.y.mul(0.7)).div(period);
+        const f = fract(u);
+        const pixel = max(fwidth(u), 1e-4);
+        // Soft by a pixel at its edges; far off, where a pixel spans a
+        // stripe and its gap, the two blend to their average.
+        const band = mix(
+            saturate(min(f, width.sub(f)).div(pixel).add(0.5)),
+            width,
+            smoothstep(0.35, 0.9, pixel)
+        );
+        albedo.assign(mix(albedo, stripeColour, band.mul(striped)));
+        const lit = litMatte(s, albedo, f32(1)).toVar();
+        // Cloth catches light at its edges.
+        lit.addAssign(SKY.mul(s.fresnel).mul(0.06).mul(albedo.add(0.2)));
+        // Polish: a tight highlight from the key, and the sky at the edges.
+        const polished = smoothstep(0.6, 0.55, kind);
+        const halfway = normalize(KEY.add(s.v));
+        const nh = saturate(dot(s.n, halfway));
+        lit.addAssign(
+            vec3(pow(nh, 70).mul(0.55).add(pow(nh, 12).mul(0.06)))
+                .add(SKY.mul(s.fresnel).mul(0.18))
+                .mul(polished)
+        );
+        return lit;
+    })();
+    // Worked out from the resting figure and where the surface ends up.
+    markCrowdMaterial(material);
+    return material;
 }
