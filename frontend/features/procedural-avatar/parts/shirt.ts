@@ -1,4 +1,5 @@
 import {
+    Look,
     MeshBuilder,
     Rgb,
     localise,
@@ -105,7 +106,8 @@ export function buildShirt(
     body: Shape,
     waist: Waist,
     style: ShirtStyle,
-    detail = 1
+    detail = 1,
+    look: Look = "painted"
 ): ShirtParts {
     const b = rig.body;
     const sy = b.upperArm[1];
@@ -197,7 +199,7 @@ export function buildShirt(
         smooth.add(
             sphere(
                 [arm.upper[0], arm.upper[1] + 0.002, arm.upper[2]],
-                0.046 + ease * 0.25
+                0.04 + ease * 0.25
             ),
             0.04
         );
@@ -350,6 +352,11 @@ export function buildShirt(
                           round + (sy + 0.03 - p[1]) * 0.35
                       )
                 : 1;
+        if (look === "studio") {
+            // Plain cloth; the shader shades it from how open each point is.
+            mesh.auxNext[0] = ao * (0.55 + 0.45 * under);
+            return cloth;
+        }
         const lit = mixRgb(shadow, cloth, smoothstep(0.3, 1, ao) * under);
         const sky = skyShade(n, 0.3);
         const k = weave * (0.8 + 0.2 * under);

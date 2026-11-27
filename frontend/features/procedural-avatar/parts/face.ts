@@ -47,14 +47,22 @@ export function ontoFace(head: Shape, x: number, y: number, lift = 0): Vec3 {
 export function buildFaceDetails(
     skin: SkinField,
     eyes: EyeStyle,
-    brows: BrowStyle
+    brows: BrowStyle,
+    /**
+     * Which details to build. The studio look shades eyes and facial hair
+     * differently, so it asks for them apart and lights the eyes itself.
+     */
+    which: "all" | "eyes" | "hairs" = "all",
+    studio = false
 ) {
     const face = skin.face;
     const out = new MeshBuilder();
     for (const s of [1, -1]) {
-        eyeball(out, face, eyes, s);
-        lashes(out, face, eyes, s);
-        brow(out, skin.head, brows, s);
+        if (which !== "hairs") eyeball(out, face, eyes, s, studio);
+        if (which !== "eyes") {
+            lashes(out, face, eyes, s);
+            brow(out, skin.head, brows, s);
+        }
     }
     // Head space to avatar space.
     for (let i = 0; i < out.positions.length; i += 3) {
@@ -70,7 +78,13 @@ export function buildFaceDetails(
     return out;
 }
 
-function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
+function eyeball(
+    out: MeshBuilder,
+    face: FaceSpec,
+    style: EyeStyle,
+    s: number,
+    studio = false
+) {
     const centre: Vec3 = [face.eye[0] * s, face.eye[1], face.eye[2]];
     const R = face.eyeRadius;
     const yaw = (style.gaze[0] * Math.PI) / 180;
@@ -115,7 +129,7 @@ function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
         { angle: 0.95, colour: () => scaleRgb(white, 0.93) },
         { angle: 1.45, colour: () => scaleRgb(white, 0.8) },
     ];
-    const segments = 32;
+    const segments = studio ? 56 : 32;
     const base = out.count;
     for (const ring of rings)
         for (let i = 0; i < segments; i++) {
@@ -133,6 +147,13 @@ function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
             // The lid casts a soft shadow across the top of the eye.
             const lidShadow =
                 0.5 + 0.5 * smoothstep(lidY + 0.0005, lidY - 0.0065, p[1]);
+            if (studio) {
+                // The shader lights the eye and adds its wet highlight; it
+                // needs the true surface and the lid's shadow on its own.
+                out.auxNext = [lidShadow, 1, 0, 1];
+                out.vertex(p, dir, ring.colour(az));
+                continue;
+            }
             // Nearly flat normals: the eye is lit evenly, like a painted one.
             const nx = dir[0] * 0.22;
             const ny = dir[1] * 0.22 + 0.2;
@@ -208,6 +229,7 @@ function eyeball(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
         for (let i = 0; i < n; i++)
             out.tri(mid, first + i, first + ((i + 1) % n));
     };
+    if (studio) return;
     light(0.35, irisAngle * 0.5, style.irisRadius * 0.21, 1.6);
     light(Math.PI + 0.5, irisAngle * 0.62, style.irisRadius * 0.1, 1.2);
 }
@@ -220,8 +242,10 @@ function lashes(out: MeshBuilder, face: FaceSpec, style: EyeStyle, s: number) {
         const R =
             (upper
                 ? face.lidRadius
-                : face.eyeRadius + (face.lidRadius - face.eyeRadius) * 0.45) +
-            0.0002;
+                : face.eyeRadius +
+                  (face.lidRadius - face.eyeRadius) *
+                      0.45 *
+                      Math.max(0.3, face.lowerLid_rim)) + 0.0002;
         const path: Vec3[] = [];
         const normals: Vec3[] = [];
         for (let i = 0; i < samples; i++) {

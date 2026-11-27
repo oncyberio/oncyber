@@ -42,7 +42,22 @@ export interface PartMesh {
     colors: number[];
     uvs: number[];
     indices: number[];
+    /**
+     * Four shading inputs per vertex, for looks that light the surface
+     * themselves: openness (ambient occlusion), thickness (1 solid, 0 thin
+     * enough to glow), a free per-part value, and gloss.
+     */
+    aux: number[];
+    /** The direction a surface's grain runs (hair strands), per vertex. */
+    tangents: number[];
 }
+
+/**
+ * How a character is shaded. "painted" bakes all shading into vertex
+ * colours for plain materials; "studio" keeps colour and shading inputs
+ * apart for procedural shaders that light the avatar themselves.
+ */
+export type Look = "painted" | "studio";
 
 /**
  * How open a point on a surface is, from the field itself: step out along
@@ -105,6 +120,11 @@ export class MeshBuilder implements PartMesh {
     colors: number[] = [];
     uvs: number[] = [];
     indices: number[] = [];
+    aux: number[] = [];
+    tangents: number[] = [];
+    /** Shading inputs and grain given to the vertices added next. */
+    auxNext: [number, number, number, number] = [1, 1, 0, 1];
+    tangentNext: [number, number, number] = [0, 1, 0];
 
     get count() {
         return this.positions.length / 3;
@@ -115,6 +135,10 @@ export class MeshBuilder implements PartMesh {
         this.normals.push(n[0], n[1], n[2]);
         this.colors.push(color[0], color[1], color[2]);
         this.uvs.push(u, v);
+        const a = this.auxNext;
+        this.aux.push(a[0], a[1], a[2], a[3]);
+        const t = this.tangentNext;
+        this.tangents.push(t[0], t[1], t[2]);
         return this.count - 1;
     }
 
@@ -144,8 +168,10 @@ export class MeshBuilder implements PartMesh {
                 raw.normals[i + 1],
                 raw.normals[i + 2],
             ];
+            // Paint first: it may also decide the shading inputs and UVs.
+            const colour = paint(p, n);
             const t = uv ? uv(p, n) : [0, 0];
-            this.vertex(p, n, paint(p, n), t[0], t[1]);
+            this.vertex(p, n, colour, t[0], t[1]);
         }
         for (let i = 0; i < raw.indices.length; i++)
             this.indices.push(base + raw.indices[i]);
@@ -168,8 +194,17 @@ export class MeshBuilder implements PartMesh {
                 other.normals[i + 2]
             );
         }
-        this.colors.push(...other.colors);
-        this.uvs.push(...other.uvs);
+        // Loops, not spreads: dense parts are too long to pass as arguments.
+        for (let i = 0; i < other.colors.length; i++)
+            this.colors.push(other.colors[i]);
+        for (let i = 0; i < other.uvs.length; i++) this.uvs.push(other.uvs[i]);
+        for (let i = 0; i < other.aux.length; i++) this.aux.push(other.aux[i]);
+        for (let i = 0; i < other.tangents.length; i += 3)
+            this.tangents.push(
+                other.tangents[i] * s,
+                other.tangents[i + 1],
+                other.tangents[i + 2]
+            );
         for (let i = 0; i < other.indices.length; i += 3) {
             const a = base + other.indices[i];
             const b = base + other.indices[i + 1];
@@ -296,6 +331,7 @@ export class MeshBuilder implements PartMesh {
         for (let i = 0; i < n; i++) {
             const t = n > 1 ? i / (n - 1) : 0;
             const { normal, binormal } = frames[i];
+            this.tangentNext = frames[i].tangent;
             const flat =
                 typeof options.flatten === "function"
                     ? options.flatten(t)

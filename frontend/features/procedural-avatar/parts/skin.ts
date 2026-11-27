@@ -60,9 +60,17 @@ export function faceUv(p: Vec3): [number, number] {
 export function buildSkin(
     skin: SkinField,
     palette: SkinPalette,
-    detail = 1
+    /** Mesh density, or [body, face and hands] when they differ. */
+    density: number | [number, number] = 1,
+    /**
+     * For the studio look: the face's paint, applied to the vertices in
+     * place of a texture. Colour and shading inputs are then kept apart.
+     */
+    studio?: { tint: (x: number, y: number, z: number) => number[] }
 ): SkinMeshes {
     const { rig, all } = skin;
+    const bodyDetail = typeof density === "number" ? density : density[0];
+    const detail = typeof density === "number" ? density : density[1];
     const b = rig.body;
     const base = rgb(palette.base);
     const shade = rgb(palette.shade);
@@ -203,15 +211,27 @@ export function buildSkin(
             colour,
             smoothstep(-0.25, 0.8, ao)
         );
+        if (studio) {
+            // Thickness: step inwards and see how soon the far side arrives.
+            const inwards: Vec3 = [-n[0], -n[1], -n[2]];
+            shading[0] = ao;
+            shading[1] = 1 - occlusion(near, p, inwards, 0.016, 2);
+            if (p[1] < cut - 0.02) return colour;
+            const h = skin.fromHead(p);
+            const t = studio.tint(h[0], h[1], h[2]);
+            return [colour[0] * t[0], colour[1] * t[1], colour[2] * t[2]];
+        }
         const k = mottle * skyShade(n, 0.16);
         return [lit[0] * k, lit[1] * k, lit[2] * k];
     };
+    const shading: [number, number, number, number] = [1, 1, 0, 1];
 
-    const cell = 0.0105 / detail;
+    const cell = 0.0105 / bodyDetail;
     // Each piece runs 1.6 of its own cells past a cut, so neighbours overlap.
     const overlapBody = cell * 1.6;
     const reach = rig.at("leftHand", [b.handLength, 0, 0]);
     const body = new MeshBuilder();
+    body.auxNext = shading;
     body.addRaw(
         meshField(all, {
             min: [-reach[0] - 0.04, b.foot[1] - 0.085, -0.17],
@@ -240,11 +260,12 @@ export function buildSkin(
 
     // Head: a fine face (with ears) and a coarser skull behind it.
     const head = new MeshBuilder();
+    head.auxNext = shading;
     const joint = b.head;
     const hs = b.headScale;
     const faceBack = joint[2] - 0.036 * hs;
     const fine = (0.0023 * hs) / detail;
-    const coarse = (0.0052 * hs) / detail;
+    const coarse = (0.0052 * hs) / bodyDetail;
     const top = joint[1] + 0.25 * hs;
     const uv = (p: Vec3) => faceUv(skin.fromHead(p));
     head.addRaw(

@@ -78,10 +78,20 @@ style and an outfit. The parts it is made from are shared.
     known by a path such as `/avatars/procedural/runner`; nothing is fetched
     from it. The lobby loader (`avatarAdapter.ts`) recognises the path and
     builds the avatar instead, in a web worker.
--   **Colour is painted in.** Shading that would need custom shaders (folds,
-    the sheen on hair, polish on shoes) is baked into vertex colours and two
-    small generated textures, so these avatars use the same plain materials
-    as VRM avatars and can be drawn as a crowd.
+-   **Two looks.** A character is either _painted_ or _studio_ (`look` in
+    its description).
+    -   Painted (Runner): shading is baked into vertex colours and two small
+        generated textures, so the avatar uses the same plain materials as
+        VRM avatars and can be drawn as a crowd.
+    -   Studio (Stagehand): no textures at all. Meshes are much denser,
+        colour and shading inputs (openness, thickness, strand direction) are
+        stored on the vertices, and procedural shaders in `materials.ts`
+        light the avatar themselves: scattering skin, strand-lit hair, cloth
+        with tinted shadows and sheen, polished leather. Hair is sculpted as
+        one mass from a few dozen broad locks (`parts/hairSculpt.ts`), with
+        strands drawn in the shader. This look costs more: about 730,000
+        triangles and several seconds to build, and other visitors see it
+        as a full avatar, not a crowd instance.
 
 Saved as your avatar, a generated character is used in the lobby. Gallery
 spaces don't build them yet and show the default avatar there.

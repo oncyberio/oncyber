@@ -7,6 +7,7 @@ import {
     generateAvatar,
     generateSteps,
 } from "./generate";
+import { createStudioMaterial } from "./materials";
 import { SpringChain } from "./spring";
 
 export { CHARACTERS, RUNNER } from "./characters";
@@ -35,6 +36,7 @@ export interface ProceduralAvatar {
 }
 
 function createMaterial(spec: MaterialSpec): THREE.Material {
+    if (spec.kind === "studio") return createStudioMaterial(spec.options);
     if (spec.kind === "glass")
         return new THREE.MeshLambertMaterial({
             color: spec.colour,
@@ -109,6 +111,17 @@ export function assembleAvatar(data: AvatarData): ProceduralAvatar {
             new THREE.BufferAttribute(part.colors, 3)
         );
         geometry.setAttribute("uv", new THREE.BufferAttribute(part.uvs, 2));
+        if (part.material.kind === "studio") {
+            // Inputs the studio shaders light the surface from.
+            geometry.setAttribute(
+                "aux",
+                new THREE.BufferAttribute(part.aux, 4)
+            );
+            geometry.setAttribute(
+                "tangent",
+                new THREE.BufferAttribute(part.tangents, 4)
+            );
+        }
         geometry.setAttribute(
             "skinIndex",
             new THREE.Uint16BufferAttribute(part.skinIndex, 4)

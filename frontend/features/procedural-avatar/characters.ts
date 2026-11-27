@@ -1,3 +1,4 @@
+import type { Look } from "./kernel/build";
 import { BODY, Proportions } from "./rig";
 import { BUILD, Build, FACE, FaceSpec } from "./parts/skinField";
 import type { SkinPalette } from "./parts/skin";
@@ -47,6 +48,13 @@ export interface CharacterSpec {
     headphones?: HeadphoneStyle;
     /** A band ring on the right ring finger. */
     ring?: string;
+    /**
+     * "studio" builds the character without textures, for shaders that
+     * light it themselves; the default bakes shading into plain materials.
+     */
+    look?: Look;
+    /** Mesh density relative to the default; 2 is twice as fine. */
+    density?: number;
 }
 
 export const RUNNER: CharacterSpec = {
@@ -197,12 +205,12 @@ export const STAGEHAND: CharacterSpec = {
         spine: [0, 1.095, 0.002],
         chest: [0, 1.195, 0.002],
         upperChest: [0, 1.31, 0],
-        neck: [0, 1.468, -0.012],
-        head: [0, 1.552, -0.002],
+        neck: [0, 1.458, -0.012],
+        head: [0, 1.528, -0.002],
         shoulder: [0.026, 1.438, -0.008],
-        upperArm: [0.196, 1.436, -0.014],
-        lowerArm: [0.468, 1.436, -0.014],
-        hand: [0.714, 1.436, -0.014],
+        upperArm: [0.188, 1.436, -0.014],
+        lowerArm: [0.46, 1.436, -0.014],
+        hand: [0.706, 1.436, -0.014],
         upperLeg: [0.1, 0.968, 0],
         lowerLeg: [0.1, 0.52, 0.002],
         foot: [0.1, 0.1, -0.014],
@@ -217,32 +225,34 @@ export const STAGEHAND: CharacterSpec = {
         chest: [0.157, 0.104],
         bust: 0.12,
         seat: 0.9,
-        neck: 0.047,
-        arm: 1.12,
+        neck: 0.051,
+        arm: 1.03,
         thigh: 1.04,
         calf: 1.08,
         foot: 1.1,
     },
     face: {
         ...FACE,
-        eye: [0.031, 1.5555, 0],
-        eyeRadius: 0.0172,
-        lidRadius: 0.0194,
-        upperLid: 10,
-        lowerLid: -20,
-        eyeTilt: 4,
-        mouthY: 1.502,
-        mouthWidth: 0.0148,
+        eye: [0.0305, 1.5555, 0],
+        eyeRadius: 0.0162,
+        lidRadius: 0.0176,
+        upperLid: 15,
+        lowerLid: -12,
+        eyeTilt: 9,
+        mouthY: 1.506,
+        mouthWidth: 0.0138,
         lips: 0.82,
-        noseTip: [0, 1.522, 0],
-        nose: 0.98,
-        jaw: 0.0495,
+        noseTip: [0, 1.5265, 0],
+        nose: 0.84,
+        jaw: 0.049,
         jawRadius: 0,
-        jawCone: 0.0615,
-        chin: 0.017,
-        chinY: 1.4865,
-        cheek: 0.92,
-        brow: 0.004,
+        jawCone: 0.0575,
+        chin: 0.0175,
+        chinY: 1.4875,
+        cheek: 0.8,
+        brow: 0.0048,
+        socket: 0.35,
+        lowerLid_rim: 0,
     },
     skin: {
         base: "#d6a283",
@@ -256,25 +266,26 @@ export const STAGEHAND: CharacterSpec = {
         irisLight: "#5b3a2b",
         pupil: "#0c0908",
         white: "#f1eae4",
-        irisRadius: 0.0076,
-        gaze: [0, 1],
+        irisRadius: 0.0068,
+        gaze: [0, 3],
         lash: "#17110f",
-        lashWidth: 0.0015,
-        lashWing: 0,
+        lashWidth: 0.0019,
+        lashWing: 0.0028,
     },
     brows: {
         colour: "#1b1514",
         path: [
-            [0.0085, 1.5705],
-            [0.021, 1.5765],
-            [0.035, 1.5805],
-            [0.048, 1.5805],
-            [0.056, 1.5775],
+            [0.008, 1.5685],
+            [0.02, 1.5745],
+            [0.034, 1.5795],
+            [0.047, 1.5805],
+            [0.055, 1.578],
         ],
-        width: [0.0066, 0.0058, 0.002],
+        width: [0.0048, 0.0042, 0.0014],
     },
     facePaint: {
-        lip: "#b9806f",
+        lip: "#b47466",
+        lipStrength: 0.6,
         lipLine: "#70453c",
         blush: "#dd9584",
         blushStrength: 0.28,
@@ -311,7 +322,7 @@ export const STAGEHAND: CharacterSpec = {
         ease: 0.03,
         sleeve: 1,
         rolled: false,
-        folds: 1.1,
+        folds: 1.7,
         open: 0,
         pocket: true,
         blouse: 0.35,
@@ -374,6 +385,8 @@ export const STAGEHAND: CharacterSpec = {
         player: 0.72,
     },
     ring: "#18181a",
+    look: "studio",
+    density: 1.8,
 };
 
 /** The built-in procedural characters, by id. */

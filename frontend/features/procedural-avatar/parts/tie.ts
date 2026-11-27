@@ -65,10 +65,12 @@ export function buildTie(
     shirt: Shape,
     knot: Vec3,
     waist: Waist,
-    style: TieStyle
+    style: TieStyle,
+    /** Without a texture the cloth carries its own colour. */
+    studio = false
 ) {
     const out = new MeshBuilder();
-    const white: Rgb = [1, 1, 1];
+    const white: Rgb = studio ? rgb(style.colour) : [1, 1, 1];
     const top = knot[1] - style.loosen;
     const scale = 1 / 0.07;
     // The line the tie hangs along: it follows the shirt outwards, never back in.
@@ -141,7 +143,7 @@ export function buildTie(
     );
     // The narrow end: darker, a little to one side.
     const dark = rgb(style.back);
-    const tone: Rgb = [dark[0] * 4, dark[1] * 4, dark[2] * 4];
+    const tone: Rgb = studio ? dark : [dark[0] * 4, dark[1] * 4, dark[2] * 4];
     blade(
         (t) => (t < 0.93 ? 0.012 : 0.012 * (1 - (t - 0.93) / 0.07)),
         -0.0035,

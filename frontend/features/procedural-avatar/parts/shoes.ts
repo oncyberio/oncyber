@@ -1,4 +1,5 @@
 import {
+    Look,
     MeshBuilder,
     Rgb,
     localise,
@@ -39,7 +40,12 @@ export interface ShoeStyle {
  * with a separate heel, and laces over the tongue. One shoe is sculpted
  * and mirrored for the other foot.
  */
-export function buildShoes(rig: Rig, style: ShoeStyle, detail = 1) {
+export function buildShoes(
+    rig: Rig,
+    style: ShoeStyle,
+    detail = 1,
+    look: Look = "painted"
+) {
     const b = rig.body;
     const k = style.size;
     const x = b.foot[0];
@@ -164,8 +170,20 @@ export function buildShoes(rig: Rig, style: ShoeStyle, detail = 1) {
     const light: Vec3 = [0.35, 0.8, 0.5];
     const paint = (p: Vec3, n: Vec3): Rgb => {
         const ao = occlusion(local(p[0], p[1], p[2]), p, n, 0.014, 3);
-        if (p[1] < h + 0.0015 || (p[1] < heel + 0.001 && p[2] < az + 0.006))
+        if (p[1] < h + 0.0015 || (p[1] < heel + 0.001 && p[2] < az + 0.006)) {
+            if (look === "studio") {
+                one.auxNext[0] = ao;
+                one.auxNext[3] = 0.12;
+                return soleColour;
+            }
             return mixRgb([0, 0, 0], soleColour, 0.5 + 0.5 * ao);
+        }
+        if (look === "studio") {
+            // The shader supplies the polish; leave the leather plain.
+            one.auxNext[0] = ao;
+            one.auxNext[3] = 1;
+            return leather;
+        }
         // Polish: a broad sheen on top, a tight glint on the toe.
         const d = Math.max(
             0,

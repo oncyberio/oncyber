@@ -25,6 +25,10 @@ export interface BoundPart {
     indices: Uint32Array;
     skinIndex: Uint16Array;
     skinWeight: Float32Array;
+    /** Shading inputs, four per vertex (see `PartMesh.aux`). */
+    aux: Float32Array;
+    /** Grain direction, four per vertex (xyz and a handedness of 1). */
+    tangents: Float32Array;
 }
 
 /**
@@ -37,6 +41,13 @@ export function bindPart(rig: Rig, part: PartMesh, skin: SkinFn): BoundPart {
     const normals = new Float32Array(part.normals);
     const skinIndex = new Uint16Array(count * 4);
     const skinWeight = new Float32Array(count * 4);
+    const tangents = new Float32Array(count * 4);
+    for (let i = 0; i < count; i++) {
+        tangents[i * 4] = part.tangents[i * 3];
+        tangents[i * 4 + 1] = part.tangents[i * 3 + 1];
+        tangents[i * 4 + 2] = part.tangents[i * 3 + 2];
+        tangents[i * 4 + 3] = 1;
+    }
     const influence = new Influence();
     const m = new Float64Array(12);
     for (let i = 0; i < count; i++) {
@@ -104,6 +115,18 @@ export function bindPart(rig: Rig, part: PartMesh, skin: SkinFn): BoundPart {
         normals[i * 3] = tx / l;
         normals[i * 3 + 1] = ty / l;
         normals[i * 3 + 2] = tz / l;
+        // Grain is a direction on the surface: it travels by the inverse.
+        const gx = tangents[i * 4];
+        const gy = tangents[i * 4 + 1];
+        const gz = tangents[i * 4 + 2];
+        const ux =
+            (A * gx + (c * h - b * k2) * gy + (b * f - c * e2) * gz) * id;
+        const uy = (B * gx + (a * k2 - c * g) * gy + (c * d - a * f) * gz) * id;
+        const uz = (C * gx + (b * g - a * h) * gy + (a * e2 - b * d) * gz) * id;
+        const ul = Math.hypot(ux, uy, uz) || 1;
+        tangents[i * 4] = ux / ul;
+        tangents[i * 4 + 1] = uy / ul;
+        tangents[i * 4 + 2] = uz / ul;
     }
     return {
         positions,
@@ -113,5 +136,7 @@ export function bindPart(rig: Rig, part: PartMesh, skin: SkinFn): BoundPart {
         indices: new Uint32Array(part.indices),
         skinIndex,
         skinWeight,
+        aux: new Float32Array(part.aux),
+        tangents,
     };
 }

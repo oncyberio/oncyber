@@ -1,4 +1,5 @@
 import {
+    Look,
     MeshBuilder,
     Rgb,
     localise,
@@ -48,7 +49,8 @@ export function buildTrousers(
     body: Shape,
     waist: Waist,
     style: TrouserStyle,
-    detail = 1
+    detail = 1,
+    look: Look = "painted"
 ) {
     const b = rig.body;
     const cloth = rgb(style.cloth);
@@ -168,6 +170,10 @@ export function buildTrousers(
         const line =
             Math.exp(-((lateral / 0.004) ** 2)) * smoothstep(0.04, 0.14, fall);
         const inside = n[1] < -0.6 && p[1] < style.hemY + 0.02 ? 0.35 : 1;
+        if (look === "studio") {
+            mesh.auxNext[0] = ao * inside;
+            return mixRgb(cloth, edge, line * 0.35);
+        }
         const weave = 0.9 + 0.2 * fbm(p[0] * 80, p[1] * 80, p[2] * 80, 2);
         const base = mixRgb(
             mixRgb(shadow, cloth, smoothstep(0.2, 0.95, ao)),

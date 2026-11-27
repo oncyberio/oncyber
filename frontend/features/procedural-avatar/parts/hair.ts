@@ -8,6 +8,7 @@ import {
 } from "../kernel/build";
 import { clamp, mix, mulberry, noise3, smoothstep } from "../kernel/noise";
 import { Shape, Vec3, field, gradient, place, project } from "../kernel/sdf";
+import type { SculptLock } from "./hairSculpt";
 import { HEAD_ORIGIN, SkinField } from "./skinField";
 
 /**
@@ -74,6 +75,8 @@ export class Groom {
     readonly random: () => number;
     /** Every lock's path, for strays to sprout from. */
     readonly paths: P3[][] = [];
+    /** Set to an array to collect locks for sculpting (see hairSculpt). */
+    sculpt: SculptLock[] | null = null;
     private readonly local: (x: number, y: number, z: number) => Shape;
     private readonly base: Rgb;
     private readonly sheen: Rgb;
@@ -216,6 +219,22 @@ export class Groom {
         const tone = options.tone ?? 1;
         const depth = options.depth ?? 0;
         const ridges = options.ridges ?? 3;
+        if (this.sculpt) {
+            // Collected for sculpting as one mass instead of a tube each.
+            this.sculpt.push({
+                path,
+                normals,
+                width: options.width,
+                flat: Math.min(1, options.thickness / options.width),
+                belly,
+                root,
+                tone,
+                depth,
+                ridges: Math.max(3, ridges + 2),
+            });
+            this.paths.push(path);
+            return;
+        }
         const ridgePhase = this.random() * Math.PI * 2;
         const streak = Array.from({ length: sides }, () =>
             this.range(0.7, 1.3)

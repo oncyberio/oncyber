@@ -1,8 +1,9 @@
 import { BoundPart, SkinFn, bindPart, followBody, rigid } from "./assemble";
 import type { CharacterSpec } from "./characters";
-import type { MeshBuilder, PartMesh } from "./kernel/build";
+import { Look, MeshBuilder, PartMesh, rgb } from "./kernel/build";
 import type { Vec3 } from "./kernel/sdf";
-import { PaintedTexture, paintFace } from "./paint/faceTexture";
+import type { Colour3, StudioSurface } from "./materials";
+import { PaintedTexture, faceTinter, paintFace } from "./paint/faceTexture";
 import {
     buildBadge,
     buildEarpiece,
@@ -15,7 +16,8 @@ import {
 import { buildTrousers } from "./parts/trousers";
 import { buildBelt } from "./parts/belt";
 import { buildFaceDetails } from "./parts/face";
-import { Groom, hairCollider } from "./parts/hair";
+import { Groom, hairCollider, hairlineDepth } from "./parts/hair";
+import { sculptHair } from "./parts/hairSculpt";
 import { growHair } from "./parts/hairStyles";
 import { buildShirt } from "./parts/shirt";
 import { buildShoes } from "./parts/shoes";
@@ -43,6 +45,7 @@ export interface AvatarData {
 
 export type MaterialSpec =
     | { kind: "vertex" }
+    | { kind: "studio"; options: StudioSurface }
     | { kind: "textured"; texture: PaintedTexture; repeat: boolean }
     | { kind: "glass"; colour: number; opacity: number };
 
@@ -136,7 +139,35 @@ export function* generateSteps(
     spec: CharacterSpec,
     options: GenerateOptions = {}
 ): Generator<string, AvatarData> {
-    const detail = options.detail ?? 1;
+    // Density applies in full where the eye rests (face, hands, hair,
+    // shirt) and in part to what is mostly hidden or simple.
+    const coarse = options.detail ?? 1;
+    const detail = coarse * (spec.density ?? 1);
+    const medium = coarse * Math.sqrt(spec.density ?? 1);
+    const studio = spec.look === "studio";
+    const look: Look = studio ? "studio" : "painted";
+    // In the studio look every part names the shader that lights it.
+    const surface = (
+        painted: MaterialSpec,
+        shaded: StudioSurface
+    ): MaterialSpec => (studio ? { kind: "studio", options: shaded } : painted);
+    const plain: MaterialSpec = { kind: "vertex" };
+    /** A cloth's shadow colour as a multiplier over its lit colour. */
+    const shadowOf = (cloth: string, shadow: string): Colour3 => {
+        const a = rgb(cloth);
+        const b = rgb(shadow);
+        return [
+            Math.min(1, b[0] / a[0]),
+            Math.min(1, b[1] / a[1]),
+            Math.min(1, b[2] / a[2]),
+        ];
+    };
+    const leather: StudioSurface = {
+        surface: "gloss",
+        spec: 0.55,
+        tight: 70,
+        mirror: 0.6,
+    };
     const timings: Record<string, number> = {};
     let mark = now();
     const lap = (name: string) => {
@@ -162,22 +193,86 @@ export function* generateSteps(
     const body = followBody(rig);
     const chest = followBody(rig, { arms: 0 });
 
-    const skinMeshes = buildSkin(skin, spec.skin, detail);
+    const roots = {
+        line: spec.hair.style.hairline,
+        colour: spec.hair.palette.base,
+    };
+    const skinMeshes = buildSkin(
+        skin,
+        spec.skin,
+        [coarse, detail],
+        studio
+            ? { tint: faceTinter(skin, spec.facePaint, spec.skin.base, roots) }
+            : undefined
+    );
     yield lap("skin");
-    add("Body", skinMeshes.body, body);
-    add("Head", skinMeshes.head, body, {
-        kind: "textured",
-        repeat: false,
-        texture: paintFace(skin, spec.facePaint, spec.skin.base, {
-            line: spec.hair.style.hairline,
-            colour: spec.hair.palette.base,
-        }),
-    });
-    add("Face", buildFaceDetails(skin, spec.eyes, spec.brows), rigid(head));
+    const skinSurface: StudioSurface = { surface: "skin", scatter: 1 };
+    add("Body", skinMeshes.body, body, surface(plain, skinSurface));
+    add(
+        "Head",
+        skinMeshes.head,
+        body,
+        studio
+            ? { kind: "studio", options: skinSurface }
+            : {
+                  kind: "textured",
+                  repeat: false,
+                  texture: paintFace(
+                      skin,
+                      spec.facePaint,
+                      spec.skin.base,
+                      roots
+                  ),
+              }
+    );
+    if (studio) {
+        add(
+            "Eyes",
+            buildFaceDetails(skin, spec.eyes, spec.brows, "eyes", true),
+            rigid(head),
+            { kind: "studio", options: { surface: "eye" } }
+        );
+        add(
+            "Brows",
+            buildFaceDetails(skin, spec.eyes, spec.brows, "hairs", true),
+            rigid(head),
+            {
+                kind: "studio",
+                options: {
+                    surface: "cloth",
+                    shadow: [0.5, 0.5, 0.55],
+                    sheen: 0.4,
+                    rim: 0,
+                    grain: 0,
+                    brush: 0,
+                },
+            }
+        );
+    } else
+        add("Face", buildFaceDetails(skin, spec.eyes, spec.brows), rigid(head));
     yield lap("face");
 
-    const shirt = buildShirt(rig, skin.body, spec.waist, spec.shirt, detail);
-    add("Shirt", shirt.mesh, body);
+    const shirt = buildShirt(
+        rig,
+        skin.body,
+        spec.waist,
+        spec.shirt,
+        detail,
+        look
+    );
+    add(
+        "Shirt",
+        shirt.mesh,
+        body,
+        surface(plain, {
+            surface: "cloth",
+            shadow: shadowOf(spec.shirt.cloth, spec.shirt.shadow),
+            sheen: 0.22,
+            rim: 0.22,
+            grain: 0.025,
+            brush: 0.12,
+        })
+    );
     yield lap("shirt");
 
     if (spec.bottom.kind === "skirt")
@@ -189,29 +284,78 @@ export function* generateSteps(
     else
         add(
             "Trousers",
-            buildTrousers(rig, skin.body, spec.waist, spec.bottom, detail).mesh,
-            chest
+            buildTrousers(rig, skin.body, spec.waist, spec.bottom, medium, look)
+                .mesh,
+            chest,
+            surface(plain, {
+                surface: "cloth",
+                shadow: shadowOf(spec.bottom.cloth, spec.bottom.shadow),
+                sheen: 0.5,
+                rim: 0.55,
+                grain: 0.16,
+                brush: 0.03,
+            })
         );
-    add("Belt", buildBelt(spec.waist, spec.belt), chest);
+    add(
+        "Belt",
+        buildBelt(spec.waist, spec.belt),
+        chest,
+        surface(plain, leather)
+    );
     add(
         "Tie",
-        buildTie(shirt.shape, shirt.anchors.knot, spec.waist, spec.tie),
+        buildTie(shirt.shape, shirt.anchors.knot, spec.waist, spec.tie, studio),
         chest,
-        {
-            kind: "textured",
-            repeat: true,
-            texture: tieTexture(spec.tie),
-        }
+        studio
+            ? {
+                  kind: "studio",
+                  options: {
+                      surface: "cloth",
+                      shadow: [0.5, 0.52, 0.72],
+                      sheen: 0.7,
+                      rim: 0.2,
+                      grain: 0.03,
+                      brush: 0,
+                      stripes: {
+                          colour: rgb(spec.tie.stripe),
+                          paired: spec.tie.paired,
+                      },
+                  },
+              }
+            : { kind: "textured", repeat: true, texture: tieTexture(spec.tie) }
     );
-    add("Socks", buildSocks(rig, skin.body, spec.socks), body);
+    add(
+        "Socks",
+        buildSocks(rig, skin.body, spec.socks),
+        body,
+        surface(plain, {
+            surface: "cloth",
+            shadow: shadowOf(spec.socks.colour, spec.socks.shadow),
+            sheen: 0.15,
+            rim: 0.15,
+            grain: 0.04,
+            brush: 0,
+        })
+    );
     yield lap("outfit");
-    add("Shoes", buildShoes(rig, spec.shoes, detail), body);
+    add(
+        "Shoes",
+        buildShoes(rig, spec.shoes, medium, look),
+        body,
+        surface(plain, {
+            surface: "gloss",
+            spec: 0.8,
+            tight: 110,
+            mirror: 0.28,
+        })
+    );
     yield lap("shoes");
 
     add(
         "Badge",
         buildBadge(shirt.shape, shirt.anchors.pocket, spec.badge),
-        chest
+        chest,
+        surface(plain, { surface: "gloss", spec: 0.3, tight: 40, mirror: 0.2 })
     );
     const beltY = spec.waist.y - 0.006 - spec.belt.height / 2;
     if (spec.headphones)
@@ -225,7 +369,8 @@ export function* generateSteps(
                 beltY,
                 spec.headphones
             ),
-            chest
+            chest,
+            surface(plain, leather)
         );
     if (spec.ring) {
         const finger = rig.finger("right", "Ring");
@@ -237,7 +382,13 @@ export function* generateSteps(
                 finger.radius[0] + 0.0012,
                 spec.ring
             ),
-            rigid(finger.bones[0])
+            rigid(finger.bones[0]),
+            surface(plain, {
+                surface: "gloss",
+                spec: 0.9,
+                tight: 90,
+                mirror: 0.9,
+            })
         );
     }
     if (spec.radio) {
@@ -285,7 +436,40 @@ export function* generateSteps(
         spec.hair.palette,
         spec.hair.seed
     );
+    // The studio look sculpts the locks into one mass; strays stay strands.
+    if (studio) groom.sculpt = [];
     const grown = growHair(groom, spec.hair.style);
+    yield lap("groom");
+    if (groom.sculpt && groom.sculpt.length) {
+        const line = spec.hair.style.hairline;
+        const min: [number, number, number] = [Infinity, Infinity, Infinity];
+        const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+        for (const lock of groom.sculpt)
+            for (const p of lock.path)
+                for (let k = 0; k < 3; k++) {
+                    min[k] = Math.min(min[k], p[k] - 0.02);
+                    max[k] = Math.max(max[k], p[k] + 0.02);
+                }
+        const sculpted = sculptHair(groom.sculpt, {
+            head: skin.head,
+            // Hair grows inside the hairline and leaves the ears clear.
+            hairline: (p) =>
+                Math.min(
+                    hairlineDepth(line, p),
+                    Math.hypot(
+                        Math.abs(p[0]) - skin.face.ear[0],
+                        p[1] - skin.face.ear[1],
+                        p[2] - skin.face.ear[2]
+                    ) - 0.03
+                ),
+            base: rgb(spec.hair.palette.base),
+            tip: rgb(spec.hair.palette.tip),
+            cell: 0.0034 / detail,
+            min,
+            max,
+        });
+        groom.out.append(sculpted);
+    }
     let hairSkin: SkinFn = rigid(head);
     if (grown.tie && extra.spring) {
         // Hair hanging below the tie swings on its own bones.
@@ -316,7 +500,16 @@ export function* generateSteps(
                 .finish();
         };
     }
-    add("Hair", toAvatar(groom.out, skin.toHead), hairSkin);
+    add(
+        "Hair",
+        toAvatar(groom.out, skin.toHead),
+        hairSkin,
+        surface(plain, {
+            surface: "hair",
+            sheen: rgb(spec.hair.palette.sheen),
+            glint: 0.16,
+        })
+    );
     lap("hair");
 
     return {
@@ -352,7 +545,9 @@ export function transferables(data: AvatarData): ArrayBuffer[] {
             part.uvs.buffer as ArrayBuffer,
             part.indices.buffer as ArrayBuffer,
             part.skinIndex.buffer as ArrayBuffer,
-            part.skinWeight.buffer as ArrayBuffer
+            part.skinWeight.buffer as ArrayBuffer,
+            part.aux.buffer as ArrayBuffer,
+            part.tangents.buffer as ArrayBuffer
         );
         if (part.material.kind === "textured")
             out.push(part.material.texture.data.buffer as ArrayBuffer);

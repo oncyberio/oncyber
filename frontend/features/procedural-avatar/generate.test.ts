@@ -20,7 +20,6 @@ describe.each(ids)("%s", (id) => {
         for (const expected of [
             "Body",
             "Head",
-            "Face",
             "Hair",
             "Shirt",
             "Tie",
@@ -132,4 +131,38 @@ test("the two characters differ in build and outfit, not in how they are made", 
     const height = (id: string) =>
         built[id].bones.find((bone) => bone.name === "head").position[1];
     expect(height("stagehand")).toBeGreaterThan(height("runner") + 0.05);
+});
+
+test("the studio look uses no textures: every surface is shaded from its vertices", () => {
+    const stagehand = built.stagehand;
+    for (const p of stagehand.parts) {
+        expect([p.name, p.material.kind]).toEqual([p.name, "studio"]);
+        expect(p.aux.length).toBe((p.positions.length / 3) * 4);
+        expect(p.tangents.length).toBe((p.positions.length / 3) * 4);
+    }
+    // The face's paint is in the head's vertex colours: lips differ from skin.
+    const head = stagehand.parts.find((p) => p.name === "Head");
+    const colours = new Set<string>();
+    for (let i = 0; i < head.colors.length; i += 3)
+        colours.add(
+            `${head.colors[i].toFixed(2)},${head.colors[i + 1].toFixed(2)}`
+        );
+    expect(colours.size).toBeGreaterThan(8);
+    // Hair carries a strand direction and openness for its shader.
+    const hair = stagehand.parts.find((p) => p.name === "Hair");
+    let bad = 0;
+    for (let i = 0; i < hair.tangents.length; i += 4) {
+        const l = Math.hypot(
+            hair.tangents[i],
+            hair.tangents[i + 1],
+            hair.tangents[i + 2]
+        );
+        if (Math.abs(l - 1) > 0.02) bad++;
+        if (!(hair.aux[i] >= 0 && hair.aux[i] <= 1)) bad++;
+    }
+    expect(bad).toBe(0);
+    // The painted look keeps its two generated textures.
+    expect(
+        built.runner.parts.filter((p) => p.material.kind === "textured")
+    ).toHaveLength(2);
 });

@@ -54,6 +54,10 @@ export interface FaceSpec {
     brow: number;
     crownY: number;
     ear: Vec3;
+    /** Size of the hollow the eye sits in; 1 is the reference. */
+    socket: number;
+    /** How much of a lower lid there is: 0 none, 1 the reference rim. */
+    lowerLid_rim: number;
 }
 
 export const FACE: FaceSpec = {
@@ -78,6 +82,8 @@ export const FACE: FaceSpec = {
     brow: 0,
     crownY: 1.683,
     ear: [0.0735, 1.548, -0.012],
+    socket: 1,
+    lowerLid_rim: 1,
 };
 
 /** Girths of the body; the rig's proportions give the lengths. */
@@ -547,7 +553,11 @@ export function headField(face: FaceSpec = resolveFace(FACE)): Field {
         out.carve(
             ellipsoid(
                 [eye[0] * s, eye[1] - 0.0005, eye[2] + 0.018],
-                [face.eyeRadius * 1.28, face.eyeRadius * 0.86, 0.0165]
+                [
+                    face.eyeRadius * (1.06 + 0.22 * face.socket),
+                    face.eyeRadius * (0.66 + 0.2 * face.socket),
+                    0.011 + 0.0055 * face.socket,
+                ]
             ),
             0.006
         );
@@ -574,7 +584,7 @@ export function headField(face: FaceSpec = resolveFace(FACE)): Field {
         );
     for (const s of [1, -1]) {
         out.add(lidShape(face, s, true), 0.0035);
-        out.add(lidShape(face, s, false), 0.0035);
+        if (face.lowerLid_rim > 0) out.add(lidShape(face, s, false), 0.0035);
     }
     for (const s of [1, -1]) {
         // Ears: a tilted disc with the bowl scooped out, plus a lobe.
@@ -657,7 +667,8 @@ function lidShape(face: FaceSpec, s: number, upper: boolean): Field {
     // The lower lid is only a rim, so the eye does not look pouched.
     const radius = upper
         ? face.lidRadius
-        : face.eyeRadius + (face.lidRadius - face.eyeRadius) * 0.45;
+        : face.eyeRadius +
+          (face.lidRadius - face.eyeRadius) * 0.45 * face.lowerLid_rim;
     return field()
         .add(sphere(frame.centre, radius))
         .clip(halfSpace(frame.centre, frame.normal), 0.0008);
