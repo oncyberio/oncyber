@@ -35,9 +35,51 @@ const clock = () => {
 
 /** The garment's surface, cut down to its share of triangles. */
 function surface(garment: Garment) {
-    const raw = meshField(garment.shape, {
-        min: garment.box[0],
-        max: garment.box[1],
+    if (!garment.pair) return surfaceOf(garment.shape, garment, garment.box);
+    // Each of a pair on its own, closed where it meets x = 0.
+    const [min, max] = garment.box;
+    const halves = ([-1, 1] as const).map((s) =>
+        surfaceOf(
+            {
+                eval: (x, y, z) =>
+                    Math.max(garment.shape.eval(x, y, z), -s * x + 0.0005),
+            },
+            { ...garment, triangles: garment.triangles / 2 },
+            s < 0
+                ? [min, [Math.min(max[0], 0.002), max[1], max[2]]]
+                : [[Math.max(min[0], -0.002), min[1], min[2]], max]
+        )
+    );
+    const [a, b] = halves;
+    const offset = a.positions.length / 3;
+    const join = (x: Float32Array, y: Float32Array) => {
+        const out = new Float32Array(x.length + y.length);
+        out.set(x);
+        out.set(y, x.length);
+        return out;
+    };
+    const indices = new Uint32Array(a.indices.length + b.indices.length);
+    indices.set(a.indices);
+    indices.set(
+        b.indices.map((i) => i + offset),
+        a.indices.length
+    );
+    return {
+        positions: join(a.positions, b.positions),
+        normals: join(a.normals, b.normals),
+        indices,
+        before: a.before + b.before,
+    };
+}
+
+function surfaceOf(
+    shape: Garment["shape"],
+    garment: Pick<Garment, "cell" | "triangles">,
+    box: Garment["box"]
+) {
+    const raw = meshField(shape, {
+        min: box[0],
+        max: box[1],
         cell: garment.cell,
     });
     let indices = raw.indices;

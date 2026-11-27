@@ -61,6 +61,13 @@ export const outfitUrl = (id: string) => `/models/clothes/${id}.glb`;
  * one of these (see `tasks/avatar-figure/clothes`). Plain cloth; cloth
  * with stripes on the slant, worked out per pixel so they stay sharp
  * however few triangles carry them; and polished leather or plastic, with
- * a highlight.
+ * a highlight. Polished sits next to plain, so where the two meet on one
+ * piece (a shoe's upper and its welt) the alpha passes only between them.
  */
-export const CLOTH_KINDS = { plain: 1, striped: 0.75, polished: 0.5 } as const;
+export const CLOTH_KINDS = {
+    plain: 1,
+    polished: 0.75,
+    striped: 0.5,
+    /** Striped the other way: a tie's knot. */
+    crossStriped: 0.25,
+} as const;

@@ -37,7 +37,7 @@ const CALM = ["stand", "easy", "look"];
  * one, each a little different, and each with as much of its mesh as its
  * size on screen can show: `pixels` says to within how much of a pixel, a
  * quarter unless given, 0 for every figure whole), `yaw` (degrees, stops
- * the turntable), `zoom=face`, `renderer=webgl`.
+ * the turntable), `zoom` (`face`, `chest`, `legs` or `feet`), `renderer=webgl`.
  */
 export default function FigureAvatarFixture() {
     const ref = useRef<HTMLDivElement>(null);
@@ -74,14 +74,22 @@ export default function FigureAvatarFixture() {
         key.position.set(1, 2, 3);
         scene.add(new THREE.HemisphereLight("#ffffff", "#8a7f86", 1.4), key);
         const camera = new THREE.PerspectiveCamera(16, 1, 0.05, 200);
-        const face = text("zoom") === "face";
+        // Close views: the face, the chest (collar, tie, headphones) or
+        // the feet (shoes).
+        const zoom = (
+            {
+                face: [1.56, 1.5],
+                chest: [1.3, 2.2],
+                feet: [0.12, 1.8],
+            } as Record<string, number[]>
+        )[text("zoom")];
         // A crowd stands in rows, each row between the heads in front.
         const across = Math.ceil(Math.sqrt(many * 1.5));
         const deep = Math.ceil(many / Math.max(1, across));
         const target = many
             ? new THREE.Vector3(0, 0.8, (-(deep - 1) * 0.95) / 2)
-            : new THREE.Vector3(0, face ? 1.56 : 0.88, 0);
-        const distance = many ? 4 + across * 1.9 : face ? 1.5 : 6.6;
+            : new THREE.Vector3(0, zoom ? zoom[0] : 0.88, 0);
+        const distance = many ? 4 + across * 1.9 : zoom ? zoom[1] : 6.6;
         const fit = () => {
             const width = Math.max(1, host.clientWidth);
             const height = Math.max(1, host.clientHeight);

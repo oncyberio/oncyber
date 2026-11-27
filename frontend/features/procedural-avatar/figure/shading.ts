@@ -1212,11 +1212,10 @@ export function createClothMaterial(
         const kind = c.w;
         const albedo = c.xyz.toVar();
         // Stripes: by where the point is on the resting figure.
-        const striped = smoothstep(0.85, 0.8, kind).mul(
-            smoothstep(0.6, 0.65, kind)
-        );
+        const striped = smoothstep(0.6, 0.55, kind);
         const p = positionGeometry;
-        const u = p.x.mul(0.7).add(p.y.mul(0.7)).div(period);
+        const across = select(kind.lessThan(0.375), f32(-0.7), f32(0.7));
+        const u = p.x.mul(across).add(p.y.mul(0.7)).div(period);
         const f = fract(u);
         const pixel = max(fwidth(u), 1e-4);
         // Soft by a pixel at its edges; far off, where a pixel spans a
@@ -1231,7 +1230,9 @@ export function createClothMaterial(
         // Cloth catches light at its edges.
         lit.addAssign(SKY.mul(s.fresnel).mul(0.06).mul(albedo.add(0.2)));
         // Polish: a tight highlight from the key, and the sky at the edges.
-        const polished = smoothstep(0.6, 0.55, kind);
+        const polished = smoothstep(1, 0.75, kind).mul(
+            smoothstep(0.55, 0.65, kind)
+        );
         const halfway = normalize(KEY.add(s.v));
         const nh = saturate(dot(s.n, halfway));
         lit.addAssign(

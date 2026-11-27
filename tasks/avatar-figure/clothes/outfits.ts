@@ -17,7 +17,6 @@ import {
     roundBox,
     ellipsoid,
     capsule,
-    torus,
     euler,
     IDENTITY,
 } from "../../../frontend/features/procedural-avatar/kernel/sdf";
@@ -49,6 +48,11 @@ export interface Garment {
     finish?(p: V3): keyof typeof CLOTH_KINDS;
     /** Take skin only from this side of the body (-1 left, 1 right). */
     side?(p: V3): -1 | 1 | 0;
+    /**
+     * A pair, one each side of x = 0 (shoes, socks): found and bound as
+     * two, so no cloth joins them where the feet nearly touch.
+     */
+    pair?: boolean;
 }
 
 export interface Outfit {
@@ -80,6 +84,40 @@ const grow = (
     source: Shape,
     amount: (x: number, y: number, z: number) => number
 ): Shape => shape((x, y, z) => source.eval(x, y, z) - amount(x, y, z));
+
+/** A drum round `axis` (unit), rounded at its edges. */
+const disc = (
+    c: V3,
+    axis: V3,
+    radius: number,
+    half: number,
+    round: number
+): Shape =>
+    shape((x, y, z) => {
+        const d: V3 = [x - c[0], y - c[1], z - c[2]];
+        const h = d[0] * axis[0] + d[1] * axis[1] + d[2] * axis[2];
+        const r = Math.sqrt(
+            Math.max(0, d[0] ** 2 + d[1] ** 2 + d[2] ** 2 - h * h)
+        );
+        const qx = r - (radius - round);
+        const qy = Math.abs(h) - (half - round);
+        return (
+            Math.min(Math.max(qx, qy), 0) +
+            Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) -
+            round
+        );
+    });
+
+/** A ring round `axis` (unit). */
+const ring = (c: V3, axis: V3, major: number, minor: number): Shape =>
+    shape((x, y, z) => {
+        const d: V3 = [x - c[0], y - c[1], z - c[2]];
+        const h = d[0] * axis[0] + d[1] * axis[1] + d[2] * axis[2];
+        const r = Math.sqrt(
+            Math.max(0, d[0] ** 2 + d[1] ** 2 + d[2] ** 2 - h * h)
+        );
+        return Math.hypot(r - major, h) - minor;
+    });
 
 /** Where a ray from `from` along `dir` first leaves a shape. */
 export function surfaceAlong(s: Shape, from: V3, dir: V3, reach = 0.5): V3 {
@@ -130,9 +168,13 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         const blouse =
             (1 - a) *
             Math.exp(-(((y - (waistTop + 0.035)) / 0.035) ** 2)) *
-            0.006;
-        const torso = 0.004 + 0.009 * tuck + blouse;
-        const sleeve = 0.016 - 0.004 * smooth(0.3, 0.5, ax);
+            0.003;
+        const torso = 0.004 + 0.007 * tuck + blouse;
+        // Close over the shoulder, fuller down the arm.
+        const sleeve =
+            0.006 +
+            0.006 * smooth(Math.abs(shoulderL[0]) + 0.02, 0.3, ax) -
+            0.002 * smooth(0.3, 0.5, ax);
         const cuffBand = smooth(cuffStart - 0.004, cuffStart, ax);
         const ease =
             (1 - a) * torso + a * (sleeve * (1 - cuffBand) + 0.0075 * cuffBand);
@@ -214,12 +256,14 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         // Tucked in below the waistband; cut at the wrists and the neck.
         .clip(halfSpace([0, waistTop - 0.05, 0], [0, -1, 0]))
         .clip(shape((x) => Math.abs(x) - cuff))
-        // Round the neck only: the shoulders may rise above the line.
+        // Round the neck only, up to the collar band: the shoulders may
+        // rise above the line.
         .clip(
             shape((x, y, z) =>
                 Math.min(
                     y - neckline(z),
-                    0.085 - Math.hypot(x - neck[0], (z - neck[2]) * 1.1)
+                    0.08 - Math.hypot(x - neck[0], (z - neck[2]) * 1.05),
+                    0.0125 - neckSkin.eval(x, y, z)
                 )
             )
         );
@@ -281,35 +325,48 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         .add(shell(neckSkin, () => 0.012, 0.0016))
         .clip(shape((x, y, z) => y - collarTop(z)))
         .clip(shape((x, y, z) => neckline(z) - 0.004 - y))
-        .clip(neckRound(0.08))
+        .clip(neckRound(0.084))
         // Open at the front, where the knot sits.
         .carve(
             shape((x, y, z) =>
                 Math.max(Math.abs(x) - 0.006, z - neck[2] + 0.02)
             )
         );
+    // The fall: over the band at the back, lying on the shirt at the
+    // front, cut to two points either side of the knot.
+    const tipX = 0.03;
+    const drop = (y: number, z: number) => Math.max(0, collarTop(z) - y);
+    const fallBase = shape((x, y, z) =>
+        Math.min(
+            neckSkin.eval(x, y, z) - 0.0155 - drop(y, z) * 0.12,
+            shirtBody.eval(x, y, z) - 0.0024
+        )
+    );
     const fall = field()
-        .add(
-            shell(
-                neckSkin,
-                (x, y, z) => 0.0155 + Math.max(0, collarTop(z) - y) * 0.22,
-                0.0016
+        .add(shape((x, y, z) => Math.abs(fallBase.eval(x, y, z)) - 0.0016))
+        .clip(shape((x, y, z) => y - collarTop(z) - 0.002))
+        // Round the neck, not out over the shoulders; the points reach
+        // down the chest.
+        .clip(
+            shape(
+                (x, y, z) =>
+                    neckRound(0.095).eval(x, y, z) -
+                    smooth(-0.02, -0.07, z - neck[2]) * 0.06
             )
         )
-        .clip(shape((x, y, z) => y - collarTop(z) - 0.002))
-        // Round the neck, not out over the shoulders.
-        .clip(neckRound(0.088))
         .clip(
             shape((x, y, z) => {
                 // Deeper at the front, where the points are.
-                const front = smooth(-0.02, -0.07, z - neck[2]);
-                return collarTop(z) - (0.026 + front * 0.036) - y;
+                const front = smooth(-0.02, -0.06, z - neck[2]);
+                const point = Math.exp(-(((Math.abs(x) - tipX) / 0.03) ** 2));
+                return drop(y, z) - (0.03 + front * (0.008 + point * 0.028));
             })
         )
+        // The gap at the front, widening down to the points.
         .carve(
             shape((x, y, z) =>
                 Math.max(
-                    Math.abs(x) - 0.004 - Math.max(0, collarTop(z) - y) * 0.9,
+                    Math.abs(x) - 0.006 - drop(y, z) * 0.4,
                     z - neck[2] + 0.02
                 )
             )
@@ -322,18 +379,19 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             [0.11, neck[1] + 0.05, neck[2] + 0.11],
         ],
         cell: 0.0016,
-        triangles: 1600,
+        triangles: 2200,
         colour: () => hex("#f3f1f3"),
     };
 
     // --- Trousers ----------------------------------------------------------
     const legX = (y: number) => {
         const t = smooth(crotch + 0.05, hem, y);
-        return Math.abs(hipL[0]) + 0.004 + t * 0.03;
+        return Math.abs(hipL[0]) + 0.004 + t * 0.036;
     };
     const legR = (y: number) => {
         const t = smooth(crotch + 0.12, hem, y);
-        return 0.09 + t * 0.03;
+        // Wide, but with a clear gap between the legs down to the hem.
+        return 0.088 + t * 0.017;
     };
     const legZ = (y: number) =>
         hips[2] + 0.012 + smooth(hips[1], hem, y) * 0.018;
@@ -460,7 +518,9 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
     // --- Tie, badge, headphones ---------------------------------------------
     // The shirt's front down the middle, to lay things on.
     const frontAt = new Map<number, number>();
-    const frontZ = (y: number) => {
+    const frontZ = (at: number) => {
+        // Above the shirt's opening, where the shirt was.
+        const y = Math.min(at, neckline(-1) - 0.004);
         const key = Math.round(y / 0.004);
         if (!frontAt.has(key))
             frontAt.set(
@@ -476,7 +536,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
     const knotY = collarTop(-1) - 0.014;
     const tipY = waistTop + 0.012;
     const tieWidth = (y: number) =>
-        0.036 + smooth(knotY - 0.02, tipY + 0.03, y) * 0.034;
+        0.03 + smooth(knotY - 0.02, tipY + 0.03, y) * 0.04;
     const blade = shape((x, y, z) => {
         const half = tieWidth(y) / 2;
         // A point at the bottom.
@@ -487,18 +547,19 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         const sheet = Math.abs(z - lie) - 0.0022;
         return Math.max(outline, sheet);
     });
-    const knotZ = frontZ(knotY) - 0.008;
+    // The knot: wider at the top, tucked up under the collar's points.
+    const knotZ = frontZ(knotY) - 0.009;
     const knot = field()
         .add(
             roundBox(
-                [0, knotY + 0.002, knotZ],
-                [0.017, 0.016, 0.009],
+                [0, knotY + 0.004, knotZ],
+                [0.021, 0.019, 0.009],
                 0.007,
-                IDENTITY
+                euler(-0.25, 0, 0)
             )
         )
         .clip(
-            shape((x, y) => Math.abs(x) - (0.019 - (knotY + 0.018 - y) * 0.25))
+            shape((x, y) => Math.abs(x) - (0.021 - (knotY + 0.022 - y) * 0.3))
         );
     const tie: Garment = {
         name: "Tie",
@@ -511,7 +572,8 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         triangles: 1400,
         // Pale stripes on the slant, drawn per pixel by the cloth shader.
         colour: () => hex("#4f86de"),
-        finish: () => "striped",
+        // The knot wraps the other way.
+        finish: (p) => (p[1] > knotY - 0.015 ? "crossStriped" : "striped"),
     };
 
     // An ID card on the left of the chest, on a clip.
@@ -554,22 +616,35 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
 
     // Headphones resting round the neck: the band behind, a cup on each
     // collarbone, a cable down to a player on the belt.
-    const cupY = neck[1] - 0.047;
+    const cupY = neck[1] - 0.05;
     const cups = ([-1, 1] as const).map((s) => {
-        const cx = s * 0.07;
+        const cx = s * 0.074;
         const cz =
-            surfaceAlong(shirtBody, [cx, cupY, neck[2]], [0, 0, -1])[2] - 0.016;
+            surfaceAlong(shirtBody, [cx, cupY, neck[2]], [0, 0, -1])[2] - 0.024;
         return [cx, cupY, cz] as V3;
     });
+    // Each cup faces out from the chest, tipped up and to its side.
+    const cupAxis = (cx: number): V3 => {
+        const v: V3 = [Math.sign(cx) * 0.35, 0.45, -0.82];
+        const l = Math.hypot(...v);
+        return [v[0] / l, v[1] / l, v[2] / l];
+    };
     const phones = field();
-    for (const [cx, cy, cz] of cups) {
-        const turn = euler(Math.PI / 2 - 0.35, 0, Math.sign(cx) * 0.25);
-        phones.add(torus([cx, cy, cz], 0.018, 0.009, turn));
-        phones.add(
-            roundBox([cx, cy, cz + 0.004], [0.021, 0.021, 0.008], 0.008, turn),
-            0.004
-        );
+    const cushions = field();
+    for (const c of cups) {
+        const n = cupAxis(c[0]);
+        const along = (t: number): V3 => [
+            c[0] + n[0] * t,
+            c[1] + n[1] * t,
+            c[2] + n[2] * t,
+        ];
+        // The shell, a shallow drum with a cap on its face.
+        phones.add(disc(along(0.002), n, 0.03, 0.008, 0.005));
+        phones.add(disc(along(0.011), n, 0.022, 0.003, 0.002), 0.002);
+        // The cushion against the chest.
+        cushions.add(ring(along(-0.008), n, 0.024, 0.0085));
     }
+    phones.add(cushions, 0.002);
     // The band: an arc round the back of the neck.
     const bandArc: V3[] = [];
     for (let i = 0; i <= 12; i++) {
@@ -580,8 +655,8 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             neck[2] + 0.01 + Math.sin(a) * 0.062,
         ]);
     }
-    bandArc[0] = [cups[0][0], cups[0][1] + 0.02, cups[0][2] + 0.02];
-    bandArc[12] = [cups[1][0], cups[1][1] + 0.02, cups[1][2] + 0.02];
+    bandArc[0] = [cups[0][0] - 0.012, cups[0][1] + 0.026, cups[0][2] + 0.012];
+    bandArc[12] = [cups[1][0] + 0.012, cups[1][1] + 0.026, cups[1][2] + 0.012];
     for (let i = 0; i < bandArc.length - 1; i++)
         phones.add(capsule(bandArc[i], bandArc[i + 1], 0.0065), 0.003);
     // The cable, from the right cup down to the player on the belt.
@@ -625,15 +700,12 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             [-0.14, waistTop - 0.07, neck[2] - 0.16],
             [0.16, neck[1] + 0.03, neck[2] + 0.1],
         ],
-        cell: 0.0018,
-        triangles: 1400,
-        colour: (p) => {
-            const near = cups.some(
-                (c) => Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]) < 0.012
-            );
-            return near ? hex("#2a2a2e") : hex("#121214");
-        },
-        finish: () => "polished",
+        cell: 0.0014,
+        triangles: 2200,
+        colour: (p) =>
+            cushions.eval(...p) < 0.001 ? hex("#0d0d0f") : hex("#18181b"),
+        // Leatherette cushions, the rest hard plastic.
+        finish: (p) => (cushions.eval(...p) < 0.001 ? "plain" : "polished"),
     };
 
     // --- Socks -------------------------------------------------------------
@@ -646,8 +718,10 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
                     Math.abs(x) - Math.abs(ankleL[0])
                 );
                 // Ribbed, and slouched in a few rings above the shoe.
+                // Thin inside the shoe, so the shoe stays clear of it.
                 return (
-                    0.005 +
+                    0.0025 +
+                    0.0025 * smooth(0.075, 0.11, y) +
                     Math.sin(a * 34) * 0.0006 +
                     Math.sin(y / 0.009 + a) *
                         smooth(0.08, 0.14, y) *
@@ -669,54 +743,89 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         triangles: 700,
         colour: () => hex("#efedea"),
         side: (p) => (p[0] < 0 ? -1 : 1),
+        pair: true,
     };
 
     // --- Shoes -------------------------------------------------------------
-    // Derbies: an upper shaped on the foot, a toe box, a welt and a heel.
+    // Derbies: an upper shaped on the foot, a low rounded toe, a lace slit
+    // with laces across it, a thin welt and a heel block.
     const footDrape = body.draped(0.008);
+    const welt = 0.012;
+    const laceZ = [0.0, -0.016, -0.032, -0.048];
     // `s` is the side: -1 the left foot (at -x), 1 the right.
-    const shoeOf = (s: number) => {
+    const shoeParts = (s: number) => {
         const ax = s * Math.abs(ankleL[0]);
         const tx = s * Math.abs(toesL[0]);
-        const upper = field()
-            .add(grow(footDrape, () => 0.007))
+        const last = field()
+            .add(grow(footDrape, () => 0.0075))
             .add(
                 ellipsoid(
-                    [tx, 0.031, toesL[2] - 0.022],
-                    [0.045, 0.031, 0.072],
+                    [tx, 0.027, toesL[2] - 0.02],
+                    [0.041, 0.026, 0.06],
                     IDENTITY
                 ),
-                0.025
+                0.022
             )
             .clip(
                 shape((x, y, z) => {
                     // Low at the heel and the sides, higher over the tongue.
                     const tongue = smooth(
-                        ankleL[2] - 0.01,
-                        ankleL[2] - 0.07,
+                        ankleL[2] - 0.005,
+                        ankleL[2] - 0.06,
                         z
                     );
-                    return y - (0.074 + tongue * 0.024);
+                    return y - (0.072 + tongue * 0.022);
                 })
-            )
-            // This foot only.
-            .clip(shape((x) => -s * x));
+            );
+        const upper = field()
+            .add(last)
+            // The lace slit down the instep, between the facings.
+            .carve(
+                shape((x, y, z) => {
+                    const along = Math.max(
+                        z - (ankleL[2] - 0.022),
+                        laceZ[3] - 0.012 - z
+                    );
+                    // Only through the leather, not into the foot.
+                    return Math.max(
+                        Math.abs(x - ax) - 0.005,
+                        along,
+                        -last.eval(x, y, z) - 0.002
+                    );
+                }),
+                0.002
+            );
+        const top = (z: number) =>
+            surfaceAlong(last, [ax, 0.03, z], [0, 1, 0], 0.1)[1];
+        const laces = field();
+        for (const dz of laceZ) {
+            const z = ankleL[2] - 0.03 + dz;
+            // Proud of the leather, across the slit.
+            const y = top(z) - 0.0005;
+            laces.add(capsule([ax - 0.012, y, z], [ax + 0.012, y, z], 0.0022));
+        }
         const sole = field()
-            .add(grow(upper, () => 0.0045))
-            .clip(halfSpace([0, 0.02, 0], [0, 1, 0]));
+            .add(grow(upper, () => 0.003))
+            .clip(halfSpace([0, welt, 0], [0, 1, 0]));
         const heel = roundBox(
-            [ax, 0.014, ankleL[2] + 0.03],
-            [0.034, 0.014, 0.04],
-            0.006,
+            [ax, 0.012, ankleL[2] + 0.022],
+            [0.03, 0.012, 0.032],
+            0.005,
             IDENTITY
         );
-        return field()
+        const shoe = field()
             .add(upper)
-            .add(sole, 0.003)
-            .add(heel, 0.004)
+            .add(sole, 0.002)
+            .add(heel, 0.003)
+            .add(laces)
             .clip(halfSpace([0, 0, 0], [0, -1, 0]));
+        return { shoe, laces };
     };
-    const shoesShape = field().add(shoeOf(1)).add(shoeOf(-1));
+    const shoeL = shoeParts(-1);
+    const shoeR = shoeParts(1);
+    const shoesShape = field().add(shoeL.shoe).add(shoeR.shoe);
+    const onLaces = (p: V3) =>
+        (p[0] < 0 ? shoeL : shoeR).laces.eval(...p) < 0.0008;
     const shoes: Garment = {
         name: "Shoes",
         shape: shoesShape,
@@ -724,11 +833,18 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             [-0.2, -0.005, -0.25],
             [0.2, 0.13, 0.16],
         ],
-        cell: 0.0035,
-        triangles: 2000,
-        colour: (p) => (p[1] < 0.021 ? hex("#221c18") : hex("#141010")),
-        finish: (p) => (p[1] < 0.021 ? "plain" : "polished"),
+        cell: 0.003,
+        triangles: 2400,
+        colour: (p) =>
+            p[1] < welt + 0.001
+                ? hex("#231d19")
+                : onLaces(p)
+                ? hex("#2b2a2a")
+                : hex("#141010"),
+        finish: (p) =>
+            p[1] < welt + 0.001 || onLaces(p) ? "plain" : "polished",
         side: (p) => (p[0] < 0 ? -1 : 1),
+        pair: true,
     };
 
     return {
