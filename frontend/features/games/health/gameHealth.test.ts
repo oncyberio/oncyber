@@ -297,6 +297,13 @@ describe("field health on /dev/games", () => {
                 devices: { desktop: 1 },
                 firstFrameMs: { median: 700, p95: 700 },
                 frameMs: null,
+                byDevice: {
+                    desktop: {
+                        visits: 1,
+                        firstFrameMs: { median: 700, p95: 700 },
+                        frameMs: null,
+                    },
+                },
                 loadFailures: 0,
                 failures: [],
             },
@@ -306,6 +313,20 @@ describe("field health on /dev/games", () => {
                 devices: { desktop: 1, phone: 1 },
                 firstFrameMs: { median: 3000, p95: 3000 },
                 frameMs: { median: 17, p95: 24, windows: 3 },
+                // Each kind of device on its own: the phone's slow start
+                // is not hidden in the average.
+                byDevice: {
+                    desktop: {
+                        visits: 1,
+                        firstFrameMs: { median: 1000, p95: 1000 },
+                        frameMs: { median: 17, p95: 24, windows: 3 },
+                    },
+                    phone: {
+                        visits: 1,
+                        firstFrameMs: { median: 3000, p95: 3000 },
+                        frameMs: null,
+                    },
+                },
                 loadFailures: 1,
                 failures: [
                     {

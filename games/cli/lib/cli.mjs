@@ -13,7 +13,14 @@ import {
 import { OUTSIDE_NOTE, readTopic, topics } from "./docs.mjs";
 import { PACKAGE } from "./paths.mjs";
 import { readProject } from "./project.mjs";
-import { linkGame, listGames, publishGame, unpublishGame } from "./publish.mjs";
+import { healthLines, needsWork } from "./health.mjs";
+import {
+    gameHealth,
+    linkGame,
+    listGames,
+    publishGame,
+    unpublishGame,
+} from "./publish.mjs";
 import { PLAYWRIGHT_MISSING, hasPlaywright, npmRun, runCheck } from "./run.mjs";
 import { SiteError, createSite } from "./site.mjs";
 import { createStarter } from "./starter.mjs";
@@ -114,6 +121,9 @@ const commands = {
             })`
         );
         console.log(published.link);
+        console.log(
+            `Once people have played: \`oncyber health ${project.id}\` says how it starts and runs for them, by device.`
+        );
     },
     async games({ flags }, { env }) {
         const connection = requireLogin(env);
@@ -139,6 +149,17 @@ const commands = {
                     .filter((value) => value !== undefined && value !== null)
                     .join("  ")
             );
+    },
+    // In a game's folder the id is the game's own.
+    async health({ args: [given], flags }, { cwd, env }) {
+        const connection = requireLogin(env);
+        const id = given ?? readProject(cwd).id;
+        const report = await gameHealth(connection, id);
+        if (flags.json) console.log(JSON.stringify(report, null, 2));
+        else console.log(healthLines(report, connection.baseUrl).join("\n"));
+        // Something to fix on the release visitors get: said to a script
+        // or an agent the way a failed check is.
+        return needsWork(report) ? 1 : 0;
     },
     async unpublish({ args: [id] }, { env }) {
         const connection = requireLogin(env);

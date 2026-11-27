@@ -341,6 +341,10 @@ export async function publishGame({ project, site, log = () => {} }) {
 /** The account's games. */
 export const listGames = (site) => site.rpc("gamePublish", "mine");
 
+/** A game's field health, for the account that published it. */
+export const gameHealth = (site, id) =>
+    site.rpc("gamePublish", "health", { id });
+
 /**
  * Give a published game its short address, /<slug>, or (null) give it up.
  * Only its owner can, and the name must be free on the site: not a page,

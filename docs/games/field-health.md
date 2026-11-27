@@ -3,6 +3,41 @@
 A game passes its check on one machine. This is how we learn that it breaks
 on someone else's, and how we stop it while it's fixed.
 
+## Reading it back (coding agents: do this after publishing)
+
+A game that passed its check on your machine has only been seen on your
+machine. Once people have played it:
+
+```sh
+oncyber health my-game        # or, in the game's folder, oncyber health
+oncyber health my-game --json # the same, as data
+```
+
+It prints, for the release visitors get now and the ones before it, the
+visits by device, and for each kind of device the time to the first frame
+and the frame times, with what broke. Then what those numbers ask for, as
+findings in the form the check's are:
+
+| Code                     | Means                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `FIELD_FIRST_FRAME_SLOW` | The slowest visits on a device wait over 5 s for a first frame (the check's budget) |
+| `FIELD_FRAMES_SLOW`      | A usual frame on a device takes over 33.4 ms: under 30 frames a second              |
+| `FIELD_FRAMES_HITCH`     | Usual frames are fine, the slow ones take over 50 ms: something runs in bursts      |
+| `FIELD_LOAD_FAILED`      | More than 2% of visits never reached a first frame                                  |
+| `FIELD_ERROR`            | An error or a failed lifecycle stage, with how often and where                      |
+| `FIELD_FEW_VISITS`       | Under 20 visits: the numbers are a hint                                             |
+| `FIELD_NO_VISITS`        | Nothing reported yet                                                                |
+
+Each device is judged on its own, because a game that runs well on a
+desktop and badly on a phone looks fine on average. The command exits 1
+when the release on show has something to fix, as a failed check does.
+Fix what it names, publish again, and read it again: the new release is
+reported apart from the old.
+
+Only the account that published a game (or a site admin) can read its
+field health. The numbers come from the last seven days of real visits;
+frame times are a sample of them (one visit in five).
+
 ## Rules for a game (coding agents: do these)
 
 1. Call `reportHealth()` from `@oncyber/game-runtime/health` **once, as

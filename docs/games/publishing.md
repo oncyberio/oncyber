@@ -20,6 +20,7 @@ oncyber check                # the same checks as pnpm games:check
 oncyber login                # opens the browser; saves a token
 oncyber publish              # build, check, upload; prints the game's link
 oncyber games                # what this account has published
+oncyber health my-game       # how it starts and runs for real visitors, by device
 oncyber link my-game sky-run # also at /sky-run, when the name is free
 oncyber link my-game --clear # give the name up; /games/my-game stays
 oncyber unpublish my-game    # take it down
@@ -60,6 +61,14 @@ All need a signed-in account that may publish. A refusal is the
 procedure layer's usual error answer, `{ "type": "Error", "error": "<a
 sentence for the creator>" }`: status 400 for input that does not fit the
 shapes below, 401 without a session, 500 for everything the rules refuse.
+
+### `health`
+
+Input `{ "id": "my-game" }`. The game's field health for whoever made it
+([field-health.md](field-health.md), "Reading it back"): per release, the
+visits, time to first frame and frame times for each kind of device, what
+failed, and `findings`, each a code and a sentence that says what to do.
+The game's own account, or a site admin for any game.
 
 ### `begin`
 

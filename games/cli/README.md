@@ -46,6 +46,7 @@ oncyber check                # the same checks as the repository's pnpm games:ch
 oncyber login                # opens the browser; saves a token
 oncyber publish              # build, check, upload; prints the game's link
 oncyber games                # what this account has published
+oncyber health my-game       # how it starts and runs for real visitors, by device
 oncyber link my-game sky-run # also at /sky-run, when the name is free
 oncyber unpublish my-game    # take it down
 ```

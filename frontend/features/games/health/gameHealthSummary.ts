@@ -19,6 +19,11 @@ export interface ReleaseHealth {
     firstFrameMs: { median: number; p95: number } | null;
     /** Over 20 s windows: the median of medians and the median of p95s. */
     frameMs: { median: number; p95: number; windows: number } | null;
+    /**
+     * The same numbers for each kind of device that visited: a game that
+     * runs well on a desktop and badly on a phone looks fine on average.
+     */
+    byDevice: Record<string, DeviceHealth>;
     loadFailures: number;
     /** Most frequent first. */
     failures: Array<{
@@ -27,6 +32,11 @@ export interface ReleaseHealth {
         where: string;
         count: number;
     }>;
+}
+export interface DeviceHealth {
+    visits: number;
+    firstFrameMs: { median: number; p95: number } | null;
+    frameMs: { median: number; p95: number; windows: number } | null;
 }
 export interface FieldHealth {
     source: "posthog" | "local";
@@ -106,15 +116,24 @@ export function summarizeGameHealth(
         const medians: number[] = [];
         const p95s: number[] = [];
         const devices: Record<string, number> = {};
+        const perDevice: Record<
+            string,
+            { firsts: number[]; medians: number[]; p95s: number[] }
+        > = {};
+        const of = (device: string) =>
+            (perDevice[device] ??= { firsts: [], medians: [], p95s: [] });
         const failures = new Map<string, ReleaseHealth["failures"][number]>();
         let loadFailures = 0;
         for (const event of list) {
             if (event.kind === "first-frame") {
                 firsts.push(event.ms);
+                of(event.device).firsts.push(event.ms);
                 devices[event.device] = (devices[event.device] ?? 0) + 1;
             } else if (event.kind === "frames") {
                 medians.push(event.medianMs);
                 p95s.push(event.p95Ms);
+                of(event.device).medians.push(event.medianMs);
+                of(event.device).p95s.push(event.p95Ms);
             } else if (event.kind === "load-failed") {
                 loadFailures++;
             } else {
@@ -135,20 +154,34 @@ export function summarizeGameHealth(
                 failures.set(key, entry);
             }
         }
+        const first = (values: number[]) =>
+            values.length
+                ? { median: quantile(values, 0.5), p95: quantile(values, 0.95) }
+                : null;
+        const paced = (middles: number[], tails: number[]) =>
+            middles.length
+                ? {
+                      median: quantile(middles, 0.5),
+                      p95: quantile(tails, 0.5),
+                      windows: middles.length,
+                  }
+                : null;
         return {
             release,
             visits: firsts.length,
             devices,
-            firstFrameMs: firsts.length
-                ? { median: quantile(firsts, 0.5), p95: quantile(firsts, 0.95) }
-                : null,
-            frameMs: medians.length
-                ? {
-                      median: quantile(medians, 0.5),
-                      p95: quantile(p95s, 0.5),
-                      windows: medians.length,
-                  }
-                : null,
+            firstFrameMs: first(firsts),
+            frameMs: paced(medians, p95s),
+            byDevice: Object.fromEntries(
+                Object.entries(perDevice).map(([device, seen]) => [
+                    device,
+                    {
+                        visits: seen.firsts.length,
+                        firstFrameMs: first(seen.firsts),
+                        frameMs: paced(seen.medians, seen.p95s),
+                    },
+                ])
+            ),
             loadFailures,
             failures: [...failures.values()]
                 .sort((a, b) => b.count - a.count)
