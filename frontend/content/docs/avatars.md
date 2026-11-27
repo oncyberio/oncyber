@@ -99,9 +99,17 @@ style and an outfit. The parts it is made from are shared.
     those shapes into a shader that traces them per pixel, with soft
     shadows, occlusion and every painted feature drawn in the shader. It
     is the reference a wearable avatar is matched against, not something
-    to put in a space: every pixel pays for the whole sculpt. Look at it
-    at `/dev/raymarched-avatar` when running locally (`zoom=face`, `yaw`,
-    `scale`).
+    to put in a space: every pixel pays for the whole sculpt.
+-   **The sculpt as meshes.** `meshSculpt.ts` cuts the same sculpt into
+    ordinary triangles, once, when the avatar is built, at whatever
+    density is asked for. What the tracer finds per pixel by sampling the
+    sculpt (how open a point is to the light, which lock of hair it lies
+    on) is stored on the vertices, and the tracer's own shading
+    (`shading.ts`) runs on the mesh: still no textures, and no tracing.
+    This is the route to an avatar that can be worn; it is not rigged or
+    offered in the picker yet. `/dev/raymarched-avatar` shows either when
+    running locally: `mode=mesh` (default, with `coarse`) or `mode=trace`
+    (with `scale`), plus `zoom=face` and `yaw`.
 
 Saved as your avatar, a generated character is used in the lobby. Gallery
 spaces don't build them yet and show the default avatar there.

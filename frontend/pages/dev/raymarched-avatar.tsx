@@ -1,17 +1,23 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import * as THREE from "three/webgpu";
+import { createMeshedAvatar } from "@features/procedural-avatar/meshSculpt";
 import { createRaymarchedAvatar } from "@features/procedural-avatar/raymarch";
 import { SCULPTS } from "@features/procedural-avatar/sculpts";
 
 /**
- * Local check for the traced reference of a sculpted character: the whole
- * figure drawn per pixel from its distance fields, on a turntable.
+ * Local check for a sculpted character, on a turntable, drawn one of two
+ * ways from the same sculpt.
  *
- * It is the fidelity reference, not the avatar people wear, and it is
- * heavy: `scale` (default 0.5) is the fraction of the screen's pixels it
- * renders. Query: `who` (sculpt id), `yaw` and `pitch` (degrees, stops the
- * turntable), `zoom` (`face`, `bust` or `feet`), `scale`, `renderer=webgl`.
+ * `mode=mesh` (the default) cuts the sculpt into ordinary meshes once and
+ * draws those: `coarse` sets the triangle size (1 for close-ups, 2 has a
+ * quarter of the triangles). `mode=trace` draws the whole figure per pixel
+ * from its distance fields: the fidelity reference, and heavy, so `scale`
+ * (default 0.5 when tracing) is the fraction of the screen's pixels drawn.
+ *
+ * Query: `who` (sculpt id), `mode`, `coarse`, `scale`, `yaw` and `pitch`
+ * (degrees, stops the turntable), `zoom` (`face`, `bust` or `feet`),
+ * `renderer=webgl`.
  */
 export default function RaymarchedAvatarFixture() {
     const ref = useRef<HTMLDivElement>(null);
@@ -28,9 +34,13 @@ export default function RaymarchedAvatarFixture() {
         const yaw = THREE.MathUtils.degToRad(Number(text("yaw")) || 0);
         const pitch = THREE.MathUtils.degToRad(Number(text("pitch")) || 3);
         const zoom = text("zoom");
-        const scale = Math.min(2, Math.max(0.1, Number(text("scale")) || 0.5));
+        const traced = text("mode") === "trace";
+        const scale = Math.min(
+            2,
+            Math.max(0.1, Number(text("scale")) || (traced ? 0.5 : 1))
+        );
         const renderer = new THREE.WebGPURenderer({
-            antialias: false,
+            antialias: !traced,
             forceWebGL: text("renderer") === "webgl",
         });
         renderer.setPixelRatio(scale);
@@ -42,8 +52,14 @@ export default function RaymarchedAvatarFixture() {
         const scene = new THREE.Scene();
         scene.background = new THREE.Color("#f5edf0");
         const sculpt = build();
-        const figure = createRaymarchedAvatar(sculpt);
-        scene.add(figure.mesh);
+        const started = performance.now();
+        const figure = traced
+            ? createRaymarchedAvatar(sculpt)
+            : createMeshedAvatar(sculpt, {
+                  coarseness: Math.max(0.5, Number(text("coarse")) || 1.5),
+              });
+        const buildMs = Math.round(performance.now() - started);
+        scene.add("mesh" in figure ? figure.mesh : figure.group);
         const camera = new THREE.PerspectiveCamera(16, 1, 0.05, 60);
         const eyes = figure.focus[1];
         const target =
@@ -90,6 +106,9 @@ export default function RaymarchedAvatarFixture() {
             state.__raymarchedAvatar = {
                 status: "ready",
                 id: sculpt.id,
+                mode: traced ? "trace" : "mesh",
+                triangles: "triangles" in figure ? figure.triangles : 0,
+                buildMs,
                 layers: sculpt.layers.length,
                 hairPieces: sculpt.hair.segments.length,
                 frames,
