@@ -15,12 +15,15 @@ import {
     dot,
     exp,
     float as f32,
+    floor,
+    fract,
     fwidth,
     int,
     length,
     max,
     min,
     mix,
+    normalGeometry,
     normalView,
     normalWorld,
     normalize,
@@ -39,7 +42,13 @@ import {
     vec4,
 } from "three/tsl";
 import { partId } from "./format";
-import { RIM_POINTS, type BrowLine, type OpeningFrame, type V3 } from "./shape";
+import {
+    RIM_POINTS,
+    type BrowLine,
+    type EarFrame,
+    type OpeningFrame,
+    type V3,
+} from "./shape";
 import type { FigureStyle } from "./style";
 
 /**
@@ -72,6 +81,8 @@ export interface FigureFrames {
     mouthWidth: number;
     /** Each eye's inner corner, and its own width. */
     corners: Record<"left" | "right", { x: number; y: number; width: number }>;
+    /** The bowl of each ear, where the style has shaped them. */
+    ears: { left: EarFrame; right: EarFrame } | null;
     /** Middle of each cheek: [out from the middle of the face, y, z]. */
     cheek: V3;
     /** The tip of the nose. */
@@ -83,6 +94,8 @@ export interface FigureFrames {
 
 /** Most points a brow's line can have. */
 export const BROW_KNOTS = 6;
+/** How far below a brow its shadow reaches, in eye widths. */
+export const BROW_SHADOW_REACH = 0.2;
 
 // Light directions, as the viewer sees them: x to the right, y up, z
 // towards the viewer.
@@ -122,6 +135,7 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
             : new THREE.Vector3(0, 0, 0);
     });
     const eye = frames.eyeWidth;
+    const ears = [frames.ears?.left, frames.ears?.right];
     const scatter = linear(style.skin.scatter);
     scatter.divideScalar(Math.max(scatter.x, scatter.y, scatter.z, 1e-6));
     return {
@@ -167,7 +181,26 @@ function figureUniforms(style: FigureStyle, frames: FigureFrames) {
                 style.lids.crease[1] * eye
             )
         ),
+        // Each ear's bowl; with no ears shaped, somewhere nothing is.
+        earCentre: uniformArray(
+            ears.map((e) => (e ? v3(e.centre) : new THREE.Vector3(0, -9, 0)))
+        ),
+        earLong: uniformArray(
+            ears.map((e) => (e ? v3(e.long) : new THREE.Vector3()))
+        ),
+        earShort: uniformArray(
+            ears.map((e) => (e ? v3(e.short) : new THREE.Vector3()))
+        ),
+        earOut: uniformArray(
+            ears.map((e) => (e ? v3(e.out) : new THREE.Vector3()))
+        ),
+        earShade: uniform(
+            frames.ears
+                ? Math.min(1, (style.shape.ears?.cup ?? 0) / 0.3) * 0.5
+                : 0
+        ),
         brow: uniform(linear(style.brows.colour)),
+        browShadow: uniform(style.brows.shadow ?? 0.4),
         browKnots: uniformArray(knots),
         browCount: uniform(
             new THREE.Vector2(
@@ -274,7 +307,11 @@ function litSkin(u: Uniforms, s: Surface, albedo: Node, bake: Node): Node {
 }
 
 /** Anything matte in the same light: cloth, the inside of the mouth. */
-function litMatte(s: Surface, albedo: Node, open: Node): Node {
+function litMatte(
+    s: { n: Node; upward: Node; ndl: Node; fresnel: Node },
+    albedo: Node,
+    open: Node
+): Node {
     const key = smoothstep(-0.25, 1, s.ndl);
     const fill = pow(saturate(dot(s.n, FILL).mul(0.5).add(0.5)), 2);
     const light = KEY_LIGHT.mul(key)
@@ -284,6 +321,9 @@ function litMatte(s: Surface, albedo: Node, open: Node): Node {
         .add(FILL_LIGHT.mul(fill).mul(open).mul(0.15));
     return albedo.mul(light.add(s.fresnel.mul(0.1)));
 }
+
+/** A number from 0 to 1 that looks unrelated to the one it is made from. */
+const hash = (x: Node) => fract(sin(x.mul(12.9898)).mul(43758.5453));
 
 /** How much of a pixel lies within `width` of an edge `distance` away. */
 const cover = (distance: Node, width: Node, pixel: Node) =>
@@ -482,6 +522,37 @@ function faceColour(u: Uniforms) {
                     albedo,
                     albedo.mul(vec3(0.66, 0.56, 0.56)),
                     smoothstep(0.011, 0.002, length(under)).mul(0.55)
+                )
+            );
+
+            // In the bowl of each ear, on the side that shows: deeper.
+            const fromEar = p.sub(u.earCentre.element(which));
+            const inBowl = f32(1)
+                .sub(
+                    smoothstep(
+                        0.2,
+                        0.85,
+                        length(
+                            vec2(
+                                dot(fromEar, u.earLong.element(which)),
+                                dot(fromEar, u.earShort.element(which))
+                            )
+                        )
+                    )
+                )
+                .mul(
+                    smoothstep(
+                        0,
+                        0.5,
+                        dot(normalGeometry, u.earOut.element(which))
+                    )
+                )
+                .mul(smoothstep(0.03, 0.02, length(fromEar)));
+            albedo.assign(
+                mix(
+                    albedo,
+                    albedo.mul(vec3(0.74, 0.58, 0.56)),
+                    inBowl.mul(u.earShade)
                 )
             );
 
@@ -698,16 +769,27 @@ function inkColour(u: Uniforms) {
         const at = uv();
         const pixel = length(fwidth(p)).mul(0.7).toVar();
         const out = vec4(0).toVar();
-        // Which way the viewer looks along the iris's own two axes, worked
-        // out from how its coordinates change across the screen.
+        // The piece's own frame as the viewer sees it: the directions its
+        // two coordinates grow in, and the way it faces. Worked out from
+        // how those coordinates change across the screen, and here, before
+        // anything is decided per part: rates of change may only be asked
+        // for where every pixel takes the same path.
         const view = positionView;
         const [vx, vy, ax, ay] = [dFdx(view), dFdy(view), dFdx(at), dFdy(at)];
         const area = ax.x.mul(ay.y).sub(ax.y.mul(ay.x));
         const safe = select(abs(area).greaterThan(1e-20), area, f32(1));
-        const alongX = normalize(vx.mul(ay.y).sub(vy.mul(ax.y)).div(safe));
-        const alongY = normalize(vy.mul(ax.x).sub(vx.mul(ay.x)).div(safe));
-        const facing = normalize(cross(alongX, alongY));
-        const eye = normalize(view.negate());
+        const alongX = normalize(
+            vx.mul(ay.y).sub(vy.mul(ax.y)).div(safe)
+        ).toVar();
+        const alongY = normalize(
+            vy.mul(ax.x).sub(vx.mul(ay.x)).div(safe)
+        ).toVar();
+        const eye = normalize(view.negate()).toVar();
+        const facing = normalize(cross(alongX, alongY)).toVar();
+        const toViewer = facing
+            .mul(select(dot(facing, eye).lessThan(0), f32(-1), f32(1)))
+            .toVar();
+        // For the iris: how far its middle slides behind its rim.
         const slide = vec2(dot(eye, alongX), dot(eye, alongY))
             .div(max(abs(dot(eye, facing)), 0.4))
             .toVar();
@@ -834,24 +916,87 @@ function inkColour(u: Uniforms) {
                         end.assign(b.x);
                     });
                 });
-                const acrossIt = abs(at.y.sub(middle)).mul(size.y);
-                // Cut square at the nose; it runs out at the temple.
-                const before = start.sub(at.x).mul(size.x);
-                const after = at.x.sub(end).mul(size.x);
-                // A brow is hair: its edge is not quite a line.
-                const soft = pixel.add(u.eyeSpan.mul(0.006));
-                const alpha = cover(acrossIt, halfWidth, soft)
-                    .mul(saturate(f32(0.5).sub(before.div(soft))))
-                    .mul(saturate(f32(0.5).sub(after.div(soft))));
-                // Its hairs run along it: faint streaks, a little wavy.
-                const hairs = sin(
-                    at.y
-                        .mul(size.y)
-                        .mul(5200)
-                        .add(sin(at.x.mul(37)).mul(2.5))
+                // Metres along the brow, and up from its middle line.
+                const run = at.x.mul(size.x).toVar();
+                const up = at.y.sub(middle).mul(size.y).toVar();
+                // Its hairs lie along it and climb towards its tail. Each
+                // has a shade of its own, in pieces along its length.
+                const hairWidth = u.eyeSpan.mul(0.0065);
+                const hair = floor(up.sub(run.mul(0.32)).div(hairWidth));
+                const piece = floor(
+                    run.div(u.eyeSpan.mul(0.09)).add(hash(hair).mul(7))
                 );
+                const shade = hash(hair.add(piece.mul(57.3))).toVar();
+                // Too far off to tell hairs apart, they are not drawn.
+                const fine = smoothstep(
+                    hairWidth.mul(2.5),
+                    hairWidth.mul(0.6),
+                    pixel
+                ).toVar();
+                // Its outline: rounded at the nose, run out to nothing at
+                // the temple, and ragged with the ends of its hairs.
+                const corner = min(halfWidth, u.eyeSpan.mul(0.035));
+                const box = vec2(
+                    start.mul(size.x).add(corner).sub(run),
+                    abs(up).sub(halfWidth.sub(corner))
+                );
+                const outline = max(
+                    length(max(box, 0))
+                        .add(min(max(box.x, box.y), 0))
+                        .sub(corner),
+                    run.sub(end.mul(size.x))
+                ).sub(shade.sub(0.5).mul(u.eyeSpan.mul(0.022)).mul(fine));
+                const soft = pixel.add(u.eyeSpan.mul(0.006));
+                const alpha = saturate(f32(0.5).sub(outline.div(soft)));
+                // It stands off the face like a soft ridge: its upper side
+                // turns up to the light and its lower side away from it.
+                const across = clamp(up.div(max(halfWidth, 1e-5)), -1, 1);
+                const n = normalize(
+                    toViewer.add(alongY.mul(across.mul(0.8)))
+                ).toVar();
+                const tone = u.brow
+                    .mul(mix(f32(1), mix(f32(0.8), f32(1.28), shade), fine))
+                    // Darker where it meets the skin below.
+                    .mul(mix(f32(0.72), f32(1), smoothstep(-1, -0.2, across)));
+                const lit = litMatte(
+                    {
+                        n,
+                        upward: n.y,
+                        ndl: dot(n, KEY),
+                        fresnel: pow(saturate(f32(1).sub(dot(n, eye))), 3),
+                    },
+                    tone,
+                    f32(1)
+                );
+                // A sheen runs along the hairs where they turn to the light.
+                const sheen = pow(saturate(dot(n, normalize(KEY.add(eye)))), 10)
+                    .mul(mix(f32(1), shade.mul(1.6), fine))
+                    .mul(0.11);
+                const colour = lit.add(vec3(0.62, 0.5, 0.46).mul(sheen));
+                // The shadow it casts on the lid and the eye below it.
+                const cast = smoothstep(
+                    u.eyeSpan.mul(BROW_SHADOW_REACH),
+                    0,
+                    up.negate().sub(halfWidth)
+                )
+                    .pow(1.5)
+                    // Below it only.
+                    .mul(saturate(f32(0.5).sub(up.div(soft))))
+                    .mul(smoothstep(0, u.eyeSpan.mul(0.05), halfWidth))
+                    .mul(saturate(run.sub(start.mul(size.x)).div(soft.mul(4))))
+                    .mul(saturate(end.mul(size.x).sub(run).div(soft.mul(4))))
+                    .mul(smoothstep(0, 0.1, at.y))
+                    .mul(u.browShadow);
+                const both = alpha.add(cast.mul(f32(1).sub(alpha)));
                 out.assign(
-                    vec4(u.brow.mul(f32(1).add(hairs.mul(0.14))), alpha)
+                    vec4(
+                        mix(
+                            u.tone.mul(vec3(0.3, 0.17, 0.16)),
+                            colour,
+                            alpha.div(max(both, 1e-4))
+                        ),
+                        both
+                    )
                 );
             })
             .ElseIf(abs(part.sub(partId("lidLine"))).lessThan(0.5), () => {

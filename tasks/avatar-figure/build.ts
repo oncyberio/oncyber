@@ -13,6 +13,8 @@
  *   out the clothes, the hair and every image;
  * - joins them into three primitives (body, face, the face's ink), each
  *   vertex saying which part it belongs to;
+ * - cuts the ears' few flat facets finer and smooths them, since they
+ *   will show: the base made them to sit under hair;
  * - works out, for every vertex of skin, how open it is to the light, how
  *   sharply the surface turns there and how much flesh lies behind it,
  *   and stores that in place of painted shading;
@@ -218,6 +220,174 @@ function islands(indices: Uint32Array): Uint32Array[] {
         groups.get(root).push(indices[t], indices[t + 1], indices[t + 2]);
     }
     return [...groups.values()].map((group) => Uint32Array.from(group));
+}
+
+/**
+ * A piece with each of its triangles cut into four and its surface
+ * rounded (Loop's subdivision): what was a ring of flat facets becomes a
+ * curve. The edge of the piece, where it joins its neighbours, is left
+ * exactly as it was, so the join stays closed: triangles along it are cut
+ * in two or three instead.
+ */
+function refine(piece: Piece): Piece & { edge: Set<number> } {
+    const used = [...new Set(piece.indices)];
+    const local = new Map(used.map((v, i) => [v, i]));
+    const position: number[] = [];
+    const normal: number[] = [];
+    const uv: number[] = [];
+    const joints: number[] = [];
+    const weights: number[] = [];
+    const targets: number[][] = piece.targets.map(() => []);
+    const copy = (v: number) => {
+        for (let k = 0; k < 3; k++) {
+            position.push(piece.position[v * 3 + k]);
+            normal.push(piece.normal[v * 3 + k]);
+            targets.forEach((t, i) => t.push(piece.targets[i][v * 3 + k]));
+        }
+        uv.push(piece.uv[v * 2], piece.uv[v * 2 + 1]);
+        for (let k = 0; k < 4; k++) {
+            joints.push(piece.joints[v * 4 + k]);
+            weights.push(piece.weights[v * 4 + k]);
+        }
+    };
+    used.forEach(copy);
+    const corners = Array.from(piece.indices, (v) => local.get(v));
+    // Vertices doubled along the base's image seams count as one place.
+    const welded = weld(Float32Array.from(position));
+    const place = (v: number) => welded.of[v];
+    const key = (a: number, b: number) =>
+        a < b ? a * welded.count + b : b * welded.count + a;
+    const across = new Map<number, number[]>();
+    const near: Set<number>[] = Array.from(
+        { length: welded.count },
+        () => new Set<number>()
+    );
+    for (let t = 0; t < corners.length; t += 3)
+        for (let k = 0; k < 3; k++) {
+            const a = place(corners[t + k]);
+            const b = place(corners[t + ((k + 1) % 3)]);
+            const c = place(corners[t + ((k + 2) % 3)]);
+            if (!across.has(key(a, b))) across.set(key(a, b), []);
+            across.get(key(a, b)).push(c);
+            near[a].add(b);
+            near[b].add(a);
+        }
+    // Places on the piece's edge stay put.
+    const onEdge = new Set<number>();
+    for (const [k, opposite] of across)
+        if (opposite.length !== 2) {
+            onEdge.add(Math.floor(k / welded.count));
+            onEdge.add(k % welded.count);
+        }
+    const at = new Float64Array(welded.count * 3);
+    for (let v = used.length - 1; v >= 0; v--)
+        for (let k = 0; k < 3; k++) at[place(v) * 3 + k] = position[v * 3 + k];
+    const moved = Float64Array.from(at);
+    for (let w = 0; w < welded.count; w++) {
+        if (onEdge.has(w)) continue;
+        const n = near[w].size;
+        const beta = n === 3 ? 3 / 16 : 3 / (8 * n);
+        for (let k = 0; k < 3; k++) {
+            let sum = 0;
+            for (const other of near[w]) sum += at[other * 3 + k];
+            moved[w * 3 + k] = at[w * 3 + k] * (1 - n * beta) + sum * beta;
+        }
+    }
+    // A new vertex in the middle of every edge inside the piece.
+    const middles = new Map<string, number>();
+    const middle = (a: number, b: number): number | null => {
+        const opposite = across.get(key(place(a), place(b)));
+        if (opposite.length !== 2) return null;
+        const name = a < b ? `${a} ${b}` : `${b} ${a}`;
+        let made = middles.get(name);
+        if (made === undefined) {
+            made = position.length / 3;
+            middles.set(name, made);
+            for (let k = 0; k < 3; k++) {
+                position.push(
+                    (at[place(a) * 3 + k] + at[place(b) * 3 + k]) * 0.375 +
+                        (at[opposite[0] * 3 + k] + at[opposite[1] * 3 + k]) *
+                            0.125
+                );
+                normal.push(normal[a * 3 + k] + normal[b * 3 + k]);
+                targets.forEach((t) =>
+                    t.push((t[a * 3 + k] + t[b * 3 + k]) / 2)
+                );
+            }
+            uv.push(
+                (uv[a * 2] + uv[b * 2]) / 2,
+                (uv[a * 2 + 1] + uv[b * 2 + 1]) / 2
+            );
+            // The piece is carried whole by its bones: either end's
+            // binding serves.
+            for (let k = 0; k < 4; k++) {
+                joints.push(joints[a * 4 + k]);
+                weights.push(weights[a * 4 + k]);
+            }
+        }
+        return made;
+    };
+    const out: number[] = [];
+    for (let t = 0; t < corners.length; t += 3) {
+        let [a, b, c] = [corners[t], corners[t + 1], corners[t + 2]];
+        let [ab, bc, ca] = [middle(a, b), middle(b, c), middle(c, a)];
+        const cut = [ab, bc, ca].filter((m) => m !== null).length;
+        // Turn the triangle so that what is uncut comes last.
+        for (let turn = 0; turn < 3; turn++) {
+            const fits =
+                cut === 3 ||
+                cut === 0 ||
+                (cut === 2 && ca === null) ||
+                (cut === 1 && ab !== null);
+            if (fits) break;
+            [a, b, c] = [b, c, a];
+            [ab, bc, ca] = [bc, ca, ab];
+        }
+        if (cut === 3) out.push(a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca);
+        else if (cut === 2) out.push(ab, b, bc, a, ab, bc, a, bc, c);
+        else if (cut === 1) out.push(a, ab, c, ab, b, c);
+        else out.push(a, b, c);
+    }
+    for (let v = 0; v < used.length; v++)
+        for (let k = 0; k < 3; k++)
+            position[v * 3 + k] = moved[place(v) * 3 + k];
+    // Fresh normals for the new surface; the edge keeps the ones that
+    // match its neighbours.
+    const all = weld(Float32Array.from(position));
+    const facing = new Float64Array(all.count * 3);
+    for (let t = 0; t < out.length; t += 3) {
+        const [p, q, r] = [out[t] * 3, out[t + 1] * 3, out[t + 2] * 3];
+        const u = [0, 1, 2].map((k) => position[q + k] - position[p + k]);
+        const w = [0, 1, 2].map((k) => position[r + k] - position[p + k]);
+        const face = [
+            u[1] * w[2] - u[2] * w[1],
+            u[2] * w[0] - u[0] * w[2],
+            u[0] * w[1] - u[1] * w[0],
+        ];
+        for (const v of [out[t], out[t + 1], out[t + 2]])
+            for (let k = 0; k < 3; k++) facing[all.of[v] * 3 + k] += face[k];
+    }
+    const edge = new Set<number>();
+    for (let v = 0; v < position.length / 3; v++) {
+        if (v < used.length && onEdge.has(place(v))) {
+            edge.add(v);
+            continue;
+        }
+        const f = all.of[v] * 3;
+        const length = Math.hypot(facing[f], facing[f + 1], facing[f + 2]) || 1;
+        for (let k = 0; k < 3; k++) normal[v * 3 + k] = facing[f + k] / length;
+    }
+    return {
+        ...piece,
+        position: Float64Array.from(position),
+        normal: Float64Array.from(normal),
+        uv: Float64Array.from(uv),
+        joints: Float64Array.from(joints),
+        weights: Float64Array.from(weights),
+        targets: targets.map((t) => Float64Array.from(t)),
+        indices: Uint32Array.from(out),
+        edge,
+    };
 }
 
 // --- Writing -------------------------------------------------------------
@@ -445,6 +615,40 @@ function build(sourcePath: string) {
             piece.position = pools.get(key);
         }
     }
+
+    // The ears are a few flat facets each, made to sit under hair. Bare,
+    // they need to be round: cut their triangles finer and smooth them.
+    let ears: ReturnType<typeof refine> | null = null;
+    pieces.forEach((piece, i) => {
+        if (piece.primitive !== "face" || piece.part !== "skin") return;
+        const openings = boundaryLoops(
+            piece.indices,
+            weld(Float32Array.from(piece.position))
+        );
+        // The front of the face has the eyes and mouth in it; the ears
+        // only have the two edges they join the head by.
+        if (openings.length > 2) return;
+        // New vertices take the binding of a neighbour, which is only
+        // right for a piece that one bone carries whole.
+        const bound = (v: number) =>
+            [0, 1, 2, 3]
+                .map(
+                    (k) =>
+                        `${piece.joints[v * 4 + k]}:${piece.weights[v * 4 + k]}`
+                )
+                .join(" ");
+        if (new Set(Array.from(piece.indices, bound)).size !== 1) {
+            say("  ears: not bound to one bone, left as they are");
+            return;
+        }
+        const before = piece.indices.length / 3;
+        ears = refine(piece);
+        pieces[i] = ears;
+        say(
+            `  ears: ${before} triangles refined into ` +
+                `${ears.indices.length / 3}`
+        );
+    });
 
     // Put each primitive's pieces together.
     const order: FigurePart[] = [
@@ -844,9 +1048,34 @@ function build(sourcePath: string) {
         };
         if (!mouths.length) throw new Error("The mouth opening is missing");
         say(`  openings: ${loops.map((l) => l.length).join(", ")} vertices`);
+        // The ears: every vertex of theirs, and the ones on the edge they
+        // join the head by (found by place: some became the head's own).
+        const ear = (sign: number) => {
+            const all: number[] = [];
+            const root: number[] = [];
+            if (!ears) return { all, root };
+            const joins: number[][] = [];
+            for (const v of ears.edge)
+                joins.push([0, 1, 2].map((k) => ears.position[v * 3 + k]));
+            for (let v = 0; v < face.origin.length; v++) {
+                if (Math.sign(at(v, 0)) !== sign) continue;
+                const onEdge = joins.some(
+                    (j) =>
+                        Math.hypot(
+                            j[0] - at(v, 0),
+                            j[1] - at(v, 1),
+                            j[2] - at(v, 2)
+                        ) < 1e-4
+                );
+                if (onEdge) root.push(v);
+                if (onEdge || face.origin[v].piece === ears) all.push(v);
+            }
+            return { all, root };
+        };
         return {
             eyes: { left: eye(leftSign), right: eye(-leftSign) },
             mouth: rim(mouths[0], -leftSign),
+            ears: { left: ear(leftSign), right: ear(-leftSign) },
         };
     })();
 

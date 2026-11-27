@@ -89,6 +89,11 @@ export interface FigureStyle {
         path?: [number, number][];
         /** Thickness at each point of the path, or at even steps along. */
         width: number[];
+        /**
+         * How dark the shadow is that the brow casts on the lid and the
+         * eye below it, 0–1. It moves with the brow.
+         */
+        shadow?: number;
     };
     mouth: {
         /** The line between the lips. */
@@ -145,6 +150,13 @@ export interface FigureShape {
      */
     morphs: Record<string, number>;
     features: FaceFeature[];
+    /**
+     * The ears: how far their outline is rounded off towards an oval (0
+     * leaves them as the figure has them, 1 is the oval), their size as
+     * a multiple of the figure's, and how deeply they are hollowed, as a
+     * part of their half-width.
+     */
+    ears?: { round: number; size?: number; cup?: number };
 }
 
 /** The figure as it comes: fair, brown-eyed, in plain shorts. */
@@ -196,8 +208,13 @@ export const PLAIN_STYLE: FigureStyle = {
         waist: 0.985,
         hem: 0.8,
     },
-    // The figure rests with its lips a hair apart.
-    shape: { morphs: { MTH_Close: 1 }, features: [] },
+    shape: {
+        // The figure rests with its lips a hair apart.
+        morphs: { MTH_Close: 1 },
+        features: [],
+        // Its ears come to a point, made to sit under hair: rounder here.
+        ears: { round: 0.7, cup: 0.25 },
+    },
 };
 
 /**
@@ -260,7 +277,8 @@ export const STAGEHAND_STYLE: FigureStyle = {
         crease: [0, 0],
     },
     brows: {
-        colour: "#2c1e1f",
+        colour: "#33211f",
+        shadow: 0.45,
         // Low over the eye: its lower edge meets the lid above the iris.
         path: [
             [-0.31, 0.27],
@@ -287,6 +305,8 @@ export const STAGEHAND_STYLE: FigureStyle = {
     shape: {
         // A set mouth.
         morphs: { MTH_Close: 1, MTH_Sorrow: 0.7 },
+        // Round ears, hollowed, as on his sheet.
+        ears: { round: 0.9, cup: 0.3 },
         features: [
             {
                 // A real nose: broader, and standing further off the face.

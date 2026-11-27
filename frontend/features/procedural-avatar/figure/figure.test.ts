@@ -62,7 +62,7 @@ describe("the figure file", () => {
         const info: FigureInfo = json.scenes[0].extras.figure;
         expect(info.format).toBe(FIGURE_FORMAT);
         expect(info.source.license).toBe("CC0");
-        expect(info.triangles.body + info.triangles.face).toBeLessThan(10_000);
+        expect(info.triangles.body + info.triangles.face).toBeLessThan(10_500);
         expect(json.extensions.VRM.meta.licenseName).toBe("CC0");
     });
 
@@ -135,11 +135,106 @@ describe("the figure file", () => {
     });
 });
 
+/**
+ * How far from a circle the outline round some points is: the length of
+ * the band stretched round them, squared, over 4 pi times its area.
+ */
+function cornered(points: [number, number][]) {
+    const sorted = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const turn = (o: number[], a: number[], b: number[]) =>
+        (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const half = (from: [number, number][]) => {
+        const chain: [number, number][] = [];
+        for (const p of from) {
+            while (
+                chain.length >= 2 &&
+                turn(chain[chain.length - 2], chain[chain.length - 1], p) <= 0
+            )
+                chain.pop();
+            chain.push(p);
+        }
+        return chain.slice(0, -1);
+    };
+    const band = [...half(sorted), ...half(sorted.slice().reverse())];
+    let length = 0;
+    let area = 0;
+    band.forEach((a, i) => {
+        const b = band[(i + 1) % band.length];
+        length += Math.hypot(b[0] - a[0], b[1] - a[1]);
+        area += (a[0] * b[1] - b[0] * a[1]) / 2;
+    });
+    return (length * length) / (4 * Math.PI * Math.abs(area));
+}
+
+describe("the figure's ears", () => {
+    it("are found again in the file: each ear, and where it joins the head", async () => {
+        const vrm = await load();
+        const { ears, eyes } = (vrm.scene.userData.figure as FigureInfo)
+            .landmarks;
+        const position =
+            meshesOf(vrm)[FIGURE_MATERIALS.face].geometry.attributes.position;
+        for (const side of ["left", "right"] as const) {
+            const ear = ears[side];
+            expect(ear.all.length).toBeGreaterThan(200);
+            expect(ear.root.length).toBeGreaterThan(10);
+            expect(ear.root.every((v) => ear.all.includes(v))).toBe(true);
+            // On the same side as that eye, and further out.
+            const eyeX = position.getX(eyes[side].loop[0]);
+            for (const v of ear.all) {
+                expect(Math.sign(position.getX(v))).toBe(Math.sign(eyeX));
+                expect(Math.abs(position.getX(v))).toBeGreaterThan(0.05);
+            }
+        }
+    });
+
+    it("are rounded by a style without leaving the head", async () => {
+        const untouched = await load();
+        const vrm = await load();
+        const figure = styleFigure(vrm, STAGEHAND_STYLE);
+        const before =
+            meshesOf(untouched)[FIGURE_MATERIALS.face].geometry.attributes
+                .position;
+        const after = figure.meshes.face.geometry.attributes.position;
+        const ear = (vrm.scene.userData.figure as FigureInfo).landmarks.ears
+            .left;
+        for (const v of ear.root)
+            for (const axis of [0, 1, 2])
+                expect(after.getComponent(v, axis)).toBe(
+                    before.getComponent(v, axis)
+                );
+        // Its outline is rounder: flat in the ear's own plane, with its
+        // length and width evened out, the outline's length squared over
+        // the area it holds is 1 for a circle and more for anything with
+        // corners.
+        const { long, short } = figure.frames.ears.left;
+        const flat = (p: typeof after) =>
+            ear.all.map((v): [number, number] => [
+                p.getX(v) * long[0] + p.getY(v) * long[1] + p.getZ(v) * long[2],
+                p.getX(v) * short[0] +
+                    p.getY(v) * short[1] +
+                    p.getZ(v) * short[2],
+            ]);
+        expect(cornered(flat(before))).toBeGreaterThan(1.08);
+        expect(cornered(flat(after))).toBeLessThan(
+            cornered(flat(before)) - 0.03
+        );
+        // Its normals are whole.
+        const normal = figure.meshes.face.geometry.attributes.normal;
+        for (const v of ear.all)
+            expect(
+                Math.hypot(normal.getX(v), normal.getY(v), normal.getZ(v))
+            ).toBeCloseTo(1, 4);
+        expect(
+            figure.frames.ears.left.out[0] * after.getX(ear.all[0])
+        ).toBeGreaterThan(0);
+    });
+});
+
 describe("styling a figure", () => {
     it("draws it with three materials and leaves its triangles alone", async () => {
         const vrm = await load();
         const figure = styleFigure(vrm, PLAIN_STYLE);
-        expect(figure.triangles).toBe(10252);
+        expect(figure.triangles).toBe(11092);
         const { body, face, ink } = figure.meshes;
         expect(body.material).toBe(figure.materials.body);
         expect(face.material).toBe(figure.materials.face);

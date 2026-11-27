@@ -20,7 +20,7 @@
  *   lid lines, lashes and brows are drawn on, blended over what is behind.
  */
 
-export const FIGURE_FORMAT = 1;
+export const FIGURE_FORMAT = 2;
 
 /** What a triangle is. A primitive holds several, told apart by this. */
 export const FIGURE_PARTS = [
@@ -97,6 +97,12 @@ export interface FigureRim {
     turn: number;
 }
 
+/** An ear: its vertices, and those of them that join it to the head. */
+export interface FigureEar {
+    all: number[];
+    root: number[];
+}
+
 /**
  * Places on the face, as vertices of the face primitive, so that they
  * can still be found after a character has reshaped it.
@@ -106,6 +112,7 @@ export interface FigureLandmarks {
     eyes: { left: FigureRim; right: FigureRim };
     /** The mouth, from the corner on the figure's right. */
     mouth: FigureRim;
+    ears: { left: FigureEar; right: FigureEar };
 }
 
 /** Stored with the scene (`extras.figure`): what the file is. */

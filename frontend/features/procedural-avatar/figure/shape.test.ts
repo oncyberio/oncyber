@@ -5,7 +5,9 @@ import {
     layBrow,
     measureBrow,
     openingFrame,
+    renewNormals,
     resample,
+    roundEar,
     roundOff,
     smoothCurve,
     warpGeometry,
@@ -219,6 +221,151 @@ describe("an eye's own outline", () => {
     });
 });
 
+describe("rounding an ear", () => {
+    // A flap standing off the side of the head: a diamond, 100 mm tall
+    // and 33 mm deep, leaning out at 45 degrees. A ring of vertices
+    // round its outline, two more inside, one in the middle, and a root
+    // where it joins the head at the front.
+    const make = () => {
+        const outline: [number, number][] = [];
+        for (let i = 0; i < 24; i++) {
+            const angle = (i / 24) * Math.PI * 2;
+            // A diamond: far out along its axes, drawn in between them.
+            const r =
+                0.03 /
+                (Math.abs(Math.cos(angle)) + Math.abs(Math.sin(angle)) * 0.6);
+            outline.push([Math.cos(angle) * r * 0.55, Math.sin(angle) * r]);
+        }
+        const flat: [number, number][] = [];
+        for (const ring of [1, 0.66, 0.33])
+            for (const p of outline) flat.push([p[0] * ring, p[1] * ring]);
+        flat.push([0, 0]);
+        // In the flap's plane: u towards the back and out, v up.
+        const lean = Math.SQRT1_2;
+        const position = new Float32Array(flat.length * 3);
+        flat.forEach(([u, v], i) => {
+            position.set(
+                [0.08 + (u + 0.0165) * lean, 1.6 + v, (u + 0.0165) * lean],
+                i * 3
+            );
+        });
+        const all = flat.map((_, i) => i);
+        // The front edge of the outline is where it joins the head.
+        const root = all.filter((i) => i < 24 && flat[i][0] < -0.012);
+        return { position, all, root, flat };
+    };
+    /** How far from round an outline is: the spread of its radii. */
+    const unevenness = (position: Float32Array, ids: number[]) => {
+        const lean = Math.SQRT1_2;
+        const pts = ids.map((i) => [
+            (position[i * 3] - 0.08) * lean + position[i * 3 + 2] * lean,
+            position[i * 3 + 1] - 1.6,
+        ]);
+        const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+        const cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+        // Along the outline's own long and short axes, as an oval would be.
+        const radii = pts.map((p) =>
+            Math.hypot((p[0] - cx) / 0.0165, (p[1] - cy) / 0.05)
+        );
+        const mean = radii.reduce((a, b) => a + b, 0) / radii.length;
+        return Math.sqrt(
+            radii.reduce((a, r) => a + (r - mean) ** 2, 0) / radii.length
+        );
+    };
+    const rim = Array.from({ length: 24 }, (_, i) => i);
+
+    it("draws the outline towards an oval, and leaves the join alone", () => {
+        const ear = make();
+        const before = Float32Array.from(ear.position);
+        const frame = roundEar(ear.position, ear, -1, 1);
+        expect(frame).not.toBeNull();
+        expect(unevenness(ear.position, rim)).toBeLessThan(
+            unevenness(before, rim) * 0.6
+        );
+        for (const v of ear.root)
+            for (let k = 0; k < 3; k++)
+                expect(ear.position[v * 3 + k]).toBe(before[v * 3 + k]);
+        // The point at the top has come down.
+        expect(ear.position[6 * 3 + 1]).toBeLessThan(before[6 * 3 + 1] - 0.002);
+        // It stayed in its own plane: out and back still move together.
+        for (const v of rim) {
+            const out = ear.position[v * 3] - 0.08;
+            const back = ear.position[v * 3 + 2];
+            expect(out).toBeCloseTo(back, 5);
+        }
+    });
+
+    it("does nothing at 0, and less than everything in between", () => {
+        const ear = make();
+        const before = Float32Array.from(ear.position);
+        roundEar(ear.position, ear, -1, 0);
+        for (let i = 0; i < before.length; i++)
+            expect(ear.position[i]).toBeCloseTo(before[i], 7);
+        const half = make();
+        roundEar(half.position, half, -1, 0.5);
+        const whole = make();
+        roundEar(whole.position, whole, -1, 1);
+        const top = (e: { position: Float32Array }) => e.position[6 * 3 + 1];
+        expect(top(half)).toBeLessThan(before[6 * 3 + 1]);
+        expect(top(half)).toBeGreaterThan(top(whole));
+    });
+
+    it("hollows it towards the head, deepest in the middle", () => {
+        const ear = make();
+        const before = Float32Array.from(ear.position);
+        const frame = roundEar(ear.position, ear, -1, 0, 1, 0.3);
+        // Out of the face that shows: away from the head, and forwards.
+        expect(frame.out[0]).toBeGreaterThan(0.5);
+        expect(frame.out[2]).toBeLessThan(-0.5);
+        const sunk = (v: number) =>
+            (before[v * 3] - ear.position[v * 3]) * frame.out[0] +
+            (before[v * 3 + 2] - ear.position[v * 3 + 2]) * frame.out[2];
+        const middle = ear.all.length - 1;
+        expect(sunk(middle)).toBeGreaterThan(0.003);
+        // The far rim stays where it was.
+        expect(Math.abs(sunk(0))).toBeLessThan(0.0005);
+        // What shades it finds the bowl at its middle, the rim at 1.
+        const along = (v: number, axis: number[]) =>
+            [0, 1, 2].reduce(
+                (sum, k) =>
+                    sum + (before[v * 3 + k] - frame.centre[k]) * axis[k],
+                0
+            );
+        const far = (v: number) =>
+            Math.hypot(along(v, frame.long), along(v, frame.short));
+        expect(far(middle)).toBeLessThan(0.35);
+        expect(far(6)).toBeGreaterThan(0.8);
+    });
+
+    it("makes it larger about where it joins", () => {
+        const ear = make();
+        const before = Float32Array.from(ear.position);
+        roundEar(ear.position, ear, -1, 0, 1.2);
+        const height = (p: Float32Array) =>
+            Math.max(...rim.map((v) => p[v * 3 + 1])) -
+            Math.min(...rim.map((v) => p[v * 3 + 1]));
+        expect(height(ear.position)).toBeGreaterThan(height(before) * 1.1);
+        for (const v of ear.root)
+            expect(ear.position[v * 3 + 1]).toBe(before[v * 3 + 1]);
+    });
+
+    it("gives a turned surface the normals of its triangles", () => {
+        // Two triangles folded along an edge, their normals all stale.
+        const position = Float32Array.from([
+            0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1,
+        ]);
+        const normal = Float32Array.from([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0]);
+        renewNormals(position, normal, [0, 1, 2, 1, 3, 2], [0, 3]);
+        // The corner only the flat triangle touches faces straight out.
+        expect([...normal.slice(0, 3)]).toEqual([0, 0, 1]);
+        // The far corner belongs to the tilted one.
+        expect(normal[11]).toBeGreaterThan(0.5);
+        expect(normal[9]).toBeLessThan(-0.3);
+        // Vertices that were not asked for are left as they were.
+        expect([...normal.slice(3, 6)]).toEqual([0, 1, 0]);
+    });
+});
+
 describe("wearing an expression as the resting face", () => {
     const names = [
         "Fcl_EYE_Angry",
@@ -398,6 +545,42 @@ describe("reshaping a face", () => {
     });
 });
 
+describe("room for a brow's shadow", () => {
+    it("widens the strip below the line only, and says where the line is", () => {
+        const coords: number[] = [];
+        const position = new Float32Array(15 * 3);
+        for (let c = 0; c < 5; c++)
+            for (let r = 0; r < 3; r++) coords.push(c / 4, r / 2);
+        const args = {
+            position,
+            coords,
+            vertices: Array.from({ length: 15 }, (_, i) => i),
+            side: 1,
+            path: [
+                [0.02, 1.61],
+                [0.04, 1.61],
+                [0.06, 1.61],
+            ] as V2[],
+            widths: [0.008, 0.008, 0.008],
+            eyeLine: 0,
+            depth: () => -0.1,
+            forwardZ: -1,
+        };
+        const plain = layBrow(args);
+        const top = position[(2 * 3 + 2) * 3 + 1];
+        const bottom = position[(2 * 3 + 0) * 3 + 1];
+        const roomy = layBrow({ ...args, shadow: 0.006 });
+        expect(roomy.height).toBeCloseTo(plain.height + 0.006, 6);
+        // The top edge is where it was; the bottom is 6 mm lower.
+        expect(position[(2 * 3 + 2) * 3 + 1]).toBeCloseTo(top, 6);
+        expect(position[(2 * 3 + 0) * 3 + 1]).toBeCloseTo(bottom - 0.006, 6);
+        // The line itself has not moved: it is further up the strip.
+        const up = roomy.knots[1].up;
+        expect(up).toBeGreaterThan(0.5);
+        expect(bottom - 0.006 + up * roomy.height).toBeCloseTo(1.61, 6);
+    });
+});
+
 describe("laying a brow", () => {
     // A strip of 5 columns and 3 rows, wherever it was before.
     const coords: number[] = [];
@@ -441,6 +624,7 @@ describe("laying a brow", () => {
             forwardZ: -1,
             morphs: [morph],
         });
+        expect(line.knots.map((k) => k.up)).toEqual([0.5, 0.5, 0.5]);
         expect(line.knots.map((k) => k.along)).toEqual([0.25, 0.5, 0.75]);
         expect(line.knots.map((k) => k.width)).toEqual([0.006, 0.008, 0.002]);
         expect(line.height).toBeCloseTo(0.008 + 0.007, 6);

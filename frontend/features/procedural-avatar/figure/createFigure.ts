@@ -5,7 +5,11 @@ import {
     partId,
     type FigureInfo,
 } from "./format";
-import { createFigureMaterials, type FigureFrames } from "./shading";
+import {
+    BROW_SHADOW_REACH,
+    createFigureMaterials,
+    type FigureFrames,
+} from "./shading";
 import {
     depthFinder,
     eyeWarp,
@@ -14,9 +18,12 @@ import {
     layBrow,
     measureBrow,
     openingFrame,
+    renewNormals,
+    roundEar,
     warpGeometry,
     wearMorphs,
     type BrowLine,
+    type EarFrame,
     type ShapeGeometry,
 } from "./shape";
 import type { FigureStyle } from "./style";
@@ -103,6 +110,36 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         const marks = marksNow();
         const warp = faceWarp(style.shape.features, marks, forwardZ);
         for (const shape of shapes) warpGeometry(shape, warp);
+    }
+
+    // The ears, rounded off; their surface has turned, so its normals
+    // are worked out again.
+    const earFrames: EarFrame[] = [];
+    if (style.shape.ears) {
+        const { round, size, cup } = style.shape.ears;
+        const facePositions = facePosition.array as Float32Array;
+        for (const ear of [
+            info.landmarks.ears.left,
+            info.landmarks.ears.right,
+        ]) {
+            const frame = roundEar(
+                facePositions,
+                ear,
+                forwardZ,
+                round,
+                size,
+                cup
+            );
+            if (frame) earFrames.push(frame);
+            const fixed = new Set(ear.root);
+            renewNormals(
+                facePositions,
+                face.geometry.attributes.normal.array as Float32Array,
+                face.geometry.index.array,
+                ear.all.filter((v) => !fixed.has(v))
+            );
+        }
+        face.geometry.attributes.normal.needsUpdate = true;
     }
 
     // The eyes' own outline: each rim is moved onto it.
@@ -222,6 +259,7 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
             eyeLine: 0,
             depth,
             forwardZ,
+            shadow: BROW_SHADOW_REACH * from.width,
             morphs: (ink.geometry.morphAttributes.position || []).map(
                 (attribute) => attribute.array as Float32Array
             ),
@@ -264,6 +302,10 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         eyeWidth,
         mouthWidth,
         corners,
+        ears:
+            earFrames.length === 2
+                ? { left: earFrames[0], right: earFrames[1] }
+                : null,
         cheek: [
             eyeOut + 0.007,
             eyeLine - 0.032,

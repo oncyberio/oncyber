@@ -540,6 +540,271 @@ export function eyeWarp(fit: EyeFit): (p: V3) => V3 {
     };
 }
 
+/** The direction a flat thing is thinnest in. */
+function thinAxis(points: V3[]): V3 {
+    const mean: V3 = [0, 0, 0];
+    for (const p of points)
+        for (let k = 0; k < 3; k++) mean[k] += p[k] / points.length;
+    const c = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+    ];
+    for (const p of points)
+        for (let i = 0; i < 3; i++)
+            for (let j = 0; j < 3; j++)
+                c[i][j] += (p[i] - mean[i]) * (p[j] - mean[j]);
+    // The axis the points vary least along: found by repeated
+    // multiplication, with the spread turned upside down.
+    const trace = c[0][0] + c[1][1] + c[2][2];
+    let v: V3 = [1, 0.3, 0.2];
+    for (let pass = 0; pass < 120; pass++)
+        v = unit([
+            trace * v[0] - (c[0][0] * v[0] + c[0][1] * v[1] + c[0][2] * v[2]),
+            trace * v[1] - (c[1][0] * v[0] + c[1][1] * v[1] + c[1][2] * v[2]),
+            trace * v[2] - (c[2][0] * v[0] + c[2][1] * v[1] + c[2][2] * v[2]),
+        ]);
+    return v;
+}
+
+/** The band stretched round some points: its corners, in order. */
+export function hullOf(points: V2[]): V2[] {
+    const sorted = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const half = (from: V2[]) => {
+        const chain: V2[] = [];
+        for (const p of from) {
+            while (chain.length >= 2) {
+                const [o, a] = [
+                    chain[chain.length - 2],
+                    chain[chain.length - 1],
+                ];
+                const turn =
+                    (a[0] - o[0]) * (p[1] - o[1]) -
+                    (a[1] - o[1]) * (p[0] - o[0]);
+                if (turn > 0) break;
+                chain.pop();
+            }
+            chain.push(p);
+        }
+        return chain.slice(0, -1);
+    };
+    return [...half(sorted), ...half(sorted.reverse())];
+}
+
+/** The oval of the same area and spread as an outline: where, and how. */
+function ovalOf(outline: V2[]) {
+    let [area, cx, cy, xx, yy, xy] = [0, 0, 0, 0, 0, 0];
+    outline.forEach((p, i) => {
+        const q = outline[(i + 1) % outline.length];
+        const w = p[0] * q[1] - q[0] * p[1];
+        area += w / 2;
+        cx += (p[0] + q[0]) * w;
+        cy += (p[1] + q[1]) * w;
+        xx += (p[0] * p[0] + p[0] * q[0] + q[0] * q[0]) * w;
+        yy += (p[1] * p[1] + p[1] * q[1] + q[1] * q[1]) * w;
+        xy +=
+            (p[0] * q[1] + 2 * p[0] * p[1] + 2 * q[0] * q[1] + q[0] * p[1]) * w;
+    });
+    cx /= 6 * area;
+    cy /= 6 * area;
+    const sxx = xx / (12 * area) - cx * cx;
+    const syy = yy / (12 * area) - cy * cy;
+    const sxy = xy / (24 * area) - cx * cy;
+    const mid = (sxx + syy) / 2;
+    const off = Math.hypot((sxx - syy) / 2, sxy);
+    return {
+        centre: [cx, cy] as V2,
+        tilt: 0.5 * Math.atan2(2 * sxy, sxx - syy),
+        // Half its length and half its width.
+        long: 2 * Math.sqrt(mid + off),
+        short: 2 * Math.sqrt(Math.max(1e-12, mid - off)),
+    };
+}
+
+/** Where an ear's bowl is. */
+export interface EarFrame {
+    /** Its middle. */
+    centre: V3;
+    /**
+     * Along the ear's length and across its width, each divided by half
+     * that size: a point's offset from the middle, measured along them,
+     * is 0 there and 1 at the ear's rim.
+     */
+    long: V3;
+    short: V3;
+    /** Out of the side of the ear that faces away from the head. */
+    out: V3;
+}
+
+/**
+ * Round an ear off. An ear is a flap: in the flap's own plane its outline
+ * is drawn towards the oval of the same area and spread, so a point comes
+ * in and a flat stretch fills out. It keeps its place on the head, where
+ * nothing moves, and what lies inside the outline moves less than the
+ * outline does. `size` makes it larger or smaller about where it joins,
+ * and `cup` hollows it: its middle is set back by that part of its
+ * half-width, so that its rim stands round a bowl.
+ */
+export function roundEar(
+    position: Float32Array,
+    ear: { all: number[]; root: number[] },
+    forwardZ: number,
+    round: number,
+    size = 1,
+    cup = 0
+): EarFrame | null {
+    const roots = ear.root.map((v) => point(position, v));
+    const fixed = new Set(ear.root);
+    const free = ear.all.filter((v) => !fixed.has(v));
+    if (!free.length || !roots.length) return null;
+    const points = ear.all.map((v) => point(position, v));
+    // The flap's plane: towards the back of the head, and up.
+    const thin = thinAxis(points);
+    const lie = (axis: V3): V3 => {
+        const along = dot(axis, thin);
+        return unit([
+            axis[0] - thin[0] * along,
+            axis[1] - thin[1] * along,
+            axis[2] - thin[2] * along,
+        ]);
+    };
+    const back = lie([0, 0, -forwardZ]);
+    const up = cross(thin, back);
+    if (up[1] < 0) for (let k = 0; k < 3; k++) up[k] = -up[k];
+    const hold: V3 = [0, 0, 0];
+    for (const r of roots)
+        for (let k = 0; k < 3; k++) hold[k] += r[k] / roots.length;
+    // The side of the flap that faces away from the head.
+    const outward = thin[0] * hold[0] < 0 ? -1 : 1;
+    const flat = (p: V3): V2 => [
+        dot(sub(p, hold), back),
+        dot(sub(p, hold), up),
+    ];
+    // Its outline in that plane, and the oval of the same area and spread.
+    const outline = hullOf(points.map(flat));
+    const oval = ovalOf(outline);
+    const centre = oval.centre;
+    /** How far from its middle the outline is, in a direction. */
+    const reachAt = (angle: number) => {
+        const [dx, dy] = [Math.cos(angle), Math.sin(angle)];
+        let reach = 0;
+        outline.forEach((a, i) => {
+            const b = outline[(i + 1) % outline.length];
+            const [ex, ey] = [b[0] - a[0], b[1] - a[1]];
+            const det = dy * ex - dx * ey;
+            if (Math.abs(det) < 1e-14) return;
+            const [px, py] = [a[0] - centre[0], a[1] - centre[1]];
+            const along = (py * ex - px * ey) / det;
+            const on = (dx * py - dy * px) / det;
+            if (along > 0 && on > -1e-9 && on < 1 + 1e-9)
+                reach = Math.max(reach, along);
+        });
+        return reach;
+    };
+    const ovalAt = (angle: number) =>
+        1 /
+        Math.hypot(
+            Math.cos(angle - oval.tilt) / oval.long,
+            Math.sin(angle - oval.tilt) / oval.short
+        );
+    for (const v of free) {
+        const p = point(position, v);
+        let nearest = Infinity;
+        for (const r of roots)
+            nearest = Math.min(nearest, Math.hypot(...sub(p, r)));
+        const loose = smoothstep(0.002, 0.016, nearest);
+        const q = flat(p);
+        const r = Math.hypot(q[0] - centre[0], q[1] - centre[1]);
+        const angle = Math.atan2(q[1] - centre[1], q[0] - centre[0]);
+        const now = reachAt(angle) || 1;
+        const want = now + (ovalAt(angle) - now) * round;
+        const outer = smoothstep(0.2, 0.9, r / now);
+        const grow = (want / now - 1) * outer * loose;
+        // Out from the ear's middle, in its plane.
+        const du = (q[0] - centre[0]) * grow;
+        const dv = (q[1] - centre[1]) * grow;
+        // The bowl: deepest a little forward of the middle, nothing at
+        // the rim or where the ear joins the head.
+        const bu = q[0] - centre[0] + oval.short * 0.15;
+        const bv = q[1] - centre[1];
+        const rho = Math.hypot(
+            (bu * Math.cos(oval.tilt) + bv * Math.sin(oval.tilt)) / oval.long,
+            (bv * Math.cos(oval.tilt) - bu * Math.sin(oval.tilt)) / oval.short
+        );
+        const sunk =
+            -outward *
+            cup *
+            oval.short *
+            (1 - smoothstep(0.25, 0.85, rho)) *
+            smoothstep(0.003, 0.014, nearest);
+        // Then its size.
+        const scale = 1 + (size - 1) * loose;
+        for (let k = 0; k < 3; k++)
+            position[v * 3 + k] =
+                hold[k] +
+                (p[k] + back[k] * du + up[k] * dv + thin[k] * sunk - hold[k]) *
+                    scale;
+    }
+    // Where its bowl is now, for whoever shades it.
+    const [cos, sin] = [Math.cos(oval.tilt), Math.sin(oval.tilt)];
+    const middle: V2 = [centre[0] - oval.short * 0.15, centre[1]];
+    const axis = (u: number, v: number, half: number): V3 => [
+        (back[0] * u + up[0] * v) / (half * size),
+        (back[1] * u + up[1] * v) / (half * size),
+        (back[2] * u + up[2] * v) / (half * size),
+    ];
+    return {
+        centre: [
+            hold[0] + (back[0] * middle[0] + up[0] * middle[1]) * size,
+            hold[1] + (back[1] * middle[0] + up[1] * middle[1]) * size,
+            hold[2] + (back[2] * middle[0] + up[2] * middle[1]) * size,
+        ],
+        long: axis(cos, sin, oval.long),
+        short: axis(-sin, cos, oval.short),
+        out: [thin[0] * outward, thin[1] * outward, thin[2] * outward],
+    };
+}
+
+/**
+ * Normals for some of a surface's vertices, from the triangles that touch
+ * them; vertices in the same place share one.
+ */
+export function renewNormals(
+    position: Float32Array,
+    normal: Float32Array,
+    indices: ArrayLike<number>,
+    vertices: number[]
+) {
+    const wanted = new Set(vertices);
+    const key = (v: number) =>
+        Math.round(position[v * 3] * 2e4) +
+        "," +
+        Math.round(position[v * 3 + 1] * 2e4) +
+        "," +
+        Math.round(position[v * 3 + 2] * 2e4);
+    const sums = new Map<string, V3>();
+    for (let t = 0; t < indices.length; t += 3) {
+        const tri = [indices[t], indices[t + 1], indices[t + 2]];
+        if (!tri.some((v) => wanted.has(v))) continue;
+        const [p, q, r] = tri.map((v) => point(position, v));
+        const face = cross(sub(q, p), sub(r, p));
+        for (const v of tri) {
+            if (!wanted.has(v)) continue;
+            const k = key(v);
+            const sum = sums.get(k) || [0, 0, 0];
+            sums.set(k, [sum[0] + face[0], sum[1] + face[1], sum[2] + face[2]]);
+        }
+    }
+    for (const v of vertices) {
+        const sum = sums.get(key(v));
+        if (!sum) continue;
+        const n = unit(sum);
+        normal[v * 3] = n[0];
+        normal[v * 3 + 1] = n[1];
+        normal[v * 3 + 2] = n[2];
+    }
+}
+
 /** How far forward the skin is at a place seen from the front. */
 export function depthFinder(
     position: Float32Array,
@@ -636,6 +901,8 @@ export interface LayBrow {
     /** Depth of the skin at a place, to lay the strip on. */
     depth: (x: number, y: number) => number | null;
     forwardZ: number;
+    /** How far below the line its shadow may fall, metres. */
+    shadow?: number;
     /**
      * The expressions that move the strip, as offsets. They were made
      * for where the strip used to lie: each keeps its movement across
@@ -653,7 +920,12 @@ export function layBrow(args: LayBrow): BrowLine {
     const { position, coords, vertices, side, path, widths } = args;
     const { columns, column } = browStrip(coords, vertices);
     const margin = 0.0035;
-    const height = Math.max(...widths) + 2 * margin;
+    // Room round the line for its soft edge, and below it for the shadow
+    // it casts.
+    const thickest = Math.max(...widths);
+    const below = thickest / 2 + margin + (args.shadow ?? 0);
+    const height = below + thickest / 2 + margin;
+    const middle = below / height;
     // The path, run on a little at both ends.
     const ends = (a: V2, b: V2): V2 => {
         const l = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
@@ -717,7 +989,7 @@ export function layBrow(args: LayBrow): BrowLine {
     let known = 0;
     for (const v of vertices) {
         const place = at(column(v));
-        const offset = (coords[v * 2 + 1] - 0.5) * height;
+        const offset = (coords[v * 2 + 1] - middle) * height;
         const x = (place.x + place.normal[0] * offset) * side;
         const y = args.eyeLine + place.y + place.normal[1] * offset;
         const skin = args.depth(x, y);
@@ -738,7 +1010,7 @@ export function layBrow(args: LayBrow): BrowLine {
     return {
         knots: path.map((_, i) => ({
             along: columns[anchor[i + 1]],
-            up: 0.5,
+            up: middle,
             width: widths[Math.min(i, widths.length - 1)],
         })),
         height,

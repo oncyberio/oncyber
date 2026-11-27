@@ -104,18 +104,19 @@ style and an outfit. The parts it is made from are shared.
     humanoid that characters are made from: `public/models/figure_male.vrm`,
     built by `tasks/avatar-figure` from a public-domain base model. It
     keeps that model's skin, skeleton, weights and all 54 of its face
-    expressions, and none of its images: about 10,000 triangles in three
-    draw calls, 665 kB. What a texture would have held is stored on the
+    expressions, and none of its images: about 11,000 triangles in three
+    draw calls, 693 kB. What a texture would have held is stored on the
     vertices (how open each point is to the light, what stands between it
     and the light from above, how sharply the surface turns, how thin the
     flesh is), and the rest is drawn per pixel by `figure/shading.ts`:
-    soft-lit skin whose shadows start warm, irises, lid lines, brows,
-    lips and underwear, sharp at any distance. A _style_
+    soft-lit skin whose shadows start warm, irises, lid lines, lips and
+    underwear, sharp at any distance, and brows shaded as ridges of hair
+    that cast their own soft shadow on the lid below. A _style_
     (`figure/style.ts`) is what makes a figure a character: its colours,
     how its eyes, lids and brows are drawn (in eye widths, so the numbers
     suit any figure), the outline of its eyes as measured off a character
-    sheet, which expressions it wears at rest, and how its face is
-    reshaped. Reshaping carries every expression along, so a restyled
+    sheet, which expressions it wears at rest, how round and how hollow
+    its ears are, and how its face is reshaped. Reshaping carries every expression along, so a restyled
     eye still blinks. The body's proportions stay the figure's
     own. It has no hair or clothes yet. `/dev/figure-avatar` shows it
     locally (`style=plain` for the bare figure).
