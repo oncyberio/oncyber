@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "query": "round=20",
+  "arrival": [
+    {
+      "hold": "up",
+      "ms": 700
+    },
+    {
+      "press": "interact"
+    },
+    {
+      "press": "interact"
+    },
+    {
+      "until": {
+        "screen": "match"
+      },
+      "timeoutMs": 10000
+    }
+  ],
+  "play": [
+    {
+      "repeat": [
+        {
+          "hold": "up",
+          "ms": 600
+        },
+        {
+          "press": "strike"
+        },
+        {
+          "press": "jump"
+        }
+      ],
+      "until": {
+        "screen": "results"
+      },
+      "timeoutMs": 130000
+    }
+  ],
+  "leave": [
+    {
+      "press": "interact"
+    }
+  ]
+}
