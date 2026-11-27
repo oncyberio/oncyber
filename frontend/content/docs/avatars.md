@@ -116,7 +116,8 @@ style and an outfit. The parts it is made from are shared.
     how its eyes, lids and brows are drawn (in eye widths, so the numbers
     suit any figure), the outline of its eyes as measured off a character
     sheet, which expressions it wears at rest, how round and how hollow
-    its ears are, and how its face is reshaped. Reshaping carries every expression along, so a restyled
+    its ears are, how long its face is and what its outline is, and how
+    its face is reshaped locally. Reshaping carries every expression along, so a restyled
     eye still blinks. The body's proportions stay the figure's
     own. It has no hair or clothes yet. `/dev/figure-avatar` shows it
     locally (`style=plain` for the bare figure).
@@ -124,9 +125,10 @@ style and an outfit. The parts it is made from are shared.
     the character with `tasks/avatar-figure`'s `compare` command. It
     draws the styled figure from fixed views and sets it beside the
     picture, framed alike, and it shows each eye of the picture under a
-    grid in eye widths, the unit a style is written in. The numbers are
-    read off the grid into the style, the command is run again, and what
-    still differs shows side by side. The picture needs a front view
+    grid in eye widths, the unit a style is written in, and both faces
+    under one for the head's own shape. The numbers are read off the
+    grids into the style, the command is run again, and what still
+    differs shows side by side. The picture needs a front view
     with the eyes open; what it cannot show (how far the nose or the
     ears stand out) wants a side view too. `--hair` tries another
     model's hair on the figure, fitted to its head, to judge a

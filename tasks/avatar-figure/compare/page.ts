@@ -324,15 +324,26 @@ async function figure() {
     const eyeLine = (eyes.left.y + eyes.right.y) / 2;
     const box = new THREE.Box3().setFromObject(vrm.scene);
     const view = params.get("view") || "face";
-    let target = new THREE.Vector3(0, eyeLine + 0.003, 0);
+    // Focused on the plane the eyes lie in, so that lengths in the face
+    // are to scale.
+    const eyeDepth =
+        -(
+            styled.frames.eyes.left.centre[2] +
+            styled.frames.eyes.right.centre[2]
+        ) / 2;
+    let target = new THREE.Vector3(0, eyeLine + 0.003, eyeDepth);
     let span = Number(params.get("span")) || FACE_SPAN;
     let yaw = 0;
     if (view === "three-quarter") {
         yaw = 35;
         target.z = 0.03;
-    } else if (view === "side") yaw = 90;
-    else if (view === "back") yaw = 180;
-    else if (view === "body" || view === "body-back") {
+    } else if (view === "side") {
+        yaw = 90;
+        target.z = 0;
+    } else if (view === "back") {
+        yaw = 180;
+        target.z = 0;
+    } else if (view === "body" || view === "body-back") {
         target = new THREE.Vector3(0, (box.min.y + box.max.y) / 2, 0);
         span = (box.max.y - box.min.y) * 1.08;
         yaw = view === "body" ? 0 : 180;
@@ -344,7 +355,7 @@ async function figure() {
             eye.x +
                 (out * (EYE_VIEW.outwards - EYE_VIEW.inwards) * eye.width) / 2,
             eye.y + ((EYE_VIEW.up - EYE_VIEW.down) * eye.width) / 2,
-            0.089
+            eyeDepth
         );
     }
     // A long lens, as a character sheet is drawn.
@@ -372,6 +383,15 @@ async function figure() {
         style: style.id,
         triangles: styled.triangles,
         hair,
+        // The head in eye widths: its levels, and half its width at
+        // each half an eye width below the eyes.
+        head: styled.head && {
+            levels: styled.head.levels,
+            widths: [0, 0.5, 1, 1.5, 2, 2.5].map((down) => [
+                down,
+                styled.head.halfWidth(down),
+            ]),
+        },
         eyes,
         eyeLine,
         height: box.max.y - box.min.y,

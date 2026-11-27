@@ -22,7 +22,12 @@
  * - `measure-eyes.png`: each eye of the picture under a grid in eye
  *   widths from its inner corner, which is the unit a style's eye
  *   outline, iris, lids and brows are written in. Read the numbers off
- *   it into the style, run again, compare.
+ *   it into the style, run again, compare;
+ * - `measure-face.png`: the picture's face and the figure's, made the
+ *   same size by the width of an eye, under a grid in eye widths across
+ *   from the middle of the face and down from the inner corners of the
+ *   eyes: what the levels and the outline of a style's head are read
+ *   off.
  *
  * `--eyes` says where the picture's eyes are, in its pixels from its top
  * left corner: the inner then the outer corner of the eye on the viewer's
@@ -238,6 +243,18 @@ try {
             `  ${measured.style}: ${measured.triangles} triangles, eyes ` +
                 `${(measured.eyes.right.width * 1000).toFixed(1)} mm wide`
         );
+    if (measured?.head) {
+        const { levels, widths } = measured.head;
+        const two = (n: number) => n.toFixed(2);
+        console.log(
+            `  its head, in eye widths: nose ${two(levels.nose)}, mouth ` +
+                `${two(levels.mouth)}, chin ${two(levels.chin)} below the ` +
+                `eyes, crown ${two(levels.crown)} above; half-width ` +
+                widths
+                    .map(([down, half]: number[]) => `${two(half)} at ${down}`)
+                    .join(", ")
+        );
+    }
     if (measured?.hair)
         console.log(
             `  hair tried on: ${measured.hair.triangles} triangles, made ` +
@@ -393,7 +410,57 @@ try {
                 label: "Figure",
             },
         ]);
-        console.log("  compare-face.png, compare-eyes.png, measure-eyes.png");
+        // Both faces again, this time made the same size by the width of
+        // an eye, under a grid in eye widths: across from the middle of
+        // the face, and down from the inner corners of the eyes. It is
+        // what a style's levels and outline of the head are read off.
+        const eyeMetres =
+            (measured.eyes.left.width + measured.eyes.right.width) / 2;
+        const eyePixels =
+            (Math.abs(eyes.left.outer[0] - eyes.left.inner[0]) +
+                Math.abs(eyes.right.outer[0] - eyes.right.inner[0])) /
+            2;
+        const drawnPerMetre = fh / faceSpan;
+        const picturePerMetre = eyePixels / eyeMetres;
+        const halfPicture = (faceSpan / 2) * picturePerMetre;
+        const corners = [
+            (eyes.left.inner[0] + eyes.right.inner[0]) / 2,
+            (eyes.left.inner[1] + eyes.right.inner[1]) / 2,
+        ];
+        const grid = {
+            origin: [fw / 2, fh / 2 + 0.003 * drawnPerMetre],
+            from: [0, 0],
+            unit: eyeMetres * drawnPerMetre,
+            across: 1,
+            up: -1,
+            step: 0.1,
+            numbered: 5,
+            places: 1,
+        };
+        await layOut("measure-face", fw * 2 + 10, fh, [
+            {
+                src: "/reference",
+                crop: [
+                    corners[0] - halfPicture,
+                    corners[1] - 0.003 * picturePerMetre - halfPicture,
+                    halfPicture * 2,
+                    halfPicture * 2,
+                ],
+                at: [0, 0, fw, fh],
+                label: "Picture: eye widths from between the eyes",
+                grid,
+            },
+            {
+                src: "/drawn/face.png",
+                at: [fw + 10, 0, fw, fh],
+                label: "Figure",
+                grid,
+            },
+        ]);
+        console.log(
+            "  compare-face.png, compare-eyes.png, measure-eyes.png, " +
+                "measure-face.png"
+        );
     }
     console.log(`Wrote ${path.relative(process.cwd(), outDir) || "."}`);
 } finally {

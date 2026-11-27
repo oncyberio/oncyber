@@ -218,6 +218,8 @@ export interface ShapeGeometry {
     position: Float32Array;
     /** Each morph as an offset from `position`, three numbers a vertex. */
     morphs: Float32Array[];
+    /** The vertices' normals, where a reshaping should turn them too. */
+    normal?: Float32Array;
 }
 
 /**
@@ -363,25 +365,286 @@ export function faceWarp(
     };
 }
 
-/** Reshape vertices, and what every expression makes of them. */
-export function warpGeometry(geometry: ShapeGeometry, warp: (p: V3) => V3) {
-    const { position, morphs } = geometry;
-    for (let v = 0; v < position.length; v += 3) {
-        const from: V3 = [position[v], position[v + 1], position[v + 2]];
+/**
+ * Reshape vertices, and what every expression makes of them. `amount`
+ * says how much of the reshaping each vertex takes, 0 to 1: all of it if
+ * left out. Where the geometry has normals, they are turned as the
+ * surface is.
+ */
+export function warpGeometry(
+    geometry: ShapeGeometry,
+    warp: (p: V3) => V3,
+    amount?: ArrayLike<number>
+) {
+    const { position, morphs, normal } = geometry;
+    const part = (from: V3, share: number): V3 => {
         const to = warp(from);
+        return share === 1
+            ? to
+            : [
+                  from[0] + (to[0] - from[0]) * share,
+                  from[1] + (to[1] - from[1]) * share,
+                  from[2] + (to[2] - from[2]) * share,
+              ];
+    };
+    for (let v = 0; v < position.length; v += 3) {
+        const share = amount ? amount[v / 3] : 1;
+        if (share <= 0) continue;
+        const from: V3 = [position[v], position[v + 1], position[v + 2]];
+        const to = part(from, share);
         if (to[0] === from[0] && to[1] === from[1] && to[2] === from[2])
             continue;
         for (const morph of morphs) {
             if (!morph[v] && !morph[v + 1] && !morph[v + 2]) continue;
-            const moved = warp([
-                from[0] + morph[v],
-                from[1] + morph[v + 1],
-                from[2] + morph[v + 2],
-            ]);
+            const moved = part(
+                [
+                    from[0] + morph[v],
+                    from[1] + morph[v + 1],
+                    from[2] + morph[v + 2],
+                ],
+                share
+            );
             for (let k = 0; k < 3; k++) morph[v + k] = moved[k] - to[k];
+        }
+        if (normal) {
+            // How the reshaping stretches space here, by small steps
+            // each way; a normal turns by the inverse of that, transposed.
+            const h = 2e-4;
+            const j: number[][] = [[], [], []];
+            for (let axis = 0; axis < 3; axis++) {
+                const ahead: V3 = [from[0], from[1], from[2]];
+                const behind: V3 = [from[0], from[1], from[2]];
+                ahead[axis] += h;
+                behind[axis] -= h;
+                const [a, b] = [part(ahead, share), part(behind, share)];
+                for (let row = 0; row < 3; row++)
+                    j[row][axis] = (a[row] - b[row]) / (2 * h);
+            }
+            const n = [normal[v], normal[v + 1], normal[v + 2]];
+            const c = (r0: number, c0: number, r1: number, c1: number) =>
+                j[r0][c0] * j[r1][c1] - j[r0][c1] * j[r1][c0];
+            // The cofactors of the stretch, applied to the normal.
+            const turned: V3 = [
+                c(1, 1, 2, 2) * n[0] -
+                    c(1, 0, 2, 2) * n[1] +
+                    c(1, 0, 2, 1) * n[2],
+                -c(0, 1, 2, 2) * n[0] +
+                    c(0, 0, 2, 2) * n[1] -
+                    c(0, 0, 2, 1) * n[2],
+                c(0, 1, 1, 2) * n[0] -
+                    c(0, 0, 1, 2) * n[1] +
+                    c(0, 0, 1, 1) * n[2],
+            ];
+            const length = Math.hypot(turned[0], turned[1], turned[2]);
+            if (length > 1e-9)
+                for (let k = 0; k < 3; k++) normal[v + k] = turned[k] / length;
         }
         for (let k = 0; k < 3; k++) position[v + k] = to[k];
     }
+}
+
+/**
+ * A curve through points that never turns back on itself (a monotone
+ * cubic). Beyond its ends it carries on at a slope of 1: what lies
+ * outside is only moved along.
+ */
+export function monotone(xs: number[], ys: number[]): (x: number) => number {
+    const n = xs.length;
+    const secant: number[] = [];
+    for (let i = 0; i < n - 1; i++)
+        secant.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+    const slope: number[] = new Array(n).fill(1);
+    for (let i = 1; i < n - 1; i++) {
+        if (secant[i - 1] * secant[i] <= 0) slope[i] = 0;
+        else {
+            const [h0, h1] = [xs[i] - xs[i - 1], xs[i + 1] - xs[i]];
+            const [w0, w1] = [2 * h1 + h0, h1 + 2 * h0];
+            slope[i] = (w0 + w1) / (w0 / secant[i - 1] + w1 / secant[i]);
+        }
+    }
+    // No steeper than keeps it from overshooting.
+    for (let i = 0; i < n - 1; i++) {
+        slope[i] = Math.min(slope[i], 3 * secant[i]);
+        slope[i + 1] = Math.min(slope[i + 1], 3 * secant[i]);
+    }
+    return (x) => {
+        if (x <= xs[0]) return ys[0] + (x - xs[0]);
+        if (x >= xs[n - 1]) return ys[n - 1] + (x - xs[n - 1]);
+        let i = 0;
+        while (x > xs[i + 1]) i++;
+        const h = xs[i + 1] - xs[i];
+        const t = (x - xs[i]) / h;
+        const [t2, t3] = [t * t, t * t * t];
+        return (
+            (2 * t3 - 3 * t2 + 1) * ys[i] +
+            (t3 - 2 * t2 + t) * h * slope[i] +
+            (3 * t2 - 2 * t3) * ys[i + 1] +
+            (t3 - t2) * h * slope[i + 1]
+        );
+    };
+}
+
+/** Heights of the face's features, metres. */
+export interface FaceLevels {
+    /** The bottom of the nose, where it meets the lip. */
+    nose: number;
+    /** The line of the mouth. */
+    mouth: number;
+    /** The bottom of the chin. */
+    chin: number;
+}
+
+/** Where a face's nose ends, its mouth is and its chin ends. */
+export function faceLevels(
+    position: ArrayLike<number>,
+    isSkin: (vertex: number) => boolean,
+    landmarks: FigureLandmarks,
+    forwardZ: number,
+    centre: number
+): FaceLevels {
+    const mouth =
+        landmarks.mouth.loop.reduce((sum, v) => sum + position[v * 3 + 1], 0) /
+        landmarks.mouth.loop.length;
+    const eyes =
+        (position[landmarks.eyes.left.loop[0] * 3 + 1] +
+            position[landmarks.eyes.right.loop[0] * 3 + 1]) /
+        2;
+    // The face's middle line, from the side: [height, how far forward].
+    const profile: V2[] = [];
+    let chin = Infinity;
+    for (let v = 0; v < position.length / 3; v++) {
+        if (!isSkin(v)) continue;
+        const [x, y, z] = point(position, v);
+        const forward = z * forwardZ;
+        if (Math.abs(x - centre) < 0.01 && forward > 0.04 && y < mouth)
+            chin = Math.min(chin, y);
+        if (Math.abs(x - centre) < 0.004 && y > mouth && y < eyes)
+            profile.push([y, forward]);
+    }
+    // The tip of the nose stands furthest forward; the lip is what stands
+    // furthest forward just above the mouth. The nose ends where the
+    // profile lies deepest behind the line between the two.
+    const tip = profile.reduce((a, b) => (b[1] > a[1] ? b : a), [mouth, -1]);
+    const lip = profile
+        .filter((p) => p[0] < mouth + 0.008)
+        .reduce((a, b) => (b[1] > a[1] ? b : a), [mouth, -1]);
+    let nose = tip[0] - (tip[0] - mouth) * 0.4;
+    let deepest = 0;
+    for (const p of profile) {
+        if (p[0] >= tip[0] || p[0] <= lip[0]) continue;
+        const along = (tip[0] - p[0]) / (tip[0] - lip[0]);
+        const behind = tip[1] + (lip[1] - tip[1]) * along - p[1];
+        if (behind > deepest) {
+            deepest = behind;
+            nose = p[0];
+        }
+    }
+    return { nose, mouth, chin };
+}
+
+/**
+ * How wide surfaces are at each height, seen from the front: the furthest
+ * they reach from a middle line, measured where their triangles cross
+ * each height.
+ */
+export function silhouette(
+    surfaces: {
+        position: ArrayLike<number>;
+        indices: ArrayLike<number>;
+        /** Which triangles count; all of them if left out. */
+        keep?: (a: number, b: number, c: number) => boolean;
+    }[],
+    centre: number,
+    step = 0.002
+): (y: number) => number {
+    const reach = new Map<number, number>();
+    const note = (bin: number, out: number) => {
+        if (out > (reach.get(bin) ?? 0)) reach.set(bin, out);
+    };
+    for (const { position, indices, keep } of surfaces)
+        for (let t = 0; t < indices.length; t += 3) {
+            const tri = [indices[t], indices[t + 1], indices[t + 2]];
+            if (keep && !keep(tri[0], tri[1], tri[2])) continue;
+            for (let k = 0; k < 3; k++) {
+                const a = point(position, tri[k]);
+                const b = point(position, tri[(k + 1) % 3]);
+                const [lo, hi] = a[1] < b[1] ? [a, b] : [b, a];
+                const first = Math.ceil(lo[1] / step);
+                const last = Math.floor(hi[1] / step);
+                for (let bin = first; bin <= last; bin++) {
+                    const along =
+                        hi[1] === lo[1]
+                            ? 0
+                            : (bin * step - lo[1]) / (hi[1] - lo[1]);
+                    note(
+                        bin,
+                        Math.abs(lo[0] + (hi[0] - lo[0]) * along - centre)
+                    );
+                }
+            }
+        }
+    return (y) => {
+        const at = y / step;
+        const bin = Math.floor(at);
+        const [a, b] = [reach.get(bin) ?? 0, reach.get(bin + 1) ?? 0];
+        return a + (b - a) * (at - bin);
+    };
+}
+
+/**
+ * The reshaping that moves the face's features up or down: heights that
+ * are `from` go to `to`, what lies between is stretched or squeezed
+ * smoothly, and what lies beyond the ends is only moved along.
+ */
+export function levelsWarp(from: number[], to: number[]): (p: V3) => V3 {
+    // Counted downwards, so that the heights run upwards in order.
+    const order = from.map((_, i) => i).sort((a, b) => from[a] - from[b]);
+    const curve = monotone(
+        order.map((i) => from[i]),
+        order.map((i) => to[i])
+    );
+    return (p) => [p[0], curve(p[1]), p[2]];
+}
+
+export interface OutlineFit {
+    /** The middle of the face. */
+    centre: number;
+    /** How wide the head is at a height now, from the middle. */
+    width: (y: number) => number;
+    /** How much wider it should be there: 1 leaves it. */
+    widen: (y: number) => number;
+    /**
+     * The part of its width, from the middle, that is left as it is:
+     * what holds the eyes or the mouth.
+     */
+    core: (y: number) => number;
+}
+
+/**
+ * The reshaping that gives a head another outline, seen from the front.
+ * At each height its edge goes to the new width; towards the middle less
+ * and less moves, and the core not at all. What stands outside the edge,
+ * an ear, goes with it unchanged.
+ */
+export function outlineWarp(fit: OutlineFit): (p: V3) => V3 {
+    return (p) => {
+        const edge = fit.width(p[1]);
+        if (edge < 1e-4) return p;
+        const widen = fit.widen(p[1]);
+        if (widen === 1) return p;
+        const side = p[0] < fit.centre ? -1 : 1;
+        const out = Math.abs(p[0] - fit.centre);
+        const shift = edge * (widen - 1);
+        if (out >= edge) return [p[0] + side * shift, p[1], p[2]];
+        // Narrowing, the core gives way before anything would fold.
+        const core = Math.min(
+            fit.core(p[1]),
+            widen < 1 ? 1 - (1 - widen) * 2.2 : 1
+        );
+        const t = (out / edge - core) / (1 - core);
+        if (t <= 0) return p;
+        return [p[0] + side * shift * t * t * (3 - 2 * t), p[1], p[2]];
+    };
 }
 
 /** A smooth curve through a few points, as many (Catmull-Rom). */

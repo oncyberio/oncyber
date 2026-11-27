@@ -190,7 +190,11 @@ describe("the figure's ears", () => {
     it("are rounded by a style without leaving the head", async () => {
         const untouched = await load();
         const vrm = await load();
-        const figure = styleFigure(vrm, STAGEHAND_STYLE);
+        // His ears alone: the head they are on left as the figure's.
+        const figure = styleFigure(vrm, {
+            ...STAGEHAND_STYLE,
+            shape: { ...STAGEHAND_STYLE.shape, head: undefined },
+        });
         const before =
             meshesOf(untouched)[FIGURE_MATERIALS.face].geometry.attributes
                 .position;
@@ -278,15 +282,74 @@ describe("styling a figure", () => {
         let moved = 0;
         for (let i = 0; i < a.array.length; i++)
             moved = Math.max(moved, Math.abs(a.array[i] - b.array[i]));
-        // Only the face is the style's to change; the body below the
-        // neck is untouched.
+        // Only the head is the style's to change. From the collar down
+        // nothing is touched; the neck follows the head by as much as
+        // the head's bone carries it, at its base by a hair.
         for (let v = 0; v < a.count; v++)
-            if (a.getY(v) < 1.4)
-                for (const axis of [0, 1, 2])
-                    expect(a.getComponent(v, axis)).toBe(
-                        b.getComponent(v, axis)
+            for (const axis of [0, 1, 2]) {
+                const apart = Math.abs(
+                    a.getComponent(v, axis) - b.getComponent(v, axis)
+                );
+                if (a.getY(v) < 1.36) expect(apart).toBe(0);
+                else if (a.getY(v) < 1.43) expect(apart).toBeLessThan(0.0005);
+            }
+        // The skull, which the body's mesh holds, did change.
+        expect(moved).toBeGreaterThan(0.005);
+        expect(moved).toBeLessThan(0.03);
+    });
+
+    it("gives the Stagehand the head his style describes", async () => {
+        const plain = styleFigure(await load(), PLAIN_STYLE);
+        const figure = styleFigure(await load(), STAGEHAND_STYLE);
+        const { levels, outline } = STAGEHAND_STYLE.shape.head;
+        const head = figure.head;
+        expect(head.levels.nose).toBeCloseTo(levels.nose, 2);
+        expect(head.levels.mouth).toBeCloseTo(levels.mouth, 2);
+        expect(head.levels.chin).toBeCloseTo(levels.chin, 2);
+        expect(head.levels.crown).toBeCloseTo(levels.crown, 2);
+        // Its outline at the eyes and down the jaw, to within a
+        // twentieth of an eye's width.
+        for (const [out, down] of outline.slice(0, 7))
+            expect(Math.abs(head.halfWidth(down) - out)).toBeLessThan(0.05);
+        // In its own eye widths, the figure's head is rounder: wider at
+        // the eyes, and shorter under them for its width.
+        const round = (h: typeof head) => h.halfWidth(0) / h.levels.chin;
+        expect(plain.head.halfWidth(0)).toBeGreaterThan(head.halfWidth(0));
+        expect(round(head)).toBeLessThan(round(plain.head) - 0.1);
+        // The skin's normals are still whole.
+        for (const mesh of [figure.meshes.face, figure.meshes.body]) {
+            const normal = mesh.geometry.attributes.normal;
+            for (let v = 0; v < normal.count; v += 7)
+                expect(
+                    Math.hypot(normal.getX(v), normal.getY(v), normal.getZ(v))
+                ).toBeCloseTo(1, 3);
+        }
+    });
+
+    it("keeps the skin closed when the head is reshaped", async () => {
+        const figure = styleFigure(await load(), STAGEHAND_STYLE);
+        const positions: number[] = [];
+        const indices: number[] = [];
+        for (const mesh of [figure.meshes.body, figure.meshes.face]) {
+            const base = positions.length / 3;
+            const part = mesh.geometry.getAttribute("part");
+            positions.push(...mesh.geometry.attributes.position.array);
+            const index = mesh.geometry.index.array;
+            for (let t = 0; t < index.length; t += 3)
+                if (Math.round(part.getX(index[t]) * 255) === partId("skin"))
+                    indices.push(
+                        index[t] + base,
+                        index[t + 1] + base,
+                        index[t + 2] + base
                     );
-        expect(moved).toBeLessThan(0.01);
+        }
+        const loops = boundaryLoops(
+            Uint32Array.from(indices),
+            weld(Float32Array.from(positions))
+        );
+        expect(loops.map((loop) => loop.length).sort((a, b) => a - b)).toEqual([
+            24, 24, 32,
+        ]);
     });
 
     it("gives the Stagehand his own eyes and brows, which still blink", async () => {

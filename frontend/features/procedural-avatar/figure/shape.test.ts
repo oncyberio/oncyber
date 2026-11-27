@@ -3,12 +3,16 @@ import {
     eyeWarp,
     faceWarp,
     layBrow,
+    levelsWarp,
     measureBrow,
+    monotone,
     openingFrame,
+    outlineWarp,
     renewNormals,
     resample,
     roundEar,
     roundOff,
+    silhouette,
     smoothCurve,
     warpGeometry,
     wearMorphs,
@@ -218,6 +222,146 @@ describe("an eye's own outline", () => {
         const b = other([-rim[5][0], rim[5][1], rim[5][2]]);
         expect(b[0]).toBeCloseTo(-a[0], 9);
         expect(b[1]).toBeCloseTo(a[1], 9);
+    });
+});
+
+describe("a head's levels and outline", () => {
+    it("draws a curve through points that never turns back", () => {
+        const curve = monotone([0, 1, 2, 4], [0, 1, 3, 4]);
+        for (const [x, y] of [
+            [0, 0],
+            [1, 1],
+            [2, 3],
+            [4, 4],
+        ])
+            expect(curve(x)).toBeCloseTo(y, 9);
+        let last = -Infinity;
+        for (let x = -1; x <= 5; x += 0.05) {
+            expect(curve(x)).toBeGreaterThanOrEqual(last);
+            last = curve(x);
+        }
+        // Beyond its ends it only moves things along.
+        expect(curve(-3)).toBeCloseTo(-3, 9);
+        expect(curve(9) - curve(8)).toBeCloseTo(1, 9);
+    });
+
+    it("moves features to new heights and what lies beyond with them", () => {
+        // A mouth at 1.50 goes to 1.48 and a chin at 1.46 to 1.43;
+        // nothing above 1.58 moves.
+        const warp = levelsWarp([1.58, 1.5, 1.46], [1.58, 1.48, 1.43]);
+        expect(warp([0.01, 1.5, 0.02])).toEqual([0.01, 1.48, 0.02]);
+        expect(warp([0, 1.46, 0])[1]).toBeCloseTo(1.43, 9);
+        expect(warp([0, 1.7, 0])[1]).toBeCloseTo(1.7, 9);
+        // Below the chin everything is 3 cm lower, and in between the
+        // order of things is kept.
+        expect(warp([0, 1.4, 0])[1]).toBeCloseTo(1.37, 9);
+        expect(warp([0, 1.55, 0])[1]).toBeGreaterThan(warp([0, 1.54, 0])[1]);
+    });
+
+    // A diamond in the plane z = 0: 8 cm wide at y = 1, coming to
+    // points 10 cm above and below.
+    const diamond = {
+        position: [0, 1.1, 0, 0.04, 1, 0, 0, 0.9, 0, -0.04, 1, 0],
+        indices: [0, 1, 3, 1, 2, 3],
+    };
+
+    it("measures how wide surfaces are at each height", () => {
+        const width = silhouette([diamond], 0);
+        expect(width(1)).toBeCloseTo(0.04, 6);
+        expect(width(1.05)).toBeCloseTo(0.02, 6);
+        expect(width(0.925)).toBeCloseTo(0.01, 6);
+        expect(width(1.2)).toBe(0);
+        // Off its middle line, it is the furthest reach that counts.
+        expect(silhouette([diamond], 0.01)(1)).toBeCloseTo(0.05, 6);
+        // Triangles can be left out.
+        const upper = silhouette(
+            [{ ...diamond, keep: (a: number) => a === 0 }],
+            0
+        );
+        expect(upper(0.95)).toBe(0);
+    });
+
+    it("gives a head another outline and leaves its middle alone", () => {
+        const warp = outlineWarp({
+            centre: 0,
+            width: () => 0.08,
+            widen: (y) => (y > 1 ? 0.9 : 1.2),
+            core: () => 0.5,
+        });
+        // The edge goes to the new width, on both sides.
+        expect(warp([0.08, 1.1, 0])[0]).toBeCloseTo(0.072, 9);
+        expect(warp([-0.08, 1.1, 0])[0]).toBeCloseTo(-0.072, 9);
+        expect(warp([0.08, 0.9, 0])[0]).toBeCloseTo(0.096, 9);
+        // The core does not move; between, less than the edge does.
+        expect(warp([0.03, 1.1, 0.01])).toEqual([0.03, 1.1, 0.01]);
+        // Halfway from the core to the edge, half as much as the edge.
+        expect(warp([0.06, 1.1, 0])[0]).toBeCloseTo(0.056, 9);
+        // An ear, outside the edge, goes with it and keeps its size.
+        expect(warp([0.1, 1.1, 0])[0]).toBeCloseTo(0.092, 9);
+        // Nothing folds: further out stays further out.
+        let last = 0;
+        for (let x = 0; x <= 0.1; x += 0.002) {
+            const to = warp([x, 1.1, 0])[0];
+            expect(to).toBeGreaterThanOrEqual(last);
+            last = to;
+        }
+    });
+
+    it("narrows without folding even when little is held back", () => {
+        const warp = outlineWarp({
+            centre: 0,
+            width: () => 0.08,
+            widen: () => 0.75,
+            core: () => 0.9,
+        });
+        let last = 0;
+        for (let x = 0; x <= 0.09; x += 0.001) {
+            const to = warp([x, 1, 0])[0];
+            expect(to).toBeGreaterThanOrEqual(last);
+            last = to;
+        }
+        expect(warp([0.08, 1, 0])[0]).toBeCloseTo(0.06, 9);
+    });
+});
+
+describe("reshaping by degrees, with normals", () => {
+    it("moves each vertex by its own share, expressions too", () => {
+        const geometry = {
+            position: Float32Array.from([0, 1, 0, 0, 1, 0, 0, 1, 0]),
+            morphs: [Float32Array.from([0, 0.5, 0, 0, 0.5, 0, 0, 0, 0])],
+        };
+        // Twice as tall.
+        warpGeometry(geometry, (p) => [p[0], p[1] * 2, p[2]], [1, 0.5, 0]);
+        expect([...geometry.position]).toEqual([0, 2, 0, 0, 1.5, 0, 0, 1, 0]);
+        // What the expression added is stretched by the same share.
+        expect(geometry.morphs[0][1]).toBeCloseTo(1, 6);
+        expect(geometry.morphs[0][4]).toBeCloseTo(0.75, 6);
+        expect(geometry.morphs[0][7]).toBe(0);
+    });
+
+    it("turns normals as the surface turns", () => {
+        // A slope at 45 degrees, squeezed to half its width: it gets
+        // steeper, and its normal leans over further.
+        const lean = Math.SQRT1_2;
+        const geometry = {
+            position: Float32Array.from([0.1, 1, 0]),
+            morphs: [],
+            normal: Float32Array.from([lean, lean, 0]),
+        };
+        warpGeometry(geometry, (p) => [p[0] * 0.5, p[1], p[2]]);
+        const [nx, ny, nz] = geometry.normal;
+        expect(nx / ny).toBeCloseTo(2, 4);
+        expect(nz).toBeCloseTo(0, 6);
+        expect(Math.hypot(nx, ny, nz)).toBeCloseTo(1, 6);
+        // Moving a surface along turns nothing.
+        const moved = {
+            position: Float32Array.from([0.1, 1, 0]),
+            morphs: [],
+            normal: Float32Array.from([lean, lean, 0]),
+        };
+        warpGeometry(moved, (p) => [p[0] + 0.02, p[1] - 0.01, p[2]]);
+        expect(moved.normal[0]).toBeCloseTo(lean, 6);
+        expect(moved.normal[1]).toBeCloseTo(lean, 6);
     });
 });
 

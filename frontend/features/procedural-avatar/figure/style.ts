@@ -157,6 +157,27 @@ export interface FigureShape {
      * part of their half-width.
      */
     ears?: { round: number; size?: number; cup?: number };
+    /**
+     * The head, where it is not the figure's own: how long the face is
+     * and what its outline is, seen from the front. Lengths are in eye
+     * widths, as for the eyes, and can be read off a picture.
+     */
+    head?: {
+        /**
+         * How far below the inner corners of the eyes the bottom of the
+         * nose, the line of the mouth and the bottom of the chin are;
+         * and how far above them the top of the skull is. The face
+         * between is stretched or squeezed to put them there.
+         */
+        levels?: { nose: number; mouth: number; chin: number; crown?: number };
+        /**
+         * The face's outline from the eyes down to the chin: points
+         * [out from the middle of the face, down from the eyes' inner
+         * corners]. Above the eyes the head is made narrower or wider by
+         * as much as at the eyes.
+         */
+        outline?: [number, number][];
+    };
 }
 
 /** The figure as it comes: fair, brown-eyed, in plain shorts. */
@@ -307,6 +328,26 @@ export const STAGEHAND_STYLE: FigureStyle = {
         morphs: { MTH_Close: 1, MTH_Sorrow: 0.7 },
         // Round ears, hollowed, as on his sheet.
         ears: { round: 0.9, cup: 0.3 },
+        // His head is not the figure's rounded one. Under the eyes his
+        // face is long, with the nose, mouth and chin well down it; it is
+        // narrow at the temples, and its jaw runs straight down to a
+        // corner and across to a broad chin.
+        head: {
+            levels: { nose: 1.37, mouth: 1.67, chin: 2.62, crown: 3.1 },
+            outline: [
+                [1.85, 0],
+                [1.84, 0.48],
+                [1.7, 0.95],
+                [1.54, 1.43],
+                [1.37, 1.72],
+                [1.28, 1.87],
+                [1.07, 2.07],
+                [0.77, 2.31],
+                [0.51, 2.49],
+                [0.27, 2.59],
+                [0, 2.62],
+            ],
+        },
         features: [
             {
                 // A real nose: broader, and standing further off the face.
@@ -322,16 +363,6 @@ export const STAGEHAND_STYLE: FigureStyle = {
                 at: "mouth",
                 radius: 0.04,
                 scale: [0.75, 1, 1],
-            },
-            {
-                // A little more chin: broader at its tip, and a touch
-                // longer. Centred low, so that the mouth stays as it is.
-                name: "chin",
-                at: "chin",
-                offset: [0, -0.018, 0],
-                radius: 0.034,
-                scale: [1.32, 1, 1.06],
-                move: [0, -0.0022, 0],
             },
         ],
     },
