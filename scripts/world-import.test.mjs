@@ -58,6 +58,7 @@ test("the account's spaces, most visited first", () => {
                     id: "a",
                     visits: 1,
                     invited: true,
+                    runtime: "awe-app",
                     info: { headline: "Quiet" },
                 },
                 {
@@ -74,7 +75,7 @@ test("the account's spaces, most visited first", () => {
     assert.match(lines[1], /^  Busy\s+\/busy\s+b  90 visits  current$/);
     assert.match(
         lines[2],
-        /^  Quiet\s+\/spaces\/a\s+a  1 visit  shared with you$/
+        /^  Quiet\s+\/spaces\/a\s+a  1 visit  runs awe-app  shared with you$/
     );
     assert.deepEqual(spaceLines({ spaces: [] }, "https://oncyber.io"), [
         "No spaces on https://oncyber.io for this account.",

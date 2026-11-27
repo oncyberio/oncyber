@@ -47,6 +47,7 @@ export function spaceLines({ spaces, currentId }, site) {
             )} ${space.id}  ${space.visits} visit${
                 space.visits === 1 ? "" : "s"
             }` +
+                (space.runtime ? `  runs ${space.runtime}` : "") +
                 (space.invited ? "  shared with you" : "") +
                 (space.id === currentId ? "  current" : "")
         );

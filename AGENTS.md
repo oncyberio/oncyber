@@ -56,6 +56,9 @@ with a sample space (`local-dev/fixtures/`), the lobby server and the app. The
 emulators run on Java 21; when it's missing, the first run downloads a
 private copy into `local-dev/.java/`. See [local-dev/README.md](local-dev/README.md).
 Use it for anything that doesn't need real uploads, wallets or NFT lookups.
+To debug a real space there, copy it in: `pnpm world spaces` lists yours
+and `pnpm world import <link>` puts a copy in the local stack
+([local-dev/README.md](local-dev/README.md#real-spaces)).
 
 ## Set up with your own services
 

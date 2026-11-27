@@ -8,6 +8,8 @@ export interface SpaceSummary {
     createdAt: string;
     invited: boolean;
     visits: number;
+    /** What runs the space when it is not Oncyber's own renderer: "awe-app", "web". */
+    runtime?: string;
     info: {
         headline?: string;
         heroImg?: string;
@@ -29,6 +31,7 @@ const SUMMARY_FIELDS = [
     "info.description",
     "createdAt",
     "number_of_visits",
+    "runtime.kind",
 ];
 
 export async function listSpaceSummaries(userId: string) {
@@ -55,6 +58,10 @@ export async function listSpaceSummaries(userId: string) {
             createdAt: data.createdAt?.toDate?.()?.toISOString?.() || "",
             invited: !!links.docs[index].data()?.invited,
             visits: Number(data.number_of_visits) || 0,
+            ...(typeof data.runtime?.kind === "string" &&
+            data.runtime.kind !== "cyber"
+                ? { runtime: data.runtime.kind }
+                : {}),
             info: data.info || {},
         });
     });

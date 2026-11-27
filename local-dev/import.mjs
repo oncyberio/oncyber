@@ -159,6 +159,8 @@ export async function writeLocalCopy(copy) {
         throw new Error(
             `the local stack is not running (nothing at ${process.env.FIRESTORE_EMULATOR_HOST}). Start it with \`pnpm dev:local\`, then run this again.`
         );
+    // The emulator needs no Google account: do not go looking for one.
+    process.env.METADATA_SERVER_DETECTION ||= "none";
     const { app, revive, firestoreTypes } = await import("./seed.mjs");
     const db = app().firestore();
     const { Timestamp } = firestoreTypes();
