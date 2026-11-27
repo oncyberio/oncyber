@@ -6,6 +6,7 @@ import {
     NodeMaterial,
 } from "three/webgpu";
 import { avatarLighting, isAvatarLighting } from "./avatarLighting";
+import { isCrowdMaterial } from "./crowdMaterial";
 import {
     collectAvatarTextures,
     disposeAvatarTextures,
@@ -18,11 +19,15 @@ const NATIVE_MATERIAL_TYPES = new Set([
     "MeshLambertMaterial",
 ]);
 
-/** Custom shaders keep ordinary VRM playback; crowd shaders cannot preserve them. */
+/**
+ * Custom shaders keep ordinary VRM playback; crowd shaders cannot preserve
+ * them, unless the material itself says they can (see crowdMaterial.ts).
+ */
 export function supportsNativeAvatarMaterial(material: THREE.Material) {
     if (!material) return false;
     const node = material as NodeMaterial;
     if (node.isNodeMaterial) {
+        if (isCrowdMaterial(material)) return true;
         return (
             ["MeshLambertNodeMaterial", "MeshBasicNodeMaterial"].includes(
                 material.type

@@ -1,10 +1,12 @@
 import * as THREE from "three/webgpu";
 import { MeshLambertNodeMaterial, MeshBasicNodeMaterial } from "three/webgpu";
+import { vec3 } from "three/tsl";
 import {
     applyNativeAvatarMaterials,
     cloneNativeAvatarMaterial,
     supportsNativeAvatarMaterial,
 } from "./avatarMaterials";
+import { isCrowdMaterial, markCrowdMaterial } from "./crowdMaterial";
 
 function mesh(material: THREE.Material | THREE.Material[]) {
     return new THREE.Mesh(new THREE.BoxGeometry(), material);
@@ -135,6 +137,38 @@ test("custom shaders and custom standard shader hooks stay intact and outside ba
         expect(supportsNativeAvatarMaterial(materials[index])).toBe(false);
         expect(disposals[index]).not.toHaveBeenCalled();
     });
+});
+
+test("a material with nodes of its own is batched only if it says a crowd may draw it", () => {
+    const drawn = new MeshBasicNodeMaterial();
+    drawn.colorNode = vec3(1, 0, 0);
+    expect(supportsNativeAvatarMaterial(drawn)).toBe(false);
+    markCrowdMaterial(drawn);
+    expect(isCrowdMaterial(drawn)).toBe(true);
+    expect(supportsNativeAvatarMaterial(drawn)).toBe(true);
+    // The promise holds with a shader key of its own as well.
+    drawn.customProgramCacheKey = () => "drawn";
+    expect(supportsNativeAvatarMaterial(drawn)).toBe(true);
+    // It is kept as it is, nodes and all, and its copy draws the same.
+    const root = mesh(drawn);
+    applyNativeAvatarMaterials(root);
+    expect(root.material).toBe(drawn);
+    expect(cloneNativeAvatarMaterial(drawn).colorNode).toBe(drawn.colorNode);
+});
+
+test("nothing a model file carries can set the crowd mark", () => {
+    // A file's extras land in userData, as they would say what they like.
+    const fromFile = new MeshBasicNodeMaterial();
+    fromFile.colorNode = vec3(1, 0, 0);
+    fromFile.userData = JSON.parse(
+        '{"oncyber.crowdMaterial":true,"crowdMaterial":true}'
+    );
+    expect(isCrowdMaterial(fromFile)).toBe(false);
+    expect(supportsNativeAvatarMaterial(fromFile)).toBe(false);
+    // A copy does not inherit the mark either: whoever copies vouches anew.
+    const marked = markCrowdMaterial(new MeshBasicNodeMaterial());
+    expect(isCrowdMaterial(marked.clone())).toBe(false);
+    expect(isCrowdMaterial(null)).toBe(false);
 });
 
 test("authored unlit GLTF materials remain unlit with their alpha map", () => {
