@@ -105,7 +105,9 @@ style and an outfit. The parts it is made from are shared.
     built by `tasks/avatar-figure` from a public-domain base model. It
     keeps that model's skin, skeleton, weights and all 54 of its face
     expressions, and none of its images: about 11,000 triangles in three
-    draw calls, 693 kB. What a texture would have held is stored on the
+    draw calls, 549 kB. Twelve of the expressions are exact sums of
+    others (a blink is each eye's own); the file holds their parts, and
+    what drives them is given those. What a texture would have held is stored on the
     vertices (how open each point is to the light, what stands between it
     and the light from above, how sharply the surface turns, how thin the
     flesh is), and the rest is drawn per pixel by `figure/shading.ts`:

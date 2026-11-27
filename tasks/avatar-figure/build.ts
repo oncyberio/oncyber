@@ -20,7 +20,9 @@
  *   and stores that in place of painted shading;
  * - keeps the skeleton, the weights, every face morph (only the vertices
  *   each one moves) and the VRM description of them, so the result still
- *   poses, blinks and talks like the model it came from;
+ *   poses, blinks and talks like the model it came from. A morph that is
+ *   exactly the sum of others is left out, and what drove it is given
+ *   its parts;
  * - stands the bare feet on the floor.
  *
  * The body and its proportions are not touched. The output depends only
@@ -47,12 +49,14 @@ import {
 } from "../../frontend/features/procedural-avatar/figure/bake.ts";
 import {
     BAKE_ATTRIBUTE,
+    FIGURE_COMPOSITES,
     FIGURE_FORMAT,
     FIGURE_MATERIALS,
     PART_ATTRIBUTE,
     SKY_DIRECTION,
     encodeRound,
     encodeThin,
+    morphName,
     partId,
     type FigureInfo,
     type FigurePart,
@@ -1136,6 +1140,43 @@ function build(sourcePath: string) {
         json.meshes
             .flatMap((m: Json) => m.primitives)
             .find((p: Json) => p.extras?.targetNames)?.extras.targetNames || [];
+    // Expressions that are exactly the sum of others are left out: what
+    // drives them is given their parts instead.
+    const shortNames = targetNames.map(morphName);
+    const composites: Record<string, string[]> = {};
+    for (const [whole, parts] of Object.entries(FIGURE_COMPOSITES)) {
+        const at = shortNames.indexOf(whole);
+        const partsAt = parts.map((part) => shortNames.indexOf(part));
+        if (at < 0 || partsAt.some((i) => i < 0)) continue;
+        let apart = 0;
+        for (const m of made)
+            for (const o of m.origin) {
+                if (!o.piece.targets.length) continue;
+                for (let k = 0; k < 3; k++) {
+                    let sum = 0;
+                    for (const i of partsAt)
+                        sum += o.piece.targets[i][o.vertex * 3 + k];
+                    apart = Math.max(
+                        apart,
+                        Math.abs(o.piece.targets[at][o.vertex * 3 + k] - sum)
+                    );
+                }
+            }
+        if (apart < 1e-6) composites[whole] = parts;
+        else
+            say(
+                `  ${whole} is kept: it is ${(apart * 1000).toFixed(2)} mm ` +
+                    `off the sum of ${parts.join(", ")}`
+            );
+    }
+    const kept = targetNames
+        .map((_, i) => i)
+        .filter((i) => !(shortNames[i] in composites));
+    const keptNames = kept.map((i) => targetNames[i]);
+    say(
+        `  ${Object.keys(composites).length} of ${targetNames.length} ` +
+            `expressions are sums of others and are left out`
+    );
     const primitiveJson = (m: (typeof made)[number], material: number) => {
         const count = m.origin.length;
         // Weights as 16 bits that still add up to one.
@@ -1156,18 +1197,21 @@ function build(sourcePath: string) {
                 bounds: true,
             }),
             NORMAL: writer.accessor(m.normal, "VEC3", { target: 34962 }),
-            JOINTS_0: writer.accessor(Uint16Array.from(m.joints), "VEC4", {
+            // One byte a joint: a figure has far fewer than 256.
+            JOINTS_0: writer.accessor(Uint8Array.from(m.joints), "VEC4", {
                 target: 34962,
             }),
             WEIGHTS_0: writer.accessor(weights, "VEC4", {
                 target: 34962,
                 normalized: true,
             }),
-            [PART_ATTRIBUTE]: writer.accessor(m.partBytes, "VEC4", {
+        };
+        // The body is all skin, and says nothing of its parts.
+        if (m.primitive !== "body")
+            attributes[PART_ATTRIBUTE] = writer.accessor(m.partBytes, "VEC4", {
                 target: 34962,
                 normalized: true,
-            }),
-        };
+            });
         if (m.primitive !== "ink")
             attributes[BAKE_ATTRIBUTE] = writer.accessor(m.bake, "VEC4", {
                 target: 34962,
@@ -1189,7 +1233,7 @@ function build(sourcePath: string) {
         if (targetCount) {
             let stored = 0;
             out.targets = [];
-            for (let t = 0; t < targetCount; t++) {
+            for (const t of kept) {
                 const moved: number[] = [];
                 const deltas: number[] = [];
                 m.origin.forEach((o, vertex) => {
@@ -1206,9 +1250,9 @@ function build(sourcePath: string) {
                     POSITION: writer.sparse(count, moved, deltas),
                 });
             }
-            out.extras = { targetNames };
+            out.extras = { targetNames: keptNames };
             say(
-                `  ${m.primitive}: ${targetCount} morphs move ${stored} ` +
+                `  ${m.primitive}: ${kept.length} morphs move ${stored} ` +
                     `vertices in all`
             );
         }
@@ -1250,7 +1294,7 @@ function build(sourcePath: string) {
         {
             name: "Face",
             primitives: [primitiveJson(face, 1), primitiveJson(ink, 2)],
-            extras: { targetNames },
+            extras: { targetNames: keptNames },
         },
         { name: "Body", primitives: [primitiveJson(body, 0)] },
     ];
@@ -1329,6 +1373,7 @@ function build(sourcePath: string) {
         },
         landmarks,
         triangles,
+        composites,
     };
     const meta = { ...vrm.meta };
     // The thumbnail was an image.
@@ -1359,10 +1404,24 @@ function build(sourcePath: string) {
                     blendShapeGroups: vrm.blendShapeMaster.blendShapeGroups.map(
                         (group: Json) => ({
                             ...group,
-                            // Every morph the base binds is on mesh 0 here too.
-                            binds: group.binds.filter(
-                                (bind: Json) => bind.mesh === 0
-                            ),
+                            // Every morph the base binds is on mesh 0
+                            // here too; one that was left out is driven
+                            // through its parts.
+                            binds: group.binds
+                                .filter((bind: Json) => bind.mesh === 0)
+                                .flatMap((bind: Json) => {
+                                    const parts =
+                                        composites[shortNames[bind.index]];
+                                    const names = parts ?? [
+                                        shortNames[bind.index],
+                                    ];
+                                    return names.map((name) => ({
+                                        ...bind,
+                                        index: kept.indexOf(
+                                            shortNames.indexOf(name)
+                                        ),
+                                    }));
+                                }),
                             materialValues: [],
                         })
                     ),

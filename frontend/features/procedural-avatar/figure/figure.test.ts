@@ -7,8 +7,10 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { boundaryLoops, weld } from "./bake";
 import { styleFigure } from "./createFigure";
 import {
+    FIGURE_COMPOSITES,
     FIGURE_FORMAT,
     FIGURE_MATERIALS,
+    morphName,
     partId,
     type FigureInfo,
 } from "./format";
@@ -48,7 +50,7 @@ describe("the figure file", () => {
     const json = JSON.parse(file.subarray(20, 20 + jsonLength).toString());
 
     it("is small and carries no images", () => {
-        expect(file.length).toBeLessThan(800_000);
+        expect(file.length).toBeLessThan(600_000);
         expect(json.images).toBeUndefined();
         expect(json.textures).toBeUndefined();
         expect(json.materials.map((m: { name: string }) => m.name)).toEqual([
@@ -56,6 +58,40 @@ describe("the figure file", () => {
             FIGURE_MATERIALS.face,
             FIGURE_MATERIALS.ink,
         ]);
+    });
+
+    it("leaves out expressions that are sums of others, and still has them", async () => {
+        const info: FigureInfo = json.scenes[0].extras.figure;
+        const names: string[] =
+            json.meshes[0].primitives[0].extras.targetNames.map(morphName);
+        expect(Object.keys(info.composites)).toHaveLength(12);
+        for (const [whole, parts] of Object.entries(info.composites)) {
+            // Left out itself; every part of it is there.
+            expect(names).not.toContain(whole);
+            for (const part of parts) expect(names).toContain(part);
+            expect(FIGURE_COMPOSITES[whole]).toEqual(parts);
+        }
+        // A smile with shut eyes is not quite its two halves: kept.
+        expect(names).toContain("EYE_Joy");
+        // What drives a blink drives both eyes' own.
+        const blink =
+            json.extensions.VRM.blendShapeMaster.blendShapeGroups.find(
+                (group: { presetName: string }) => group.presetName === "blink"
+            );
+        expect(
+            blink.binds
+                .map((bind: { index: number }) => names[bind.index])
+                .sort()
+        ).toEqual(["EYE_Close_L", "EYE_Close_R"]);
+        // And through three-vrm it shuts both eyes.
+        const vrm = await load();
+        vrm.expressionManager.setValue("blink", 1);
+        vrm.expressionManager.update();
+        const face = meshesOf(vrm)[FIGURE_MATERIALS.face];
+        const on = face.morphTargetInfluences
+            .map((value, i) => (value > 0.99 ? names[i] : null))
+            .filter(Boolean);
+        expect(on.sort()).toEqual(["EYE_Close_L", "EYE_Close_R"]);
     });
 
     it("says what it is and where it came from", () => {
@@ -79,7 +115,7 @@ describe("the figure file", () => {
             Object.values(FIGURE_MATERIALS).sort()
         );
         const face = meshes[FIGURE_MATERIALS.face];
-        expect(face.geometry.morphAttributes.position).toHaveLength(54);
+        expect(face.geometry.morphAttributes.position).toHaveLength(42);
         expect(face.geometry.hasAttribute("_bake")).toBe(true);
         expect(face.geometry.hasAttribute("uv")).toBe(false);
     });
@@ -97,11 +133,15 @@ describe("the figure file", () => {
         const indices: number[] = [];
         for (const geometry of [body, face]) {
             const base = positions.length / 3;
+            // The body is all skin, and says nothing of its parts.
             const part = geometry.getAttribute("_part");
             positions.push(...geometry.attributes.position.array);
             const index = geometry.index.array;
             for (let t = 0; t < index.length; t += 3)
-                if (Math.round(part.getX(index[t]) * 255) === partId("skin"))
+                if (
+                    !part ||
+                    Math.round(part.getX(index[t]) * 255) === partId("skin")
+                )
                     indices.push(
                         index[t] + base,
                         index[t + 1] + base,
@@ -369,7 +409,10 @@ describe("styling a figure", () => {
             positions.push(...mesh.geometry.attributes.position.array);
             const index = mesh.geometry.index.array;
             for (let t = 0; t < index.length; t += 3)
-                if (Math.round(part.getX(index[t]) * 255) === partId("skin"))
+                if (
+                    !part ||
+                    Math.round(part.getX(index[t]) * 255) === partId("skin")
+                )
                     indices.push(
                         index[t] + base,
                         index[t + 1] + base,
@@ -429,12 +472,17 @@ describe("styling a figure", () => {
         // upper and lower edges of the opening are the same line.
         const face = figure.meshes.face;
         const names = face.userData.targetNames as string[];
-        const blink =
-            face.geometry.morphAttributes.position[
-                names.findIndex((n) => n.endsWith("EYE_Close"))
-            ];
+        // The file keeps a blink as each eye's own.
+        const blinks = ["EYE_Close_L", "EYE_Close_R"].map(
+            (name) =>
+                face.geometry.morphAttributes.position[
+                    names.findIndex((n) => n.endsWith(name))
+                ]
+        );
         const rim = landmarks.eyes.left;
-        const shut = rim.loop.map((v) => position.getY(v) + blink.getY(v));
+        const shut = rim.loop.map(
+            (v) => position.getY(v) + blinks[0].getY(v) + blinks[1].getY(v)
+        );
         const open = rim.loop.map((v) => position.getY(v));
         const spread = (ys: number[]) => Math.max(...ys) - Math.min(...ys);
         expect(spread(open)).toBeGreaterThan(0.012);

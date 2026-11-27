@@ -237,31 +237,42 @@ export function wearMorphs(
     geometry: ShapeGeometry,
     names: string[],
     worn: Record<string, number>,
+    composites: Record<string, string[]> = {},
     closing = /EYE_(Close|Joy)|ALL_Joy/
 ) {
     const { position } = geometry;
+    /** The morphs an expression is stored as: itself, or its parts. */
+    const stored = (name: string): Float32Array[] => {
+        const index = names.findIndex((n) => n.endsWith(name));
+        if (index >= 0) return [geometry.morphs[index]].filter(Boolean);
+        if (!composites[name])
+            throw new Error(`The figure has no expression called ${name}`);
+        return composites[name].flatMap(stored);
+    };
     const baked = new Float32Array(position.length);
     // What of it moved the eyes.
     const lids = new Float32Array(position.length);
     let any = false;
     for (const [name, weight] of Object.entries(worn)) {
-        const index = names.findIndex((n) => n.endsWith(name));
-        const morph = geometry.morphs[index];
-        if (!morph || !weight) continue;
-        any = true;
-        const eyes = /EYE_/.test(names[index]);
-        for (let i = 0; i < baked.length; i++) {
-            baked[i] += morph[i] * weight;
-            if (eyes) lids[i] += morph[i] * weight;
+        if (!weight || !geometry.morphs.length) continue;
+        const eyes = /EYE_|ALL_/.test(name);
+        for (const morph of stored(name)) {
+            any = true;
+            for (let i = 0; i < baked.length; i++) {
+                baked[i] += morph[i] * weight;
+                if (eyes) lids[i] += morph[i] * weight;
+            }
         }
     }
     if (!any) return;
     for (let i = 0; i < baked.length; i++) position[i] += baked[i];
     // How each vertex travels when the eyes shut, before that changes.
-    const shutIndex = names.findIndex((n) => n.endsWith("EYE_Close"));
-    const shut = geometry.morphs[shutIndex]
-        ? Float32Array.from(geometry.morphs[shutIndex])
-        : null;
+    let shut: Float32Array | null = null;
+    if (names.some((n) => n.endsWith("EYE_Close")) || composites.EYE_Close) {
+        shut = new Float32Array(position.length);
+        for (const morph of stored("EYE_Close"))
+            for (let i = 0; i < shut.length; i++) shut[i] += morph[i];
+    }
     geometry.morphs.forEach((morph, index) => {
         const name = names[index] || "";
         if (closing.test(name)) {

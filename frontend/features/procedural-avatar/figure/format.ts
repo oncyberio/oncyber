@@ -20,7 +20,7 @@
  *   lid lines, lashes and brows are drawn on, blended over what is behind.
  */
 
-export const FIGURE_FORMAT = 2;
+export const FIGURE_FORMAT = 3;
 
 /** What a triangle is. A primitive holds several, told apart by this. */
 export const FIGURE_PARTS = [
@@ -62,7 +62,7 @@ export const BAKE_ATTRIBUTE = "_BAKE";
 
 /**
  * Which part a vertex belongs to: four bytes, the first the part's index
- * over 255, the rest spare.
+ * over 255, the rest spare. The body has none: it is all skin.
  */
 export const PART_ATTRIBUTE = "_PART";
 
@@ -84,6 +84,33 @@ export const decodeRound = (stored: number) => (stored - 0.5) * 2 * ROUND_RANGE;
 /** Depth of flesh (metres) to the `thin` channel. */
 export const encodeThin = (depth: number) => unit(1 - depth / THIN_RANGE);
 export const decodeThin = (stored: number) => (1 - stored) * THIN_RANGE;
+
+/**
+ * Expressions that base models store whole although they are sums of
+ * others: a blink is the left eye's and the right's, an angry face is
+ * angry brows, eyes and mouth. Where a model's own numbers bear that out
+ * exactly, a figure file leaves the whole out and keeps its parts; the
+ * file says which (`composites`), and anything that asks for a whole by
+ * name is given the sum.
+ */
+export const FIGURE_COMPOSITES: Record<string, string[]> = {
+    ALL_Neutral: ["MTH_Natural"],
+    ALL_Fun: ["BRW_Fun", "EYE_Fun", "MTH_Fun"],
+    ALL_Sorrow: ["BRW_Sorrow", "EYE_Sorrow", "MTH_Sorrow"],
+    ALL_Angry: ["BRW_Angry", "EYE_Angry", "MTH_Angry"],
+    ALL_Joy: ["BRW_Joy", "EYE_Joy", "MTH_Joy"],
+    ALL_Surprised: ["BRW_Surprised", "EYE_Surprised", "MTH_Surprised"],
+    EYE_Close: ["EYE_Close_L", "EYE_Close_R"],
+    EYE_Joy: ["EYE_Joy_L", "EYE_Joy_R"],
+    MTH_SkinFung: ["MTH_SkinFung_L", "MTH_SkinFung_R"],
+    HA_Fung1: ["HA_Fung1_Up", "HA_Fung1_Low"],
+    HA_Fung2: ["HA_Fung2_Up", "HA_Fung2_Low"],
+    HA_Fung3: ["HA_Fung3_Up", "HA_Fung3_Low"],
+    HA_Short: ["HA_Short_Up", "HA_Short_Low"],
+};
+
+/** A morph's name as models give it, without what comes before it. */
+export const morphName = (full: string) => full.replace(/^.*Fcl_/, "");
 
 /** A ring of vertices round an opening in the face's skin. */
 export interface FigureRim {
@@ -123,4 +150,9 @@ export interface FigureInfo {
     landmarks: FigureLandmarks;
     /** Triangles in each primitive. */
     triangles: { body: number; face: number; ink: number };
+    /**
+     * Expressions left out of the file because they are exactly the sum
+     * of others it holds: each by name, with the names of its parts.
+     */
+    composites: Record<string, string[]>;
 }

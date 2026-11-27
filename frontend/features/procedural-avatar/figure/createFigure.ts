@@ -77,7 +77,8 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
     // Under the names the shaders read them by.
     for (const mesh of [body, face, ink]) {
         const { geometry } = mesh;
-        geometry.setAttribute("part", geometry.getAttribute("_part"));
+        if (geometry.hasAttribute("_part"))
+            geometry.setAttribute("part", geometry.getAttribute("_part"));
         if (geometry.hasAttribute("_bake"))
             geometry.setAttribute("bake", geometry.getAttribute("_bake"));
     }
@@ -107,7 +108,7 @@ export function styleFigure(vrm: Vrm, style: FigureStyle) {
         Object.keys(face.morphTargetDictionary || {});
     const shapes = [face, ink, body].map(shapeOf);
     for (const shape of shapes.slice(0, 2))
-        wearMorphs(shape, names, style.shape.morphs);
+        wearMorphs(shape, names, style.shape.morphs, info.composites);
     const marksNow = () =>
         faceMarks(facePosition.array, isSkin, info.landmarks, forwardZ);
     /** An opening's first corner, and its width seen from the front. */

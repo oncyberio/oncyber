@@ -586,6 +586,33 @@ describe("wearing an expression as the resting face", () => {
         expect(g.morphs[3][4]).toBeCloseTo(-0.006, 6);
     });
 
+    it("wears an expression the file keeps only as its parts", () => {
+        // No blink of both eyes here: only each eye's own.
+        const parts = ["Fcl_EYE_Close_L", "Fcl_EYE_Close_R"];
+        const make2 = () => ({
+            position: Float32Array.from([0.04, 0.01, 0, -0.04, 0.01, 0]),
+            morphs: [
+                Float32Array.from([0, 0, 0, 0, -0.01, 0]),
+                Float32Array.from([0, -0.01, 0, 0, 0, 0]),
+            ],
+        });
+        const g = make2();
+        wearMorphs(
+            g,
+            parts,
+            { EYE_Close: 0.5 },
+            { EYE_Close: ["EYE_Close_L", "EYE_Close_R"] }
+        );
+        expect(g.position[1]).toBeCloseTo(0.005, 6);
+        expect(g.position[4]).toBeCloseTo(0.005, 6);
+        // And each eye's own blink still shuts it where it did.
+        expect(g.position[4] + g.morphs[0][4]).toBeCloseTo(0, 6);
+        // One that is nowhere to be found is an error, not a shrug.
+        expect(() => wearMorphs(make2(), parts, { EYE_Wink: 1 })).toThrow(
+            /no expression called EYE_Wink/
+        );
+    });
+
     it("changes nothing when nothing is worn", () => {
         const g = make();
         wearMorphs(g, names, {});
