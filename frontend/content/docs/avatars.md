@@ -100,6 +100,16 @@ style and an outfit. The parts it is made from are shared.
     shadows, occlusion and every painted feature drawn in the shader. It
     is the reference a wearable avatar is matched against, not something
     to put in a space: every pixel pays for the whole sculpt.
+-   **A character from a VRoid base.** `vroid/restyle.ts` takes a loaded
+    VRoid base model (the bare body in `public/models/fem_vroid.vrm`) and
+    turns it into the character a recipe (`vroid/recipe.ts`) describes,
+    keeping its triangles, skin weights and face morphs: proportions
+    change through its own skeleton (each bone scales the part it carries
+    and its children move with it), the chest can be flattened, the face
+    lengthened below the eyes, an expression baked in as the resting face,
+    and the materials replaced by soft-shaded ones tinted to the recipe's
+    palette. About 19,000 triangles. It has no hair or clothes of its own
+    yet. `/dev/vroid-avatar` shows it locally (`plain=1` for the base).
 -   **A described humanoid.** A sculpted character is not hand-placed
     shapes but a description (`humanoid/spec.ts`): where its joints are,
     how thick its torso and limbs are, what underwear it wears, its
