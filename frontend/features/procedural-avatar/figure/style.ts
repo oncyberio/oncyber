@@ -323,6 +323,16 @@ export const STAGEHAND_STYLE: FigureStyle = {
                 radius: 0.04,
                 scale: [0.75, 1, 1],
             },
+            {
+                // A little more chin: broader at its tip, and a touch
+                // longer. Centred low, so that the mouth stays as it is.
+                name: "chin",
+                at: "chin",
+                offset: [0, -0.018, 0],
+                radius: 0.034,
+                scale: [1.32, 1, 1.06],
+                move: [0, -0.0022, 0],
+            },
         ],
     },
 };
