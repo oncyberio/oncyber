@@ -205,9 +205,16 @@ one. Hair and outfits are small prebuilt files (`figure/hairFiles.ts`,
 cut from another model; `npm run clothes` cuts every garment of an outfit to
 the figure's own body (a distance field of its skin, blurred the way cloth
 lies over it), binds it to the body's bones and merges the outfit into one
-mesh, listing the body triangles it covers so the wearer leaves them out. No
-images: colour and creases are in the mesh. The figure as drawn wears
-Sakurada's cut; its variations take the others.
+mesh, listing the body triangles it covers so the wearer leaves them out.
+An outfit can also take garments from a VRoid model (`donor` in
+`outfits.ts`), made the way VRoid makes them: a thin shell over the body
+with its folds, seams and buttons painted into a texture. They are moved
+onto our figure bone by bone, then settled at the distance they stood from
+their own body; a `tailor` step trims, lengthens, widens and repaints them
+(the Stagehand's long white sleeves and cropped navy trousers come from
+Sakurada's short-sleeved shirt and trousers). Garments built here, such as
+the tie and badge, are coloured in the mesh. The figure as drawn wears
+Sakurada's hair; its variations take the others.
 To see many at once when running locally, open the lobby with
 `?crowd=40`: a staged crowd, seen by you only, wearing a dozen variations.
 `?wear=figure` wears it for that visit without saving it.

@@ -28,6 +28,8 @@ export interface Figure {
     joint(name: string): V3;
     /** Bone index of a humanoid bone. */
     bone(name: string): number;
+    /** Where a bone of the body skeleton is, by its index. */
+    boneAt(index: number): V3;
 }
 
 export async function loadFigure(file: string): Promise<Figure> {
@@ -92,6 +94,11 @@ export async function loadFigure(file: string): Promise<Figure> {
             const node = vrm.humanoid.getRawBoneNode(name);
             if (!node) throw new Error(`No ${name} bone`);
             return node.getWorldPosition(new THREE.Vector3()).toArray() as V3;
+        },
+        boneAt(index) {
+            return body.skeleton.bones[index]
+                .getWorldPosition(new THREE.Vector3())
+                .toArray() as V3;
         },
         bone(name) {
             const node = vrm.humanoid.getRawBoneNode(name);

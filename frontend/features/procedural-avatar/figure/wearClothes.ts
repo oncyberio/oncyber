@@ -7,6 +7,8 @@ import { createClothMaterial } from "./shading";
 
 interface LoadedOutfit {
     geometry: THREE.BufferGeometry;
+    /** Its painted texture, if it has one. */
+    map?: THREE.Texture;
     /** Bone names its joints count in. */
     bones: string[];
     /** Body triangles it covers, as [first, count] runs. */
@@ -29,6 +31,9 @@ function outfitFile(id: string) {
                 const extras = (mesh.userData || {}) as Partial<LoadedOutfit>;
                 found = {
                     geometry: mesh.geometry,
+                    map:
+                        (mesh.material as THREE.MeshStandardMaterial).map ||
+                        undefined,
                     bones: extras.bones || [],
                     hides: extras.hides || [],
                 };
@@ -72,7 +77,7 @@ export async function wearClothes(
             new THREE.Uint16BufferAttribute(out, 4)
         );
     }
-    const material = createClothMaterial(outfit.stripes);
+    const material = createClothMaterial(outfit.stripes, file.map);
     const mesh = new THREE.SkinnedMesh(geometry, material);
     mesh.name = `Clothes_${id}`;
     mesh.frustumCulled = false;

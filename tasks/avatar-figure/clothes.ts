@@ -4,7 +4,10 @@
  * cut to the figure's own body and bound to its bones.
  *
  *   cd tasks/avatar-figure
- *   npm run clothes [-- outfit]
+ *   npm run clothes -- <models dir> [outfit]
+ *
+ * The models folder holds the VRoid models outfits take garments from
+ * (see clothes/donor.ts).
  */
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
@@ -42,7 +45,7 @@ await build({
 });
 const run = spawnSync(
     process.execPath,
-    ["--max-old-space-size=8192", bundle, process.argv[2] || ""],
+    ["--max-old-space-size=8192", bundle, ...process.argv.slice(2)],
     { stdio: "inherit", env: { ...process.env, CLOTHES_ROOT: ROOT } }
 );
 process.exit(run.status ?? 1);

@@ -1199,10 +1199,20 @@ export function blinkNode(seconds: Node, seed: Node): Node {
  * creases come from the vertices.
  */
 export function createClothMaterial(
-    stripes: ClothStripes = { colour: "#e9edf6", period: 0.028, width: 0.4 }
+    stripes: ClothStripes = { colour: "#e9edf6", period: 0.028, width: 0.4 },
+    /**
+     * The outfit's painted texture, if it has one: its colour multiplies
+     * the vertices', and its alpha cuts the cloth's ragged edges away.
+     */
+    map?: THREE.Texture
 ) {
     const material = new THREE.MeshBasicNodeMaterial();
     material.name = "figure-cloth";
+    if (map) {
+        material.alphaTest = 0.5;
+        // Painted garments are single sheets, seen from both sides.
+        material.side = THREE.DoubleSide;
+    }
     const stripeColour = uniform(linear(stripes.colour));
     const period = uniform(stripes.period);
     const width = uniform(stripes.width);
@@ -1211,6 +1221,8 @@ export function createClothMaterial(
         const s = surface();
         const kind = c.w;
         const albedo = c.xyz.toVar();
+        const painted = map ? texture(map, uv()) : vec4(1, 1, 1, 1);
+        albedo.mulAssign(painted.rgb);
         // Stripes: by where the point is on the resting figure.
         const striped = smoothstep(0.6, 0.55, kind);
         const p = positionGeometry;
@@ -1240,7 +1252,7 @@ export function createClothMaterial(
                 .add(SKY.mul(s.fresnel).mul(0.18))
                 .mul(polished)
         );
-        return lit;
+        return vec4(lit, painted.a);
     })();
     // Worked out from the resting figure and where the surface ends up.
     markCrowdMaterial(material);

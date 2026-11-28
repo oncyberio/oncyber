@@ -25,6 +25,17 @@ import {
     noise3,
 } from "../../../frontend/features/procedural-avatar/kernel/noise";
 import type { BodyField } from "./bodyField";
+import {
+    type Cut,
+    lengthen,
+    slim,
+    cutSleeves,
+    paint,
+    recolour,
+    sample,
+    rims,
+    trimCutaway,
+} from "./tailor";
 import type { CLOTH_KINDS } from "../../../frontend/features/procedural-avatar/figure/outfitFiles";
 import type { Figure, V3 } from "./figure";
 
@@ -53,11 +64,32 @@ export interface Garment {
      * two, so no cloth joins them where the feet nearly touch.
      */
     pair?: boolean;
+    /**
+     * Worn on the front of the shirt (a tie, a badge): moved forward, all
+     * of a piece, until no part of it is behind the donor's clothes.
+     * "wrap" (headphones round the neck): each part is pushed out from
+     * the neck on its own, so the band lies on the collar and the cups
+     * on the shirt; nearby vertices move together, so a cup stays whole.
+     */
+    over?: boolean | "wrap";
 }
 
 export interface Outfit {
     id: string;
     garments: Garment[];
+    /**
+     * Garments taken from a model on the same base (see donor.ts): the
+     * model's file name, in the models folder given to the command, and
+     * which of its materials to take.
+     */
+    donor?: {
+        model: string;
+        pick: RegExp;
+        /** Body below this height is inside the shoes: never drawn. */
+        feet?: number;
+        /** Alter what was taken: trim, lengthen, widen, repaint. */
+        tailor?(cut: Cut[]): Cut[];
+    };
 }
 
 const hex = (value: string): Rgb => {
@@ -563,6 +595,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         );
     const tie: Garment = {
         name: "Tie",
+        over: true,
         shape: field().add(blade).add(knot, 0.006),
         box: [
             [-0.05, tipY - 0.01, neck[2] - 0.2],
@@ -586,6 +619,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
     )[2];
     const badge: Garment = {
         name: "Badge",
+        over: true,
         shape: field()
             .add(
                 roundBox(
@@ -651,8 +685,8 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         const a = Math.PI * (i / 12);
         bandArc.push([
             -Math.cos(a) * 0.078,
-            cupY + 0.04 + Math.sin(a) * 0.012,
-            neck[2] + 0.01 + Math.sin(a) * 0.062,
+            cupY + 0.035 + Math.sin(a) * 0.04,
+            neck[2] + 0.01 + Math.sin(a) * 0.055,
         ]);
     }
     bandArc[0] = [cups[0][0] - 0.012, cups[0][1] + 0.026, cups[0][2] + 0.012];
@@ -695,6 +729,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
     );
     const headphones: Garment = {
         name: "Headphones",
+        over: "wrap",
         shape: phones,
         box: [
             [-0.14, waistTop - 0.07, neck[2] - 0.16],
@@ -717,12 +752,12 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
                     z - ankleL[2],
                     Math.abs(x) - Math.abs(ankleL[0])
                 );
-                // Ribbed, and slouched in a few rings above the shoe.
+                // Slouched in a few rings above the shoe (fine ribs
+                // alias into fuzz at this cell size, so none).
                 // Thin inside the shoe, so the shoe stays clear of it.
                 return (
                     0.0025 +
                     0.0025 * smooth(0.075, 0.11, y) +
-                    Math.sin(a * 34) * 0.0006 +
                     Math.sin(y / 0.009 + a) *
                         smooth(0.08, 0.14, y) *
                         smooth(sockTop, sockTop - 0.06, y) *
@@ -731,7 +766,7 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             })
         )
         .clip(halfSpace([0, sockTop, 0], [0, 1, 0]))
-        .clip(halfSpace([0, 0.03, 0], [0, -1, 0]));
+        .clip(halfSpace([0, 0.06, 0], [0, -1, 0]));
     const socks: Garment = {
         name: "Socks",
         shape: sockShape,
@@ -739,8 +774,8 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
             [-0.2, 0.02, -0.2],
             [0.2, sockTop + 0.01, 0.15],
         ],
-        cell: 0.0035,
-        triangles: 700,
+        cell: 0.0025,
+        triangles: 900,
         colour: () => hex("#efedea"),
         side: (p) => (p[0] < 0 ? -1 : 1),
         pair: true,
@@ -847,18 +882,285 @@ export function stagehandOutfit(figure: Figure, body: BodyField): Outfit {
         pair: true,
     };
 
+    // --- Tailoring the donor's clothes --------------------------------------
+    const kneeL = figure.joint("leftLowerLeg");
+    // Where the arm's axis is (y, z) at a distance along it, from the
+    // shoulder through the elbow to the wrist.
+    const armAxis = (x: number): [number, number] => {
+        const ax = Math.abs(x);
+        const [a, b] =
+            ax < Math.abs(elbowL[0]) ? [shoulderL, elbowL] : [elbowL, handL];
+        const t = (ax - Math.abs(a[0])) / (Math.abs(b[0]) - Math.abs(a[0]));
+        return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    };
+    const sleeveEase = (x: number) => {
+        const ax = Math.abs(x);
+        const cuffBand = smooth(cuff - 0.05, cuff - 0.045, ax);
+        return 0.011 - 0.003 * smooth(0.35, 0.5, ax) - 0.002 * cuffBand;
+    };
+    // The shirt as paint: white, its folds and creases, the placket and
+    // buttons down the front, cuffs at the wrists.
+    const shirtPaint = (
+        p: V3,
+        n: V3,
+        donorShade = 1
+    ): [number, number, number, number] => {
+        const [x, y, z] = p;
+        const ax = Math.abs(x);
+        const a = arm(ax);
+        let shade = donorShade * (0.97 + 0.05 * fbm(x * 7, y * 7, z * 7));
+        let line = 0;
+        // Sleeves: twisting creases, bunched at the elbow and the cuff.
+        if (a > 0) {
+            const angle = Math.atan2(z - armAxis(x)[1], y - armAxis(x)[0]);
+            const elbow = Math.exp(-(((ax - Math.abs(elbowL[0])) / 0.06) ** 2));
+            const wrist = smooth(cuff - 0.16, cuff - 0.06, ax);
+            const twist = Math.sin(
+                ax / 0.022 + angle * 1.3 + noise3(x * 12, y * 12, z * 12) * 2.5
+            );
+            const crease =
+                smooth(0.7, 0.97, twist) *
+                (0.25 + 0.75 * Math.max(elbow, wrist));
+            // Under the arm, the cloth hangs in soft folds.
+            const under = smooth(0.2, -0.6, n[1]) * 0.08;
+            shade *= 1 - 0.22 * crease * a - under * a;
+            // A highlight running beside each crease.
+            shade +=
+                0.05 *
+                smooth(0.2, 0.5, twist) *
+                smooth(0.7, 0.5, twist) *
+                a *
+                Math.max(elbow, wrist);
+            // The cuff: a seam line and a button.
+            const cuffAt = cuff - 0.05;
+            line = Math.max(
+                line,
+                Math.exp(-(((ax - cuffAt) / 0.0012) ** 2)) * a
+            );
+        }
+        // Body: pulls from under the arms, folds into the waistband.
+        const body = 1 - a;
+        if (body > 0) {
+            const pull =
+                smooth(0.04, 0.14, ax) *
+                smooth(
+                    0.6,
+                    0.95,
+                    Math.sin(
+                        (ax * 0.8 + y * 0.6) / 0.018 +
+                            noise3(x * 8, y * 8, z * 8) * 2
+                    )
+                ) *
+                smooth(waistTop + 0.02, waistTop + 0.12, y) *
+                smooth(shoulderL[1] - 0.04, shoulderL[1] - 0.14, y);
+            const tuck =
+                smooth(waistTop + 0.12, waistTop + 0.02, y) *
+                smooth(
+                    0.55,
+                    0.95,
+                    Math.sin(x * 60 + fbm(x * 5, y * 5, z * 5) * 3)
+                );
+            shade *= 1 - body * (0.16 * pull + 0.14 * tuck);
+            // The placket down the front: two seams, and the buttons.
+            const front = smooth(-0.3, -0.7, n[2]);
+            const placket = Math.exp(-(((ax - 0.013) / 0.0011) ** 2));
+            line = Math.max(line, placket * front * body);
+            for (let i = 0; i < 6; i++) {
+                const by = neck[1] - 0.06 - i * 0.075;
+                const d = Math.hypot(x, y - by);
+                if (front > 0.5 && d < 0.0055) {
+                    const ring =
+                        smooth(0.0035, 0.0045, d) * smooth(0.0058, 0.005, d);
+                    const holes = Math.min(
+                        Math.hypot(Math.abs(x) - 0.0013, y - by),
+                        1
+                    );
+                    shade *=
+                        0.9 - 0.12 * ring - 0.2 * smooth(0.0011, 0.0006, holes);
+                }
+            }
+        }
+        // Seams and stitching: a cool grey line.
+        const white = hex("#f5f3f6");
+        const crease = hex("#bcc0d6");
+        const lit = mix(
+            crease,
+            white,
+            Math.min(1, Math.max(0, (shade - 0.6) / 0.4))
+        );
+        const col = mix(lit, hex("#a9adc4"), line * 0.8);
+        return [...col, 1] as [number, number, number, number];
+    };
+    const tailor = (cut: Cut[]): Cut[] => {
+        const out: Cut[] = [];
+        for (const c of cut) {
+            if (/Tops/.test(c.garment.name)) {
+                const tops = cutSleeves(
+                    trimCutaway(c.garment, c.texture),
+                    0.03
+                );
+                slim(
+                    tops,
+                    armAxis,
+                    Math.abs(shoulderL[0]) + 0.02,
+                    body,
+                    sleeveEase
+                );
+                const donor = c.texture;
+                // The donor's collar keeps its painted shading, made white.
+                const collarShade = (uv: [number, number]) => {
+                    if (!(uv[1] < 0.24 && uv[0] > 0.32 && uv[0] < 0.68))
+                        return 1;
+                    const [r, g, b] = sample(donor, uv[0], uv[1]);
+                    const l = 0.3 * r + 0.55 * g + 0.15 * b;
+                    return 0.7 + 0.35 * Math.min(1, l / 0.75);
+                };
+                out.push({
+                    ...c,
+                    garment: tops,
+                    texture: paint(tops, 1024, (p, n, uv) =>
+                        shirtPaint(p, n, collarShade(uv))
+                    ),
+                    size: 1024,
+                });
+                // Long sleeves: each short sleeve carried on to the wrist.
+                // Where each sleeve was cut off: its open rim, every
+                // vertex of it, so the long sleeve meets it edge to edge.
+                const loops = rims(tops);
+                const meanX = (l: number[]) =>
+                    l.reduce((s, v) => s + tops.positions[v * 3], 0) / l.length;
+                const ends = [-1, 1].map((side) =>
+                    loops.reduce((a, b) =>
+                        meanX(b) * side > meanX(a) * side ? b : a
+                    )
+                );
+                for (const loop of ends) {
+                    // In order round the arm (a rim can double back on
+                    // itself where VRoid's cloth folds).
+                    const P = tops.positions;
+                    const angle = (v: number) => {
+                        const [ay, az] = armAxis(P[v * 3]);
+                        return Math.atan2(P[v * 3 + 2] - az, P[v * 3 + 1] - ay);
+                    };
+                    const rim = [...loop].sort((a, b) => angle(a) - angle(b));
+                    const side = Math.sign(tops.positions[rim[0] * 3]);
+                    const sleeve = lengthen(
+                        tops,
+                        rim,
+                        armAxis,
+                        side * cuff,
+                        body,
+                        sleeveEase,
+                        14
+                    );
+                    sleeve.name = `Sleeve ${side < 0 ? "left" : "right"}`;
+                    console.log(`sleeve rim: ${rim.length} points`);
+                    out.push({
+                        garment: sleeve,
+                        texture: paint(sleeve, 512, (p, n) => shirtPaint(p, n)),
+                        size: 512,
+                        rebind: true,
+                        side: () => (side < 0 ? -1 : 1),
+                    });
+                }
+            } else if (/Bottoms/.test(c.garment.name)) {
+                const legs = trimCutaway(c.garment, c.texture);
+                const q = legs.positions;
+                let low = Infinity;
+                for (let v = 0; v < q.length; v += 3)
+                    low = Math.min(low, q[v + 1]);
+                const top = crotch + 0.04;
+                // Where each leg's middle is, at a height.
+                const legCentre = (
+                    y: number,
+                    side: number
+                ): [number, number] => {
+                    const k = Math.min(
+                        1,
+                        Math.max(0, (y - hem) / (hipL[1] - hem))
+                    );
+                    return [
+                        side *
+                            (Math.abs(hipL[0]) * k +
+                                Math.abs(kneeL[0]) * (1 - k) +
+                                0.008 +
+                                0.016 * (1 - k)),
+                        hips[2] + 0.01,
+                    ];
+                };
+                // Shorter: the leg ends above the ankle.
+                for (let v = 0; v < q.length; v += 3)
+                    if (q[v + 1] < top)
+                        q[v + 1] =
+                            top -
+                            ((top - q[v + 1]) * (top - hem)) / (top - low);
+                // How wide each leg is now, in 1 cm slabs: the mean
+                // distance of its points from the middle.
+                const slabs = new Map<string, [number, number]>();
+                const slab = (v: number) =>
+                    `${Math.sign(q[v]) || 1}:${Math.floor(q[v + 1] / 0.01)}`;
+                const radius = (v: number) => {
+                    const [cx, cz] = legCentre(q[v + 1], Math.sign(q[v]) || 1);
+                    return Math.hypot(q[v] - cx, q[v + 2] - cz);
+                };
+                for (let v = 0; v < q.length; v += 3) {
+                    if (q[v + 1] >= top) continue;
+                    const e = slabs.get(slab(v)) || [0, 0];
+                    slabs.set(slab(v), [e[0] + radius(v), e[1] + 1]);
+                }
+                // Wider: every layer of the leg (VRoid turns hems in)
+                // scaled out together, to a straight wide leg.
+                for (let v = 0; v < q.length; v += 3) {
+                    const y = q[v + 1];
+                    if (y >= top) continue;
+                    // Smoothed over the slabs either side.
+                    let sum = 0;
+                    let n = 0;
+                    const side = Math.sign(q[v]) || 1;
+                    const at = Math.floor(y / 0.01);
+                    for (let d = -3; d <= 3; d++) {
+                        const e = slabs.get(`${side}:${at + d}`);
+                        if (e) (sum += e[0]), (n += e[1]);
+                    }
+                    const mean = sum / n;
+                    const t = smooth(kneeL[1], hem, y);
+                    const wide = 0.092 + 0.014 * t;
+                    const grow = smooth(top, crotch - 0.1, y);
+                    const f =
+                        1 + Math.max(0, wide / Math.max(mean, 0.03) - 1) * grow;
+                    const [cx, cz] = legCentre(y, Math.sign(q[v]) || 1);
+                    q[v] = cx + (q[v] - cx) * f;
+                    q[v + 2] = cz + (q[v + 2] - cz) * f;
+                }
+                out.push({
+                    ...c,
+                    garment: legs,
+                    // Navy, the belt as it was.
+                    texture: recolour(
+                        c.texture,
+                        hex("#262c45"),
+                        (u, v) => v < 0.045
+                    ),
+                    // The model's own weights: they part the legs well.
+                    rebind: false,
+                    side: (p) =>
+                        p[1] < crotch + 0.02 ? (p[0] < 0 ? -1 : 1) : 0,
+                });
+            } else out.push(c);
+        }
+        return out;
+    };
+
     return {
         id: "stagehand",
-        garments: [
-            shirt,
-            collar,
-            tie,
-            badge,
-            headphones,
-            trousers,
-            belt,
-            socks,
-            shoes,
-        ],
+        // Shirt, trousers and shoes from a VRoid model; the rest our own.
+        donor: {
+            model: "Sakurada Fumiriya.vrm",
+            pick: /Tops|Bottoms|Shoes/,
+            feet: 0.075,
+            tailor,
+        },
+        garments: [tie, badge, headphones, socks],
     };
+    void [shirt, collar, trousers, belt, shoes];
 }

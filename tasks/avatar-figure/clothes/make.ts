@@ -20,6 +20,9 @@ import { bodyField } from "./bodyField";
 import { loadFigure, type Figure } from "./figure";
 import { stagehandOutfit, type Garment } from "./outfits";
 import { writeGlb, type Piece } from "./glb";
+import { donorClothes, type DonorGarment } from "./donor";
+import type { Cut, Texture } from "./tailor";
+import { createRequire } from "node:module";
 import { CLOTH_KINDS } from "../../../frontend/features/procedural-avatar/figure/outfitFiles";
 
 declare const process: { argv: string[]; env: Record<string, string> };
@@ -27,6 +30,144 @@ declare const process: { argv: string[]; env: Record<string, string> };
 const ROOT = process.env.CLOTHES_ROOT;
 const FIGURE = path.join(ROOT, "frontend/public/models/figure_male.vrm");
 const OUT = path.join(ROOT, "frontend/public/models/clothes");
+const need = createRequire(import.meta.url);
+// Next.js's image library, from the repository's install.
+const sharp = need(path.join(ROOT, "node_modules/sharp"));
+
+/** The texture every outfit's garments share, and where each sits on it. */
+const ATLAS = 2048;
+const BLANK: [number, number] = [(ATLAS - 32) / ATLAS, (ATLAS - 32) / ATLAS];
+const TILES = [
+    { x: 0, y: 0, size: 1024 },
+    { x: 1024, y: 0, size: 1024 },
+    ...[0, 512, 1024, 1536].map((x) => ({ x, y: 1024, size: 512 })),
+    // The last spot holds the blank in its far corner.
+    ...[0, 512, 1024].map((x) => ({ x, y: 1536, size: 512 })),
+];
+
+async function decode(png: Uint8Array): Promise<Texture> {
+    const { data, info } = await sharp(Buffer.from(png))
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+    return {
+        data: new Uint8Array(data),
+        width: info.width,
+        height: info.height,
+    };
+}
+
+async function atlas(cut: Cut[]) {
+    if (cut.length > TILES.length) throw new Error("Too many textures");
+    // The largest first, onto the largest tiles.
+    const order = cut
+        .map((c, i) => i)
+        .sort((a, b) => cut[b].size - cut[a].size);
+    const tileOf = new Map(order.map((c, i) => [c, i]));
+    const garments = cut.map((c) => c.garment);
+    const layers = await Promise.all(
+        cut.map(async (c, i) => ({
+            input: await sharp(Buffer.from(c.texture.data), {
+                raw: {
+                    width: c.texture.width,
+                    height: c.texture.height,
+                    channels: 4,
+                },
+            })
+                .resize(TILES[tileOf.get(i)].size, TILES[tileOf.get(i)].size)
+                .png()
+                .toBuffer(),
+            left: TILES[tileOf.get(i)].x,
+            top: TILES[tileOf.get(i)].y,
+        }))
+    );
+    layers.push({
+        input: await sharp({
+            create: {
+                width: 64,
+                height: 64,
+                channels: 4,
+                background: "#ffffff",
+            },
+        })
+            .png()
+            .toBuffer(),
+        left: ATLAS - 64,
+        top: ATLAS - 64,
+    });
+    const webp: Buffer = await sharp({
+        create: {
+            width: ATLAS,
+            height: ATLAS,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+        },
+    })
+        .composite(layers)
+        .webp({ quality: 88, alphaQuality: 100 })
+        .toBuffer();
+    // Each garment's uvs, onto its tile.
+    garments.forEach((g, i) => {
+        const t = TILES[tileOf.get(i)];
+        for (let v = 0; v < g.uvs.length; v += 2) {
+            g.uvs[v] = (t.x + g.uvs[v] * t.size) / ATLAS;
+            g.uvs[v + 1] = (t.y + g.uvs[v + 1] * t.size) / ATLAS;
+        }
+    });
+    return new Uint8Array(webp);
+}
+
+/** Body triangles wholly below a height: the feet, inside shoes. */
+function below(figure: Figure, height: number) {
+    const hidden: number[] = [];
+    const y = (i: number) => figure.positions[figure.indices[i] * 3 + 1];
+    for (let t = 0; t < figure.bodyTriangles; t++)
+        if (y(t * 3) < height && y(t * 3 + 1) < height && y(t * 3 + 2) < height)
+            hidden.push(t);
+    return hidden;
+}
+
+/** Body triangles under the donor garments: each corner sees cloth along its normal. */
+function coveredBy(figure: Figure, garments: DonorGarment[]) {
+    if (!garments.length) return [];
+    const total = garments.reduce((n, g) => n + g.positions.length, 0);
+    const positions = new Float32Array(total);
+    const indices: number[] = [];
+    let base = 0;
+    for (const g of garments) {
+        positions.set(g.positions, base * 3);
+        for (const i of g.indices) indices.push(i + base);
+        base += g.positions.length / 3;
+    }
+    const tree = new TriangleTree(positions, Uint32Array.from(indices));
+    const p = figure.positions;
+    const n = figure.normals;
+    const memo = new Map<number, boolean>();
+    const under = (v: number) => {
+        if (!memo.has(v)) {
+            const hit = tree.cast(
+                p[v * 3] + n[v * 3] * 0.0005,
+                p[v * 3 + 1] + n[v * 3 + 1] * 0.0005,
+                p[v * 3 + 2] + n[v * 3 + 2] * 0.0005,
+                n[v * 3],
+                n[v * 3 + 1],
+                n[v * 3 + 2],
+                0.08
+            );
+            memo.set(v, hit < 0.08);
+        }
+        return memo.get(v);
+    };
+    const hidden: number[] = [];
+    for (let t = 0; t < figure.bodyTriangles; t++)
+        if (
+            under(figure.indices[t * 3]) &&
+            under(figure.indices[t * 3 + 1]) &&
+            under(figure.indices[t * 3 + 2])
+        )
+            hidden.push(t);
+    return hidden;
+}
 
 const clock = () => {
     const start = Date.now();
@@ -177,6 +318,66 @@ function bind(positions: Float32Array, figure: Figure, side?: Garment["side"]) {
 }
 
 /** The body's triangles that lie wholly under the cloth. */
+/**
+ * Pushes each vertex out from the body's centre line (x = 0, at the
+ * vertex's own height) until it clears the cloth in `tree`, then lets
+ * every vertex take the largest push within 3 cm, so rigid parts move
+ * as one and long thin parts (a band, a cable) bend over what's under.
+ */
+function wrap(name: string, p: Float32Array, tree: TriangleTree) {
+    const count = p.length / 3;
+    const dirs = new Float32Array(p.length);
+    const need = new Float32Array(count);
+    const centreZ = 0.005;
+    for (let v = 0; v < count; v++) {
+        const x = p[v * 3];
+        const z = p[v * 3 + 2] - centreZ;
+        const l = Math.hypot(x, z) || 1;
+        const d = [x / l, 0, z / l];
+        dirs.set(d, v * 3);
+        // Cloth between the vertex and the outside: the far side of it.
+        const reach = 0.04;
+        const from = [
+            p[v * 3] + d[0] * reach,
+            p[v * 3 + 1],
+            p[v * 3 + 2] + d[2] * reach,
+        ];
+        const hit = tree.cast(
+            from[0],
+            from[1],
+            from[2],
+            -d[0],
+            0,
+            -d[2],
+            reach
+        );
+        if (hit < reach) need[v] = reach - hit + 0.0025;
+    }
+    const pushed = new Float32Array(count);
+    const r2 = 0.03 * 0.03;
+    for (let v = 0; v < count; v++) {
+        let m = need[v];
+        for (let u = 0; u < count; u++) {
+            if (need[u] <= m) continue;
+            const dx = p[u * 3] - p[v * 3];
+            const dy = p[u * 3 + 1] - p[v * 3 + 1];
+            const dz = p[u * 3 + 2] - p[v * 3 + 2];
+            if (dx * dx + dy * dy + dz * dz < r2) m = need[u];
+        }
+        pushed[v] = m;
+    }
+    let most = 0;
+    for (let v = 0; v < count; v++) {
+        for (const a of [0, 2]) p[v * 3 + a] += dirs[v * 3 + a] * pushed[v];
+        most = Math.max(most, pushed[v]);
+    }
+    console.log(
+        `${name}: wrapped over the clothes, up to ${(most * 1000).toFixed(
+            1
+        )} mm`
+    );
+}
+
 function covered(figure: Figure, shapes: Garment["shape"][], depth = 0.003) {
     const skin = figure.positions;
     const inside = (v: number) =>
@@ -259,7 +460,8 @@ const toLinear = (c: number) =>
 
 await MeshoptSimplifier.ready;
 await MeshoptEncoder.ready;
-const only = process.argv[2];
+const models = process.argv[2];
+const only = process.argv[3];
 const time = clock();
 const figure = await loadFigure(FIGURE);
 const body = bodyField(figure);
@@ -268,6 +470,50 @@ mkdirSync(OUT, { recursive: true });
 for (const outfit of [stagehandOutfit(figure, body)]) {
     if (only && outfit.id !== only) continue;
     const pieces: Piece[] = [];
+    const donated = outfit.donor
+        ? donorClothes(
+              path.join(models, outfit.donor.model),
+              figure,
+              body,
+              outfit.donor.pick
+          )
+        : [];
+    let cut: Cut[] = await Promise.all(
+        donated.map(async (garment) => ({
+            garment,
+            texture: await decode(garment.image),
+            size: /Shoes/.test(garment.name) ? 512 : 1024,
+            rebind: false,
+        }))
+    );
+    if (outfit.donor?.tailor) cut = outfit.donor.tailor(cut);
+    for (const c of cut)
+        if (c.rebind) {
+            const skin = bind(c.garment.positions, figure, c.side);
+            c.garment.joints = skin.joints;
+            c.garment.weights = skin.weights;
+        }
+    const webp = cut.length ? await atlas(cut) : undefined;
+    for (const { garment: g } of cut) {
+        const count = g.positions.length / 3;
+        pieces.push({
+            name: g.name,
+            positions: g.positions,
+            normals: g.normals,
+            uvs: g.uvs,
+            indices: g.indices,
+            joints: g.joints,
+            weights: g.weights,
+            colours: new Float32Array(count * 3).fill(1),
+            kinds: new Float32Array(count).fill(CLOTH_KINDS.plain),
+        });
+        console.log(
+            `${outfit.id} ${g.name}: ${g.indices.length / 3} triangles, from ${
+                outfit.donor.model
+            }`
+        );
+    }
+    const own = pieces.length;
     for (const garment of outfit.garments) {
         const took = clock();
         const mesh = surface(garment);
@@ -291,13 +537,50 @@ for (const outfit of [stagehandOutfit(figure, body)]) {
             } triangles, ${count} vertices, ${took()}`
         );
     }
+    // Things worn over the donor's clothes, brought out in front of them.
+    if (cut.length) {
+        const all = cut.map((c) => c.garment);
+        const total = all.reduce((n, g) => n + g.positions.length, 0);
+        const positions = new Float32Array(total);
+        const indices: number[] = [];
+        let base = 0;
+        for (const g of all) {
+            positions.set(g.positions, base * 3);
+            for (const i of g.indices) indices.push(i + base);
+            base += g.positions.length / 3;
+        }
+        const tree = new TriangleTree(positions, Uint32Array.from(indices));
+        outfit.garments.forEach((garment, g) => {
+            if (!garment.over) return;
+            const piece = pieces[own + g];
+            const p = piece.positions;
+            if (garment.over === "wrap") {
+                wrap(garment.name, p, tree);
+                return;
+            }
+            let shift = 0;
+            for (let v = 0; v < p.length; v += 3) {
+                // Only what hangs in front (a headphone band goes behind).
+                if (p[v + 2] > -0.03) continue;
+                const hit = tree.cast(p[v], p[v + 1], p[v + 2], 0, 0, -1, 0.03);
+                if (hit < 0.03) shift = Math.max(shift, hit + 0.0025);
+            }
+            for (let v = 0; v < p.length; v += 3) p[v + 2] -= shift;
+            if (shift)
+                console.log(
+                    `${outfit.id} ${garment.name}: brought ${(
+                        shift * 1000
+                    ).toFixed(1)} mm forward`
+                );
+        });
+    }
     // Cloth under other cloth never shows: the shirt tucked into the
     // trousers, the socks inside the shoes.
     outfit.garments.forEach((garment, g) => {
         const others = outfit.garments
             .filter((_, o) => o !== g)
             .map((o) => o.shape);
-        const piece = pieces[g];
+        const piece = pieces[own + g];
         const before = piece.indices.length / 3;
         Object.assign(piece, uncovered(piece, others));
         const after = piece.indices.length / 3;
@@ -336,14 +619,26 @@ for (const outfit of [stagehandOutfit(figure, body)]) {
             { samples: 48, reach: 0.06 }
         );
         for (let v = 0; v < count; v++) {
-            const s = 0.4 + 0.6 * Math.pow(open[v], 1.2);
+            // Painted garments carry their own shading: only a touch more.
+            const s = piece.uvs
+                ? 0.75 + 0.25 * open[v]
+                : 0.4 + 0.6 * Math.pow(open[v], 1.2);
             for (let k = 0; k < 3; k++) piece.colours[v * 3 + k] *= s;
         }
     }
-    const hides = covered(
-        figure,
-        outfit.garments.map((g) => g.shape)
-    );
+    const hides = [
+        ...new Set([
+            ...covered(
+                figure,
+                outfit.garments.map((g) => g.shape)
+            ),
+            ...coveredBy(
+                figure,
+                cut.map((c) => c.garment)
+            ),
+            ...below(figure, outfit.donor?.feet ?? 0),
+        ]),
+    ].sort((a, b) => a - b);
     const figureHash = createHash("sha256")
         .update(readFileSync(FIGURE))
         .digest("hex");
@@ -357,7 +652,8 @@ for (const outfit of [stagehandOutfit(figure, body)]) {
                 hides,
                 figure: figureHash.slice(0, 16),
             },
-            MeshoptEncoder
+            MeshoptEncoder,
+            webp ? { webp, cutoff: 0.5, blank: BLANK } : undefined
         )
     );
     console.log(

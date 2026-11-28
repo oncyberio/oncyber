@@ -17,6 +17,8 @@ export interface Piece {
     colours: Float32Array;
     /** What kind of cloth, 0..1: the colour's alpha. */
     kinds: Float32Array;
+    /** Where on the outfit's texture, if it has one. */
+    uvs?: Float32Array;
     indices: Uint32Array;
     joints: Uint16Array;
     weights: Float32Array;
@@ -54,7 +56,12 @@ export interface Encoder {
 export function writeGlb(
     pieces: Piece[],
     extras: { name: string; bones: string[]; hides: number[]; figure: string },
-    encoder?: Encoder
+    encoder?: Encoder,
+    /**
+     * One texture for the whole outfit (WebP), its alpha cut at `cutoff`;
+     * pieces without uvs read `blank`, a plain white spot on it.
+     */
+    texture?: { webp: Uint8Array; cutoff: number; blank: [number, number] }
 ) {
     const count = pieces.reduce((n, p) => n + p.positions.length / 3, 0);
     const positions = new Float32Array(count * 3);
@@ -62,12 +69,16 @@ export function writeGlb(
     const colours = new Uint16Array(count * 4);
     const joints = new Uint8Array(count * 4);
     const weights = new Uint8Array(count * 4);
+    const uvs = new Float32Array(count * 2);
     const indices: number[] = [];
     let base = 0;
     for (const p of pieces) {
         const n = p.positions.length / 3;
         positions.set(p.positions, base * 3);
         normals.set(p.normals, base * 3);
+        if (p.uvs) uvs.set(p.uvs, base * 2);
+        else if (texture)
+            for (let v = 0; v < n; v++) uvs.set(texture.blank, (base + v) * 2);
         for (let v = 0; v < n; v++) {
             const o = base + v;
             for (let k = 0; k < 3; k++)
@@ -91,7 +102,14 @@ export function writeGlb(
         base += n;
     }
     const wide = count > 65535;
-    let vertexArrays = [positions, normals, colours, joints, weights];
+    let vertexArrays: (Float32Array | Uint16Array | Uint8Array)[] = [
+        positions,
+        normals,
+        colours,
+        joints,
+        weights,
+    ];
+    if (texture) vertexArrays.push(uvs);
     // Rewritten in place by the reorder.
     const order = Uint32Array.from(indices);
     if (encoder) {
@@ -157,6 +175,18 @@ export function writeGlb(
         stored.push(data);
         length += Math.ceil(data.length / 4) * 4;
     });
+    // The texture, stored as it is, after the packed buffers.
+    let imageView = -1;
+    if (texture) {
+        imageView = views.length;
+        views.push({
+            buffer: 0,
+            byteOffset: length,
+            byteLength: texture.webp.length,
+        });
+        stored.push(texture.webp);
+        length += Math.ceil(texture.webp.length / 4) * 4;
+    }
     const bin = new Uint8Array(length);
     let at = 0;
     for (const data of stored) {
@@ -192,8 +222,10 @@ export function writeGlb(
                             COLOR_0: 2,
                             JOINTS_0: 3,
                             WEIGHTS_0: 4,
+                            ...(texture ? { TEXCOORD_0: 6 } : {}),
                         },
                         indices: 5,
+                        ...(texture ? { material: 0 } : {}),
                     },
                 ],
             },
@@ -233,13 +265,50 @@ export function writeGlb(
         bufferViews: views,
         buffers: [{ byteLength: length }],
     };
+    if (texture) {
+        json.accessors.push({
+            bufferView: 5,
+            componentType: 5126,
+            count,
+            type: "VEC2",
+        });
+        // The index buffer's view comes after the uvs' in `views`; point
+        // the indices at it.
+        json.accessors[5].bufferView = 6;
+        json.images = [{ bufferView: imageView, mimeType: "image/webp" }];
+        json.samplers = [{ magFilter: 9729, minFilter: 9987 }];
+        json.textures = [
+            {
+                sampler: 0,
+                extensions: { EXT_texture_webp: { source: 0 } },
+            },
+        ];
+        json.materials = [
+            {
+                name: extras.name,
+                pbrMetallicRoughness: {
+                    baseColorTexture: { index: 0 },
+                    metallicFactor: 0,
+                },
+                alphaMode: texture.cutoff ? "MASK" : "OPAQUE",
+                ...(texture.cutoff ? { alphaCutoff: texture.cutoff } : {}),
+                doubleSided: true,
+            },
+        ];
+    }
+    const used = [
+        ...(encoder ? ["EXT_meshopt_compression"] : []),
+        ...(texture ? ["EXT_texture_webp"] : []),
+    ];
+    if (used.length) {
+        json.extensionsUsed = used;
+        json.extensionsRequired = used;
+    }
     if (encoder) {
         json.buffers.push({
             byteLength: raw,
             extensions: { EXT_meshopt_compression: { fallback: true } },
         });
-        json.extensionsUsed = ["EXT_meshopt_compression"];
-        json.extensionsRequired = ["EXT_meshopt_compression"];
     }
     let text = Buffer.from(JSON.stringify(json));
     if (text.length % 4)

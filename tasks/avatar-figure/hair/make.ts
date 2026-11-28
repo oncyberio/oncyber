@@ -21,6 +21,7 @@ import {
     weld,
 } from "../../../frontend/features/procedural-avatar/figure/bake";
 import { HAIR_FILES } from "../../../frontend/features/procedural-avatar/figure/hairFiles";
+import { readGlb, worldOf } from "../vrmFile";
 
 declare const process: { argv: string[]; env: Record<string, string> };
 
@@ -81,67 +82,6 @@ async function loadFigure() {
 }
 
 // --- Another model's hair --------------------------------------------------
-
-const COMPONENTS: Record<
-    number,
-    [number, (v: DataView, at: number) => number]
-> = {
-    5121: [1, (v, at) => v.getUint8(at)],
-    5123: [2, (v, at) => v.getUint16(at, true)],
-    5125: [4, (v, at) => v.getUint32(at, true)],
-    5126: [4, (v, at) => v.getFloat32(at, true)],
-};
-const WIDTHS: Record<string, number> = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
-
-function readGlb(file: Buffer) {
-    const jsonLength = file.readUInt32LE(12);
-    const json: Json = JSON.parse(
-        file.subarray(20, 20 + jsonLength).toString("utf8")
-    );
-    const start = 20 + jsonLength + 8;
-    const bin = file.subarray(
-        start,
-        start + file.readUInt32LE(20 + jsonLength)
-    );
-    const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
-    const accessor = (index: number) => {
-        const a = json.accessors[index];
-        const width = WIDTHS[a.type];
-        const [bytes, read] = COMPONENTS[a.componentType];
-        const bv = json.bufferViews[a.bufferView];
-        const stride = bv.byteStride || bytes * width;
-        const base = (bv.byteOffset || 0) + (a.byteOffset || 0);
-        const out = new Float64Array(a.count * width);
-        for (let r = 0; r < a.count; r++)
-            for (let c = 0; c < width; c++)
-                out[r * width + c] = read(view, base + r * stride + c * bytes);
-        return out;
-    };
-    return { json, accessor };
-}
-
-/** Where each node is, as the file stands (its rest pose). */
-function worldOf(json: Json) {
-    const world: THREE.Matrix4[] = [];
-    const parent = new Map<number, number>();
-    json.nodes.forEach((node: Json, i: number) =>
-        (node.children || []).forEach((c: number) => parent.set(c, i))
-    );
-    const of = (i: number): THREE.Matrix4 => {
-        if (world[i]) return world[i];
-        const node = json.nodes[i];
-        const local = new THREE.Matrix4().compose(
-            new THREE.Vector3(...(node.translation || [0, 0, 0])),
-            new THREE.Quaternion(...(node.rotation || [0, 0, 0, 1])),
-            new THREE.Vector3(...(node.scale || [1, 1, 1]))
-        );
-        world[i] = parent.has(i)
-            ? of(parent.get(i)).clone().multiply(local)
-            : local;
-        return world[i];
-    };
-    return of;
-}
 
 /**
  * Everything of a model that is hair, made the size of the figure's head

@@ -44,6 +44,16 @@ model's terms:
 | `hair/bob.glb` | `AvatarSample_A.vrm`, sha256 `b86b0b8a…58ac346e` | VRoid | VRoid sample model; licence field "Other", no URL in the file |
 | `hair/short.glb` | `AvatarSample_C.vrm`, sha256 `395d5b04…1688045b8a` | VRoid | VRoid sample model; licence field "Other", no URL in the file |
 
+The shirt, trousers and shoes in `clothes/stagehand.glb` are taken from
+the same Sakurada model by `tasks/avatar-figure` (`npm run clothes`):
+fitted to the figure, the shirt given long sleeves and repainted white,
+the trousers widened, cropped and recoloured. The tie, badge,
+headphones and socks in that file are Oncyber's own.
+
+| File | Taken from | Author (from metadata) | Declared license |
+| --- | --- | --- | --- |
+| `clothes/stagehand.glb` (shirt, trousers, shoes and their texture) | `Sakurada Fumiriya.vrm` (VRoid Hub), sha256 `a36e91b8…44b283f3` | VRoidプロジェクト | Redistribution and modification allowed; commercial use allowed; credit not required |
+
 ## Used by Oncyber with permission
 
 All rights are reserved by their respective holders. Oncyber's own use is
