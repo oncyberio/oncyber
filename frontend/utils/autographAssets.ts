@@ -18,11 +18,26 @@ type Chain = "matic" | "klaytn";
 let idMap: Record<string, string> = {};
 
 export async function getAutographWalletId(walletId: string) {
+    try {
+        return await lookupAutographWalletId(walletId);
+    } catch (err) {
+        console.error("[isAutographUser]", err);
+        return null;
+    }
+}
+
+// Null when the wallet has nothing there; throws when the lookup itself fails
+// (network down), so a listing can report an error instead of an empty list.
+async function lookupAutographWalletId(walletId: string) {
     let headers = {
         method: "HEAD",
     };
 
-    try {
+    // The lookup only knows Ethereum wallets. Accounts signed in another way
+    // (email, guests) have ids that aren't addresses: nothing to look up.
+    if (!/^0x[0-9a-fA-F]{40}$/.test(walletId ?? "")) return null;
+
+    {
         const key = walletId.toLowerCase();
 
         let autographId = idMap[key];
@@ -34,6 +49,7 @@ export async function getAutographWalletId(walletId: string) {
             headers
         );
 
+        throwIfUnavailable(response);
         if (response.ok) {
             autographId = walletId;
         } else {
@@ -44,6 +60,7 @@ export async function getAutographWalletId(walletId: string) {
                 headers
             );
 
+            throwIfUnavailable(response);
             if (response.ok) {
                 autographId = checksumAddr;
             }
@@ -56,9 +73,14 @@ export async function getAutographWalletId(walletId: string) {
         //
 
         return autographId || null;
-    } catch (err) {
-        console.error("[isAutographUser]", err);
-        return null;
+    }
+}
+
+// A 4xx answer has always meant "no wallet there"; a 5xx means the lookup
+// itself is down, which a listing should report as an error.
+function throwIfUnavailable(response: { status?: number }) {
+    if ((response.status ?? 0) >= 500) {
+        throw new Error(`Wallet lookup unavailable: ${response.status}`);
     }
 }
 
@@ -86,8 +108,10 @@ async function queryAutographApi(url: string) {
 }
 
 export async function fetchOwnedAutographAssets(userId: string, page = 0) {
-    const autographId = await getAutographWalletId(userId);
     try {
+        const autographId = await lookupAutographWalletId(userId);
+        // No wallet the lookup knows: nothing to list, and no request to make.
+        if (!autographId) return { assets: [], hasMore: false };
         let offset = page * PAGE_SIZE;
         let { data, metadata } = await queryAutographApi(
             `${API_PATH}/users/profile/nfts?skip=${offset}&limit=${PAGE_SIZE}&address=${autographId}`

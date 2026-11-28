@@ -496,6 +496,9 @@ class PlayerCamera extends AbstractCamera {
 
         const maxZoomOut = MAX_ZOOM_OUT
 
+        // No player to keep in view (the space is being torn down).
+        if (Players.main == null) return maxZoomOut
+
         this.sphericalToVec3(maxZoomOut, theta, phi, cartv3)
 
         const playerCenter = Players.main.getWorldCenterPoint();
@@ -599,7 +602,11 @@ class PlayerCamera extends AbstractCamera {
 
         if (deltaTime > 0.01) deltaTime = 0.01;
 
-        const angle = Camera.currentControls.world.playerState.joystickStates["ANGLE"];
+        // The controls are rebuilt now and then; skip the frame while they are.
+        const playerState = Camera.currentControls?.world?.playerState;
+        if (!playerState) return;
+
+        const angle = playerState.joystickStates["ANGLE"];
 
         let adjustment;
 
@@ -638,6 +645,8 @@ class PlayerCamera extends AbstractCamera {
         playerForwardVector.set(0, 0, -1);
 
         cameraForwardVector.set(0, 0, -1);
+
+        if (Players.main == null) return;
 
         playerRotation.set(0, Players.main.rotation.y, 0);
 
@@ -789,12 +798,17 @@ class PlayerCamera extends AbstractCamera {
             this.radius = Math.min(this.radius, Math.max(0, distance));
         }
 
-        if (this.radius < this.player.radius) {
+        // The main player can be gone for a frame while the space is torn
+        // down; the camera still settles, there is just nobody to hide.
+        if (Players.main != null) {
 
-            Players.main.hide()
-        } else {
+            if (this.radius < this.player.radius) {
 
-            Players.main.show()
+                Players.main.hide()
+            } else {
+
+                Players.main.show()
+            }
         }
 
         this.sphericalToVec3(this.radius, this.theta, orbitPhi, cartv3)
@@ -819,7 +833,7 @@ class PlayerCamera extends AbstractCamera {
 
         this.updateMatrix();
 
-        if (!Players.main.visible) {
+        if (!Players.main?.visible) {
 
             this.rotation.y = MathUtils.degToRad(this.theta);
 
