@@ -49,6 +49,7 @@ async function lookupAutographWalletId(walletId: string) {
             headers
         );
 
+        throwIfUnavailable(response);
         if (response.ok) {
             autographId = walletId;
         } else {
@@ -59,6 +60,7 @@ async function lookupAutographWalletId(walletId: string) {
                 headers
             );
 
+            throwIfUnavailable(response);
             if (response.ok) {
                 autographId = checksumAddr;
             }
@@ -71,6 +73,14 @@ async function lookupAutographWalletId(walletId: string) {
         //
 
         return autographId || null;
+    }
+}
+
+// A 4xx answer has always meant "no wallet there"; a 5xx means the lookup
+// itself is down, which a listing should report as an error.
+function throwIfUnavailable(response: { status?: number }) {
+    if ((response.status ?? 0) >= 500) {
+        throw new Error(`Wallet lookup unavailable: ${response.status}`);
     }
 }
 

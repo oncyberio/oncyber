@@ -1,7 +1,10 @@
 /** @jest-environment node */
 import { fetchOwnedAutographAssets, isAutographUser } from "./autographAssets";
 
-const fetchMock = jest.fn<Promise<any>, any[]>(async () => ({ ok: false }));
+const fetchMock = jest.fn<Promise<any>, any[]>(async () => ({
+    ok: false,
+    status: 404,
+}));
 const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
 beforeAll(() => {
@@ -37,6 +40,14 @@ test("a failed lookup is reported as an error, not an empty list", async () => {
     fetchMock.mockRejectedValueOnce(new Error("offline"));
     const result: any = await fetchOwnedAutographAssets(
         "0x0000000000000000000000000000000000000003"
+    );
+    expect(result.hasError).toBe(true);
+});
+
+test("a lookup that answers 5xx is reported as an error", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 503 });
+    const result: any = await fetchOwnedAutographAssets(
+        "0x0000000000000000000000000000000000000004"
     );
     expect(result.hasError).toBe(true);
 });
