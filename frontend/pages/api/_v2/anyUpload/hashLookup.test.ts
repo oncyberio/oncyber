@@ -8,7 +8,7 @@ jest.mock("@utils/rpc/server", () => ({
 }));
 
 const mockDoc = jest.fn((id: string) => {
-    // Firestore refuses ids that make an invalid path, as it does live.
+    // The database rejects paths containing "//", as it does live.
     if (id.includes("//")) throw new Error("Paths must not contain //.");
     return { get: async () => ({ exists: false, data: () => undefined }) };
 });

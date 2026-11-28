@@ -4,15 +4,49 @@ import { publicFetch } from "@utils/net/publicFetch";
 
 const MEDIA = /^(image|video|audio|model)\/[\w.+-]+$|^application\/(octet-stream|json|gltf-buffer|wasm)$/i;
 
+// Assets whose host failed recently, with when we may try again. The CDN
+// does not cache a 502, so this instance remembers instead: a space full of
+// artworks from a dead host then costs one upstream attempt, not one each.
+const FAILED_FOR_MS = 10 * 60 * 1000;
+const MAX_REMEMBERED = 5000;
+export const recentFailures = new Map<string, number>();
+
+function failedRecently(url: string, now = Date.now()) {
+  const until = recentFailures.get(url);
+  if (until == null) return false;
+  if (until > now) return true;
+  recentFailures.delete(url);
+  return false;
+}
+
+function rememberFailure(url: string, now = Date.now()) {
+  if (recentFailures.size >= MAX_REMEMBERED) {
+    // Oldest first: a Map keeps insertion order.
+    recentFailures.delete(recentFailures.keys().next().value);
+  }
+  recentFailures.set(url, now + FAILED_FOR_MS);
+}
+
 export default async function handler(req, res) {
+  const url = String(req.query.url ?? "");
   try {
     await corsMiddleware(req, res);
 
-    const response = await publicFetch(String(req.query.url ?? ""), {
-      maxBytes: 100 * 1024 * 1024,
-      timeoutMs: 30000,
-    });
-    if (response.status < 200 || response.status >= 300) throw new Error("Upstream error");
+    if (failedRecently(url)) return upstreamFailed(res);
+
+    let response;
+    try {
+      response = await publicFetch(url, {
+        maxBytes: 100 * 1024 * 1024,
+        timeoutMs: 30000,
+      });
+    } catch {
+      response = null;
+    }
+    if (!response || response.status < 200 || response.status >= 300) {
+      rememberFailure(url);
+      return upstreamFailed(res);
+    }
 
     // Only media types pass through; anything else (HTML, SVG with script,
     // text) is served as an opaque download so it never runs on our origin.
@@ -31,10 +65,13 @@ export default async function handler(req, res) {
     );
     return res.send(response.body);
   } catch (error) {
-    // The asset's host is down, gone or refused: that's the upstream's
-    // failure, not ours. Cache the answer briefly so a space full of artworks
-    // from a dead host doesn't ask again for every visitor.
-    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600');
-    return res.status(502).json({ error: 'Failed to fetch asset' });
+    return res.status(500).json({ error: 'Failed to fetch asset' });
   }
+}
+
+// The asset's host is down, gone or refused: that's the upstream's failure,
+// not ours. Browsers keep the answer a few minutes too.
+function upstreamFailed(res) {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  return res.status(502).json({ error: 'Failed to fetch asset' });
 }

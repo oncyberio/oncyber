@@ -22,7 +22,7 @@ export async function getAutographWalletId(walletId: string) {
         method: "HEAD",
     };
 
-    // Autograph accounts are Ethereum wallets. Accounts signed in another way
+    // The lookup only knows Ethereum wallets. Accounts signed in another way
     // (email, guests) have ids that aren't addresses: nothing to look up.
     if (!/^0x[0-9a-fA-F]{40}$/.test(walletId ?? "")) return null;
 
@@ -91,6 +91,8 @@ async function queryAutographApi(url: string) {
 
 export async function fetchOwnedAutographAssets(userId: string, page = 0) {
     const autographId = await getAutographWalletId(userId);
+    // No wallet the lookup knows: nothing to list, and no request to make.
+    if (!autographId) return { assets: [], hasMore: false };
     try {
         let offset = page * PAGE_SIZE;
         let { data, metadata } = await queryAutographApi(

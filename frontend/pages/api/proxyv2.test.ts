@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import handler from "./proxyv2";
+import handler, { recentFailures } from "./proxyv2";
 import { publicFetch } from "@utils/net/publicFetch";
 
 jest.mock("../../utils/middlewares/corsMiddleware", () => ({
@@ -16,12 +16,31 @@ function response() {
     return res;
 }
 
-test("a dead upstream answers 502, cached briefly", async () => {
+beforeEach(() => {
+    recentFailures.clear();
+    (publicFetch as jest.Mock).mockReset();
+});
+
+test("a dead upstream answers 502 and isn't asked again for a while", async () => {
     (publicFetch as jest.Mock).mockRejectedValue(new Error("ENOTFOUND"));
-    const res = response();
-    await handler({ query: { url: "https://gone.example/a.png" } }, res);
-    expect(res.statusCode).toBe(502);
-    expect(res.headers["Cache-Control"]).toMatch(/s-maxage=600/);
+    const req = { query: { url: "https://gone.example/a.png" } };
+    const first = response();
+    await handler(req, first);
+    expect(first.statusCode).toBe(502);
+    expect(first.headers["Cache-Control"]).toMatch(/max-age=300/);
+
+    const second = response();
+    await handler(req, second);
+    expect(second.statusCode).toBe(502);
+    expect(publicFetch).toHaveBeenCalledTimes(1);
+});
+
+test("an upstream error status is remembered the same way", async () => {
+    (publicFetch as jest.Mock).mockResolvedValue({ status: 404, headers: {} });
+    const req = { query: { url: "https://gone.example/b.png" } };
+    await handler(req, response());
+    await handler(req, response());
+    expect(publicFetch).toHaveBeenCalledTimes(1);
 });
 
 test("a media answer passes through", async () => {

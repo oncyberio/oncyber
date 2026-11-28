@@ -496,6 +496,9 @@ class PlayerCamera extends AbstractCamera {
 
         const maxZoomOut = MAX_ZOOM_OUT
 
+        // No player to keep in view (the space is being torn down).
+        if (Players.main == null) return maxZoomOut
+
         this.sphericalToVec3(maxZoomOut, theta, phi, cartv3)
 
         const playerCenter = Players.main.getWorldCenterPoint();
@@ -638,6 +641,8 @@ class PlayerCamera extends AbstractCamera {
         playerForwardVector.set(0, 0, -1);
 
         cameraForwardVector.set(0, 0, -1);
+
+        if (Players.main == null) return;
 
         playerRotation.set(0, Players.main.rotation.y, 0);
 
@@ -824,7 +829,7 @@ class PlayerCamera extends AbstractCamera {
 
         this.updateMatrix();
 
-        if (!Players.main.visible) {
+        if (!Players.main?.visible) {
 
             this.rotation.y = MathUtils.degToRad(this.theta);
 
