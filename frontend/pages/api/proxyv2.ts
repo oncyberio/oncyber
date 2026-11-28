@@ -1,6 +1,7 @@
 // Media proxy for artwork/preview assets on hosts without CORS.
 import { corsMiddleware } from "../../utils/middlewares/corsMiddleware";
 import { publicFetch } from "@utils/net/publicFetch";
+import { z } from "zod";
 
 const MEDIA = /^(image|video|audio|model)\/[\w.+-]+$|^application\/(octet-stream|json|gltf-buffer|wasm)$/i;
 
@@ -27,8 +28,16 @@ function rememberFailure(url: string, now = Date.now()) {
   recentFailures.set(url, now + FAILED_FOR_MS);
 }
 
+// One asset address per request: a missing or repeated url is a bad request,
+// not an upstream failure to remember.
+const Query = z.object({ url: z.string().min(1) });
+
 export default async function handler(req, res) {
-  const url = String(req.query.url ?? "");
+  const query = Query.safeParse(req.query);
+  if (!query.success) {
+    return res.status(400).json({ error: 'Expected one url' });
+  }
+  const url = query.data.url;
   try {
     await corsMiddleware(req, res);
 

@@ -54,3 +54,18 @@ test("a media answer passes through", async () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["Content-Type"]).toBe("image/png");
 });
+
+test.each([
+    ["no url", {}],
+    ["an empty url", { url: "" }],
+    [
+        "two urls",
+        { url: ["https://a.example/1.png", "https://b.example/2.png"] },
+    ],
+])("%s is a bad request", async (_n, query) => {
+    const res = response();
+    await handler({ query }, res);
+    expect(res.statusCode).toBe(400);
+    expect(publicFetch).not.toHaveBeenCalled();
+    expect(recentFailures.size).toBe(0);
+});

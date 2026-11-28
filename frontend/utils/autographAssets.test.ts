@@ -1,7 +1,7 @@
 /** @jest-environment node */
-import { isAutographUser } from "./autographAssets";
+import { fetchOwnedAutographAssets, isAutographUser } from "./autographAssets";
 
-const fetchMock = jest.fn(async () => ({ ok: false }));
+const fetchMock = jest.fn<Promise<any>, any[]>(async () => ({ ok: false }));
 const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
 beforeAll(() => {
@@ -25,4 +25,18 @@ test.each([
 test("an Ethereum wallet is still looked up", async () => {
     await isAutographUser("0x0000000000000000000000000000000000000001");
     expect(fetchMock).toHaveBeenCalled();
+});
+
+test("a wallet with nothing there lists nothing", async () => {
+    await expect(
+        fetchOwnedAutographAssets("0x0000000000000000000000000000000000000002")
+    ).resolves.toEqual({ assets: [], hasMore: false });
+});
+
+test("a failed lookup is reported as an error, not an empty list", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("offline"));
+    const result: any = await fetchOwnedAutographAssets(
+        "0x0000000000000000000000000000000000000003"
+    );
+    expect(result.hasError).toBe(true);
 });

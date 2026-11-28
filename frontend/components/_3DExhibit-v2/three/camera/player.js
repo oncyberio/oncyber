@@ -602,7 +602,11 @@ class PlayerCamera extends AbstractCamera {
 
         if (deltaTime > 0.01) deltaTime = 0.01;
 
-        const angle = Camera.currentControls.world.playerState.joystickStates["ANGLE"];
+        // The controls are rebuilt now and then; skip the frame while they are.
+        const playerState = Camera.currentControls?.world?.playerState;
+        if (!playerState) return;
+
+        const angle = playerState.joystickStates["ANGLE"];
 
         let adjustment;
 

@@ -18,6 +18,17 @@ type Chain = "matic" | "klaytn";
 let idMap: Record<string, string> = {};
 
 export async function getAutographWalletId(walletId: string) {
+    try {
+        return await lookupAutographWalletId(walletId);
+    } catch (err) {
+        console.error("[isAutographUser]", err);
+        return null;
+    }
+}
+
+// Null when the wallet has nothing there; throws when the lookup itself fails
+// (network down), so a listing can report an error instead of an empty list.
+async function lookupAutographWalletId(walletId: string) {
     let headers = {
         method: "HEAD",
     };
@@ -26,7 +37,7 @@ export async function getAutographWalletId(walletId: string) {
     // (email, guests) have ids that aren't addresses: nothing to look up.
     if (!/^0x[0-9a-fA-F]{40}$/.test(walletId ?? "")) return null;
 
-    try {
+    {
         const key = walletId.toLowerCase();
 
         let autographId = idMap[key];
@@ -60,9 +71,6 @@ export async function getAutographWalletId(walletId: string) {
         //
 
         return autographId || null;
-    } catch (err) {
-        console.error("[isAutographUser]", err);
-        return null;
     }
 }
 
@@ -90,10 +98,10 @@ async function queryAutographApi(url: string) {
 }
 
 export async function fetchOwnedAutographAssets(userId: string, page = 0) {
-    const autographId = await getAutographWalletId(userId);
-    // No wallet the lookup knows: nothing to list, and no request to make.
-    if (!autographId) return { assets: [], hasMore: false };
     try {
+        const autographId = await lookupAutographWalletId(userId);
+        // No wallet the lookup knows: nothing to list, and no request to make.
+        if (!autographId) return { assets: [], hasMore: false };
         let offset = page * PAGE_SIZE;
         let { data, metadata } = await queryAutographApi(
             `${API_PATH}/users/profile/nfts?skip=${offset}&limit=${PAGE_SIZE}&address=${autographId}`
